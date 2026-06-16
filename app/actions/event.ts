@@ -27,6 +27,30 @@ export async function saveEventField(eventId: string, field: string, value: stri
   revalidatePath(`/e/${event.slug}`);
 }
 
+// ── Location ───────────────────────────────────────────────────────────────────
+
+export async function saveEventLocation(
+  eventId: string,
+  data: {
+    locationType: "PHYSICAL" | "VIRTUAL" | "TBD";
+    locationName: string | null;
+    locationAddress: string | null;
+    virtualUrl: string | null;
+  }
+) {
+  const event = await assertHost(eventId);
+  await db.event.update({
+    where: { id: eventId },
+    data: {
+      locationType: data.locationType,
+      locationName: data.locationName || null,
+      locationAddress: data.locationAddress || null,
+      virtualUrl: data.virtualUrl || null,
+    },
+  });
+  revalidatePath(`/e/${event.slug}`);
+}
+
 // ── Theme ──────────────────────────────────────────────────────────────────────
 
 export async function saveEventTheme(eventId: string, baseTheme: BaseTheme, accentColor: string) {
