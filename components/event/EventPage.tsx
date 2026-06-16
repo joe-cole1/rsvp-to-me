@@ -571,7 +571,7 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
       </div>
 
       {/* ── Host Bar ── */}
-      {isHost && <HostBar eventSlug={event.slug} theme={t} />}
+      {isHost && <HostBar eventId={event.id} eventSlug={event.slug} theme={t} />}
 
       {/* ── Settings link (gear icon, top right) ── */}
       {isHost && (
