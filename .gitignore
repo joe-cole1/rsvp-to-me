@@ -52,3 +52,6 @@ next-env.d.ts
 *.db-journal
 *.db-shm
 *.db-wal
+
+# Docker data volume
+/data/
