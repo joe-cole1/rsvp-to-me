@@ -1,0 +1,22 @@
+# Builds directly from the main branch on GitHub — no local clone needed.
+# Useful for testing the latest code on any server.
+#
+# Usage:
+#   cp .env.example .env   # fill in your secrets
+#   docker compose -f docker-compose.dev.yml up --build -d
+#
+# To update to the latest main:
+#   docker compose -f docker-compose.dev.yml up --build -d
+
+services:
+  app:
+    build:
+      context: https://github.com/joe-cole1/rsvp-to-me.git#main
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      DATABASE_URL: file:/app/data/prod.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
