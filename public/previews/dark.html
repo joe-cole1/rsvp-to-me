@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview: Dark & Moody</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; background: linear-gradient(135deg, #0a0a0f 0%, #13091f 40%, #0d1117 100%); color: #fff; position: relative; overflow-x: hidden; }
+
+  .glow1 { position: fixed; top: -20%; left: 30%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(168,85,247,0.18) 0%, transparent 70%); filter: blur(40px); pointer-events: none; z-index: 0; }
+  .glow2 { position: fixed; bottom: 10%; right: -10%; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); filter: blur(40px); pointer-events: none; z-index: 0; }
+
+  .container { position: relative; z-index: 1; max-width: 440px; margin: 0 auto; padding: 48px 16px 48px; }
+
+  .cover { width: 100%; height: 260px; border-radius: 20px; margin-bottom: 32px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%); box-shadow: 0 0 60px rgba(168,85,247,0.4); font-size: 72px; }
+
+  .badges { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 12px; border-radius: 100px; background: rgba(168,85,247,0.2); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+
+  .host { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; color: #a1a1aa; font-size: 14px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+
+  .location { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); margin-bottom: 28px; }
+  .location-icon { font-size: 18px; color: #a855f7; }
+  .location-name { font-weight: 600; font-size: 15px; }
+  .location-addr { color: #71717a; font-size: 13px; margin-top: 2px; }
+
+  .desc { color: #a1a1aa; line-height: 1.7; margin-bottom: 28px; font-size: 15px; }
+
+  .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(168,85,247,0.2); backdrop-filter: blur(12px); border-radius: 20px; padding: 24px; margin-bottom: 16px; }
+  .card-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+
+  .rsvp-opts { display: flex; gap: 10px; margin-bottom: 20px; }
+  .rsvp-btn { flex: 1; padding: 12px 8px; border: none; border-radius: 14px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; transition: all 0.15s; }
+  .rsvp-btn.active { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; box-shadow: 0 0 20px rgba(168,85,247,0.4); }
+  .rsvp-btn:not(.active) { background: rgba(255,255,255,0.06); color: #a1a1aa; border: 1px solid rgba(255,255,255,0.08); }
+  .rsvp-btn .emoji { font-size: 20px; display: block; margin-bottom: 4px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 10px; }
+  .inp { width: 100%; padding: 12px 16px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: inherit; font-size: 14px; outline: none; }
+  .inp::placeholder { color: #71717a; }
+  .submit { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; font-family: inherit; font-size: 14px; font-weight: 700; padding: 14px; border: none; border-radius: 14px; cursor: pointer; box-shadow: 0 0 24px rgba(168,85,247,0.35); width: 100%; }
+
+  .guests-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .guests-maybe { color: #71717a; font-size: 13px; }
+  .guest-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .guest-pill { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 100px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); font-size: 13px; }
+  .guest-av { width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+
+  .comments { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .comment { display: flex; gap: 10px; }
+  .comment-av { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .comment-body { flex: 1; background: rgba(255,255,255,0.05); border-radius: 14px; padding: 10px 14px; }
+  .comment-name { font-size: 13px; font-weight: 700; }
+  .comment-time { font-size: 11px; color: #71717a; margin-left: 8px; }
+  .comment-text { color: #d4d4d8; font-size: 14px; margin-top: 4px; }
+
+  .comment-input { display: flex; gap: 8px; }
+  .post-btn { padding: 8px 16px; border-radius: 12px; background: rgba(168,85,247,0.3); color: #c084fc; border: none; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+  .footer { text-align: center; margin-top: 32px; font-size: 12px; color: #3f3f46; }
+</style>
+</head>
+<body>
+<div class="glow1"></div>
+<div class="glow2"></div>
+<div class="container">
+
+  <div class="cover">🍷</div>
+
+  <div class="badges">
+    <span class="badge">Friday, June 27</span>
+    <span class="badge">8:00 PM</span>
+  </div>
+
+  <h1>Wine Night ✨</h1>
+
+  <div class="host">
+    <div class="avatar">J</div>
+    Hosted by Joe
+  </div>
+
+  <div class="location">
+    <span class="location-icon">📍</span>
+    <div>
+      <div class="location-name">Joe's Place</div>
+      <div class="location-addr">123 Main St, Brooklyn, NY</div>
+    </div>
+  </div>
+
+  <p class="desc">Monthly wine night at my place! Bring a bottle you love and be ready to share what you enjoy about it. I'll have snacks and plenty of glasses. This month's theme is anything from Burgundy. 🍇</p>
+
+  <!-- RSVP Card -->
+  <div class="card">
+    <div class="card-title">Are you coming?</div>
+    <div class="rsvp-opts">
+      <button class="rsvp-btn active"><span class="emoji">🎉</span>Going</button>
+      <button class="rsvp-btn"><span class="emoji">🤔</span>Maybe</button>
+      <button class="rsvp-btn"><span class="emoji">😔</span>Can't go</button>
+    </div>
+    <div class="form-group">
+      <input class="inp" placeholder="Your name" />
+      <input class="inp" placeholder="Email (optional — for updates)" />
+      <button class="submit">Send RSVP</button>
+    </div>
+  </div>
+
+  <!-- Guest list -->
+  <div class="card">
+    <div class="guests-header">
+      <span style="font-weight:700">Going (8)</span>
+      <span class="guests-maybe">3 maybe</span>
+    </div>
+    <div class="guest-pills">
+      <div class="guest-pill"><div class="guest-av">S</div>Sarah</div>
+      <div class="guest-pill"><div class="guest-av">M</div>Mike</div>
+      <div class="guest-pill"><div class="guest-av">E</div>Emma</div>
+      <div class="guest-pill"><div class="guest-av">J</div>James</div>
+      <div class="guest-pill"><div class="guest-av">P</div>Priya</div>
+      <div class="guest-pill"><div class="guest-av">T</div>Tom</div>
+      <div class="guest-pill"><div class="guest-av">L</div>Leila</div>
+      <div class="guest-pill"><div class="guest-av">R</div>Raj</div>
+    </div>
+  </div>
+
+  <!-- Comments -->
+  <div class="card">
+    <div class="card-title">Vibes 💬</div>
+    <div class="comments">
+      <div class="comment">
+        <div class="comment-av">S</div>
+        <div class="comment-body">
+          <span class="comment-name">Sarah</span><span class="comment-time">2h ago</span>
+          <p class="comment-text">Cannot wait!! Bringing a Pinot I've been saving 🍷</p>
+        </div>
+      </div>
+      <div class="comment">
+        <div class="comment-av">M</div>
+        <div class="comment-body">
+          <span class="comment-name">Mike</span><span class="comment-time">1h ago</span>
+          <p class="comment-text">YES. Bringing something from Burgundy!</p>
+        </div>
+      </div>
+    </div>
+    <div class="comment-input">
+      <input class="inp" style="flex:1" placeholder="Say something..." />
+      <button class="post-btn">Post</button>
+    </div>
+  </div>
+
+  <div class="footer">rsvp to me</div>
+</div>
+</body>
+</html>

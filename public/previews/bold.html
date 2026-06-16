@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview: Bold & Colorful</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; background: #fafafa; color: #0a0a0a; position: relative; }
+
+  .hero-bg { position: fixed; top: 0; left: 0; right: 0; height: 340px; background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); z-index: 0; }
+
+  .container { position: relative; z-index: 1; max-width: 440px; margin: 0 auto; padding: 40px 16px 48px; }
+
+  .cover-hero { width: 100%; height: 240px; border-radius: 24px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); font-size: 90px; margin-bottom: 0; }
+
+  .white-card { background: #ffffff; border-radius: 24px; padding: 24px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); margin-top: -24px; position: relative; z-index: 2; }
+
+  .badges { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 12px; border-radius: 100px; background: rgba(249,115,22,0.12); color: #f97316; }
+
+  h1 { font-size: 36px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 8px; }
+
+  .host { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; color: #71717a; font-size: 14px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #f97316; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff; flex-shrink: 0; }
+
+  .location { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 18px; background: #f4f4f5; margin-bottom: 20px; }
+  .location-name { font-weight: 800; font-size: 14px; }
+  .location-addr { color: #71717a; font-size: 13px; margin-top: 2px; }
+
+  .desc { color: #52525b; line-height: 1.7; margin-bottom: 20px; font-size: 14px; }
+
+  .rsvp-section { background: #f4f4f5; border-radius: 18px; padding: 20px; margin-bottom: 20px; }
+  .section-title { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+
+  .rsvp-opts { display: flex; gap: 8px; margin-bottom: 16px; }
+  .rsvp-btn { flex: 1; padding: 12px 6px; border: none; border-radius: 14px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; }
+  .rsvp-btn.active { background: #f97316; color: #fff; }
+  .rsvp-btn:not(.active) { background: #e4e4e7; color: #71717a; }
+  .rsvp-btn .emoji { font-size: 18px; display: block; margin-bottom: 4px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .inp { width: 100%; padding: 12px 16px; border-radius: 14px; background: #ffffff; border: 2px solid #e4e4e7; color: #0a0a0a; font-family: inherit; font-size: 14px; font-weight: 600; outline: none; }
+  .inp::placeholder { color: #a1a1aa; font-weight: 400; }
+  .submit { background: #f97316; color: #fff; font-family: inherit; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; padding: 14px; border: none; border-radius: 14px; cursor: pointer; width: 100%; }
+
+  .guests-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .guest-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .guest-pill { padding: 6px 12px; border-radius: 100px; font-size: 12px; font-weight: 700; background: rgba(249,115,22,0.12); color: #f97316; }
+
+  .comments { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .comment { display: flex; gap: 10px; background: #f4f4f5; border-radius: 14px; padding: 12px; }
+  .comment-av { width: 28px; height: 28px; border-radius: 50%; background: #f97316; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: #fff; flex-shrink: 0; }
+  .comment-name { font-size: 13px; font-weight: 900; }
+  .comment-time { font-size: 11px; color: #a1a1aa; margin-left: 6px; font-weight: 400; }
+  .comment-text { color: #52525b; font-size: 13px; margin-top: 3px; }
+
+  .comment-input { display: flex; gap: 8px; }
+  .post-btn { padding: 10px 16px; border-radius: 12px; background: #f97316; color: #fff; border: none; font-family: inherit; font-size: 13px; font-weight: 900; cursor: pointer; white-space: nowrap; }
+
+  .footer { text-align: center; margin-top: 32px; font-size: 12px; color: #d4d4d8; }
+</style>
+</head>
+<body>
+<div class="hero-bg"></div>
+<div class="container">
+
+  <div class="cover-hero">🍷</div>
+
+  <div class="white-card">
+    <div class="badges" style="margin-top:4px">
+      <span class="badge">Friday, June 27</span>
+      <span class="badge">8:00 PM</span>
+    </div>
+
+    <h1>Wine Night ✨</h1>
+
+    <div class="host">
+      <div class="avatar">J</div>
+      Hosted by Joe
+    </div>
+
+    <div class="location">
+      <span style="font-size:22px">📍</span>
+      <div>
+        <div class="location-name">Joe's Place</div>
+        <div class="location-addr">123 Main St, Brooklyn, NY</div>
+      </div>
+    </div>
+
+    <p class="desc">Monthly wine night at my place! Bring a bottle you love and be ready to share what you enjoy about it. I'll have snacks and plenty of glasses. This month's theme is anything from Burgundy. 🍇</p>
+
+    <div class="rsvp-section">
+      <div class="section-title">Are you coming?</div>
+      <div class="rsvp-opts">
+        <button class="rsvp-btn active"><span class="emoji">🎉</span>Going</button>
+        <button class="rsvp-btn"><span class="emoji">🤔</span>Maybe</button>
+        <button class="rsvp-btn"><span class="emoji">😔</span>Can't</button>
+      </div>
+      <div class="form-group">
+        <input class="inp" placeholder="Your name" />
+        <input class="inp" placeholder="Email (optional)" />
+        <button class="submit">Send RSVP →</button>
+      </div>
+    </div>
+
+    <div class="guests-header">
+      <span style="font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em">Going (8)</span>
+      <span style="color:#a1a1aa;font-size:12px;font-weight:700">3 maybe</span>
+    </div>
+    <div class="guest-pills">
+      <span class="guest-pill">Sarah</span>
+      <span class="guest-pill">Mike</span>
+      <span class="guest-pill">Emma</span>
+      <span class="guest-pill">James</span>
+      <span class="guest-pill">Priya</span>
+      <span class="guest-pill">Tom</span>
+      <span class="guest-pill">Leila</span>
+      <span class="guest-pill">Raj</span>
+    </div>
+
+    <div style="font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Hype 💬</div>
+    <div class="comments">
+      <div class="comment">
+        <div class="comment-av">S</div>
+        <div>
+          <span class="comment-name">Sarah</span><span class="comment-time">2h ago</span>
+          <p class="comment-text">Cannot wait!! Bringing a Pinot I've been saving 🍷</p>
+        </div>
+      </div>
+      <div class="comment">
+        <div class="comment-av">M</div>
+        <div>
+          <span class="comment-name">Mike</span><span class="comment-time">1h ago</span>
+          <p class="comment-text">YES. Bringing something from Burgundy!</p>
+        </div>
+      </div>
+    </div>
+    <div class="comment-input">
+      <input class="inp" style="flex:1" placeholder="Say something..." />
+      <button class="post-btn">Post</button>
+    </div>
+  </div>
+
+  <div class="footer">rsvp to me</div>
+</div>
+</body>
+</html>
