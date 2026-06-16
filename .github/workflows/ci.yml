@@ -27,12 +27,18 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test
+        run: npm test
+        env:
+          SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          DATABASE_URL: file:./ci.db
+
       - name: Build
         run: npm run build
         env:
           DATABASE_URL: file:./ci.db
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
           HOST_INVITE_CODE: ci-test
-          RESEND_API_KEY: ""
           EMAIL_FROM: ci@example.com
           NEXT_PUBLIC_APP_URL: http://localhost:3000
