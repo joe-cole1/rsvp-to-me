@@ -59,7 +59,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       event={{ ...event, pendingRsvps } as Parameters<typeof EventPage>[0]["event"]}
       isHost={!!isHost}
       theme={theme}
-      coverUploadEnabled={!!process.env.UPLOADTHING_TOKEN}
+      coverUploadEnabled={true}
     />
   );
 }
