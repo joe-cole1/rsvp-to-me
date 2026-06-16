@@ -172,7 +172,7 @@ function DateEdit({
   timezone,
   eventId,
   isHost,
-  badge,
+  theme: t,
   onSave,
 }: {
   startAt: Date;
@@ -180,7 +180,7 @@ function DateEdit({
   timezone: string;
   eventId: string;
   isHost: boolean;
-  badge: React.CSSProperties;
+  theme: ResolvedTheme;
   onSave: (start: Date, end: Date | null) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -221,19 +221,19 @@ function DateEdit({
     });
   };
 
-  const editBadge: React.CSSProperties = isHost
-    ? { ...badge, cursor: "pointer", borderStyle: "dashed" }
-    : badge;
-
   return (
     <div ref={wrapRef} style={{ position: "relative" }}>
-      <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-        <span style={editBadge} onClick={isHost ? openPopover : undefined} title={isHost ? "Click to edit date/time" : undefined}>
+      <div
+        style={{ marginBottom: "20px", cursor: isHost ? "pointer" : "default", display: "inline-block" }}
+        onClick={isHost ? openPopover : undefined}
+        title={isHost ? "Click to edit date/time" : undefined}
+      >
+        <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.02em", color: t.textPrimary, borderBottom: isHost ? "1.5px dashed rgba(255,255,255,0.2)" : "none" }}>
           {formatDate(startAt, timezone)}
-        </span>
-        <span style={editBadge} onClick={isHost ? openPopover : undefined} title={isHost ? "Click to edit date/time" : undefined}>
+        </div>
+        <div style={{ fontSize: "16px", color: t.textSecondary, marginTop: "4px", fontWeight: 500 }}>
           {formatTime(startAt, timezone)}{endAt ? ` – ${formatTime(endAt, timezone)}` : ""}
-        </span>
+        </div>
       </div>
 
       {open && (
@@ -319,6 +319,8 @@ function LocationEdit({
   onSave: (data: { locationType: LocationType; locationName: string | null; locationAddress: string | null; virtualUrl: string | null }) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [type, setType] = useState<LocationType>(initialType);
   const [name, setName] = useState(initialName ?? "");
   const [address, setAddress] = useState(initialAddress ?? "");
@@ -327,18 +329,23 @@ function LocationEdit({
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !menuOpen) return;
     const onMouse = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setMenuOpen(false);
+      }
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setOpen(false); setMenuOpen(false); }
+    };
     document.addEventListener("mousedown", onMouse);
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onMouse);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, menuOpen]);
 
   const openPopover = () => {
     setType(initialType);
@@ -419,10 +426,47 @@ function LocationEdit({
           <div style={editCardStyle} onClick={openPopover} title="Click to edit location">
             {locationCardInner}
           </div>
-        ) : initialType === "PHYSICAL" && initialAddress ? (
-          <a href={buildMapUrl(initialAddress)} target="_blank" rel="noopener noreferrer" style={cardStyle}>
-            {locationCardInner}
-          </a>
+        ) : initialType === "PHYSICAL" && (initialName || initialAddress) ? (
+          <>
+            <div
+              style={{ ...cardStyle, cursor: initialAddress ? "pointer" : "default" }}
+              onClick={() => initialAddress && setMenuOpen((o) => !o)}
+            >
+              {locationCardInner}
+            </div>
+            {menuOpen && initialAddress && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 150,
+                background: "rgba(13,13,22,0.97)", backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255,255,255,0.12)", borderRadius: "14px",
+                overflow: "hidden", minWidth: "220px",
+                boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+              }}>
+                <a
+                  href={buildMapUrl(initialAddress)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", color: t.textPrimary, textDecoration: "none", fontSize: "14px", fontWeight: 600 }}
+                >
+                  <MapPin size={15} style={{ color: t.accent }} />
+                  Open in Maps
+                </a>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(initialAddress);
+                    setCopied(true);
+                    setTimeout(() => { setCopied(false); setMenuOpen(false); }, 1200);
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", width: "100%", background: "none", border: "none", borderTop: "1px solid rgba(255,255,255,0.08)", color: t.textPrimary, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  <Check size={15} style={{ color: copied ? t.accent : "transparent", position: "absolute" }} />
+                  <span style={{ width: "15px", fontSize: "14px", opacity: copied ? 0 : 1 }}>📋</span>
+                  {copied ? "Copied!" : "Copy address"}
+                </button>
+              </div>
+            )}
+          </>
         ) : initialType === "VIRTUAL" && initialVirtualUrl ? (
           <a href={initialVirtualUrl} target="_blank" rel="noopener noreferrer" style={cardStyle}>
             {locationCardInner}
@@ -729,7 +773,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           timezone={event.timezone}
           eventId={event.id}
           isHost={isHost}
-          badge={S.badge}
+          theme={t}
           onSave={(start, end) => setEvent((e) => ({ ...e, startAt: start, endAt: end }))}
         />
 
@@ -764,32 +808,35 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         </div>
 
         {/* ── Info sections ── */}
-        {event.infoSections.map((sec) => {
-          const meta = INFO_META[sec.type] ?? INFO_META.CUSTOM;
-          const Icon = meta.icon;
-          return (
-            <div key={sec.id} style={{ ...S.card, display: "flex", gap: "12px", alignItems: "flex-start" }}>
-              <Icon size={18} style={{ color: t.accent, flexShrink: 0, marginTop: "2px" }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.06em", color: t.textMuted, marginBottom: "4px" }}>
-                  {sec.title ?? meta.label}
+        {event.infoSections.length > 0 && (
+          <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, backdropFilter: "blur(12px)", marginBottom: "16px", overflow: "hidden" }}>
+            {event.infoSections.map((sec, i) => {
+              const meta = INFO_META[sec.type] ?? INFO_META.CUSTOM;
+              const Icon = meta.icon;
+              return (
+                <div key={sec.id} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "11px 16px", borderTop: i > 0 ? `1px solid ${t.cardBorder}` : "none" }}>
+                  <Icon size={15} style={{ color: t.accent, flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontSize: "13px" }}>
+                    <span style={{ fontWeight: 600, color: t.textPrimary }}>{sec.title ?? meta.label}</span>
+                    {sec.content && <span style={{ color: t.textMuted }}> · </span>}
+                    {sec.type === "LINK" && sec.url ? (
+                      <a href={sec.url} target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: "none" }}>
+                        {sec.content} <ExternalLink size={11} style={{ display: "inline", verticalAlign: "middle" }} />
+                      </a>
+                    ) : (
+                      <span style={{ color: t.textSecondary }}>{sec.content}</span>
+                    )}
+                  </div>
+                  {isHost && (
+                    <button onClick={() => deleteSection(sec.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
-                <div style={{ fontSize: "14px", color: t.textSecondary }}>
-                  {sec.type === "LINK" && sec.url ? (
-                    <a href={sec.url} target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: "none" }}>
-                      {sec.content} <ExternalLink size={12} style={{ display: "inline" }} />
-                    </a>
-                  ) : sec.content}
-                </div>
-              </div>
-              {isHost && (
-                <button onClick={() => deleteSection(sec.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px" }}>
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
 
         {/* ── Add info section chips (host only) ── */}
         {isHost && availableTypes.length > 0 && (
