@@ -6,8 +6,9 @@ export interface SessionData {
   email: string;
 }
 
-const COOKIE_NAME = "rsvp-session";
-const TTL = 60 * 60 * 24 * 30; // 30 days
+export const COOKIE_NAME = "rsvp-session";
+export const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
+const TTL = SESSION_TTL;
 
 function getPassword(): string {
   const secret = process.env.SESSION_SECRET;
@@ -30,6 +31,10 @@ export async function getSession(): Promise<SessionData | null> {
   } catch {
     return null;
   }
+}
+
+export async function sealSession(data: SessionData): Promise<string> {
+  return sealData(data, { password: getPassword(), ttl: TTL });
 }
 
 export async function createSession(data: SessionData): Promise<void> {
