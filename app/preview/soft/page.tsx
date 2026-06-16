@@ -107,7 +107,7 @@ export default function SoftPreview() {
         >
           <span style={{ fontSize: "18px" }}>📍</span>
           <div>
-            <div className="font-medium">Joe's Place</div>
+            <div className="font-medium">Joe&apos;s Place</div>
             <div style={{ color: "#a8a29e", fontSize: "14px" }}>123 Main St, Brooklyn, NY</div>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function SoftPreview() {
         {/* Description */}
         <p className="mb-8 leading-relaxed" style={{ color: "#57534e" }}>
           Monthly wine night at my place! Bring a bottle you love and be ready to share what you
-          enjoy about it. I'll have snacks and plenty of glasses. This month's theme is anything
+          enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is anything
           from Burgundy. 🍇
         </p>
 

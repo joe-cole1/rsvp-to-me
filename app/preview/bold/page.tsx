@@ -80,7 +80,7 @@ export default function BoldPreview() {
           >
             <span style={{ fontSize: "20px" }}>📍</span>
             <div>
-              <div className="font-bold text-sm">Joe's Place</div>
+              <div className="font-bold text-sm">Joe&apos;s Place</div>
               <div style={{ color: "#71717a", fontSize: "13px" }}>123 Main St, Brooklyn, NY</div>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function BoldPreview() {
           {/* Description */}
           <p className="mb-5 leading-relaxed text-sm" style={{ color: "#52525b" }}>
             Monthly wine night at my place! Bring a bottle you love and be ready to share what
-            you enjoy about it. I'll have snacks and plenty of glasses. This month's theme is
+            you enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
             anything from Burgundy. 🍇
           </p>
 
@@ -104,7 +104,7 @@ export default function BoldPreview() {
               {[
                 { label: "Going", emoji: "🎉", active: true },
                 { label: "Maybe", emoji: "🤔", active: false },
-                { label: "Can't", emoji: "😔", active: false },
+                { label: "Can&apos;t", emoji: "😔", active: false },
               ].map((opt) => (
                 <button
                   key={opt.label}

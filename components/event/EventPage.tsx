@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
-import { Settings, Plus, MapPin, Video, Calendar, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
+import { useState, useRef, useEffect, useTransition } from "react";
+import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, addRSVP, addComment, addInfoSection, removeInfoSection } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp } from "@/app/actions/event";
+import { genUploader } from "uploadthing/client";
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 
+const { uploadFiles } = genUploader<OurFileRouter>();
+
 // ── Types ──────────────────────────────────────────────────────────────────────
+
+type PendingRsvp = { id: string; guestName: string; guestEmail: string | null; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; createdAt: Date };
 
 type EventData = {
   id: string;
@@ -24,6 +30,7 @@ type EventData = {
   commentsEnabled: boolean;
   plusOneAllowed: boolean;
   plusOneMax: number;
+  approvalRequired: boolean;
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   host: { id: string; name: string | null; email: string };
   theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; coverImageUrl: string | null } | null;
@@ -31,6 +38,7 @@ type EventData = {
   rsvps: { id: string; guestName: string; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; createdAt: Date }[];
   comments: { id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] }[];
   rsvpFields: { id: string; label: string; fieldType: string; required: boolean; options: string | null }[];
+  pendingRsvps: PendingRsvp[];
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -53,6 +61,34 @@ function timeAgo(d: Date) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+// Convert a UTC Date to a "YYYY-MM-DDTHH:MM" string in the given timezone
+function toDateTimeLocal(d: Date, tz: string): string {
+  const parts: Record<string, string> = {};
+  for (const p of new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(new Date(d))) {
+    parts[p.type] = p.value;
+  }
+  const h = parts.hour === "24" ? "00" : parts.hour;
+  return `${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}`;
+}
+
+// Convert "YYYY-MM-DDTHH:MM" in timezone tz back to a UTC Date (mirrors server logic)
+function tzLocalToUtcClient(localStr: string, tz: string): Date {
+  const asIfUtc = new Date(localStr + ":00Z");
+  const parts: Record<string, string> = {};
+  for (const p of new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(asIfUtc)) {
+    parts[p.type] = p.value;
+  }
+  const h = parts.hour === "24" ? "00" : parts.hour;
+  const localAsUtc = new Date(`${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}:${parts.second}Z`);
+  return new Date(2 * asIfUtc.getTime() - localAsUtc.getTime());
+}
+
 const INFO_META: Record<string, { icon: React.ElementType; label: string }> = {
   DRESS_CODE: { icon: Shirt,            label: "Dress Code" },
   FOOD:       { icon: UtensilsCrossed,  label: "Food & Drinks" },
@@ -65,7 +101,6 @@ const INFO_TYPES = ["DRESS_CODE", "FOOD", "PARKING", "LINK", "CUSTOM"] as const;
 
 function buildMapUrl(address: string) {
   const encoded = encodeURIComponent(address);
-  // Detect iOS/macOS via userAgent for Apple Maps; fallback to Google
   if (typeof navigator !== "undefined" && /iPhone|iPad|iPod|Mac/.test(navigator.userAgent)) {
     return `https://maps.apple.com/?q=${encoded}`;
   }
@@ -133,6 +168,137 @@ function InlineEdit({
   );
 }
 
+// ── Date/time inline editor ────────────────────────────────────────────────────
+
+function DateEdit({
+  startAt,
+  endAt,
+  timezone,
+  eventId,
+  isHost,
+  badge,
+  onSave,
+}: {
+  startAt: Date;
+  endAt: Date | null;
+  timezone: string;
+  eventId: string;
+  isHost: boolean;
+  badge: React.CSSProperties;
+  onSave: (start: Date, end: Date | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [startVal, setStartVal] = useState("");
+  const [endVal, setEndVal] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onMouse = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onMouse);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouse);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const openPopover = () => {
+    setStartVal(toDateTimeLocal(startAt, timezone));
+    setEndVal(endAt ? toDateTimeLocal(endAt, timezone) : "");
+    setOpen(true);
+  };
+
+  const save = () => {
+    if (!startVal) return;
+    startTransition(async () => {
+      await saveEventDates(eventId, startVal, endVal || null);
+      onSave(
+        tzLocalToUtcClient(startVal, timezone),
+        endVal ? tzLocalToUtcClient(endVal, timezone) : null
+      );
+      setOpen(false);
+    });
+  };
+
+  const editBadge: React.CSSProperties = isHost
+    ? { ...badge, cursor: "pointer", borderStyle: "dashed" }
+    : badge;
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+        <span style={editBadge} onClick={isHost ? openPopover : undefined} title={isHost ? "Click to edit date/time" : undefined}>
+          {formatDate(startAt, timezone)}
+        </span>
+        <span style={editBadge} onClick={isHost ? openPopover : undefined} title={isHost ? "Click to edit date/time" : undefined}>
+          {formatTime(startAt, timezone)}{endAt ? ` – ${formatTime(endAt, timezone)}` : ""}
+        </span>
+      </div>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 200,
+          background: "rgba(13,13,22,0.97)", backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px",
+          padding: "20px", minWidth: "264px",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+        }}>
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Start</label>
+            <input
+              type="datetime-local"
+              value={startVal}
+              onChange={(e) => setStartVal(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontFamily: "inherit", fontSize: "14px", colorScheme: "dark", boxSizing: "border-box" }}
+            />
+          </div>
+          <div style={{ marginBottom: "14px" }}>
+            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>
+              End <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+            </label>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <input
+                type="datetime-local"
+                value={endVal}
+                onChange={(e) => setEndVal(e.target.value)}
+                style={{ flex: 1, padding: "10px 12px", borderRadius: "10px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontFamily: "inherit", fontSize: "14px", colorScheme: "dark" }}
+              />
+              {endVal && (
+                <button onClick={() => setEndVal("")} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", color: "rgba(255,255,255,0.5)", cursor: "pointer", padding: "0 10px" }}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+          <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginBottom: "14px" }}>
+            {timezone.replace(/_/g, " ")}
+          </p>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={save}
+              disabled={!startVal || isPending}
+              style={{ flex: 1, background: "#a855f7", color: "#fff", border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: !startVal || isPending ? "not-allowed" : "pointer", opacity: !startVal || isPending ? 0.5 : 1 }}
+            >
+              {isPending ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", padding: "10px 14px", fontFamily: "inherit", fontSize: "14px", cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function EventPage({ event: initial, isHost, theme }: { event: EventData; isHost: boolean; theme: ResolvedTheme }) {
@@ -146,7 +312,9 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
   const [addingSection, setAddingSection] = useState<string | null>(null);
   const [sectionDraft, setSectionDraft] = useState({ title: "", content: "", url: "" });
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = theme;
 
@@ -166,6 +334,25 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
     });
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const [result] = await uploadFiles("coverImage", { files: [file] });
+      await saveCoverImage(event.id, result.url);
+      setEvent((ev) => ({
+        ...ev,
+        theme: { ...(ev.theme ?? { baseTheme: "DARK" as const, accentColor: "#a855f7" }), coverImageUrl: result.url },
+      }));
+    } catch (err) {
+      console.error("Cover upload failed:", err);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const submitRSVP = async () => {
     if (!rsvpStatus || !guestName.trim()) return;
     startTransition(async () => {
@@ -178,10 +365,12 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
       });
       if (result.success) {
         setRsvpDone(true);
-        setEvent((e) => ({
-          ...e,
-          rsvps: [...e.rsvps, { id: result.id!, guestName: guestName.trim(), status: rsvpStatus, plusOneCount: plusOne, createdAt: new Date() }],
-        }));
+        if (!event.approvalRequired) {
+          setEvent((e) => ({
+            ...e,
+            rsvps: [...e.rsvps, { id: result.id!, guestName: guestName.trim(), status: rsvpStatus, plusOneCount: plusOne, createdAt: new Date() }],
+          }));
+        }
       }
     });
   };
@@ -229,6 +418,31 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
     });
   };
 
+  const handleApprove = (rsvpId: string) => {
+    startTransition(async () => {
+      const result = await approveRsvp(rsvpId);
+      if (result.success) {
+        const pending = event.pendingRsvps.find((r) => r.id === rsvpId);
+        setEvent((e) => ({
+          ...e,
+          pendingRsvps: e.pendingRsvps.filter((r) => r.id !== rsvpId),
+          rsvps: pending
+            ? [...e.rsvps, { id: pending.id, guestName: pending.guestName, status: pending.status, plusOneCount: pending.plusOneCount, createdAt: pending.createdAt }]
+            : e.rsvps,
+        }));
+      }
+    });
+  };
+
+  const handleDecline = (rsvpId: string) => {
+    startTransition(async () => {
+      const result = await declineRsvp(rsvpId);
+      if (result.success) {
+        setEvent((e) => ({ ...e, pendingRsvps: e.pendingRsvps.filter((r) => r.id !== rsvpId) }));
+      }
+    });
+  };
+
   // ── Styles ──────────────────────────────────────────────────────────────────
 
   const S = {
@@ -273,24 +487,39 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
 
         {/* ── Cover image ── */}
         <div
-          style={{ ...coverStyle, width: "100%", height: "260px", borderRadius: t.pageDecoration === "bold-hero" ? "20px" : "20px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", boxShadow: t.pageDecoration === "dark-orbs" ? `0 0 60px ${t.accentBg}` : t.pageDecoration === "soft-blobs" ? "0 20px 60px rgba(0,0,0,0.08)" : "none" }}
+          style={{ ...coverStyle, width: "100%", height: "260px", borderRadius: "20px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", boxShadow: t.pageDecoration === "dark-orbs" ? `0 0 60px ${t.accentBg}` : t.pageDecoration === "soft-blobs" ? "0 20px 60px rgba(0,0,0,0.08)" : "none" }}
         >
           {!event.theme?.coverImageUrl && <span style={{ fontSize: "72px" }}>🎉</span>}
           {isHost && (
-            <button
-              onClick={() => setShowThemePicker(true)}
-              style={{ position: "absolute", top: "12px", right: "12px", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}
-            >
-              🎨 Theme
-            </button>
+            <div style={{ position: "absolute", top: "12px", right: "12px", display: "flex", gap: "6px" }}>
+              <button
+                onClick={() => setShowThemePicker(true)}
+                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                🎨 Theme
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
+              >
+                {isUploading ? "Uploading…" : "📷 Cover"}
+              </button>
+            </div>
           )}
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCoverUpload} />
         </div>
 
-        {/* ── Date badges ── */}
-        <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-          <span style={S.badge}>{formatDate(event.startAt, event.timezone)}</span>
-          <span style={S.badge}>{formatTime(event.startAt, event.timezone)}</span>
-        </div>
+        {/* ── Date badges (inline editable for host) ── */}
+        <DateEdit
+          startAt={event.startAt}
+          endAt={event.endAt}
+          timezone={event.timezone}
+          eventId={event.id}
+          isHost={isHost}
+          badge={S.badge}
+          onSave={(start, end) => setEvent((e) => ({ ...e, startAt: start, endAt: end }))}
+        />
 
         {/* ── Title ── */}
         <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", marginBottom: "8px", fontFamily: t.headingFont, color: t.textPrimary }}>
@@ -336,7 +565,7 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
 
         {/* ── Description ── */}
         <div style={{ ...S.card, background: "transparent", border: "none", padding: 0, marginBottom: "24px", backdropFilter: "none" }}>
-          <p style={{ color: t.textSecondary, lineHeight: 1.7, fontSize: "15px", whiteSpace: "pre-wrap", fontFamily: t.headingFont === "inherit" ? "inherit" : "inherit" }}>
+          <p style={{ color: t.textSecondary, lineHeight: 1.7, fontSize: "15px", whiteSpace: "pre-wrap" }}>
             <InlineEdit value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "15px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
           </p>
         </div>
@@ -374,7 +603,6 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
             {availableTypes.map((type) => {
               const meta = INFO_META[type];
-              const Icon = meta.icon;
               return (
                 <button
                   key={type}
@@ -449,7 +677,11 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
                   {rsvpStatus === "GOING" ? "You're going!" : rsvpStatus === "MAYBE" ? "Marked as maybe" : "Can't make it"}
                 </div>
                 <div style={{ fontSize: "13px", color: t.textMuted }}>
-                  {guestEmail ? "A confirmation was sent to your email." : "Thanks for responding!"}
+                  {event.approvalRequired
+                    ? "Your RSVP is pending approval."
+                    : guestEmail
+                      ? "A confirmation was sent to your email."
+                      : "Thanks for responding!"}
                 </div>
               </div>
             ) : (
@@ -502,6 +734,46 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* ── Pending approvals (host only) ── */}
+        {isHost && event.pendingRsvps.length > 0 && (
+          <div style={S.card}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
+              <Users size={16} style={{ color: t.accent }} />
+              <span style={{ fontWeight: 700 }}>Pending Approval ({event.pendingRsvps.length})</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              {event.pendingRsvps.map((r, i) => (
+                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: i < event.pendingRsvps.length - 1 ? `1px solid ${t.cardBorder}` : "none" }}>
+                  <div style={S.avatar}>{r.guestName[0].toUpperCase()}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: "14px" }}>{r.guestName}</div>
+                    <div style={{ color: t.textMuted, fontSize: "12px" }}>
+                      {r.status.toLowerCase()}{r.plusOneCount > 0 ? ` +${r.plusOneCount}` : ""}
+                      {r.guestEmail ? ` · ${r.guestEmail}` : ""}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleApprove(r.id)}
+                    disabled={isPending}
+                    style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
+                    title="Approve"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDecline(r.id)}
+                    disabled={isPending}
+                    style={{ background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", cursor: "pointer" }}
+                    title="Decline"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -590,9 +862,8 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
           eventId={event.id}
           current={{ base: event.theme?.baseTheme ?? "DARK", accent: event.theme?.accentColor ?? "#a855f7" }}
           onClose={() => setShowThemePicker(false)}
-          onSave={(base, accent) => {
+          onSave={() => {
             setShowThemePicker(false);
-            // Reload to apply new theme
             window.location.reload();
           }}
         />
