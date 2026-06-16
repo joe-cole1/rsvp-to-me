@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp } from "@/app/actions/event";
 import { genUploader } from "uploadthing/client";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { HostBar } from "./HostBar";
@@ -299,6 +299,214 @@ function DateEdit({
   );
 }
 
+// ── Location inline editor ────────────────────────────────────────────────────
+
+type LocationType = "PHYSICAL" | "VIRTUAL" | "TBD";
+
+function LocationEdit({
+  eventId,
+  locationType: initialType,
+  locationName: initialName,
+  locationAddress: initialAddress,
+  virtualUrl: initialVirtualUrl,
+  isHost,
+  theme: t,
+  onSave,
+}: {
+  eventId: string;
+  locationType: LocationType;
+  locationName: string | null;
+  locationAddress: string | null;
+  virtualUrl: string | null;
+  isHost: boolean;
+  theme: ResolvedTheme;
+  onSave: (data: { locationType: LocationType; locationName: string | null; locationAddress: string | null; virtualUrl: string | null }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState<LocationType>(initialType);
+  const [name, setName] = useState(initialName ?? "");
+  const [address, setAddress] = useState(initialAddress ?? "");
+  const [vUrl, setVUrl] = useState(initialVirtualUrl ?? "");
+  const [isPending, startTransition] = useTransition();
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onMouse = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onMouse);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouse);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const openPopover = () => {
+    setType(initialType);
+    setName(initialName ?? "");
+    setAddress(initialAddress ?? "");
+    setVUrl(initialVirtualUrl ?? "");
+    setOpen(true);
+  };
+
+  const save = () => {
+    startTransition(async () => {
+      await saveEventLocation(eventId, {
+        locationType: type,
+        locationName: type === "PHYSICAL" ? name || null : null,
+        locationAddress: type === "PHYSICAL" ? address || null : null,
+        virtualUrl: type === "VIRTUAL" ? vUrl || null : null,
+      });
+      onSave({
+        locationType: type,
+        locationName: type === "PHYSICAL" ? name || null : null,
+        locationAddress: type === "PHYSICAL" ? address || null : null,
+        virtualUrl: type === "VIRTUAL" ? vUrl || null : null,
+      });
+      setOpen(false);
+    });
+  };
+
+  const cardStyle: React.CSSProperties = {
+    display: "flex", alignItems: "flex-start", gap: "12px", padding: "16px",
+    borderRadius: t.cardRadius, background: t.cardBg, border: `1px solid ${t.cardBorder}`,
+    backdropFilter: "blur(12px)", marginBottom: "24px", textDecoration: "none", color: "inherit",
+  };
+
+  const editCardStyle: React.CSSProperties = isHost
+    ? { ...cardStyle, cursor: "pointer", borderStyle: "dashed" }
+    : cardStyle;
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1, padding: "8px", background: active ? t.accent : "rgba(255,255,255,0.07)",
+    color: active ? t.accentFg : "rgba(255,255,255,0.6)",
+    border: active ? "none" : "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "8px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer",
+  });
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "10px 12px", borderRadius: "10px",
+    background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+    color: "#fff", fontFamily: "inherit", fontSize: "14px", outline: "none", boxSizing: "border-box",
+  };
+
+  const hasLocation = (initialType === "PHYSICAL" && (initialName || initialAddress))
+    || (initialType === "VIRTUAL" && initialVirtualUrl);
+
+  const locationCardInner = initialType === "PHYSICAL" ? (
+    <>
+      <MapPin size={18} style={{ color: t.accent, flexShrink: 0, marginTop: "2px" }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: "15px" }}>{initialName}</div>
+        {initialAddress && <div style={{ color: t.textMuted, fontSize: "13px", marginTop: "2px" }}>{initialAddress}</div>}
+      </div>
+    </>
+  ) : (
+    <>
+      <Video size={18} style={{ color: t.accent, flexShrink: 0 }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: "15px" }}>Virtual Event</div>
+        <div style={{ color: t.textMuted, fontSize: "13px" }}>Click to join</div>
+      </div>
+      {!isHost && <ExternalLink size={14} style={{ marginLeft: "auto", color: t.textMuted }} />}
+    </>
+  );
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      {/* Display */}
+      {hasLocation ? (
+        isHost ? (
+          <div style={editCardStyle} onClick={openPopover} title="Click to edit location">
+            {locationCardInner}
+          </div>
+        ) : initialType === "PHYSICAL" && initialAddress ? (
+          <a href={buildMapUrl(initialAddress)} target="_blank" rel="noopener noreferrer" style={cardStyle}>
+            {locationCardInner}
+          </a>
+        ) : initialType === "VIRTUAL" && initialVirtualUrl ? (
+          <a href={initialVirtualUrl} target="_blank" rel="noopener noreferrer" style={cardStyle}>
+            {locationCardInner}
+          </a>
+        ) : (
+          <div style={cardStyle}>{locationCardInner}</div>
+        )
+      ) : isHost ? (
+        <button
+          onClick={openPopover}
+          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "100px", background: t.accentBg, border: `1px dashed ${t.accentBorder}`, color: t.textMuted, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: "24px" }}
+        >
+          <Plus size={13} />
+          Add Location
+        </button>
+      ) : null}
+
+      {/* Popover */}
+      {open && (
+        <div style={{
+          position: "absolute", top: hasLocation ? "calc(100% + 4px)" : "calc(100% - 16px)", left: 0, zIndex: 200,
+          background: "rgba(13,13,22,0.97)", backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px",
+          padding: "20px", minWidth: "280px",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+        }}>
+          {/* Type tabs */}
+          <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
+            {(["PHYSICAL", "VIRTUAL", "TBD"] as LocationType[]).map((lt) => (
+              <button key={lt} style={tabStyle(type === lt)} onClick={() => setType(lt)}>
+                {lt === "PHYSICAL" ? "📍 Physical" : lt === "VIRTUAL" ? "💻 Virtual" : "📅 TBD"}
+              </button>
+            ))}
+          </div>
+
+          {type === "PHYSICAL" && (
+            <>
+              <div style={{ marginBottom: "10px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Name</label>
+                <input style={inputStyle} placeholder="Venue or place name" value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Address <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+                <input style={inputStyle} placeholder="123 Main St, City" value={address} onChange={(e) => setAddress(e.target.value)} />
+              </div>
+            </>
+          )}
+
+          {type === "VIRTUAL" && (
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Link</label>
+              <input style={inputStyle} placeholder="https://zoom.us/j/..." type="url" value={vUrl} onChange={(e) => setVUrl(e.target.value)} />
+            </div>
+          )}
+
+          {type === "TBD" && (
+            <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", marginBottom: "14px" }}>Location will be hidden until you add details.</p>
+          )}
+
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={save}
+              disabled={isPending}
+              style={{ flex: 1, background: "#a855f7", color: "#fff", border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.5 : 1 }}
+            >
+              {isPending ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", padding: "10px 14px", fontFamily: "inherit", fontSize: "14px", cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function EventPage({ event: initial, isHost, theme }: { event: EventData; isHost: boolean; theme: ResolvedTheme }) {
@@ -533,35 +741,16 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
         </div>
 
         {/* ── Location ── */}
-        {(event.locationType === "PHYSICAL" && (event.locationName || event.locationAddress)) && (
-          <a
-            href={event.locationAddress ? buildMapUrl(event.locationAddress) : undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "16px", borderRadius: t.cardRadius, background: t.cardBg, border: `1px solid ${t.cardBorder}`, backdropFilter: "blur(12px)", marginBottom: "24px", textDecoration: "none", color: "inherit" }}
-          >
-            <MapPin size={18} style={{ color: t.accent, flexShrink: 0, marginTop: "2px" }} />
-            <div>
-              <div style={{ fontWeight: 600, fontSize: "15px" }}>{event.locationName}</div>
-              {event.locationAddress && <div style={{ color: t.textMuted, fontSize: "13px", marginTop: "2px" }}>{event.locationAddress}</div>}
-            </div>
-          </a>
-        )}
-        {event.locationType === "VIRTUAL" && event.virtualUrl && (
-          <a
-            href={event.virtualUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", borderRadius: t.cardRadius, background: t.cardBg, border: `1px solid ${t.cardBorder}`, marginBottom: "24px", textDecoration: "none", color: "inherit" }}
-          >
-            <Video size={18} style={{ color: t.accent }} />
-            <div>
-              <div style={{ fontWeight: 600, fontSize: "15px" }}>Virtual Event</div>
-              <div style={{ color: t.textMuted, fontSize: "13px" }}>Click to join</div>
-            </div>
-            <ExternalLink size={14} style={{ marginLeft: "auto", color: t.textMuted }} />
-          </a>
-        )}
+        <LocationEdit
+          eventId={event.id}
+          locationType={event.locationType}
+          locationName={event.locationName}
+          locationAddress={event.locationAddress}
+          virtualUrl={event.virtualUrl}
+          isHost={isHost}
+          theme={t}
+          onSave={(data) => setEvent((e) => ({ ...e, ...data }))}
+        />
 
         {/* ── Description ── */}
         <div style={{ ...S.card, background: "transparent", border: "none", padding: 0, marginBottom: "24px", backdropFilter: "none" }}>
