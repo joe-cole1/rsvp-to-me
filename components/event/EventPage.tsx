@@ -657,7 +657,7 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
 
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, position: "relative" as const, overflowX: "hidden" as const, fontFamily: "inherit" },
-    container: { position: "relative" as const, zIndex: 1, maxWidth: "440px", margin: "0 auto", padding: "48px 16px 120px" },
+    container: { position: "relative" as const, zIndex: 1, maxWidth: "440px", margin: "0 auto", padding: "48px 16px 160px" },
     card: { background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "24px", marginBottom: "16px", backdropFilter: "blur(12px)" },
     badge: { fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", padding: "4px 12px", borderRadius: "100px", background: t.badgeBg, color: t.badgeText, border: `1px solid ${t.accentBorder}`, display: "inline-block" },
     inp: { width: "100%", padding: "12px 16px", borderRadius: t.btnRadius, background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.inputText, fontFamily: "inherit", fontSize: "14px", outline: "none" },

@@ -52,8 +52,8 @@ export function HostBar({
 
   return (
     <>
-      {/* Floating bar */}
-      <div
+      {/* Floating bar — hidden while a panel is open */}
+      {!activePanel && <div
         style={{
           position: "fixed",
           bottom: "24px",
@@ -104,7 +104,7 @@ export function HostBar({
             </button>
           )
         )}
-      </div>
+      </div>}
 
       {/* Panels */}
       {activePanel === "invite" && (
