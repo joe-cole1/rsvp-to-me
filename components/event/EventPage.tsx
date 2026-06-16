@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast } from "@/app/actions/event";
 import { genUploader } from "uploadthing/client";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { HostBar } from "./HostBar";
@@ -514,6 +514,7 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
   const [rsvpStatus, setRsvpStatus] = useState<"GOING" | "MAYBE" | "NO" | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const [plusOne, setPlusOne] = useState(0);
   const [rsvpDone, setRsvpDone] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -568,6 +569,7 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
         eventId: event.id,
         guestName: guestName.trim(),
         guestEmail: guestEmail.trim() || undefined,
+        guestPhone: guestPhone.trim() || undefined,
         status: rsvpStatus,
         plusOneCount: plusOne,
       });
@@ -868,9 +870,13 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
                 <div style={{ fontSize: "13px", color: t.textMuted }}>
                   {event.approvalRequired
                     ? "Your RSVP is pending approval."
-                    : guestEmail
-                      ? "A confirmation was sent to your email."
-                      : "Thanks for responding!"}
+                    : guestEmail && guestPhone
+                      ? "Confirmation sent to your email and phone."
+                      : guestEmail
+                        ? "A confirmation was sent to your email."
+                        : guestPhone
+                          ? "A confirmation was sent to your phone."
+                          : "Thanks for responding!"}
                 </div>
               </div>
             ) : (
@@ -897,6 +903,7 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   <input style={S.inp} placeholder="Your name *" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
                   <input style={S.inp} type="email" placeholder="Email (optional — for updates)" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
+                  <input style={S.inp} type="tel" placeholder="Phone (optional — for SMS updates)" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
                   {event.plusOneAllowed && event.plusOneMax > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Bringing a +1?</span>

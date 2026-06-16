@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Mail, MessageSquare, Settings, Eye } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { sendBlast } from "@/app/actions/event";
+import { sendBlast, sendSmsBlast } from "@/app/actions/event";
 import QRCode from "qrcode";
 
 export function HostBar({
@@ -19,6 +19,7 @@ export function HostBar({
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [blastResult, setBlastResult] = useState<string | null>(null);
+  const [smsResult, setSmsResult] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const actions = [
@@ -156,12 +157,9 @@ export function HostBar({
 
       {activePanel === "message" && (
         <SlideUp
-          onClose={() => { setActivePanel(null); setBlastResult(null); }}
+          onClose={() => { setActivePanel(null); setBlastResult(null); setSmsResult(null); }}
           title="Message Guests"
         >
-          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
-            Sends an email to guests who provided their email address.
-          </p>
           <textarea
             rows={4}
             placeholder="Type your message…"
@@ -173,38 +171,70 @@ export function HostBar({
               fontSize: "14px", outline: "none", resize: "none", marginBottom: "10px", boxSizing: "border-box",
             }}
           />
+
+          {/* Email blast */}
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+            📧 Email
+          </p>
           {blastResult && (
-            <p style={{
-              fontSize: "13px", marginBottom: "10px", padding: "8px 12px", borderRadius: "8px",
-              background: blastResult.startsWith("Sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)",
-              color: blastResult.startsWith("Sent") ? "#4ade80" : "#f87171",
-            }}>
+            <p style={{ fontSize: "13px", marginBottom: "8px", padding: "8px 12px", borderRadius: "8px", background: blastResult.startsWith("Sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: blastResult.startsWith("Sent") ? "#4ade80" : "#f87171" }}>
               {blastResult}
             </p>
           )}
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
             <button
               onClick={() => handleBlast("ALL")}
               disabled={!messageText.trim() || isSending}
-              style={{
-                flex: 1, padding: "12px", background: t.accent, color: t.accentFg, border: "none",
-                borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700,
-                cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed",
-                opacity: !messageText.trim() || isSending ? 0.5 : 1,
-              }}
+              style={{ flex: 1, padding: "10px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
             >
-              {isSending ? "Sending…" : "Send to All"}
+              {isSending ? "Sending…" : "All"}
             </button>
             <button
               onClick={() => handleBlast("GOING")}
               disabled={!messageText.trim() || isSending}
-              style={{
-                flex: 1, padding: "12px", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)",
-                border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontFamily: "inherit",
-                fontSize: "14px", fontWeight: 600,
-                cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed",
-                opacity: !messageText.trim() || isSending ? 0.5 : 1,
+              style={{ flex: 1, padding: "10px", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
+            >
+              Going Only
+            </button>
+          </div>
+
+          {/* SMS blast */}
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+            💬 SMS
+          </p>
+          {smsResult && (
+            <p style={{ fontSize: "13px", marginBottom: "8px", padding: "8px 12px", borderRadius: "8px", background: smsResult.startsWith("Sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: smsResult.startsWith("Sent") ? "#4ade80" : "#f87171" }}>
+              {smsResult}
+            </p>
+          )}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={async () => {
+                if (!messageText.trim() || isSending) return;
+                setIsSending(true); setSmsResult(null);
+                try {
+                  const r = await sendSmsBlast(eventId, messageText.trim(), "ALL");
+                  setSmsResult(r.sent === 0 ? "No guests with phone numbers found." : `Sent to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`);
+                  setMessageText("");
+                } catch { setSmsResult("Failed to send. Try again."); } finally { setIsSending(false); }
               }}
+              disabled={!messageText.trim() || isSending}
+              style={{ flex: 1, padding: "10px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
+            >
+              {isSending ? "Sending…" : "All"}
+            </button>
+            <button
+              onClick={async () => {
+                if (!messageText.trim() || isSending) return;
+                setIsSending(true); setSmsResult(null);
+                try {
+                  const r = await sendSmsBlast(eventId, messageText.trim(), "GOING");
+                  setSmsResult(r.sent === 0 ? "No going guests with phone numbers found." : `Sent to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`);
+                  setMessageText("");
+                } catch { setSmsResult("Failed to send. Try again."); } finally { setIsSending(false); }
+              }}
+              disabled={!messageText.trim() || isSending}
+              style={{ flex: 1, padding: "10px", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
             >
               Going Only
             </button>
