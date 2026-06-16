@@ -1,7 +1,6 @@
 services:
   app:
     build: .
-    image: ghcr.io/joe-cole1/rsvp-to-me:latest
     ports:
       - "3000:3000"
     env_file: .env
