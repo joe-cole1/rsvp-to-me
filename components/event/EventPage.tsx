@@ -28,6 +28,7 @@ type EventData = {
   plusOneMax: number;
   approvalRequired: boolean;
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
+  visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   host: { id: string; name: string | null; email: string };
   theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; coverImageUrl: string | null } | null;
   infoSections: { id: string; type: string; title: string | null; content: string; url: string | null; order: number }[];
@@ -1088,7 +1089,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       </div>
 
       {/* ── Host Bar ── */}
-      {isHost && <HostBar eventId={event.id} eventSlug={event.slug} theme={t} />}
+      {isHost && <HostBar eventId={event.id} eventSlug={event.slug} theme={t} visibility={event.visibility} />}
 
       {/* ── Settings link (gear icon, top right) ── */}
       {isHost && (

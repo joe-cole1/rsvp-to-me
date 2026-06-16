@@ -1,19 +1,35 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, MessageSquare, Settings, Eye } from "lucide-react";
+import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { sendBlast, sendSmsBlast } from "@/app/actions/event";
+import { sendBlast, sendSmsBlast, saveEventSettings } from "@/app/actions/event";
 import QRCode from "qrcode";
+
+type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
+
+const VISIBILITY_OPTIONS: { value: Visibility; icon: React.ElementType; label: string; description: string }[] = [
+  { value: "PUBLIC",   icon: Globe, label: "Public",   description: "Anyone can find this event" },
+  { value: "UNLISTED", icon: Link2, label: "Unlisted", description: "Only people with the link" },
+  { value: "PRIVATE",  icon: Lock,  label: "Private",  description: "Invite only, approval required" },
+];
+
+function visibilityIcon(v: Visibility) {
+  if (v === "PUBLIC")   return Globe;
+  if (v === "PRIVATE")  return Lock;
+  return Link2;
+}
 
 export function HostBar({
   eventId,
   eventSlug,
   theme: t,
+  visibility: initialVisibility,
 }: {
   eventId: string;
   eventSlug: string;
   theme: ResolvedTheme;
+  visibility: Visibility;
 }) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
@@ -21,13 +37,33 @@ export function HostBar({
   const [blastResult, setBlastResult] = useState<string | null>(null);
   const [smsResult, setSmsResult] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<Visibility>(initialVisibility);
+  const [visibilityPending, setVisibilityPending] = useState(false);
+
+  const VisIcon = visibilityIcon(visibility);
 
   const actions = [
-    { id: "invite",   icon: Mail,          label: "Invite",   href: null },
-    { id: "message",  icon: MessageSquare, label: "Message",  href: null },
-    { id: "settings", icon: Settings,      label: "Settings", href: `/e/${eventSlug}/settings` },
-    { id: "preview",  icon: Eye,           label: "Preview",  href: null },
+    { id: "invite",     icon: Mail,          label: "Invite",   href: null },
+    { id: "message",    icon: MessageSquare, label: "Message",  href: null },
+    { id: "visibility", icon: VisIcon,       label: visibility === "PUBLIC" ? "Public" : visibility === "UNLISTED" ? "Unlisted" : "Private", href: null },
+    { id: "settings",   icon: Settings,      label: "Settings", href: `/e/${eventSlug}/settings` },
+    { id: "preview",    icon: Eye,           label: "Preview",  href: null },
   ];
+
+  const handleVisibilityChange = async (next: Visibility) => {
+    if (next === visibility || visibilityPending) return;
+    const prev = visibility;
+    setVisibilityPending(true);
+    setVisibility(next);
+    try {
+      await saveEventSettings(eventId, { visibility: next });
+    } catch {
+      setVisibility(prev);
+    } finally {
+      setVisibilityPending(false);
+      setActivePanel(null);
+    }
+  };
 
   const handleBlast = async (filter: "ALL" | "GOING") => {
     if (!messageText.trim() || isSending) return;
@@ -238,6 +274,45 @@ export function HostBar({
             >
               Going Only
             </button>
+          </div>
+        </SlideUp>
+      )}
+
+      {activePanel === "visibility" && (
+        <SlideUp onClose={() => setActivePanel(null)} title="Event Visibility">
+          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
+            Control who can find and view this event.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {VISIBILITY_OPTIONS.map(({ value, icon: Icon, label, description }) => {
+              const isActive = visibility === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => handleVisibilityChange(value)}
+                  disabled={visibilityPending}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "14px",
+                    padding: "14px 16px", borderRadius: "14px", border: "none", cursor: visibilityPending ? "not-allowed" : "pointer",
+                    background: isActive ? t.accentBg : "rgba(255,255,255,0.05)",
+                    outline: isActive ? `1.5px solid ${t.accentBorder}` : "1.5px solid transparent",
+                    textAlign: "left", fontFamily: "inherit", transition: "all 0.15s",
+                    opacity: visibilityPending && !isActive ? 0.5 : 1,
+                  }}
+                >
+                  <Icon size={20} color={isActive ? t.accent : "rgba(255,255,255,0.5)"} style={{ flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: isActive ? "#fff" : "rgba(255,255,255,0.75)" }}>{label}</div>
+                    <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)", marginTop: "2px" }}>{description}</div>
+                  </div>
+                  {isActive && (
+                    <div style={{ marginLeft: "auto", width: "18px", height: "18px", borderRadius: "50%", background: t.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke={t.accentFg} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </SlideUp>
       )}
