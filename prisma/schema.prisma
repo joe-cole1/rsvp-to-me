@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ──────────────────────────────────────────────
+// AUTH
+// ──────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  role      Role     @default(HOST)
+  createdAt DateTime @default(now())
+
+  events        Event[]
+  coHostedEvents EventCoHost[]
+  magicTokens   MagicToken[]
+  sessions      Session[]
+}
+
+enum Role {
+  HOST
+  ADMIN
+}
+
+model MagicToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Invite codes gate who can register as a host
+model HostInviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  note      String?
+  uses      Int       @default(0)
+  maxUses   Int?
+  expiresAt DateTime?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+}
+
+// ──────────────────────────────────────────────
+// EVENTS
+// ──────────────────────────────────────────────
+
+model Event {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime?
+  timezone    String      @default("America/New_York")
+  locationType LocationType @default(PHYSICAL)
+  locationName String?
+  locationAddress String?
+  virtualUrl  String?
+  capacity    Int?
+  visibility  Visibility  @default(UNLISTED)
+  hostId      String
+  status      EventStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  host       User           @relation(fields: [hostId], references: [id])
+  coHosts    EventCoHost[]
+  theme      EventTheme?
+  rsvps      RSVP[]
+  invitations Invitation[]
+  updates    EventUpdate[]
+  comments   Comment[]
+  rsvpFields RSVPField[]
+  checkIns   CheckIn[]
+}
+
+enum LocationType {
+  PHYSICAL
+  VIRTUAL
+  TBD
+}
+
+enum Visibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+model EventCoHost {
+  id      String @id @default(cuid())
+  eventId String
+  userId  String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model EventTheme {
+  id             String  @id @default(cuid())
+  eventId        String  @unique
+  coverImageUrl  String?
+  bgStyle        String  @default("solid") // solid, gradient, animated-gradient, pattern
+  bgColor        String  @default("#18181b")
+  bgGradientFrom String?
+  bgGradientTo   String?
+  accentColor    String  @default("#a855f7")
+  textColor      String  @default("#ffffff")
+  patternName    String? // name of preset pattern if bgStyle=pattern
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// RSVP
+// ──────────────────────────────────────────────
+
+model RSVPField {
+  id        String        @id @default(cuid())
+  eventId   String
+  label     String
+  fieldType RSVPFieldType
+  required  Boolean       @default(false)
+  options   String?       // JSON array of strings for SELECT/CHECKBOX types
+  order     Int           @default(0)
+
+  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers RSVPAnswer[]
+}
+
+enum RSVPFieldType {
+  TEXT
+  SELECT
+  CHECKBOX
+  TEXTAREA
+}
+
+model RSVP {
+  id          String     @id @default(cuid())
+  eventId     String
+  guestName   String
+  guestEmail  String?
+  guestPhone  String?
+  status      RSVPStatus
+  plusOneCount Int       @default(0)
+  editToken   String     @unique @default(cuid())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  event    Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers  RSVPAnswer[]
+  checkIn  CheckIn?
+}
+
+enum RSVPStatus {
+  GOING
+  MAYBE
+  NO
+}
+
+model RSVPAnswer {
+  id          String @id @default(cuid())
+  rsvpId      String
+  rsvpFieldId String
+  value       String
+
+  rsvp      RSVP      @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  rsvpField RSVPField @relation(fields: [rsvpFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([rsvpId, rsvpFieldId])
+}
+
+// ──────────────────────────────────────────────
+// INVITATIONS & COMMUNICATION
+// ──────────────────────────────────────────────
+
+model Invitation {
+  id          String           @id @default(cuid())
+  eventId     String
+  sentTo      String           // email or phone number
+  channel     InviteChannel
+  sentAt      DateTime         @default(now())
+  rsvpId      String?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+enum InviteChannel {
+  EMAIL
+  SMS
+}
+
+model EventUpdate {
+  id          String   @id @default(cuid())
+  eventId     String
+  body        String
+  notifyGuests Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// SOCIAL
+// ──────────────────────────────────────────────
+
+model Comment {
+  id          String   @id @default(cuid())
+  eventId     String
+  guestName   String
+  rsvpId      String?
+  body        String
+  parentId    String?
+  createdAt   DateTime @default(now())
+
+  event   Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentReplies")
+}
+
+// ──────────────────────────────────────────────
+// CHECK-IN
+// ──────────────────────────────────────────────
+
+model CheckIn {
+  id          String   @id @default(cuid())
+  eventId     String
+  rsvpId      String   @unique
+  checkedInAt DateTime @default(now())
+  checkedInBy String?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rsvp  RSVP  @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+}
