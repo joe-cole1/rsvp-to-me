@@ -1,22 +1,34 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-
-const FROM = process.env.EMAIL_FROM ?? "RSVP to Me <noreply@rsvptome.app>";
+const FROM = process.env.EMAIL_FROM ?? "RSVP to Me <noreply@example.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-type SendPayload = Parameters<Resend["emails"]["send"]>[0];
-async function send(payload: SendPayload) {
-  if (!resend) {
-    console.log("[email:dev]", { to: payload.to, subject: payload.subject, html: payload.html });
+function getTransport() {
+  const host = process.env.SMTP_HOST;
+  if (!host) return null;
+  return nodemailer.createTransport({
+    host,
+    port: parseInt(process.env.SMTP_PORT ?? "587"),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: process.env.SMTP_USER
+      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      : undefined,
+  });
+}
+
+type MailOpts = { to: string | string[]; bcc?: string | string[]; subject: string; html: string };
+
+async function send(opts: MailOpts) {
+  const transport = getTransport();
+  if (!transport) {
+    console.log("[email:dev]", { to: opts.to, subject: opts.subject, html: opts.html });
     return;
   }
-  return resend.emails.send(payload);
+  return transport.sendMail({ from: FROM, ...opts });
 }
 
 export async function sendMagicLinkEmail(to: string, magicLink: string) {
   return send({
-    from: FROM,
     to,
     subject: "Your sign-in link for RSVP to Me",
     html: `
@@ -34,25 +46,11 @@ export async function sendMagicLinkEmail(to: string, magicLink: string) {
 
 export async function sendEventInviteEmail(
   to: string,
-  opts: {
-    guestName: string;
-    hostName: string;
-    eventTitle: string;
-    eventSlug: string;
-    startAt: Date;
-    locationName?: string | null;
-  }
+  opts: { guestName: string; hostName: string; eventTitle: string; eventSlug: string; startAt: Date; locationName?: string | null }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  const dateStr = opts.startAt.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
+  const dateStr = opts.startAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   return send({
-    from: FROM,
     to,
     subject: `You're invited: ${opts.eventTitle}`,
     html: `
@@ -71,16 +69,10 @@ export async function sendEventInviteEmail(
 
 export async function sendBlastEmail(
   to: string[],
-  opts: {
-    eventTitle: string;
-    eventSlug: string;
-    message: string;
-    hostName: string;
-  }
+  opts: { eventTitle: string; eventSlug: string; message: string; hostName: string }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   return send({
-    from: FROM,
     to: FROM,
     bcc: to,
     subject: `Update from ${opts.hostName}: ${opts.eventTitle}`,
@@ -96,30 +88,13 @@ export async function sendBlastEmail(
 
 export async function sendRsvpConfirmationEmail(
   to: string,
-  opts: {
-    guestName: string;
-    eventTitle: string;
-    eventSlug: string;
-    status: "GOING" | "MAYBE" | "NO";
-    editToken: string;
-    startAt: Date;
-    locationName?: string | null;
-  }
+  opts: { guestName: string; eventTitle: string; eventSlug: string; status: "GOING" | "MAYBE" | "NO"; editToken: string; startAt: Date; locationName?: string | null }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
-  const dateStr = opts.startAt.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const dateStr = opts.startAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
   const statusLabel = opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
-
   return send({
-    from: FROM,
     to,
     subject: `RSVP confirmed: ${opts.eventTitle}`,
     html: `

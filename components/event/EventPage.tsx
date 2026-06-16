@@ -4,12 +4,8 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast } from "@/app/actions/event";
-import { genUploader } from "uploadthing/client";
-import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
-
-const { uploadFiles } = genUploader<OurFileRouter>();
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -548,11 +544,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     if (!file) return;
     setIsUploading(true);
     try {
-      const [result] = await uploadFiles("coverImage", { files: [file] });
-      await saveCoverImage(event.id, result.url);
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      if (!res.ok) throw new Error(await res.text());
+      const { url } = await res.json() as { url: string };
+      await saveCoverImage(event.id, url);
       setEvent((ev) => ({
         ...ev,
-        theme: { ...(ev.theme ?? { baseTheme: "DARK" as const, accentColor: "#a855f7" }), coverImageUrl: result.url },
+        theme: { ...(ev.theme ?? { baseTheme: "DARK" as const, accentColor: "#a855f7" }), coverImageUrl: url },
       }));
     } catch (err) {
       console.error("Cover upload failed:", err);
