@@ -509,7 +509,7 @@ function LocationEdit({
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-export function EventPage({ event: initial, isHost, theme }: { event: EventData; isHost: boolean; theme: ResolvedTheme }) {
+export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean }) {
   const [event, setEvent] = useState(initial);
   const [rsvpStatus, setRsvpStatus] = useState<"GOING" | "MAYBE" | "NO" | null>(null);
   const [guestName, setGuestName] = useState("");
@@ -708,13 +708,15 @@ export function EventPage({ event: initial, isHost, theme }: { event: EventData;
               >
                 🎨 Theme
               </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
-              >
-                {isUploading ? "Uploading…" : "📷 Cover"}
-              </button>
+              {coverUploadEnabled && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
+                >
+                  {isUploading ? "Uploading…" : "📷 Cover"}
+                </button>
+              )}
             </div>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCoverUpload} />
