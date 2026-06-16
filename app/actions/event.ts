@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { sendRsvpConfirmationEmail, sendBlastEmail } from "@/lib/email";
 import type { BaseTheme } from "@/lib/theme";
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
@@ -85,7 +86,7 @@ export async function addRSVP(data: {
 }) {
   const event = await db.event.findUnique({
     where: { id: data.eventId },
-    select: { id: true, slug: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true } } },
+    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true } } },
   });
   if (!event) return { success: false, error: "Event not found" };
   if (event.rsvpDeadline && event.rsvpDeadline < new Date()) return { success: false, error: "RSVP deadline has passed" };
@@ -106,6 +107,18 @@ export async function addRSVP(data: {
       approved: !event.approvalRequired,
     },
   });
+
+  if (data.guestEmail) {
+    sendRsvpConfirmationEmail(data.guestEmail, {
+      guestName: data.guestName,
+      eventTitle: event.title,
+      eventSlug: event.slug,
+      status: data.status,
+      editToken: rsvp.editToken,
+      startAt: event.startAt,
+      locationName: event.locationName,
+    }).catch(() => {}); // fire-and-forget — don't block the RSVP response
+  }
 
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: rsvp.id, editToken: rsvp.editToken };
@@ -163,6 +176,61 @@ export async function saveEventSettings(
   });
   revalidatePath(`/e/${event.slug}`);
   revalidatePath(`/e/${event.slug}/settings`);
+}
+
+// ── RSVP edit (guest) ─────────────────────────────────────────────────────────
+
+export async function updateRSVP(
+  editToken: string,
+  data: { status: "GOING" | "MAYBE" | "NO"; plusOneCount: number }
+) {
+  const rsvp = await db.rSVP.findUnique({
+    where: { editToken },
+    include: { event: { select: { slug: true } } },
+  });
+  if (!rsvp) return { success: false, error: "RSVP not found" };
+
+  await db.rSVP.update({
+    where: { editToken },
+    data: { status: data.status, plusOneCount: data.plusOneCount },
+  });
+
+  revalidatePath(`/e/${rsvp.event.slug}`);
+  return { success: true };
+}
+
+// ── Message blast ──────────────────────────────────────────────────────────────
+
+export async function sendBlast(
+  eventId: string,
+  message: string,
+  filter: "ALL" | "GOING" | "MAYBE"
+) {
+  await assertHost(eventId);
+
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { title: true, slug: true, host: { select: { name: true } } },
+  });
+  if (!event) throw new Error("Event not found");
+
+  const whereStatus = filter === "ALL" ? {} : { status: filter };
+  const rsvps = await db.rSVP.findMany({
+    where: { eventId, guestEmail: { not: null }, ...whereStatus },
+    select: { guestEmail: true },
+  });
+
+  const emails = rsvps.flatMap((r: { guestEmail: string | null }) => r.guestEmail ? [r.guestEmail] : []);
+  if (emails.length === 0) return { success: true, sent: 0 };
+
+  await sendBlastEmail(emails, {
+    eventTitle: event.title,
+    eventSlug: event.slug,
+    message,
+    hostName: event.host.name ?? "Your host",
+  });
+
+  return { success: true, sent: emails.length };
 }
 
 export async function saveReminderSettings(

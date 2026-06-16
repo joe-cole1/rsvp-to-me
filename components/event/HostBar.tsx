@@ -3,9 +3,21 @@
 import { useState } from "react";
 import { Mail, MessageSquare, Settings, Eye } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
+import { sendBlast } from "@/app/actions/event";
 
-export function HostBar({ eventSlug, theme: t }: { eventSlug: string; theme: ResolvedTheme }) {
+export function HostBar({
+  eventId,
+  eventSlug,
+  theme: t,
+}: {
+  eventId: string;
+  eventSlug: string;
+  theme: ResolvedTheme;
+}) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [blastResult, setBlastResult] = useState<string | null>(null);
 
   const actions = [
     { id: "invite",   icon: Mail,          label: "Invite",   href: null },
@@ -13,6 +25,27 @@ export function HostBar({ eventSlug, theme: t }: { eventSlug: string; theme: Res
     { id: "settings", icon: Settings,      label: "Settings", href: `/e/${eventSlug}/settings` },
     { id: "preview",  icon: Eye,           label: "Preview",  href: null },
   ];
+
+  const handleBlast = async (filter: "ALL" | "GOING") => {
+    if (!messageText.trim() || isSending) return;
+    setIsSending(true);
+    setBlastResult(null);
+    try {
+      const result = await sendBlast(eventId, messageText.trim(), filter);
+      if (result.success) {
+        setBlastResult(
+          result.sent === 0
+            ? "No guests with email addresses found."
+            : `Sent to ${result.sent} guest${result.sent !== 1 ? "s" : ""}.`
+        );
+        setMessageText("");
+      }
+    } catch {
+      setBlastResult("Failed to send. Try again.");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <>
@@ -92,20 +125,57 @@ export function HostBar({ eventSlug, theme: t }: { eventSlug: string; theme: Res
       )}
 
       {activePanel === "message" && (
-        <SlideUp onClose={() => setActivePanel(null)} title="Message Guests">
+        <SlideUp
+          onClose={() => { setActivePanel(null); setBlastResult(null); }}
+          title="Message Guests"
+        >
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
-            Send a message to all your guests, or just those who are going.
+            Sends an email to guests who provided their email address.
           </p>
           <textarea
             rows={4}
             placeholder="Type your message…"
-            style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", color: "#fff", fontFamily: "inherit", fontSize: "14px", outline: "none", resize: "none", marginBottom: "10px" }}
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            style={{
+              width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "12px", padding: "12px 16px", color: "#fff", fontFamily: "inherit",
+              fontSize: "14px", outline: "none", resize: "none", marginBottom: "10px", boxSizing: "border-box",
+            }}
           />
+          {blastResult && (
+            <p style={{
+              fontSize: "13px", marginBottom: "10px", padding: "8px 12px", borderRadius: "8px",
+              background: blastResult.startsWith("Sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)",
+              color: blastResult.startsWith("Sent") ? "#4ade80" : "#f87171",
+            }}>
+              {blastResult}
+            </p>
+          )}
           <div style={{ display: "flex", gap: "8px" }}>
-            <button style={{ flex: 1, padding: "12px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>
-              Send to All
+            <button
+              onClick={() => handleBlast("ALL")}
+              disabled={!messageText.trim() || isSending}
+              style={{
+                flex: 1, padding: "12px", background: t.accent, color: t.accentFg, border: "none",
+                borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700,
+                cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed",
+                opacity: !messageText.trim() || isSending ? 0.5 : 1,
+              }}
+            >
+              {isSending ? "Sending…" : "Send to All"}
             </button>
-            <button style={{ flex: 1, padding: "12px", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+            <button
+              onClick={() => handleBlast("GOING")}
+              disabled={!messageText.trim() || isSending}
+              style={{
+                flex: 1, padding: "12px", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)",
+                border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontFamily: "inherit",
+                fontSize: "14px", fontWeight: 600,
+                cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed",
+                opacity: !messageText.trim() || isSending ? 0.5 : 1,
+              }}
+            >
               Going Only
             </button>
           </div>
@@ -119,7 +189,6 @@ export function HostBar({ eventSlug, theme: t }: { eventSlug: string; theme: Res
           </p>
           <button
             onClick={() => {
-              // TODO: open event in a new tab with ?preview=guest param
               window.open(window.location.href + "?preview=1", "_blank");
               setActivePanel(null);
             }}

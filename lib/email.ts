@@ -1,12 +1,21 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const FROM = process.env.EMAIL_FROM ?? "RSVP to Me <noreply@rsvptome.app>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+type SendPayload = Parameters<Resend["emails"]["send"]>[0];
+async function send(payload: SendPayload) {
+  if (!resend) {
+    console.log("[email:dev]", { to: payload.to, subject: payload.subject, html: payload.html });
+    return;
+  }
+  return resend.emails.send(payload);
+}
+
 export async function sendMagicLinkEmail(to: string, magicLink: string) {
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: "Your sign-in link for RSVP to Me",
@@ -42,7 +51,7 @@ export async function sendEventInviteEmail(
     year: "numeric",
   });
 
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: `You're invited: ${opts.eventTitle}`,
@@ -70,7 +79,7 @@ export async function sendBlastEmail(
   }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  return resend.emails.send({
+  return send({
     from: FROM,
     to: FROM,
     bcc: to,
@@ -109,7 +118,7 @@ export async function sendRsvpConfirmationEmail(
   });
   const statusLabel = opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
 
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: `RSVP confirmed: ${opts.eventTitle}`,
