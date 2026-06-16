@@ -19,10 +19,10 @@ model User {
   role      Role     @default(HOST)
   createdAt DateTime @default(now())
 
-  events        Event[]
+  events         Event[]
   coHostedEvents EventCoHost[]
-  magicTokens   MagicToken[]
-  sessions      Session[]
+  magicTokens    MagicToken[]
+  sessions       Session[]
 }
 
 enum Role {
@@ -51,7 +51,6 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Invite codes gate who can register as a host
 model HostInviteCode {
   id        String    @id @default(cuid())
   code      String    @unique
@@ -68,33 +67,46 @@ model HostInviteCode {
 // ──────────────────────────────────────────────
 
 model Event {
-  id          String      @id @default(cuid())
-  slug        String      @unique
-  title       String
-  description String?
-  startAt     DateTime
-  endAt       DateTime?
-  timezone    String      @default("America/New_York")
-  locationType LocationType @default(PHYSICAL)
-  locationName String?
+  id              String       @id @default(cuid())
+  slug            String       @unique
+  title           String
+  description     String?
+  startAt         DateTime
+  endAt           DateTime?
+  timezone        String       @default("America/New_York")
+  locationType    LocationType @default(PHYSICAL)
+  locationName    String?
   locationAddress String?
-  virtualUrl  String?
-  capacity    Int?
-  visibility  Visibility  @default(UNLISTED)
-  hostId      String
-  status      EventStatus @default(DRAFT)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  virtualUrl      String?
+  capacity        Int?
+  visibility      Visibility   @default(UNLISTED)
+  hostId          String
+  status          EventStatus  @default(DRAFT)
 
-  host       User           @relation(fields: [hostId], references: [id])
-  coHosts    EventCoHost[]
-  theme      EventTheme?
-  rsvps      RSVP[]
-  invitations Invitation[]
-  updates    EventUpdate[]
-  comments   Comment[]
-  rsvpFields RSVPField[]
-  checkIns   CheckIn[]
+  // RSVP settings
+  rsvpDeadline      DateTime?
+  approvalRequired  Boolean    @default(false)
+  plusOneAllowed    Boolean    @default(true)
+  plusOneMax        Int        @default(1)
+  guestListVis      GuestListVis @default(ALL)
+
+  // Feature flags
+  commentsEnabled   Boolean    @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  host            User              @relation(fields: [hostId], references: [id])
+  coHosts         EventCoHost[]
+  theme           EventTheme?
+  reminderSettings EventReminderSettings?
+  infoSections    EventInfoSection[]
+  rsvps           RSVP[]
+  invitations     Invitation[]
+  updates         EventUpdate[]
+  comments        Comment[]
+  rsvpFields      RSVPField[]
+  checkIns        CheckIn[]
 }
 
 enum LocationType {
@@ -115,6 +127,12 @@ enum EventStatus {
   CANCELLED
 }
 
+enum GuestListVis {
+  ALL
+  GUESTS_ONLY
+  HOST_ONLY
+}
+
 model EventCoHost {
   id      String @id @default(cuid())
   eventId String
@@ -127,16 +145,53 @@ model EventCoHost {
 }
 
 model EventTheme {
-  id             String  @id @default(cuid())
-  eventId        String  @unique
-  coverImageUrl  String?
-  bgStyle        String  @default("solid") // solid, gradient, animated-gradient, pattern
-  bgColor        String  @default("#18181b")
-  bgGradientFrom String?
-  bgGradientTo   String?
-  accentColor    String  @default("#a855f7")
-  textColor      String  @default("#ffffff")
-  patternName    String? // name of preset pattern if bgStyle=pattern
+  id            String    @id @default(cuid())
+  eventId       String    @unique
+  baseTheme     BaseTheme @default(DARK)
+  accentColor   String    @default("#a855f7")
+  coverImageUrl String?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+enum BaseTheme {
+  DARK
+  SOFT
+  BOLD
+}
+
+// Partiful-style info chips: Dress Code, Food, Parking, Link, Custom
+model EventInfoSection {
+  id      String          @id @default(cuid())
+  eventId String
+  type    InfoSectionType
+  title   String?         // Used for CUSTOM type, or overrides default label
+  content String          // Main text content
+  url     String?         // Used for LINK type
+  order   Int             @default(0)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+enum InfoSectionType {
+  DRESS_CODE
+  FOOD
+  PARKING
+  LINK
+  CUSTOM
+}
+
+model EventReminderSettings {
+  id               String  @id @default(cuid())
+  eventId          String  @unique
+  emailWeekBefore  Boolean @default(false)
+  emailDayBefore   Boolean @default(true)
+  emailHoursBefore Int     @default(2)   // 0 = disabled
+  smsWeekBefore    Boolean @default(false)
+  smsDayBefore     Boolean @default(false)
+  smsHoursBefore   Int     @default(0)
+  nudgeUnresponded Boolean @default(true)
+  postEventPrompt  Boolean @default(false)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
@@ -166,20 +221,21 @@ enum RSVPFieldType {
 }
 
 model RSVP {
-  id          String     @id @default(cuid())
-  eventId     String
-  guestName   String
-  guestEmail  String?
-  guestPhone  String?
-  status      RSVPStatus
-  plusOneCount Int       @default(0)
-  editToken   String     @unique @default(cuid())
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id           String     @id @default(cuid())
+  eventId      String
+  guestName    String
+  guestEmail   String?
+  guestPhone   String?
+  status       RSVPStatus
+  plusOneCount Int        @default(0)
+  editToken    String     @unique @default(cuid())
+  approved     Boolean    @default(true) // false when approvalRequired is on
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  event    Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  answers  RSVPAnswer[]
-  checkIn  CheckIn?
+  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers RSVPAnswer[]
+  checkIn CheckIn?
 }
 
 enum RSVPStatus {
@@ -205,12 +261,12 @@ model RSVPAnswer {
 // ──────────────────────────────────────────────
 
 model Invitation {
-  id          String           @id @default(cuid())
-  eventId     String
-  sentTo      String           // email or phone number
-  channel     InviteChannel
-  sentAt      DateTime         @default(now())
-  rsvpId      String?
+  id      String        @id @default(cuid())
+  eventId String
+  sentTo  String        // email or phone number
+  channel InviteChannel
+  sentAt  DateTime      @default(now())
+  rsvpId  String?
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
@@ -221,11 +277,11 @@ enum InviteChannel {
 }
 
 model EventUpdate {
-  id          String   @id @default(cuid())
-  eventId     String
-  body        String
-  notifyGuests Boolean @default(true)
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  eventId      String
+  body         String
+  notifyGuests Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
@@ -235,13 +291,13 @@ model EventUpdate {
 // ──────────────────────────────────────────────
 
 model Comment {
-  id          String   @id @default(cuid())
-  eventId     String
-  guestName   String
-  rsvpId      String?
-  body        String
-  parentId    String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  eventId   String
+  guestName String
+  rsvpId    String?
+  body      String
+  parentId  String?
+  createdAt DateTime @default(now())
 
   event   Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
