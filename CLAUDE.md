@@ -156,38 +156,45 @@ the full RSVP + magic link flow without any email credentials.
 
 ---
 
-## Next steps (priority order)
+## What's left to build
 
-### 1. Date/time inline editing
-`InlineEdit` in `components/event/EventPage.tsx` only handles plain text fields. The event `startAt` and `endAt` are not yet editable inline. Options:
-- Add a date/time popover triggered by clicking the displayed date badges
-- Or add date/time fields to the settings page as a fallback
+### 1. Co-host management UI
+Schema has `EventCoHost` (eventId + userId), no UI yet. Need:
+- Host can invite another registered user by email as co-host
+- Co-hosts see the same WYSIWYG host bar and can edit the event
+- `addCoHost(eventId, email)` / `removeCoHost(id)` server actions
+- UI in settings page or host bar panel
 
-### 2. Cover image upload
-`EventTheme.coverImageUrl` exists in the schema. Need:
-- Uploadthing route config at `app/api/uploadthing/core.ts` and `route.ts`
-- Upload trigger in `EventPage.tsx` — clicking the cover area opens a file picker for hosts
-- `saveCoverImage(eventId, url)` server action
+### 2. Check-in flow
+Schema has `CheckIn` (rsvpId, checkedInAt, checkedInBy), no UI yet. Options:
+- Simple: host sees guest list with a ✓ button per guest; `checkInGuest(rsvpId)` action
+- Advanced: QR code per RSVP scanned at the door (editToken can double as check-in code)
 
-### 3. Guest RSVP approval flow
-`approvalRequired` is stored and respected when creating RSVPs (`approved` defaults to `false`). Need:
-- Approval UI: a panel (in host bar or settings area) listing pending RSVPs with Approve/Decline buttons
-- `approveRsvp(rsvpId)` / `declineRsvp(rsvpId)` server actions
+### 3. Event visibility quick-toggle from host bar
+Settings page has `visibility: PUBLIC | UNLISTED | PRIVATE` but no way to flip it without leaving the page. A toggle button in the host bar (or 5th pill) would let hosts publish/unpublish instantly.
 
-### 4. QR code for invite link
-- Add a "QR Code" button to the host bar invite panel
-- Use `qrcode` npm package (pure JS, no native deps) to generate a data URL client-side
-- Render as `<img>` with a download link
+### 4. Reminder scheduling — send logic
+Settings UI for reminders exists (`EventReminderSettings` with email + SMS fields). The actual cron/scheduler that fires reminders is not wired. Options:
+- Vercel Cron (free tier: 1/day) — simple but coarse
+- A lightweight node-cron in the Docker container
+- External service (Upstash, etc.)
 
-### 5. Export guest list as CSV
-- `GET /e/[slug]/guests.csv` route (protected, host only)
-- Streams guest name, email, status, plusOneCount, createdAt
+### 5. Invitation tracking UI
+`Invitation` model exists (sentTo, channel EMAIL/SMS, sentAt, rsvpId). Currently nothing writes to it or reads from it. Could show hosts who was explicitly invited vs who found the link organically.
 
 ---
 
 ## Completed
-- ✅ Email sending (`lib/email.ts`) — all four helpers implemented with Resend; dev-mode console fallback when `RESEND_API_KEY` is unset
-- ✅ RSVP edit flow — `/e/[slug]/rsvp?token=` page + `updateRSVP` server action
-- ✅ Message blast — `sendBlast(eventId, message, filter)` in `app/actions/event.ts`; HostBar "Send to All" / "Going Only" wired up
-- ✅ Docker Compose — `docker-compose.yml` (local), `docker-compose.dev.yml` (builds from GitHub main)
+- ✅ Magic link auth, host dashboard, event creation
+- ✅ Event page at `/e/[slug]` — WYSIWYG inline editing (title, description, date/time, location), RSVP form, info section chips, guest list, comments, Add to Calendar, smart map links
+- ✅ Cover image upload — Uploadthing route at `app/api/uploadthing/`; `saveCoverImage` action; 📷 Cover button on event page
+- ✅ RSVP approval flow — `approveRsvp` / `declineRsvp` actions; Pending Approval card in host view
+- ✅ QR code — generated client-side via `qrcode` in the Invite panel of HostBar
+- ✅ CSV export — `GET /e/[slug]/guests.csv` (host-only)
+- ✅ Floating host bar — Invite (link + QR), Message (email + SMS blast), Settings, Preview
+- ✅ Theme picker, settings page (RSVP options, reminders config, visibility)
+- ✅ RSVP edit page — `/e/[slug]/rsvp?token=` + `updateRSVP` server action
+- ✅ Email sending (`lib/email.ts`) — Resend; dev-mode console fallback when `RESEND_API_KEY` unset
+- ✅ SMS integration (`lib/sms.ts`) — Twilio; phone collected on RSVP form; confirmation SMS on RSVP; SMS blast in host bar; dev-mode console fallback when `TWILIO_*` unset
+- ✅ Docker Compose — `docker-compose.yml` (local), `docker-compose.dev.yml` (builds from GitHub main; runs as root to allow volume writes)
 - ✅ GitHub Actions CI — lint + build on every PR (`.github/workflows/ci.yml`)
