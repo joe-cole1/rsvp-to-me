@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { sendRsvpConfirmationEmail, sendBlastEmail } from "@/lib/email";
+import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
@@ -105,6 +106,7 @@ export async function addRSVP(data: {
   eventId: string;
   guestName: string;
   guestEmail?: string;
+  guestPhone?: string;
   status: "GOING" | "MAYBE" | "NO";
   plusOneCount: number;
 }) {
@@ -126,6 +128,7 @@ export async function addRSVP(data: {
       eventId: data.eventId,
       guestName: data.guestName,
       guestEmail: data.guestEmail,
+      guestPhone: data.guestPhone,
       status: data.status,
       plusOneCount: data.plusOneCount,
       approved: !event.approvalRequired,
@@ -141,7 +144,16 @@ export async function addRSVP(data: {
       editToken: rsvp.editToken,
       startAt: event.startAt,
       locationName: event.locationName,
-    }).catch(() => {}); // fire-and-forget — don't block the RSVP response
+    }).catch(() => {});
+  }
+  if (data.guestPhone) {
+    sendRsvpConfirmationSms(data.guestPhone, {
+      guestName: data.guestName,
+      eventTitle: event.title,
+      eventSlug: event.slug,
+      status: data.status,
+      editToken: rsvp.editToken,
+    }).catch(() => {});
   }
 
   revalidatePath(`/e/${event.slug}`);
@@ -255,6 +267,38 @@ export async function sendBlast(
   });
 
   return { success: true, sent: emails.length };
+}
+
+export async function sendSmsBlast(
+  eventId: string,
+  message: string,
+  filter: "ALL" | "GOING" | "MAYBE"
+) {
+  await assertHost(eventId);
+
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { title: true, slug: true, host: { select: { name: true } } },
+  });
+  if (!event) throw new Error("Event not found");
+
+  const whereStatus = filter === "ALL" ? {} : { status: filter };
+  const rsvps = await db.rSVP.findMany({
+    where: { eventId, guestPhone: { not: null }, ...whereStatus },
+    select: { guestPhone: true },
+  });
+
+  const phones = rsvps.flatMap((r: { guestPhone: string | null }) => r.guestPhone ? [r.guestPhone] : []);
+  if (phones.length === 0) return { success: true, sent: 0 };
+
+  const sent = await smsSendBlast(phones, {
+    eventTitle: event.title,
+    eventSlug: event.slug,
+    message,
+    hostName: event.host.name ?? "Your host",
+  });
+
+  return { success: true, sent };
 }
 
 // ── Date/time edit ─────────────────────────────────────────────────────────────
