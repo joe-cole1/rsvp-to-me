@@ -6,6 +6,8 @@ import { EventPage } from "@/components/event/EventPage";
 
 export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;
+  const searchParams = await props.searchParams;
+  const isPreview = searchParams?.preview === "1";
 
   const event = await db.event.findUnique({
     where: { slug },
@@ -37,7 +39,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   if (!event || event.status === "CANCELLED") notFound();
 
   const session = await getSession();
-  const isHost = session?.userId === event.hostId;
+  const isHost = !isPreview && session?.userId === event.hostId;
 
   const pendingRsvps = isHost
     ? await db.rSVP.findMany({
@@ -57,6 +59,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       event={{ ...event, pendingRsvps } as Parameters<typeof EventPage>[0]["event"]}
       isHost={!!isHost}
       theme={theme}
+      coverUploadEnabled={!!process.env.UPLOADTHING_TOKEN}
     />
   );
 }
