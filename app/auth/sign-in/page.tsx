@@ -1,7 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { sendMagicLinkAction } from "@/app/actions/auth";
+
+function TokenError() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("error") !== "invalid-token") return null;
+  return (
+    <div style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "10px", padding: "10px 14px", marginBottom: "20px", color: "#fca5a5", fontSize: "13px" }}>
+      That link has expired or already been used. Request a new one below.
+    </div>
+  );
+}
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -32,6 +43,7 @@ export default function SignInPage() {
         </div>
 
         <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "24px", padding: "32px" }}>
+          <Suspense><TokenError /></Suspense>
           {submitted ? (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>📬</div>
