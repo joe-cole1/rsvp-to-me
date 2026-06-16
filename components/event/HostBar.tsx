@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Mail, MessageSquare, Settings, Eye } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { sendBlast } from "@/app/actions/event";
+import QRCode from "qrcode";
 
 export function HostBar({
   eventId,
@@ -18,6 +19,7 @@ export function HostBar({
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [blastResult, setBlastResult] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const actions = [
     { id: "invite",   icon: Mail,          label: "Invite",   href: null },
@@ -105,20 +107,48 @@ export function HostBar({
 
       {/* Panels */}
       {activePanel === "invite" && (
-        <SlideUp onClose={() => setActivePanel(null)} title="Invite Guests">
+        <SlideUp
+          onClose={() => setActivePanel(null)}
+          title="Invite Guests"
+          onOpen={async () => {
+            if (typeof window !== "undefined") {
+              try {
+                const url = await QRCode.toDataURL(window.location.href, { width: 220, margin: 1, color: { dark: "#000", light: "#fff" } });
+                setQrDataUrl(url);
+              } catch { /* no-op */ }
+            }
+          }}
+        >
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
             Share the event link or send invites directly.
           </p>
           <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", marginBottom: "12px", wordBreak: "break-all" }}>
             {typeof window !== "undefined" ? window.location.href : ""}
           </div>
-          <button
-            onClick={() => { if (typeof navigator !== "undefined") navigator.clipboard.writeText(window.location.href); }}
-            style={{ width: "100%", padding: "12px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
-          >
-            Copy Link
-          </button>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", marginTop: "12px", textAlign: "center" }}>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+            <button
+              onClick={() => { if (typeof navigator !== "undefined") navigator.clipboard.writeText(window.location.href); }}
+              style={{ flex: 1, padding: "12px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
+            >
+              Copy Link
+            </button>
+            {qrDataUrl && (
+              <a
+                href={qrDataUrl}
+                download="event-qr.png"
+                style={{ padding: "12px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "rgba(255,255,255,0.8)", fontSize: "13px", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", whiteSpace: "nowrap" }}
+              >
+                ↓ QR
+              </a>
+            )}
+          </div>
+          {qrDataUrl && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "8px" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrDataUrl} alt="Event QR code" width={160} height={160} style={{ borderRadius: "12px" }} />
+            </div>
+          )}
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", marginTop: "4px", textAlign: "center" }}>
             Email & SMS invites available in Settings
           </p>
         </SlideUp>
@@ -202,7 +232,13 @@ export function HostBar({
   );
 }
 
-function SlideUp({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+function SlideUp({ children, onClose, onOpen, title }: { children: React.ReactNode; onClose: () => void; onOpen?: () => void; title: string }) {
+  // Call onOpen once when mounted
+  const calledRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!calledRef.current && onOpen) { calledRef.current = true; onOpen(); }
+  }, [onOpen]);
+
   return (
     <>
       {/* Backdrop */}

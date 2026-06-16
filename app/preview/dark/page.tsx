@@ -101,7 +101,7 @@ export default function DarkPreview() {
         >
           <span style={{ color: "#a855f7", fontSize: "18px" }}>📍</span>
           <div>
-            <div className="font-medium">Joe's Place</div>
+            <div className="font-medium">Joe&apos;s Place</div>
             <div style={{ color: "#71717a", fontSize: "14px" }}>123 Main St, Brooklyn, NY</div>
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function DarkPreview() {
         {/* Description */}
         <p className="mb-8 leading-relaxed" style={{ color: "#a1a1aa" }}>
           Monthly wine night at my place! Bring a bottle you love and be ready to share what
-          you enjoy about it. I'll have snacks and plenty of glasses. This month's theme is
+          you enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
           anything from Burgundy. 🍇
         </p>
 

@@ -39,6 +39,14 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const session = await getSession();
   const isHost = session?.userId === event.hostId;
 
+  const pendingRsvps = isHost
+    ? await db.rSVP.findMany({
+        where: { eventId: event.id, approved: false },
+        select: { id: true, guestName: true, guestEmail: true, status: true, plusOneCount: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+
   const theme = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
     event.theme?.accentColor ?? "#a855f7"
@@ -46,7 +54,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   return (
     <EventPage
-      event={event as Parameters<typeof EventPage>[0]["event"]}
+      event={{ ...event, pendingRsvps } as Parameters<typeof EventPage>[0]["event"]}
       isHost={!!isHost}
       theme={theme}
     />
