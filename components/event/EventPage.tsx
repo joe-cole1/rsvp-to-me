@@ -1317,7 +1317,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         {/* ── Guest List ── */}
         {(event.guestListVis === "ALL" || isHost) && event.rsvps.length > 0 && (
           <div style={S.card}>
-            <div style={{ display: "flex", alignItems: "center", justifycontent: "space-between", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <Users size={16} style={{ color: t.accent }} />
                 <span style={{ fontWeight: 700 }}>Guests ({event.rsvps.length})</span>
