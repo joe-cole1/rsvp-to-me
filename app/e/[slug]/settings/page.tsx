@@ -14,11 +14,20 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
     include: {
       theme: true,
       reminderSettings: true,
+      coHosts: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { id: "asc" },
+      },
+      rsvpFields: { orderBy: { order: "asc" } },
     },
   });
 
   if (!event) notFound();
-  if (event.hostId !== session.userId) redirect(`/e/${slug}`);
 
-  return <SettingsPage event={event as Parameters<typeof SettingsPage>[0]["event"]} />;
+  // allow cohosts to access settings too
+  const isOwner = event.hostId === session.userId;
+  const isCohost = event.coHosts.some((ch) => ch.user.id === session.userId);
+  if (!isOwner && !isCohost) redirect(`/e/${slug}`);
+
+  return <SettingsPage event={event as Parameters<typeof SettingsPage>[0]["event"]} isOwner={isOwner} />;
 }

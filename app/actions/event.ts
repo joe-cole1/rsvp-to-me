@@ -17,6 +17,20 @@ async function assertHost(eventId: string) {
   return event;
 }
 
+async function assertHostOrCohost(eventId: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { hostId: true, slug: true, coHosts: { select: { userId: true } } },
+  });
+  if (!event) throw new Error("Forbidden");
+  const isOwner = event.hostId === session.userId;
+  const isCohost = event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  return event;
+}
+
 // ── Inline field edits ─────────────────────────────────────────────────────────
 
 const ALLOWED_FIELDS = new Set(["title", "description", "locationName", "locationAddress", "virtualUrl"]);
@@ -128,6 +142,7 @@ export async function addRSVP(data: {
   status: "GOING" | "MAYBE" | "NO";
   plusOneCount: number;
   note?: string;
+  answers?: Record<string, string>;
 }) {
   const event = await db.event.findUnique({
     where: { id: data.eventId },
@@ -154,6 +169,14 @@ export async function addRSVP(data: {
       approved: !event.approvalRequired,
     },
   });
+
+  if (data.answers && Object.keys(data.answers).length > 0) {
+    await db.rSVPAnswer.createMany({
+      data: Object.entries(data.answers)
+        .filter(([, v]) => v.trim())
+        .map(([rsvpFieldId, value]) => ({ rsvpId: rsvp.id, rsvpFieldId, value })),
+    });
+  }
 
   if (data.guestEmail) {
     sendRsvpConfirmationEmail(data.guestEmail, {
@@ -220,6 +243,10 @@ export async function saveEventSettings(
     capacity?: number | null;
     guestListVis?: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
     visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
+    maybeEnabled?: boolean;
+    questionnaireEnabled?: boolean;
+    showTimestamps?: boolean;
+    password?: string | null;
   }
 ) {
   const event = await assertHost(eventId);
@@ -515,4 +542,108 @@ export async function unclaimPotluckItem(itemId: string, guestName: string) {
   });
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true };
+}
+
+// ── Co-hosts ──────────────────────────────────────────────────────────────────
+
+export async function addCoHost(eventId: string, email: string) {
+  const event = await assertHost(eventId);
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user) return { success: false, error: "No account found for that email" };
+  if (user.id === (await getSession())!.userId) return { success: false, error: "You are already the host" };
+  try {
+    await db.eventCoHost.create({ data: { eventId, userId: user.id } });
+  } catch {
+    return { success: false, error: "Already a co-host" };
+  }
+  revalidatePath(`/e/${event.slug}/settings`);
+  return { success: true, cohostId: user.id, name: user.name, email: user.email };
+}
+
+export async function removeCoHost(cohostId: string) {
+  const cohost = await db.eventCoHost.findUnique({
+    where: { id: cohostId },
+    select: { event: { select: { hostId: true, slug: true } } },
+  });
+  const session = await getSession();
+  if (!cohost || cohost.event.hostId !== session?.userId) throw new Error("Forbidden");
+  await db.eventCoHost.delete({ where: { id: cohostId } });
+  revalidatePath(`/e/${cohost.event.slug}/settings`);
+}
+
+// ── RSVP Fields ───────────────────────────────────────────────────────────────
+
+export async function addRsvpField(
+  eventId: string,
+  data: { label: string; fieldType: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX"; required: boolean; options?: string; order: number }
+) {
+  const event = await assertHostOrCohost(eventId);
+  const field = await db.rSVPField.create({
+    data: { eventId, label: data.label, fieldType: data.fieldType, required: data.required, options: data.options ?? null, order: data.order },
+  });
+  revalidatePath(`/e/${event.slug}/settings`);
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true, id: field.id };
+}
+
+export async function updateRsvpField(
+  fieldId: string,
+  data: { label: string; required: boolean; options?: string }
+) {
+  const field = await db.rSVPField.findUnique({
+    where: { id: fieldId },
+    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+  });
+  const session = await getSession();
+  if (!field) throw new Error("Forbidden");
+  const isOwner = field.event.hostId === session?.userId;
+  const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  await db.rSVPField.update({
+    where: { id: fieldId },
+    data: { label: data.label, required: data.required, options: data.options ?? null },
+  });
+  revalidatePath(`/e/${field.event.slug}/settings`);
+  revalidatePath(`/e/${field.event.slug}`);
+  return { success: true };
+}
+
+export async function deleteRsvpField(fieldId: string) {
+  const field = await db.rSVPField.findUnique({
+    where: { id: fieldId },
+    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+  });
+  const session = await getSession();
+  if (!field) throw new Error("Forbidden");
+  const isOwner = field.event.hostId === session?.userId;
+  const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  await db.rSVPField.delete({ where: { id: fieldId } });
+  revalidatePath(`/e/${field.event.slug}/settings`);
+  revalidatePath(`/e/${field.event.slug}`);
+}
+
+export async function reorderRsvpFields(eventId: string, orderedIds: string[]) {
+  const event = await assertHostOrCohost(eventId);
+  await Promise.all(
+    orderedIds.map((id, index) => db.rSVPField.update({ where: { id }, data: { order: index } }))
+  );
+  revalidatePath(`/e/${event.slug}/settings`);
+  revalidatePath(`/e/${event.slug}`);
+}
+
+export async function getRsvpFieldAnswers(fieldId: string) {
+  const field = await db.rSVPField.findUnique({
+    where: { id: fieldId },
+    include: {
+      event: { select: { hostId: true, coHosts: { select: { userId: true } } } },
+      answers: { include: { rsvp: { select: { guestName: true } } }, orderBy: { id: "asc" } },
+    },
+  });
+  const session = await getSession();
+  if (!field) throw new Error("Forbidden");
+  const isOwner = field.event.hostId === session?.userId;
+  const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  return field.answers.map((a: { value: string; rsvp: { guestName: string } }) => ({ guestName: a.rsvp.guestName, value: a.value }));
 }

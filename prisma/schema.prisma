@@ -91,7 +91,11 @@ model Event {
   guestListVis      GuestListVis @default(ALL)
 
   // Feature flags
-  commentsEnabled   Boolean    @default(true)
+  commentsEnabled      Boolean    @default(true)
+  maybeEnabled         Boolean    @default(true)
+  questionnaireEnabled Boolean    @default(false)
+  showTimestamps       Boolean    @default(true)
+  password             String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

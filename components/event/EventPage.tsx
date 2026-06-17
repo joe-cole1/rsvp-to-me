@@ -56,6 +56,9 @@ type EventData = {
   plusOneAllowed: boolean;
   plusOneMax: number;
   approvalRequired: boolean;
+  maybeEnabled: boolean;
+  questionnaireEnabled: boolean;
+  showTimestamps: boolean;
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   host: { id: string; name: string | null; email: string };
@@ -603,6 +606,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [newPotluckLabel, setNewPotluckLabel] = useState("");
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
   const [claimName, setClaimName] = useState("");
+  const [fieldAnswers, setFieldAnswers] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -662,6 +666,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         guestEmail: guestEmail.trim() || undefined,
         guestPhone: guestPhone.trim() || undefined,
         status: rsvpStatus,
+        answers: fieldAnswers,
         plusOneCount: plusOne,
         note: rsvpNote.trim() || undefined,
       });
@@ -1254,7 +1259,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             ) : (
               <>
                 <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-                  {(["GOING", "MAYBE", "NO"] as const).map((s) => (
+                  {(["GOING", "MAYBE", "NO"] as const).filter((s) => s !== "MAYBE" || event.maybeEnabled).map((s) => (
                     <button
                       key={s}
                       onClick={() => setRsvpStatus(s)}
@@ -1283,6 +1288,59 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     value={rsvpNote}
                     onChange={(e) => setRsvpNote(e.target.value)}
                   />
+                  {event.questionnaireEnabled && event.rsvpFields.map((f) => (
+                    <div key={f.id}>
+                      <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: t.textSecondary, marginBottom: "6px" }}>
+                        {f.label}{f.required && <span style={{ color: t.accent }}> *</span>}
+                      </label>
+                      {f.fieldType === "TEXTAREA" ? (
+                        <textarea
+                          style={{ ...S.inp, resize: "none" } as React.CSSProperties}
+                          rows={3}
+                          value={fieldAnswers[f.id] ?? ""}
+                          onChange={(e) => setFieldAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                        />
+                      ) : f.fieldType === "SELECT" ? (
+                        <select
+                          style={{ ...S.inp, cursor: "pointer" }}
+                          value={fieldAnswers[f.id] ?? ""}
+                          onChange={(e) => setFieldAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                        >
+                          <option value="">Select…</option>
+                          {(f.options ?? "").split("\n").filter(Boolean).map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : f.fieldType === "CHECKBOX" ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          {(f.options ?? "").split("\n").filter(Boolean).map((opt) => {
+                            const checked = (fieldAnswers[f.id] ?? "").split(",").includes(opt);
+                            return (
+                              <label key={opt} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", color: t.textPrimary }}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => {
+                                    const current = (fieldAnswers[f.id] ?? "").split(",").filter(Boolean);
+                                    const next = checked ? current.filter((x) => x !== opt) : [...current, opt];
+                                    setFieldAnswers((prev) => ({ ...prev, [f.id]: next.join(",") }));
+                                  }}
+                                  style={{ accentColor: t.accent }}
+                                />
+                                {opt}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <input
+                          style={S.inp}
+                          value={fieldAnswers[f.id] ?? ""}
+                          onChange={(e) => setFieldAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                        />
+                      )}
+                    </div>
+                  ))}
                   {event.plusOneAllowed && event.plusOneMax > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Bringing a +1?</span>
@@ -1301,7 +1359,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   )}
                   <button
                     onClick={submitRSVP}
-                    disabled={!rsvpStatus || !guestName.trim() || isPending}
+                    disabled={!rsvpStatus || !guestName.trim() || isPending || (event.questionnaireEnabled && event.rsvpFields.some((f) => f.required && !fieldAnswers[f.id]?.trim()))}
                     style={{ ...S.btn, opacity: (!rsvpStatus || !guestName.trim()) ? 0.5 : 1 }}
                   >
                     {isPending ? "Sending…" : "Send RSVP"}
@@ -1389,7 +1447,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   <div style={{ ...S.avatar }}>{c.guestName[0].toUpperCase()}</div>
                   <div style={{ flex: 1, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
                     <span style={{ fontWeight: 700, fontSize: "13px" }}>{c.guestName}</span>
-                    <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(c.createdAt)}</span>
+                    {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(c.createdAt)}</span>}
                     <p style={{ color: t.textSecondary, fontSize: "14px", marginTop: "4px" }}>{c.body}</p>
                   </div>
                 </div>
