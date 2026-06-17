@@ -1,6 +1,35 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
+
+// Cover images display at ~260px tall in a ~800px wide card. 1600×900 is
+// plenty for 2× retina; quality 0.85 JPEG keeps file size under ~200KB.
+function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error("Compression failed")); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
@@ -593,13 +622,18 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     });
   };
 
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "compressing" | "uploading">("idle");
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
     try {
+      setUploadStatus("compressing");
+      const compressed = await compressImage(file);
+      setUploadStatus("uploading");
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", compressed);
       const res = await fetch("/api/upload", { method: "POST", body: form });
       if (!res.ok) throw new Error(await res.text());
       const { url } = await res.json() as { url: string };
@@ -612,6 +646,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       console.error("Cover upload failed:", err);
     } finally {
       setIsUploading(false);
+      setUploadStatus("idle");
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -836,7 +871,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   disabled={isUploading}
                   style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
                 >
-                  {isUploading ? "Uploading…" : "📷 Cover"}
+                  {uploadStatus === "compressing" ? "Compressing…" : uploadStatus === "uploading" ? "Uploading…" : "📷 Cover"}
                 </button>
               )}
             </div>
