@@ -518,7 +518,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-components ───────────────────────────────────────────────
 
 function Label({ children, t }: { children: React.ReactNode; t: ResolvedTheme }) {
   return <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.textMuted, marginBottom: "10px" }}>{children}</div>;
