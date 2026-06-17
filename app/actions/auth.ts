@@ -10,7 +10,7 @@ export async function sendMagicLinkAction(
   const link = await createMagicLink(normalizedEmail);
 
   if (!link) {
-    return { success: false, error: "No host account found with that email. Need an invite code? Register first." };
+    return { success: false, error: "No account found with that email. Did you RSVP with a different address?" };
   }
 
   await sendMagicLinkEmail(normalizedEmail, link);

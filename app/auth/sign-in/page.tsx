@@ -39,7 +39,7 @@ export default function SignInPage() {
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
           <h1 style={{ color: "#fff", fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>rsvp.to</h1>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "15px" }}>Sign in to host events</p>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "15px" }}>Sign in with a magic link</p>
         </div>
 
         <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "24px", padding: "32px" }}>

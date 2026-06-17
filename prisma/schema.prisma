@@ -23,6 +23,7 @@ model User {
   coHostedEvents EventCoHost[]
   magicTokens    MagicToken[]
   sessions       Session[]
+  rsvps          RSVP[]
 }
 
 enum Role {
@@ -239,8 +240,10 @@ model RSVP {
   note         String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  userId       String?
 
   event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   answers RSVPAnswer[]
   checkIn CheckIn?
 }

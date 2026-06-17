@@ -157,6 +157,18 @@ export async function addRSVP(data: {
     if (goingCount >= event.capacity) return { success: false, error: "Event is at capacity" };
   }
 
+  let userId: string | undefined;
+  if (data.guestEmail) {
+    const normalizedEmail = data.guestEmail.toLowerCase().trim();
+    const guestUser = await db.user.upsert({
+      where: { email: normalizedEmail },
+      create: { email: normalizedEmail, name: data.guestName },
+      update: {},
+      select: { id: true },
+    });
+    userId = guestUser.id;
+  }
+
   const rsvp = await db.rSVP.create({
     data: {
       eventId: data.eventId,
@@ -167,6 +179,7 @@ export async function addRSVP(data: {
       plusOneCount: data.plusOneCount,
       note: data.note || null,
       approved: !event.approvalRequired,
+      userId,
     },
   });
 

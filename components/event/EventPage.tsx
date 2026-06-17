@@ -615,6 +615,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   // Derived
   const going = event.rsvps.filter((r) => r.status === "GOING");
   const maybe = event.rsvps.filter((r) => r.status === "MAYBE");
+  const no = event.rsvps.filter((r) => r.status === "NO");
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
 
   const existingTypes = new Set(event.infoSections.map((s) => s.type));
@@ -1101,50 +1102,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           </div>
         )}
 
-        {/* ── Event updates ── */}
-        {(event.updates.length > 0 || isHost) && (
-          <div style={{ marginBottom: "16px" }}>
-            {event.updates.map((u) => (
-              <div key={u.id} style={{ ...S.card, marginBottom: "8px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                <div style={{ fontSize: "18px", flexShrink: 0, marginTop: "2px" }}>📣</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: "14px", color: t.textSecondary, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{u.body}</p>
-                  <span style={{ fontSize: "11px", color: t.textMuted, marginTop: "6px", display: "block" }}>{timeAgo(u.createdAt)}</span>
-                </div>
-                {isHost && (
-                  <button onClick={() => removeUpdate(u.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-            ))}
-            {isHost && (
-              <div style={S.card}>
-                <div style={{ fontWeight: 700, fontSize: "13px", color: t.textMuted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "10px" }}>Post an Update</div>
-                <textarea
-                  style={{ ...S.inp, resize: "none", marginBottom: "10px" } as React.CSSProperties}
-                  rows={3}
-                  placeholder="Changed start time, new location, what to bring…"
-                  value={updateDraft}
-                  onChange={(e) => setUpdateDraft(e.target.value)}
-                />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textMuted, cursor: "pointer" }}>
-                    <input type="checkbox" checked={notifyOnUpdate} onChange={(e) => setNotifyOnUpdate(e.target.checked)} style={{ accentColor: t.accent }} />
-                    Notify guests via email
-                  </label>
-                  <button
-                    onClick={postUpdate}
-                    disabled={!updateDraft.trim() || isPostingUpdate}
-                    style={{ ...S.btn, width: "auto", padding: "10px 20px", opacity: !updateDraft.trim() || isPostingUpdate ? 0.5 : 1 }}
-                  >
-                    {isPostingUpdate ? "Posting…" : "Post"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ── Potluck ── */}
         {(event.potluckItems.length > 0 || isHost) && (
@@ -1411,67 +1368,170 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         )}
 
         {/* ── Guest List ── */}
-        {(event.guestListVis === "ALL" || isHost) && going.length > 0 && (
+        {(event.guestListVis === "ALL" || isHost) && event.rsvps.length > 0 && (
           <div style={S.card}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <Users size={16} style={{ color: t.accent }} />
-                <span style={{ fontWeight: 700 }}>Going ({totalGoing})</span>
+                <span style={{ fontWeight: 700 }}>Guests ({event.rsvps.length})</span>
               </div>
-              {maybe.length > 0 && <span style={{ color: t.textMuted, fontSize: "13px" }}>{maybe.length} maybe</span>}
+              <a href={`/e/${event.slug}/guests`} style={{ fontSize: "13px", color: t.accent, textDecoration: "none", opacity: 0.85 }}>
+                View all →
+              </a>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {going.map((r) => (
-                <div key={r.id} style={{ display: "flex", alignItems: r.note ? "flex-start" : "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px" }}>
-                  <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px", marginTop: r.note ? "2px" : 0 }}>{r.guestName[0].toUpperCase()}</div>
-                  <div>
-                    <div>{r.guestName}{r.plusOneCount > 0 && ` +${r.plusOneCount}`}</div>
-                    {r.note && <div style={{ fontSize: "11px", color: t.textMuted, marginTop: "2px" }}>{r.note}</div>}
-                  </div>
+            {going.length > 0 && (
+              <div style={{ marginBottom: (maybe.length > 0 || no.length > 0) ? "14px" : 0 }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Going · {totalGoing}</div>
+                <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
+                  {going.map((r) => (
+                    <div key={r.id} style={{ display: "flex", alignItems: r.note ? "flex-start" : "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px" }}>
+                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px", marginTop: r.note ? "2px" : 0 }}>{r.guestName[0].toUpperCase()}</div>
+                      <div>
+                        <div>{r.guestName}{r.plusOneCount > 0 && ` +${r.plusOneCount}`}</div>
+                        {r.note && <div style={{ fontSize: "11px", color: t.textMuted, marginTop: "2px" }}>{r.note}</div>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+            {maybe.length > 0 && (
+              <div style={{ marginBottom: no.length > 0 ? "14px" : 0 }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Maybe · {maybe.length}</div>
+                <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
+                  {maybe.map((r) => (
+                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px", opacity: 0.75 }}>
+                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
+                      <span>{r.guestName}{r.plusOneCount > 0 && ` +${r.plusOneCount}`}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {no.length > 0 && (
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Can&apos;t make it · {no.length}</div>
+                <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
+                  {no.map((r) => (
+                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px", opacity: 0.45 }}>
+                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
+                      <span>{r.guestName}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── Comments ── */}
-        {event.commentsEnabled && (
+        {/* ── Activity (updates + comments unified) ── */}
+        {(event.commentsEnabled || event.updates.length > 0 || isHost) && (
           <div style={S.card}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
               <MessageSquare size={16} style={{ color: t.accent }} />
-              <span style={{ fontWeight: 700 }}>Vibes</span>
+              <span style={{ fontWeight: 700 }}>Activity</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" }}>
-              {event.comments.map((c) => (
-                <div key={c.id} style={{ display: "flex", gap: "10px" }}>
-                  <div style={{ ...S.avatar }}>{c.guestName[0].toUpperCase()}</div>
-                  <div style={{ flex: 1, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
-                    <span style={{ fontWeight: 700, fontSize: "13px" }}>{c.guestName}</span>
-                    {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(c.createdAt)}</span>}
-                    <p style={{ color: t.textSecondary, fontSize: "14px", marginTop: "4px" }}>{c.body}</p>
-                  </div>
+            {(() => {
+              type FeedItem =
+                | { kind: "update"; id: string; body: string; createdAt: Date }
+                | { kind: "comment"; id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] };
+              const feed: FeedItem[] = [
+                ...event.updates.map((u) => ({ kind: "update" as const, id: u.id, body: u.body, createdAt: new Date(u.createdAt) })),
+                ...(event.commentsEnabled ? event.comments.map((c) => ({ kind: "comment" as const, id: c.id, guestName: c.guestName, body: c.body, createdAt: new Date(c.createdAt), replies: c.replies.map((r) => ({ ...r, createdAt: new Date(r.createdAt) })) })) : []),
+              ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: (event.commentsEnabled || isHost) ? "16px" : 0 }}>
+                  {feed.length === 0 ? (
+                    <p style={{ color: t.textMuted, fontSize: "14px", textAlign: "center", padding: "12px 0" }}>No activity yet — be the first!</p>
+                  ) : feed.map((item) => {
+                    if (item.kind === "update") return (
+                      <div key={`u-${item.id}`} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                        <div style={{ fontSize: "18px", flexShrink: 0, marginTop: "2px" }}>📣</div>
+                        <div style={{ flex: 1, minWidth: 0, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontWeight: 700, fontSize: "13px" }}>Update from host</span>
+                            {isHost && (
+                              <button onClick={() => removeUpdate(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
+                                <X size={13} />
+                              </button>
+                            )}
+                          </div>
+                          {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px" }}>{timeAgo(item.createdAt)}</span>}
+                          <p style={{ color: t.textSecondary, fontSize: "14px", margin: "4px 0 0", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{item.body}</p>
+                        </div>
+                      </div>
+                    );
+                    return (
+                      <div key={`c-${item.id}`} style={{ display: "flex", gap: "10px" }}>
+                        <div style={{ ...S.avatar }}>{item.guestName[0].toUpperCase()}</div>
+                        <div style={{ flex: 1, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
+                          <span style={{ fontWeight: 700, fontSize: "13px" }}>{item.guestName}</span>
+                          {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>}
+                          <p style={{ color: t.textSecondary, fontSize: "14px", margin: "4px 0 0" }}>{item.body}</p>
+                          {item.replies.length > 0 && (
+                            <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                              {item.replies.map((r) => (
+                                <div key={r.id} style={{ display: "flex", gap: "8px" }}>
+                                  <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
+                                  <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: "10px", padding: "6px 10px" }}>
+                                    <span style={{ fontWeight: 700, fontSize: "12px" }}>{r.guestName}</span>
+                                    {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "6px" }}>{timeAgo(r.createdAt)}</span>}
+                                    <p style={{ fontSize: "13px", margin: "2px 0 0", color: t.textSecondary }}>{r.body}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-              {event.comments.length === 0 && (
-                <p style={{ color: t.textMuted, fontSize: "14px", textAlign: "center", padding: "12px 0" }}>Be the first to comment!</p>
-              )}
-            </div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                style={{ ...S.inp, flex: 1 }}
-                placeholder={guestName ? `Comment as ${guestName}…` : "Your name first, then comment below"}
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-              />
-              <button
-                onClick={submitComment}
-                disabled={!commentText.trim() || isPending}
-                style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: t.btnRadius, padding: "0 16px", cursor: "pointer", opacity: !commentText.trim() ? 0.5 : 1 }}
-              >
-                <Send size={16} />
-              </button>
-            </div>
+              );
+            })()}
+            {isHost && (
+              <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "12px", padding: "12px", marginBottom: event.commentsEnabled ? "12px" : 0 }}>
+                <div style={{ fontWeight: 700, fontSize: "12px", color: t.textMuted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "8px" }}>Post an Update</div>
+                <textarea
+                  style={{ ...S.inp, resize: "none", marginBottom: "8px" } as React.CSSProperties}
+                  rows={3}
+                  placeholder="Changed start time, new location, what to bring…"
+                  value={updateDraft}
+                  onChange={(e) => setUpdateDraft(e.target.value)}
+                />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textMuted, cursor: "pointer" }}>
+                    <input type="checkbox" checked={notifyOnUpdate} onChange={(e) => setNotifyOnUpdate(e.target.checked)} style={{ accentColor: t.accent }} />
+                    Notify guests via email
+                  </label>
+                  <button
+                    onClick={postUpdate}
+                    disabled={!updateDraft.trim() || isPostingUpdate}
+                    style={{ ...S.btn, width: "auto", padding: "8px 18px", opacity: !updateDraft.trim() || isPostingUpdate ? 0.5 : 1 }}
+                  >
+                    {isPostingUpdate ? "Posting…" : "Post"}
+                  </button>
+                </div>
+              </div>
+            )}
+            {event.commentsEnabled && (
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  style={{ ...S.inp, flex: 1 }}
+                  placeholder={guestName ? `Comment as ${guestName}…` : "Your name first, then comment below"}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                />
+                <button
+                  onClick={submitComment}
+                  disabled={!commentText.trim() || isPending}
+                  style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: t.btnRadius, padding: "0 16px", cursor: "pointer", opacity: !commentText.trim() ? 0.5 : 1 }}
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
