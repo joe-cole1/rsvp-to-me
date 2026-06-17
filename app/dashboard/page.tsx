@@ -8,7 +8,7 @@ import { APP_SHELL } from "@/lib/theme";
 
 export default async function DashboardPage() {
   const session = await getSession();
-  if (!session) redirect("/auth/sign-in");
+  if (!session || session.role === "GUEST") redirect("/auth/sign-in");
 
   const events = await getDashboardEvents();
 

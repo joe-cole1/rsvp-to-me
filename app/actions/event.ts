@@ -7,6 +7,7 @@ import { sendRsvpConfirmationEmail, sendBlastEmail } from "@/lib/email";
 import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
+import { tzLocalToUtc } from "@/lib/utils";
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
 
@@ -303,32 +304,6 @@ export async function addComment(data: {
   return { success: true, id: comment.id };
 }
 
-export async function saveRsvpAnswers(
-  rsvpId: string,
-  answers: Record<string, string>
-): Promise<{ success: boolean }> {
-  const rsvp = await db.rSVP.findUnique({
-    where: { id: rsvpId },
-    select: { event: { select: { slug: true } } },
-  });
-  if (!rsvp) return { success: false };
-
-  await Promise.all(
-    Object.entries(answers)
-      .filter(([, v]) => v.trim())
-      .map(([rsvpFieldId, value]) =>
-        db.rSVPAnswer.upsert({
-          where: { rsvpId_rsvpFieldId: { rsvpId, rsvpFieldId } },
-          create: { rsvpId, rsvpFieldId, value },
-          update: { value },
-        })
-      )
-  );
-
-  revalidatePath(`/e/${rsvp.event.slug}`);
-  return { success: true };
-}
-
 // ── Event settings ─────────────────────────────────────────────────────────────
 
 export async function saveEventSettings(
@@ -522,23 +497,6 @@ export async function sendSmsBlast(
 
 // ── Date/time edit ─────────────────────────────────────────────────────────────
 
-function tzLocalToUtc(localStr: string, tz: string): Date {
-  // localStr: "YYYY-MM-DDTHH:MM" treated as a wall-clock time in timezone tz
-  // Converts to the corresponding UTC Date using the 2x trick.
-  const asIfUtc = new Date(localStr + ":00Z");
-  const parts: Record<string, string> = {};
-  for (const p of new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
-  }).formatToParts(asIfUtc)) {
-    parts[p.type] = p.value;
-  }
-  const h = parts.hour === "24" ? "00" : parts.hour;
-  const localAsUtc = new Date(
-    `${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}:${parts.second}Z`
-  );
-  return new Date(2 * asIfUtc.getTime() - localAsUtc.getTime());
-}
 
 export async function saveEventDates(
   eventId: string,
@@ -583,9 +541,12 @@ export async function approveRsvp(rsvpId: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true } } },
+    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
   });
-  if (!rsvp || rsvp.event.hostId !== session.userId) throw new Error("Forbidden");
+  if (!rsvp) throw new Error("Not found");
+  const isOwner = rsvp.event.hostId === session.userId;
+  const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true };
@@ -596,9 +557,12 @@ export async function declineRsvp(rsvpId: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true } } },
+    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
   });
-  if (!rsvp || rsvp.event.hostId !== session.userId) throw new Error("Forbidden");
+  if (!rsvp) throw new Error("Not found");
+  const isOwner = rsvp.event.hostId === session.userId;
+  const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
   await db.rSVP.delete({ where: { id: rsvpId } });
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true };

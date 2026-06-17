@@ -17,7 +17,7 @@ model User {
   phone     String?  @unique
   name      String?
   avatarUrl String?
-  role      Role     @default(HOST)
+  role      Role     @default(GUEST)
   createdAt DateTime @default(now())
 
   events         Event[]
@@ -28,6 +28,7 @@ model User {
 }
 
 enum Role {
+  GUEST
   HOST
   ADMIN
 }

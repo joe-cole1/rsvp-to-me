@@ -40,7 +40,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 export default async function NewEventPage() {
   const session = await getSession();
-  if (!session) redirect("/auth/sign-in");
+  if (!session || session.role === "GUEST") redirect("/auth/sign-in");
 
   return (
     <AppShell>

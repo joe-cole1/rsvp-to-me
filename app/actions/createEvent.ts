@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { generateUniqueSlug } from "@/lib/slug";
+import { tzLocalToUtc } from "@/lib/utils";
 
 export async function createEvent(formData: FormData) {
   const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
+  if (!session || session.role === "GUEST") throw new Error("Unauthorized");
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string | null;
@@ -22,7 +23,7 @@ export async function createEvent(formData: FormData) {
 
   if (!title || !startDate || !startTime) throw new Error("Missing required fields");
 
-  const startAt = new Date(`${startDate}T${startTime}`);
+  const startAt = tzLocalToUtc(`${startDate}T${startTime}`, timezone);
   const slug = await generateUniqueSlug(title);
 
   const event = await db.event.create({

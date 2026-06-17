@@ -4,6 +4,9 @@
 
 A fun, social-first event and RSVP platform for personal events (house parties, wine nights, dinners). Inspired by Partiful's expressive aesthetic. No payments or ticketing — just invites, RSVPs, and connection.
 
+## Development Workflow Rules
+- **CRITICAL: PR Check**: ALWAYS check if there is an open PR (Pull Request) for the branch before committing or pushing additional code. You must query open PRs using the GitHub API or MCP tools to ensure you are not creating conflicts or duplicate work. Do not commit code to a branch with an open PR unless explicitly requested.
+
 ## What it is / isn't
 
 **Is:** Invite friends, customize a beautiful event page, manage RSVPs, send text blasts and email blasts, see who's coming, let guests comment.
@@ -116,20 +119,16 @@ Always import from `@/lib/db`, never instantiate PrismaClient directly.
 - Hosts must have a valid invite code to register (gated for now; see Open Registration note below)
 - Invite codes live in `HostInviteCode` table
 - Seed script (`prisma/seed.ts`) upserts `HOST_INVITE_CODE` on container startup
-- `User.role` defaults to `HOST` for everyone — there is no second-class "guest" user type
+- `User.role` defaults to `GUEST`. Users created during RSVP are created as `GUEST`s.
+- Registration (`registerHost`) upgrades `GUEST`s to `HOST`s if they register with an existing RSVP email and provide a valid invite code (or if open registration is active).
 - `assertHost(eventId)` — checks session + event.hostId
 - `assertHostOrCohost(eventId)` — checks session + event.hostId OR EventCoHost row
 
 ### Open registration
 Controlled by `OPEN_REGISTRATION` env var (default `"false"`). Set to `"true"` in docker-compose
 to allow anyone to register — invite code field is hidden on the register page and `registerHost`
-in `lib/auth.ts` skips the code check. No schema changes needed: `User.role` already defaults to
-`HOST`, so everyone who signs up can create events immediately.
-
-One nuance: guest RSVPs (name/email on RSVP rows) are not linked to User accounts. If you
-want guests to later claim their RSVPs after creating an account, add an optional `userId`
-field to the `RSVP` model and link it during sign-up by matching `guestEmail === user.email`.
-This is a schema migration + one `db.rSVP.updateMany()` call — no architectural overhaul.
+in `lib/auth.ts` skips the code check.
+- Guest RSVPs are linked to `User` accounts via `RSVP.userId`. When a guest RSVPs, a `User` account is automatically created with the `GUEST` role.
 
 ### Event page UX
 - Public event page at `/e/[slug]` — no auth required
