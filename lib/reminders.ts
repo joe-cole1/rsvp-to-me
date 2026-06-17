@@ -9,7 +9,8 @@ type ReminderType =
   | "sms_week"
   | "sms_day"
   | "sms_hours"
-  | "nudge_email";
+  | "nudge_email"
+  | "nudge_sms";
 
 function hoursLabel(n: number) {
   return n === 1 ? "1 hour" : `${n} hours`;
@@ -42,9 +43,8 @@ export async function processReminders(): Promise<void> {
 
     const emails = event.rsvps.flatMap((r) => (r.guestEmail ? [r.guestEmail] : []));
     const phones = event.rsvps.flatMap((r) => (r.guestPhone ? [r.guestPhone] : []));
-    const maybeEmails = event.rsvps
-      .filter((r) => r.status === "MAYBE")
-      .flatMap((r) => (r.guestEmail ? [r.guestEmail] : []));
+    const rsvpEmails = new Set(emails);
+    const rsvpPhones = new Set(phones);
 
     const hostName = event.host.name ?? "Your host";
     const base = { eventTitle: event.title, eventSlug: event.slug, hostName };
@@ -111,13 +111,41 @@ export async function processReminders(): Promise<void> {
       },
       {
         type: "nudge_email",
-        enabled: rs.nudgeUnresponded && maybeEmails.length > 0,
+        enabled: rs.nudgeUnresponded,
         dueAt: new Date(startAt.getTime() - 3 * 24 * 60 * 60 * 1000),
-        send: () =>
-          sendBlastEmail(maybeEmails, {
+        send: async () => {
+          const invitations = await db.invitation.findMany({
+            where: { eventId: event.id, channel: "EMAIL" },
+            select: { sentTo: true },
+          });
+          const nudgeEmails = [...new Set(invitations.map((i) => i.sentTo))].filter(
+            (e) => !rsvpEmails.has(e)
+          );
+          if (nudgeEmails.length === 0) return;
+          return sendBlastEmail(nudgeEmails, {
             ...base,
-            message: `Still on the fence for ${event.title}? It's in 3 days — let us know if you can make it!`,
-          }),
+            message: `You're invited to ${event.title} in 3 days — have you had a chance to RSVP?`,
+          });
+        },
+      },
+      {
+        type: "nudge_sms",
+        enabled: rs.nudgeUnresponded,
+        dueAt: new Date(startAt.getTime() - 3 * 24 * 60 * 60 * 1000),
+        send: async () => {
+          const invitations = await db.invitation.findMany({
+            where: { eventId: event.id, channel: "SMS" },
+            select: { sentTo: true },
+          });
+          const nudgePhones = [...new Set(invitations.map((i) => i.sentTo))].filter(
+            (p) => !rsvpPhones.has(p)
+          );
+          if (nudgePhones.length === 0) return;
+          return sendSmsBlast(nudgePhones, {
+            ...base,
+            message: `${event.title} is in 3 days — have you had a chance to RSVP?`,
+          });
+        },
       },
     ];
 
