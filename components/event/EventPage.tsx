@@ -1466,13 +1466,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         if (item.type === "event_date") return <Calendar size={14} style={{ color: t.accent }} />;
                         if (item.type === "info_add") return <Plus size={14} style={{ color: t.accent }} />;
                         if (item.type === "info_delete") return <X size={14} style={{ color: t.textMuted }} />;
+                        if (item.type === "potluck_claim") return <Gift size={14} style={{ color: t.accent }} />;
+                        if (item.type === "potluck_unclaim") return <Gift size={14} style={{ color: t.textMuted }} />;
                         return <Pencil size={14} style={{ color: t.accent }} />;
                       })();
                       return (
                         <div key={`a-${item.id}`} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "6px 0" }}>
                           <div style={{
                             width: "28px", height: "28px", borderRadius: "50%",
-                            background: item.type.startsWith("rsvp") ? t.accentBg : t.pillBg,
+                            background: (item.type.startsWith("rsvp") || item.type === "potluck_claim") ? t.accentBg : t.pillBg,
                             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                           }}>
                             {iconEl}
