@@ -236,10 +236,22 @@ model RSVP {
   updatedAt    DateTime   @updatedAt
   userId       String?
 
-  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  answers RSVPAnswer[]
-  checkIn CheckIn?
+  event          Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  answers        RSVPAnswer[]
+  checkIn        CheckIn?
+  plusOneGuests  PlusOneGuest[]
+}
+
+model PlusOneGuest {
+  id     String @id @default(cuid())
+  rsvpId String
+  name   String
+  order  Int    @default(0)
+
+  rsvp RSVP @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+
+  @@index([rsvpId])
 }
 
 enum RSVPStatus {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowLeft, Check, Plus, X, GripVertical } from "lucide-react";
+import { ArrowLeft, Check, Plus, X } from "lucide-react";
 import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme } from "@/lib/theme";
 import {
   saveEventSettings,
@@ -100,10 +100,12 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX">("TEXT");
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState("");
-  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState("");
-  const [editRequired, setEditRequired] = useState(false);
-  const [editOptions, setEditOptions] = useState("");
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.label]))
+  );
+  const [optionsDrafts, setOptionsDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.options ?? ""]))
+  );
 
   const flash = (section: string) => {
     setSaved(section);
@@ -189,23 +191,27 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     }
   });
 
-  const startEditField = (f: RsvpFieldEntry) => {
-    setEditingFieldId(f.id);
-    setEditLabel(f.label);
-    setEditRequired(f.required);
-    setEditOptions(f.options ?? "");
-  };
+  const handleUpdateFieldType = (fieldId: string, fieldType: RsvpFieldEntry["fieldType"]) => startTransition(async () => {
+    await updateRsvpField(fieldId, { fieldType });
+    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, fieldType } : x));
+  });
 
-  const handleUpdateField = (fieldId: string) => startTransition(async () => {
-    const f = fields.find((x) => x.id === fieldId);
-    if (!f) return;
-    await updateRsvpField(fieldId, {
-      label: editLabel.trim(),
-      required: editRequired,
-      options: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? editOptions : undefined,
-    });
-    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, label: editLabel.trim(), required: editRequired, options: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? editOptions : null } : x));
-    setEditingFieldId(null);
+  const handleUpdateFieldRequired = (fieldId: string, required: boolean) => startTransition(async () => {
+    await updateRsvpField(fieldId, { required });
+    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, required } : x));
+  });
+
+  const handleUpdateFieldLabel = (fieldId: string) => startTransition(async () => {
+    const label = (labelDrafts[fieldId] ?? "").trim();
+    if (!label) return;
+    await updateRsvpField(fieldId, { label });
+    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, label } : x));
+  });
+
+  const handleUpdateFieldOptions = (fieldId: string) => startTransition(async () => {
+    const options = optionsDrafts[fieldId] ?? "";
+    await updateRsvpField(fieldId, { options });
+    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, options } : x));
   });
 
   const handleDeleteField = (fieldId: string) => startTransition(async () => {
@@ -319,37 +325,52 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
           <Toggle label="Ask guests custom questions" value={questionnaireEnabled} onChange={setQuestionnaireEnabled} />
 
           {fields.length > 0 && (
-            <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
               {fields.map((f) => (
-                <div key={f.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "12px 14px" }}>
-                  {editingFieldId === f.id ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} style={INP} placeholder="Question text" />
-                      {(f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") && (
-                        <textarea value={editOptions} onChange={(e) => setEditOptions(e.target.value)} style={{ ...INP, resize: "none" } as React.CSSProperties} rows={2} placeholder="Options (one per line)" />
-                      )}
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <Toggle label="Required" value={editRequired} onChange={setEditRequired} />
-                      </div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button onClick={() => handleUpdateField(f.id)} style={{ ...SMALL_BTN, flex: 1 }}>Save</button>
-                        <button onClick={() => setEditingFieldId(null)} style={{ ...SMALL_BTN, background: "rgba(255,255,255,0.08)" }}>Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <GripVertical size={14} style={{ color: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: "14px", fontWeight: 600 }}>{f.label}</div>
-                        <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", marginTop: "2px" }}>
-                          {f.fieldType.toLowerCase()}{f.required ? " · required" : ""}
-                        </div>
-                      </div>
-                      <button onClick={() => startEditField(f)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", padding: "4px", fontSize: "12px" }}>Edit</button>
-                      <button onClick={() => handleDeleteField(f.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", padding: "4px" }}>
-                        <X size={14} />
-                      </button>
-                    </div>
+                <div key={f.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "14px" }}>
+                  {/* Top row: type select + required + delete */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                    <select
+                      value={f.fieldType}
+                      onChange={(e) => handleUpdateFieldType(f.id, e.target.value as RsvpFieldEntry["fieldType"])}
+                      style={{ flex: 1, padding: "6px 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "#fff", fontFamily: "inherit", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      <option value="TEXT">Short text</option>
+                      <option value="TEXTAREA">Long text</option>
+                      <option value="SELECT">Multiple choice</option>
+                      <option value="CHECKBOX">Checkboxes</option>
+                    </select>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>
+                      <input
+                        type="checkbox"
+                        checked={f.required}
+                        onChange={(e) => handleUpdateFieldRequired(f.id, e.target.checked)}
+                        style={{ accentColor: "#a855f7" }}
+                      />
+                      Required
+                    </label>
+                    <button onClick={() => handleDeleteField(f.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", padding: "4px", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                      <X size={15} />
+                    </button>
+                  </div>
+                  {/* Label input */}
+                  <input
+                    value={labelDrafts[f.id] ?? f.label}
+                    onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                    onBlur={() => handleUpdateFieldLabel(f.id)}
+                    placeholder="Question text"
+                    style={{ ...INP, marginBottom: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? "8px" : 0 }}
+                  />
+                  {/* Options textarea for SELECT/CHECKBOX */}
+                  {(f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") && (
+                    <textarea
+                      value={optionsDrafts[f.id] ?? (f.options ?? "")}
+                      onChange={(e) => setOptionsDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                      onBlur={() => handleUpdateFieldOptions(f.id)}
+                      placeholder="Options, one per line"
+                      style={{ ...INP, resize: "none", marginTop: "4px" } as React.CSSProperties}
+                      rows={3}
+                    />
                   )}
                 </div>
               ))}
@@ -357,18 +378,23 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
           )}
 
           {addingField ? (
-            <div style={{ marginTop: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ marginTop: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ flex: 1, padding: "6px 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "#fff", fontFamily: "inherit", fontSize: "12px", cursor: "pointer" }}>
+                  <option value="TEXT">Short text</option>
+                  <option value="TEXTAREA">Long text</option>
+                  <option value="SELECT">Multiple choice</option>
+                  <option value="CHECKBOX">Checkboxes</option>
+                </select>
+                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>
+                  <input type="checkbox" checked={newFieldRequired} onChange={(e) => setNewFieldRequired(e.target.checked)} style={{ accentColor: "#a855f7" }} />
+                  Required
+                </label>
+              </div>
               <input value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="Question text *" style={INP} />
-              <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ ...INP, cursor: "pointer" }}>
-                <option value="TEXT">Short text</option>
-                <option value="TEXTAREA">Long text</option>
-                <option value="SELECT">Multiple choice (pick one)</option>
-                <option value="CHECKBOX">Checkboxes (pick multiple)</option>
-              </select>
               {(newFieldType === "SELECT" || newFieldType === "CHECKBOX") && (
                 <textarea value={newFieldOptions} onChange={(e) => setNewFieldOptions(e.target.value)} placeholder="Options, one per line" style={{ ...INP, resize: "none" } as React.CSSProperties} rows={3} />
               )}
-              <Toggle label="Required" value={newFieldRequired} onChange={setNewFieldRequired} />
               <div style={{ display: "flex", gap: "6px" }}>
                 <button onClick={handleAddField} disabled={!newFieldLabel.trim() || isPending} style={{ ...SMALL_BTN, flex: 1 }}>Add Question</button>
                 <button onClick={() => setAddingField(false)} style={{ ...SMALL_BTN, background: "rgba(255,255,255,0.08)" }}>Cancel</button>

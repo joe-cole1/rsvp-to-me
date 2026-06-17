@@ -173,6 +173,7 @@ export async function addRSVP(data: {
   guestPhone?: string;
   status: "GOING" | "MAYBE" | "NO";
   plusOneCount: number;
+  plusOneGuestNames?: string[];
   note?: string;
   answers?: Record<string, string>;
 }) {
@@ -232,9 +233,20 @@ export async function addRSVP(data: {
     });
   }
 
+  if (data.plusOneGuestNames && data.plusOneGuestNames.length > 0) {
+    await db.plusOneGuest.createMany({
+      data: data.plusOneGuestNames
+        .filter((n) => n.trim())
+        .map((name, order) => ({ rsvpId: rsvp.id, name: name.trim(), order })),
+    });
+  }
+
   const statusText = data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
   const plusStr = data.plusOneCount > 0 ? ` +${data.plusOneCount}` : "";
-  logActivity(data.eventId, "rsvp_new", `${data.guestName} signed up · ${statusText}${plusStr}`, data.guestName).catch(() => {});
+  const detail = data.note?.trim()
+    ? `${data.guestName} is ${statusText}${plusStr}\n${data.note.trim()}`
+    : `${data.guestName} is ${statusText}${plusStr}`;
+  logActivity(data.eventId, "rsvp_new", detail, data.guestName).catch(() => {});
 
   if (data.guestEmail) {
     sendRsvpConfirmationEmail(data.guestEmail, {
@@ -351,7 +363,7 @@ export async function saveEventSettings(
 
 export async function updateRSVP(
   editToken: string,
-  data: { status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; note?: string }
+  data: { status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; plusOneGuestNames?: string[]; note?: string; answers?: Record<string, string> }
 ) {
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
@@ -361,14 +373,43 @@ export async function updateRSVP(
 
   await db.rSVP.update({
     where: { editToken },
-    data: { status: data.status, plusOneCount: data.plusOneCount, note: data.note ?? undefined },
+    data: {
+      status: data.status,
+      plusOneCount: data.plusOneCount,
+      ...(data.note !== undefined && { note: data.note || null }),
+    },
   });
+
+  if (data.plusOneGuestNames !== undefined) {
+    await db.plusOneGuest.deleteMany({ where: { rsvpId: rsvp.id } });
+    if (data.plusOneGuestNames.length > 0) {
+      await db.plusOneGuest.createMany({
+        data: data.plusOneGuestNames
+          .filter((n) => n.trim())
+          .map((name, order) => ({ rsvpId: rsvp.id, name: name.trim(), order })),
+      });
+    }
+  }
+
+  if (data.answers && Object.keys(data.answers).length > 0) {
+    await Promise.all(
+      Object.entries(data.answers)
+        .filter(([, v]) => v.trim())
+        .map(([rsvpFieldId, value]) =>
+          db.rSVPAnswer.upsert({
+            where: { rsvpId_rsvpFieldId: { rsvpId: rsvp.id, rsvpFieldId } },
+            create: { rsvpId: rsvp.id, rsvpFieldId, value },
+            update: { value },
+          })
+        )
+    );
+  }
 
   const statusText = data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
   logActivity(rsvp.eventId, "rsvp_update", `${rsvp.guestName} updated to ${statusText}`, rsvp.guestName).catch(() => {});
 
   revalidatePath(`/e/${rsvp.event.slug}`);
-  return { success: true };
+  return { success: true, rsvpId: rsvp.id };
 }
 
 // ── Message blast ──────────────────────────────────────────────────────────────
@@ -685,7 +726,7 @@ export async function addRsvpField(
 
 export async function updateRsvpField(
   fieldId: string,
-  data: { label: string; required: boolean; options?: string }
+  data: { label?: string; required?: boolean; options?: string; fieldType?: string }
 ) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
@@ -698,7 +739,12 @@ export async function updateRsvpField(
   if (!isOwner && !isCohost) throw new Error("Forbidden");
   await db.rSVPField.update({
     where: { id: fieldId },
-    data: { label: data.label, required: data.required, options: data.options ?? null },
+    data: {
+      ...(data.label !== undefined && { label: data.label }),
+      ...(data.required !== undefined && { required: data.required }),
+      ...(data.options !== undefined && { options: data.options || null }),
+      ...(data.fieldType !== undefined && { fieldType: data.fieldType as "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX" }),
+    },
   });
   revalidatePath(`/e/${field.event.slug}/settings`);
   revalidatePath(`/e/${field.event.slug}`);

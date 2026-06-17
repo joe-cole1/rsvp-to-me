@@ -20,6 +20,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
           answers: {
             include: { rsvpField: { select: { id: true, label: true } } },
           },
+          plusOneGuests: { orderBy: { order: "asc" } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -56,6 +57,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     ...r,
     createdAt: r.createdAt.toISOString(),
     answers: r.answers.map((a) => ({ label: a.rsvpField.label, value: a.value })),
+    plusOneGuests: r.plusOneGuests.map((g) => g.name),
   });
 
   return (
