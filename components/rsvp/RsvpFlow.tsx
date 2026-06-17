@@ -189,7 +189,7 @@ export function RsvpFlow({
     return null;
   };
 
-  // ── Done screen ────────────────────────────────────────────────────────────
+  // ── Done screen ────────────────────────────────────────────────────────
   if (done) {
     return (
       <div style={{ minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", position: "relative", overflowX: "hidden" }}>
@@ -215,7 +215,7 @@ export function RsvpFlow({
     );
   }
 
-  // ── Shared layout wrapper ─────────────────────────────────────────────────
+  // ── Shared layout wrapper ─────────────────────────────────────────────────────
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "80px", position: "relative", overflowX: "hidden" } as React.CSSProperties,
     header: { padding: "16px 20px 0", maxWidth: "540px", margin: "0 auto", position: "relative", zIndex: 1 } as React.CSSProperties,
@@ -228,7 +228,7 @@ export function RsvpFlow({
     primaryBtn: { padding: "12px 28px", background: t.accent, border: "none", borderRadius: t.btnRadius, color: t.accentFg, fontFamily: "inherit", fontSize: "14px", fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"], cursor: "pointer", boxShadow: t.accentShadow } as React.CSSProperties,
   };
 
-  // ── Step 1: Details ────────────────────────────────────────────────────────
+  // ── Step 1: Details ─────────────────────────────────────────────────────────
   if (step === 1) {
     return (
       <div style={S.page}>
@@ -352,7 +352,7 @@ export function RsvpFlow({
     );
   }
 
-  // ── Step 2: Questionnaire ──────────────────────────────────────────────────
+  // ── Step 2: Questionnaire ──────────────────────────────────────────────────────────
   return (
     <div style={S.page}>
       {renderDecorations()}
