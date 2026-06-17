@@ -104,6 +104,7 @@ model Event {
   rsvps           RSVP[]
   invitations     Invitation[]
   updates         EventUpdate[]
+  potluckItems    PotluckItem[]
   comments        Comment[]
   rsvpFields      RSVPField[]
   checkIns        CheckIn[]
@@ -230,6 +231,7 @@ model RSVP {
   plusOneCount Int        @default(0)
   editToken    String     @unique @default(cuid())
   approved     Boolean    @default(true) // false when approvalRequired is on
+  note         String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -302,6 +304,20 @@ model Comment {
   event   Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies Comment[] @relation("CommentReplies")
+}
+
+// ──────────────────────────────────────────────
+// POTLUCK
+// ──────────────────────────────────────────────
+
+model PotluckItem {
+  id        String    @id @default(cuid())
+  eventId   String
+  label     String
+  claimedBy String?
+  claimedAt DateTime?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 // ──────────────────────────────────────────────

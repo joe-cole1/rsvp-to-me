@@ -23,10 +23,13 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
           guestName: true,
           status: true,
           plusOneCount: true,
+          note: true,
           createdAt: true,
         },
         orderBy: { createdAt: "asc" },
       },
+      updates: { orderBy: { createdAt: "desc" } },
+      potluckItems: { orderBy: { createdAt: "asc" } },
       comments: {
         where: { parentId: null },
         include: { replies: { orderBy: { createdAt: "asc" } } },
