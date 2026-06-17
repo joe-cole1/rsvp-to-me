@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { generateUniqueSlug } from "@/lib/slug";
-import { tzLocalToUtc } from "./event";
+import { tzLocalToUtc } from "@/lib/utils";
 
 export async function createEvent(formData: FormData) {
   const session = await getSession();
