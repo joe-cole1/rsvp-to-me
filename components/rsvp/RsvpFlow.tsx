@@ -37,6 +37,7 @@ type EventData = {
   locationName: string | null;
   plusOneAllowed: boolean;
   plusOneMax: number;
+  plusOneNamesRequired: boolean;
   maybeEnabled: boolean;
   questionnaireEnabled: boolean;
   rsvpFields: RsvpField[];
@@ -86,23 +87,17 @@ export function RsvpFlow({
       : {}
   );
   const [done, setDone] = useState(false);
+  const [savedEditToken, setSavedEditToken] = useState(existingRsvp?.editToken ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const hasQuestionnaire = event.questionnaireEnabled && event.rsvpFields.length > 0;
+  const hasQuestionnaire = status !== "NO" && event.questionnaireEnabled && event.rsvpFields.length > 0;
   const maxStep = hasQuestionnaire ? 2 : 1;
 
-  const plusOneCount = plusOneNames.filter((n) => n.trim()).length;
-
-  const addPlusOne = () => {
-    if (plusOneNames.length < event.plusOneMax) {
-      setPlusOneNames((prev) => [...prev, ""]);
-    }
-  };
-
-  const removePlusOne = (i: number) => {
-    setPlusOneNames((prev) => prev.filter((_, idx) => idx !== i));
-  };
+  const plusOneCount = status === "GOING" ? plusOneNames.length : 0;
+  const plusOneGuestNames = status === "GOING"
+    ? plusOneNames.map((n, i) => n.trim() || `Guest ${i + 1} of ${name.trim()}`)
+    : [];
 
   const setAnswerValue = (fieldId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
@@ -119,7 +114,8 @@ export function RsvpFlow({
     (f) => f.required && !answers[f.id]?.trim()
   );
 
-  const canProceedStep1 = name.trim().length > 0;
+  const canProceedStep1 = name.trim().length > 0 &&
+    (status !== "GOING" || !event.plusOneNamesRequired || plusOneNames.every((n) => n.trim().length > 0));
 
   const handleContinue = () => {
     if (step < maxStep) { setStep(2); return; }
@@ -133,7 +129,7 @@ export function RsvpFlow({
         const result = await updateRSVP(existingRsvp.editToken, {
           status,
           plusOneCount,
-          plusOneGuestNames: plusOneNames.filter((n) => n.trim()),
+          plusOneGuestNames,
           note: note.trim() || undefined,
           answers,
         });
@@ -146,16 +142,19 @@ export function RsvpFlow({
           guestPhone: phone.trim() || undefined,
           status,
           plusOneCount,
-          plusOneGuestNames: plusOneNames.filter((n) => n.trim()),
+          plusOneGuestNames,
           note: note.trim() || undefined,
           answers,
         });
         if (!result.success) { setError(result.error ?? "Something went wrong"); return; }
-        if (result.editToken && typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          url.searchParams.set("token", result.editToken);
-          url.searchParams.delete("status");
-          window.history.replaceState({}, "", url.toString());
+        if (result.editToken) {
+          setSavedEditToken(result.editToken);
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            url.searchParams.set("token", result.editToken);
+            url.searchParams.delete("status");
+            window.history.replaceState({}, "", url.toString());
+          }
         }
       }
       setDone(true);
@@ -204,6 +203,32 @@ export function RsvpFlow({
           <p style={{ color: t.textSecondary, fontSize: "15px", marginBottom: "28px" }}>
             {status === "GOING" ? "See you there!" : status === "MAYBE" ? "Hope you can make it." : "Sorry you can't make it."}
           </p>
+          {!email.trim() && !phone.trim() && savedEditToken && (
+            <div style={{ background: t.inputBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px", padding: "16px", marginBottom: "24px", textAlign: "left" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: t.accent, marginBottom: "8px" }}>⚠️ Save your Edit Link</div>
+              <p style={{ fontSize: "13px", color: t.textSecondary, margin: "0 0 12px", lineHeight: 1.5 }}>
+                Since you didn&apos;t add an email or phone, copy this link to change your RSVP later:
+              </p>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  style={{ width: "100%", padding: "8px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                  readOnly
+                  value={`${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.slug}?token=${savedEditToken}`}
+                />
+                <button
+                  onClick={() => {
+                    if (typeof navigator !== "undefined") {
+                      navigator.clipboard.writeText(`${window.location.origin}/e/${event.slug}?token=${savedEditToken}`);
+                      alert("Link copied!");
+                    }
+                  }}
+                  style={{ padding: "8px 12px", background: t.accent, border: "none", borderRadius: "10px", color: t.accentFg, fontFamily: "inherit", fontSize: "12px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
           <a
             href={returnPath ?? `/e/${event.slug}`}
             style={{ display: "block", background: t.accent, color: t.accentFg, textDecoration: "none", borderRadius: t.btnRadius, padding: "14px", fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"], fontSize: "15px", textAlign: "center", boxShadow: t.accentShadow }}
@@ -265,7 +290,7 @@ export function RsvpFlow({
               {isEdit ? (
                 <div style={{ ...S.inp, color: t.textSecondary }}>{name}</div>
               ) : (
-                <input style={S.inp} placeholder="Your name *" value={name} onChange={(e) => setName(e.target.value)} />
+                <input style={S.inp} placeholder="Your name (required)" value={name} onChange={(e) => setName(e.target.value)} />
               )}
               {!isEdit && (
                 <>
@@ -276,54 +301,67 @@ export function RsvpFlow({
             </div>
           </div>
 
-          {/* Plus ones — only for GOING */}
+          {/* Attendee Count dropdown — only for GOING */}
           {event.plusOneAllowed && event.plusOneMax > 0 && status === "GOING" && (
             <div style={S.group}>
-              <div style={S.label}>Guests</div>
-              {plusOneNames.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "10px" }}>
-                  {plusOneNames.map((n, i) => (
-                    <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                      <input
-                        style={{ ...S.inp, flex: 1 }}
-                        placeholder={`Guest ${i + 1} name`}
-                        value={n}
-                        onChange={(e) => {
-                          const next = [...plusOneNames];
-                          next[i] = e.target.value;
-                          setPlusOneNames(next);
-                        }}
-                      />
-                      <button
-                        onClick={() => removePlusOne(i)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "8px", flexShrink: 0, fontSize: "18px", lineHeight: 1 }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {plusOneNames.length < event.plusOneMax && (
-                <button
-                  onClick={addPlusOne}
-                  style={{ display: "flex", alignItems: "center", gap: "8px", background: t.inputBg, border: `1px dashed ${t.cardBorder}`, borderRadius: "12px", padding: "12px 16px", color: t.textMuted, cursor: "pointer", fontFamily: "inherit", fontSize: "14px", width: "100%" }}
-                >
-                  <span style={{ fontSize: "18px", lineHeight: 1 }}>+</span>
-                  {plusOneNames.length === 0 ? "Add guests" : "Add another guest"}
-                </button>
-              )}
-              {plusOneNames.length === 0 && (
-                <p style={{ fontSize: "12px", color: t.textMuted, margin: "8px 0 0" }}>
-                  Add guests for them to receive updates
-                </p>
-              )}
+              <div style={S.label}>Attendee Count</div>
+              <select
+                style={{ ...S.inp, cursor: "pointer" }}
+                value={plusOneNames.length + 1}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  const count = val - 1;
+                  setPlusOneNames((prev) => {
+                    if (prev.length === count) return prev;
+                    if (prev.length < count) {
+                      return [...prev, ...Array(count - prev.length).fill("")];
+                    } else {
+                      return prev.slice(0, count);
+                    }
+                  });
+                }}
+              >
+                {Array.from({ length: event.plusOneMax + 1 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1} {i + 1 === 1 ? "(Just me)" : `(${i + 1} total — me + ${i} guest${i > 1 ? "s" : ""})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Plus One Names Inputs */}
+          {event.plusOneAllowed && event.plusOneMax > 0 && status === "GOING" && plusOneNames.length > 0 && (
+            <div style={S.group}>
+              <div style={S.label}>
+                Plus One Names {event.plusOneNamesRequired ? (
+                  <span style={{ color: "#ef4444", fontSize: "11px", textTransform: "none" }}>(Required)</span>
+                ) : (
+                  <span style={{ color: t.textMuted, fontSize: "11px", textTransform: "none" }}>(Optional)</span>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {plusOneNames.map((n, i) => (
+                  <input
+                    key={i}
+                    style={S.inp}
+                    placeholder={`Guest ${i + 1} Name${event.plusOneNamesRequired ? " (required)" : ""}`}
+                    value={n}
+                    onChange={(e) => {
+                      const next = [...plusOneNames];
+                      next[i] = e.target.value;
+                      setPlusOneNames(next);
+                    }}
+                  />
+                ))}
+              </div>
+              <p style={{ fontSize: "12px", color: t.textMuted, margin: "8px 0 0" }}>Note: Plus one names will be public.</p>
             </div>
           )}
 
           {/* Note */}
           <div style={S.group}>
-            <div style={S.label}>Message for host (optional)</div>
+            <div style={S.label}>Message (optional — will be public)</div>
             <textarea
               style={{ ...S.inp, resize: "none" } as React.CSSProperties}
               rows={3}
@@ -374,7 +412,7 @@ export function RsvpFlow({
           <div key={f.id} style={{ marginBottom: "20px" }}>
             <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: t.textSecondary, marginBottom: "8px" }}>
               {f.label}
-              {f.required && <span style={{ color: t.accent }}> *</span>}
+              {f.required && <span style={{ color: "#ef4444", fontSize: "12px", marginLeft: "4px", fontWeight: 400 }}>(required)</span>}
             </label>
             {f.fieldType === "TEXTAREA" ? (
               <textarea

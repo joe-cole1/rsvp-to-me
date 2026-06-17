@@ -30,7 +30,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
     img.src = url;
   });
 }
-import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, Sparkles, Camera, Phone } from "lucide-react";
+import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
@@ -55,6 +55,8 @@ type EventData = {
   commentsEnabled: boolean;
   plusOneAllowed: boolean;
   plusOneMax: number;
+  plusOneNamesRequired: boolean;
+  guestSharingEnabled: boolean;
   approvalRequired: boolean;
   maybeEnabled: boolean;
   questionnaireEnabled: boolean;
@@ -68,7 +70,7 @@ type EventData = {
   comments: { id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] }[];
   rsvpFields: { id: string; label: string; fieldType: string; required: boolean; options: string | null }[];
   updates: { id: string; body: string; notifyGuests: boolean; createdAt: Date }[];
-  potluckItems: { id: string; label: string; claimedBy: string | null; claimedAt: Date | null }[];
+  potluckItems: { id: string; label: string; quantity: number; claimedQty: number | null; claimedBy: string | null; claimedAt: Date | null }[];
   pendingRsvps: PendingRsvp[];
   activityEvents: { id: string; type: string; actorName: string | null; detail: string; createdAt: Date }[];
 };
@@ -136,6 +138,20 @@ const ICON_SET: { key: string; icon: React.ElementType; label: string }[] = [
   { key: "filetext", icon: FileText,        label: "Notes"         },
   { key: "camera",   icon: Camera,          label: "Photos"        },
   { key: "phone",    icon: Phone,           label: "Contact"       },
+  { key: "zelle",    icon: DollarSign,      label: "Zelle"         },
+  { key: "venmo",    icon: Wallet,          label: "Venmo"         },
+];
+
+const PRESET_CHIPS = [
+  { key: "link",     label: "Link",            icon: Link2 },
+  { key: "gift",     label: "Registry",        icon: Gift },
+  { key: "shirt",    label: "Dress Code",      icon: Shirt },
+  { key: "utensils", label: "Food Situation",  icon: UtensilsCrossed },
+  { key: "parking",  label: "Parking",         icon: ParkingCircle },
+  { key: "bed",      label: "Accommodations",  icon: Bed },
+  { key: "info",     label: "Additional Info", icon: Info },
+  { key: "zelle",    label: "Zelle",           icon: DollarSign },
+  { key: "venmo",    label: "Venmo",           icon: Wallet },
 ];
 
 // Maps legacy enum type values to new icon keys
@@ -235,6 +251,10 @@ function DateEdit({
   isHost,
   theme: t,
   onSave,
+  eventTitle,
+  eventDescription,
+  locationName,
+  virtualUrl,
 }: {
   startAt: Date;
   endAt: Date | null;
@@ -243,26 +263,39 @@ function DateEdit({
   isHost: boolean;
   theme: ResolvedTheme;
   onSave: (start: Date, end: Date | null) => void;
+  eventTitle: string;
+  eventDescription: string | null;
+  locationName: string | null;
+  virtualUrl: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const [startVal, setStartVal] = useState("");
   const [endVal, setEndVal] = useState("");
   const [isPending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !calOpen) return;
     const onMouse = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setCalOpen(false);
+      }
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        setCalOpen(false);
+      }
+    };
     document.addEventListener("mousedown", onMouse);
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onMouse);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, calOpen]);
 
   const openPopover = () => {
     setStartVal(toDateTimeLocal(startAt, timezone));
@@ -282,76 +315,157 @@ function DateEdit({
     });
   };
 
-  return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
-      <div
-        style={{ marginBottom: "20px", cursor: isHost ? "pointer" : "default", display: "inline-block" }}
-        onClick={isHost ? openPopover : undefined}
-        title={isHost ? "Click to edit date/time" : undefined}
+  const formatUtcForCal = (d: Date) => {
+    return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  };
+  const endUtcDate = endAt ? endAt : new Date(startAt.getTime() + 60 * 60 * 1000);
+  const calendarLocation = locationName || virtualUrl || "";
+
+  const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${formatUtcForCal(startAt)}/${formatUtcForCal(endUtcDate)}&details=${encodeURIComponent(eventDescription || "")}&location=${encodeURIComponent(calendarLocation)}`;
+
+  const icalContent = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//rsvp-to-me//Event//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `SUMMARY:${eventTitle}`,
+    `DTSTART:${formatUtcForCal(startAt)}`,
+    `DTEND:${formatUtcForCal(endUtcDate)}`,
+    `DESCRIPTION:${(eventDescription || "").replace(/\n/g, "\\n")}`,
+    `LOCATION:${calendarLocation}`,
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\r\n");
+  const icalDataUri = "data:text/calendar;charset=utf-8," + encodeURIComponent(icalContent);
+
+  const CalendarMenuItem = ({ href, children, download, target, rel, onClick }: { href: string; children: React.ReactNode; download?: string; target?: string; rel?: string; onClick?: () => void }) => {
+    const [hover, setHover] = useState(false);
+    return (
+      <a
+        href={href}
+        download={download}
+        target={target}
+        rel={rel}
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          display: "block", padding: "10px 16px", color: t.textPrimary,
+          textDecoration: "none", fontSize: "14px", fontWeight: 500,
+          background: hover ? t.inputBg : "transparent", cursor: "pointer",
+          textAlign: "left", borderRadius: "8px"
+        }}
       >
-        <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.02em", color: t.textPrimary, borderBottom: isHost ? "1.5px dashed rgba(255,255,255,0.2)" : "none" }}>
-          {formatDate(startAt, timezone)}
-        </div>
-        <div style={{ fontSize: "16px", color: t.textSecondary, marginTop: "4px", fontWeight: 500 }}>
-          {formatTime(startAt, timezone)}{endAt ? ` – ${formatTime(endAt, timezone)}` : ""}
-        </div>
+        {children}
+      </a>
+    );
+  };
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "20px" }}>
+      {/* Calendar icon button */}
+      <div style={{ position: "relative" }}>
+        <button
+          onClick={() => setCalOpen(!calOpen)}
+          style={{
+            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px",
+            color: t.textSecondary, cursor: "pointer", width: "48px", height: "48px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxSizing: "border-box", transition: "all 0.2s ease"
+          }}
+          title="Add to Calendar"
+        >
+          <CalendarPlus size={22} />
+        </button>
+        {calOpen && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 200,
+            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px",
+            padding: "6px", minWidth: "180px", boxShadow: t.cardShadow || "0 10px 30px rgba(0,0,0,0.15)",
+            backdropFilter: "blur(20px)",
+            display: "flex", flexDirection: "column", gap: "2px"
+          }}>
+            <CalendarMenuItem href={gcalUrl} target="_blank" rel="noopener noreferrer" onClick={() => setCalOpen(false)}>
+              Google Calendar
+            </CalendarMenuItem>
+            <CalendarMenuItem href={icalDataUri} download={`${eventTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.ics`} onClick={() => setCalOpen(false)}>
+              iCal / Outlook (.ics)
+            </CalendarMenuItem>
+          </div>
+        )}
       </div>
 
-      {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 200,
-          background: "rgba(13,13,22,0.97)", backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px",
-          padding: "20px", minWidth: "264px",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-        }}>
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Start</label>
-            <input
-              type="datetime-local"
-              value={startVal}
-              onChange={(e) => setStartVal(e.target.value)}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontFamily: "inherit", fontSize: "14px", colorScheme: "dark", boxSizing: "border-box" }}
-            />
+      <div>
+        <div
+          style={{ cursor: isHost ? "pointer" : "default", display: "inline-block" }}
+          onClick={isHost ? openPopover : undefined}
+          title={isHost ? "Click to edit date/time" : undefined}
+        >
+          <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.02em", color: t.textPrimary, borderBottom: isHost ? "1.5px dashed rgba(255,255,255,0.2)" : "none" }}>
+            {formatDate(startAt, timezone)}
           </div>
-          <div style={{ marginBottom: "14px" }}>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>
-              End <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
-            </label>
-            <div style={{ display: "flex", gap: "6px" }}>
-              <input
-                type="datetime-local"
-                value={endVal}
-                onChange={(e) => setEndVal(e.target.value)}
-                style={{ flex: 1, padding: "10px 12px", borderRadius: "10px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontFamily: "inherit", fontSize: "14px", colorScheme: "dark" }}
-              />
-              {endVal && (
-                <button onClick={() => setEndVal("")} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", color: "rgba(255,255,255,0.5)", cursor: "pointer", padding: "0 10px" }}>
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-          <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginBottom: "14px" }}>
-            {timezone.replace(/_/g, " ")}
-          </p>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              onClick={save}
-              disabled={!startVal || isPending}
-              style={{ flex: 1, background: "#a855f7", color: "#fff", border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: !startVal || isPending ? "not-allowed" : "pointer", opacity: !startVal || isPending ? 0.5 : 1 }}
-            >
-              {isPending ? "Saving…" : "Save"}
-            </button>
-            <button
-              onClick={() => setOpen(false)}
-              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", padding: "10px 14px", fontFamily: "inherit", fontSize: "14px", cursor: "pointer" }}
-            >
-              Cancel
-            </button>
+          <div style={{ fontSize: "16px", color: t.textSecondary, marginTop: "4px", fontWeight: 500 }}>
+            {formatTime(startAt, timezone)}{endAt ? ` – ${formatTime(endAt, timezone)}` : ""}
           </div>
         </div>
-      )}
+
+        {open && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 200,
+            background: t.cardBg, backdropFilter: "blur(20px)",
+            border: `1px solid ${t.cardBorder}`, borderRadius: "16px",
+            padding: "20px", minWidth: "264px",
+            boxShadow: t.cardShadow || "0 20px 60px rgba(0,0,0,0.6)",
+          }}>
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Start</label>
+              <input
+                type="datetime-local"
+                value={startVal}
+                onChange={(e) => setStartVal(e.target.value)}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", boxSizing: "border-box" }}
+              />
+            </div>
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>
+                End <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+              </label>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input
+                  type="datetime-local"
+                  value={endVal}
+                  onChange={(e) => setEndVal(e.target.value)}
+                  style={{ flex: 1, padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}
+                />
+                {endVal && (
+                  <button onClick={() => setEndVal("")} style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.textSecondary, cursor: "pointer", padding: "0 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+            <p style={{ fontSize: "11px", color: t.textMuted, marginBottom: "14px" }}>
+              {timezone.replace(/_/g, " ")}
+            </p>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={save}
+                disabled={!startVal || isPending}
+                style={{ flex: 1, background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: !startVal || isPending ? "not-allowed" : "pointer", opacity: !startVal || isPending ? 0.5 : 1 }}
+              >
+                {isPending ? "Saving…" : "Save"}
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                style={{ background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", padding: "10px 14px", fontFamily: "inherit", fontSize: "14px", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -369,6 +483,7 @@ function LocationEdit({
   isHost,
   theme: t,
   onSave,
+  baseTheme = "DARK",
 }: {
   eventId: string;
   locationType: LocationType;
@@ -378,7 +493,47 @@ function LocationEdit({
   isHost: boolean;
   theme: ResolvedTheme;
   onSave: (data: { locationType: LocationType; locationName: string | null; locationAddress: string | null; virtualUrl: string | null }) => void;
+  baseTheme?: "DARK" | "SOFT" | "BOLD";
 }) {
+  const getChipStyle = (): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "6px 14px",
+      borderRadius: "100px",
+      fontSize: "13px",
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      marginBottom: "24px",
+      transition: "all 0.2s ease",
+    };
+
+    if (baseTheme === "SOFT") {
+      return {
+        ...baseStyle,
+        background: t.accentBg,
+        border: `1px dashed ${t.accentBorder}`,
+        color: t.accent,
+      };
+    } else if (baseTheme === "BOLD") {
+      return {
+        ...baseStyle,
+        background: `rgba(${t.accentRgb}, 0.08)`,
+        border: `1px dashed rgba(${t.accentRgb}, 0.3)`,
+        color: t.accent,
+      };
+    } else {
+      // DARK
+      return {
+        ...baseStyle,
+        background: `rgba(${t.accentRgb}, 0.15)`,
+        border: `1px dashed rgba(${t.accentRgb}, 0.35)`,
+        color: t.accent,
+      };
+    }
+  };
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -445,19 +600,20 @@ function LocationEdit({
     : cardStyle;
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1, padding: "8px", background: active ? t.accent : "rgba(255,255,255,0.07)",
-    color: active ? t.accentFg : "rgba(255,255,255,0.6)",
-    border: active ? "none" : "1px solid rgba(255,255,255,0.12)",
+    flex: 1, padding: "8px", background: active ? t.accent : t.inputBg,
+    color: active ? t.accentFg : t.textSecondary,
+    border: active ? "none" : `1px solid ${t.inputBorder}`,
     borderRadius: "8px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer",
   });
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "10px 12px", borderRadius: "10px",
-    background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
-    color: "#fff", fontFamily: "inherit", fontSize: "14px", outline: "none", boxSizing: "border-box",
+    background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+    color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", outline: "none", boxSizing: "border-box",
   };
 
-  const hasLocation = (initialType === "PHYSICAL" && (initialName || initialAddress))
+  const hasLocation = initialType === "TBD"
+    || (initialType === "PHYSICAL" && (initialName || initialAddress))
     || (initialType === "VIRTUAL" && initialVirtualUrl);
 
   const locationCardInner = initialType === "PHYSICAL" ? (
@@ -468,7 +624,7 @@ function LocationEdit({
         {initialAddress && <div style={{ color: t.textMuted, fontSize: "13px", marginTop: "2px" }}>{initialAddress}</div>}
       </div>
     </>
-  ) : (
+  ) : initialType === "VIRTUAL" ? (
     <>
       <Video size={18} style={{ color: t.accent, flexShrink: 0 }} />
       <div>
@@ -476,6 +632,14 @@ function LocationEdit({
         <div style={{ color: t.textMuted, fontSize: "13px" }}>Click to join</div>
       </div>
       {!isHost && <ExternalLink size={14} style={{ marginLeft: "auto", color: t.textMuted }} />}
+    </>
+  ) : (
+    <>
+      <MapPin size={18} style={{ color: t.accent, flexShrink: 0, marginTop: "2px" }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: "15px" }}>To Be Determined (TBD)</div>
+        <div style={{ color: t.textMuted, fontSize: "13px", marginTop: "2px" }}>Location details will be announced later</div>
+      </div>
     </>
   );
 
@@ -498,10 +662,10 @@ function LocationEdit({
             {menuOpen && initialAddress && (
               <div style={{
                 position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 150,
-                background: "rgba(13,13,22,0.97)", backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.12)", borderRadius: "14px",
+                background: t.cardBg, backdropFilter: "blur(20px)",
+                border: `1px solid ${t.cardBorder}`, borderRadius: "14px",
                 overflow: "hidden", minWidth: "220px",
-                boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+                boxShadow: t.cardShadow || "0 12px 40px rgba(0,0,0,0.5)",
               }}>
                 <a
                   href={buildMapUrl(initialAddress)}
@@ -519,7 +683,7 @@ function LocationEdit({
                     setCopied(true);
                     setTimeout(() => { setCopied(false); setMenuOpen(false); }, 1200);
                   }}
-                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", width: "100%", background: "none", border: "none", borderTop: "1px solid rgba(255,255,255,0.08)", color: t.textPrimary, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", width: "100%", background: "none", border: "none", borderTop: `1px solid ${t.cardBorder}`, color: t.textPrimary, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
                 >
                   <Check size={15} style={{ color: copied ? t.accent : "transparent", position: "absolute" }} />
                   <span style={{ width: "15px", fontSize: "14px", opacity: copied ? 0 : 1 }}>📋</span>
@@ -538,7 +702,8 @@ function LocationEdit({
       ) : isHost ? (
         <button
           onClick={openPopover}
-          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "100px", background: t.accentBg, border: `1px dashed ${t.accentBorder}`, color: t.textMuted, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: "24px" }}
+          className="chip-button"
+          style={getChipStyle()}
         >
           <Plus size={13} />
           Add Location
@@ -549,10 +714,10 @@ function LocationEdit({
       {open && (
         <div style={{
           position: "absolute", top: hasLocation ? "calc(100% + 4px)" : "calc(100% - 16px)", left: 0, zIndex: 200,
-          background: "rgba(13,13,22,0.97)", backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px",
+          background: t.cardBg, backdropFilter: "blur(20px)",
+          border: `1px solid ${t.cardBorder}`, borderRadius: "16px",
           padding: "20px", minWidth: "280px",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          boxShadow: t.cardShadow || "0 20px 60px rgba(0,0,0,0.6)",
         }}>
           {/* Type tabs */}
           <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
@@ -566,11 +731,11 @@ function LocationEdit({
           {type === "PHYSICAL" && (
             <>
               <div style={{ marginBottom: "10px" }}>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Name</label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Name</label>
                 <input style={inputStyle} placeholder="Venue or place name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div style={{ marginBottom: "14px" }}>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Address <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Address <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
                 <input style={inputStyle} placeholder="123 Main St, City" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
             </>
@@ -578,26 +743,26 @@ function LocationEdit({
 
           {type === "VIRTUAL" && (
             <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>Link</label>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Link</label>
               <input style={inputStyle} placeholder="https://zoom.us/j/..." type="url" value={vUrl} onChange={(e) => setVUrl(e.target.value)} />
             </div>
           )}
 
           {type === "TBD" && (
-            <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", marginBottom: "14px" }}>Location will be hidden until you add details.</p>
+            <p style={{ fontSize: "13px", color: t.textMuted, marginBottom: "14px" }}>We&apos;ll show &quot;To Be Determined (TBD)&quot; to guests until details are added.</p>
           )}
 
           <div style={{ display: "flex", gap: "8px" }}>
             <button
               onClick={save}
               disabled={isPending}
-              style={{ flex: 1, background: "#a855f7", color: "#fff", border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.5 : 1 }}
+              style={{ flex: 1, background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.5 : 1 }}
             >
               {isPending ? "Saving…" : "Save"}
             </button>
             <button
               onClick={() => setOpen(false)}
-              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", padding: "10px 14px", fontFamily: "inherit", fontSize: "14px", cursor: "pointer" }}
+              style={{ background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", padding: "10px 14px", fontFamily: "inherit", fontSize: "14px", cursor: "pointer" }}
             >
               Cancel
             </button>
@@ -635,6 +800,21 @@ function IconPicker({ selected, onSelect, t }: { selected: string; onSelect: (ke
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
+function getPlaceholder(key: string) {
+  switch (key) {
+    case "link": return "Link details (e.g. Group chat, playlist)...";
+    case "gift": return "Registry details (e.g. Target, Amazon)...";
+    case "shirt": return "Dress Code (e.g. Cocktail, Casual, Festive)...";
+    case "utensils": return "Food Situation (e.g. BYOB, dinner provided, potluck)...";
+    case "parking": return "Parking information (e.g. Street parking, driveway)...";
+    case "bed": return "Accommodations (e.g. Hotel block, house details)...";
+    case "info": return "Additional Info...";
+    case "zelle": return "Zelle details (e.g. Phone, email, or name)...";
+    case "venmo": return "Venmo username (e.g. @username)...";
+    default: return "Details…";
+  }
+}
+
 type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean };
 
 export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string } | null }) {
@@ -647,9 +827,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [pendingDelete, setPendingDelete] = useState<{ id: string; section: EventData["infoSections"][number]; timer: ReturnType<typeof setTimeout> } | null>(null);
   const [commentText, setCommentText] = useState("");
   const [addingSection, setAddingSection] = useState(false);
-  const [sectionDraft, setSectionDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "" });
+  const [sectionDraft, setSectionDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "" });
+  const [editDraft, setEditDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [updateDraft, setUpdateDraft] = useState("");
@@ -661,7 +841,53 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [showShareQr, setShowShareQr] = useState(false);
+  const [activeApproval, setActiveApproval] = useState<{ rsvpId: string; type: "APPROVE" | "DECLINE"; guestName: string } | null>(null);
+  const [approvalMessage, setApprovalMessage] = useState("");
+  const [newPotluckQty, setNewPotluckQty] = useState(1);
+  const [claimQty, setClaimQty] = useState(1);
+
   const t = theme;
+
+  const getChipStyle = (isCustom: boolean): React.CSSProperties => {
+    const baseTheme = event.theme?.baseTheme ?? "DARK";
+    const baseStyle: React.CSSProperties = {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "6px 14px",
+      borderRadius: "100px",
+      fontSize: "13px",
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      transition: "all 0.2s ease",
+    };
+
+    if (baseTheme === "SOFT") {
+      return {
+        ...baseStyle,
+        background: t.accentBg,
+        border: isCustom ? `1px dashed ${t.accentBorder}` : "none",
+        color: t.accent,
+      };
+    } else if (baseTheme === "BOLD") {
+      return {
+        ...baseStyle,
+        background: `rgba(${t.accentRgb}, 0.08)`,
+        border: isCustom ? `1px dashed rgba(${t.accentRgb}, 0.3)` : `1px solid rgba(${t.accentRgb}, 0.2)`,
+        color: t.accent,
+      };
+    } else {
+      // DARK
+      return {
+        ...baseStyle,
+        background: `rgba(${t.accentRgb}, 0.15)`,
+        border: isCustom ? `1px dashed rgba(${t.accentRgb}, 0.35)` : `1px solid rgba(${t.accentRgb}, 0.25)`,
+        color: t.accent,
+      };
+    }
+  };
 
   // Derived
   const going = event.rsvps.filter((r) => r.status === "GOING");
@@ -726,7 +952,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       const result = await addInfoSection({
         eventId: event.id,
         type: sectionDraft.iconKey,
-        title: null,
+        title: sectionDraft.title.trim() || null,
         content: sectionDraft.content,
         url: sectionDraft.url || null,
         order: event.infoSections.length,
@@ -734,11 +960,11 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       if (result.success) {
         setEvent((e) => ({
           ...e,
-          infoSections: [...e.infoSections, { id: result.id!, type: sectionDraft.iconKey, title: null, content: sectionDraft.content, url: sectionDraft.url || null, order: e.infoSections.length }],
+          infoSections: [...e.infoSections, { id: result.id!, type: sectionDraft.iconKey, title: sectionDraft.title.trim() || null, content: sectionDraft.content, url: sectionDraft.url || null, order: e.infoSections.length }],
           activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
         }));
         setAddingSection(false);
-        setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "" });
+        setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
       }
     });
   };
@@ -776,7 +1002,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   const startEditSection = (sec: EventData["infoSections"][number]) => {
     setEditingSection(sec.id);
-    setEditDraft({ iconKey: resolveIconKey(sec.type), content: sec.content, url: sec.url ?? "" });
+    setEditDraft({ iconKey: resolveIconKey(sec.type), content: sec.content, url: sec.url ?? "", title: sec.title ?? "" });
   };
 
   const commitEditSection = async (id: string) => {
@@ -784,6 +1010,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     startTransition(async () => {
       await updateInfoSection(id, {
         type: editDraft.iconKey,
+        title: editDraft.title.trim() || null,
         content: editDraft.content,
         url: editDraft.url || null,
       });
@@ -791,7 +1018,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         ...e,
         infoSections: e.infoSections.map((s) =>
           s.id === id
-            ? { ...s, type: editDraft.iconKey, title: null, content: editDraft.content, url: editDraft.url || null }
+            ? { ...s, type: editDraft.iconKey, title: editDraft.title.trim() || null, content: editDraft.content, url: editDraft.url || null }
             : s
         ),
       }));
@@ -826,13 +1053,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const addItem = async () => {
     if (!newPotluckLabel.trim()) return;
     startTransition(async () => {
-      const result = await addPotluckItem(event.id, newPotluckLabel.trim());
+      const result = await addPotluckItem(event.id, newPotluckLabel.trim(), newPotluckQty);
       if (result.success) {
         setEvent((e) => ({
           ...e,
-          potluckItems: [...e.potluckItems, { id: result.id!, label: newPotluckLabel.trim(), claimedBy: null, claimedAt: null }],
+          potluckItems: [...e.potluckItems, { id: result.id!, label: newPotluckLabel.trim(), quantity: newPotluckQty, claimedQty: null, claimedBy: null, claimedAt: null }],
         }));
         setNewPotluckLabel("");
+        setNewPotluckQty(1);
       }
     });
   };
@@ -845,15 +1073,16 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   };
 
   const claimItem = async (itemId: string, name: string) => {
-    const result = await claimPotluckItem(itemId, name);
+    const result = await claimPotluckItem(itemId, name, claimQty);
     if (result.success) {
       setEvent((e) => ({
         ...e,
-        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: name, claimedAt: new Date() } : i),
+        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: name, claimedAt: new Date(), claimedQty: claimQty } : i),
         activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
       setClaimingItemId(null);
       setClaimName("");
+      setClaimQty(1);
     }
   };
 
@@ -862,7 +1091,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     if (result.success) {
       setEvent((e) => ({
         ...e,
-        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: null, claimedAt: null } : i),
+        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: null, claimedAt: null, claimedQty: null } : i),
         activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
     }
@@ -873,9 +1102,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     deleteActivityEvent(id).catch(() => {});
   };
 
-  const handleApprove = (rsvpId: string) => {
+  const handleApprove = (rsvpId: string, message?: string) => {
     startTransition(async () => {
-      const result = await approveRsvp(rsvpId);
+      const result = await approveRsvp(rsvpId, message);
       if (result.success) {
         const pending = event.pendingRsvps.find((r) => r.id === rsvpId);
         setEvent((e) => ({
@@ -889,9 +1118,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     });
   };
 
-  const handleDecline = (rsvpId: string) => {
+  const handleDecline = (rsvpId: string, message?: string) => {
     startTransition(async () => {
-      const result = await declineRsvp(rsvpId);
+      const result = await declineRsvp(rsvpId, message);
       if (result.success) {
         setEvent((e) => ({ ...e, pendingRsvps: e.pendingRsvps.filter((r) => r.id !== rsvpId) }));
       }
@@ -923,6 +1152,18 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   return (
     <div style={S.page}>
+      <style>{`
+        .chip-button {
+          transition: all 0.2s ease !important;
+        }
+        .chip-button:hover {
+          opacity: 0.85 !important;
+          transform: scale(1.03) !important;
+        }
+        .chip-button:active {
+          transform: scale(0.97) !important;
+        }
+      `}</style>
       {/* ── Top nav ── */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1017,6 +1258,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           isHost={isHost}
           theme={t}
           onSave={(start, end) => setEvent((e) => ({ ...e, startAt: start, endAt: end }))}
+          eventTitle={event.title}
+          eventDescription={event.description}
+          locationName={event.locationName}
+          virtualUrl={event.virtualUrl}
         />
 
         {/* ── Location ── */}
@@ -1029,11 +1274,13 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           isHost={isHost}
           theme={t}
           onSave={(data) => setEvent((e) => ({ ...e, ...data }))}
+          baseTheme={event.theme?.baseTheme ?? "DARK"}
         />
 
         {/* ── Description ── */}
         <div style={{ ...S.card, marginBottom: "16px" }}>
-          <InlineEdit value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "15px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
+          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Details</div>
+          <InlineEdit value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "16px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
         </div>
 
         {/* ── Info sections ── */}
@@ -1051,11 +1298,20 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                       <textarea
                         style={{ ...S.inp, resize: "none" } as React.CSSProperties}
                         rows={2}
-                        placeholder="Details…"
+                        placeholder={getPlaceholder(editDraft.iconKey)}
                         value={editDraft.content}
                         onChange={(e) => setEditDraft((d) => ({ ...d, content: e.target.value }))}
                         autoFocus
                       />
+                      {(editDraft.iconKey === "zelle" || editDraft.iconKey === "venmo") && (
+                        <input
+                          style={S.inp}
+                          type="text"
+                          placeholder="Suggested donation amount (optional, e.g. 15)"
+                          value={editDraft.title}
+                          onChange={(e) => setEditDraft((d) => ({ ...d, title: e.target.value }))}
+                        />
+                      )}
                       <input
                         style={S.inp}
                         type="url"
@@ -1078,6 +1334,11 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                           </a>
                         ) : (
                           <span style={{ color: t.textSecondary }}>{sec.content}</span>
+                        )}
+                        {sec.title && (sec.type === "zelle" || sec.type === "venmo") && (
+                          <span style={{ marginLeft: "6px", color: t.textMuted, fontSize: "12px" }}>
+                            (Suggested: ${sec.title})
+                          </span>
                         )}
                       </div>
                       {isHost && (
@@ -1116,11 +1377,20 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               <textarea
                 style={{ ...S.inp, resize: "none", marginBottom: "10px" } as React.CSSProperties}
                 rows={2}
-                placeholder="Details…"
+                placeholder={getPlaceholder(sectionDraft.iconKey)}
                 value={sectionDraft.content}
                 onChange={(e) => setSectionDraft((d) => ({ ...d, content: e.target.value }))}
                 autoFocus
               />
+              {(sectionDraft.iconKey === "zelle" || sectionDraft.iconKey === "venmo") && (
+                <input
+                  style={{ ...S.inp, marginBottom: "10px" }}
+                  type="text"
+                  placeholder="Suggested donation amount (optional, e.g. 15)"
+                  value={sectionDraft.title}
+                  onChange={(e) => setSectionDraft((d) => ({ ...d, title: e.target.value }))}
+                />
+              )}
               <input
                 style={{ ...S.inp, marginBottom: "10px" }}
                 type="url"
@@ -1134,19 +1404,42 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               </div>
             </div>
           ) : (
-            <button
-              onClick={() => { setAddingSection(true); setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "" }); }}
-              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "100px", background: t.accentBg, border: `1px dashed ${t.accentBorder}`, color: t.textMuted, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: "24px" }}
-            >
-              <Plus size={13} />
-              Add section
-            </button>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "24px" }}>
+              {PRESET_CHIPS.filter((p) => !event.infoSections.some((s) => s.type === p.key)).map((preset) => {
+                const Icon = preset.icon;
+                return (
+                  <button
+                    key={preset.key}
+                    className="chip-button"
+                    onClick={() => {
+                      setAddingSection(true);
+                      setSectionDraft({ iconKey: preset.key, content: "", url: "", title: "" });
+                    }}
+                    style={getChipStyle(false)}
+                  >
+                    <Icon size={13} />
+                    {preset.label}
+                  </button>
+                );
+              })}
+              <button
+                className="chip-button"
+                onClick={() => {
+                  setAddingSection(true);
+                  setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
+                }}
+                style={getChipStyle(true)}
+              >
+                <Plus size={13} />
+                Add Custom
+              </button>
+            </div>
           )
         )}
 
 
         {/* ── Potluck ── */}
-        {(event.potluckItems.length > 0 || isHost) && (
+        {(isHost || rsvpStatus === "GOING") && (event.potluckItems.length > 0 || isHost) && (
           <div style={{ ...S.card, marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
               <span style={{ fontSize: "16px" }}>🍽️</span>
@@ -1157,10 +1450,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 <div key={item.id}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>{item.label}</span>
+                      <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>
+                        {item.label}
+                        {item.quantity > 1 && ` (need ${item.quantity})`}
+                      </span>
                       {item.claimedBy && (
                         <span style={{ fontSize: "12px", color: t.textMuted, marginLeft: "8px" }}>
                           ✓ {item.claimedBy}
+                          {item.claimedQty && ` (bringing ${item.claimedQty})`}
                         </span>
                       )}
                     </div>
@@ -1172,9 +1469,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         I&apos;ll bring it
                       </button>
                     )}
-                    {item.claimedBy && !isHost && item.claimedBy === guestName && (
+                    {item.claimedBy && (isHost || item.claimedBy === guestName) && (
                       <button
-                        onClick={() => unclaimItem(item.id, guestName)}
+                        onClick={() => unclaimItem(item.id, item.claimedBy!)}
                         style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, fontSize: "12px", padding: "4px" }}
                       >
                         Unclaim
@@ -1195,6 +1492,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         onChange={(e) => setClaimName(e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter" && claimName.trim()) claimItem(item.id, claimName.trim()); }}
                         autoFocus
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        style={{ ...S.inp, width: "70px", textAlign: "center" }}
+                        value={claimQty}
+                        onChange={(e) => setClaimQty(Math.max(1, parseInt(e.target.value) || 1))}
+                        placeholder="Qty"
                       />
                       <button
                         onClick={() => claimName.trim() && claimItem(item.id, claimName.trim())}
@@ -1217,6 +1522,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   value={newPotluckLabel}
                   onChange={(e) => setNewPotluckLabel(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && newPotluckLabel.trim()) addItem(); }}
+                />
+                <input
+                  type="number"
+                  min="1"
+                  style={{ ...S.inp, width: "70px", textAlign: "center" }}
+                  value={newPotluckQty}
+                  onChange={(e) => setNewPotluckQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  placeholder="Qty"
                 />
                 <button
                   onClick={addItem}
@@ -1293,7 +1606,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     </div>
                   </div>
                   <button
-                    onClick={() => handleApprove(r.id)}
+                    onClick={() => setActiveApproval({ rsvpId: r.id, type: "APPROVE", guestName: r.guestName })}
                     disabled={isPending}
                     style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
                     title="Approve"
@@ -1301,7 +1614,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     <Check size={14} />
                   </button>
                   <button
-                    onClick={() => handleDecline(r.id)}
+                    onClick={() => setActiveApproval({ rsvpId: r.id, type: "DECLINE", guestName: r.guestName })}
                     disabled={isPending}
                     style={{ background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", cursor: "pointer" }}
                     title="Decline"
@@ -1310,6 +1623,43 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Guest Sharing Card ── */}
+        {!isHost && event.guestSharingEnabled && event.visibility !== "PRIVATE" && (
+          <div style={{ ...S.card, display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "16px" }}>📢</span>
+              <span style={{ fontWeight: 700, fontSize: "14px" }}>Share this event</span>
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => {
+                  if (typeof navigator !== "undefined") {
+                    navigator.clipboard.writeText(window.location.origin + `/e/${event.slug}`);
+                    alert("Event link copied!");
+                  }
+                }}
+                style={{
+                  flex: 1, padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  borderRadius: t.btnRadius, color: t.textPrimary, fontFamily: "inherit", fontSize: "13px",
+                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
+                }}
+              >
+                <span>📋</span> Copy Link
+              </button>
+              <button
+                onClick={() => setShowShareQr(true)}
+                style={{
+                  flex: 1, padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  borderRadius: t.btnRadius, color: t.textPrimary, fontFamily: "inherit", fontSize: "13px",
+                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
+                }}
+              >
+                <span>📱</span> Show QR Code
+              </button>
             </div>
           </div>
         )}
@@ -1405,10 +1755,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 </div>
               </div>
             )}
-            {event.commentsEnabled && (guestRsvpId || isHost) && (
+            {event.commentsEnabled && guestRsvpId && !isHost && (
               <div style={{ marginBottom: "16px" }}>
                 <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "6px" }}>
-                  Commenting as <strong style={{ color: t.textSecondary }}>{guestName || "Host"}</strong>
+                  Commenting as <strong style={{ color: t.textSecondary }}>{guestName}</strong>
                 </div>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input
@@ -1447,9 +1797,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     if (item.kind === "update") return (
                       <div key={`u-${item.id}`} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                         <div style={{ fontSize: "18px", flexShrink: 0, marginTop: "2px" }}>📣</div>
-                        <div style={{ flex: 1, minWidth: 0, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
+                        <div style={{ flex: 1, minWidth: 0, background: t.accentBg, border: `1px solid ${t.accentBorder}`, borderRadius: "14px", padding: "10px 14px" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontWeight: 700, fontSize: "13px" }}>Update from host</span>
+                            <span style={{ fontWeight: 700, fontSize: "13px", color: t.accent }}>Update from {event.host.name ?? event.host.email}</span>
                             {isHost && (
                               <button onClick={() => removeUpdate(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
                                 <X size={13} />
@@ -1555,6 +1905,104 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             window.location.reload();
           }}
         />
+      )}
+
+      {/* ── Share QR Modal ── */}
+      {showShareQr && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: "20px"
+        }}>
+          <div style={{
+            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius,
+            padding: "24px", width: "100%", maxWidth: "320px", backdropFilter: "blur(20px)",
+            textAlign: "center", boxShadow: t.cardShadow || "0 10px 40px rgba(0,0,0,0.3)"
+          }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 800, color: t.textPrimary, margin: "0 0 16px" }}>Event QR Code</h3>
+            <div style={{ background: "#fff", padding: "16px", borderRadius: "16px", display: "inline-block", marginBottom: "16px" }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin + `/e/${event.slug}` : "")}`}
+                alt="Event QR Code"
+                width={200}
+                height={200}
+                style={{ display: "block" }}
+              />
+            </div>
+            <button
+              onClick={() => setShowShareQr(false)}
+              style={{
+                width: "100%", padding: "12px", background: t.accent, color: t.accentFg, border: "none",
+                borderRadius: t.btnRadius, cursor: "pointer", fontFamily: "inherit", fontWeight: 700
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Approval Message Modal ── */}
+      {activeApproval && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: "20px"
+        }}>
+          <div style={{
+            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius,
+            padding: "24px", width: "100%", maxWidth: "400px", backdropFilter: "blur(20px)",
+            boxShadow: t.cardShadow || "0 10px 40px rgba(0,0,0,0.3)"
+          }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 800, color: t.textPrimary, margin: "0 0 8px" }}>
+              {activeApproval.type === "APPROVE" ? "Approve RSVP" : "Decline RSVP"}
+            </h3>
+            <p style={{ fontSize: "14px", color: t.textSecondary, margin: "0 0 16px" }}>
+              {activeApproval.type === "APPROVE"
+                ? `Would you like to send a message to ${activeApproval.guestName}?`
+                : `Would you like to send a message to ${activeApproval.guestName} explaining why?`}
+            </p>
+            <textarea
+              style={{ ...S.inp, resize: "none", marginBottom: "20px" } as React.CSSProperties}
+              rows={3}
+              placeholder="Type an optional message..."
+              value={approvalMessage}
+              onChange={(e) => setApprovalMessage(e.target.value)}
+            />
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setActiveApproval(null); setApprovalMessage(""); }}
+                style={{
+                  padding: "10px 18px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  borderRadius: t.btnRadius, color: t.textSecondary, cursor: "pointer", fontFamily: "inherit", fontWeight: 600
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const rsvpId = activeApproval.rsvpId;
+                  const type = activeApproval.type;
+                  const msg = approvalMessage.trim() || undefined;
+                  setActiveApproval(null);
+                  setApprovalMessage("");
+                  if (type === "APPROVE") {
+                    handleApprove(rsvpId, msg);
+                  } else {
+                    handleDecline(rsvpId, msg);
+                  }
+                }}
+                style={{
+                  padding: "10px 18px", background: activeApproval.type === "APPROVE" ? t.accent : "#ef4444",
+                  border: "none", borderRadius: t.btnRadius, color: activeApproval.type === "APPROVE" ? t.accentFg : "#fff",
+                  cursor: "pointer", fontFamily: "inherit", fontWeight: 700
+                }}
+              >
+                {activeApproval.type === "APPROVE" ? "Approve" : "Decline"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

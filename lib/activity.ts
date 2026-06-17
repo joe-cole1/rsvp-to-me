@@ -15,6 +15,8 @@ const ICON_LABELS: Record<string, string> = {
   filetext: "note",
   camera: "photos",
   phone: "contact",
+  zelle: "Zelle",
+  venmo: "Venmo",
 };
 
 export function iconLabel(key: string): string {

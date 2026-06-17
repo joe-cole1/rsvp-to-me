@@ -91,7 +91,9 @@ model Event {
   approvalRequired  Boolean    @default(false)
   plusOneAllowed    Boolean    @default(true)
   plusOneMax        Int        @default(1)
+  plusOneNamesRequired Boolean @default(false)
   guestListVis      GuestListVis @default(ALL)
+  guestSharingEnabled  Boolean    @default(true)
 
   // Feature flags
   commentsEnabled      Boolean    @default(true)
@@ -232,6 +234,7 @@ model RSVP {
   plusOneCount Int        @default(0)
   editToken    String     @unique @default(cuid())
   approved     Boolean    @default(true) // false when approvalRequired is on
+  responded    Boolean    @default(true)
   note         String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -329,6 +332,8 @@ model PotluckItem {
   id        String    @id @default(cuid())
   eventId   String
   label     String
+  quantity  Int       @default(1)
+  claimedQty Int?
   claimedBy String?
   claimedAt DateTime?
   createdAt DateTime  @default(now())

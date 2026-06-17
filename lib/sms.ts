@@ -51,3 +51,12 @@ export async function sendSmsBlast(
   await Promise.allSettled(phones.map((p) => send(p, body)));
   return phones.length;
 }
+
+export async function sendApprovalSms(
+  to: string,
+  opts: { eventTitle: string; approved: boolean; message?: string }
+) {
+  const statusStr = opts.approved ? "approved ✓" : "declined";
+  const msgStr = opts.message ? ` Message from host: "${opts.message}"` : "";
+  return send(to, `Your RSVP for ${opts.eventTitle} was ${statusStr}.${msgStr}`);
+}

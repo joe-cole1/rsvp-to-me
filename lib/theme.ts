@@ -189,14 +189,14 @@ export function resolveTheme(base: BaseTheme, accent: string): ResolvedTheme {
       pageDecorationBg1: `radial-gradient(circle, hsla(${h}, ${s}%, ${l}%, 0.15) 0%, transparent 70%)`,
       pageDecorationBg2: `radial-gradient(circle, hsla(${(h + 40) % 360}, ${s}%, ${l}%, 0.12) 0%, transparent 70%)`,
       textPrimary: "#1c1917",
-      textSecondary: "#57534e",
-      textMuted: "#a8a29e",
+      textSecondary: "#44403c",
+      textMuted: "#87807b",
       headingFont: "Georgia, 'Times New Roman', serif",
       accent,
       accentRgb,
       accentFg: "#1c1917",
-      accentBg: `rgba(${accentRgb},0.15)`,
-      accentBorder: `rgba(${accentRgb},0.3)`,
+      accentBg: `rgba(${accentRgb},0.28)`,
+      accentBorder: `rgba(${accentRgb},0.45)`,
       accentShadow: `0 4px 20px rgba(${accentRgb},0.35)`,
       cardBg: `hsla(${h}, ${Math.min(s, 10)}%, 99%, 0.85)`,
       cardBorder: `hsla(${h}, ${Math.min(s, 15)}%, 85%, 0.4)`,
@@ -213,7 +213,7 @@ export function resolveTheme(base: BaseTheme, accent: string): ResolvedTheme {
       btnRadius: "18px",
       btnFontWeight: "700",
       btnTransform: "none",
-      avatarGradient: `linear-gradient(135deg, rgba(${accentRgb},0.7), rgba(${accentRgb},0.4))`,
+      avatarGradient: `linear-gradient(135deg, rgba(${accentRgb},0.8), rgba(${accentRgb},0.5))`,
     };
   }
 
