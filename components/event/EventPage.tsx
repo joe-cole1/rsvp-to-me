@@ -842,7 +842,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, position: "relative" as const, overflowX: "hidden" as const, fontFamily: "inherit" },
     container: { position: "relative" as const, zIndex: 1, maxWidth: "440px", margin: "0 auto", padding: "48px 16px 160px" },
-    card: { background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "24px", marginBottom: "16px", backdropFilter: "blur(12px)" },
+    card: { background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "24px", marginBottom: "16px", backdropFilter: "blur(12px)", boxShadow: t.cardShadow },
     badge: { fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", padding: "4px 12px", borderRadius: "100px", background: t.badgeBg, color: t.badgeText, border: `1px solid ${t.accentBorder}`, display: "inline-block" },
     inp: { width: "100%", padding: "12px 16px", borderRadius: t.btnRadius, background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.inputText, fontFamily: "inherit", fontSize: "14px", outline: "none" },
     btn: { background: t.accent, color: t.accentFg, fontFamily: "inherit", fontSize: "14px", fontWeight: t.btnFontWeight, textTransform: t.btnTransform as React.CSSProperties["textTransform"], padding: "14px", border: "none", borderRadius: t.btnRadius, cursor: "pointer", width: "100%", boxShadow: t.accentShadow },
@@ -874,7 +874,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         </>
       )}
       {t.pageDecoration === "bold-hero" && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "340px", background: `linear-gradient(135deg, ${t.accent} 0%, #ec4899 100%)`, zIndex: 0 }} />
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(160deg, ${t.accent} 0%, #ec4899 45%, #f5eeff 75%, #fafafa 100%)`, zIndex: 0 }} />
       )}
 
       <div style={S.container}>
