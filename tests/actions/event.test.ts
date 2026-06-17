@@ -84,6 +84,7 @@ vi.mock("@/lib/db", () => ({
       delete: mockPotluckItemDelete,
     },
     invitation: { createMany: mockInvitationCreateMany },
+    activityEvent: { create: vi.fn().mockResolvedValue({}) },
   },
 }));
 

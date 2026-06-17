@@ -32,7 +32,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, Sparkles, Camera, Phone } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 
