@@ -49,6 +49,20 @@ export async function registerHost(
   inviteCode: string
 ): Promise<{ success: boolean; error?: string }> {
   const normalizedEmail = email.toLowerCase().trim();
+  const openRegistration = process.env.OPEN_REGISTRATION === "true";
+
+  const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
+  if (existing) {
+    if (!existing.name) {
+      await db.user.update({ where: { id: existing.id }, data: { name } });
+    }
+    return { success: false, error: "An account with this email already exists. Sign in with a magic link instead." };
+  }
+
+  if (openRegistration) {
+    await db.user.create({ data: { email: normalizedEmail, name } });
+    return { success: true };
+  }
 
   const now = new Date();
   const validCode = await db.hostInviteCode.findFirst({
@@ -64,14 +78,6 @@ export async function registerHost(
 
   if (!validCode) {
     return { success: false, error: "Invalid or expired invite code." };
-  }
-
-  const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
-  if (existing) {
-    if (!existing.name) {
-      await db.user.update({ where: { id: existing.id }, data: { name } });
-    }
-    return { success: false, error: "An account with this email already exists. Sign in with a magic link instead." };
   }
 
   await db.$transaction([
