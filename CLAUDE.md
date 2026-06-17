@@ -235,3 +235,5 @@ Schema has `CheckIn` (rsvpId, checkedInAt, checkedInBy), no UI yet. Options:
 - ✅ Docker Compose — `docker-compose.yml` (local), `docker-compose.dev.yml` (builds from GitHub main; runs as root to allow volume writes); Dockerfile runner stage includes `lib/`, `scripts/`, starts cron alongside app
 - ✅ GitHub Actions CI — lint + **test** + build on every PR (`npm test` runs 141 Vitest unit tests)
 - ✅ Partiful-style UI — date/time as large clean text; address click → "Open in Maps / Copy" popover; info sections as compact icon+text rows; bold/soft/dark theme variants
+- ✅ Dropdown accessibility & theme fixes — added `colorScheme` style properties dynamically based on the active theme to settings selectors, RSVP forms, and timezone fields to display correctly in dark mode.
+- ✅ Header layout customization — moved the Event Title and Host Byline above the Cover Photo on the main event page.
