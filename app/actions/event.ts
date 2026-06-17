@@ -40,16 +40,21 @@ export async function saveEventField(eventId: string, field: string, value: stri
   if (!ALLOWED_FIELDS.has(field)) throw new Error("Field not allowed");
   const event = await assertHost(eventId);
   await db.event.update({ where: { id: eventId }, data: { [field]: value || null } });
-  const fieldLabels: Record<string, string> = {
+  const fieldTypes: Record<string, string> = {
     title: "event_title", description: "event_description",
     locationName: "event_location", locationAddress: "event_location", virtualUrl: "event_location",
   };
-  const actType = fieldLabels[field] ?? "event_field";
-  const detailLabels: Record<string, string> = {
-    title: "Title updated", description: "Description updated",
-    locationName: "Location name updated", locationAddress: "Address updated", virtualUrl: "Virtual link updated",
-  };
-  logActivity(eventId, actType, detailLabels[field] ?? "Event updated").catch(() => {});
+  const actType = fieldTypes[field] ?? "event_field";
+  const detail = (() => {
+    const v = (value || "").trim();
+    if (field === "title")           return v ? `Title updated to "${v}"` : "Title cleared";
+    if (field === "locationName")    return v ? `Location updated to "${v}"` : "Location name cleared";
+    if (field === "locationAddress") return v ? `Address updated to "${v}"` : "Address cleared";
+    if (field === "description")     return "Description updated";
+    if (field === "virtualUrl")      return v ? "Virtual link updated" : "Virtual link cleared";
+    return "Event updated";
+  })();
+  logActivity(eventId, actType, detail).catch(() => {});
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -74,7 +79,12 @@ export async function saveEventLocation(
       virtualUrl: data.virtualUrl || null,
     },
   });
-  logActivity(eventId, "event_location", "Location updated").catch(() => {});
+  const locDetail = (() => {
+    if (data.locationType === "VIRTUAL") return "Location set to virtual";
+    if (data.locationType === "TBD") return "Location set to TBD";
+    return data.locationName ? `Location updated to "${data.locationName}"` : "Location updated";
+  })();
+  logActivity(eventId, "event_location", locDetail).catch(() => {});
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -111,7 +121,8 @@ export async function addInfoSection(data: {
       order: data.order,
     },
   });
-  logActivity(data.eventId, "info_add", `Added ${iconLabel(data.type)} section`).catch(() => {});
+  const preview = data.content.slice(0, 60) + (data.content.length > 60 ? "…" : "");
+  logActivity(data.eventId, "info_add", `Added ${iconLabel(data.type)} section: ${preview}`).catch(() => {});
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: section.id };
 }
@@ -135,7 +146,8 @@ export async function updateInfoSection(
       url: data.url || null,
     },
   });
-  logActivity(section.eventId, "info_edit", `Updated ${iconLabel(data.type ?? section.type)} section`).catch(() => {});
+  const editPreview = data.content.slice(0, 60) + (data.content.length > 60 ? "…" : "");
+  logActivity(section.eventId, "info_edit", `Updated ${iconLabel(data.type ?? section.type)} section: ${editPreview}`).catch(() => {});
   revalidatePath(`/e/${section.event.slug}`);
   return { success: true };
 }
@@ -431,7 +443,12 @@ export async function saveEventDates(
       endAt: endAt ? tzLocalToUtc(endAt, evt.timezone) : null,
     },
   });
-  logActivity(eventId, "event_date", "Date/time updated").catch(() => {});
+  const [d, t] = startAt.split("T");
+  const [, mo, day] = d.split("-");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const [h, min] = t.split(":").map(Number);
+  const timeStr = `${h % 12 || 12}:${String(min).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+  logActivity(eventId, "event_date", `Date updated to ${months[parseInt(mo) - 1]} ${parseInt(day)} at ${timeStr}`).catch(() => {});
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -559,7 +576,7 @@ export async function removePotluckItem(itemId: string) {
 export async function claimPotluckItem(itemId: string, guestName: string) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
-    select: { claimedBy: true, event: { select: { slug: true } } },
+    select: { claimedBy: true, label: true, eventId: true, event: { select: { slug: true } } },
   });
   if (!item) return { success: false, error: "Item not found" };
   if (item.claimedBy) return { success: false, error: "Already claimed" };
@@ -567,6 +584,7 @@ export async function claimPotluckItem(itemId: string, guestName: string) {
     where: { id: itemId },
     data: { claimedBy: guestName, claimedAt: new Date() },
   });
+  logActivity(item.eventId, "potluck_claim", `${guestName} is bringing: ${item.label}`, guestName).catch(() => {});
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true };
 }
@@ -574,13 +592,14 @@ export async function claimPotluckItem(itemId: string, guestName: string) {
 export async function unclaimPotluckItem(itemId: string, guestName: string) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
-    select: { claimedBy: true, event: { select: { slug: true } } },
+    select: { claimedBy: true, label: true, eventId: true, event: { select: { slug: true } } },
   });
   if (!item || item.claimedBy !== guestName) return { success: false, error: "Not your claim" };
   await db.potluckItem.update({
     where: { id: itemId },
     data: { claimedBy: null, claimedAt: null },
   });
+  logActivity(item.eventId, "potluck_unclaim", `${guestName} won't bring: ${item.label}`, guestName).catch(() => {});
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true };
 }
