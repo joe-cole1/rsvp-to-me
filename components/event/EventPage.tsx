@@ -1428,6 +1428,52 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               <MessageSquare size={16} style={{ color: t.accent }} />
               <span style={{ fontWeight: 700 }}>Activity</span>
             </div>
+
+            {/* Compose area — top of card */}
+            {isHost && (
+              <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "12px", padding: "12px", marginBottom: "12px" }}>
+                <div style={{ fontWeight: 700, fontSize: "12px", color: t.textMuted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "8px" }}>Post an Update</div>
+                <textarea
+                  style={{ ...S.inp, resize: "none", marginBottom: "8px" } as React.CSSProperties}
+                  rows={3}
+                  placeholder="Changed start time, new location, what to bring…"
+                  value={updateDraft}
+                  onChange={(e) => setUpdateDraft(e.target.value)}
+                />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textMuted, cursor: "pointer" }}>
+                    <input type="checkbox" checked={notifyOnUpdate} onChange={(e) => setNotifyOnUpdate(e.target.checked)} style={{ accentColor: t.accent }} />
+                    Notify guests via email
+                  </label>
+                  <button
+                    onClick={postUpdate}
+                    disabled={!updateDraft.trim() || isPostingUpdate}
+                    style={{ ...S.btn, width: "auto", padding: "8px 18px", opacity: !updateDraft.trim() || isPostingUpdate ? 0.5 : 1 }}
+                  >
+                    {isPostingUpdate ? "Posting…" : "Post"}
+                  </button>
+                </div>
+              </div>
+            )}
+            {event.commentsEnabled && (
+              <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+                <input
+                  style={{ ...S.inp, flex: 1 }}
+                  placeholder={guestName ? `Comment as ${guestName}…` : "Your name first, then comment below"}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                />
+                <button
+                  onClick={submitComment}
+                  disabled={!commentText.trim() || isPending}
+                  style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: t.btnRadius, padding: "0 16px", cursor: "pointer", opacity: !commentText.trim() ? 0.5 : 1 }}
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            )}
+
             {(() => {
               type FeedItem =
                 | { kind: "update"; id: string; body: string; createdAt: Date }
@@ -1439,7 +1485,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 ...event.activityEvents.map((a) => ({ kind: "activity" as const, id: a.id, type: a.type, actorName: a.actorName, detail: a.detail, createdAt: new Date(a.createdAt) })),
               ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
               return (
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: (event.commentsEnabled || isHost) ? "16px" : 0 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   {feed.length === 0 ? (
                     <p style={{ color: t.textMuted, fontSize: "14px", textAlign: "center", padding: "12px 0" }}>No activity yet — be the first!</p>
                   ) : feed.map((item) => {
@@ -1516,49 +1562,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 </div>
               );
             })()}
-            {isHost && (
-              <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "12px", padding: "12px", marginBottom: event.commentsEnabled ? "12px" : 0 }}>
-                <div style={{ fontWeight: 700, fontSize: "12px", color: t.textMuted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "8px" }}>Post an Update</div>
-                <textarea
-                  style={{ ...S.inp, resize: "none", marginBottom: "8px" } as React.CSSProperties}
-                  rows={3}
-                  placeholder="Changed start time, new location, what to bring…"
-                  value={updateDraft}
-                  onChange={(e) => setUpdateDraft(e.target.value)}
-                />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textMuted, cursor: "pointer" }}>
-                    <input type="checkbox" checked={notifyOnUpdate} onChange={(e) => setNotifyOnUpdate(e.target.checked)} style={{ accentColor: t.accent }} />
-                    Notify guests via email
-                  </label>
-                  <button
-                    onClick={postUpdate}
-                    disabled={!updateDraft.trim() || isPostingUpdate}
-                    style={{ ...S.btn, width: "auto", padding: "8px 18px", opacity: !updateDraft.trim() || isPostingUpdate ? 0.5 : 1 }}
-                  >
-                    {isPostingUpdate ? "Posting…" : "Post"}
-                  </button>
-                </div>
-              </div>
-            )}
-            {event.commentsEnabled && (
-              <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  style={{ ...S.inp, flex: 1 }}
-                  placeholder={guestName ? `Comment as ${guestName}…` : "Your name first, then comment below"}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-                />
-                <button
-                  onClick={submitComment}
-                  disabled={!commentText.trim() || isPending}
-                  style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: t.btnRadius, padding: "0 16px", cursor: "pointer", opacity: !commentText.trim() ? 0.5 : 1 }}
-                >
-                  <Send size={16} />
-                </button>
-              </div>
-            )}
           </div>
         )}
 
