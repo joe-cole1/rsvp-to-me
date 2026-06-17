@@ -16,15 +16,10 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
       coHosts: { select: { userId: true } },
       rsvps: {
         where: { approved: true },
-        select: {
-          id: true,
-          guestName: true,
-          guestEmail: true,
-          guestPhone: true,
-          status: true,
-          plusOneCount: true,
-          note: true,
-          createdAt: true,
+        include: {
+          answers: {
+            include: { rsvpField: { select: { id: true, label: true } } },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -60,6 +55,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
   const serializeRsvp = (r: typeof event.rsvps[number]) => ({
     ...r,
     createdAt: r.createdAt.toISOString(),
+    answers: r.answers.map((a) => ({ label: a.rsvpField.label, value: a.value })),
   });
 
   return (

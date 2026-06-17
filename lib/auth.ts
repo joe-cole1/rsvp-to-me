@@ -4,10 +4,27 @@ import { createSession } from "./session";
 
 const TOKEN_TTL_MINUTES = 15;
 
-export async function createMagicLink(email: string): Promise<string | null> {
-  const normalizedEmail = email.toLowerCase().trim();
+function looksLikePhone(s: string): boolean {
+  // Accepts +1234567890 or 10+ digit strings with optional spaces/dashes/parens
+  return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
+}
 
-  const user = await db.user.findUnique({ where: { email: normalizedEmail } });
+function normalizePhone(s: string): string {
+  // Strip spaces/dashes/parens but keep leading +
+  return s.trim().replace(/[\s\-().]/g, "");
+}
+
+export async function createMagicLink(identifier: string): Promise<string | null> {
+  let user;
+
+  if (looksLikePhone(identifier)) {
+    const phone = normalizePhone(identifier);
+    user = await db.user.findUnique({ where: { phone } });
+  } else {
+    const email = identifier.toLowerCase().trim();
+    user = await db.user.findUnique({ where: { email } });
+  }
+
   if (!user) return null;
 
   // Invalidate old tokens for this user
@@ -39,7 +56,7 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) return false;
 
-  await createSession({ userId: user.id, email: user.email });
+  await createSession({ userId: user.id, email: user.email ?? user.phone ?? "" });
   return true;
 }
 

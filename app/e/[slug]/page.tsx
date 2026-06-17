@@ -58,11 +58,26 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     return <PasswordGate slug={slug} />;
   }
 
-  const guestRsvp = token
+  const _guestRsvpRaw = token
     ? await db.rSVP.findFirst({
         where: { editToken: token, eventId: event.id },
-        select: { id: true, guestName: true },
+        select: {
+          id: true,
+          guestName: true,
+          editToken: true,
+          status: true,
+          _count: { select: { answers: true } },
+        },
       })
+    : null;
+  const guestRsvp = _guestRsvpRaw
+    ? {
+        id: _guestRsvpRaw.id,
+        guestName: _guestRsvpRaw.guestName,
+        editToken: _guestRsvpRaw.editToken,
+        status: _guestRsvpRaw.status as "GOING" | "MAYBE" | "NO",
+        hasAnswers: _guestRsvpRaw._count.answers > 0,
+      }
     : null;
 
   const pendingRsvps = isHost

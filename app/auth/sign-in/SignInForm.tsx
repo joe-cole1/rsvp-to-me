@@ -18,6 +18,10 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
+function looksLikePhone(s: string): boolean {
+  return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
+}
+
 function TokenError() {
   const searchParams = useSearchParams();
   if (searchParams.get("error") !== "invalid-token") return null;
@@ -29,16 +33,18 @@ function TokenError() {
 }
 
 export default function SignInForm({ openRegistration }: { openRegistration: boolean }) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const isPhone = looksLikePhone(identifier);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const result = await sendMagicLinkAction(email);
+    const result = await sendMagicLinkAction(identifier);
     setLoading(false);
     if (result.success) {
       setSubmitted(true);
@@ -60,10 +66,12 @@ export default function SignInForm({ openRegistration }: { openRegistration: boo
           <Suspense><TokenError /></Suspense>
           {submitted ? (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>📬</div>
-              <h2 style={{ color: APP_SHELL.textPrimary, fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>Check your email</h2>
+              <div style={{ fontSize: "48px", marginBottom: "16px" }}>{isPhone ? "📱" : "📬"}</div>
+              <h2 style={{ color: APP_SHELL.textPrimary, fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
+                {isPhone ? "Check your texts" : "Check your email"}
+              </h2>
               <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", lineHeight: 1.6 }}>
-                We sent a magic link to <strong style={{ color: "rgba(255,255,255,0.8)" }}>{email}</strong>.
+                We sent a magic link to <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong>.
                 Click it to sign in — it expires in 15 minutes.
               </p>
             </div>
@@ -71,14 +79,14 @@ export default function SignInForm({ openRegistration }: { openRegistration: boo
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: "20px" }}>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: APP_SHELL.textMuted, marginBottom: "8px" }}>
-                  Email address
+                  Email or phone number
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="you@example.com or +1 555 000 0000"
                   style={inputStyle}
                 />
               </div>
