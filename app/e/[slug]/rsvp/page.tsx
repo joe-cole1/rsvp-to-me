@@ -1,56 +1,97 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { resolveTheme } from "@/lib/theme";
-import { RsvpEditForm } from "@/components/rsvp/RsvpEditForm";
+import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; status?: string }>;
 };
 
-export default async function RsvpEditPage({ params, searchParams }: Props) {
+export default async function RsvpPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { token } = await searchParams;
+  const { token, status } = await searchParams;
 
-  if (!token) notFound();
-
-  const rsvp = await db.rSVP.findUnique({
-    where: { editToken: token },
+  const event = await db.event.findUnique({
+    where: { slug },
     include: {
-      event: {
-        include: {
-          theme: true,
-          host: { select: { name: true } },
-        },
-      },
+      theme: true,
+      rsvpFields: { orderBy: { order: "asc" } },
     },
   });
 
-  // Validate token belongs to this event slug
-  if (!rsvp || rsvp.event.slug !== slug) notFound();
+  if (!event || event.status === "CANCELLED") notFound();
 
   const theme = resolveTheme(
-    rsvp.event.theme?.baseTheme ?? "DARK",
-    rsvp.event.theme?.accentColor ?? "#a855f7"
+    event.theme?.baseTheme ?? "DARK",
+    event.theme?.accentColor ?? "#a855f7"
   );
 
+  // Edit flow — token provided
+  if (token) {
+    const rsvp = await db.rSVP.findUnique({
+      where: { editToken: token },
+      include: {
+        plusOneGuests: { orderBy: { order: "asc" } },
+        answers: true,
+      },
+    });
+    if (!rsvp || rsvp.eventId !== event.id) notFound();
+
+    return (
+      <RsvpFlow
+        event={{
+          id: event.id,
+          slug: event.slug,
+          title: event.title,
+          startAt: event.startAt,
+          endAt: event.endAt,
+          timezone: event.timezone,
+          locationName: event.locationName,
+          plusOneAllowed: event.plusOneAllowed,
+          plusOneMax: event.plusOneMax,
+          maybeEnabled: event.maybeEnabled,
+          questionnaireEnabled: event.questionnaireEnabled,
+          rsvpFields: event.rsvpFields,
+        }}
+        theme={theme}
+        existingRsvp={{
+          id: rsvp.id,
+          editToken: rsvp.editToken,
+          guestName: rsvp.guestName,
+          status: rsvp.status as "GOING" | "MAYBE" | "NO",
+          plusOneCount: rsvp.plusOneCount,
+          note: rsvp.note,
+          plusOneGuests: rsvp.plusOneGuests,
+          answers: rsvp.answers.map((a) => ({ rsvpFieldId: a.rsvpFieldId, value: a.value })),
+        }}
+      />
+    );
+  }
+
+  // New RSVP flow — status from URL
+  const validStatuses = ["GOING", "MAYBE", "NO"] as const;
+  const initialStatus = validStatuses.find((s) => s === status?.toUpperCase());
+  if (!initialStatus) redirect(`/e/${slug}`);
+
   return (
-    <RsvpEditForm
-      rsvp={{
-        editToken: rsvp.editToken,
-        guestName: rsvp.guestName,
-        status: rsvp.status,
-        plusOneCount: rsvp.plusOneCount,
-      }}
+    <RsvpFlow
       event={{
-        title: rsvp.event.title,
-        slug: rsvp.event.slug,
-        startAt: rsvp.event.startAt,
-        locationName: rsvp.event.locationName,
-        plusOneAllowed: rsvp.event.plusOneAllowed,
-        plusOneMax: rsvp.event.plusOneMax,
+        id: event.id,
+        slug: event.slug,
+        title: event.title,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        timezone: event.timezone,
+        locationName: event.locationName,
+        plusOneAllowed: event.plusOneAllowed,
+        plusOneMax: event.plusOneMax,
+        maybeEnabled: event.maybeEnabled,
+        questionnaireEnabled: event.questionnaireEnabled,
+        rsvpFields: event.rsvpFields,
       }}
       theme={theme}
+      initialStatus={initialStatus}
     />
   );
 }

@@ -15,6 +15,7 @@ type RSVP = {
   note: string | null;
   createdAt: string;
   answers: RSVPAnswer[];
+  plusOneGuests: string[];
 };
 
 type InvitedGuest = {
@@ -144,6 +145,15 @@ export function GuestListFilter({
                   <div style={{ marginTop: "4px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
                     {r.guestEmail && <span style={{ color: t.textMuted, fontSize: "12px" }}>{r.guestEmail}</span>}
                     {r.guestPhone && <span style={{ color: t.textMuted, fontSize: "12px" }}>{r.guestPhone}</span>}
+                  </div>
+                )}
+                {isHost && r.plusOneGuests.length > 0 && (
+                  <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                    {r.plusOneGuests.map((name) => (
+                      <span key={name} style={{ fontSize: "11px", background: t.pillBg, border: `1px solid ${t.cardBorder}`, borderRadius: "99px", padding: "2px 8px", color: t.textSecondary }}>
+                        {name}
+                      </span>
+                    ))}
                   </div>
                 )}
                 {isHost && r.answers.length > 0 && (

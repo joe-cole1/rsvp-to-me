@@ -32,7 +32,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, Sparkles, Camera, Phone } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, saveRsvpAnswers } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 
@@ -639,17 +639,12 @@ type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GO
 
 export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null }) {
   const [event, setEvent] = useState(initial);
-  const [rsvpStatus, setRsvpStatus] = useState<"GOING" | "MAYBE" | "NO" | null>(guestRsvp?.status ?? null);
-  const [guestName, setGuestName] = useState(guestRsvp?.guestName ?? "");
-  const [guestRsvpId, setGuestRsvpId] = useState<string | null>(guestRsvp?.id ?? null);
-  const [guestEditToken, setGuestEditToken] = useState<string | null>(guestRsvp?.editToken ?? null);
-  const [hasAnsweredQuestionnaire, setHasAnsweredQuestionnaire] = useState(guestRsvp?.hasAnswers ?? false);
-  const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string>>({});
+  const [guestName] = useState(guestRsvp?.guestName ?? "");
+  const [guestRsvpId] = useState<string | null>(guestRsvp?.id ?? null);
+  const [guestEditToken] = useState<string | null>(guestRsvp?.editToken ?? null);
+  const rsvpStatus = guestRsvp?.status ?? null;
+  const rsvpDone = !!guestRsvp?.id;
   const [pendingDelete, setPendingDelete] = useState<{ id: string; section: EventData["infoSections"][number]; timer: ReturnType<typeof setTimeout> } | null>(null);
-  const [guestEmail, setGuestEmail] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
-  const [plusOne, setPlusOne] = useState(0);
-  const [rsvpDone, setRsvpDone] = useState(!!guestRsvp?.id);
   const [commentText, setCommentText] = useState("");
   const [addingSection, setAddingSection] = useState(false);
   const [sectionDraft, setSectionDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "" });
@@ -657,14 +652,12 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [editDraft, setEditDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "" });
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [rsvpNote, setRsvpNote] = useState("");
   const [updateDraft, setUpdateDraft] = useState("");
   const [notifyOnUpdate, setNotifyOnUpdate] = useState(true);
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
   const [newPotluckLabel, setNewPotluckLabel] = useState("");
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
   const [claimName, setClaimName] = useState("");
-  const [fieldAnswers, setFieldAnswers] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -711,38 +704,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       setUploadStatus("idle");
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  };
-
-  const submitRSVP = async () => {
-    if (!rsvpStatus || !guestName.trim()) return;
-    startTransition(async () => {
-      const result = await addRSVP({
-        eventId: event.id,
-        guestName: guestName.trim(),
-        guestEmail: guestEmail.trim() || undefined,
-        guestPhone: guestPhone.trim() || undefined,
-        status: rsvpStatus,
-        answers: fieldAnswers,
-        plusOneCount: plusOne,
-        note: rsvpNote.trim() || undefined,
-      });
-      if (result.success) {
-        setRsvpDone(true);
-        setGuestRsvpId(result.id!);
-        setGuestEditToken(result.editToken ?? null);
-        if (result.editToken && typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          url.searchParams.set("token", result.editToken);
-          window.history.replaceState({}, "", url.toString());
-        }
-        if (!event.approvalRequired) {
-          setEvent((e) => ({
-            ...e,
-            rsvps: [...e.rsvps, { id: result.id!, guestName: guestName.trim(), status: rsvpStatus, plusOneCount: plusOne, note: rsvpNote.trim() || null, createdAt: new Date() }],
-          }));
-        }
-      }
-    });
   };
 
   const submitComment = async () => {
@@ -1232,23 +1193,12 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             <h2 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px", fontFamily: t.headingFont }}>Are you coming?</h2>
 
             {rsvpDone ? (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ textAlign: "center", padding: "12px 0" }}>
                 <div style={{ fontSize: "40px", marginBottom: "8px" }}>
                   {rsvpStatus === "GOING" ? "🎉" : rsvpStatus === "MAYBE" ? "🤔" : "😔"}
                 </div>
-                <div style={{ fontWeight: 700, marginBottom: "4px" }}>
+                <div style={{ fontWeight: 700, marginBottom: "12px" }}>
                   {rsvpStatus === "GOING" ? "You're going!" : rsvpStatus === "MAYBE" ? "Marked as maybe" : "Can't make it"}
-                </div>
-                <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "14px" }}>
-                  {event.approvalRequired
-                    ? "Your RSVP is pending approval."
-                    : guestEmail && guestPhone
-                      ? "Confirmation sent to your email and phone."
-                      : guestEmail
-                        ? "A confirmation was sent to your email."
-                        : guestPhone
-                          ? "A confirmation was sent to your phone."
-                          : "Thanks for responding!"}
                 </div>
                 {guestEditToken && (
                   <a
@@ -1260,115 +1210,23 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 )}
               </div>
             ) : (
-              <>
-                <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-                  {(["GOING", "MAYBE", "NO"] as const).filter((s) => s !== "MAYBE" || event.maybeEnabled).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setRsvpStatus(s)}
-                      style={{
-                        flex: 1, padding: "12px 8px", border: "none", borderRadius: t.btnRadius, cursor: "pointer", fontFamily: "inherit", fontSize: "12px", fontWeight: t.btnFontWeight,
-                        ...(rsvpStatus === s
-                          ? { background: t.accent, color: t.accentFg, boxShadow: t.accentShadow }
-                          : { background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}` }),
-                      }}
-                    >
-                      <div style={{ fontSize: "20px", marginBottom: "4px" }}>
-                        {s === "GOING" ? "🎉" : s === "MAYBE" ? "🤔" : "😔"}
-                      </div>
-                      {s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't go"}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <input style={S.inp} placeholder="Your name *" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
-                  <input style={S.inp} type="email" placeholder="Email (optional — for updates)" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
-                  <input style={S.inp} type="tel" placeholder="Phone (optional — for SMS updates)" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
-                  <textarea
-                    style={{ ...S.inp, resize: "none" } as React.CSSProperties}
-                    rows={2}
-                    placeholder="Message for the host (optional)"
-                    value={rsvpNote}
-                    onChange={(e) => setRsvpNote(e.target.value)}
-                  />
-                  {event.questionnaireEnabled && event.rsvpFields.map((f) => (
-                    <div key={f.id}>
-                      <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: t.textSecondary, marginBottom: "6px" }}>
-                        {f.label}{f.required && <span style={{ color: t.accent }}> *</span>}
-                      </label>
-                      {f.fieldType === "TEXTAREA" ? (
-                        <textarea
-                          style={{ ...S.inp, resize: "none" } as React.CSSProperties}
-                          rows={3}
-                          value={fieldAnswers[f.id] ?? ""}
-                          onChange={(e) => setFieldAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                        />
-                      ) : f.fieldType === "SELECT" ? (
-                        <select
-                          style={{ ...S.inp, cursor: "pointer" }}
-                          value={fieldAnswers[f.id] ?? ""}
-                          onChange={(e) => setFieldAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                        >
-                          <option value="">Select…</option>
-                          {(f.options ?? "").split("\n").filter(Boolean).map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      ) : f.fieldType === "CHECKBOX" ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          {(f.options ?? "").split("\n").filter(Boolean).map((opt) => {
-                            const checked = (fieldAnswers[f.id] ?? "").split(",").includes(opt);
-                            return (
-                              <label key={opt} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", color: t.textPrimary }}>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => {
-                                    const current = (fieldAnswers[f.id] ?? "").split(",").filter(Boolean);
-                                    const next = checked ? current.filter((x) => x !== opt) : [...current, opt];
-                                    setFieldAnswers((prev) => ({ ...prev, [f.id]: next.join(",") }));
-                                  }}
-                                  style={{ accentColor: t.accent }}
-                                />
-                                {opt}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <input
-                          style={S.inp}
-                          value={fieldAnswers[f.id] ?? ""}
-                          onChange={(e) => setFieldAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                        />
-                      )}
-                    </div>
-                  ))}
-                  {event.plusOneAllowed && event.plusOneMax > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Bringing a +1?</span>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        {Array.from({ length: event.plusOneMax + 1 }, (_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setPlusOne(i)}
-                            style={{ width: "36px", height: "36px", border: "none", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, background: plusOne === i ? t.accent : t.inputBg, color: plusOne === i ? t.accentFg : t.textSecondary }}
-                          >
-                            {i}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <button
-                    onClick={submitRSVP}
-                    disabled={!rsvpStatus || !guestName.trim() || isPending || (event.questionnaireEnabled && event.rsvpFields.some((f) => f.required && !fieldAnswers[f.id]?.trim()))}
-                    style={{ ...S.btn, opacity: (!rsvpStatus || !guestName.trim()) ? 0.5 : 1 }}
+              <div style={{ display: "flex", gap: "10px" }}>
+                {(["GOING", "MAYBE", "NO"] as const).filter((s) => s !== "MAYBE" || event.maybeEnabled).map((s) => (
+                  <a
+                    key={s}
+                    href={`/e/${event.slug}/rsvp?status=${s}`}
+                    style={{
+                      flex: 1, padding: "14px 8px", border: `1px solid ${t.inputBorder}`, borderRadius: t.btnRadius,
+                      fontFamily: "inherit", fontSize: "12px", fontWeight: 700, background: t.inputBg,
+                      color: t.textSecondary, textDecoration: "none", display: "flex", flexDirection: "column",
+                      alignItems: "center", gap: "5px", cursor: "pointer",
+                    }}
                   >
-                    {isPending ? "Sending…" : "Send RSVP"}
-                  </button>
-                </div>
-              </>
+                    <span style={{ fontSize: "22px" }}>{s === "GOING" ? "🎉" : s === "MAYBE" ? "🤔" : "😔"}</span>
+                    {s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't go"}
+                  </a>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -1570,19 +1428,28 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         if (item.type === "potluck_unclaim") return <Gift size={14} style={{ color: t.textMuted }} />;
                         return <Pencil size={14} style={{ color: t.accent }} />;
                       })();
+                      const [mainDetail, ...commentLines] = item.detail.split("\n");
+                      const rsvpComment = commentLines.join("\n").trim();
                       return (
-                        <div key={`a-${item.id}`} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "6px 0" }}>
+                        <div key={`a-${item.id}`} style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "6px 0" }}>
                           <div style={{
                             width: "28px", height: "28px", borderRadius: "50%",
                             background: (item.type.startsWith("rsvp") || item.type === "potluck_claim") ? t.accentBg : t.pillBg,
-                            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: rsvpComment ? "2px" : 0,
                           }}>
                             {iconEl}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: "13px", color: t.textSecondary }}>{item.detail}</span>
-                            {event.showTimestamps && (
-                              <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>
+                            <div>
+                              <span style={{ fontSize: "13px", color: t.textSecondary }}>{mainDetail}</span>
+                              {event.showTimestamps && (
+                                <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>
+                              )}
+                            </div>
+                            {rsvpComment && (
+                              <div style={{ marginTop: "6px", borderLeft: `3px solid ${t.cardBorder}`, paddingLeft: "10px", color: t.textMuted, fontSize: "13px", fontStyle: "italic", lineHeight: 1.5 }}>
+                                {rsvpComment}
+                              </div>
                             )}
                           </div>
                         </div>
