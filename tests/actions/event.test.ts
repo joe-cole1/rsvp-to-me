@@ -25,6 +25,7 @@ const {
   mockPotluckItemFindUnique,
   mockPotluckItemUpdate,
   mockPotluckItemDelete,
+  mockInvitationCreateMany,
   mockGetSession,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
@@ -48,6 +49,7 @@ const {
   mockPotluckItemFindUnique: vi.fn(),
   mockPotluckItemUpdate: vi.fn(),
   mockPotluckItemDelete: vi.fn(),
+  mockInvitationCreateMany: vi.fn().mockResolvedValue({ count: 0 }),
   mockGetSession: vi.fn(),
 }));
 
@@ -81,6 +83,7 @@ vi.mock("@/lib/db", () => ({
       update: mockPotluckItemUpdate,
       delete: mockPotluckItemDelete,
     },
+    invitation: { createMany: mockInvitationCreateMany },
   },
 }));
 

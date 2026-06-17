@@ -268,6 +268,10 @@ export async function sendBlast(
     hostName: event.host.name ?? "Your host",
   });
 
+  db.invitation.createMany({
+    data: emails.map((sentTo) => ({ eventId, sentTo, channel: "EMAIL" as const })),
+  }).catch(() => {});
+
   return { success: true, sent: emails.length };
 }
 
@@ -299,6 +303,10 @@ export async function sendSmsBlast(
     message,
     hostName: event.host.name ?? "Your host",
   });
+
+  db.invitation.createMany({
+    data: phones.map((sentTo) => ({ eventId, sentTo, channel: "SMS" as const })),
+  }).catch(() => {});
 
   return { success: true, sent };
 }
