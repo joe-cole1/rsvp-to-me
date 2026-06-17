@@ -18,6 +18,13 @@ const {
   mockInfoSectionDelete,
   mockEventThemeUpsert,
   mockReminderSettingsUpsert,
+  mockEventUpdateCreate,
+  mockEventUpdateFindUnique,
+  mockEventUpdateDelete,
+  mockPotluckItemCreate,
+  mockPotluckItemFindUnique,
+  mockPotluckItemUpdate,
+  mockPotluckItemDelete,
   mockGetSession,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
@@ -34,6 +41,13 @@ const {
   mockInfoSectionDelete: vi.fn(),
   mockEventThemeUpsert: vi.fn(),
   mockReminderSettingsUpsert: vi.fn(),
+  mockEventUpdateCreate: vi.fn(),
+  mockEventUpdateFindUnique: vi.fn(),
+  mockEventUpdateDelete: vi.fn(),
+  mockPotluckItemCreate: vi.fn(),
+  mockPotluckItemFindUnique: vi.fn(),
+  mockPotluckItemUpdate: vi.fn(),
+  mockPotluckItemDelete: vi.fn(),
   mockGetSession: vi.fn(),
 }));
 
@@ -56,6 +70,17 @@ vi.mock("@/lib/db", () => ({
     },
     eventTheme: { upsert: mockEventThemeUpsert },
     eventReminderSettings: { upsert: mockReminderSettingsUpsert },
+    eventUpdate: {
+      create: mockEventUpdateCreate,
+      findUnique: mockEventUpdateFindUnique,
+      delete: mockEventUpdateDelete,
+    },
+    potluckItem: {
+      create: mockPotluckItemCreate,
+      findUnique: mockPotluckItemFindUnique,
+      update: mockPotluckItemUpdate,
+      delete: mockPotluckItemDelete,
+    },
   },
 }));
 
@@ -85,6 +110,12 @@ import {
   removeInfoSection,
   saveEventDates,
   saveReminderSettings,
+  addEventUpdate,
+  deleteEventUpdate,
+  addPotluckItem,
+  removePotluckItem,
+  claimPotluckItem,
+  unclaimPotluckItem,
 } from "@/app/actions/event";
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
@@ -650,5 +681,314 @@ describe("saveReminderSettings", () => {
   it("revalidates the settings page", async () => {
     await saveReminderSettings(EVENT_ID, SETTINGS);
     expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}/settings`);
+  });
+});
+
+// ── addRSVP note ──────────────────────────────────────────────────────────────
+
+describe("addRSVP — note field", () => {
+  beforeEach(() => {
+    mockEventFindUnique.mockResolvedValue(BASE_EVENT);
+    mockRsvpCreate.mockResolvedValue({ id: "rsvp-1", editToken: "tok-abc" });
+  });
+
+  it("stores the note when provided", async () => {
+    await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0, note: "Bringing wine!" });
+    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ note: "Bringing wine!" }),
+    }));
+  });
+
+  it("stores null when note is empty", async () => {
+    await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0, note: "" });
+    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ note: null }),
+    }));
+  });
+
+  it("stores null when note is omitted", async () => {
+    await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
+    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ note: null }),
+    }));
+  });
+});
+
+// ── updateRSVP note ───────────────────────────────────────────────────────────
+
+describe("updateRSVP — note field", () => {
+  const EDIT_TOKEN = "tok-edit-1";
+
+  beforeEach(() => {
+    mockRsvpFindUnique.mockResolvedValue({ editToken: EDIT_TOKEN, event: { slug: EVENT_SLUG } });
+    mockRsvpUpdate.mockResolvedValue({});
+  });
+
+  it("includes note in the update when provided", async () => {
+    await updateRSVP(EDIT_TOKEN, { status: "GOING", plusOneCount: 0, note: "Can't wait!" });
+    expect(mockRsvpUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ note: "Can't wait!" }),
+    }));
+  });
+
+  it("passes undefined for note when omitted, leaving the existing value intact", async () => {
+    await updateRSVP(EDIT_TOKEN, { status: "GOING", plusOneCount: 0 });
+    const data = mockRsvpUpdate.mock.calls[0][0].data;
+    expect(data.note).toBeUndefined();
+  });
+});
+
+// ── addEventUpdate ────────────────────────────────────────────────────────────
+
+describe("addEventUpdate", () => {
+  const UPDATE_BODY = "Start time moved to 7pm — see you then!";
+  const CREATED_AT = new Date("2026-12-01T12:00:00Z");
+
+  beforeEach(() => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockEventUpdateCreate.mockResolvedValue({ id: "update-1", createdAt: CREATED_AT });
+    mockRsvpFindMany.mockResolvedValue([]);
+  });
+
+  it("creates the update and returns its id and createdAt", async () => {
+    const result = await addEventUpdate(EVENT_ID, UPDATE_BODY, false);
+    expect(result).toEqual({ success: true, id: "update-1", createdAt: CREATED_AT });
+  });
+
+  it("persists body and notifyGuests flag", async () => {
+    await addEventUpdate(EVENT_ID, UPDATE_BODY, false);
+    expect(mockEventUpdateCreate).toHaveBeenCalledWith({
+      data: { eventId: EVENT_ID, body: UPDATE_BODY, notifyGuests: false },
+    });
+  });
+
+  it("does not query guests when notifyGuests is false", async () => {
+    await addEventUpdate(EVENT_ID, UPDATE_BODY, false);
+    expect(mockRsvpFindMany).not.toHaveBeenCalled();
+  });
+
+  it("queries guest emails when notifyGuests is true", async () => {
+    await addEventUpdate(EVENT_ID, UPDATE_BODY, true);
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ eventId: EVENT_ID, guestEmail: { not: null } }),
+    }));
+  });
+
+  it("fetches event title for the email when guests exist", async () => {
+    mockRsvpFindMany.mockResolvedValue([{ guestEmail: "alice@example.com" }]);
+    // assertHost (1st findUnique) + full event lookup (2nd findUnique)
+    mockEventFindUnique
+      .mockResolvedValueOnce(hostEventRow())
+      .mockResolvedValueOnce({ title: "Test Party", host: { name: "Joe" } });
+    await addEventUpdate(EVENT_ID, UPDATE_BODY, true);
+    expect(mockEventFindUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips the email fetch when no guests have email addresses", async () => {
+    mockRsvpFindMany.mockResolvedValue([]);
+    await addEventUpdate(EVENT_ID, UPDATE_BODY, true);
+    // Only the assertHost findUnique call — no second lookup needed
+    expect(mockEventFindUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws Unauthorized when there is no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(addEventUpdate(EVENT_ID, UPDATE_BODY, false)).rejects.toThrow("Unauthorized");
+  });
+
+  it("throws Forbidden when the user is not the host", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    await expect(addEventUpdate(EVENT_ID, UPDATE_BODY, false)).rejects.toThrow("Forbidden");
+  });
+
+  it("revalidates the event page", async () => {
+    await addEventUpdate(EVENT_ID, UPDATE_BODY, false);
+    expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
+  });
+});
+
+// ── deleteEventUpdate ─────────────────────────────────────────────────────────
+
+describe("deleteEventUpdate", () => {
+  const UPDATE_ID = "update-1";
+
+  beforeEach(() => {
+    asHost();
+    mockEventUpdateFindUnique.mockResolvedValue({
+      event: { hostId: HOST_ID, slug: EVENT_SLUG },
+    });
+    mockEventUpdateDelete.mockResolvedValue({});
+  });
+
+  it("deletes the update", async () => {
+    await deleteEventUpdate(UPDATE_ID);
+    expect(mockEventUpdateDelete).toHaveBeenCalledWith({ where: { id: UPDATE_ID } });
+  });
+
+  it("throws Forbidden when the user is not the host", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    await expect(deleteEventUpdate(UPDATE_ID)).rejects.toThrow("Forbidden");
+  });
+
+  it("throws Forbidden when there is no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(deleteEventUpdate(UPDATE_ID)).rejects.toThrow("Forbidden");
+  });
+
+  it("revalidates the event page", async () => {
+    await deleteEventUpdate(UPDATE_ID);
+    expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
+  });
+});
+
+// ── addPotluckItem ────────────────────────────────────────────────────────────
+
+describe("addPotluckItem", () => {
+  beforeEach(() => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockPotluckItemCreate.mockResolvedValue({ id: "item-1" });
+  });
+
+  it("creates the item and returns its id", async () => {
+    const result = await addPotluckItem(EVENT_ID, "Wine");
+    expect(result).toEqual({ success: true, id: "item-1" });
+  });
+
+  it("persists the label", async () => {
+    await addPotluckItem(EVENT_ID, "Dessert");
+    expect(mockPotluckItemCreate).toHaveBeenCalledWith({
+      data: { eventId: EVENT_ID, label: "Dessert" },
+    });
+  });
+
+  it("throws Unauthorized when there is no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(addPotluckItem(EVENT_ID, "Wine")).rejects.toThrow("Unauthorized");
+  });
+
+  it("revalidates the event page", async () => {
+    await addPotluckItem(EVENT_ID, "Wine");
+    expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
+  });
+});
+
+// ── removePotluckItem ─────────────────────────────────────────────────────────
+
+describe("removePotluckItem", () => {
+  const ITEM_ID = "item-1";
+
+  beforeEach(() => {
+    asHost();
+    mockPotluckItemFindUnique.mockResolvedValue({
+      event: { hostId: HOST_ID, slug: EVENT_SLUG },
+    });
+    mockPotluckItemDelete.mockResolvedValue({});
+  });
+
+  it("deletes the item", async () => {
+    await removePotluckItem(ITEM_ID);
+    expect(mockPotluckItemDelete).toHaveBeenCalledWith({ where: { id: ITEM_ID } });
+  });
+
+  it("throws Forbidden when the user is not the host", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    await expect(removePotluckItem(ITEM_ID)).rejects.toThrow("Forbidden");
+  });
+
+  it("throws Forbidden when there is no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(removePotluckItem(ITEM_ID)).rejects.toThrow("Forbidden");
+  });
+
+  it("revalidates the event page", async () => {
+    await removePotluckItem(ITEM_ID);
+    expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
+  });
+});
+
+// ── claimPotluckItem ──────────────────────────────────────────────────────────
+
+describe("claimPotluckItem", () => {
+  const ITEM_ID = "item-1";
+
+  beforeEach(() => {
+    mockPotluckItemFindUnique.mockResolvedValue({
+      claimedBy: null,
+      event: { slug: EVENT_SLUG },
+    });
+    mockPotluckItemUpdate.mockResolvedValue({});
+  });
+
+  it("sets claimedBy and returns success", async () => {
+    const result = await claimPotluckItem(ITEM_ID, "Alice");
+    expect(result).toEqual({ success: true });
+    expect(mockPotluckItemUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: ITEM_ID },
+      data: expect.objectContaining({ claimedBy: "Alice", claimedAt: expect.any(Date) }),
+    }));
+  });
+
+  it("returns error when item is not found", async () => {
+    mockPotluckItemFindUnique.mockResolvedValue(null);
+    const result = await claimPotluckItem(ITEM_ID, "Alice");
+    expect(result).toEqual({ success: false, error: "Item not found" });
+    expect(mockPotluckItemUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns error when item is already claimed", async () => {
+    mockPotluckItemFindUnique.mockResolvedValue({
+      claimedBy: "Bob",
+      event: { slug: EVENT_SLUG },
+    });
+    const result = await claimPotluckItem(ITEM_ID, "Alice");
+    expect(result).toEqual({ success: false, error: "Already claimed" });
+    expect(mockPotluckItemUpdate).not.toHaveBeenCalled();
+  });
+
+  it("revalidates the event page", async () => {
+    await claimPotluckItem(ITEM_ID, "Alice");
+    expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
+  });
+});
+
+// ── unclaimPotluckItem ────────────────────────────────────────────────────────
+
+describe("unclaimPotluckItem", () => {
+  const ITEM_ID = "item-1";
+
+  beforeEach(() => {
+    mockPotluckItemFindUnique.mockResolvedValue({
+      claimedBy: "Alice",
+      event: { slug: EVENT_SLUG },
+    });
+    mockPotluckItemUpdate.mockResolvedValue({});
+  });
+
+  it("clears claimedBy and returns success", async () => {
+    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    expect(result).toEqual({ success: true });
+    expect(mockPotluckItemUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: ITEM_ID },
+      data: { claimedBy: null, claimedAt: null },
+    }));
+  });
+
+  it("returns error when the name does not match the claimer", async () => {
+    const result = await unclaimPotluckItem(ITEM_ID, "Bob");
+    expect(result).toEqual({ success: false, error: "Not your claim" });
+    expect(mockPotluckItemUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns error when item is unclaimed (claimedBy is null)", async () => {
+    mockPotluckItemFindUnique.mockResolvedValue({ claimedBy: null, event: { slug: EVENT_SLUG } });
+    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    expect(result).toEqual({ success: false, error: "Not your claim" });
+  });
+
+  it("revalidates the event page", async () => {
+    await unclaimPotluckItem(ITEM_ID, "Alice");
+    expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
   });
 });
