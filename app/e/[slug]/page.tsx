@@ -100,6 +100,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       theme={theme}
       coverUploadEnabled={true}
       guestRsvp={guestRsvp ?? null}
+      sessionUser={session ? { email: session.email } : null}
     />
   );
 }

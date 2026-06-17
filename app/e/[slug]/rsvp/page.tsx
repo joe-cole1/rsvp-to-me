@@ -5,12 +5,12 @@ import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ token?: string; status?: string }>;
+  searchParams: Promise<{ token?: string; status?: string; return?: string }>;
 };
 
 export default async function RsvpPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { token, status } = await searchParams;
+  const { token, status, return: returnTo } = await searchParams;
 
   const event = await db.event.findUnique({
     where: { slug },
@@ -65,6 +65,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
           plusOneGuests: rsvp.plusOneGuests,
           answers: rsvp.answers.map((a) => ({ rsvpFieldId: a.rsvpFieldId, value: a.value })),
         }}
+        returnPath={returnTo === "guests" ? `/e/${slug}/guests` : undefined}
       />
     );
   }

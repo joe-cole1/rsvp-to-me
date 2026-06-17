@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
+import { deleteRsvpAsHost } from "@/app/actions/event";
 
 type RSVPAnswer = { label: string; value: string };
 
@@ -16,6 +17,7 @@ type RSVP = {
   createdAt: string;
   answers: RSVPAnswer[];
   plusOneGuests: string[];
+  editToken: string;
 };
 
 type InvitedGuest = {
@@ -28,11 +30,12 @@ type InvitedGuest = {
 type Filter = "ALL" | "GOING" | "MAYBE" | "NO" | "INVITED";
 
 export function GuestListFilter({
-  going,
-  maybe,
-  no,
+  going: initialGoing,
+  maybe: initialMaybe,
+  no: initialNo,
   invited,
   isHost,
+  slug,
   t,
 }: {
   going: RSVP[];
@@ -40,9 +43,15 @@ export function GuestListFilter({
   no: RSVP[];
   invited: InvitedGuest[];
   isHost: boolean;
+  slug: string;
   t: ResolvedTheme;
 }) {
   const [filter, setFilter] = useState<Filter>("ALL");
+  const [going, setGoing] = useState(initialGoing);
+  const [maybe, setMaybe] = useState(initialMaybe);
+  const [no, setNo] = useState(initialNo);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
   const statusLabel = (s: string) =>
     s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't make it";
@@ -90,6 +99,21 @@ export function GuestListFilter({
     gap: "14px",
   };
 
+  const handleDelete = (rsvpId: string) => {
+    if (!confirm("Remove this RSVP? This cannot be undone.")) return;
+    setDeletingId(rsvpId);
+    startTransition(async () => {
+      const result = await deleteRsvpAsHost(rsvpId);
+      if (result.success) {
+        const remove = (list: RSVP[]) => list.filter((r) => r.id !== rsvpId);
+        setGoing(remove);
+        setMaybe(remove);
+        setNo(remove);
+      }
+      setDeletingId(null);
+    });
+  };
+
   return (
     <>
       <div style={{
@@ -113,7 +137,7 @@ export function GuestListFilter({
       ) : (
         <>
           {displayedRsvps.map((r) => (
-            <div key={r.id} style={cardStyle}>
+            <div key={r.id} style={{ ...cardStyle, opacity: deletingId === r.id ? 0.5 : 1 }}>
               <div style={{
                 width: "38px", height: "38px", borderRadius: "50%",
                 background: t.avatarGradient,
@@ -172,6 +196,34 @@ export function GuestListFilter({
                   })}
                 </div>
               </div>
+
+              {isHost && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                  <a
+                    href={`/e/${slug}/rsvp?token=${r.editToken}&return=guests`}
+                    style={{
+                      fontSize: "11px", fontWeight: 600, padding: "4px 10px",
+                      background: t.inputBg, border: `1px solid ${t.cardBorder}`,
+                      borderRadius: "8px", color: t.textSecondary, textDecoration: "none",
+                      display: "block", textAlign: "center",
+                    }}
+                  >
+                    Edit
+                  </a>
+                  <button
+                    onClick={() => handleDelete(r.id)}
+                    disabled={deletingId === r.id}
+                    style={{
+                      fontSize: "11px", fontWeight: 600, padding: "4px 10px",
+                      background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
+                      borderRadius: "8px", color: "#f87171", cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 

@@ -21,13 +21,21 @@ export function iconLabel(key: string): string {
   return ICON_LABELS[key] ?? key;
 }
 
+export type ActivityEventData = {
+  id: string;
+  type: string;
+  actorName: string | null;
+  detail: string;
+  createdAt: Date;
+};
+
 export function logActivity(
   eventId: string,
   type: string,
   detail: string,
   actorName?: string
-): Promise<void> {
+): Promise<ActivityEventData> {
   return db.activityEvent.create({
     data: { eventId, type, detail, actorName: actorName ?? null },
-  }).then(() => {});
+  });
 }

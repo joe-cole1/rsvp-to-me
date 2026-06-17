@@ -581,7 +581,7 @@ describe("addInfoSection", () => {
       eventId: EVENT_ID, type: "DRESS_CODE", title: "Attire",
       content: "Smart casual", url: null, order: 0,
     });
-    expect(result).toEqual({ success: true, id: "section-1" });
+    expect(result).toMatchObject({ success: true, id: "section-1" });
   });
 
   it("passes all fields to the database", async () => {
@@ -927,7 +927,7 @@ describe("claimPotluckItem", () => {
 
   it("sets claimedBy and returns success", async () => {
     const result = await claimPotluckItem(ITEM_ID, "Alice");
-    expect(result).toEqual({ success: true });
+    expect(result).toMatchObject({ success: true });
     expect(mockPotluckItemUpdate).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: ITEM_ID },
       data: expect.objectContaining({ claimedBy: "Alice", claimedAt: expect.any(Date) }),
@@ -972,7 +972,7 @@ describe("unclaimPotluckItem", () => {
 
   it("clears claimedBy and returns success", async () => {
     const result = await unclaimPotluckItem(ITEM_ID, "Alice");
-    expect(result).toEqual({ success: true });
+    expect(result).toMatchObject({ success: true });
     expect(mockPotluckItemUpdate).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: ITEM_ID },
       data: { claimedBy: null, claimedAt: null },
