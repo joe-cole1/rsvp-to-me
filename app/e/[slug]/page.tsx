@@ -9,6 +9,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;
   const searchParams = await props.searchParams;
   const isPreview = searchParams?.preview === "1";
+  const token = searchParams?.token as string | undefined;
 
   const event = await db.event.findUnique({
     where: { slug },
@@ -57,6 +58,13 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     return <PasswordGate slug={slug} />;
   }
 
+  const guestRsvp = token
+    ? await db.rSVP.findFirst({
+        where: { editToken: token, eventId: event.id },
+        select: { id: true, guestName: true },
+      })
+    : null;
+
   const pendingRsvps = isHost
     ? await db.rSVP.findMany({
         where: { eventId: event.id, approved: false },
@@ -76,6 +84,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       isHost={!!isHost}
       theme={theme}
       coverUploadEnabled={true}
+      guestRsvp={guestRsvp ?? null}
     />
   );
 }

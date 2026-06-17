@@ -258,6 +258,7 @@ export async function addComment(data: {
   eventId: string;
   guestName: string;
   body: string;
+  rsvpId?: string;
   parentId?: string;
 }) {
   const event = await db.event.findUnique({
@@ -271,6 +272,7 @@ export async function addComment(data: {
       eventId: data.eventId,
       guestName: data.guestName,
       body: data.body,
+      rsvpId: data.rsvpId ?? null,
       parentId: data.parentId,
     },
   });

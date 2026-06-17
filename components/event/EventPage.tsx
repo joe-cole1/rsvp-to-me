@@ -635,10 +635,11 @@ function IconPicker({ selected, onSelect, t }: { selected: string; onSelect: (ke
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean }) {
+export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: { id: string; guestName: string } | null }) {
   const [event, setEvent] = useState(initial);
   const [rsvpStatus, setRsvpStatus] = useState<"GOING" | "MAYBE" | "NO" | null>(null);
-  const [guestName, setGuestName] = useState("");
+  const [guestName, setGuestName] = useState(guestRsvp?.guestName ?? "");
+  const [guestRsvpId, setGuestRsvpId] = useState<string | null>(guestRsvp?.id ?? null);
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [plusOne, setPlusOne] = useState(0);
@@ -721,6 +722,12 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       });
       if (result.success) {
         setRsvpDone(true);
+        setGuestRsvpId(result.id!);
+        if (result.editToken && typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.set("token", result.editToken);
+          window.history.replaceState({}, "", url.toString());
+        }
         if (!event.approvalRequired) {
           setEvent((e) => ({
             ...e,
@@ -734,7 +741,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const submitComment = async () => {
     if (!commentText.trim()) return;
     startTransition(async () => {
-      const result = await addComment({ eventId: event.id, guestName: guestName || "Guest", body: commentText.trim() });
+      const result = await addComment({ eventId: event.id, guestName: guestName || "Guest", body: commentText.trim(), rsvpId: guestRsvpId ?? undefined });
       if (result.success) {
         setCommentText("");
         setEvent((e) => ({
@@ -1453,22 +1460,27 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 </div>
               </div>
             )}
-            {event.commentsEnabled && (
-              <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                <input
-                  style={{ ...S.inp, flex: 1 }}
-                  placeholder={guestName ? `Comment as ${guestName}…` : "Your name first, then comment below"}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-                />
-                <button
-                  onClick={submitComment}
-                  disabled={!commentText.trim() || isPending}
-                  style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: t.btnRadius, padding: "0 16px", cursor: "pointer", opacity: !commentText.trim() ? 0.5 : 1 }}
-                >
-                  <Send size={16} />
-                </button>
+            {event.commentsEnabled && (guestRsvpId || isHost) && (
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "6px" }}>
+                  Commenting as <strong style={{ color: t.textSecondary }}>{guestName || "Host"}</strong>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    style={{ ...S.inp, flex: 1 }}
+                    placeholder="Leave a comment…"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                  />
+                  <button
+                    onClick={submitComment}
+                    disabled={!commentText.trim() || isPending}
+                    style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: t.btnRadius, padding: "0 16px", cursor: "pointer", opacity: !commentText.trim() ? 0.5 : 1 }}
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
               </div>
             )}
 
