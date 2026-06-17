@@ -1,76 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { getDashboardEvents, type DashboardEvent } from "@/app/actions/event";
 
-type EventRow = {
-  id: string;
-  slug: string;
-  title: string;
-  startAt: Date;
-  status: string;
-  theme: { accentColor: string } | null;
-  going: number;
-  maybe: number;
-  pending: number;
-  isCohost: boolean;
-};
+type EventRow = DashboardEvent;
 
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect("/auth/sign-in");
 
-  const [ownedEvents, cohostRelations] = await Promise.all([
-    db.event.findMany({
-      where: { hostId: session.userId },
-      orderBy: { startAt: "desc" },
-      include: {
-        theme: { select: { accentColor: true } },
-        rsvps: { select: { status: true, approved: true } },
-      },
-    }),
-    db.eventCoHost.findMany({
-      where: { userId: session.userId },
-      include: {
-        event: {
-          include: {
-            theme: { select: { accentColor: true } },
-            rsvps: { select: { status: true, approved: true } },
-          },
-        },
-      },
-    }),
-  ]);
-
-  function toCounts(rsvps: { status: string; approved: boolean }[]) {
-    const going = rsvps.filter((r) => r.approved && r.status === "GOING").length;
-    const maybe = rsvps.filter((r) => r.approved && r.status === "MAYBE").length;
-    const pending = rsvps.filter((r) => !r.approved).length;
-    return { going, maybe, pending };
-  }
-
-  const events: EventRow[] = [
-    ...ownedEvents.map((e) => ({
-      id: e.id,
-      slug: e.slug,
-      title: e.title,
-      startAt: e.startAt,
-      status: e.status,
-      theme: e.theme,
-      isCohost: false,
-      ...toCounts(e.rsvps),
-    })),
-    ...cohostRelations.map(({ event: e }) => ({
-      id: e.id,
-      slug: e.slug,
-      title: e.title,
-      startAt: e.startAt,
-      status: e.status,
-      theme: e.theme,
-      isCohost: true,
-      ...toCounts(e.rsvps),
-    })),
-  ].sort((a, b) => b.startAt.getTime() - a.startAt.getTime());
+  const events = await getDashboardEvents();
 
   const now = new Date();
   const upcoming = events.filter((e) => e.startAt >= now);

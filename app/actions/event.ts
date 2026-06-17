@@ -632,6 +632,59 @@ export async function reorderRsvpFields(eventId: string, orderedIds: string[]) {
   revalidatePath(`/e/${event.slug}`);
 }
 
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+
+export type DashboardEvent = {
+  id: string;
+  slug: string;
+  title: string;
+  startAt: Date;
+  status: string;
+  theme: { accentColor: string } | null;
+  going: number;
+  maybe: number;
+  pending: number;
+  isCohost: boolean;
+};
+
+export async function getDashboardEvents(): Promise<DashboardEvent[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const events = await db.event.findMany({
+    where: {
+      OR: [
+        { hostId: session.userId },
+        { coHosts: { some: { userId: session.userId } } },
+      ],
+    },
+    include: {
+      theme: { select: { accentColor: true } },
+      rsvps: { select: { status: true, approved: true } },
+      coHosts: { select: { userId: true } },
+    },
+    orderBy: { startAt: "desc" },
+  });
+
+  return events.map((e) => {
+    const going = e.rsvps.filter((r: { status: string; approved: boolean }) => r.approved && r.status === "GOING").length;
+    const maybe = e.rsvps.filter((r: { status: string; approved: boolean }) => r.approved && r.status === "MAYBE").length;
+    const pending = e.rsvps.filter((r: { status: string; approved: boolean }) => !r.approved).length;
+    return {
+      id: e.id,
+      slug: e.slug,
+      title: e.title,
+      startAt: e.startAt,
+      status: e.status,
+      theme: e.theme,
+      going,
+      maybe,
+      pending,
+      isCohost: e.hostId !== session.userId,
+    };
+  });
+}
+
 export async function getRsvpFieldAnswers(fieldId: string) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
