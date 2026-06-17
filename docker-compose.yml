@@ -6,6 +6,7 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: file:/app/data/prod.db
+      OPEN_REGISTRATION: "false"   # set to "true" to allow anyone to register
     volumes:
       - ./data:/app/data
     restart: unless-stopped

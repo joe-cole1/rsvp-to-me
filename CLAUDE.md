@@ -120,10 +120,11 @@ Always import from `@/lib/db`, never instantiate PrismaClient directly.
 - `assertHost(eventId)` — checks session + event.hostId
 - `assertHostOrCohost(eventId)` — checks session + event.hostId OR EventCoHost row
 
-### Open registration (future)
-When ready to allow anyone to host, the only required change is removing the invite code
-check from `app/(auth)/register/page.tsx`. No schema changes needed: `User.role` already
-defaults to `HOST`, so everyone who signs up can create events immediately.
+### Open registration
+Controlled by `OPEN_REGISTRATION` env var (default `"false"`). Set to `"true"` in docker-compose
+to allow anyone to register — invite code field is hidden on the register page and `registerHost`
+in `lib/auth.ts` skips the code check. No schema changes needed: `User.role` already defaults to
+`HOST`, so everyone who signs up can create events immediately.
 
 One nuance: guest RSVPs (name/email on RSVP rows) are not linked to User accounts. If you
 want guests to later claim their RSVPs after creating an account, add an optional `userId`
@@ -155,7 +156,8 @@ Local filesystem storage — no external service needed.
 # Required
 DATABASE_URL="file:./dev.db"
 SESSION_SECRET=""             # 32+ random chars for iron-session encryption
-HOST_INVITE_CODE=""           # Default invite code for host registration
+OPEN_REGISTRATION="false"    # set "true" to allow anyone to register (no invite code)
+HOST_INVITE_CODE=""           # Default invite code for host registration (only used when OPEN_REGISTRATION=false)
 EMAIL_FROM=""                 # e.g. "RSVP to Me <noreply@yourdomain.com>"
 NEXT_PUBLIC_APP_URL=""        # e.g. https://rsvp.yourdomain.com (no trailing slash)
 
@@ -209,8 +211,7 @@ Schema has `CheckIn` (rsvpId, checkedInAt, checkedInBy), no UI yet. Options:
 - Advanced: QR code per RSVP scanned at the door (editToken can double as check-in code)
 
 ### 3. Open registration
-Remove the invite code requirement from `app/(auth)/register/page.tsx` when ready.
-No schema changes needed. See "Open registration" note in Key Patterns above.
+✅ Done — set `OPEN_REGISTRATION=true` in docker-compose (or `.env`) to enable. No code changes needed.
 
 ---
 
