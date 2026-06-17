@@ -89,6 +89,24 @@ export async function addInfoSection(data: {
   return { success: true, id: section.id };
 }
 
+export async function updateInfoSection(
+  sectionId: string,
+  data: { title: string | null; content: string; url: string | null }
+) {
+  const section = await db.eventInfoSection.findUnique({
+    where: { id: sectionId },
+    include: { event: { select: { hostId: true, slug: true } } },
+  });
+  const session = await getSession();
+  if (!section || section.event.hostId !== session?.userId) throw new Error("Forbidden");
+  await db.eventInfoSection.update({
+    where: { id: sectionId },
+    data: { title: data.title || null, content: data.content, url: data.url || null },
+  });
+  revalidatePath(`/e/${section.event.slug}`);
+  return { success: true };
+}
+
 export async function removeInfoSection(sectionId: string) {
   const section = await db.eventInfoSection.findUnique({
     where: { id: sectionId },
