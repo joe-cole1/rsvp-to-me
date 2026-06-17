@@ -49,6 +49,7 @@ export interface ResolvedTheme {
   cardBg: string;
   cardBorder: string;
   cardRadius: string;
+  cardShadow: string;
 
   // Inputs
   inputBg: string;
@@ -102,6 +103,7 @@ export function resolveTheme(base: BaseTheme, accent: string): ResolvedTheme {
       cardBg: "rgba(255,255,255,0.05)",
       cardBorder: `rgba(${accentRgb},0.2)`,
       cardRadius: "20px",
+      cardShadow: "none",
       inputBg: "rgba(255,255,255,0.06)",
       inputBorder: "rgba(255,255,255,0.1)",
       inputText: "#ffffff",
@@ -135,6 +137,7 @@ export function resolveTheme(base: BaseTheme, accent: string): ResolvedTheme {
       cardBg: "rgba(255,255,255,0.8)",
       cardBorder: "rgba(0,0,0,0.06)",
       cardRadius: "24px",
+      cardShadow: "0 4px 24px rgba(0,0,0,0.06)",
       inputBg: "rgba(0,0,0,0.04)",
       inputBorder: "rgba(0,0,0,0.08)",
       inputText: "#1c1917",
@@ -153,7 +156,7 @@ export function resolveTheme(base: BaseTheme, accent: string): ResolvedTheme {
   // BOLD
   return {
     pageBg: "#fafafa",
-    pageDecoration: "bold-hero",
+    pageDecoration: "bold-hero" as const,
     textPrimary: "#0a0a0a",
     textSecondary: "#52525b",
     textMuted: "#a1a1aa",
@@ -166,6 +169,7 @@ export function resolveTheme(base: BaseTheme, accent: string): ResolvedTheme {
     cardBg: "#ffffff",
     cardBorder: "transparent",
     cardRadius: "24px",
+    cardShadow: "0 8px 40px rgba(0,0,0,0.13)",
     inputBg: "#ffffff",
     inputBorder: "#e4e4e7",
     inputText: "#0a0a0a",
