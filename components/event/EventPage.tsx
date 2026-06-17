@@ -30,9 +30,9 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
     img.src = url;
   });
 }
-import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
+import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 
@@ -592,6 +592,8 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [commentText, setCommentText] = useState("");
   const [addingSection, setAddingSection] = useState<string | null>(null);
   const [sectionDraft, setSectionDraft] = useState({ title: "", content: "", url: "" });
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ title: "", content: "", url: "" });
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [rsvpNote, setRsvpNote] = useState("");
@@ -715,6 +717,31 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     startTransition(async () => {
       await removeInfoSection(id);
       setEvent((e) => ({ ...e, infoSections: e.infoSections.filter((s) => s.id !== id) }));
+    });
+  };
+
+  const startEditSection = (sec: EventData["infoSections"][number]) => {
+    setEditingSection(sec.id);
+    setEditDraft({ title: sec.title ?? "", content: sec.content, url: sec.url ?? "" });
+  };
+
+  const commitEditSection = async (id: string, type: string) => {
+    if (!editDraft.content.trim() && !editDraft.url.trim()) return;
+    startTransition(async () => {
+      await updateInfoSection(id, {
+        title: type === "CUSTOM" ? editDraft.title || null : null,
+        content: editDraft.content,
+        url: editDraft.url || null,
+      });
+      setEvent((e) => ({
+        ...e,
+        infoSections: e.infoSections.map((s) =>
+          s.id === id
+            ? { ...s, title: type === "CUSTOM" ? editDraft.title || null : s.title, content: editDraft.content, url: editDraft.url || null }
+            : s
+        ),
+      }));
+      setEditingSection(null);
     });
   };
 
@@ -926,24 +953,77 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             {event.infoSections.map((sec, i) => {
               const meta = INFO_META[sec.type] ?? INFO_META.CUSTOM;
               const Icon = meta.icon;
+              const isEditing = editingSection === sec.id;
               return (
-                <div key={sec.id} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "11px 16px", borderTop: i > 0 ? `1px solid ${t.cardBorder}` : "none" }}>
-                  <Icon size={15} style={{ color: t.accent, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: "13px" }}>
-                    <span style={{ fontWeight: 600, color: t.textPrimary }}>{sec.title ?? meta.label}</span>
-                    {sec.content && <span style={{ color: t.textMuted }}> · </span>}
-                    {sec.type === "LINK" && sec.url ? (
-                      <a href={sec.url} target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: "none" }}>
-                        {sec.content} <ExternalLink size={11} style={{ display: "inline", verticalAlign: "middle" }} />
-                      </a>
-                    ) : (
-                      <span style={{ color: t.textSecondary }}>{sec.content}</span>
-                    )}
-                  </div>
-                  {isHost && (
-                    <button onClick={() => deleteSection(sec.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
-                      <X size={13} />
-                    </button>
+                <div key={sec.id} style={{ borderTop: i > 0 ? `1px solid ${t.cardBorder}` : "none" }}>
+                  {isEditing ? (
+                    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {sec.type === "CUSTOM" && (
+                        <input
+                          style={S.inp}
+                          placeholder="Section title"
+                          value={editDraft.title}
+                          onChange={(e) => setEditDraft((d) => ({ ...d, title: e.target.value }))}
+                          autoFocus
+                        />
+                      )}
+                      {sec.type === "LINK" ? (
+                        <>
+                          <input
+                            style={S.inp}
+                            placeholder="Label (e.g. Spotify Playlist)"
+                            value={editDraft.content}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, content: e.target.value }))}
+                            autoFocus
+                          />
+                          <input
+                            style={S.inp}
+                            placeholder="URL"
+                            type="url"
+                            value={editDraft.url}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, url: e.target.value }))}
+                          />
+                        </>
+                      ) : (
+                        <textarea
+                          style={{ ...S.inp, resize: "none" } as React.CSSProperties}
+                          rows={3}
+                          placeholder="Details…"
+                          value={editDraft.content}
+                          onChange={(e) => setEditDraft((d) => ({ ...d, content: e.target.value }))}
+                          autoFocus={sec.type !== "CUSTOM"}
+                        />
+                      )}
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button onClick={() => commitEditSection(sec.id, sec.type)} style={{ ...S.btn, flex: 1, padding: "8px" }}>Save</button>
+                        <button onClick={() => setEditingSection(null)} style={S.mutedBtn}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center", padding: "11px 16px" }}>
+                      <Icon size={15} style={{ color: t.accent, flexShrink: 0 }} />
+                      <div style={{ flex: 1, fontSize: "13px" }}>
+                        <span style={{ fontWeight: 600, color: t.textPrimary }}>{sec.title ?? meta.label}</span>
+                        {sec.content && <span style={{ color: t.textMuted }}> · </span>}
+                        {sec.type === "LINK" && sec.url ? (
+                          <a href={sec.url} target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: "none" }}>
+                            {sec.content} <ExternalLink size={11} style={{ display: "inline", verticalAlign: "middle" }} />
+                          </a>
+                        ) : (
+                          <span style={{ color: t.textSecondary }}>{sec.content}</span>
+                        )}
+                      </div>
+                      {isHost && (
+                        <>
+                          <button onClick={() => startEditSection(sec)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => deleteSection(sec.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
+                            <X size={13} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               );
