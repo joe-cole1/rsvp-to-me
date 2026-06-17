@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 export interface SessionData {
   userId: string;
   email: string;
+  role: "HOST" | "ADMIN" | "GUEST";
 }
 
 export const COOKIE_NAME = "rsvp-session";

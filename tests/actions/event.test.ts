@@ -355,11 +355,25 @@ describe("approveRsvp", () => {
 
   beforeEach(() => {
     asHost();
-    mockRsvpFindUnique.mockResolvedValue({ id: RSVP_ID, event: { hostId: HOST_ID, slug: EVENT_SLUG } });
+    mockRsvpFindUnique.mockResolvedValue({ id: RSVP_ID, event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] } });
     mockRsvpUpdate.mockResolvedValue({});
   });
 
   it("sets approved: true and returns success", async () => {
+    const result = await approveRsvp(RSVP_ID);
+    expect(result).toEqual({ success: true });
+    expect(mockRsvpUpdate).toHaveBeenCalledWith({
+      where: { id: RSVP_ID },
+      data: { approved: true },
+    });
+  });
+
+  it("allows a co-host to approve RSVPs", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
+    mockRsvpFindUnique.mockResolvedValue({
+      id: RSVP_ID,
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] }
+    });
     const result = await approveRsvp(RSVP_ID);
     expect(result).toEqual({ success: true });
     expect(mockRsvpUpdate).toHaveBeenCalledWith({
@@ -373,7 +387,7 @@ describe("approveRsvp", () => {
     await expect(approveRsvp(RSVP_ID)).rejects.toThrow("Unauthorized");
   });
 
-  it("throws Forbidden when the session user is not the host", async () => {
+  it("throws Forbidden when the session user is not the host or co-host", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
     await expect(approveRsvp(RSVP_ID)).rejects.toThrow("Forbidden");
   });
@@ -391,11 +405,22 @@ describe("declineRsvp", () => {
 
   beforeEach(() => {
     asHost();
-    mockRsvpFindUnique.mockResolvedValue({ id: RSVP_ID, event: { hostId: HOST_ID, slug: EVENT_SLUG } });
+    mockRsvpFindUnique.mockResolvedValue({ id: RSVP_ID, event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] } });
     mockRsvpDelete.mockResolvedValue({});
   });
 
   it("deletes the RSVP and returns success", async () => {
+    const result = await declineRsvp(RSVP_ID);
+    expect(result).toEqual({ success: true });
+    expect(mockRsvpDelete).toHaveBeenCalledWith({ where: { id: RSVP_ID } });
+  });
+
+  it("allows a co-host to decline RSVPs", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
+    mockRsvpFindUnique.mockResolvedValue({
+      id: RSVP_ID,
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] }
+    });
     const result = await declineRsvp(RSVP_ID);
     expect(result).toEqual({ success: true });
     expect(mockRsvpDelete).toHaveBeenCalledWith({ where: { id: RSVP_ID } });
@@ -406,7 +431,7 @@ describe("declineRsvp", () => {
     await expect(declineRsvp(RSVP_ID)).rejects.toThrow("Unauthorized");
   });
 
-  it("throws Forbidden when the session user is not the host", async () => {
+  it("throws Forbidden when the session user is not the host or co-host", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
     await expect(declineRsvp(RSVP_ID)).rejects.toThrow("Forbidden");
   });

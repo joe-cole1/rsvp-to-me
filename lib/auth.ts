@@ -56,7 +56,11 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) return false;
 
-  await createSession({ userId: user.id, email: user.email ?? user.phone ?? "" });
+  await createSession({
+    userId: user.id,
+    email: user.email ?? user.phone ?? "",
+    role: user.role as "HOST" | "ADMIN" | "GUEST",
+  });
   return true;
 }
 
@@ -70,14 +74,51 @@ export async function registerHost(
 
   const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
-    if (!existing.name) {
-      await db.user.update({ where: { id: existing.id }, data: { name } });
+    if (existing.role === "HOST" || existing.role === "ADMIN") {
+      return { success: false, error: "An account with this email already exists. Sign in with a magic link instead." };
     }
-    return { success: false, error: "An account with this email already exists. Sign in with a magic link instead." };
+
+    // Upgrade guest to host
+    if (openRegistration) {
+      await db.user.update({
+        where: { id: existing.id },
+        data: { name, role: "HOST" },
+      });
+      return { success: true };
+    }
+
+    const now = new Date();
+    const validCode = await db.hostInviteCode.findFirst({
+      where: {
+        code: inviteCode,
+        active: true,
+        AND: [
+          { OR: [{ maxUses: null }, { maxUses: { gt: 0 } }] },
+          { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+        ],
+      },
+    });
+
+    if (!validCode) {
+      return { success: false, error: "Invalid or expired invite code." };
+    }
+
+    await db.$transaction([
+      db.user.update({
+        where: { id: existing.id },
+        data: { name, role: "HOST" },
+      }),
+      db.hostInviteCode.update({
+        where: { id: validCode.id },
+        data: { uses: { increment: 1 } },
+      }),
+    ]);
+
+    return { success: true };
   }
 
   if (openRegistration) {
-    await db.user.create({ data: { email: normalizedEmail, name } });
+    await db.user.create({ data: { email: normalizedEmail, name, role: "HOST" } });
     return { success: true };
   }
 
@@ -98,7 +139,7 @@ export async function registerHost(
   }
 
   await db.$transaction([
-    db.user.create({ data: { email: normalizedEmail, name } }),
+    db.user.create({ data: { email: normalizedEmail, name, role: "HOST" } }),
     db.hostInviteCode.update({
       where: { id: validCode.id },
       data: { uses: { increment: 1 } },

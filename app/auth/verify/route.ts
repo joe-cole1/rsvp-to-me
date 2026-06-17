@@ -23,7 +23,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${APP_URL()}/auth/sign-in?error=invalid-token`);
   }
 
-  const sealed = await sealSession({ userId: user.id, email: user.email ?? user.phone ?? "" });
+  const sealed = await sealSession({
+    userId: user.id,
+    email: user.email ?? user.phone ?? "",
+    role: user.role as "HOST" | "ADMIN" | "GUEST",
+  });
 
   const response = NextResponse.redirect(`${APP_URL()}/dashboard`);
   response.cookies.set(COOKIE_NAME, sealed, {
