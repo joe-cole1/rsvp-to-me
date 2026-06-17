@@ -48,8 +48,8 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
 
   const statusLabel = (s: string) => s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't make it";
-  const statusColor = (s: string, accent: string) =>
-    s === "GOING" ? accent : s === "MAYBE" ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.25)";
+  const statusColor = (s: string) =>
+    s === "GOING" ? t.accent : s === "MAYBE" ? t.textSecondary : t.textMuted;
 
   return (
     <div style={{ minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit" }}>
@@ -75,8 +75,8 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
               <div
                 key={r.id}
                 style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: t.cardBg,
+                  border: `1px solid ${t.cardBorder}`,
                   borderRadius: "14px",
                   padding: "14px 18px",
                   marginBottom: "8px",
@@ -101,7 +101,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
                     )}
                     <span style={{
                       fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "99px",
-                      background: "rgba(255,255,255,0.08)", color: statusColor(r.status, t.accent),
+                      background: t.pillBg, color: statusColor(r.status),
                     }}>
                       {statusLabel(r.status)}
                     </span>
