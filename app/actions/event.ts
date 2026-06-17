@@ -199,6 +199,15 @@ export async function addRSVP(data: {
       select: { id: true },
     });
     userId = guestUser.id;
+  } else if (data.guestPhone) {
+    const phone = data.guestPhone.trim().replace(/[\s\-().]/g, "");
+    const guestUser = await db.user.upsert({
+      where: { phone },
+      create: { phone, name: data.guestName },
+      update: {},
+      select: { id: true },
+    });
+    userId = guestUser.id;
   }
 
   const rsvp = await db.rSVP.create({
@@ -279,6 +288,32 @@ export async function addComment(data: {
 
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: comment.id };
+}
+
+export async function saveRsvpAnswers(
+  rsvpId: string,
+  answers: Record<string, string>
+): Promise<{ success: boolean }> {
+  const rsvp = await db.rSVP.findUnique({
+    where: { id: rsvpId },
+    select: { event: { select: { slug: true } } },
+  });
+  if (!rsvp) return { success: false };
+
+  await Promise.all(
+    Object.entries(answers)
+      .filter(([, v]) => v.trim())
+      .map(([rsvpFieldId, value]) =>
+        db.rSVPAnswer.upsert({
+          where: { rsvpId_rsvpFieldId: { rsvpId, rsvpFieldId } },
+          create: { rsvpId, rsvpFieldId, value },
+          update: { value },
+        })
+      )
+  );
+
+  revalidatePath(`/e/${rsvp.event.slug}`);
+  return { success: true };
 }
 
 // ── Event settings ─────────────────────────────────────────────────────────────

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
 
+type RSVPAnswer = { label: string; value: string };
+
 type RSVP = {
   id: string;
   guestName: string;
@@ -12,6 +14,7 @@ type RSVP = {
   plusOneCount: number;
   note: string | null;
   createdAt: string;
+  answers: RSVPAnswer[];
 };
 
 type InvitedGuest = {
@@ -141,6 +144,16 @@ export function GuestListFilter({
                   <div style={{ marginTop: "4px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
                     {r.guestEmail && <span style={{ color: t.textMuted, fontSize: "12px" }}>{r.guestEmail}</span>}
                     {r.guestPhone && <span style={{ color: t.textMuted, fontSize: "12px" }}>{r.guestPhone}</span>}
+                  </div>
+                )}
+                {isHost && r.answers.length > 0 && (
+                  <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {r.answers.map((a) => (
+                      <div key={a.label} style={{ fontSize: "12px" }}>
+                        <span style={{ color: t.textMuted }}>{a.label}: </span>
+                        <span style={{ color: t.textSecondary }}>{a.value}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div style={{ color: t.textMuted, fontSize: "11px", marginTop: "4px" }}>

@@ -2,18 +2,34 @@
 
 import { createMagicLink, registerHost } from "@/lib/auth";
 import { sendMagicLinkEmail } from "@/lib/email";
+import { sendMagicLinkSms } from "@/lib/sms";
+
+function looksLikePhone(s: string): boolean {
+  return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
+}
 
 export async function sendMagicLinkAction(
-  email: string
+  identifier: string
 ): Promise<{ success: boolean; error?: string }> {
-  const normalizedEmail = email.toLowerCase().trim();
-  const link = await createMagicLink(normalizedEmail);
+  const isPhone = looksLikePhone(identifier);
+  const link = await createMagicLink(identifier);
 
   if (!link) {
-    return { success: false, error: "No account found with that email. Did you RSVP with a different address?" };
+    return {
+      success: false,
+      error: isPhone
+        ? "No account found with that phone number."
+        : "No account found with that email. Did you RSVP with a different address?",
+    };
   }
 
-  await sendMagicLinkEmail(normalizedEmail, link);
+  if (isPhone) {
+    const phone = identifier.trim().replace(/[\s\-().]/g, "");
+    await sendMagicLinkSms(phone, link);
+  } else {
+    await sendMagicLinkEmail(identifier.toLowerCase().trim(), link);
+  }
+
   return { success: true };
 }
 

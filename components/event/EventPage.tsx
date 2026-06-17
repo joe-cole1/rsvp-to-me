@@ -32,7 +32,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, Sparkles, Camera, Phone } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, saveRsvpAnswers } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 
@@ -635,15 +635,21 @@ function IconPicker({ selected, onSelect, t }: { selected: string; onSelect: (ke
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: { id: string; guestName: string } | null }) {
+type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean };
+
+export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null }) {
   const [event, setEvent] = useState(initial);
-  const [rsvpStatus, setRsvpStatus] = useState<"GOING" | "MAYBE" | "NO" | null>(null);
+  const [rsvpStatus, setRsvpStatus] = useState<"GOING" | "MAYBE" | "NO" | null>(guestRsvp?.status ?? null);
   const [guestName, setGuestName] = useState(guestRsvp?.guestName ?? "");
   const [guestRsvpId, setGuestRsvpId] = useState<string | null>(guestRsvp?.id ?? null);
+  const [guestEditToken, setGuestEditToken] = useState<string | null>(guestRsvp?.editToken ?? null);
+  const [hasAnsweredQuestionnaire, setHasAnsweredQuestionnaire] = useState(guestRsvp?.hasAnswers ?? false);
+  const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string>>({});
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; section: EventData["infoSections"][number]; timer: ReturnType<typeof setTimeout> } | null>(null);
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [plusOne, setPlusOne] = useState(0);
-  const [rsvpDone, setRsvpDone] = useState(false);
+  const [rsvpDone, setRsvpDone] = useState(!!guestRsvp?.id);
   const [commentText, setCommentText] = useState("");
   const [addingSection, setAddingSection] = useState(false);
   const [sectionDraft, setSectionDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "" });
@@ -723,6 +729,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       if (result.success) {
         setRsvpDone(true);
         setGuestRsvpId(result.id!);
+        setGuestEditToken(result.editToken ?? null);
         if (result.editToken && typeof window !== "undefined") {
           const url = new URL(window.location.href);
           url.searchParams.set("token", result.editToken);
@@ -774,11 +781,30 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     });
   };
 
-  const deleteSection = async (id: string) => {
-    startTransition(async () => {
-      await removeInfoSection(id);
-      setEvent((e) => ({ ...e, infoSections: e.infoSections.filter((s) => s.id !== id) }));
-    });
+  const deleteSection = (id: string) => {
+    const section = event.infoSections.find((s) => s.id === id);
+    if (!section) return;
+    // Optimistically hide; commit to DB after 5s unless undone
+    setEvent((e) => ({ ...e, infoSections: e.infoSections.filter((s) => s.id !== id) }));
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timer);
+      startTransition(() => removeInfoSection(pendingDelete.id).then(() => {}));
+    }
+    const timer = setTimeout(() => {
+      startTransition(() => removeInfoSection(id).then(() => {}));
+      setPendingDelete(null);
+    }, 5000);
+    setPendingDelete({ id, section, timer });
+  };
+
+  const undoDeleteSection = () => {
+    if (!pendingDelete) return;
+    clearTimeout(pendingDelete.timer);
+    setEvent((e) => ({
+      ...e,
+      infoSections: [...e.infoSections, pendingDelete.section].sort((a, b) => a.order - b.order),
+    }));
+    setPendingDelete(null);
   };
 
   const startEditSection = (sec: EventData["infoSections"][number]) => {
@@ -1068,6 +1094,16 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           </div>
         )}
 
+        {/* ── Undo delete toast ── */}
+        {pendingDelete && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "12px 16px", marginBottom: "8px", gap: "12px" }}>
+            <span style={{ fontSize: "13px", color: t.textSecondary }}>Section removed</span>
+            <button onClick={undoDeleteSection} style={{ background: "none", border: `1px solid ${t.cardBorder}`, borderRadius: t.btnRadius, padding: "4px 12px", cursor: "pointer", fontSize: "12px", fontWeight: 700, color: t.accent, fontFamily: "inherit" }}>
+              Undo
+            </button>
+          </div>
+        )}
+
         {/* ── Add info section (host only) ── */}
         {isHost && (
           addingSection ? (
@@ -1203,7 +1239,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 <div style={{ fontWeight: 700, marginBottom: "4px" }}>
                   {rsvpStatus === "GOING" ? "You're going!" : rsvpStatus === "MAYBE" ? "Marked as maybe" : "Can't make it"}
                 </div>
-                <div style={{ fontSize: "13px", color: t.textMuted }}>
+                <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "14px" }}>
                   {event.approvalRequired
                     ? "Your RSVP is pending approval."
                     : guestEmail && guestPhone
@@ -1214,6 +1250,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                           ? "A confirmation was sent to your phone."
                           : "Thanks for responding!"}
                 </div>
+                {guestEditToken && (
+                  <a
+                    href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
+                    style={{ fontSize: "13px", color: t.accent, textDecoration: "none", fontWeight: 600 }}
+                  >
+                    Edit my RSVP →
+                  </a>
+                )}
               </div>
             ) : (
               <>

@@ -38,6 +38,10 @@ export async function sendRsvpConfirmationSms(
   );
 }
 
+export async function sendMagicLinkSms(to: string, link: string) {
+  return send(to, `Your sign-in link for RSVP to Me: ${link}\n(expires in 15 minutes)`);
+}
+
 export async function sendSmsBlast(
   phones: string[],
   opts: { eventTitle: string; eventSlug: string; message: string; hostName: string }
