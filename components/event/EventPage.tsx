@@ -32,7 +32,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, Sparkles, Camera, Phone } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 
@@ -637,7 +637,7 @@ function IconPicker({ selected, onSelect, t }: { selected: string; onSelect: (ke
 
 type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean };
 
-export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null }) {
+export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string } | null }) {
   const [event, setEvent] = useState(initial);
   const [guestName] = useState(guestRsvp?.guestName ?? "");
   const [guestRsvpId] = useState<string | null>(guestRsvp?.id ?? null);
@@ -735,6 +735,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         setEvent((e) => ({
           ...e,
           infoSections: [...e.infoSections, { id: result.id!, type: sectionDraft.iconKey, title: null, content: sectionDraft.content, url: sectionDraft.url || null, order: e.infoSections.length }],
+          activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
         }));
         setAddingSection(false);
         setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "" });
@@ -752,7 +753,12 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       startTransition(() => removeInfoSection(pendingDelete.id).then(() => {}));
     }
     const timer = setTimeout(() => {
-      startTransition(() => removeInfoSection(id).then(() => {}));
+      startTransition(async () => {
+        const result = await removeInfoSection(id);
+        if (result?.activityEvent) {
+          setEvent((e) => ({ ...e, activityEvents: [result.activityEvent!, ...e.activityEvents] }));
+        }
+      });
       setPendingDelete(null);
     }, 5000);
     setPendingDelete({ id, section, timer });
@@ -844,6 +850,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       setEvent((e) => ({
         ...e,
         potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: name, claimedAt: new Date() } : i),
+        activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
       setClaimingItemId(null);
       setClaimName("");
@@ -856,8 +863,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       setEvent((e) => ({
         ...e,
         potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: null, claimedAt: null } : i),
+        activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
     }
+  };
+
+  const removeActivityEvent = (id: string) => {
+    setEvent((e) => ({ ...e, activityEvents: e.activityEvents.filter((a) => a.id !== id) }));
+    deleteActivityEvent(id).catch(() => {});
   };
 
   const handleApprove = (rsvpId: string) => {
@@ -889,7 +902,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, position: "relative" as const, overflowX: "hidden" as const, fontFamily: "inherit" },
-    container: { position: "relative" as const, zIndex: 1, maxWidth: "440px", margin: "0 auto", padding: "48px 16px 160px" },
+    container: { position: "relative" as const, zIndex: 1, maxWidth: "440px", margin: "0 auto", padding: "96px 16px 160px" },
     card: { background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "24px", marginBottom: "16px", backdropFilter: "blur(12px)", boxShadow: t.cardShadow },
     badge: { fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", padding: "4px 12px", borderRadius: "100px", background: t.badgeBg, color: t.badgeText, border: `1px solid ${t.accentBorder}`, display: "inline-block" },
     inp: { width: "100%", padding: "12px 16px", borderRadius: t.btnRadius, background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.inputText, fontFamily: "inherit", fontSize: "14px", outline: "none" },
@@ -906,8 +919,38 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
+  const navUserInitial = sessionUser?.email?.[0]?.toUpperCase() ?? null;
+
   return (
     <div style={S.page}>
+      {/* ── Top nav ── */}
+      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "20px" }}>🎉</span>
+          <span style={{ fontSize: "16px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.01em" }}>RSVP</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {isHost && (
+            <a
+              href={`/e/${event.slug}/settings`}
+              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "6px 8px", color: "#fff", display: "flex", alignItems: "center", textDecoration: "none" }}
+              title="Event settings"
+            >
+              <Settings size={15} />
+            </a>
+          )}
+          {navUserInitial && (
+            <a
+              href="/dashboard"
+              title="Go to dashboard"
+              style={{ width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#fff", textDecoration: "none", flexShrink: 0 }}
+            >
+              {navUserInitial}
+            </a>
+          )}
+        </div>
+      </nav>
+
       {/* Background decorations */}
       {t.pageDecoration === "dark-orbs" && (
         <>
@@ -1452,6 +1495,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                               </div>
                             )}
                           </div>
+                          {isHost && (
+                            <button
+                              onClick={() => removeActivityEvent(item.id)}
+                              title="Hide from activity"
+                              style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0, opacity: 0.6 }}
+                            >
+                              <X size={12} />
+                            </button>
+                          )}
                         </div>
                       );
                     }
@@ -1491,17 +1543,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
       {/* ── Host Bar ── */}
       {isHost && <HostBar eventId={event.id} eventSlug={event.slug} theme={t} visibility={event.visibility} />}
-
-      {/* ── Settings link (gear icon, top right) ── */}
-      {isHost && (
-        <a
-          href={`/e/${event.slug}/settings`}
-          style={{ position: "fixed", top: "16px", right: "16px", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "8px", zIndex: 100, color: "#fff", display: "flex", alignItems: "center", textDecoration: "none" }}
-          title="Event settings"
-        >
-          <Settings size={18} />
-        </a>
-      )}
 
       {/* ── Theme Picker Modal ── */}
       {showThemePicker && (

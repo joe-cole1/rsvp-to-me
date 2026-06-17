@@ -58,6 +58,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     createdAt: r.createdAt.toISOString(),
     answers: r.answers.map((a) => ({ label: a.rsvpField.label, value: a.value })),
     plusOneGuests: r.plusOneGuests.map((g) => g.name),
+    editToken: r.editToken,
   });
 
   return (
@@ -94,6 +95,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
               sentAt: inv.sentAt.toISOString(),
             }))}
             isHost={isHost}
+            slug={slug}
             t={t}
           />
         )}

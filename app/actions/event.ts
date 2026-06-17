@@ -122,9 +122,9 @@ export async function addInfoSection(data: {
     },
   });
   const preview = data.content.slice(0, 60) + (data.content.length > 60 ? "…" : "");
-  logActivity(data.eventId, "info_add", `Added ${iconLabel(data.type)} section: ${preview}`).catch(() => {});
+  const activityEvent = await logActivity(data.eventId, "info_add", `Added ${iconLabel(data.type)} section: ${preview}`).catch(() => null);
   revalidatePath(`/e/${event.slug}`);
-  return { success: true, id: section.id };
+  return { success: true, id: section.id, activityEvent };
 }
 
 export async function updateInfoSection(
@@ -160,8 +160,9 @@ export async function removeInfoSection(sectionId: string) {
   const session = await getSession();
   if (!section || section.event.hostId !== session?.userId) throw new Error("Forbidden");
   await db.eventInfoSection.delete({ where: { id: sectionId } });
-  logActivity(section.eventId, "info_delete", `Removed ${iconLabel(section.type)} section`).catch(() => {});
+  const activityEvent = await logActivity(section.eventId, "info_delete", `Removed ${iconLabel(section.type)} section`).catch(() => null);
   revalidatePath(`/e/${section.event.slug}`);
+  return { activityEvent };
 }
 
 // ── RSVP ──────────────────────────────────────────────────────────────────────
@@ -410,6 +411,39 @@ export async function updateRSVP(
 
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true, rsvpId: rsvp.id };
+}
+
+export async function deleteRsvpAsHost(rsvpId: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  const rsvp = await db.rSVP.findUnique({
+    where: { id: rsvpId },
+    include: { event: { select: { id: true, hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+  });
+  if (!rsvp) throw new Error("Not found");
+  const isOwner = rsvp.event.hostId === session.userId;
+  const isCohost = rsvp.event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  await db.rSVP.delete({ where: { id: rsvpId } });
+  logActivity(rsvp.event.id, "rsvp_delete", `${rsvp.guestName}'s RSVP was removed`).catch(() => {});
+  revalidatePath(`/e/${rsvp.event.slug}/guests`);
+  revalidatePath(`/e/${rsvp.event.slug}`);
+  return { success: true };
+}
+
+export async function deleteActivityEvent(activityId: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  const activity = await db.activityEvent.findUnique({
+    where: { id: activityId },
+    include: { event: { select: { hostId: true, coHosts: { select: { userId: true } } } } },
+  });
+  if (!activity) return { success: false };
+  const isOwner = activity.event.hostId === session.userId;
+  const isCohost = activity.event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
+  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  await db.activityEvent.delete({ where: { id: activityId } });
+  return { success: true };
 }
 
 // ── Message blast ──────────────────────────────────────────────────────────────
@@ -662,9 +696,9 @@ export async function claimPotluckItem(itemId: string, guestName: string) {
     where: { id: itemId },
     data: { claimedBy: guestName, claimedAt: new Date() },
   });
-  logActivity(item.eventId, "potluck_claim", `${guestName} is bringing: ${item.label}`, guestName).catch(() => {});
+  const activityEvent = await logActivity(item.eventId, "potluck_claim", `${guestName} is bringing: ${item.label}`, guestName).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
-  return { success: true };
+  return { success: true, activityEvent };
 }
 
 export async function unclaimPotluckItem(itemId: string, guestName: string) {
@@ -677,9 +711,9 @@ export async function unclaimPotluckItem(itemId: string, guestName: string) {
     where: { id: itemId },
     data: { claimedBy: null, claimedAt: null },
   });
-  logActivity(item.eventId, "potluck_unclaim", `${guestName} won't bring: ${item.label}`, guestName).catch(() => {});
+  const activityEvent = await logActivity(item.eventId, "potluck_unclaim", `${guestName} won't bring: ${item.label}`, guestName).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
-  return { success: true };
+  return { success: true, activityEvent };
 }
 
 // ── Co-hosts ──────────────────────────────────────────────────────────────────

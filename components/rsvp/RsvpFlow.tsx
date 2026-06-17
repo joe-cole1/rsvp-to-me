@@ -58,11 +58,13 @@ export function RsvpFlow({
   theme,
   initialStatus,
   existingRsvp,
+  returnPath,
 }: {
   event: EventData;
   theme: ResolvedTheme;
   initialStatus?: "GOING" | "MAYBE" | "NO";
   existingRsvp?: ExistingRsvp;
+  returnPath?: string;
 }) {
   const t = theme;
   const isEdit = !!existingRsvp;
@@ -179,10 +181,10 @@ export function RsvpFlow({
             {status === "GOING" ? "See you there!" : status === "MAYBE" ? "Hope you can make it." : "Sorry you can't make it."}
           </p>
           <a
-            href={`/e/${event.slug}`}
+            href={returnPath ?? `/e/${event.slug}`}
             style={{ display: "block", background: t.accent, color: t.accentFg, textDecoration: "none", borderRadius: t.btnRadius, padding: "14px", fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"], fontSize: "15px", textAlign: "center", boxShadow: t.accentShadow }}
           >
-            Back to event
+            {returnPath ? "Back to guest list" : "Back to event"}
           </a>
         </div>
       </div>
