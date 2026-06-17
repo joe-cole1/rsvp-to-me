@@ -105,6 +105,7 @@ model Event {
   invitations     Invitation[]
   updates         EventUpdate[]
   potluckItems    PotluckItem[]
+  sentReminders   SentReminder[]
   comments        Comment[]
   rsvpFields      RSVPField[]
   checkIns        CheckIn[]
@@ -318,6 +319,21 @@ model PotluckItem {
   claimedAt DateTime?
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// REMINDERS
+// ──────────────────────────────────────────────
+
+model SentReminder {
+  id      String   @id @default(cuid())
+  eventId String
+  type    String   // email_week | email_day | email_hours | sms_week | sms_day | sms_hours | nudge_email
+  sentAt  DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, type])
 }
 
 // ──────────────────────────────────────────────
