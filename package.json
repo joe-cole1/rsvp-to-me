@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "cron": "tsx scripts/cron.ts",
     "db:push": "prisma db push",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -27,6 +28,7 @@
     "iron-session": "^8.0.4",
     "lucide-react": "^1.20.0",
     "next": "16.2.9",
+    "node-cron": "^3.0.3",
     "nodemailer": "^9.0.0",
     "prisma": "^7.8.0",
     "qrcode": "^1.5.4",
@@ -37,6 +39,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",

@@ -26,10 +26,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/app/generated ./app/generated
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 RUN mkdir -p /app/data
 
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npm start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npx tsx scripts/cron.ts & npm start"]
