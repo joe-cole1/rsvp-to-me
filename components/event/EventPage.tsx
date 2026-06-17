@@ -995,10 +995,8 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         />
 
         {/* ── Description ── */}
-        <div style={{ ...S.card, background: "transparent", border: "none", padding: 0, marginBottom: "24px", backdropFilter: "none" }}>
-          <p style={{ color: t.textSecondary, lineHeight: 1.7, fontSize: "15px", whiteSpace: "pre-wrap" }}>
-            <InlineEdit value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "15px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
-          </p>
+        <div style={{ ...S.card, marginBottom: "16px" }}>
+          <InlineEdit value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "15px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
         </div>
 
         {/* ── Info sections ── */}
