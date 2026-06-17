@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { resolveTheme } from "@/lib/theme";
 import { EventPage } from "@/components/event/EventPage";
+import { PasswordGate } from "@/components/event/PasswordGate";
 
 export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;
@@ -16,6 +17,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       theme: true,
       infoSections: { orderBy: { order: "asc" } },
       rsvpFields: { orderBy: { order: "asc" } },
+      coHosts: { select: { userId: true } },
       rsvps: {
         where: { approved: true },
         select: {
@@ -42,7 +44,14 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   if (!event || event.status === "CANCELLED") notFound();
 
   const session = await getSession();
-  const isHost = !isPreview && session?.userId === event.hostId;
+  const isHostOwner = session?.userId === event.hostId;
+  const isCohost = event.coHosts.some((ch) => ch.userId === session?.userId);
+  const isHost = !isPreview && (isHostOwner || isCohost);
+
+  // Password gate — hosts bypass it
+  if (event.password && !isHost && searchParams?.pw !== event.password) {
+    return <PasswordGate slug={slug} />;
+  }
 
   const pendingRsvps = isHost
     ? await db.rSVP.findMany({

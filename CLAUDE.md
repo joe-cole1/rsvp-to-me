@@ -23,7 +23,7 @@ A fun, social-first event and RSVP platform for personal events (house parties, 
 | Email | nodemailer (SMTP); console fallback in dev |
 | SMS | Twilio (optional) |
 | File Storage | Local filesystem (`data/uploads/`) |
-| Testing | Vitest (25 unit tests) |
+| Testing | Vitest (141 unit tests) |
 
 ## Commands
 
@@ -113,9 +113,22 @@ Always import from `@/lib/db`, never instantiate PrismaClient directly.
 - RSVP edit URL: `/e/[slug]/rsvp?token=<editToken>` — served by `app/e/[slug]/rsvp/page.tsx`
 
 ### Host access control
-- Hosts must have a valid invite code to register
+- Hosts must have a valid invite code to register (gated for now; see Open Registration note below)
 - Invite codes live in `HostInviteCode` table
 - Seed script (`prisma/seed.ts`) upserts `HOST_INVITE_CODE` on container startup
+- `User.role` defaults to `HOST` for everyone — there is no second-class "guest" user type
+- `assertHost(eventId)` — checks session + event.hostId
+- `assertHostOrCohost(eventId)` — checks session + event.hostId OR EventCoHost row
+
+### Open registration (future)
+When ready to allow anyone to host, the only required change is removing the invite code
+check from `app/(auth)/register/page.tsx`. No schema changes needed: `User.role` already
+defaults to `HOST`, so everyone who signs up can create events immediately.
+
+One nuance: guest RSVPs (name/email on RSVP rows) are not linked to User accounts. If you
+want guests to later claim their RSVPs after creating an account, add an optional `userId`
+field to the `RSVP` model and link it during sign-up by matching `guestEmail === user.email`.
+This is a schema migration + one `db.rSVP.updateMany()` call — no architectural overhaul.
 
 ### Event page UX
 - Public event page at `/e/[slug]` — no auth required
@@ -125,7 +138,8 @@ Always import from `@/lib/db`, never instantiate PrismaClient directly.
 
 ### File uploads
 Local filesystem storage — no external service needed.
-- `POST /api/upload` — validates session + image type + 4MB limit, saves to `data/uploads/<uuid>.ext`, returns `{ url: "/api/uploads/<filename>" }`
+- `POST /api/upload` — validates session + image type + 8MB limit, saves to `data/uploads/<uuid>.ext`, returns `{ url: "/api/uploads/<filename>" }`
+- Images are compressed client-side (Canvas API, max 1600×900, JPEG 0.85) before upload to prevent server hangs
 - `GET /api/uploads/[filename]` — serves the file; uses `path.basename()` to prevent path traversal
 - `data/` is a Docker volume mount — persists across container restarts
 
@@ -181,43 +195,43 @@ Leave `SMTP_HOST` unset — emails log to the server console instead. Useful for
 
 ## What's left to build
 
-### 1. Co-host management UI
-Schema has `EventCoHost` (eventId + userId), no UI yet. Need:
-- Host can invite another registered user by email as co-host
-- Co-hosts see the same WYSIWYG host bar and can edit the event
-- `addCoHost(eventId, email)` / `removeCoHost(id)` server actions
-- UI in settings page or host bar panel
+### 1. User dashboard — next up
+`app/dashboard/` exists but is minimal. Enhance it to show all events the logged-in user
+has created, with at-a-glance stats (going count, pending approvals, date). Key query:
+```ts
+db.event.findMany({ where: { hostId: session.userId }, include: { _count: { select: { rsvps: true } } }, orderBy: { startAt: 'desc' } })
+```
+Also consider including events where the user is a co-host (`EventCoHost`).
 
 ### 2. Check-in flow
 Schema has `CheckIn` (rsvpId, checkedInAt, checkedInBy), no UI yet. Options:
 - Simple: host sees guest list with a ✓ button per guest; `checkInGuest(rsvpId)` action
 - Advanced: QR code per RSVP scanned at the door (editToken can double as check-in code)
 
-### 3. Event visibility quick-toggle from host bar
-Settings page has `visibility: PUBLIC | UNLISTED | PRIVATE` but no way to flip it without leaving the page. A toggle button in the host bar (or 5th pill) would let hosts publish/unpublish instantly.
-
-### 4. Reminder scheduling — send logic
-Settings UI for reminders exists (`EventReminderSettings` with email + SMS fields). The actual cron/scheduler that fires reminders is not wired. Options:
-- A lightweight `node-cron` job inside the Docker container (simplest for self-hosting)
-- External service (Upstash, etc.)
-
-### 5. Invitation tracking UI
-`Invitation` model exists (sentTo, channel EMAIL/SMS, sentAt, rsvpId). Currently nothing writes to it or reads from it. Could show hosts who was explicitly invited vs who found the link organically.
+### 3. Open registration
+Remove the invite code requirement from `app/(auth)/register/page.tsx` when ready.
+No schema changes needed. See "Open registration" note in Key Patterns above.
 
 ---
 
 ## Completed
 - ✅ Magic link auth, host dashboard, event creation
 - ✅ Event page at `/e/[slug]` — WYSIWYG inline editing (title, description, date/time, location), RSVP form, info section chips, guest list, comments, Add to Calendar
-- ✅ Cover image upload — local filesystem (`POST /api/upload`, `GET /api/uploads/[filename]`); `saveCoverImage` action; 📷 Cover button on event page
+- ✅ Info section inline editing — existing parking/dress code/etc. rows editable in place (pencil icon)
+- ✅ Cover image upload — local filesystem (`POST /api/upload`, `GET /api/uploads/[filename]`); client-side Canvas compression (max 1600×900 JPEG) before upload; `saveCoverImage` action
 - ✅ RSVP approval flow — `approveRsvp` / `declineRsvp` actions; Pending Approval card in host view
 - ✅ QR code — generated client-side via `qrcode` in the Invite panel of HostBar
 - ✅ CSV export — `GET /e/[slug]/guests.csv` (host-only)
-- ✅ Floating host bar — Invite (link + QR), Message (email + SMS blast), Settings, Preview
-- ✅ Theme picker, settings page (RSVP options, reminders config, visibility)
+- ✅ Floating host bar — Invite (link + QR), Message (email + SMS blast), Visibility quick-toggle, Settings, Preview
+- ✅ Reminder scheduling — `lib/reminders.ts` + `scripts/cron.ts` (node-cron every 15 min); 8 reminder types (email/SMS × week/day/hours + nudge_email + nudge_sms); `SentReminder` table deduplicates sends
+- ✅ Invitation tracking — `Invitation` rows written on every email/SMS blast; nudge logic targets invited-but-unresponded guests
+- ✅ Settings page — restructured into Partiful-style sections: Theme / Hosts / RSVP Options / Questionnaire / Display & Privacy / Auto-Reminders
+- ✅ Co-host management — `addCoHost(eventId, email)` / `removeCoHost(id)` actions; Hosts section in settings; cohosts get full host-bar/edit access via `assertHostOrCohost()`
+- ✅ Questionnaire / RSVPField — field builder in settings (TEXT/TEXTAREA/SELECT/CHECKBOX, required toggle, options); fields rendered on RSVP form; answers saved to `RSVPAnswer`; `getRsvpFieldAnswers()` for host review
+- ✅ Display & Privacy — `maybeEnabled` (hide Maybe button), `showTimestamps` (hide comment timestamps), `password` (PasswordGate component), guest list visibility, event visibility
 - ✅ RSVP edit page — `/e/[slug]/rsvp?token=` + `updateRSVP` server action
 - ✅ Email sending (`lib/email.ts`) — nodemailer SMTP; dev-mode console fallback when `SMTP_HOST` unset
 - ✅ SMS integration (`lib/sms.ts`) — Twilio; phone collected on RSVP form; confirmation SMS on RSVP; SMS blast in host bar; dev-mode console fallback when `TWILIO_*` unset
-- ✅ Docker Compose — `docker-compose.yml` (local), `docker-compose.dev.yml` (builds from GitHub main; runs as root to allow volume writes)
-- ✅ GitHub Actions CI — lint + **test** + build on every PR (`npm test` runs 25 Vitest unit tests)
-- ✅ Partiful-style UI — date/time as large clean text; address click → "Open in Maps / Copy" popover; info sections (parking, dress code, etc.) as compact icon+text rows
+- ✅ Docker Compose — `docker-compose.yml` (local), `docker-compose.dev.yml` (builds from GitHub main; runs as root to allow volume writes); Dockerfile runner stage includes `lib/`, `scripts/`, starts cron alongside app
+- ✅ GitHub Actions CI — lint + **test** + build on every PR (`npm test` runs 141 Vitest unit tests)
+- ✅ Partiful-style UI — date/time as large clean text; address click → "Open in Maps / Copy" popover; info sections as compact icon+text rows; bold/soft/dark theme variants
