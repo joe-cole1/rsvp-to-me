@@ -70,6 +70,7 @@ type EventData = {
   updates: { id: string; body: string; notifyGuests: boolean; createdAt: Date }[];
   potluckItems: { id: string; label: string; claimedBy: string | null; claimedAt: Date | null }[];
   pendingRsvps: PendingRsvp[];
+  activityEvents: { id: string; type: string; actorName: string | null; detail: string; createdAt: Date }[];
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -1430,11 +1431,13 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             {(() => {
               type FeedItem =
                 | { kind: "update"; id: string; body: string; createdAt: Date }
-                | { kind: "comment"; id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] };
+                | { kind: "comment"; id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] }
+                | { kind: "activity"; id: string; type: string; actorName: string | null; detail: string; createdAt: Date };
               const feed: FeedItem[] = [
                 ...event.updates.map((u) => ({ kind: "update" as const, id: u.id, body: u.body, createdAt: new Date(u.createdAt) })),
                 ...(event.commentsEnabled ? event.comments.map((c) => ({ kind: "comment" as const, id: c.id, guestName: c.guestName, body: c.body, createdAt: new Date(c.createdAt), replies: c.replies.map((r) => ({ ...r, createdAt: new Date(r.createdAt) })) })) : []),
-              ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+                ...event.activityEvents.map((a) => ({ kind: "activity" as const, id: a.id, type: a.type, actorName: a.actorName, detail: a.detail, createdAt: new Date(a.createdAt) })),
+              ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: (event.commentsEnabled || isHost) ? "16px" : 0 }}>
                   {feed.length === 0 ? (
@@ -1457,6 +1460,32 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         </div>
                       </div>
                     );
+                    if (item.kind === "activity") {
+                      const iconEl = (() => {
+                        if (item.type === "rsvp_new" || item.type === "rsvp_update") return <Users size={14} style={{ color: t.accent }} />;
+                        if (item.type === "event_date") return <Calendar size={14} style={{ color: t.accent }} />;
+                        if (item.type === "info_add") return <Plus size={14} style={{ color: t.accent }} />;
+                        if (item.type === "info_delete") return <X size={14} style={{ color: t.textMuted }} />;
+                        return <Pencil size={14} style={{ color: t.accent }} />;
+                      })();
+                      return (
+                        <div key={`a-${item.id}`} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "6px 0" }}>
+                          <div style={{
+                            width: "28px", height: "28px", borderRadius: "50%",
+                            background: item.type.startsWith("rsvp") ? t.accentBg : t.pillBg,
+                            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                          }}>
+                            {iconEl}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: "13px", color: t.textSecondary }}>{item.detail}</span>
+                            {event.showTimestamps && (
+                              <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={`c-${item.id}`} style={{ display: "flex", gap: "10px" }}>
                         <div style={{ ...S.avatar }}>{item.guestName[0].toUpperCase()}</div>

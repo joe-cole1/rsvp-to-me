@@ -38,6 +38,10 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         orderBy: { createdAt: "desc" },
         take: 50,
       },
+      activityEvents: {
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      },
     },
   });
 

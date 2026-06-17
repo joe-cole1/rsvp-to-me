@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { sendRsvpConfirmationEmail, sendBlastEmail } from "@/lib/email";
 import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
+import { logActivity, iconLabel } from "@/lib/activity";
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,16 @@ export async function saveEventField(eventId: string, field: string, value: stri
   if (!ALLOWED_FIELDS.has(field)) throw new Error("Field not allowed");
   const event = await assertHost(eventId);
   await db.event.update({ where: { id: eventId }, data: { [field]: value || null } });
+  const fieldLabels: Record<string, string> = {
+    title: "event_title", description: "event_description",
+    locationName: "event_location", locationAddress: "event_location", virtualUrl: "event_location",
+  };
+  const actType = fieldLabels[field] ?? "event_field";
+  const detailLabels: Record<string, string> = {
+    title: "Title updated", description: "Description updated",
+    locationName: "Location name updated", locationAddress: "Address updated", virtualUrl: "Virtual link updated",
+  };
+  logActivity(eventId, actType, detailLabels[field] ?? "Event updated").catch(() => {});
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -63,6 +74,7 @@ export async function saveEventLocation(
       virtualUrl: data.virtualUrl || null,
     },
   });
+  logActivity(eventId, "event_location", "Location updated").catch(() => {});
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -99,6 +111,7 @@ export async function addInfoSection(data: {
       order: data.order,
     },
   });
+  logActivity(data.eventId, "info_add", `Added ${iconLabel(data.type)} section`).catch(() => {});
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: section.id };
 }
@@ -109,7 +122,7 @@ export async function updateInfoSection(
 ) {
   const section = await db.eventInfoSection.findUnique({
     where: { id: sectionId },
-    include: { event: { select: { hostId: true, slug: true } } },
+    include: { event: { select: { hostId: true, slug: true, id: true } } },
   });
   const session = await getSession();
   if (!section || section.event.hostId !== session?.userId) throw new Error("Forbidden");
@@ -122,6 +135,7 @@ export async function updateInfoSection(
       url: data.url || null,
     },
   });
+  logActivity(section.eventId, "info_edit", `Updated ${iconLabel(data.type ?? section.type)} section`).catch(() => {});
   revalidatePath(`/e/${section.event.slug}`);
   return { success: true };
 }
@@ -134,6 +148,7 @@ export async function removeInfoSection(sectionId: string) {
   const session = await getSession();
   if (!section || section.event.hostId !== session?.userId) throw new Error("Forbidden");
   await db.eventInfoSection.delete({ where: { id: sectionId } });
+  logActivity(section.eventId, "info_delete", `Removed ${iconLabel(section.type)} section`).catch(() => {});
   revalidatePath(`/e/${section.event.slug}`);
 }
 
@@ -195,6 +210,10 @@ export async function addRSVP(data: {
         .map(([rsvpFieldId, value]) => ({ rsvpId: rsvp.id, rsvpFieldId, value })),
     });
   }
+
+  const statusText = data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
+  const plusStr = data.plusOneCount > 0 ? ` +${data.plusOneCount}` : "";
+  logActivity(data.eventId, "rsvp_new", `${data.guestName} signed up · ${statusText}${plusStr}`, data.guestName).catch(() => {});
 
   if (data.guestEmail) {
     sendRsvpConfirmationEmail(data.guestEmail, {
@@ -295,6 +314,9 @@ export async function updateRSVP(
     where: { editToken },
     data: { status: data.status, plusOneCount: data.plusOneCount, note: data.note ?? undefined },
   });
+
+  const statusText = data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
+  logActivity(rsvp.eventId, "rsvp_update", `${rsvp.guestName} updated to ${statusText}`, rsvp.guestName).catch(() => {});
 
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true };
@@ -409,6 +431,7 @@ export async function saveEventDates(
       endAt: endAt ? tzLocalToUtc(endAt, evt.timezone) : null,
     },
   });
+  logActivity(eventId, "event_date", "Date/time updated").catch(() => {});
   revalidatePath(`/e/${event.slug}`);
 }
 

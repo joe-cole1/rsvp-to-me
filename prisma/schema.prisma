@@ -114,6 +114,7 @@ model Event {
   comments        Comment[]
   rsvpFields      RSVPField[]
   checkIns        CheckIn[]
+  activityEvents  ActivityEvent[]
 }
 
 enum LocationType {
@@ -349,4 +350,19 @@ model CheckIn {
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   rsvp  RSVP  @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// ACTIVITY LOG
+// ──────────────────────────────────────────────
+
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  eventId   String
+  type      String   // rsvp_new | rsvp_update | event_title | event_description | event_date | event_location | info_add | info_edit | info_delete
+  actorName String?
+  detail    String
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
