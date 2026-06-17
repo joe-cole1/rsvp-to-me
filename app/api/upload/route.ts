@@ -5,7 +5,7 @@ import path from "path";
 import { getSession } from "@/lib/session";
 
 const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
-const MAX_SIZE = 4 * 1024 * 1024; // 4MB
+const MAX_SIZE = 8 * 1024 * 1024; // 8MB — client compresses first, this is a backstop
 
 export async function POST(request: NextRequest) {
   const session = await getSession();

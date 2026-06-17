@@ -55,11 +55,11 @@ describe("POST /api/upload", () => {
     expect(body.error).toBe("Images only");
   });
 
-  it("returns 400 for files over 4MB", async () => {
+  it("returns 400 for files over 8MB", async () => {
     mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com" });
-    const big = new Uint8Array(5 * 1024 * 1024);
+    const big = new Uint8Array(9 * 1024 * 1024);
     const file = new File([big], "big.png", { type: "image/png" });
-    Object.defineProperty(file, "size", { value: 5 * 1024 * 1024 });
+    Object.defineProperty(file, "size", { value: 9 * 1024 * 1024 });
     const req = makeFormDataRequest(file);
     const res = await POST(req);
     expect(res.status).toBe(400);
