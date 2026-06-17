@@ -92,7 +92,7 @@ export async function addInfoSection(data: {
   const section = await db.eventInfoSection.create({
     data: {
       eventId: data.eventId,
-      type: data.type as "DRESS_CODE" | "FOOD" | "PARKING" | "LINK" | "CUSTOM",
+      type: data.type,
       title: data.title,
       content: data.content,
       url: data.url,
@@ -105,7 +105,7 @@ export async function addInfoSection(data: {
 
 export async function updateInfoSection(
   sectionId: string,
-  data: { title: string | null; content: string; url: string | null }
+  data: { type?: string; title?: string | null; content: string; url: string | null }
 ) {
   const section = await db.eventInfoSection.findUnique({
     where: { id: sectionId },
@@ -115,7 +115,12 @@ export async function updateInfoSection(
   if (!section || section.event.hostId !== session?.userId) throw new Error("Forbidden");
   await db.eventInfoSection.update({
     where: { id: sectionId },
-    data: { title: data.title || null, content: data.content, url: data.url || null },
+    data: {
+      ...(data.type !== undefined && { type: data.type }),
+      title: null,
+      content: data.content,
+      url: data.url || null,
+    },
   });
   revalidatePath(`/e/${section.event.slug}`);
   return { success: true };

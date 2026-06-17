@@ -169,23 +169,15 @@ enum BaseTheme {
 
 // Partiful-style info chips: Dress Code, Food, Parking, Link, Custom
 model EventInfoSection {
-  id      String          @id @default(cuid())
+  id      String  @id @default(cuid())
   eventId String
-  type    InfoSectionType
-  title   String?         // Used for CUSTOM type, or overrides default label
-  content String          // Main text content
-  url     String?         // Used for LINK type
-  order   Int             @default(0)
+  type    String  // icon key: "shirt", "utensils", "parking", "link", "info", "music", "gift", "bed", "mappin", "calendar", "sparkles", "filetext", "camera", "phone"
+  title   String? // deprecated — kept for backward compatibility
+  content String
+  url     String?
+  order   Int     @default(0)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-}
-
-enum InfoSectionType {
-  DRESS_CODE
-  FOOD
-  PARKING
-  LINK
-  CUSTOM
 }
 
 model EventReminderSettings {

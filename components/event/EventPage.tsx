@@ -30,7 +30,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
     img.src = url;
   });
 }
-import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil } from "lucide-react";
+import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, Sparkles, Camera, Phone } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
@@ -120,15 +120,40 @@ function tzLocalToUtcClient(localStr: string, tz: string): Date {
   return new Date(2 * asIfUtc.getTime() - localAsUtc.getTime());
 }
 
-const INFO_META: Record<string, { icon: React.ElementType; label: string }> = {
-  DRESS_CODE: { icon: Shirt,            label: "Dress Code" },
-  FOOD:       { icon: UtensilsCrossed,  label: "Food & Drinks" },
-  PARKING:    { icon: ParkingCircle,    label: "Parking" },
-  LINK:       { icon: Link2,            label: "Link" },
-  CUSTOM:     { icon: FileText,         label: "More Info" },
+const ICON_SET: { key: string; icon: React.ElementType; label: string }[] = [
+  { key: "shirt",    icon: Shirt,           label: "Dress code"    },
+  { key: "utensils", icon: UtensilsCrossed, label: "Food & drinks" },
+  { key: "parking",  icon: ParkingCircle,   label: "Parking"       },
+  { key: "link",     icon: Link2,           label: "Link"          },
+  { key: "info",     icon: Info,            label: "Info"          },
+  { key: "music",    icon: Music,           label: "Music"         },
+  { key: "gift",     icon: Gift,            label: "Gift registry" },
+  { key: "bed",      icon: Bed,             label: "Accommodation" },
+  { key: "mappin",   icon: MapPin,          label: "Getting here"  },
+  { key: "calendar", icon: Calendar,        label: "Schedule"      },
+  { key: "sparkles", icon: Sparkles,        label: "Vibes"         },
+  { key: "filetext", icon: FileText,        label: "Notes"         },
+  { key: "camera",   icon: Camera,          label: "Photos"        },
+  { key: "phone",    icon: Phone,           label: "Contact"       },
+];
+
+// Maps legacy enum type values to new icon keys
+const LEGACY_ICON_MAP: Record<string, string> = {
+  DRESS_CODE: "shirt",
+  FOOD:       "utensils",
+  PARKING:    "parking",
+  LINK:       "link",
+  CUSTOM:     "filetext",
 };
 
-const INFO_TYPES = ["DRESS_CODE", "FOOD", "PARKING", "LINK", "CUSTOM"] as const;
+function resolveIconKey(stored: string): string {
+  return LEGACY_ICON_MAP[stored] ?? stored;
+}
+
+function getIconItem(stored: string) {
+  const key = resolveIconKey(stored);
+  return ICON_SET.find((i) => i.key === key) ?? ICON_SET.find((i) => i.key === "filetext")!;
+}
 
 function buildMapUrl(address: string) {
   const encoded = encodeURIComponent(address);
@@ -582,6 +607,31 @@ function LocationEdit({
   );
 }
 
+// ── Icon picker strip ──────────────────────────────────────────────────────────
+
+function IconPicker({ selected, onSelect, t }: { selected: string; onSelect: (key: string) => void; t: ResolvedTheme }) {
+  return (
+    <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "10px", marginBottom: "4px" }}>
+      {ICON_SET.map(({ key, icon: IconComp }) => (
+        <button
+          key={key}
+          onClick={() => onSelect(key)}
+          title={ICON_SET.find((i) => i.key === key)?.label}
+          style={{
+            width: "40px", height: "40px", borderRadius: "50%",
+            background: selected === key ? t.accentBg : t.inputBg,
+            border: selected === key ? `2px solid ${t.accent}` : "2px solid transparent",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", flexShrink: 0, padding: 0,
+          }}
+        >
+          <IconComp size={16} style={{ color: selected === key ? t.accent : t.textMuted }} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean }) {
@@ -593,10 +643,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [plusOne, setPlusOne] = useState(0);
   const [rsvpDone, setRsvpDone] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const [addingSection, setAddingSection] = useState<string | null>(null);
-  const [sectionDraft, setSectionDraft] = useState({ title: "", content: "", url: "" });
+  const [addingSection, setAddingSection] = useState(false);
+  const [sectionDraft, setSectionDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "" });
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState({ title: "", content: "", url: "" });
+  const [editDraft, setEditDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "" });
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [rsvpNote, setRsvpNote] = useState("");
@@ -617,9 +667,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const maybe = event.rsvps.filter((r) => r.status === "MAYBE");
   const no = event.rsvps.filter((r) => r.status === "NO");
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
-
-  const existingTypes = new Set(event.infoSections.map((s) => s.type));
-  const availableTypes = INFO_TYPES.filter((t) => t !== "CUSTOM" ? !existingTypes.has(t) : true);
 
   // Saves
   const save = (field: string, value: string) => {
@@ -697,13 +744,13 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     });
   };
 
-  const commitInfoSection = async (type: string) => {
+  const commitInfoSection = async () => {
     if (!sectionDraft.content.trim() && !sectionDraft.url.trim()) return;
     startTransition(async () => {
       const result = await addInfoSection({
         eventId: event.id,
-        type,
-        title: sectionDraft.title || null,
+        type: sectionDraft.iconKey,
+        title: null,
         content: sectionDraft.content,
         url: sectionDraft.url || null,
         order: event.infoSections.length,
@@ -711,10 +758,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       if (result.success) {
         setEvent((e) => ({
           ...e,
-          infoSections: [...e.infoSections, { id: result.id!, type, title: sectionDraft.title || null, content: sectionDraft.content, url: sectionDraft.url || null, order: e.infoSections.length }],
+          infoSections: [...e.infoSections, { id: result.id!, type: sectionDraft.iconKey, title: null, content: sectionDraft.content, url: sectionDraft.url || null, order: e.infoSections.length }],
         }));
-        setAddingSection(null);
-        setSectionDraft({ title: "", content: "", url: "" });
+        setAddingSection(false);
+        setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "" });
       }
     });
   };
@@ -728,14 +775,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   const startEditSection = (sec: EventData["infoSections"][number]) => {
     setEditingSection(sec.id);
-    setEditDraft({ title: sec.title ?? "", content: sec.content, url: sec.url ?? "" });
+    setEditDraft({ iconKey: resolveIconKey(sec.type), content: sec.content, url: sec.url ?? "" });
   };
 
-  const commitEditSection = async (id: string, type: string) => {
+  const commitEditSection = async (id: string) => {
     if (!editDraft.content.trim() && !editDraft.url.trim()) return;
     startTransition(async () => {
       await updateInfoSection(id, {
-        title: type === "CUSTOM" ? editDraft.title || null : null,
+        type: editDraft.iconKey,
         content: editDraft.content,
         url: editDraft.url || null,
       });
@@ -743,7 +790,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         ...e,
         infoSections: e.infoSections.map((s) =>
           s.id === id
-            ? { ...s, title: type === "CUSTOM" ? editDraft.title || null : s.title, content: editDraft.content, url: editDraft.url || null }
+            ? { ...s, type: editDraft.iconKey, title: null, content: editDraft.content, url: editDraft.url || null }
             : s
         ),
       }));
@@ -957,51 +1004,31 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         {event.infoSections.length > 0 && (
           <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, backdropFilter: "blur(12px)", marginBottom: "16px", overflow: "hidden" }}>
             {event.infoSections.map((sec, i) => {
-              const meta = INFO_META[sec.type] ?? INFO_META.CUSTOM;
-              const Icon = meta.icon;
+              const item = getIconItem(sec.type);
+              const Icon = item.icon;
               const isEditing = editingSection === sec.id;
               return (
                 <div key={sec.id} style={{ borderTop: i > 0 ? `1px solid ${t.cardBorder}` : "none" }}>
                   {isEditing ? (
-                    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {sec.type === "CUSTOM" && (
-                        <input
-                          style={S.inp}
-                          placeholder="Section title"
-                          value={editDraft.title}
-                          onChange={(e) => setEditDraft((d) => ({ ...d, title: e.target.value }))}
-                          autoFocus
-                        />
-                      )}
-                      {sec.type === "LINK" ? (
-                        <>
-                          <input
-                            style={S.inp}
-                            placeholder="Label (e.g. Spotify Playlist)"
-                            value={editDraft.content}
-                            onChange={(e) => setEditDraft((d) => ({ ...d, content: e.target.value }))}
-                            autoFocus
-                          />
-                          <input
-                            style={S.inp}
-                            placeholder="URL"
-                            type="url"
-                            value={editDraft.url}
-                            onChange={(e) => setEditDraft((d) => ({ ...d, url: e.target.value }))}
-                          />
-                        </>
-                      ) : (
-                        <textarea
-                          style={{ ...S.inp, resize: "none" } as React.CSSProperties}
-                          rows={3}
-                          placeholder="Details…"
-                          value={editDraft.content}
-                          onChange={(e) => setEditDraft((d) => ({ ...d, content: e.target.value }))}
-                          autoFocus={sec.type !== "CUSTOM"}
-                        />
-                      )}
+                    <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <IconPicker selected={editDraft.iconKey} onSelect={(key) => setEditDraft((d) => ({ ...d, iconKey: key }))} t={t} />
+                      <textarea
+                        style={{ ...S.inp, resize: "none" } as React.CSSProperties}
+                        rows={2}
+                        placeholder="Details…"
+                        value={editDraft.content}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, content: e.target.value }))}
+                        autoFocus
+                      />
+                      <input
+                        style={S.inp}
+                        type="url"
+                        placeholder="Link (optional)"
+                        value={editDraft.url}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, url: e.target.value }))}
+                      />
                       <div style={{ display: "flex", gap: "8px" }}>
-                        <button onClick={() => commitEditSection(sec.id, sec.type)} style={{ ...S.btn, flex: 1, padding: "8px" }}>Save</button>
+                        <button onClick={() => commitEditSection(sec.id)} style={{ ...S.btn, flex: 1, padding: "8px" }}>Save</button>
                         <button onClick={() => setEditingSection(null)} style={S.mutedBtn}>Cancel</button>
                       </div>
                     </div>
@@ -1009,11 +1036,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     <div style={{ display: "flex", gap: "10px", alignItems: "center", padding: "11px 16px" }}>
                       <Icon size={15} style={{ color: t.accent, flexShrink: 0 }} />
                       <div style={{ flex: 1, fontSize: "13px" }}>
-                        <span style={{ fontWeight: 600, color: t.textPrimary }}>{sec.title ?? meta.label}</span>
-                        {sec.content && <span style={{ color: t.textMuted }}> · </span>}
-                        {sec.type === "LINK" && sec.url ? (
+                        {sec.url ? (
                           <a href={sec.url} target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: "none" }}>
-                            {sec.content} <ExternalLink size={11} style={{ display: "inline", verticalAlign: "middle" }} />
+                            {sec.content || sec.url} <ExternalLink size={11} style={{ display: "inline", verticalAlign: "middle" }} />
                           </a>
                         ) : (
                           <span style={{ color: t.textSecondary }}>{sec.content}</span>
@@ -1037,69 +1062,40 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           </div>
         )}
 
-        {/* ── Add info section chips (host only) ── */}
-        {isHost && availableTypes.length > 0 && (
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
-            {availableTypes.map((type) => {
-              const meta = INFO_META[type];
-              return (
-                <button
-                  key={type}
-                  onClick={() => { setAddingSection(type); setSectionDraft({ title: "", content: "", url: "" }); }}
-                  style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "100px", background: t.accentBg, border: `1px dashed ${t.accentBorder}`, color: t.textMuted, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-                >
-                  <Plus size={13} />
-                  {meta.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── Add section inline form ── */}
-        {addingSection && (
-          <div style={{ ...S.card, marginBottom: "24px" }}>
-            <div style={{ fontWeight: 700, fontSize: "13px", color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "12px" }}>
-              {INFO_META[addingSection]?.label}
-            </div>
-            {addingSection === "CUSTOM" && (
-              <input
-                style={{ ...S.inp, marginBottom: "10px" }}
-                placeholder="Section title"
-                value={sectionDraft.title}
-                onChange={(e) => setSectionDraft((d) => ({ ...d, title: e.target.value }))}
-              />
-            )}
-            {addingSection === "LINK" ? (
-              <>
-                <input
-                  style={{ ...S.inp, marginBottom: "10px" }}
-                  placeholder="Label (e.g. Spotify Playlist)"
-                  value={sectionDraft.content}
-                  onChange={(e) => setSectionDraft((d) => ({ ...d, content: e.target.value }))}
-                />
-                <input
-                  style={{ ...S.inp, marginBottom: "10px" }}
-                  placeholder="URL"
-                  type="url"
-                  value={sectionDraft.url}
-                  onChange={(e) => setSectionDraft((d) => ({ ...d, url: e.target.value }))}
-                />
-              </>
-            ) : (
+        {/* ── Add info section (host only) ── */}
+        {isHost && (
+          addingSection ? (
+            <div style={{ ...S.card, marginBottom: "24px" }}>
+              <IconPicker selected={sectionDraft.iconKey} onSelect={(key) => setSectionDraft((d) => ({ ...d, iconKey: key }))} t={t} />
               <textarea
                 style={{ ...S.inp, resize: "none", marginBottom: "10px" } as React.CSSProperties}
-                rows={3}
+                rows={2}
                 placeholder="Details…"
                 value={sectionDraft.content}
                 onChange={(e) => setSectionDraft((d) => ({ ...d, content: e.target.value }))}
+                autoFocus
               />
-            )}
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button onClick={() => commitInfoSection(addingSection)} style={{ ...S.btn, flex: 1, padding: "10px" }}>Save</button>
-              <button onClick={() => setAddingSection(null)} style={{ ...S.mutedBtn }}>Cancel</button>
+              <input
+                style={{ ...S.inp, marginBottom: "10px" }}
+                type="url"
+                placeholder="Link (optional)"
+                value={sectionDraft.url}
+                onChange={(e) => setSectionDraft((d) => ({ ...d, url: e.target.value }))}
+              />
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button onClick={commitInfoSection} style={{ ...S.btn, flex: 1, padding: "10px" }}>Save</button>
+                <button onClick={() => setAddingSection(false)} style={S.mutedBtn}>Cancel</button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <button
+              onClick={() => { setAddingSection(true); setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "" }); }}
+              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "100px", background: t.accentBg, border: `1px dashed ${t.accentBorder}`, color: t.textMuted, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: "24px" }}
+            >
+              <Plus size={13} />
+              Add section
+            </button>
+          )
         )}
 
 
