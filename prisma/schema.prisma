@@ -317,6 +317,7 @@ model PotluckItem {
   label     String
   claimedBy String?
   claimedAt DateTime?
+  createdAt DateTime  @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
