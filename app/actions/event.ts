@@ -109,6 +109,7 @@ export async function addRSVP(data: {
   guestPhone?: string;
   status: "GOING" | "MAYBE" | "NO";
   plusOneCount: number;
+  note?: string;
 }) {
   const event = await db.event.findUnique({
     where: { id: data.eventId },
@@ -131,6 +132,7 @@ export async function addRSVP(data: {
       guestPhone: data.guestPhone,
       status: data.status,
       plusOneCount: data.plusOneCount,
+      note: data.note || null,
       approved: !event.approvalRequired,
     },
   });
@@ -218,7 +220,7 @@ export async function saveEventSettings(
 
 export async function updateRSVP(
   editToken: string,
-  data: { status: "GOING" | "MAYBE" | "NO"; plusOneCount: number }
+  data: { status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; note?: string }
 ) {
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
@@ -228,7 +230,7 @@ export async function updateRSVP(
 
   await db.rSVP.update({
     where: { editToken },
-    data: { status: data.status, plusOneCount: data.plusOneCount },
+    data: { status: data.status, plusOneCount: data.plusOneCount, note: data.note ?? undefined },
   });
 
   revalidatePath(`/e/${rsvp.event.slug}`);
@@ -399,4 +401,92 @@ export async function saveReminderSettings(
     create: { eventId, ...settings },
   });
   revalidatePath(`/e/${event.slug}/settings`);
+}
+
+// ── Event updates ─────────────────────────────────────────────────────────────
+
+export async function addEventUpdate(eventId: string, body: string, notifyGuests: boolean) {
+  const event = await assertHost(eventId);
+  const update = await db.eventUpdate.create({ data: { eventId, body, notifyGuests } });
+  if (notifyGuests) {
+    const rsvps = await db.rSVP.findMany({
+      where: { eventId, guestEmail: { not: null } },
+      select: { guestEmail: true },
+    });
+    const emails = rsvps.flatMap((r: { guestEmail: string | null }) => r.guestEmail ? [r.guestEmail] : []);
+    if (emails.length > 0) {
+      const fullEvent = await db.event.findUnique({
+        where: { id: eventId },
+        select: { title: true, host: { select: { name: true } } },
+      });
+      sendBlastEmail(emails, {
+        eventTitle: fullEvent?.title ?? event.slug,
+        eventSlug: event.slug,
+        message: body,
+        hostName: fullEvent?.host.name ?? "Your host",
+      }).catch(() => {});
+    }
+  }
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true, id: update.id, createdAt: update.createdAt };
+}
+
+export async function deleteEventUpdate(updateId: string) {
+  const update = await db.eventUpdate.findUnique({
+    where: { id: updateId },
+    select: { event: { select: { hostId: true, slug: true } } },
+  });
+  const session = await getSession();
+  if (!update || update.event.hostId !== session?.userId) throw new Error("Forbidden");
+  await db.eventUpdate.delete({ where: { id: updateId } });
+  revalidatePath(`/e/${update.event.slug}`);
+}
+
+// ── Potluck ───────────────────────────────────────────────────────────────────
+
+export async function addPotluckItem(eventId: string, label: string) {
+  const event = await assertHost(eventId);
+  const item = await db.potluckItem.create({ data: { eventId, label } });
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true, id: item.id };
+}
+
+export async function removePotluckItem(itemId: string) {
+  const item = await db.potluckItem.findUnique({
+    where: { id: itemId },
+    select: { event: { select: { hostId: true, slug: true } } },
+  });
+  const session = await getSession();
+  if (!item || item.event.hostId !== session?.userId) throw new Error("Forbidden");
+  await db.potluckItem.delete({ where: { id: itemId } });
+  revalidatePath(`/e/${item.event.slug}`);
+}
+
+export async function claimPotluckItem(itemId: string, guestName: string) {
+  const item = await db.potluckItem.findUnique({
+    where: { id: itemId },
+    select: { claimedBy: true, event: { select: { slug: true } } },
+  });
+  if (!item) return { success: false, error: "Item not found" };
+  if (item.claimedBy) return { success: false, error: "Already claimed" };
+  await db.potluckItem.update({
+    where: { id: itemId },
+    data: { claimedBy: guestName, claimedAt: new Date() },
+  });
+  revalidatePath(`/e/${item.event.slug}`);
+  return { success: true };
+}
+
+export async function unclaimPotluckItem(itemId: string, guestName: string) {
+  const item = await db.potluckItem.findUnique({
+    where: { id: itemId },
+    select: { claimedBy: true, event: { select: { slug: true } } },
+  });
+  if (!item || item.claimedBy !== guestName) return { success: false, error: "Not your claim" };
+  await db.potluckItem.update({
+    where: { id: itemId },
+    data: { claimedBy: null, claimedAt: null },
+  });
+  revalidatePath(`/e/${item.event.slug}`);
+  return { success: true };
 }

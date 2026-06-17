@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addRSVP, addComment, addInfoSection, removeInfoSection, approveRsvp, declineRsvp, sendSmsBlast, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 
@@ -32,9 +32,11 @@ type EventData = {
   host: { id: string; name: string | null; email: string };
   theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; coverImageUrl: string | null } | null;
   infoSections: { id: string; type: string; title: string | null; content: string; url: string | null; order: number }[];
-  rsvps: { id: string; guestName: string; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; createdAt: Date }[];
+  rsvps: { id: string; guestName: string; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; note: string | null; createdAt: Date }[];
   comments: { id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] }[];
   rsvpFields: { id: string; label: string; fieldType: string; required: boolean; options: string | null }[];
+  updates: { id: string; body: string; notifyGuests: boolean; createdAt: Date }[];
+  potluckItems: { id: string; label: string; claimedBy: string | null; claimedAt: Date | null }[];
   pendingRsvps: PendingRsvp[];
 };
 
@@ -563,6 +565,13 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [sectionDraft, setSectionDraft] = useState({ title: "", content: "", url: "" });
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [rsvpNote, setRsvpNote] = useState("");
+  const [updateDraft, setUpdateDraft] = useState("");
+  const [notifyOnUpdate, setNotifyOnUpdate] = useState(true);
+  const [isPostingUpdate, setIsPostingUpdate] = useState(false);
+  const [newPotluckLabel, setNewPotluckLabel] = useState("");
+  const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
+  const [claimName, setClaimName] = useState("");
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -617,13 +626,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         guestPhone: guestPhone.trim() || undefined,
         status: rsvpStatus,
         plusOneCount: plusOne,
+        note: rsvpNote.trim() || undefined,
       });
       if (result.success) {
         setRsvpDone(true);
         if (!event.approvalRequired) {
           setEvent((e) => ({
             ...e,
-            rsvps: [...e.rsvps, { id: result.id!, guestName: guestName.trim(), status: rsvpStatus, plusOneCount: plusOne, createdAt: new Date() }],
+            rsvps: [...e.rsvps, { id: result.id!, guestName: guestName.trim(), status: rsvpStatus, plusOneCount: plusOne, note: rsvpNote.trim() || null, createdAt: new Date() }],
           }));
         }
       }
@@ -671,6 +681,73 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       await removeInfoSection(id);
       setEvent((e) => ({ ...e, infoSections: e.infoSections.filter((s) => s.id !== id) }));
     });
+  };
+
+  const postUpdate = async () => {
+    if (!updateDraft.trim() || isPostingUpdate) return;
+    setIsPostingUpdate(true);
+    try {
+      const result = await addEventUpdate(event.id, updateDraft.trim(), notifyOnUpdate);
+      if (result.success) {
+        setEvent((e) => ({
+          ...e,
+          updates: [{ id: result.id!, body: updateDraft.trim(), notifyGuests: notifyOnUpdate, createdAt: result.createdAt! }, ...e.updates],
+        }));
+        setUpdateDraft("");
+      }
+    } finally {
+      setIsPostingUpdate(false);
+    }
+  };
+
+  const removeUpdate = (id: string) => {
+    startTransition(async () => {
+      await deleteEventUpdate(id);
+      setEvent((e) => ({ ...e, updates: e.updates.filter((u) => u.id !== id) }));
+    });
+  };
+
+  const addItem = async () => {
+    if (!newPotluckLabel.trim()) return;
+    startTransition(async () => {
+      const result = await addPotluckItem(event.id, newPotluckLabel.trim());
+      if (result.success) {
+        setEvent((e) => ({
+          ...e,
+          potluckItems: [...e.potluckItems, { id: result.id!, label: newPotluckLabel.trim(), claimedBy: null, claimedAt: null }],
+        }));
+        setNewPotluckLabel("");
+      }
+    });
+  };
+
+  const removeItem = (id: string) => {
+    startTransition(async () => {
+      await removePotluckItem(id);
+      setEvent((e) => ({ ...e, potluckItems: e.potluckItems.filter((i) => i.id !== id) }));
+    });
+  };
+
+  const claimItem = async (itemId: string, name: string) => {
+    const result = await claimPotluckItem(itemId, name);
+    if (result.success) {
+      setEvent((e) => ({
+        ...e,
+        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: name, claimedAt: new Date() } : i),
+      }));
+      setClaimingItemId(null);
+      setClaimName("");
+    }
+  };
+
+  const unclaimItem = async (itemId: string, name: string) => {
+    const result = await unclaimPotluckItem(itemId, name);
+    if (result.success) {
+      setEvent((e) => ({
+        ...e,
+        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: null, claimedAt: null } : i),
+      }));
+    }
   };
 
   const handleApprove = (rsvpId: string) => {
@@ -904,6 +981,136 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           </div>
         )}
 
+        {/* ── Event updates ── */}
+        {(event.updates.length > 0 || isHost) && (
+          <div style={{ marginBottom: "16px" }}>
+            {event.updates.map((u) => (
+              <div key={u.id} style={{ ...S.card, marginBottom: "8px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                <div style={{ fontSize: "18px", flexShrink: 0, marginTop: "2px" }}>📣</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: "14px", color: t.textSecondary, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{u.body}</p>
+                  <span style={{ fontSize: "11px", color: t.textMuted, marginTop: "6px", display: "block" }}>{timeAgo(u.createdAt)}</span>
+                </div>
+                {isHost && (
+                  <button onClick={() => removeUpdate(u.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {isHost && (
+              <div style={S.card}>
+                <div style={{ fontWeight: 700, fontSize: "13px", color: t.textMuted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "10px" }}>Post an Update</div>
+                <textarea
+                  style={{ ...S.inp, resize: "none", marginBottom: "10px" } as React.CSSProperties}
+                  rows={3}
+                  placeholder="Changed start time, new location, what to bring…"
+                  value={updateDraft}
+                  onChange={(e) => setUpdateDraft(e.target.value)}
+                />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textMuted, cursor: "pointer" }}>
+                    <input type="checkbox" checked={notifyOnUpdate} onChange={(e) => setNotifyOnUpdate(e.target.checked)} style={{ accentColor: t.accent }} />
+                    Notify guests via email
+                  </label>
+                  <button
+                    onClick={postUpdate}
+                    disabled={!updateDraft.trim() || isPostingUpdate}
+                    style={{ ...S.btn, width: "auto", padding: "10px 20px", opacity: !updateDraft.trim() || isPostingUpdate ? 0.5 : 1 }}
+                  >
+                    {isPostingUpdate ? "Posting…" : "Post"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Potluck ── */}
+        {(event.potluckItems.length > 0 || isHost) && (
+          <div style={{ ...S.card, marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+              <span style={{ fontSize: "16px" }}>🍽️</span>
+              <span style={{ fontWeight: 700 }}>What to Bring</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: event.potluckItems.length > 0 ? "12px" : 0 }}>
+              {event.potluckItems.map((item) => (
+                <div key={item.id}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>{item.label}</span>
+                      {item.claimedBy && (
+                        <span style={{ fontSize: "12px", color: t.textMuted, marginLeft: "8px" }}>
+                          ✓ {item.claimedBy}
+                        </span>
+                      )}
+                    </div>
+                    {!item.claimedBy && !isHost && claimingItemId !== item.id && (
+                      <button
+                        onClick={() => { setClaimingItemId(item.id); setClaimName(guestName); }}
+                        style={{ ...S.mutedBtn, padding: "6px 12px", fontSize: "12px" }}
+                      >
+                        I&apos;ll bring it
+                      </button>
+                    )}
+                    {item.claimedBy && !isHost && item.claimedBy === guestName && (
+                      <button
+                        onClick={() => unclaimItem(item.id, guestName)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, fontSize: "12px", padding: "4px" }}
+                      >
+                        Unclaim
+                      </button>
+                    )}
+                    {isHost && (
+                      <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  {claimingItemId === item.id && (
+                    <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+                      <input
+                        style={{ ...S.inp, flex: 1 }}
+                        placeholder="Your name"
+                        value={claimName}
+                        onChange={(e) => setClaimName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && claimName.trim()) claimItem(item.id, claimName.trim()); }}
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => claimName.trim() && claimItem(item.id, claimName.trim())}
+                        disabled={!claimName.trim()}
+                        style={{ ...S.btn, width: "auto", padding: "10px 16px", opacity: !claimName.trim() ? 0.5 : 1 }}
+                      >
+                        Claim
+                      </button>
+                      <button onClick={() => setClaimingItemId(null)} style={S.mutedBtn}>Cancel</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {isHost && (
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  style={{ ...S.inp, flex: 1 }}
+                  placeholder="Add an item (e.g. wine, dessert, chairs)"
+                  value={newPotluckLabel}
+                  onChange={(e) => setNewPotluckLabel(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && newPotluckLabel.trim()) addItem(); }}
+                />
+                <button
+                  onClick={addItem}
+                  disabled={!newPotluckLabel.trim() || isPending}
+                  style={{ ...S.btn, width: "auto", padding: "10px 16px", opacity: !newPotluckLabel.trim() ? 0.5 : 1 }}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── RSVP Section ── */}
         {!isHost && (
           <div style={S.card}>
@@ -954,6 +1161,13 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   <input style={S.inp} placeholder="Your name *" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
                   <input style={S.inp} type="email" placeholder="Email (optional — for updates)" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
                   <input style={S.inp} type="tel" placeholder="Phone (optional — for SMS updates)" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
+                  <textarea
+                    style={{ ...S.inp, resize: "none" } as React.CSSProperties}
+                    rows={2}
+                    placeholder="Message for the host (optional)"
+                    value={rsvpNote}
+                    onChange={(e) => setRsvpNote(e.target.value)}
+                  />
                   {event.plusOneAllowed && event.plusOneMax > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Bringing a +1?</span>
@@ -1035,9 +1249,12 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {going.map((r) => (
-                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "100px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px" }}>
-                  <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
-                  {r.guestName}{r.plusOneCount > 0 && ` +${r.plusOneCount}`}
+                <div key={r.id} style={{ display: "flex", alignItems: r.note ? "flex-start" : "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px" }}>
+                  <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px", marginTop: r.note ? "2px" : 0 }}>{r.guestName[0].toUpperCase()}</div>
+                  <div>
+                    <div>{r.guestName}{r.plusOneCount > 0 && ` +${r.plusOneCount}`}</div>
+                    {r.note && <div style={{ fontSize: "11px", color: t.textMuted, marginTop: "2px" }}>{r.note}</div>}
+                  </div>
                 </div>
               ))}
             </div>
