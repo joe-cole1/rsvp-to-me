@@ -3,18 +3,74 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
+type EventRow = {
+  id: string;
+  slug: string;
+  title: string;
+  startAt: Date;
+  status: string;
+  theme: { accentColor: string } | null;
+  going: number;
+  maybe: number;
+  pending: number;
+  isCohost: boolean;
+};
+
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect("/auth/sign-in");
 
-  const events = await db.event.findMany({
-    where: { hostId: session.userId },
-    orderBy: { startAt: "desc" },
-    include: {
-      _count: { select: { rsvps: true } },
-      theme: true,
-    },
-  });
+  const [ownedEvents, cohostRelations] = await Promise.all([
+    db.event.findMany({
+      where: { hostId: session.userId },
+      orderBy: { startAt: "desc" },
+      include: {
+        theme: { select: { accentColor: true } },
+        rsvps: { select: { status: true, approved: true } },
+      },
+    }),
+    db.eventCoHost.findMany({
+      where: { userId: session.userId },
+      include: {
+        event: {
+          include: {
+            theme: { select: { accentColor: true } },
+            rsvps: { select: { status: true, approved: true } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  function toCounts(rsvps: { status: string; approved: boolean }[]) {
+    const going = rsvps.filter((r) => r.approved && r.status === "GOING").length;
+    const maybe = rsvps.filter((r) => r.approved && r.status === "MAYBE").length;
+    const pending = rsvps.filter((r) => !r.approved).length;
+    return { going, maybe, pending };
+  }
+
+  const events: EventRow[] = [
+    ...ownedEvents.map((e) => ({
+      id: e.id,
+      slug: e.slug,
+      title: e.title,
+      startAt: e.startAt,
+      status: e.status,
+      theme: e.theme,
+      isCohost: false,
+      ...toCounts(e.rsvps),
+    })),
+    ...cohostRelations.map(({ event: e }) => ({
+      id: e.id,
+      slug: e.slug,
+      title: e.title,
+      startAt: e.startAt,
+      status: e.status,
+      theme: e.theme,
+      isCohost: true,
+      ...toCounts(e.rsvps),
+    })),
+  ].sort((a, b) => b.startAt.getTime() - a.startAt.getTime());
 
   const now = new Date();
   const upcoming = events.filter((e) => e.startAt >= now);
@@ -22,7 +78,6 @@ export default async function DashboardPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0a0a0f 0%, #13091f 40%, #0d1117 100%)", color: "#fff", fontFamily: "inherit" }}>
-      {/* Header */}
       <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontSize: "22px" }}>🎉</span>
@@ -55,18 +110,14 @@ export default async function DashboardPage() {
         {upcoming.length > 0 && (
           <section style={{ marginBottom: "32px" }}>
             <SectionLabel>Upcoming</SectionLabel>
-            {upcoming.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+            {upcoming.map((event) => <EventCard key={event.id} event={event} />)}
           </section>
         )}
 
         {past.length > 0 && (
           <section>
             <SectionLabel>Past</SectionLabel>
-            {past.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+            {past.map((event) => <EventCard key={event.id} event={event} />)}
           </section>
         )}
       </div>
@@ -82,25 +133,40 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EventCard({ event }: { event: { id: string; slug: string; title: string; startAt: Date; status: string; _count: { rsvps: number }; theme: { accentColor: string } | null } }) {
+function EventCard({ event }: { event: EventRow }) {
   const accent = event.theme?.accentColor ?? "#a855f7";
   const date = event.startAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
   return (
     <Link href={`/e/${event.slug}`} style={{ display: "block", textDecoration: "none", marginBottom: "10px" }}>
-      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "16px", transition: "border-color 0.15s" }}>
+      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
         <div style={{ width: "40px", height: "40px", borderRadius: "12px", background: accent, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
           🎉
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "15px", marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{event.title}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
+            <span style={{ color: "#fff", fontWeight: 700, fontSize: "15px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{event.title}</span>
+            {event.isCohost && (
+              <span style={{ fontSize: "10px", fontWeight: 700, background: "rgba(168,85,247,0.2)", color: "#c084fc", padding: "2px 7px", borderRadius: "99px", flexShrink: 0 }}>CO-HOST</span>
+            )}
+          </div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px" }}>{date}</div>
         </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ color: accent, fontWeight: 700, fontSize: "15px" }}>{event._count.rsvps}</div>
-          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px" }}>RSVPs</div>
+        <div style={{ display: "flex", gap: "16px", flexShrink: 0, alignItems: "center" }}>
+          <Stat value={event.going} label="going" accent={accent} />
+          {event.maybe > 0 && <Stat value={event.maybe} label="maybe" accent="rgba(255,255,255,0.4)" />}
+          {event.pending > 0 && <Stat value={event.pending} label="pending" accent="#f59e0b" />}
         </div>
       </div>
     </Link>
+  );
+}
+
+function Stat({ value, label, accent }: { value: number; label: string; accent: string }) {
+  return (
+    <div style={{ textAlign: "right" }}>
+      <div style={{ color: accent, fontWeight: 700, fontSize: "15px" }}>{value}</div>
+      <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px" }}>{label}</div>
+    </div>
   );
 }
