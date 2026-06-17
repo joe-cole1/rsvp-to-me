@@ -1,18 +1,50 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { createEvent } from "@/app/actions/createEvent";
+import { AppShell } from "@/components/ui/AppShell";
+import { AppNavBack } from "@/components/ui/AppNav";
+import { APP_SHELL } from "@/lib/theme";
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 14px",
+  background: APP_SHELL.inputBg,
+  border: `1px solid ${APP_SHELL.inputBorder}`,
+  borderRadius: APP_SHELL.inputRadius,
+  color: APP_SHELL.textPrimary,
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+};
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: "14px" }}>
+      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: APP_SHELL.textMuted, marginBottom: "6px" }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: APP_SHELL.cardBg, border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: APP_SHELL.cardRadius, padding: "20px", marginBottom: "14px" }}>
+      <h2 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "16px" }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
 
 export default async function NewEventPage() {
   const session = await getSession();
   if (!session) redirect("/auth/sign-in");
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0a0a0f 0%, #13091f 40%, #0d1117 100%)", color: "#fff", fontFamily: "inherit" }}>
-      {/* Header */}
-      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
-        <a href="/dashboard" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none", fontSize: "22px" }}>←</a>
-        <h1 style={{ fontSize: "17px", fontWeight: 700 }}>New Event</h1>
-      </div>
+    <AppShell>
+      <AppNavBack href="/dashboard" title="New Event" />
 
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "32px 16px 80px" }}>
         <form action={createEvent}>
@@ -56,7 +88,7 @@ export default async function NewEventPage() {
                 {(["PHYSICAL", "VIRTUAL", "TBD"] as const).map((t) => (
                   <label key={t} style={{ flex: 1, cursor: "pointer" }}>
                     <input type="radio" name="locationType" value={t} defaultChecked={t === "PHYSICAL"} style={{ display: "none" }} />
-                    <div style={{ padding: "8px", textAlign: "center", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", fontSize: "13px", color: "rgba(255,255,255,0.7)" }}>
+                    <div style={{ padding: "8px", textAlign: "center", background: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: "10px", fontSize: "13px", color: APP_SHELL.textSecondary }}>
                       {t === "PHYSICAL" ? "📍 In person" : t === "VIRTUAL" ? "💻 Virtual" : "📌 TBD"}
                     </div>
                   </label>
@@ -81,11 +113,11 @@ export default async function NewEventPage() {
                 ["PUBLIC", "Public", "Anyone can find and view this event"],
                 ["PRIVATE", "Private", "Invite only — host must approve each RSVP"],
               ] as const).map(([val, label, desc]) => (
-                <label key={val} style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", cursor: "pointer" }}>
-                  <input type="radio" name="visibility" value={val} defaultChecked={val === "UNLISTED"} style={{ marginTop: "2px", accentColor: "#a855f7" }} />
+                <label key={val} style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "12px", background: APP_SHELL.cardBg, border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: "12px", cursor: "pointer" }}>
+                  <input type="radio" name="visibility" value={val} defaultChecked={val === "UNLISTED"} style={{ marginTop: "2px", accentColor: APP_SHELL.accent }} />
                   <div>
-                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#fff" }}>{label}</div>
-                    <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", marginTop: "2px" }}>{desc}</div>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: APP_SHELL.textPrimary }}>{label}</div>
+                    <div style={{ fontSize: "12px", color: APP_SHELL.textMuted, marginTop: "2px" }}>{desc}</div>
                   </div>
                 </label>
               ))}
@@ -94,45 +126,12 @@ export default async function NewEventPage() {
 
           <button
             type="submit"
-            style={{ width: "100%", padding: "15px", background: "#a855f7", color: "#fff", border: "none", borderRadius: "14px", fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ width: "100%", padding: "15px", background: APP_SHELL.accent, color: APP_SHELL.textPrimary, border: "none", borderRadius: APP_SHELL.btnRadius, fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
           >
             Create Event →
           </button>
         </form>
       </div>
-    </div>
-  );
-}
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 14px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: "10px",
-  color: "#fff",
-  fontSize: "14px",
-  outline: "none",
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: "14px" }}>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255,255,255,0.4)", marginBottom: "6px" }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "20px", marginBottom: "14px" }}>
-      <h2 style={{ fontSize: "14px", fontWeight: 700, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "16px" }}>{title}</h2>
-      {children}
-    </div>
+    </AppShell>
   );
 }

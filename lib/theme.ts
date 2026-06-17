@@ -1,5 +1,27 @@
 export type BaseTheme = "DARK" | "SOFT" | "BOLD";
 
+// Single source of truth for the app shell (non-event pages: dashboard, auth, home)
+export const APP_SHELL = {
+  pageBg: "linear-gradient(135deg, #0a0a0f 0%, #13091f 40%, #0d1117 100%)",
+  accent: "#a855f7",
+  accentSecondary: "#ec4899",
+  textPrimary: "#ffffff",
+  textSecondary: "rgba(255,255,255,0.5)",
+  textMuted: "rgba(255,255,255,0.4)",
+  textTertiary: "rgba(255,255,255,0.3)",
+  navBorder: "rgba(255,255,255,0.08)",
+  cardBg: "rgba(255,255,255,0.04)",
+  cardBg2: "rgba(255,255,255,0.06)",
+  cardBorder: "rgba(255,255,255,0.08)",
+  cardRadius: "20px",
+  itemRadius: "16px",
+  authCardRadius: "24px",
+  inputBg: "rgba(255,255,255,0.06)",
+  inputBorder: "rgba(255,255,255,0.1)",
+  inputRadius: "12px",
+  btnRadius: "14px",
+} as const;
+
 export const BASE_THEMES: { id: BaseTheme; label: string; preview: string }[] = [
   { id: "DARK", label: "Dark & Moody",    preview: "linear-gradient(135deg, #0a0a0f, #13091f)" },
   { id: "SOFT", label: "Soft & Dreamy",   preview: "linear-gradient(135deg, #fbcfe8, #e9d5ff)" },
