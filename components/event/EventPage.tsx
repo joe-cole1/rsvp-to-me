@@ -759,7 +759,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           ...e,
           pendingRsvps: e.pendingRsvps.filter((r) => r.id !== rsvpId),
           rsvps: pending
-            ? [...e.rsvps, { id: pending.id, guestName: pending.guestName, status: pending.status, plusOneCount: pending.plusOneCount, createdAt: pending.createdAt }]
+            ? [...e.rsvps, { id: pending.id, guestName: pending.guestName, status: pending.status, plusOneCount: pending.plusOneCount, note: null, createdAt: pending.createdAt }]
             : e.rsvps,
         }));
       }
