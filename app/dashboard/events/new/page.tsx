@@ -16,6 +16,7 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   boxSizing: "border-box",
   fontFamily: "inherit",
+  colorScheme: "dark",
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

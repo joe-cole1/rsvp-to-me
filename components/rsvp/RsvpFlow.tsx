@@ -166,11 +166,35 @@ export function RsvpFlow({
     weekday: "long", month: "long", day: "numeric", timeZone: event.timezone,
   });
 
-  // ── Done screen ────────────────────────────────────────────────────────────
+  const renderDecorations = () => {
+    if (t.pageDecoration === "dark-orbs") {
+      return (
+        <>
+          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+        </>
+      );
+    }
+    if (t.pageDecoration === "soft-blobs") {
+      return (
+        <>
+          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+        </>
+      );
+    }
+    if (t.pageDecoration === "bold-hero") {
+      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />;
+    }
+    return null;
+  };
+
+  // ── Done screen ────────────────────────────────────────────────────────
   if (done) {
     return (
-      <div style={{ minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-        <div style={{ width: "100%", maxWidth: "400px", textAlign: "center" }}>
+      <div style={{ minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", position: "relative", overflowX: "hidden" }}>
+        {renderDecorations()}
+        <div style={{ width: "100%", maxWidth: "400px", textAlign: "center", position: "relative", zIndex: 1 }}>
           <div style={{ fontSize: "52px", marginBottom: "16px" }}>
             {status === "GOING" ? "🎉" : status === "MAYBE" ? "🤔" : "😔"}
           </div>
@@ -191,23 +215,24 @@ export function RsvpFlow({
     );
   }
 
-  // ── Shared layout wrapper ─────────────────────────────────────────────────
+  // ── Shared layout wrapper ─────────────────────────────────────────────────────
   const S = {
-    page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "80px" } as React.CSSProperties,
-    header: { padding: "16px 20px 0", maxWidth: "540px", margin: "0 auto" } as React.CSSProperties,
-    body: { maxWidth: "540px", margin: "0 auto", padding: "24px 20px 0" } as React.CSSProperties,
+    page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "80px", position: "relative", overflowX: "hidden" } as React.CSSProperties,
+    header: { padding: "16px 20px 0", maxWidth: "540px", margin: "0 auto", position: "relative", zIndex: 1 } as React.CSSProperties,
+    body: { maxWidth: "540px", margin: "0 auto", padding: "24px 20px 0", position: "relative", zIndex: 1 } as React.CSSProperties,
     footer: { position: "fixed", bottom: 0, left: 0, right: 0, background: t.pageBg, borderTop: `1px solid ${t.cardBorder}`, padding: "14px 20px", display: "flex", gap: "10px", justifyContent: "flex-end", zIndex: 50 } as React.CSSProperties,
-    inp: { width: "100%", padding: "13px 16px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "12px", color: t.textPrimary, fontFamily: "inherit", fontSize: "15px", outline: "none", boxSizing: "border-box" } as React.CSSProperties,
+    inp: { width: "100%", padding: "13px 16px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "12px", color: t.textPrimary, fontFamily: "inherit", fontSize: "15px", outline: "none", boxSizing: "border-box", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" } as React.CSSProperties,
     label: { display: "block", fontSize: "12px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: t.textMuted, marginBottom: "8px" },
     group: { marginBottom: "20px" } as React.CSSProperties,
     cancelBtn: { padding: "12px 22px", background: "transparent", border: `1px solid ${t.cardBorder}`, borderRadius: t.btnRadius, color: t.textMuted, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" } as React.CSSProperties,
     primaryBtn: { padding: "12px 28px", background: t.accent, border: "none", borderRadius: t.btnRadius, color: t.accentFg, fontFamily: "inherit", fontSize: "14px", fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"], cursor: "pointer", boxShadow: t.accentShadow } as React.CSSProperties,
   };
 
-  // ── Step 1: Details ────────────────────────────────────────────────────────
+  // ── Step 1: Details ─────────────────────────────────────────────────────────
   if (step === 1) {
     return (
       <div style={S.page}>
+        {renderDecorations()}
         <div style={S.header}>
           <a href={`/e/${event.slug}`} style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", padding: "12px 0" }}>
             ← Back
@@ -327,9 +352,10 @@ export function RsvpFlow({
     );
   }
 
-  // ── Step 2: Questionnaire ──────────────────────────────────────────────────
+  // ── Step 2: Questionnaire ──────────────────────────────────────────────────────────
   return (
     <div style={S.page}>
+      {renderDecorations()}
       <div style={S.header}>
         <button
           onClick={() => setStep(1)}

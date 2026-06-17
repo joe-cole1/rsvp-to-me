@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ArrowLeft, Check, Plus, X } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme } from "@/lib/theme";
+import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme } from "@/lib/theme";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -219,38 +219,74 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     setFields((prev) => prev.filter((x) => x.id !== fieldId));
   });
 
+  // Resolve dynamic theme reactive state values
+  const t = resolveTheme(base, accent);
+
+  const S = {
+    page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "120px", position: "relative" as const, overflowX: "hidden" as const },
+    container: { maxWidth: "480px", margin: "0 auto", padding: "24px 16px 80px", position: "relative" as const, zIndex: 1 },
+    header: { position: "sticky" as const, top: 0, background: t.cardBg, borderBottom: `1px solid ${t.cardBorder}`, padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", zIndex: 10, backdropFilter: "blur(14px)" },
+    inp: { width: "100%", padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.inputText, fontFamily: "inherit", fontSize: "14px", outline: "none", boxSizing: "border-box", colorScheme: base === "DARK" ? "dark" : "light" } as React.CSSProperties,
+    smallBtn: { padding: "8px 16px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, whiteSpace: "nowrap" } as React.CSSProperties,
+    av: { width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, fontSize: "13px", fontWeight: 700, color: t.accentFg, flexShrink: 0 },
+  };
+
+  const renderDecorations = () => {
+    if (t.pageDecoration === "dark-orbs") {
+      return (
+        <>
+          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+        </>
+      );
+    }
+    if (t.pageDecoration === "soft-blobs") {
+      return (
+        <>
+          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+        </>
+      );
+    }
+    if (t.pageDecoration === "bold-hero") {
+      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />;
+    }
+    return null;
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "#fff", fontFamily: "inherit" }}>
-      <div style={{ position: "sticky", top: 0, background: "rgba(10,10,15,0.9)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", zIndex: 10 }}>
-        <a href={`/e/${event.slug}`} style={{ display: "flex", alignItems: "center", color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>
+    <div style={S.page}>
+      {renderDecorations()}
+      <div style={S.header}>
+        <a href={`/e/${event.slug}`} style={{ display: "flex", alignItems: "center", color: t.textSecondary, textDecoration: "none" }}>
           <ArrowLeft size={20} />
         </a>
-        <h1 style={{ fontSize: "17px", fontWeight: 700 }}>Event Settings</h1>
+        <h1 style={{ fontSize: "17px", fontWeight: 700, color: t.textPrimary }}>Event Settings</h1>
       </div>
 
-      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px 80px" }}>
+      <div style={S.container}>
 
         {/* ── Theme ── */}
-        <Section title="Theme" onSave={saveTheme} saved={saved === "theme"} isPending={isPending}>
+        <Section title="Theme" onSave={saveTheme} saved={saved === "theme"} isPending={isPending} t={t}>
           <div style={{ marginBottom: "20px" }}>
-            <Label>Style</Label>
+            <Label t={t}>Style</Label>
             <div style={{ display: "flex", gap: "10px" }}>
               {BASE_THEMES.map((bt) => (
-                <button key={bt.id} onClick={() => setBase(bt.id)} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? "#fff" : "rgba(255,255,255,0.1)"}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
+                <button key={bt.id} onClick={() => setBase(bt.id)} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
                   <div style={{ height: "44px", background: bt.preview }} />
-                  <div style={{ padding: "6px 4px", color: "#fff", fontSize: "10px", fontWeight: 600, background: "rgba(255,255,255,0.05)" }}>{bt.label}</div>
+                  <div style={{ padding: "6px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
                 </button>
               ))}
             </div>
           </div>
-          <Label>Accent Color</Label>
+          <Label t={t}>Accent Color</Label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
             {ACCENT_PRESETS.map((p) => (
-              <button key={p.value} onClick={() => setAccent(p.value)} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? "#fff" : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {accent === p.value && <Check size={12} color="#fff" strokeWidth={3} />}
+              <button key={p.value} onClick={() => setAccent(p.value)} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
               </button>
             ))}
-            <label style={{ width: "32px", height: "32px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? "#fff" : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? "rgba(255,255,255,0.1)" : accent, position: "relative", overflow: "hidden" }}>
+            <label style={{ width: "32px", height: "32px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
               🎨
               <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
             </label>
@@ -259,23 +295,23 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
 
         {/* ── Hosts ── */}
         {isOwner && (
-          <Section title="Hosts" noSave>
+          <Section title="Hosts" noSave t={t}>
             <div style={{ marginBottom: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={AV}>{event.slug[0]?.toUpperCase()}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: `1px solid ${t.cardBorder}` }}>
+                <div style={S.av}>{event.slug[0]?.toUpperCase()}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "14px", fontWeight: 600 }}>You</div>
-                  <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>Host</div>
+                  <div style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>You</div>
+                  <div style={{ fontSize: "12px", color: t.textMuted }}>Host</div>
                 </div>
               </div>
               {coHosts.map((ch) => (
-                <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={AV}>{(ch.user.name ?? ch.user.email)[0].toUpperCase()}</div>
+                <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: `1px solid ${t.cardBorder}` }}>
+                  <div style={S.av}>{(ch.user.name ?? ch.user.email)[0].toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "14px", fontWeight: 600 }}>{ch.user.name ?? ch.user.email}</div>
-                    <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>{ch.user.email} · Co-host</div>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>{ch.user.name ?? ch.user.email}</div>
+                    <div style={{ fontSize: "12px", color: t.textMuted }}>{ch.user.email} · Co-host</div>
                   </div>
-                  <button onClick={() => handleRemoveCohost(ch.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", padding: "4px" }} title="Remove co-host">
+                  <button onClick={() => handleRemoveCohost(ch.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px" }} title="Remove co-host">
                     <X size={16} />
                   </button>
                 </div>
@@ -287,69 +323,69 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                 onChange={(e) => setCohostEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAddCohost(); }}
                 placeholder="Add co-host by email"
-                style={INP}
+                style={S.inp}
               />
-              <button onClick={handleAddCohost} disabled={!cohostEmail.trim() || isPending} style={SMALL_BTN}>Add</button>
+              <button onClick={handleAddCohost} disabled={!cohostEmail.trim() || isPending} style={S.smallBtn}>Add</button>
             </div>
             {cohostError && <div style={{ fontSize: "13px", color: "#f87171", marginTop: "8px" }}>{cohostError}</div>}
           </Section>
         )}
 
         {/* ── RSVP Options ── */}
-        <Section title="RSVP Options" onSave={saveRsvpOptions} saved={saved === "rsvp"} isPending={isPending}>
-          <Toggle label="Allow plus-ones" value={plusOneAllowed} onChange={setPlusOneAllowed} />
+        <Section title="RSVP Options" onSave={saveRsvpOptions} saved={saved === "rsvp"} isPending={isPending} t={t}>
+          <Toggle label="Allow plus-ones" value={plusOneAllowed} onChange={setPlusOneAllowed} t={t} />
           {plusOneAllowed && (
             <div style={{ marginBottom: "16px" }}>
-              <Label>Max plus-ones per guest</Label>
+              <Label t={t}>Max plus-ones per guest</Label>
               <div style={{ display: "flex", gap: "8px" }}>
                 {[1, 2, 3, 5].map((n) => (
-                  <button key={n} onClick={() => setPlusOneMax(n)} style={{ padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", background: plusOneMax === n ? "#a855f7" : "rgba(255,255,255,0.08)", color: plusOneMax === n ? "#fff" : "rgba(255,255,255,0.6)", fontFamily: "inherit", fontWeight: 600 }}>{n}</button>
+                  <button key={n} onClick={() => setPlusOneMax(n)} style={{ padding: "8px 16px", borderRadius: "8px", cursor: "pointer", background: plusOneMax === n ? t.accent : t.inputBg, border: `1px solid ${plusOneMax === n ? "transparent" : t.inputBorder}`, color: plusOneMax === n ? t.accentFg : t.textSecondary, fontFamily: "inherit", fontWeight: 600 }}>{n}</button>
                 ))}
               </div>
             </div>
           )}
-          <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={setApprovalRequired} />
-          <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={setMaybeEnabled} />
+          <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={setApprovalRequired} t={t} />
+          <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={setMaybeEnabled} t={t} />
           <div style={{ marginBottom: "16px" }}>
-            <Label>Capacity limit (optional)</Label>
-            <input type="number" placeholder="No limit" value={capacity} onChange={(e) => setCapacity(e.target.value)} style={INP} />
+            <Label t={t}>Capacity limit (optional)</Label>
+            <input type="number" placeholder="No limit" value={capacity} onChange={(e) => setCapacity(e.target.value)} style={S.inp} />
           </div>
           <div>
-            <Label>RSVP deadline (optional)</Label>
-            <input type="datetime-local" value={rsvpDeadline} onChange={(e) => setRsvpDeadline(e.target.value)} style={{ ...INP, colorScheme: "dark" }} />
+            <Label t={t}>RSVP deadline (optional)</Label>
+            <input type="datetime-local" value={rsvpDeadline} onChange={(e) => setRsvpDeadline(e.target.value)} style={{ ...S.inp, colorScheme: base === "DARK" ? "dark" : "light" }} />
           </div>
         </Section>
 
         {/* ── Questionnaire ── */}
-        <Section title="Questionnaire" onSave={saveQuestionnaire} saved={saved === "questionnaire"} isPending={isPending}>
-          <Toggle label="Ask guests custom questions" value={questionnaireEnabled} onChange={setQuestionnaireEnabled} />
+        <Section title="Questionnaire" onSave={saveQuestionnaire} saved={saved === "questionnaire"} isPending={isPending} t={t}>
+          <Toggle label="Ask guests custom questions" value={questionnaireEnabled} onChange={setQuestionnaireEnabled} t={t} />
 
           {fields.length > 0 && (
             <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
               {fields.map((f) => (
-                <div key={f.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "14px" }}>
+                <div key={f.id} style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "14px", padding: "14px" }}>
                   {/* Top row: type select + required + delete */}
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                     <select
                       value={f.fieldType}
                       onChange={(e) => handleUpdateFieldType(f.id, e.target.value as RsvpFieldEntry["fieldType"])}
-                      style={{ flex: 1, padding: "6px 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "#fff", fontFamily: "inherit", fontSize: "12px", cursor: "pointer" }}
+                      style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: base === "DARK" ? "dark" : "light" }}
                     >
                       <option value="TEXT">Short text</option>
                       <option value="TEXTAREA">Long text</option>
                       <option value="SELECT">Multiple choice</option>
                       <option value="CHECKBOX">Checkboxes</option>
                     </select>
-                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: t.textSecondary, whiteSpace: "nowrap" }}>
                       <input
                         type="checkbox"
                         checked={f.required}
                         onChange={(e) => handleUpdateFieldRequired(f.id, e.target.checked)}
-                        style={{ accentColor: "#a855f7" }}
+                        style={{ accentColor: t.accent }}
                       />
                       Required
                     </label>
-                    <button onClick={() => handleDeleteField(f.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", padding: "4px", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                    <button onClick={() => handleDeleteField(f.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px", flexShrink: 0, display: "flex", alignItems: "center" }}>
                       <X size={15} />
                     </button>
                   </div>
@@ -359,7 +395,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                     onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
                     onBlur={() => handleUpdateFieldLabel(f.id)}
                     placeholder="Question text"
-                    style={{ ...INP, marginBottom: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? "8px" : 0 }}
+                    style={{ ...S.inp, marginBottom: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? "8px" : 0 }}
                   />
                   {/* Options textarea for SELECT/CHECKBOX */}
                   {(f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") && (
@@ -368,7 +404,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                       onChange={(e) => setOptionsDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
                       onBlur={() => handleUpdateFieldOptions(f.id)}
                       placeholder="Options, one per line"
-                      style={{ ...INP, resize: "none", marginTop: "4px" } as React.CSSProperties}
+                      style={{ ...S.inp, resize: "none", marginTop: "4px" } as React.CSSProperties}
                       rows={3}
                     />
                   )}
@@ -378,80 +414,80 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
           )}
 
           {addingField ? (
-            <div style={{ marginTop: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ marginTop: "12px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "14px", padding: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ flex: 1, padding: "6px 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "#fff", fontFamily: "inherit", fontSize: "12px", cursor: "pointer" }}>
+                <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: base === "DARK" ? "dark" : "light" }}>
                   <option value="TEXT">Short text</option>
                   <option value="TEXTAREA">Long text</option>
                   <option value="SELECT">Multiple choice</option>
                   <option value="CHECKBOX">Checkboxes</option>
                 </select>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>
-                  <input type="checkbox" checked={newFieldRequired} onChange={(e) => setNewFieldRequired(e.target.checked)} style={{ accentColor: "#a855f7" }} />
+                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: t.textSecondary, whiteSpace: "nowrap" }}>
+                  <input type="checkbox" checked={newFieldRequired} onChange={(e) => setNewFieldRequired(e.target.checked)} style={{ accentColor: t.accent }} />
                   Required
                 </label>
               </div>
-              <input value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="Question text *" style={INP} />
+              <input value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="Question text *" style={S.inp} />
               {(newFieldType === "SELECT" || newFieldType === "CHECKBOX") && (
-                <textarea value={newFieldOptions} onChange={(e) => setNewFieldOptions(e.target.value)} placeholder="Options, one per line" style={{ ...INP, resize: "none" } as React.CSSProperties} rows={3} />
+                <textarea value={newFieldOptions} onChange={(e) => setNewFieldOptions(e.target.value)} placeholder="Options, one per line" style={{ ...S.inp, resize: "none" } as React.CSSProperties} rows={3} />
               )}
               <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={handleAddField} disabled={!newFieldLabel.trim() || isPending} style={{ ...SMALL_BTN, flex: 1 }}>Add Question</button>
-                <button onClick={() => setAddingField(false)} style={{ ...SMALL_BTN, background: "rgba(255,255,255,0.08)" }}>Cancel</button>
+                <button onClick={handleAddField} disabled={!newFieldLabel.trim() || isPending} style={{ ...S.smallBtn, flex: 1 }}>Add Question</button>
+                <button onClick={() => setAddingField(false)} style={{ ...S.smallBtn, background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}` }}>Cancel</button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setAddingField(true)} style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.06)", border: "1px dashed rgba(255,255,255,0.15)", borderRadius: "10px", padding: "10px 14px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", width: "100%" }}>
+            <button onClick={() => setAddingField(true)} style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "6px", background: t.inputBg, border: `1px dashed ${t.accentBorder}`, borderRadius: "10px", padding: "10px 14px", color: t.textMuted, cursor: "pointer", fontFamily: "inherit", fontSize: "13px", width: "100%" }}>
               <Plus size={14} /> Add Question
             </button>
           )}
         </Section>
 
         {/* ── Display & Privacy ── */}
-        <Section title="Display & Privacy" onSave={saveDisplayPrivacy} saved={saved === "display"} isPending={isPending}>
-          <Toggle label="Allow guest comments" value={commentsEnabled} onChange={setCommentsEnabled} />
-          <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={setShowTimestamps} />
+        <Section title="Display & Privacy" onSave={saveDisplayPrivacy} saved={saved === "display"} isPending={isPending} t={t}>
+          <Toggle label="Allow guest comments" value={commentsEnabled} onChange={setCommentsEnabled} t={t} />
+          <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={setShowTimestamps} t={t} />
           <div style={{ marginBottom: "16px" }}>
-            <Label>Guest list visibility</Label>
+            <Label t={t}>Guest list visibility</Label>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {([["ALL", "Everyone can see"], ["GUESTS_ONLY", "Going guests only"], ["HOST_ONLY", "Host only"]] as const).map(([val, label]) => (
                 <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                  <input type="radio" checked={guestListVis === val} onChange={() => setGuestListVis(val)} style={{ accentColor: "#a855f7" }} />
-                  <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)" }}>{label}</span>
+                  <input type="radio" checked={guestListVis === val} onChange={() => setGuestListVis(val)} style={{ accentColor: t.accent }} />
+                  <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
                 </label>
               ))}
             </div>
           </div>
           <div style={{ marginBottom: "16px" }}>
-            <Label>Event visibility</Label>
+            <Label t={t}>Event visibility</Label>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {([["PUBLIC", "Public — findable by anyone"], ["UNLISTED", "Unlisted — only people with the link"], ["PRIVATE", "Private — invite only"]] as const).map(([val, label]) => (
                 <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                  <input type="radio" checked={visibility === val} onChange={() => setVisibility(val)} style={{ accentColor: "#a855f7" }} />
-                  <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)" }}>{label}</span>
+                  <input type="radio" checked={visibility === val} onChange={() => setVisibility(val)} style={{ accentColor: t.accent }} />
+                  <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
                 </label>
               ))}
             </div>
           </div>
           <div>
-            <Label>Event password (optional)</Label>
-            <input type="text" placeholder="Leave blank for no password" value={password} onChange={(e) => setPassword(e.target.value)} style={INP} autoComplete="off" />
-            {password && <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
+            <Label t={t}>Event password (optional)</Label>
+            <input type="text" placeholder="Leave blank for no password" value={password} onChange={(e) => setPassword(e.target.value)} style={S.inp} autoComplete="off" />
+            {password && <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
           </div>
         </Section>
 
         {/* ── Auto-Reminders ── */}
-        <Section title="Auto-Reminders" onSave={saveReminders} saved={saved === "reminders"} isPending={isPending}>
-          <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", marginBottom: "16px" }}>
+        <Section title="Auto-Reminders" onSave={saveReminders} saved={saved === "reminders"} isPending={isPending} t={t}>
+          <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "16px" }}>
             Reminders are sent to guests who provided their email or phone number.
           </div>
           <div style={{ marginBottom: "20px" }}>
-            <Label>Email reminders</Label>
-            <Toggle label="1 week before" value={emailWeekBefore} onChange={setEmailWeekBefore} />
-            <Toggle label="1 day before" value={emailDayBefore} onChange={setEmailDayBefore} />
+            <Label t={t}>Email reminders</Label>
+            <Toggle label="1 week before" value={emailWeekBefore} onChange={setEmailWeekBefore} t={t} />
+            <Toggle label="1 day before" value={emailDayBefore} onChange={setEmailDayBefore} t={t} />
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-              <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)", flex: 1 }}>Hours before</span>
-              <select value={emailHoursBefore} onChange={(e) => setEmailHoursBefore(Number(e.target.value))} style={{ padding: "6px 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", color: "#fff", fontFamily: "inherit" }}>
+              <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
+              <select value={emailHoursBefore} onChange={(e) => setEmailHoursBefore(Number(e.target.value))} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: base === "DARK" ? "dark" : "light" }}>
                 <option value={0}>Off</option>
                 <option value={1}>1 hour</option>
                 <option value={2}>2 hours</option>
@@ -460,20 +496,20 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
             </div>
           </div>
           <div style={{ marginBottom: "20px" }}>
-            <Label>SMS reminders</Label>
-            <Toggle label="1 week before" value={smsWeekBefore} onChange={setSmsWeekBefore} />
-            <Toggle label="1 day before" value={smsDayBefore} onChange={setSmsDayBefore} />
+            <Label t={t}>SMS reminders</Label>
+            <Toggle label="1 week before" value={smsWeekBefore} onChange={setSmsWeekBefore} t={t} />
+            <Toggle label="1 day before" value={smsDayBefore} onChange={setSmsDayBefore} t={t} />
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-              <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)", flex: 1 }}>Hours before</span>
-              <select value={smsHoursBefore} onChange={(e) => setSmsHoursBefore(Number(e.target.value))} style={{ padding: "6px 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", color: "#fff", fontFamily: "inherit" }}>
+              <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
+              <select value={smsHoursBefore} onChange={(e) => setSmsHoursBefore(Number(e.target.value))} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: base === "DARK" ? "dark" : "light" }}>
                 <option value={0}>Off</option>
                 <option value={1}>1 hour</option>
                 <option value={2}>2 hours</option>
               </select>
             </div>
           </div>
-          <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={setNudgeUnresponded} />
-          <Toggle label="Post-event photo upload prompt" value={postEventPrompt} onChange={setPostEventPrompt} />
+          <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={setNudgeUnresponded} t={t} />
+          <Toggle label="Post-event photo upload prompt" value={postEventPrompt} onChange={setPostEventPrompt} t={t} />
         </Section>
 
         {err && <div style={{ color: "#f87171", fontSize: "13px", textAlign: "center" }}>{err}</div>}
@@ -482,72 +518,30 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   );
 }
 
-// ── Style constants ────────────────────────────────────────────────────────────
+// ── Sub-components ───────────────────────────────────────────────
 
-const INP: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 14px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: "10px",
-  color: "#fff",
-  fontFamily: "inherit",
-  fontSize: "14px",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const SMALL_BTN: React.CSSProperties = {
-  padding: "8px 16px",
-  background: "#a855f7",
-  color: "#fff",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontFamily: "inherit",
-  fontSize: "13px",
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-};
-
-const AV: React.CSSProperties = {
-  width: "32px",
-  height: "32px",
-  borderRadius: "50%",
-  background: "#a855f7",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "13px",
-  fontWeight: 700,
-  color: "#fff",
-  flexShrink: 0,
-};
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255,255,255,0.4)", marginBottom: "10px" }}>{children}</div>;
+function Label({ children, t }: { children: React.ReactNode; t: ResolvedTheme }) {
+  return <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.textMuted, marginBottom: "10px" }}>{children}</div>;
 }
 
-function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ label, value, onChange, t }: { label: string; value: boolean; onChange: (v: boolean) => void; t: ResolvedTheme }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-      <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)" }}>{label}</span>
-      <button onClick={() => onChange(!value)} style={{ width: "44px", height: "24px", borderRadius: "100px", border: "none", cursor: "pointer", background: value ? "#a855f7" : "rgba(255,255,255,0.15)", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <span style={{ position: "absolute", top: "3px", left: value ? "23px" : "3px", width: "18px", height: "18px", borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+      <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
+      <button onClick={() => onChange(!value)} style={{ width: "44px", height: "24px", borderRadius: "100px", cursor: "pointer", background: value ? t.accent : t.inputBg, border: `1px solid ${t.inputBorder}`, position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+        <span style={{ position: "absolute", top: "2px", left: value ? "22px" : "2px", width: "18px", height: "18px", borderRadius: "50%", background: value ? t.accentFg : t.textSecondary, transition: "left 0.2s" }} />
       </button>
     </div>
   );
 }
 
-function Section({ title, children, onSave, saved, isPending, noSave }: { title: string; children: React.ReactNode; onSave?: () => void; saved?: boolean; isPending?: boolean; noSave?: boolean }) {
+function Section({ title, children, onSave, saved, isPending, noSave, t }: { title: string; children: React.ReactNode; onSave?: () => void; saved?: boolean; isPending?: boolean; noSave?: boolean; t: ResolvedTheme }) {
   return (
-    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "20px", marginBottom: "16px" }}>
+    <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "20px", marginBottom: "16px", boxShadow: t.cardShadow, backdropFilter: "blur(12px)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-        <h2 style={{ fontSize: "15px", fontWeight: 700 }}>{title}</h2>
+        <h2 style={{ fontSize: "15px", fontWeight: 700, color: t.textPrimary }}>{title}</h2>
         {!noSave && onSave && (
-          <button onClick={onSave} disabled={isPending} style={{ padding: "6px 16px", background: saved ? "#22c55e" : "#a855f7", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: "4px", transition: "background 0.2s" }}>
+          <button onClick={onSave} disabled={isPending} style={{ padding: "6px 16px", background: saved ? "#22c55e" : t.accent, color: t.accentFg, border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: "4px", transition: "background 0.2s" }}>
             {saved ? <><Check size={13} /> Saved</> : isPending ? "Saving…" : "Save"}
           </button>
         )}

@@ -954,21 +954,32 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       {/* Background decorations */}
       {t.pageDecoration === "dark-orbs" && (
         <>
-          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: `radial-gradient(circle, rgba(${t.accent.replace("#","")},0.12) 0%, transparent 70%)`, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
-          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)", filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
         </>
       )}
       {t.pageDecoration === "soft-blobs" && (
         <>
-          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: `radial-gradient(circle, ${t.accentBg} 0%, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
-          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(196,181,253,0.35) 0%, transparent 70%)", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
         </>
       )}
       {t.pageDecoration === "bold-hero" && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(160deg, ${t.accent} 0%, #ec4899 45%, #f5eeff 75%, #fafafa 100%)`, zIndex: 0 }} />
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />
       )}
 
       <div style={S.container}>
+
+        {/* ── Title ── */}
+        <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", marginBottom: "8px", fontFamily: t.headingFont, color: t.textPrimary }}>
+          <InlineEdit value={event.title} onSave={(v) => save("title", v)} placeholder="Event title" style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont }} isHost={isHost} />
+        </h1>
+
+        {/* ── Host byline ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.textSecondary, fontSize: "14px" }}>
+          <div style={{ ...S.avatar, background: t.avatarGradient }}>{event.host.name?.[0] ?? event.host.email[0].toUpperCase()}</div>
+          Hosted by {event.host.name ?? event.host.email}
+        </div>
 
         {/* ── Cover image ── */}
         <div
@@ -1007,17 +1018,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           theme={t}
           onSave={(start, end) => setEvent((e) => ({ ...e, startAt: start, endAt: end }))}
         />
-
-        {/* ── Title ── */}
-        <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", marginBottom: "8px", fontFamily: t.headingFont, color: t.textPrimary }}>
-          <InlineEdit value={event.title} onSave={(v) => save("title", v)} placeholder="Event title" style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont }} isHost={isHost} />
-        </h1>
-
-        {/* ── Host byline ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.textSecondary, fontSize: "14px" }}>
-          <div style={{ ...S.avatar, background: t.avatarGradient }}>{event.host.name?.[0] ?? event.host.email[0].toUpperCase()}</div>
-          Hosted by {event.host.name ?? event.host.email}
-        </div>
 
         {/* ── Location ── */}
         <LocationEdit
@@ -1381,8 +1381,8 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
             {/* Compose area — top of card */}
             {isHost && (
-              <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "12px", padding: "12px", marginBottom: "12px" }}>
-                <div style={{ fontWeight: 700, fontSize: "12px", color: t.textMuted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "8px" }}>Post an Update</div>
+              <div style={{ background: t.accentBg, border: `1px solid ${t.accentBorder}`, borderRadius: "12px", padding: "12px", marginBottom: "12px" }}>
+                <div style={{ fontWeight: 700, fontSize: "12px", color: t.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "8px" }}>Post an Update</div>
                 <textarea
                   style={{ ...S.inp, resize: "none", marginBottom: "8px" } as React.CSSProperties}
                   rows={3}
@@ -1391,7 +1391,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   onChange={(e) => setUpdateDraft(e.target.value)}
                 />
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textMuted, cursor: "pointer" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textSecondary, cursor: "pointer" }}>
                     <input type="checkbox" checked={notifyOnUpdate} onChange={(e) => setNotifyOnUpdate(e.target.checked)} style={{ accentColor: t.accent }} />
                     Notify guests via email
                   </label>
