@@ -68,7 +68,10 @@ export async function registerHost(
 
   const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
-    return { success: false, error: "An account with this email already exists." };
+    if (!existing.name) {
+      await db.user.update({ where: { id: existing.id }, data: { name } });
+    }
+    return { success: false, error: "An account with this email already exists. Sign in with a magic link instead." };
   }
 
   await db.$transaction([
