@@ -1,14 +1,17 @@
 <!-- BEGIN:git-mcp-rules -->
-# Git, Commits, and Pull Requests — User Execution Only
+# Git, Commits, and Pull Requests — Feature Branches & PR Workflow
 
 **Do not attempt to commit, push, or open pull requests to GitHub directly (neither via CLI nor via MCP tools).**
+**NEVER work from or commit directly to the `main` branch.**
 
 Instead, follow this workflow:
-1. When changes are complete, verified, and ready, show the exact PowerShell git commands for the USER to run on their system (e.g., `git add`, `git commit -m "..."`, and `git push origin <branch>`).
-2. Verify that the local diff matches the changes we want to push before handing off.
-3. Only use GitHub MCP tools for read-only operations (like listing commits, branches, or checking remote file contents) if necessary.
+1. At the start of a session, check remote main, sync, and create a new feature branch via the GitHub MCP tool to work from.
+2. When changes are complete, verified, and ready, show the exact PowerShell git commands for the USER to run on their system (e.g., `git add`, `git commit -m "..."`, and `git push origin <branch>`) to push to the feature branch.
+3. Instruct the user to open a Pull Request (PR) from their feature branch to `main` (never commit or push directly to `main`).
+4. Verify that the local diff matches the changes we want to push before handing off.
+5. Only use GitHub MCP tools for branch creation at startup and read-only operations (like checking PRs/commits) unless requested.
 
-**Rationale:** This saves token overhead, avoids sandbox credential/TTY hang issues, and ensures the user maintains complete control over remote commits.
+**Rationale:** This saves token overhead, avoids sandbox credential/TTY hang issues, prevents direct writes to production code on main, and ensures the user maintains complete control over commits.
 <!-- END:git-mcp-rules -->
 
 <!-- BEGIN:nextjs-agent-rules -->
@@ -24,6 +27,10 @@ At the start of every new chat session or when resuming work:
 1. **Sync with Remote Main**:
    - First, run `git fetch origin` to check for any remote changes.
    - Run `git merge origin/main` (or pull/rebase appropriately) to ensure the local branch contains the absolute latest version of the code. If there are local changes, stash them first (`git stash`), sync, and then apply them back (`git stash pop`).
+2. **Create Feature Branch**:
+   - Verify we are synced with `main`.
+   - Create a new feature branch on GitHub using the GitHub MCP `create_branch` tool.
+   - Provide the user with the command to checkout and track the new branch locally.
 <!-- END:session-setup-rules -->
 
 <!-- BEGIN:post-modification-rules -->
