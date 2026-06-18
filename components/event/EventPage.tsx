@@ -32,7 +32,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, createPoll, deletePoll, castVote, addPollOption } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 import QRCode from "qrcode";
@@ -74,6 +74,24 @@ type EventData = {
   potluckItems: { id: string; label: string; quantity: number; claimedQty: number | null; claimedBy: string | null; claimedAt: Date | null }[];
   pendingRsvps: PendingRsvp[];
   activityEvents: { id: string; type: string; actorName: string | null; detail: string; createdAt: Date }[];
+  polls: {
+    id: string;
+    question: string;
+    multiChoice: boolean;
+    allowGuestsToAdd: boolean;
+    createdAt: Date;
+    options: {
+      id: string;
+      text: string;
+      creatorName: string | null;
+      createdAt: Date;
+      votes: {
+        id: string;
+        voterName: string;
+        createdAt: Date;
+      }[];
+    }[];
+  }[];
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -868,6 +886,14 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [newPotluckQty, setNewPotluckQty] = useState(1);
   const [claimQty, setClaimQty] = useState(1);
 
+  // Poll states
+  const [isCreatingPoll, setIsCreatingPoll] = useState(false);
+  const [newPollQuestion, setNewPollQuestion] = useState("");
+  const [newPollOptions, setNewPollOptions] = useState<string[]>(["", ""]);
+  const [newPollMultiChoice, setNewPollMultiChoice] = useState(false);
+  const [newPollAllowGuestsToAdd, setNewPollAllowGuestsToAdd] = useState(true);
+  const [newPollOptionTexts, setNewPollOptionTexts] = useState<Record<string, string>>({});
+
   useEffect(() => {
     if (showShareQr && typeof window !== "undefined") {
       QRCode.toDataURL(window.location.origin + `/e/${event.slug}`, {
@@ -1175,6 +1201,147 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
     }
+  };
+
+  const handleAddPoll = async () => {
+    if (!newPollQuestion.trim()) return;
+    startTransition(async () => {
+      const result = await createPoll(
+        event.id,
+        newPollQuestion.trim(),
+        newPollOptions,
+        newPollMultiChoice,
+        newPollAllowGuestsToAdd
+      );
+      if (result.success) {
+        const newPoll = {
+          id: result.id!,
+          question: newPollQuestion.trim(),
+          multiChoice: newPollMultiChoice,
+          allowGuestsToAdd: newPollAllowGuestsToAdd,
+          createdAt: new Date(),
+          options: newPollOptions
+            .map((o) => o.trim())
+            .filter((o) => o.length > 0)
+            .map((o, idx) => ({
+              id: `temp-opt-${idx}-${Date.now()}`,
+              text: o,
+              creatorName: null,
+              createdAt: new Date(),
+              votes: [],
+            })),
+        };
+        setEvent((e) => ({
+          ...e,
+          polls: [...e.polls, newPoll],
+        }));
+
+        setIsCreatingPoll(false);
+        setNewPollQuestion("");
+        setNewPollOptions(["", ""]);
+        setNewPollMultiChoice(false);
+        setNewPollAllowGuestsToAdd(true);
+      }
+    });
+  };
+
+  const handleDeletePoll = (pollId: string) => {
+    startTransition(async () => {
+      await deletePoll(pollId);
+      setEvent((e) => ({
+        ...e,
+        polls: e.polls.filter((p) => p.id !== pollId),
+      }));
+    });
+  };
+
+  const handleVote = async (pollId: string, pollOptionId: string, isVoted: boolean) => {
+    const voter = isHost ? "Host" : guestName;
+    if (!voter) return;
+
+    // Optimistic Update
+    setEvent((e) => {
+      const updatedPolls = e.polls.map((p) => {
+        if (p.id !== pollId) return p;
+
+        const updatedOptions = p.options.map((opt) => {
+          if (isVoted) {
+            if (!p.multiChoice && opt.id !== pollOptionId) {
+              return {
+                ...opt,
+                votes: opt.votes.filter((v) => v.voterName !== voter),
+              };
+            }
+            if (opt.id === pollOptionId) {
+              const alreadyVoted = opt.votes.some((v) => v.voterName === voter);
+              return {
+                ...opt,
+                votes: alreadyVoted
+                  ? opt.votes
+                  : [...opt.votes, { id: `temp-vote-${Date.now()}`, voterName: voter, createdAt: new Date() }],
+              };
+            }
+          } else {
+            if (opt.id === pollOptionId) {
+              return {
+                ...opt,
+                votes: opt.votes.filter((v) => v.voterName !== voter),
+              };
+            }
+          }
+          return opt;
+        });
+
+        return { ...p, options: updatedOptions };
+      });
+
+      return { ...e, polls: updatedPolls };
+    });
+
+    try {
+      await castVote(pollId, pollOptionId, voter, isVoted, guestRsvpId ?? undefined);
+    } catch (err) {
+      console.error("Failed to cast vote", err);
+    }
+  };
+
+  const handleAddPollOption = async (pollId: string) => {
+    const optionText = newPollOptionTexts[pollId]?.trim();
+    if (!optionText) return;
+
+    const voter = isHost ? "Host" : guestName;
+    if (!voter) return;
+
+    startTransition(async () => {
+      try {
+        const result = await addPollOption(pollId, optionText, voter, guestRsvpId ?? undefined);
+        if (result.success) {
+          setEvent((e) => {
+            const updatedPolls = e.polls.map((p) => {
+              if (p.id !== pollId) return p;
+              return {
+                ...p,
+                options: [
+                  ...p.options,
+                  {
+                    id: result.id!,
+                    text: optionText,
+                    creatorName: isHost ? null : voter,
+                    createdAt: new Date(),
+                    votes: [],
+                  },
+                ],
+              };
+            });
+            return { ...e, polls: updatedPolls };
+          });
+
+          setNewPollOptionTexts((prev) => ({ ...prev, [pollId]: "" }));
+        }
+      } catch (err) {
+        console.error("Failed to add option", err);
+      }
+    });
   };
 
   const removeActivityEvent = (id: string) => {
@@ -1515,6 +1682,269 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               </button>
             </div>
           )
+        )}
+
+
+        {/* ── Polls Section ── */}
+        {(isHost || (event.polls && event.polls.length > 0)) && (
+          <div style={{ ...S.card, marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "16px" }}>📊</span>
+                <span style={{ fontWeight: 700 }}>Polls</span>
+              </div>
+              {isHost && !isCreatingPoll && (
+                <button
+                  onClick={() => setIsCreatingPoll(true)}
+                  style={{ ...S.mutedBtn, padding: "4px 10px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <Plus size={14} /> Create Poll
+                </button>
+              )}
+            </div>
+
+            {/* Create Poll Form */}
+            {isHost && isCreatingPoll && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "rgba(255, 255, 255, 0.03)", padding: "16px", borderRadius: t.cardRadius, border: `1px solid rgba(255, 255, 255, 0.05)`, marginBottom: "16px" }}>
+                <div style={{ fontWeight: 600, fontSize: "14px" }}>New Poll</div>
+                <input
+                  style={S.inp}
+                  placeholder="Ask a question... (e.g. What day works best?)"
+                  value={newPollQuestion}
+                  onChange={(e) => setNewPollQuestion(e.target.value)}
+                />
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{ fontSize: "12px", fontWeight: 600, color: t.textSecondary }}>Options:</div>
+                  {newPollOptions.map((opt, idx) => (
+                    <div key={idx} style={{ display: "flex", gap: "6px" }}>
+                      <input
+                        style={{ ...S.inp, padding: "8px 12px" }}
+                        placeholder={`Option ${idx + 1}`}
+                        value={opt}
+                        onChange={(e) => {
+                          const updated = [...newPollOptions];
+                          updated[idx] = e.target.value;
+                          setNewPollOptions(updated);
+                        }}
+                      />
+                      {newPollOptions.length > 2 && (
+                        <button
+                          onClick={() => {
+                            setNewPollOptions(newPollOptions.filter((_, i) => i !== idx));
+                          }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px" }}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => setNewPollOptions([...newPollOptions, ""])}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: t.accent, fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", alignSelf: "flex-start", padding: "4px 0" }}
+                  >
+                    <Plus size={14} /> Add option
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={newPollMultiChoice}
+                      onChange={(e) => setNewPollMultiChoice(e.target.checked)}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span>Allow voting for multiple options</span>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={newPollAllowGuestsToAdd}
+                      onChange={(e) => setNewPollAllowGuestsToAdd(e.target.checked)}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span>Allow guests to suggest options</span>
+                  </label>
+                </div>
+
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <button
+                    onClick={handleAddPoll}
+                    disabled={!newPollQuestion.trim() || isPending}
+                    style={{ ...S.btn, padding: "8px 16px", width: "auto", flex: 1 }}
+                  >
+                    Create
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsCreatingPoll(false);
+                      setNewPollQuestion("");
+                      setNewPollOptions(["", ""]);
+                      setNewPollMultiChoice(false);
+                    }}
+                    style={{ ...S.mutedBtn, padding: "8px 16px", flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Polls List */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {event.polls?.map((poll) => {
+                const totalVotes = poll.options.reduce((sum, o) => sum + o.votes.length, 0);
+                const voter = isHost ? "Host" : guestName;
+                const isEligibleToVote = isHost || (rsvpDone && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
+
+                return (
+                  <div
+                    key={poll.id}
+                    style={{
+                      borderBottom: event.polls.length > 1 ? `1px solid rgba(255, 255, 255, 0.05)` : "none",
+                      paddingBottom: event.polls.length > 1 ? "16px" : 0,
+                      position: "relative" as const
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                      <div style={{ fontWeight: 600, fontSize: "15px", color: t.textPrimary }}>
+                        {poll.question}
+                      </div>
+                      {isHost && (
+                        <button
+                          onClick={() => handleDeletePoll(poll.id)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}
+                          title="Delete poll"
+                        >
+                          <X size={15} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "12px" }}>
+                      {poll.multiChoice ? "Select multiple" : "Select one"}
+                      {poll.allowGuestsToAdd && " • Guests can suggest options"}
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
+                      {poll.options.map((opt) => {
+                        const optVotesCount = opt.votes.length;
+                        const percent = totalVotes > 0 ? Math.round((optVotesCount / totalVotes) * 100) : 0;
+                        const isVoted = opt.votes.some((v) => v.voterName === voter);
+
+                        return (
+                          <div
+                            key={opt.id}
+                            style={{
+                              position: "relative" as const,
+                              borderRadius: t.btnRadius,
+                              border: `1px solid ${isVoted ? t.accent : "rgba(255, 255, 255, 0.06)"}`,
+                              overflow: "hidden" as const,
+                              background: "rgba(255, 255, 255, 0.02)",
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "center",
+                              padding: "10px 14px",
+                              transition: "border-color 0.2s ease"
+                            }}
+                          >
+                            {/* Accent colored progress bar fill */}
+                            <div
+                              style={{
+                                position: "absolute" as const,
+                                top: 0,
+                                left: 0,
+                                bottom: 0,
+                                width: `${percent}%`,
+                                background: t.accent,
+                                opacity: 0.1,
+                                zIndex: 0,
+                                pointerEvents: "none" as const,
+                                transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
+                              }}
+                            />
+
+                            <div style={{ position: "relative" as const, zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  cursor: isEligibleToVote ? "pointer" : "default",
+                                  flex: 1,
+                                  fontSize: "13.5px",
+                                  fontWeight: isVoted ? 600 : 500,
+                                  color: isVoted ? t.textPrimary : t.textSecondary
+                                }}
+                              >
+                                <input
+                                  type={poll.multiChoice ? "checkbox" : "radio"}
+                                  name={`poll-${poll.id}`}
+                                  checked={isVoted}
+                                  disabled={!isEligibleToVote || isPending}
+                                  onChange={(e) => handleVote(poll.id, opt.id, e.target.checked)}
+                                  style={{ cursor: isEligibleToVote ? "pointer" : "default" }}
+                                />
+                                <span>{opt.text}</span>
+                                {opt.creatorName && (
+                                  <span style={{ fontSize: "11px", color: t.textMuted, fontStyle: "italic" }}>
+                                    (by {opt.creatorName})
+                                  </span>
+                                )}
+                              </label>
+
+                              <span style={{ fontSize: "12px", fontWeight: 700, color: isVoted ? t.accent : t.textSecondary }}>
+                                {percent}% ({optVotesCount})
+                              </span>
+                            </div>
+
+                            {/* Show voters names */}
+                            {optVotesCount > 0 && (
+                              <div style={{ position: "relative" as const, zIndex: 1, fontSize: "11px", color: t.textMuted, marginLeft: "22px", marginTop: "2px" }}>
+                                {opt.votes.map((v) => v.voterName).join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Suggest Option form for Guests */}
+                    {poll.allowGuestsToAdd && isEligibleToVote && (
+                      <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                        <input
+                          style={{ ...S.inp, padding: "8px 12px", fontSize: "12.5px" }}
+                          placeholder="Suggest another option..."
+                          value={newPollOptionTexts[poll.id] ?? ""}
+                          onChange={(e) => {
+                            setNewPollOptionTexts((prev) => ({ ...prev, [poll.id]: e.target.value }));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddPollOption(poll.id);
+                          }}
+                        />
+                        <button
+                          onClick={() => handleAddPollOption(poll.id)}
+                          disabled={!(newPollOptionTexts[poll.id]?.trim()) || isPending}
+                          style={{ ...S.mutedBtn, padding: "8px 12px", fontSize: "12.5px", whiteSpace: "nowrap" }}
+                        >
+                          Suggest
+                        </button>
+                      </div>
+                    )}
+
+                    {!isEligibleToVote && (
+                      <div style={{ fontSize: "11.5px", color: t.textMuted, fontStyle: "italic", marginTop: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+                        🔒 RSVP (GOING or MAYBE) to vote and suggest options!
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
 

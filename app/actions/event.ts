@@ -1052,3 +1052,232 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
     errors: errors.length > 0 ? errors : undefined,
   };
 }
+
+// ── Polls ──────────────────────────────────────────────────────────────────────
+
+export async function createPoll(
+  eventId: string,
+  question: string,
+  options: string[],
+  multiChoice: boolean,
+  allowGuestsToAdd: boolean
+) {
+  const event = await assertHostOrCohost(eventId);
+  if (!question.trim()) throw new Error("Question cannot be empty");
+
+  const cleanOptions = options.map((o) => o.trim()).filter((o) => o.length > 0);
+
+  const poll = await db.$transaction(async (tx) => {
+    const p = await tx.poll.create({
+      data: {
+        eventId,
+        question: question.trim(),
+        multiChoice,
+        allowGuestsToAdd,
+      },
+    });
+
+    if (cleanOptions.length > 0) {
+      await tx.pollOption.createMany({
+        data: cleanOptions.map((o) => ({
+          pollId: p.id,
+          text: o,
+        })),
+      });
+    }
+
+    return p;
+  });
+
+  const session = await getSession();
+  let hostName = "Host";
+  if (session?.userId) {
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      select: { name: true, email: true },
+    });
+    hostName = user?.name ?? user?.email?.split("@")[0] ?? "Host";
+  }
+
+  await logActivity(
+    eventId,
+    "poll_create",
+    `created a new poll: "${question.trim()}"`,
+    hostName
+  ).catch(() => null);
+
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true, id: poll.id };
+}
+
+export async function deletePoll(pollId: string) {
+  const poll = await db.poll.findUnique({
+    where: { id: pollId },
+    select: { eventId: true },
+  });
+  if (!poll) throw new Error("Poll not found");
+
+  const event = await assertHostOrCohost(poll.eventId);
+
+  await db.poll.delete({
+    where: { id: pollId },
+  });
+
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true };
+}
+
+export async function castVote(
+  pollId: string,
+  pollOptionId: string,
+  voterName: string,
+  isVoted: boolean,
+  guestRsvpId?: string
+) {
+  const poll = await db.poll.findUnique({
+    where: { id: pollId },
+    include: {
+      event: {
+        select: {
+          hostId: true,
+          slug: true,
+          coHosts: { select: { userId: true } },
+        },
+      },
+    },
+  });
+  if (!poll) throw new Error("Poll not found");
+
+  // Auth verification
+  const session = await getSession();
+  const isOwner = session?.userId === poll.event.hostId;
+  const isCohost = poll.event.coHosts.some((ch) => ch.userId === session?.userId);
+  const isHost = isOwner || isCohost;
+
+  if (!isHost) {
+    if (!guestRsvpId) throw new Error("Unauthorized: Guest RSVP ID required to vote");
+    const rsvp = await db.rSVP.findFirst({
+      where: {
+        id: guestRsvpId,
+        eventId: poll.eventId,
+        approved: true,
+      },
+    });
+    if (!rsvp) throw new Error("Unauthorized: RSVP not found or not approved");
+    if (rsvp.guestName !== voterName) {
+      throw new Error("Unauthorized: Voter name does not match guest name");
+    }
+  }
+
+  if (isVoted) {
+    if (!poll.multiChoice) {
+      // Single-choice poll: delete any other votes by this voter in this poll
+      await db.pollVote.deleteMany({
+        where: {
+          pollId,
+          voterName,
+        },
+      });
+    }
+
+    await db.pollVote.upsert({
+      where: {
+        pollOptionId_voterName: {
+          pollOptionId,
+          voterName,
+        },
+      },
+      create: {
+        pollId,
+        pollOptionId,
+        voterName,
+        userId: session?.userId,
+      },
+      update: {},
+    });
+  } else {
+    // Retract vote
+    await db.pollVote.deleteMany({
+      where: {
+        pollOptionId,
+        voterName,
+      },
+    });
+  }
+
+  revalidatePath(`/e/${poll.event.slug}`);
+  return { success: true };
+}
+
+export async function addPollOption(
+  pollId: string,
+  text: string,
+  creatorName: string,
+  guestRsvpId?: string
+) {
+  if (!text.trim()) throw new Error("Option text cannot be empty");
+
+  const poll = await db.poll.findUnique({
+    where: { id: pollId },
+    include: {
+      event: {
+        select: {
+          hostId: true,
+          slug: true,
+          coHosts: { select: { userId: true } },
+        },
+      },
+    },
+  });
+  if (!poll) throw new Error("Poll not found");
+
+  const session = await getSession();
+  const isOwner = session?.userId === poll.event.hostId;
+  const isCohost = poll.event.coHosts.some((ch) => ch.userId === session?.userId);
+  const isHost = isOwner || isCohost;
+
+  if (!isHost) {
+    if (!poll.allowGuestsToAdd) throw new Error("Guests are not allowed to add options to this poll");
+    if (!guestRsvpId) throw new Error("Unauthorized: Guest RSVP ID required");
+    const rsvp = await db.rSVP.findFirst({
+      where: {
+        id: guestRsvpId,
+        eventId: poll.eventId,
+        approved: true,
+      },
+    });
+    if (!rsvp) throw new Error("Unauthorized: RSVP not found or not approved");
+    if (rsvp.guestName !== creatorName) {
+      throw new Error("Unauthorized: Creator name does not match guest name");
+    }
+  }
+
+  // Check if option already exists
+  const existing = await db.pollOption.findFirst({
+    where: {
+      pollId,
+      text: {
+        equals: text.trim(),
+      },
+    },
+  });
+  if (existing) throw new Error("Option already exists");
+
+  const option = await db.pollOption.create({
+    data: {
+      pollId,
+      text: text.trim(),
+      creatorName: isHost ? null : creatorName,
+    },
+  });
+
+  await logActivity(
+    poll.eventId,
+    "poll_option_add",
+    `added a new option "${text.trim()}" to the poll`,
+    creatorName
+  ).catch(() => null);
+
+  revalidatePath(`/e/${poll.event.slug}`);
+  return { success: true, id: option.id };
+}

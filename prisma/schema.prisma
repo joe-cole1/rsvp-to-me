@@ -119,6 +119,7 @@ model Event {
   rsvpFields      RSVPField[]
   checkIns        CheckIn[]
   activityEvents  ActivityEvent[]
+  polls           Poll[]
 }
 
 enum LocationType {
@@ -384,4 +385,47 @@ model ActivityEvent {
   createdAt DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// POLLS
+// ──────────────────────────────────────────────
+
+model Poll {
+  id               String       @id @default(cuid())
+  eventId          String
+  question         String
+  multiChoice      Boolean      @default(false)
+  allowGuestsToAdd Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  event            Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  options          PollOption[]
+  votes            PollVote[]
+}
+
+model PollOption {
+  id          String     @id @default(cuid())
+  pollId      String
+  text        String
+  creatorName String?    // Null if created by host, guestName if write-in
+  createdAt   DateTime   @default(now())
+
+  poll        Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes       PollVote[]
+}
+
+model PollVote {
+  id           String     @id @default(cuid())
+  pollId       String
+  pollOptionId String
+  voterName    String     // Name of the guest or host voting
+  userId       String?    // Link to User if they are logged in
+  createdAt    DateTime   @default(now())
+
+  poll         Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option       PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([pollOptionId, voterName])
 }
