@@ -37,11 +37,16 @@ At the start of every new chat session or when resuming work:
 # Post-Modification / Local Verification Rules
 
 After making changes and before presenting Git commands to the user to push to GitHub:
-1. **Wipe and Rebuild Local Docker Environment**:
+1. **Verify Linter and TypeScript Correctness**:
+   - Ensure all ESLint rules and TypeScript type checks pass with 0 errors.
+   - Remind the user to run the local linter check via Docker:
+     `docker run --rm -v "${PWD}:/app" -w /app node:20-alpine sh -c "npm run lint"`
+   - Verify that the local Git `pre-commit` hook is configured in `.git/hooks/pre-commit` to catch styling issues before committing.
+2. **Wipe and Rebuild Local Docker Environment**:
    - Run `docker compose down` to shut down and clean up active containers and networks.
    - Delete the local dev database file `data/prod.db` to ensure a completely fresh data state (clearing stale DB records and seeding fresh).
    - Run `docker compose up --build -d` to compile the application with the new changes and launch the containers from scratch, ensuring no cached database state, assets, or CSS remain.
-2. **Verify Correctness**:
+3. **Verify Correctness**:
    - Ensure the application builds successfully, and tests pass.
 <!-- END:post-modification-rules -->
 

@@ -3,7 +3,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { APP_SHELL } from "@/lib/theme";
-import Link from "next/link";
 
 interface DropdownUser {
   name?: string | null;
