@@ -36,7 +36,6 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import {
   updateProfileSettings,
   updateNotificationSettings,
-  getUserProfile,
 } from "@/app/actions/profile";
 
 describe("app/actions/profile.ts", () => {
@@ -92,7 +91,7 @@ describe("app/actions/profile.ts", () => {
       });
 
       // Mock unique checks: no existing user with new email
-      mockUserFindUnique.mockImplementation(async (query: any) => {
+      mockUserFindUnique.mockImplementation(async (query: { where?: { email?: string; id?: string } }) => {
         if (query?.where?.email === "new@example.com") return null;
         return { id: USER_ID };
       });

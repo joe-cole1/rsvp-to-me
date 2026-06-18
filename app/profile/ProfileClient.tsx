@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useRef, useTransition, useEffect } from "react";
@@ -68,6 +69,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle verification and error query params
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const verified = searchParams.get("verified");
     const error = searchParams.get("error");
@@ -87,6 +89,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
       router.replace("/profile");
     }
   }, [searchParams, router]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,9 +117,10 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
       });
 
       setFeedback({ type: "success", message: "Avatar updated successfully!" });
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setFeedback({ type: "error", message: err.message || "Failed to upload avatar." });
+      const message = err instanceof Error ? err.message : "Failed to upload avatar.";
+      setFeedback({ type: "error", message });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -144,8 +148,9 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             setFeedback({ type: "success", message: "Profile settings saved!" });
           }
         }
-      } catch (err: any) {
-        setFeedback({ type: "error", message: err.message || "Failed to update profile." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to update profile.";
+        setFeedback({ type: "error", message });
       }
     });
   };

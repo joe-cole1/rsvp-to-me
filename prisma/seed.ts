@@ -68,7 +68,7 @@ async function main() {
   console.log("SEED_TEST_DATA is 'true' and database is empty. Starting rich test data seeding...");
 
   // 1. Create Primary Admin, Host and Co-Host
-  const admin = await db.user.upsert({
+  await db.user.upsert({
     where: { email: "admin@test.com" },
     update: { role: "ADMIN" },
     create: {

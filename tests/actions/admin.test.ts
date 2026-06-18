@@ -84,9 +84,7 @@ import {
   deleteUserAccount,
   getAdminEvents,
   deleteEventAdmin,
-  getInviteCodes,
   createInviteCode,
-  revokeInviteCode,
   getSystemConfig,
   updateSystemConfig,
 } from "@/app/actions/admin";

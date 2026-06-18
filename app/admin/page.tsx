@@ -43,7 +43,7 @@ export default async function AdminPage() {
       sessionUser={dbUser ? {
         name: dbUser.name,
         email: dbUser.email,
-        role: dbUser.role as any,
+        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
         avatarUrl: dbUser.avatarUrl,
       } : null}
     />

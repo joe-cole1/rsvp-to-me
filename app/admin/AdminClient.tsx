@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -17,6 +16,41 @@ import {
   getAdminEvents,
 } from "@/app/actions/admin";
 
+interface AdminUser {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: "GUEST" | "HOST" | "ADMIN";
+  createdAt: Date;
+  _count: {
+    events: number;
+    rsvps: number;
+  };
+}
+
+interface AdminEvent {
+  id: string;
+  title: string;
+  slug: string;
+  startAt: Date;
+  status: string;
+  visibility: string;
+  hostName: string;
+  hostEmail: string;
+  rsvpCount: number;
+}
+
+interface AdminInviteCode {
+  id: string;
+  code: string;
+  uses: number;
+  maxUses: number | null;
+  expiresAt: Date | null;
+  note: string | null;
+  createdAt: Date;
+}
+
 interface AdminClientProps {
   initialStats: {
     totalUsers: number;
@@ -25,9 +59,9 @@ interface AdminClientProps {
     totalCheckIns: number;
     totalInviteCodes: number;
   };
-  initialUsers: any[];
-  initialEvents: any[];
-  initialInviteCodes: any[];
+  initialUsers: AdminUser[];
+  initialEvents: AdminEvent[];
+  initialInviteCodes: AdminInviteCode[];
   initialConfig: Record<string, string>;
   sessionUser: {
     name: string | null;
@@ -45,7 +79,6 @@ export default function AdminClient({
   initialConfig,
   sessionUser,
 }: AdminClientProps) {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings">("overview");
 
   const [users, setUsers] = useState(initialUsers);
@@ -95,8 +128,9 @@ export default function AdminClient({
           setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
           setFeedback({ type: "success", message: "User role updated successfully!" });
         }
-      } catch (err: any) {
-        setFeedback({ type: "error", message: err.message || "Failed to update role." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to update role.";
+        setFeedback({ type: "error", message });
       }
     });
   };
@@ -113,8 +147,9 @@ export default function AdminClient({
           setUsers((prev) => prev.filter((u) => u.id !== userId));
           setFeedback({ type: "success", message: "User account deleted successfully." });
         }
-      } catch (err: any) {
-        setFeedback({ type: "error", message: err.message || "Failed to delete account." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete account.";
+        setFeedback({ type: "error", message });
       }
     });
   };
@@ -131,8 +166,9 @@ export default function AdminClient({
           setEvents((prev) => prev.filter((e) => e.id !== eventId));
           setFeedback({ type: "success", message: "Event moderated and deleted." });
         }
-      } catch (err: any) {
-        setFeedback({ type: "error", message: err.message || "Failed to delete event." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete event.";
+        setFeedback({ type: "error", message });
       }
     });
   };
@@ -156,8 +192,9 @@ export default function AdminClient({
           setNote("");
           setFeedback({ type: "success", message: "Invite code created successfully." });
         }
-      } catch (err: any) {
-        setFeedback({ type: "error", message: err.message || "Failed to create code." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to create code.";
+        setFeedback({ type: "error", message });
       }
     });
   };
@@ -171,8 +208,9 @@ export default function AdminClient({
           setInviteCodes((prev) => prev.filter((c) => c.id !== id));
           setFeedback({ type: "success", message: "Invite code revoked." });
         }
-      } catch (err: any) {
-        setFeedback({ type: "error", message: err.message || "Failed to revoke code." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to revoke code.";
+        setFeedback({ type: "error", message });
       }
     });
   };
@@ -185,9 +223,10 @@ export default function AdminClient({
       try {
         await updateSystemConfig("open_registration", nextVal);
         setFeedback({ type: "success", message: `Open registration toggled to ${nextVal === "true" ? "Active" : "Inactive"}.` });
-      } catch (err: any) {
+      } catch (err) {
         setConfig((prev) => ({ ...prev, open_registration: nextVal === "true" ? "false" : "true" })); // Revert
-        setFeedback({ type: "error", message: err.message || "Failed to update configuration." });
+        const message = err instanceof Error ? err.message : "Failed to update configuration.";
+        setFeedback({ type: "error", message });
       }
     });
   };
@@ -248,17 +287,19 @@ export default function AdminClient({
             className="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 pb-3 lg:pb-0 lg:w-[240px] shrink-0 border-b border-white/5 lg:border-b-0 mb-4 lg:mb-0 scrollbar-none"
             style={{ display: "flex" }}
           >
-            {[
-              { id: "overview", label: "📊 Overview" },
-              { id: "users", label: "👥 User Management" },
-              { id: "events", label: "🎈 Event Moderation" },
-              { id: "invites", label: "🔑 Invite Codes" },
-              { id: "settings", label: "⚙️ Global Config" },
-            ].map((tab) => (
+            {(
+              [
+                { id: "overview", label: "📊 Overview" },
+                { id: "users", label: "👥 User Management" },
+                { id: "events", label: "🎈 Event Moderation" },
+                { id: "invites", label: "🔑 Invite Codes" },
+                { id: "settings", label: "⚙️ Global Config" },
+              ] as const
+            ).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveTab(tab.id as any);
+                  setActiveTab(tab.id);
                   setFeedback(null);
                 }}
                 style={{
@@ -391,7 +432,7 @@ export default function AdminClient({
                               <td style={{ padding: "16px" }}>
                                 <select
                                   value={u.role}
-                                  onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
+                                  onChange={(e) => handleRoleChange(u.id, e.target.value as "GUEST" | "HOST" | "ADMIN")}
                                   style={{
                                     backgroundColor: APP_SHELL.inputBg,
                                     border: `1px solid ${APP_SHELL.inputBorder}`,
@@ -409,7 +450,7 @@ export default function AdminClient({
                               </td>
                               <td style={{ padding: "16px", textAlign: "right" }}>
                                 <button
-                                  onClick={() => handleUserDelete(u.id, u.name || u.email)}
+                                  onClick={() => handleUserDelete(u.id, u.name || u.email || "Unknown User")}
                                   style={{
                                     backgroundColor: "transparent",
                                     border: "none",
