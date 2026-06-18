@@ -1493,10 +1493,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       `}</style>
       {/* ── Top nav ── */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <a href={sessionUser ? "/dashboard" : "/"} style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
           <span style={{ fontSize: "20px" }}>🎉</span>
           <span style={{ fontSize: "16px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.01em" }}>RSVP</span>
-        </div>
+        </a>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {isHost && (
             <a
