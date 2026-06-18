@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getDashboardEvents, getDashboardActivity } from "@/app/actions/event";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
-import { APP_SHELL } from "@/lib/theme";
+import ProfileDropdown from "@/components/ui/ProfileDropdown";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
@@ -26,9 +26,14 @@ export default async function DashboardPage() {
       <AppNavLogo
         href="/dashboard"
         trailing={
-          <a href="/auth/sign-out" style={{ fontSize: "13px", color: APP_SHELL.textMuted, textDecoration: "none" }}>
-            Sign out
-          </a>
+          <ProfileDropdown
+            user={{
+              name: userExists.name,
+              email: userExists.email,
+              role: userExists.role as "GUEST" | "HOST" | "ADMIN",
+              avatarUrl: userExists.avatarUrl,
+            }}
+          />
         }
       />
       <DashboardClient

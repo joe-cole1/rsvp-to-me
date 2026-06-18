@@ -15,7 +15,10 @@ async function assertHost(eventId: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
   const event = await db.event.findUnique({ where: { id: eventId }, select: { hostId: true, slug: true } });
-  if (!event || event.hostId !== session.userId) throw new Error("Forbidden");
+  if (!event) throw new Error("Forbidden");
+  const isOwner = event.hostId === session.userId;
+  const isAdmin = session.role === "ADMIN";
+  if (!isOwner && !isAdmin) throw new Error("Forbidden");
   return event;
 }
 
@@ -29,7 +32,8 @@ async function assertHostOrCohost(eventId: string) {
   if (!event) throw new Error("Forbidden");
   const isOwner = event.hostId === session.userId;
   const isCohost = event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   return event;
 }
 
@@ -137,7 +141,7 @@ export async function updateInfoSection(
     include: { event: { select: { hostId: true, slug: true, id: true } } },
   });
   const session = await getSession();
-  if (!section || section.event.hostId !== session?.userId) throw new Error("Forbidden");
+  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
   await db.eventInfoSection.update({
     where: { id: sectionId },
     data: {
@@ -159,7 +163,7 @@ export async function removeInfoSection(sectionId: string) {
     include: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!section || section.event.hostId !== session?.userId) throw new Error("Forbidden");
+  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
   await db.eventInfoSection.delete({ where: { id: sectionId } });
   const activityEvent = await logActivity(section.eventId, "info_delete", `Removed ${iconLabel(section.type)} section`).catch(() => null);
   revalidatePath(`/e/${section.event.slug}`);
@@ -403,7 +407,8 @@ export async function deleteRsvpAsHost(rsvpId: string) {
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.rSVP.delete({ where: { id: rsvpId } });
   logActivity(rsvp.event.id, "rsvp_delete", `${rsvp.guestName}'s RSVP was removed`).catch(() => {});
   revalidatePath(`/e/${rsvp.event.slug}/guests`);
@@ -421,7 +426,8 @@ export async function deleteActivityEvent(activityId: string) {
   if (!activity) return { success: false };
   const isOwner = activity.event.hostId === session.userId;
   const isCohost = activity.event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.activityEvent.delete({ where: { id: activityId } });
   return { success: true };
 }
@@ -551,7 +557,8 @@ export async function approveRsvp(rsvpId: string, message?: string) {
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
 
@@ -585,7 +592,8 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
 
   if (rsvp.guestEmail) {
     await sendApprovalEmail(rsvp.guestEmail, {
@@ -664,7 +672,7 @@ export async function deleteEventUpdate(updateId: string) {
     select: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!update || update.event.hostId !== session?.userId) throw new Error("Forbidden");
+  if (!update || (update.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
   await db.eventUpdate.delete({ where: { id: updateId } });
   revalidatePath(`/e/${update.event.slug}`);
 }
@@ -684,7 +692,7 @@ export async function removePotluckItem(itemId: string) {
     select: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!item || item.event.hostId !== session?.userId) throw new Error("Forbidden");
+  if (!item || (item.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
   await db.potluckItem.delete({ where: { id: itemId } });
   revalidatePath(`/e/${item.event.slug}`);
 }
@@ -719,7 +727,7 @@ export async function unclaimPotluckItem(itemId: string, guestName: string) {
   if (!item) return { success: false, error: "Item not found" };
 
   const session = await getSession();
-  const isHost = item.event.hostId === session?.userId;
+  const isHost = item.event.hostId === session?.userId || session?.role === "ADMIN";
   const isCohost = item.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
 
   if (!isHost && !isCohost && item.claimedBy !== guestName) {
@@ -757,7 +765,7 @@ export async function removeCoHost(cohostId: string) {
     select: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!cohost || cohost.event.hostId !== session?.userId) throw new Error("Forbidden");
+  if (!cohost || (cohost.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
   await db.eventCoHost.delete({ where: { id: cohostId } });
   revalidatePath(`/e/${cohost.event.slug}/settings`);
 }
@@ -789,7 +797,8 @@ export async function updateRsvpField(
   if (!field) throw new Error("Forbidden");
   const isOwner = field.event.hostId === session?.userId;
   const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session?.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.rSVPField.update({
     where: { id: fieldId },
     data: {
@@ -813,7 +822,8 @@ export async function deleteRsvpField(fieldId: string) {
   if (!field) throw new Error("Forbidden");
   const isOwner = field.event.hostId === session?.userId;
   const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session?.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.rSVPField.delete({ where: { id: fieldId } });
   revalidatePath(`/e/${field.event.slug}/settings`);
   revalidatePath(`/e/${field.event.slug}`);
@@ -931,7 +941,8 @@ export async function getRsvpFieldAnswers(fieldId: string) {
   if (!field) throw new Error("Forbidden");
   const isOwner = field.event.hostId === session?.userId;
   const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
-  if (!isOwner && !isCohost) throw new Error("Forbidden");
+  const isAdmin = session?.role === "ADMIN";
+  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   return field.answers.map((a: { value: string; rsvp: { guestName: string } }) => ({ guestName: a.rsvp.guestName, value: a.value }));
 }
 

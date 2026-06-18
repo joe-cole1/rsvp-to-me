@@ -12,13 +12,15 @@ datasource db {
 // ──────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  email     String?  @unique
-  phone     String?  @unique
-  name      String?
-  avatarUrl String?
-  role      Role     @default(GUEST)
-  createdAt DateTime @default(now())
+  id                 String   @id @default(cuid())
+  email              String?  @unique
+  phone              String?  @unique
+  name               String?
+  avatarUrl          String?
+  role               Role     @default(GUEST)
+  emailNotifications Boolean  @default(true)
+  smsNotifications   Boolean  @default(true)
+  createdAt          DateTime @default(now())
 
   events         Event[]
   coHostedEvents EventCoHost[]
@@ -33,15 +35,28 @@ enum Role {
   ADMIN
 }
 
+enum MagicTokenType {
+  LOGIN
+  EMAIL_CHANGE
+  PHONE_CHANGE
+}
+
 model MagicToken {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   userId    String
-  token     String   @unique
+  token     String         @unique
   expiresAt DateTime
-  createdAt DateTime @default(now())
-  used      Boolean  @default(false)
+  createdAt DateTime       @default(now())
+  used      Boolean        @default(false)
+  type      MagicTokenType @default(LOGIN)
+  metadata  String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SystemConfig {
+  key   String @id
+  value String
 }
 
 model Session {
