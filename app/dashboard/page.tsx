@@ -24,6 +24,7 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <AppNavLogo
+        href="/dashboard"
         trailing={
           <a href="/auth/sign-out" style={{ fontSize: "13px", color: APP_SHELL.textMuted, textDecoration: "none" }}>
             Sign out
