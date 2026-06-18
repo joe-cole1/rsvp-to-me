@@ -54,8 +54,8 @@ export function HostBar({
         setInviteStatus({ success: true, message: `Invite sent to ${result.emailOrPhone}!` });
         setInviteInput("");
       }
-    } catch (err: any) {
-      setInviteStatus({ success: false, message: err?.message || "Failed to send invite." });
+    } catch (err: unknown) {
+      setInviteStatus({ success: false, message: err instanceof Error ? err.message : "Failed to send invite." });
     } finally {
       setInvitePending(false);
     }
