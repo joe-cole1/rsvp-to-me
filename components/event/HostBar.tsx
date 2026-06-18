@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { sendBlast, sendSmsBlast, saveEventSettings } from "@/app/actions/event";
+import { sendBlast, sendSmsBlast, saveEventSettings, inviteGuest } from "@/app/actions/event";
 import QRCode from "qrcode";
 
 type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -39,6 +39,27 @@ export function HostBar({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<Visibility>(initialVisibility);
   const [visibilityPending, setVisibilityPending] = useState(false);
+
+  const [inviteInput, setInviteInput] = useState("");
+  const [invitePending, setInvitePending] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSendInvite = async () => {
+    if (!inviteInput.trim() || invitePending) return;
+    setInvitePending(true);
+    setInviteStatus(null);
+    try {
+      const result = await inviteGuest(eventId, inviteInput.trim());
+      if (result.success) {
+        setInviteStatus({ success: true, message: `Invite sent to ${result.emailOrPhone}!` });
+        setInviteInput("");
+      }
+    } catch (err: unknown) {
+      setInviteStatus({ success: false, message: err instanceof Error ? err.message : "Failed to send invite." });
+    } finally {
+      setInvitePending(false);
+    }
+  };
 
   const VisIcon = visibilityIcon(visibility);
 
@@ -145,7 +166,7 @@ export function HostBar({
       {/* Panels */}
       {activePanel === "invite" && (
         <SlideUp
-          onClose={() => setActivePanel(null)}
+          onClose={() => { setActivePanel(null); setInviteInput(""); setInviteStatus(null); }}
           title="Invite Guests"
           onOpen={async () => {
             if (typeof window !== "undefined") {
@@ -162,7 +183,7 @@ export function HostBar({
           <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", marginBottom: "12px", wordBreak: "break-all" }}>
             {typeof window !== "undefined" ? window.location.href : ""}
           </div>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
             <button
               onClick={() => { if (typeof navigator !== "undefined") navigator.clipboard.writeText(window.location.href); }}
               style={{ flex: 1, padding: "12px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
@@ -180,14 +201,46 @@ export function HostBar({
             )}
           </div>
           {qrDataUrl && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "8px" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={qrDataUrl} alt="Event QR code" width={160} height={160} style={{ borderRadius: "12px" }} />
             </div>
           )}
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", marginTop: "4px", textAlign: "center" }}>
-            Email & SMS invites available in Settings
-          </p>
+
+          {/* Direct Invite Form */}
+          <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px" }}>
+            <h4 style={{ color: "#fff", fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>Send Direct Invite</h4>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input
+                type="text"
+                placeholder="email@domain.com or +1234567890"
+                value={inviteInput}
+                onChange={(e) => setInviteInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSendInvite(); }}
+                style={{
+                  flex: 1, padding: "10px 14px", background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px",
+                  color: "#fff", fontFamily: "inherit", fontSize: "13px", outline: "none"
+                }}
+              />
+              <button
+                onClick={handleSendInvite}
+                disabled={!inviteInput.trim() || invitePending}
+                style={{
+                  padding: "10px 16px", background: t.accent, color: t.accentFg,
+                  border: "none", borderRadius: "10px", fontFamily: "inherit",
+                  fontSize: "13px", fontWeight: 700, cursor: "pointer", opacity: (!inviteInput.trim() || invitePending) ? 0.5 : 1
+                }}
+              >
+                {invitePending ? "Sending…" : "Send"}
+              </button>
+            </div>
+            {inviteStatus && (
+              <div style={{ fontSize: "12px", color: inviteStatus.success ? "#22c55e" : "#f87171", marginTop: "6px" }}>
+                {inviteStatus.message}
+              </div>
+            )}
+          </div>
         </SlideUp>
       )}
 

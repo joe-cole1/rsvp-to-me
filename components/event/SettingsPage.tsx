@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { ArrowLeft, Check, Plus, X } from "lucide-react";
 import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme } from "@/lib/theme";
 import {
@@ -31,6 +31,8 @@ type EventInput = {
   commentsEnabled: boolean;
   plusOneAllowed: boolean;
   plusOneMax: number;
+  plusOneNamesRequired: boolean;
+  guestSharingEnabled: boolean;
   approvalRequired: boolean;
   rsvpDeadline: Date | null;
   capacity: number | null;
@@ -50,18 +52,47 @@ type EventInput = {
   rsvpFields: RsvpFieldEntry[];
 };
 
+interface SettingsOverrides {
+  commentsEnabled?: boolean;
+  plusOneAllowed?: boolean;
+  plusOneMax?: number;
+  plusOneNamesRequired?: boolean;
+  approvalRequired?: boolean;
+  rsvpDeadline?: string | null;
+  capacity?: number | null;
+  guestListVis?: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
+  visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  maybeEnabled?: boolean;
+  questionnaireEnabled?: boolean;
+  showTimestamps?: boolean;
+  password?: string | null;
+  guestSharingEnabled?: boolean;
+}
+
+interface ReminderOverrides {
+  emailWeekBefore?: boolean;
+  emailDayBefore?: boolean;
+  emailHoursBefore?: number;
+  smsWeekBefore?: boolean;
+  smsDayBefore?: boolean;
+  smsHoursBefore?: number;
+  nudgeUnresponded?: boolean;
+  postEventPrompt?: boolean;
+}
+
 export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: boolean }) {
   const [isPending, startTransition] = useTransition();
-  const [saved, setSaved] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED" | "ERROR">("IDLE");
   const [err, setErr] = useState<string | null>(null);
 
-  // ── Theme ──
+  // ── Theme State ──
   const [base, setBase] = useState<BaseTheme>(event.theme?.baseTheme ?? "DARK");
   const [accent, setAccent] = useState(event.theme?.accentColor ?? "#a855f7");
 
-  // ── RSVP Options ──
+  // ── RSVP Options State ──
   const [plusOneAllowed, setPlusOneAllowed] = useState(event.plusOneAllowed);
   const [plusOneMax, setPlusOneMax] = useState(event.plusOneMax);
+  const [plusOneNamesRequired, setPlusOneNamesRequired] = useState(event.plusOneNamesRequired);
   const [approvalRequired, setApprovalRequired] = useState(event.approvalRequired);
   const [maybeEnabled, setMaybeEnabled] = useState(event.maybeEnabled);
   const [capacity, setCapacity] = useState(event.capacity?.toString() ?? "");
@@ -69,14 +100,15 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     event.rsvpDeadline ? new Date(event.rsvpDeadline).toISOString().slice(0, 16) : ""
   );
 
-  // ── Display & Privacy ──
+  // ── Display & Privacy State ──
   const [commentsEnabled, setCommentsEnabled] = useState(event.commentsEnabled);
+  const [guestSharingEnabled, setGuestSharingEnabled] = useState(event.guestSharingEnabled);
   const [guestListVis, setGuestListVis] = useState(event.guestListVis);
   const [showTimestamps, setShowTimestamps] = useState(event.showTimestamps);
   const [visibility, setVisibility] = useState(event.visibility);
   const [password, setPassword] = useState(event.password ?? "");
 
-  // ── Reminders ──
+  // ── Reminders State ──
   const rs = event.reminderSettings;
   const [emailWeekBefore, setEmailWeekBefore] = useState(rs?.emailWeekBefore ?? false);
   const [emailDayBefore, setEmailDayBefore] = useState(rs?.emailDayBefore ?? true);
@@ -87,12 +119,12 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   const [nudgeUnresponded, setNudgeUnresponded] = useState(rs?.nudgeUnresponded ?? true);
   const [postEventPrompt, setPostEventPrompt] = useState(rs?.postEventPrompt ?? false);
 
-  // ── Co-hosts ──
+  // ── Co-hosts State ──
   const [coHosts, setCoHosts] = useState<CoHostEntry[]>(event.coHosts);
   const [cohostEmail, setCohostEmail] = useState("");
   const [cohostError, setCohostError] = useState<string | null>(null);
 
-  // ── Questionnaire ──
+  // ── Questionnaire State ──
   const [questionnaireEnabled, setQuestionnaireEnabled] = useState(event.questionnaireEnabled);
   const [fields, setFields] = useState<RsvpFieldEntry[]>(event.rsvpFields);
   const [addingField, setAddingField] = useState(false);
@@ -107,126 +139,243 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.options ?? ""]))
   );
 
-  const flash = (section: string) => {
-    setSaved(section);
+  // Clear saved status after delay
+  useEffect(() => {
+    if (saveStatus === "SAVED" || saveStatus === "ERROR") {
+      const timer = setTimeout(() => setSaveStatus("IDLE"), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus]);
+
+  // ── Theme Auto-Save ──
+  const triggerSaveTheme = (newBase: BaseTheme, newAccent: string) => {
+    setSaveStatus("SAVING");
     setErr(null);
-    setTimeout(() => setSaved(null), 2000);
+    startTransition(async () => {
+      try {
+        await saveEventTheme(event.id, newBase, newAccent);
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+        setErr("Failed to save theme settings.");
+      }
+    });
   };
 
-  const saveTheme = () => startTransition(async () => {
-    await saveEventTheme(event.id, base, accent);
-    flash("theme");
-  });
-
-  const saveRsvpOptions = () => startTransition(async () => {
-    await saveEventSettings(event.id, {
-      plusOneAllowed, plusOneMax, approvalRequired, maybeEnabled,
-      capacity: capacity ? Number(capacity) : null,
-      rsvpDeadline: rsvpDeadline || null,
+  // ── Settings Auto-Save ──
+  const triggerSaveSettings = (overrides: SettingsOverrides) => {
+    setSaveStatus("SAVING");
+    setErr(null);
+    const data = {
+      plusOneAllowed: overrides.plusOneAllowed !== undefined ? overrides.plusOneAllowed : plusOneAllowed,
+      plusOneMax: overrides.plusOneMax !== undefined ? overrides.plusOneMax : plusOneMax,
+      plusOneNamesRequired: overrides.plusOneNamesRequired !== undefined ? overrides.plusOneNamesRequired : plusOneNamesRequired,
+      guestSharingEnabled: overrides.guestSharingEnabled !== undefined ? overrides.guestSharingEnabled : guestSharingEnabled,
+      approvalRequired: overrides.approvalRequired !== undefined ? overrides.approvalRequired : approvalRequired,
+      maybeEnabled: overrides.maybeEnabled !== undefined ? overrides.maybeEnabled : maybeEnabled,
+      capacity: overrides.capacity !== undefined ? overrides.capacity : (capacity.trim() ? Number(capacity) : null),
+      rsvpDeadline: overrides.rsvpDeadline !== undefined ? overrides.rsvpDeadline : (rsvpDeadline || null),
+      commentsEnabled: overrides.commentsEnabled !== undefined ? overrides.commentsEnabled : commentsEnabled,
+      guestListVis: overrides.guestListVis !== undefined ? overrides.guestListVis : guestListVis,
+      showTimestamps: overrides.showTimestamps !== undefined ? overrides.showTimestamps : showTimestamps,
+      visibility: overrides.visibility !== undefined ? overrides.visibility : visibility,
+      password: overrides.password !== undefined ? overrides.password : (password.trim() || null),
+      questionnaireEnabled: overrides.questionnaireEnabled !== undefined ? overrides.questionnaireEnabled : questionnaireEnabled,
+    };
+    startTransition(async () => {
+      try {
+        const res = await saveEventSettings(event.id, data);
+        if (res && !res.success) {
+          setSaveStatus("ERROR");
+          setErr(res.error ?? "Failed to save settings.");
+        } else {
+          setSaveStatus("SAVED");
+        }
+      } catch {
+        setSaveStatus("ERROR");
+        setErr("Failed to save settings.");
+      }
     });
-    flash("rsvp");
-  });
+  };
 
-  const saveDisplayPrivacy = () => startTransition(async () => {
-    await saveEventSettings(event.id, {
-      commentsEnabled, guestListVis, showTimestamps, visibility,
-      password: password || null,
+  // ── Reminders Auto-Save ──
+  const triggerSaveReminders = (overrides: ReminderOverrides) => {
+    setSaveStatus("SAVING");
+    setErr(null);
+    const data = {
+      emailWeekBefore: overrides.emailWeekBefore !== undefined ? overrides.emailWeekBefore : emailWeekBefore,
+      emailDayBefore: overrides.emailDayBefore !== undefined ? overrides.emailDayBefore : emailDayBefore,
+      emailHoursBefore: overrides.emailHoursBefore !== undefined ? overrides.emailHoursBefore : emailHoursBefore,
+      smsWeekBefore: overrides.smsWeekBefore !== undefined ? overrides.smsWeekBefore : smsWeekBefore,
+      smsDayBefore: overrides.smsDayBefore !== undefined ? overrides.smsDayBefore : smsDayBefore,
+      smsHoursBefore: overrides.smsHoursBefore !== undefined ? overrides.smsHoursBefore : smsHoursBefore,
+      nudgeUnresponded: overrides.nudgeUnresponded !== undefined ? overrides.nudgeUnresponded : nudgeUnresponded,
+      postEventPrompt: overrides.postEventPrompt !== undefined ? overrides.postEventPrompt : postEventPrompt,
+    };
+    startTransition(async () => {
+      try {
+        await saveReminderSettings(event.id, data);
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+        setErr("Failed to save reminders.");
+      }
     });
-    flash("display");
-  });
+  };
 
-  const saveReminders = () => startTransition(async () => {
-    await saveReminderSettings(event.id, {
-      emailWeekBefore, emailDayBefore, emailHoursBefore,
-      smsWeekBefore, smsDayBefore, smsHoursBefore,
-      nudgeUnresponded, postEventPrompt,
-    });
-    flash("reminders");
-  });
-
-  const saveQuestionnaire = () => startTransition(async () => {
-    await saveEventSettings(event.id, { questionnaireEnabled });
-    flash("questionnaire");
-  });
-
-  const handleAddCohost = () => startTransition(async () => {
+  // ── Co-hosts Actions ──
+  const handleAddCohost = () => {
+    setSaveStatus("SAVING");
     setCohostError(null);
-    const result = await addCoHost(event.id, cohostEmail.trim());
-    if (!result.success) { setCohostError(result.error ?? "Error"); return; }
-    setCoHosts((prev) => [...prev, {
-      id: result.cohostId!,
-      user: { id: result.cohostId!, name: result.name ?? null, email: result.email! },
-    }]);
-    setCohostEmail("");
-  });
-
-  const handleRemoveCohost = (cohostRecordId: string) => startTransition(async () => {
-    await removeCoHost(cohostRecordId);
-    setCoHosts((prev) => prev.filter((c) => c.id !== cohostRecordId));
-  });
-
-  const handleAddField = () => startTransition(async () => {
-    if (!newFieldLabel.trim()) return;
-    const result = await addRsvpField(event.id, {
-      label: newFieldLabel.trim(),
-      fieldType: newFieldType,
-      required: newFieldRequired,
-      options: (newFieldType === "SELECT" || newFieldType === "CHECKBOX") ? newFieldOptions : undefined,
-      order: fields.length,
+    startTransition(async () => {
+      try {
+        const result = await addCoHost(event.id, cohostEmail.trim());
+        if (!result.success) {
+          setCohostError(result.error ?? "Error adding co-host");
+          setSaveStatus("ERROR");
+          return;
+        }
+        setCoHosts((prev) => [...prev, {
+          id: result.cohostId!,
+          user: { id: result.cohostId!, name: result.name ?? null, email: result.email! },
+        }]);
+        setCohostEmail("");
+        setSaveStatus("SAVED");
+      } catch {
+        setCohostError("An unexpected error occurred.");
+        setSaveStatus("ERROR");
+      }
     });
-    if (result.success) {
-      setFields((prev) => [...prev, {
-        id: result.id!,
-        label: newFieldLabel.trim(),
-        fieldType: newFieldType,
-        required: newFieldRequired,
-        options: (newFieldType === "SELECT" || newFieldType === "CHECKBOX") ? newFieldOptions : null,
-        order: prev.length,
-      }]);
-      setNewFieldLabel("");
-      setNewFieldType("TEXT");
-      setNewFieldRequired(false);
-      setNewFieldOptions("");
-      setAddingField(false);
-    }
-  });
+  };
 
-  const handleUpdateFieldType = (fieldId: string, fieldType: RsvpFieldEntry["fieldType"]) => startTransition(async () => {
-    await updateRsvpField(fieldId, { fieldType });
-    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, fieldType } : x));
-  });
+  const handleRemoveCohost = (cohostRecordId: string) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await removeCoHost(cohostRecordId);
+        setCoHosts((prev) => prev.filter((c) => c.id !== cohostRecordId));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
 
-  const handleUpdateFieldRequired = (fieldId: string, required: boolean) => startTransition(async () => {
-    await updateRsvpField(fieldId, { required });
-    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, required } : x));
-  });
+  // ── Questionnaire Actions ──
+  const handleAddField = () => {
+    if (!newFieldLabel.trim()) return;
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        const result = await addRsvpField(event.id, {
+          label: newFieldLabel.trim(),
+          fieldType: newFieldType,
+          required: newFieldRequired,
+          options: (newFieldType === "SELECT" || newFieldType === "CHECKBOX") ? newFieldOptions : undefined,
+          order: fields.length,
+        });
+        if (result.success) {
+          setFields((prev) => [...prev, {
+            id: result.id!,
+            label: newFieldLabel.trim(),
+            fieldType: newFieldType,
+            required: newFieldRequired,
+            options: (newFieldType === "SELECT" || newFieldType === "CHECKBOX") ? newFieldOptions : null,
+            order: prev.length,
+          }]);
+          setLabelDrafts((prev) => ({ ...prev, [result.id!]: newFieldLabel.trim() }));
+          setOptionsDrafts((prev) => ({ ...prev, [result.id!]: newFieldOptions }));
+          setNewFieldLabel("");
+          setNewFieldType("TEXT");
+          setNewFieldRequired(false);
+          setNewFieldOptions("");
+          setAddingField(false);
+          setSaveStatus("SAVED");
+        } else {
+          setSaveStatus("ERROR");
+        }
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
 
-  const handleUpdateFieldLabel = (fieldId: string) => startTransition(async () => {
+  const handleUpdateFieldType = (fieldId: string, fieldType: RsvpFieldEntry["fieldType"]) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await updateRsvpField(fieldId, { fieldType });
+        setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, fieldType } : x));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleUpdateFieldRequired = (fieldId: string, required: boolean) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await updateRsvpField(fieldId, { required });
+        setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, required } : x));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleUpdateFieldLabel = (fieldId: string) => {
     const label = (labelDrafts[fieldId] ?? "").trim();
     if (!label) return;
-    await updateRsvpField(fieldId, { label });
-    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, label } : x));
-  });
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await updateRsvpField(fieldId, { label });
+        setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, label } : x));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
 
-  const handleUpdateFieldOptions = (fieldId: string) => startTransition(async () => {
+  const handleUpdateFieldOptions = (fieldId: string) => {
     const options = optionsDrafts[fieldId] ?? "";
-    await updateRsvpField(fieldId, { options });
-    setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, options } : x));
-  });
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await updateRsvpField(fieldId, { options });
+        setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, options } : x));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
 
-  const handleDeleteField = (fieldId: string) => startTransition(async () => {
-    await deleteRsvpField(fieldId);
-    setFields((prev) => prev.filter((x) => x.id !== fieldId));
-  });
+  const handleDeleteField = (fieldId: string) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await deleteRsvpField(fieldId);
+        setFields((prev) => prev.filter((x) => x.id !== fieldId));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
 
-  // Resolve dynamic theme reactive state values
+  // Resolve theme using state
   const t = resolveTheme(base, accent);
 
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "120px", position: "relative" as const, overflowX: "hidden" as const },
     container: { maxWidth: "480px", margin: "0 auto", padding: "24px 16px 80px", position: "relative" as const, zIndex: 1 },
     header: { position: "sticky" as const, top: 0, background: t.cardBg, borderBottom: `1px solid ${t.cardBorder}`, padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", zIndex: 10, backdropFilter: "blur(14px)" },
-    inp: { width: "100%", padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.inputText, fontFamily: "inherit", fontSize: "14px", outline: "none", boxSizing: "border-box", colorScheme: base === "DARK" ? "dark" : "light" } as React.CSSProperties,
+    inp: { width: "100%", padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", outline: "none", boxSizing: "border-box", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" } as React.CSSProperties,
     smallBtn: { padding: "8px 16px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, whiteSpace: "nowrap" } as React.CSSProperties,
     av: { width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, fontSize: "13px", fontWeight: 700, color: t.accentFg, flexShrink: 0 },
   };
@@ -235,44 +384,71 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     if (t.pageDecoration === "dark-orbs") {
       return (
         <>
-          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
-          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: `radial-gradient(circle, rgba(${accent.replace("#","")},0.12) 0%, transparent 70%)`, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)", filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
         </>
       );
     }
     if (t.pageDecoration === "soft-blobs") {
       return (
         <>
-          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
-          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: `radial-gradient(circle, ${t.accentBg} 0%, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(196,181,253,0.35) 0%, transparent 70%)", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
         </>
       );
     }
     if (t.pageDecoration === "bold-hero") {
-      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />;
+      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(160deg, ${accent} 0%, #ec4899 45%, #f5eeff 75%, #fafafa 100%)`, zIndex: 0 }} />;
     }
     return null;
   };
 
   return (
     <div style={S.page}>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {renderDecorations()}
+      
       <div style={S.header}>
         <a href={`/e/${event.slug}`} style={{ display: "flex", alignItems: "center", color: t.textSecondary, textDecoration: "none" }}>
           <ArrowLeft size={20} />
         </a>
-        <h1 style={{ fontSize: "17px", fontWeight: 700, color: t.textPrimary }}>Event Settings</h1>
+        <h1 style={{ fontSize: "17px", fontWeight: 700, color: t.textPrimary, flex: 1 }}>Event Settings</h1>
+        {saveStatus === "SAVING" && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: t.textMuted }}>
+            <span style={{
+              display: "inline-block", width: "12px", height: "12px",
+              borderRadius: "50%", border: `2px solid ${t.accent}`,
+              borderTopColor: "transparent", animation: "spin 0.6s linear infinite",
+              boxSizing: "border-box"
+            }} />
+            Saving...
+          </div>
+        )}
+        {saveStatus === "SAVED" && (
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#22c55e", fontWeight: 600 }}>
+            <Check size={14} /> Saved
+          </div>
+        )}
+        {saveStatus === "ERROR" && (
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#ef4444", fontWeight: 600 }}>
+            ⚠️ Error
+          </div>
+        )}
       </div>
 
       <div style={S.container}>
 
         {/* ── Theme ── */}
-        <Section title="Theme" onSave={saveTheme} saved={saved === "theme"} isPending={isPending} t={t}>
+        <Section title="Theme" t={t}>
           <div style={{ marginBottom: "20px" }}>
             <Label t={t}>Style</Label>
             <div style={{ display: "flex", gap: "10px" }}>
               {BASE_THEMES.map((bt) => (
-                <button key={bt.id} onClick={() => setBase(bt.id)} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
+                <button key={bt.id} onClick={() => { setBase(bt.id); triggerSaveTheme(bt.id, accent); }} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
                   <div style={{ height: "44px", background: bt.preview }} />
                   <div style={{ padding: "6px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
                 </button>
@@ -282,20 +458,20 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
           <Label t={t}>Accent Color</Label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
             {ACCENT_PRESETS.map((p) => (
-              <button key={p.value} onClick={() => setAccent(p.value)} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <button key={p.value} onClick={() => { setAccent(p.value); triggerSaveTheme(base, p.value); }} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
               </button>
             ))}
             <label style={{ width: "32px", height: "32px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
               🎨
-              <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+              <input type="color" value={accent} onChange={(e) => { setAccent(e.target.value); triggerSaveTheme(base, e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
             </label>
           </div>
         </Section>
 
         {/* ── Hosts ── */}
         {isOwner && (
-          <Section title="Hosts" noSave t={t}>
+          <Section title="Hosts" t={t}>
             <div style={{ marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: `1px solid ${t.cardBorder}` }}>
                 <div style={S.av}>{event.slug[0]?.toUpperCase()}</div>
@@ -332,33 +508,89 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         )}
 
         {/* ── RSVP Options ── */}
-        <Section title="RSVP Options" onSave={saveRsvpOptions} saved={saved === "rsvp"} isPending={isPending} t={t}>
-          <Toggle label="Allow plus-ones" value={plusOneAllowed} onChange={setPlusOneAllowed} t={t} />
+        <Section title="RSVP Options" t={t}>
+          {/* Max plus-ones select dropdown */}
+          <div style={{ marginBottom: "16px" }}>
+            <Label t={t}>Max plus-ones per guest</Label>
+            <select
+              style={{ ...S.inp, cursor: "pointer" }}
+              value={plusOneAllowed ? plusOneMax : 0}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                const allowed = val > 0;
+                setPlusOneAllowed(allowed);
+                setPlusOneMax(allowed ? val : 0);
+                triggerSaveSettings({ plusOneAllowed: allowed, plusOneMax: allowed ? val : 0 });
+              }}
+            >
+              <option value={0}>No +1s</option>
+              {Array.from({ length: 9 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  Up to {i + 1}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {plusOneAllowed && (
-            <div style={{ marginBottom: "16px" }}>
-              <Label t={t}>Max plus-ones per guest</Label>
-              <div style={{ display: "flex", gap: "8px" }}>
-                {[1, 2, 3, 5].map((n) => (
-                  <button key={n} onClick={() => setPlusOneMax(n)} style={{ padding: "8px 16px", borderRadius: "8px", cursor: "pointer", background: plusOneMax === n ? t.accent : t.inputBg, border: `1px solid ${plusOneMax === n ? "transparent" : t.inputBorder}`, color: plusOneMax === n ? t.accentFg : t.textSecondary, fontFamily: "inherit", fontWeight: 600 }}>{n}</button>
-                ))}
-              </div>
-            </div>
+            <Toggle
+              label="Require plus-one names"
+              value={plusOneNamesRequired}
+              onChange={(val) => {
+                setPlusOneNamesRequired(val);
+                triggerSaveSettings({ plusOneNamesRequired: val });
+              }}
+              t={t}
+            />
           )}
-          <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={setApprovalRequired} t={t} />
-          <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={setMaybeEnabled} t={t} />
+
+          <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={(val) => { setApprovalRequired(val); triggerSaveSettings({ approvalRequired: val }); }} t={t} />
+          <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={(val) => { setMaybeEnabled(val); triggerSaveSettings({ maybeEnabled: val }); }} t={t} />
+          
           <div style={{ marginBottom: "16px" }}>
             <Label t={t}>Capacity limit (optional)</Label>
-            <input type="number" placeholder="No limit" value={capacity} onChange={(e) => setCapacity(e.target.value)} style={S.inp} />
+            <input
+              type="number"
+              placeholder="No limit"
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              onBlur={() => {
+                const val = capacity.trim() ? Number(capacity) : null;
+                triggerSaveSettings({ capacity: val });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const val = capacity.trim() ? Number(capacity) : null;
+                  triggerSaveSettings({ capacity: val });
+                  e.currentTarget.blur();
+                }
+              }}
+              style={S.inp}
+            />
           </div>
           <div>
             <Label t={t}>RSVP deadline (optional)</Label>
-            <input type="datetime-local" value={rsvpDeadline} onChange={(e) => setRsvpDeadline(e.target.value)} style={{ ...S.inp, colorScheme: base === "DARK" ? "dark" : "light" }} />
+            <input
+              type="datetime-local"
+              value={rsvpDeadline}
+              onChange={(e) => setRsvpDeadline(e.target.value)}
+              onBlur={() => {
+                triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
+                  e.currentTarget.blur();
+                }
+              }}
+              style={S.inp}
+            />
           </div>
         </Section>
 
         {/* ── Questionnaire ── */}
-        <Section title="Questionnaire" onSave={saveQuestionnaire} saved={saved === "questionnaire"} isPending={isPending} t={t}>
-          <Toggle label="Ask guests custom questions" value={questionnaireEnabled} onChange={setQuestionnaireEnabled} t={t} />
+        <Section title="Questionnaire" t={t}>
+          <Toggle label="Ask guests custom questions" value={questionnaireEnabled} onChange={(val) => { setQuestionnaireEnabled(val); triggerSaveSettings({ questionnaireEnabled: val }); }} t={t} />
 
           {fields.length > 0 && (
             <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -369,7 +601,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                     <select
                       value={f.fieldType}
                       onChange={(e) => handleUpdateFieldType(f.id, e.target.value as RsvpFieldEntry["fieldType"])}
-                      style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: base === "DARK" ? "dark" : "light" }}
+                      style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}
                     >
                       <option value="TEXT">Short text</option>
                       <option value="TEXTAREA">Long text</option>
@@ -394,6 +626,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                     value={labelDrafts[f.id] ?? f.label}
                     onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
                     onBlur={() => handleUpdateFieldLabel(f.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     placeholder="Question text"
                     style={{ ...S.inp, marginBottom: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? "8px" : 0 }}
                   />
@@ -416,7 +649,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
           {addingField ? (
             <div style={{ marginTop: "12px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "14px", padding: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: base === "DARK" ? "dark" : "light" }}>
+                <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}>
                   <option value="TEXT">Short text</option>
                   <option value="TEXTAREA">Long text</option>
                   <option value="SELECT">Multiple choice</option>
@@ -444,15 +677,27 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         </Section>
 
         {/* ── Display & Privacy ── */}
-        <Section title="Display & Privacy" onSave={saveDisplayPrivacy} saved={saved === "display"} isPending={isPending} t={t}>
-          <Toggle label="Allow guest comments" value={commentsEnabled} onChange={setCommentsEnabled} t={t} />
-          <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={setShowTimestamps} t={t} />
+        <Section title="Display & Privacy" t={t}>
+          <Toggle label="Allow guest comments" value={commentsEnabled} onChange={(val) => { setCommentsEnabled(val); triggerSaveSettings({ commentsEnabled: val }); }} t={t} />
+          
+          <Toggle
+            label="Allow guest sharing (Copy link & QR code)"
+            value={guestSharingEnabled}
+            onChange={(val) => {
+              setGuestSharingEnabled(val);
+              triggerSaveSettings({ guestSharingEnabled: val });
+            }}
+            t={t}
+          />
+
+          <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={(val) => { setShowTimestamps(val); triggerSaveSettings({ showTimestamps: val }); }} t={t} />
+          
           <div style={{ marginBottom: "16px" }}>
             <Label t={t}>Guest list visibility</Label>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {([["ALL", "Everyone can see"], ["GUESTS_ONLY", "Going guests only"], ["HOST_ONLY", "Host only"]] as const).map(([val, label]) => (
                 <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                  <input type="radio" checked={guestListVis === val} onChange={() => setGuestListVis(val)} style={{ accentColor: t.accent }} />
+                  <input type="radio" checked={guestListVis === val} onChange={() => { setGuestListVis(val); triggerSaveSettings({ guestListVis: val }); }} style={{ accentColor: t.accent }} />
                   <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
                 </label>
               ))}
@@ -463,7 +708,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {([["PUBLIC", "Public — findable by anyone"], ["UNLISTED", "Unlisted — only people with the link"], ["PRIVATE", "Private — invite only"]] as const).map(([val, label]) => (
                 <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                  <input type="radio" checked={visibility === val} onChange={() => setVisibility(val)} style={{ accentColor: t.accent }} />
+                  <input type="radio" checked={visibility === val} onChange={() => { setVisibility(val); triggerSaveSettings({ visibility: val }); }} style={{ accentColor: t.accent }} />
                   <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
                 </label>
               ))}
@@ -471,23 +716,39 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
           </div>
           <div>
             <Label t={t}>Event password (optional)</Label>
-            <input type="text" placeholder="Leave blank for no password" value={password} onChange={(e) => setPassword(e.target.value)} style={S.inp} autoComplete="off" />
+            <input
+              type="text"
+              placeholder="Leave blank for no password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => {
+                triggerSaveSettings({ password: password.trim() || null });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  triggerSaveSettings({ password: password.trim() || null });
+                  e.currentTarget.blur();
+                }
+              }}
+              style={S.inp}
+              autoComplete="off"
+            />
             {password && <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
           </div>
         </Section>
 
         {/* ── Auto-Reminders ── */}
-        <Section title="Auto-Reminders" onSave={saveReminders} saved={saved === "reminders"} isPending={isPending} t={t}>
+        <Section title="Auto-Reminders" t={t}>
           <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "16px" }}>
             Reminders are sent to guests who provided their email or phone number.
           </div>
           <div style={{ marginBottom: "20px" }}>
             <Label t={t}>Email reminders</Label>
-            <Toggle label="1 week before" value={emailWeekBefore} onChange={setEmailWeekBefore} t={t} />
-            <Toggle label="1 day before" value={emailDayBefore} onChange={setEmailDayBefore} t={t} />
+            <Toggle label="1 week before" value={emailWeekBefore} onChange={(val) => { setEmailWeekBefore(val); triggerSaveReminders({ emailWeekBefore: val }); }} t={t} />
+            <Toggle label="1 day before" value={emailDayBefore} onChange={(val) => { setEmailDayBefore(val); triggerSaveReminders({ emailDayBefore: val }); }} t={t} />
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
               <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
-              <select value={emailHoursBefore} onChange={(e) => setEmailHoursBefore(Number(e.target.value))} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: base === "DARK" ? "dark" : "light" }}>
+              <select value={emailHoursBefore} onChange={(e) => { const val = Number(e.target.value); setEmailHoursBefore(val); triggerSaveReminders({ emailHoursBefore: val }); }} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", cursor: "pointer" }}>
                 <option value={0}>Off</option>
                 <option value={1}>1 hour</option>
                 <option value={2}>2 hours</option>
@@ -497,28 +758,28 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
           </div>
           <div style={{ marginBottom: "20px" }}>
             <Label t={t}>SMS reminders</Label>
-            <Toggle label="1 week before" value={smsWeekBefore} onChange={setSmsWeekBefore} t={t} />
-            <Toggle label="1 day before" value={smsDayBefore} onChange={setSmsDayBefore} t={t} />
+            <Toggle label="1 week before" value={smsWeekBefore} onChange={(val) => { setSmsWeekBefore(val); triggerSaveReminders({ smsWeekBefore: val }); }} t={t} />
+            <Toggle label="1 day before" value={smsDayBefore} onChange={(val) => { setSmsDayBefore(val); triggerSaveReminders({ smsDayBefore: val }); }} t={t} />
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
               <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
-              <select value={smsHoursBefore} onChange={(e) => setSmsHoursBefore(Number(e.target.value))} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: base === "DARK" ? "dark" : "light" }}>
+              <select value={smsHoursBefore} onChange={(e) => { const val = Number(e.target.value); setSmsHoursBefore(val); triggerSaveReminders({ smsHoursBefore: val }); }} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", cursor: "pointer" }}>
                 <option value={0}>Off</option>
                 <option value={1}>1 hour</option>
                 <option value={2}>2 hours</option>
               </select>
             </div>
           </div>
-          <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={setNudgeUnresponded} t={t} />
-          <Toggle label="Post-event photo upload prompt" value={postEventPrompt} onChange={setPostEventPrompt} t={t} />
+          <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={(val) => { setNudgeUnresponded(val); triggerSaveReminders({ nudgeUnresponded: val }); }} t={t} />
+          <Toggle label="Post-event photo upload prompt" value={postEventPrompt} onChange={(val) => { setPostEventPrompt(val); triggerSaveReminders({ postEventPrompt: val }); }} t={t} />
         </Section>
 
-        {err && <div style={{ color: "#f87171", fontSize: "13px", textAlign: "center" }}>{err}</div>}
+        {err && <div style={{ color: "#f87171", fontSize: "13px", textAlign: "center", marginTop: "16px" }}>{err}</div>}
       </div>
     </div>
   );
 }
 
-// ── Sub-components ───────────────────────────────────────────────
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
 function Label({ children, t }: { children: React.ReactNode; t: ResolvedTheme }) {
   return <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.textMuted, marginBottom: "10px" }}>{children}</div>;
@@ -529,23 +790,16 @@ function Toggle({ label, value, onChange, t }: { label: string; value: boolean; 
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
       <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
       <button onClick={() => onChange(!value)} style={{ width: "44px", height: "24px", borderRadius: "100px", cursor: "pointer", background: value ? t.accent : t.inputBg, border: `1px solid ${t.inputBorder}`, position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <span style={{ position: "absolute", top: "2px", left: value ? "22px" : "2px", width: "18px", height: "18px", borderRadius: "50%", background: value ? t.accentFg : t.textSecondary, transition: "left 0.2s" }} />
+        <span style={{ position: "absolute", top: "3px", left: value ? "23px" : "3px", width: "18px", height: "18px", borderRadius: "50%", background: value ? t.accentFg : t.textSecondary, transition: "left 0.2s" }} />
       </button>
     </div>
   );
 }
 
-function Section({ title, children, onSave, saved, isPending, noSave, t }: { title: string; children: React.ReactNode; onSave?: () => void; saved?: boolean; isPending?: boolean; noSave?: boolean; t: ResolvedTheme }) {
+function Section({ title, children, t }: { title: string; children: React.ReactNode; t: ResolvedTheme }) {
   return (
     <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "20px", marginBottom: "16px", boxShadow: t.cardShadow, backdropFilter: "blur(12px)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-        <h2 style={{ fontSize: "15px", fontWeight: 700, color: t.textPrimary }}>{title}</h2>
-        {!noSave && onSave && (
-          <button onClick={onSave} disabled={isPending} style={{ padding: "6px 16px", background: saved ? "#22c55e" : t.accent, color: t.accentFg, border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: "4px", transition: "background 0.2s" }}>
-            {saved ? <><Check size={13} /> Saved</> : isPending ? "Saving…" : "Save"}
-          </button>
-        )}
-      </div>
+      <h2 style={{ fontSize: "15px", fontWeight: 700, color: t.textPrimary, marginBottom: "20px" }}>{title}</h2>
       {children}
     </div>
   );

@@ -332,7 +332,7 @@ describe("updateRSVP", () => {
     expect(result).toEqual({ success: true });
     expect(mockRsvpUpdate).toHaveBeenCalledWith({
       where: { editToken: EDIT_TOKEN },
-      data: { status: "MAYBE", plusOneCount: 1 },
+      data: { status: "MAYBE", plusOneCount: 1, responded: true },
     });
   });
 
@@ -888,7 +888,14 @@ describe("addPotluckItem", () => {
   it("persists the label", async () => {
     await addPotluckItem(EVENT_ID, "Dessert");
     expect(mockPotluckItemCreate).toHaveBeenCalledWith({
-      data: { eventId: EVENT_ID, label: "Dessert" },
+      data: { eventId: EVENT_ID, label: "Dessert", quantity: 1 },
+    });
+  });
+
+  it("persists custom quantity when provided", async () => {
+    await addPotluckItem(EVENT_ID, "Chairs", 5);
+    expect(mockPotluckItemCreate).toHaveBeenCalledWith({
+      data: { eventId: EVENT_ID, label: "Chairs", quantity: 5 },
     });
   });
 
@@ -959,6 +966,15 @@ describe("claimPotluckItem", () => {
     }));
   });
 
+  it("persists custom claimedQty when provided", async () => {
+    const result = await claimPotluckItem(ITEM_ID, "Alice", 3);
+    expect(result).toMatchObject({ success: true });
+    expect(mockPotluckItemUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: ITEM_ID },
+      data: expect.objectContaining({ claimedBy: "Alice", claimedAt: expect.any(Date), claimedQty: 3 }),
+    }));
+  });
+
   it("returns error when item is not found", async () => {
     mockPotluckItemFindUnique.mockResolvedValue(null);
     const result = await claimPotluckItem(ITEM_ID, "Alice");
@@ -988,30 +1004,51 @@ describe("unclaimPotluckItem", () => {
   const ITEM_ID = "item-1";
 
   beforeEach(() => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
     mockPotluckItemFindUnique.mockResolvedValue({
       claimedBy: "Alice",
-      event: { slug: EVENT_SLUG },
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
     });
     mockPotluckItemUpdate.mockResolvedValue({});
   });
 
-  it("clears claimedBy and returns success", async () => {
+  it("clears claimedBy, claimedAt, and claimedQty and returns success", async () => {
     const result = await unclaimPotluckItem(ITEM_ID, "Alice");
     expect(result).toMatchObject({ success: true });
     expect(mockPotluckItemUpdate).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: ITEM_ID },
-      data: { claimedBy: null, claimedAt: null },
+      data: { claimedBy: null, claimedAt: null, claimedQty: null },
     }));
   });
 
-  it("returns error when the name does not match the claimer", async () => {
+  it("returns error when the name does not match the claimer and caller is not host", async () => {
     const result = await unclaimPotluckItem(ITEM_ID, "Bob");
     expect(result).toEqual({ success: false, error: "Not your claim" });
     expect(mockPotluckItemUpdate).not.toHaveBeenCalled();
   });
 
+  it("allows host to unclaim another guest's claim", async () => {
+    mockGetSession.mockResolvedValue({ userId: HOST_ID, email: "host@example.com" });
+    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    expect(result).toMatchObject({ success: true });
+    expect(mockPotluckItemUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: ITEM_ID },
+      data: { claimedBy: null, claimedAt: null, claimedQty: null },
+    }));
+  });
+
+  it("allows co-host to unclaim another guest's claim", async () => {
+    mockGetSession.mockResolvedValue({ userId: "cohost-id", email: "cohost@example.com" });
+    mockPotluckItemFindUnique.mockResolvedValue({
+      claimedBy: "Alice",
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: "cohost-id" }] },
+    });
+    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    expect(result).toMatchObject({ success: true });
+  });
+
   it("returns error when item is unclaimed (claimedBy is null)", async () => {
-    mockPotluckItemFindUnique.mockResolvedValue({ claimedBy: null, event: { slug: EVENT_SLUG } });
+    mockPotluckItemFindUnique.mockResolvedValue({ claimedBy: null, event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] } });
     const result = await unclaimPotluckItem(ITEM_ID, "Alice");
     expect(result).toEqual({ success: false, error: "Not your claim" });
   });

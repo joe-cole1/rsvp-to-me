@@ -2,13 +2,19 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, destroySession } from "@/lib/session";
 import { generateUniqueSlug } from "@/lib/slug";
 import { tzLocalToUtc } from "@/lib/utils";
 
 export async function createEvent(formData: FormData) {
   const session = await getSession();
   if (!session || session.role === "GUEST") throw new Error("Unauthorized");
+
+  const userExists = await db.user.findUnique({ where: { id: session.userId } });
+  if (!userExists) {
+    await destroySession();
+    redirect("/auth/sign-in");
+  }
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string | null;

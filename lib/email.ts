@@ -46,9 +46,9 @@ export async function sendMagicLinkEmail(to: string, magicLink: string) {
 
 export async function sendEventInviteEmail(
   to: string,
-  opts: { guestName: string; hostName: string; eventTitle: string; eventSlug: string; startAt: Date; locationName?: string | null }
+  opts: { guestName: string; hostName: string; eventTitle: string; eventSlug: string; startAt: Date; locationName?: string | null; inviteLink?: string }
 ) {
-  const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
+  const eventUrl = opts.inviteLink ?? `${APP_URL}/e/${opts.eventSlug}`;
   const dateStr = opts.startAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   return send({
     to,
@@ -62,6 +62,31 @@ export async function sendEventInviteEmail(
         <a href="${eventUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:8px">
           RSVP Now
         </a>
+      </div>
+    `,
+  });
+}
+
+export async function sendApprovalEmail(
+  to: string,
+  opts: { guestName: string; eventTitle: string; eventSlug: string; approved: boolean; message?: string }
+) {
+  const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
+  const subject = opts.approved ? `RSVP Approved: ${opts.eventTitle}` : `RSVP Declined: ${opts.eventTitle}`;
+  const statusHtml = opts.approved
+    ? `<h3>Your RSVP is approved!</h3><p>You are officially on the guest list for <strong>${opts.eventTitle}</strong>.</p>`
+    : `<h3>RSVP Declined</h3><p>We're sorry, but the host has declined your RSVP for <strong>${opts.eventTitle}</strong>.</p>`;
+  const messageHtml = opts.message
+    ? `<div style="margin-top:16px;padding:12px;background:#f3f4f6;border-radius:8px;color:#333;font-style:italic">Message from the host: &ldquo;${opts.message}&rdquo;</div>`
+    : "";
+  return send({
+    to,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        ${statusHtml}
+        ${messageHtml}
+        ${opts.approved ? `<p style="margin-top:16px"><a href="${eventUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">View Event</a></p>` : ""}
       </div>
     `,
   });

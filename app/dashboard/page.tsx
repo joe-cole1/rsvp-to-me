@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
+import { db } from "@/lib/db";
 import { getDashboardEvents, type DashboardEvent } from "@/app/actions/event";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -9,6 +10,11 @@ import { APP_SHELL } from "@/lib/theme";
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session || session.role === "GUEST") redirect("/auth/sign-in");
+
+  const userExists = await db.user.findUnique({ where: { id: session.userId } });
+  if (!userExists) {
+    redirect("/auth/sign-out");
+  }
 
   const events = await getDashboardEvents();
 

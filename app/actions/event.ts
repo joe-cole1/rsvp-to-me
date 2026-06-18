@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { sendRsvpConfirmationEmail, sendBlastEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast } from "@/lib/sms";
+import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail } from "@/lib/email";
+import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -223,6 +223,7 @@ export async function addRSVP(data: {
       plusOneCount: data.plusOneCount,
       note: data.note || null,
       approved: !event.approvalRequired,
+      responded: true,
       userId,
     },
   });
@@ -312,6 +313,7 @@ export async function saveEventSettings(
     commentsEnabled?: boolean;
     plusOneAllowed?: boolean;
     plusOneMax?: number;
+    plusOneNamesRequired?: boolean;
     approvalRequired?: boolean;
     rsvpDeadline?: string | null;
     capacity?: number | null;
@@ -321,8 +323,9 @@ export async function saveEventSettings(
     questionnaireEnabled?: boolean;
     showTimestamps?: boolean;
     password?: string | null;
+    guestSharingEnabled?: boolean;
   }
-) {
+): Promise<{ success: boolean; error?: string }> {
   const event = await assertHost(eventId);
   await db.event.update({
     where: { id: eventId },
@@ -333,6 +336,7 @@ export async function saveEventSettings(
   });
   revalidatePath(`/e/${event.slug}`);
   revalidatePath(`/e/${event.slug}/settings`);
+  return { success: true };
 }
 
 // ── RSVP edit (guest) ─────────────────────────────────────────────────────────
@@ -352,6 +356,7 @@ export async function updateRSVP(
     data: {
       status: data.status,
       plusOneCount: data.plusOneCount,
+      responded: true,
       ...(data.note !== undefined && { note: data.note || null }),
     },
   });
@@ -536,33 +541,68 @@ export async function saveCoverImage(eventId: string, url: string) {
 
 // ── RSVP approval ─────────────────────────────────────────────────────────────
 
-export async function approveRsvp(rsvpId: string) {
+export async function approveRsvp(rsvpId: string, message?: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
   if (!isOwner && !isCohost) throw new Error("Forbidden");
+  
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
+
+  if (rsvp.guestEmail) {
+    await sendApprovalEmail(rsvp.guestEmail, {
+      guestName: rsvp.guestName,
+      eventTitle: rsvp.event.title,
+      eventSlug: rsvp.event.slug,
+      approved: true,
+      message,
+    }).catch(() => {});
+  } else if (rsvp.guestPhone) {
+    await sendApprovalSms(rsvp.guestPhone, {
+      eventTitle: rsvp.event.title,
+      approved: true,
+      message,
+    }).catch(() => {});
+  }
+
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true };
 }
 
-export async function declineRsvp(rsvpId: string) {
+export async function declineRsvp(rsvpId: string, message?: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
   if (!isOwner && !isCohost) throw new Error("Forbidden");
+
+  if (rsvp.guestEmail) {
+    await sendApprovalEmail(rsvp.guestEmail, {
+      guestName: rsvp.guestName,
+      eventTitle: rsvp.event.title,
+      eventSlug: rsvp.event.slug,
+      approved: false,
+      message,
+    }).catch(() => {});
+  } else if (rsvp.guestPhone) {
+    await sendApprovalSms(rsvp.guestPhone, {
+      eventTitle: rsvp.event.title,
+      approved: false,
+      message,
+    }).catch(() => {});
+  }
+
   await db.rSVP.delete({ where: { id: rsvpId } });
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true };
@@ -631,9 +671,9 @@ export async function deleteEventUpdate(updateId: string) {
 
 // ── Potluck ───────────────────────────────────────────────────────────────────
 
-export async function addPotluckItem(eventId: string, label: string) {
+export async function addPotluckItem(eventId: string, label: string, quantity: number = 1) {
   const event = await assertHost(eventId);
-  const item = await db.potluckItem.create({ data: { eventId, label } });
+  const item = await db.potluckItem.create({ data: { eventId, label, quantity } });
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: item.id };
 }
@@ -649,7 +689,7 @@ export async function removePotluckItem(itemId: string) {
   revalidatePath(`/e/${item.event.slug}`);
 }
 
-export async function claimPotluckItem(itemId: string, guestName: string) {
+export async function claimPotluckItem(itemId: string, guestName: string, claimedQty: number = 1) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
     select: { claimedBy: true, label: true, eventId: true, event: { select: { slug: true } } },
@@ -658,9 +698,10 @@ export async function claimPotluckItem(itemId: string, guestName: string) {
   if (item.claimedBy) return { success: false, error: "Already claimed" };
   await db.potluckItem.update({
     where: { id: itemId },
-    data: { claimedBy: guestName, claimedAt: new Date() },
+    data: { claimedBy: guestName, claimedAt: new Date(), claimedQty },
   });
-  const activityEvent = await logActivity(item.eventId, "potluck_claim", `${guestName} is bringing: ${item.label}`, guestName).catch(() => null);
+  const qtyStr = claimedQty > 1 ? ` (x${claimedQty})` : "";
+  const activityEvent = await logActivity(item.eventId, "potluck_claim", `${guestName} is bringing${qtyStr}: ${item.label}`, guestName).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true, activityEvent };
 }
@@ -668,12 +709,26 @@ export async function claimPotluckItem(itemId: string, guestName: string) {
 export async function unclaimPotluckItem(itemId: string, guestName: string) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
-    select: { claimedBy: true, label: true, eventId: true, event: { select: { slug: true } } },
+    select: {
+      claimedBy: true,
+      label: true,
+      eventId: true,
+      event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } },
+    },
   });
-  if (!item || item.claimedBy !== guestName) return { success: false, error: "Not your claim" };
+  if (!item) return { success: false, error: "Item not found" };
+
+  const session = await getSession();
+  const isHost = item.event.hostId === session?.userId;
+  const isCohost = item.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+
+  if (!isHost && !isCohost && item.claimedBy !== guestName) {
+    return { success: false, error: "Not your claim" };
+  }
+
   await db.potluckItem.update({
     where: { id: itemId },
-    data: { claimedBy: null, claimedAt: null },
+    data: { claimedBy: null, claimedAt: null, claimedQty: null },
   });
   const activityEvent = await logActivity(item.eventId, "potluck_unclaim", `${guestName} won't bring: ${item.label}`, guestName).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
@@ -840,4 +895,76 @@ export async function getRsvpFieldAnswers(fieldId: string) {
   const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
   if (!isOwner && !isCohost) throw new Error("Forbidden");
   return field.answers.map((a: { value: string; rsvp: { guestName: string } }) => ({ guestName: a.rsvp.guestName, value: a.value }));
+}
+
+export async function inviteGuest(eventId: string, emailOrPhone: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  const event = await assertHost(eventId);
+
+  const cleanInput = emailOrPhone.trim();
+  const isEmail = cleanInput.includes("@");
+
+  let user = await db.user.findFirst({
+    where: isEmail ? { email: cleanInput } : { phone: cleanInput },
+  });
+  if (!user) {
+    user = await db.user.create({
+      data: isEmail
+        ? { email: cleanInput, role: "GUEST" }
+        : { phone: cleanInput, role: "GUEST" },
+    });
+  }
+
+  let rsvp = await db.rSVP.findFirst({
+    where: { eventId, userId: user.id },
+  });
+
+  if (!rsvp) {
+    const namePrefix = isEmail ? cleanInput.split("@")[0] : cleanInput;
+    rsvp = await db.rSVP.create({
+      data: {
+        eventId,
+        guestName: namePrefix,
+        guestEmail: isEmail ? cleanInput : null,
+        guestPhone: isEmail ? null : cleanInput,
+        status: "GOING",
+        responded: false,
+        approved: true,
+        userId: user.id,
+      },
+    });
+  }
+
+  await db.invitation.create({
+    data: {
+      eventId,
+      sentTo: cleanInput,
+      channel: isEmail ? "EMAIL" : "SMS",
+      rsvpId: rsvp.id,
+    },
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const inviteLink = `${appUrl}/e/${event.slug}?token=${rsvp.editToken}`;
+
+  if (isEmail) {
+    const eventDetails = await db.event.findUnique({
+      where: { id: eventId },
+      select: { title: true, locationName: true },
+    });
+    await sendEventInviteEmail(cleanInput, {
+      guestName: rsvp.guestName,
+      hostName: session.email ? session.email.split("@")[0] : "Your Host",
+      eventTitle: eventDetails?.title ?? "Event",
+      eventSlug: event.slug,
+      startAt: new Date(),
+      locationName: eventDetails?.locationName ?? "TBD",
+      inviteLink,
+    });
+  } else {
+    await sendMagicLinkSms(cleanInput, inviteLink);
+  }
+
+  return { success: true, emailOrPhone: cleanInput };
 }
