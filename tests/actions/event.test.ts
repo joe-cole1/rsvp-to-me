@@ -27,6 +27,11 @@ const {
   mockPotluckItemDelete,
   mockInvitationCreateMany,
   mockGetSession,
+  mockUserFindFirst,
+  mockUserCreate,
+  mockInvitationCreate,
+  mockRsvpFindFirst,
+  mockInvitationFindFirst,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
   mockEventUpdate: vi.fn(),
@@ -51,16 +56,23 @@ const {
   mockPotluckItemDelete: vi.fn(),
   mockInvitationCreateMany: vi.fn().mockResolvedValue({ count: 0 }),
   mockGetSession: vi.fn(),
+  mockUserFindFirst: vi.fn(),
+  mockUserCreate: vi.fn(),
+  mockInvitationCreate: vi.fn(),
+  mockRsvpFindFirst: vi.fn(),
+  mockInvitationFindFirst: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
     event: { findUnique: mockEventFindUnique, update: mockEventUpdate },
+    user: { findFirst: mockUserFindFirst, create: mockUserCreate },
     rSVP: {
       create: mockRsvpCreate,
       count: mockRsvpCount,
       findMany: mockRsvpFindMany,
       findUnique: mockRsvpFindUnique,
+      findFirst: mockRsvpFindFirst,
       update: mockRsvpUpdate,
       delete: mockRsvpDelete,
     },
@@ -83,7 +95,7 @@ vi.mock("@/lib/db", () => ({
       update: mockPotluckItemUpdate,
       delete: mockPotluckItemDelete,
     },
-    invitation: { createMany: mockInvitationCreateMany },
+    invitation: { createMany: mockInvitationCreateMany, create: mockInvitationCreate, findFirst: mockInvitationFindFirst },
     activityEvent: { create: vi.fn().mockResolvedValue({}) },
   },
 }));
@@ -93,10 +105,12 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn().mockResolvedValue(undefined),
   sendBlastEmail: vi.fn().mockResolvedValue(undefined),
+  sendEventInviteEmail: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/sms", () => ({
   sendRsvpConfirmationSms: vi.fn().mockResolvedValue(undefined),
   sendSmsBlast: vi.fn().mockResolvedValue(2),
+  sendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
 }));
 
 import {
@@ -120,6 +134,7 @@ import {
   removePotluckItem,
   claimPotluckItem,
   unclaimPotluckItem,
+  inviteGuest,
 } from "@/app/actions/event";
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
@@ -1056,5 +1071,76 @@ describe("unclaimPotluckItem", () => {
   it("revalidates the event page", async () => {
     await unclaimPotluckItem(ITEM_ID, "Alice");
     expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
+  });
+});
+
+describe("inviteGuest", () => {
+  const INVITE_EMAIL = "newguest@example.com";
+  const INVITE_PHONE = "+15559876543";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    asHost();
+    mockEventFindUnique.mockResolvedValue({ id: EVENT_ID, hostId: HOST_ID, slug: EVENT_SLUG });
+    mockUserFindFirst.mockResolvedValue(null);
+    mockUserCreate.mockResolvedValue({ id: "user-new-id" });
+    mockRsvpFindFirst.mockResolvedValue(null);
+    mockRsvpCreate.mockResolvedValue({ id: "rsvp-new-id", editToken: "token-new", guestName: "newguest" });
+    mockInvitationFindFirst.mockResolvedValue(null);
+  });
+
+  it("throws error if unauthorized", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(inviteGuest(EVENT_ID, INVITE_EMAIL)).rejects.toThrow("Unauthorized");
+  });
+
+  it("sends an email invite for email inputs", async () => {
+    const { sendEventInviteEmail } = await import("@/lib/email");
+    const result = await inviteGuest(EVENT_ID, INVITE_EMAIL);
+
+    expect(result).toEqual({ success: true, emailOrPhone: INVITE_EMAIL });
+    expect(mockUserCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: { email: INVITE_EMAIL, role: "GUEST" }
+    }));
+    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        guestEmail: INVITE_EMAIL,
+        userId: "user-new-id"
+      })
+    }));
+    expect(mockInvitationCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: { eventId: EVENT_ID, sentTo: INVITE_EMAIL, channel: "EMAIL", rsvpId: "rsvp-new-id" }
+    }));
+    expect(sendEventInviteEmail).toHaveBeenCalled();
+  });
+
+  it("sends an SMS invite for phone inputs", async () => {
+    const { sendMagicLinkSms } = await import("@/lib/sms");
+    const result = await inviteGuest(EVENT_ID, INVITE_PHONE);
+
+    expect(result).toEqual({ success: true, emailOrPhone: INVITE_PHONE });
+    expect(mockUserCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: { phone: INVITE_PHONE, role: "GUEST" }
+    }));
+    expect(mockInvitationCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: { eventId: EVENT_ID, sentTo: INVITE_PHONE, channel: "SMS", rsvpId: "rsvp-new-id" }
+    }));
+    expect(sendMagicLinkSms).toHaveBeenCalled();
+  });
+
+  it("handles mixed comma-separated entries with some valid and some invalid", async () => {
+    const { sendEventInviteEmail } = await import("@/lib/email");
+    const { sendMagicLinkSms } = await import("@/lib/sms");
+
+    const result = await inviteGuest(EVENT_ID, `${INVITE_EMAIL}, invalid_entry, ${INVITE_PHONE}`);
+
+    expect(result.success).toBe(true);
+    expect(result.emailOrPhone).toContain(INVITE_EMAIL);
+    expect(result.emailOrPhone).toContain(INVITE_PHONE);
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.[0]).toContain("Invalid phone");
+
+    expect(sendEventInviteEmail).toHaveBeenCalled();
+    expect(sendMagicLinkSms).toHaveBeenCalled();
   });
 });

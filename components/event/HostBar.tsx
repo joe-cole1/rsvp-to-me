@@ -180,7 +180,7 @@ export function HostBar({
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
             Share the event link or send invites directly.
           </p>
-          <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", marginBottom: "12px", wordBreak: "break-all" }}>
+          <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", marginBottom: "12px", wordBreak: "break-all", color: "rgba(255,255,255,0.9)" }}>
             {typeof window !== "undefined" ? window.location.href : ""}
           </div>
           <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
@@ -213,7 +213,7 @@ export function HostBar({
             <div style={{ display: "flex", gap: "8px" }}>
               <input
                 type="text"
-                placeholder="email@domain.com or +1234567890"
+                placeholder="emails or phones (e.g. tom@mail.com, +1555123...)"
                 value={inviteInput}
                 onChange={(e) => setInviteInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSendInvite(); }}
@@ -415,6 +415,7 @@ function SlideUp({ children, onClose, onOpen, title }: { children: React.ReactNo
           padding: "24px 20px 40px",
           maxWidth: "480px",
           margin: "0 auto",
+          color: "#fff",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>

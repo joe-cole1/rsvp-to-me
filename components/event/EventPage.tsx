@@ -35,6 +35,7 @@ import type { ResolvedTheme } from "@/lib/theme";
 import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
+import QRCode from "qrcode";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -858,10 +859,25 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showShareQr, setShowShareQr] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [activeApproval, setActiveApproval] = useState<{ rsvpId: string; type: "APPROVE" | "DECLINE"; guestName: string } | null>(null);
   const [approvalMessage, setApprovalMessage] = useState("");
   const [newPotluckQty, setNewPotluckQty] = useState(1);
   const [claimQty, setClaimQty] = useState(1);
+
+  useEffect(() => {
+    if (showShareQr && typeof window !== "undefined") {
+      QRCode.toDataURL(window.location.origin + `/e/${event.slug}`, {
+        width: 200,
+        margin: 1,
+        color: { dark: "#000000", light: "#ffffff" }
+      })
+        .then((url) => setQrDataUrl(url))
+        .catch((err) => console.error("Error generating QR code:", err));
+    } else if (!showShareQr) {
+      setQrDataUrl(null);
+    }
+  }, [showShareQr, event.slug]);
 
   const t = theme;
 
@@ -1933,17 +1949,24 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           <div style={{
             background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius,
             padding: "24px", width: "100%", maxWidth: "320px", backdropFilter: "blur(20px)",
-            textAlign: "center", boxShadow: t.cardShadow || "0 10px 40px rgba(0,0,0,0.3)"
+            textAlign: "center", boxShadow: t.cardShadow || "0 10px 40px rgba(0,0,0,0.3)",
+            color: t.textPrimary
           }}>
             <h3 style={{ fontSize: "18px", fontWeight: 800, color: t.textPrimary, margin: "0 0 16px" }}>Event QR Code</h3>
             <div style={{ background: "#fff", padding: "16px", borderRadius: "16px", display: "inline-block", marginBottom: "16px" }}>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin + `/e/${event.slug}` : "")}`}
-                alt="Event QR Code"
-                width={200}
-                height={200}
-                style={{ display: "block" }}
-              />
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="Event QR Code"
+                  width={200}
+                  height={200}
+                  style={{ display: "block" }}
+                />
+              ) : (
+                <div style={{ width: 200, height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "#1c1917", fontSize: "13px", fontWeight: 600 }}>
+                  Generating QR…
+                </div>
+              )}
             </div>
             <button
               onClick={() => setShowShareQr(false)}

@@ -226,7 +226,6 @@ describe("getDashboardActivity", () => {
         eventId: { in: ["e1", "e2"] },
       },
       orderBy: { createdAt: "desc" },
-      take: 10,
       include: {
         event: {
           select: {

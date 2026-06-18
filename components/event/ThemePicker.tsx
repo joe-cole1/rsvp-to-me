@@ -52,6 +52,7 @@ export function ThemePicker({
             width: "100%",
             maxWidth: "480px",
             pointerEvents: "auto",
+            color: "#fff",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>

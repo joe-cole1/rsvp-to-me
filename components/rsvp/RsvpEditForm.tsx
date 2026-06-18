@@ -98,7 +98,7 @@ export function RsvpEditForm({
               : "Sorry you can't make it."}
           </p>
           <a
-            href={`/e/${event.slug}`}
+            href={`/e/${event.slug}?token=${rsvp.editToken}`}
             style={{ ...S.btn, display: "block", textDecoration: "none", textAlign: "center" as const }}
           >
             View Event
@@ -181,7 +181,7 @@ export function RsvpEditForm({
           {isPending ? "Saving…" : "Save RSVP"}
         </button>
         <p style={{ textAlign: "center", marginTop: "12px" }}>
-          <a href={`/e/${event.slug}`} style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none" }}>
+          <a href={`/e/${event.slug}?token=${rsvp.editToken}`} style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none" }}>
             Back to event →
           </a>
         </p>
