@@ -1,6 +1,30 @@
 import "dotenv/config";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "../app/generated/prisma/client";
+import { UserModel, EventModel, RSVPFieldModel, RSVPModel } from "../app/generated/prisma/models";
+
+interface EventTemplate {
+  title: string;
+  description: string;
+  startAt: Date;
+  locationType: "PHYSICAL" | "VIRTUAL" | "TBD";
+  locationName?: string;
+  locationAddress?: string;
+  virtualUrl?: string;
+  capacity?: number;
+  visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  status: "DRAFT" | "PUBLISHED" | "CANCELLED";
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string };
+  plusOneAllowed: boolean;
+  plusOneMax?: number;
+  plusOneNamesRequired?: boolean;
+  commentsEnabled: boolean;
+  maybeEnabled: boolean;
+  questionnaireEnabled: boolean;
+  cohost?: boolean;
+  infoSections?: { type: string; content: string; order: number }[];
+  potluck?: { label: string; quantity: number }[];
+}
 
 const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
 const libsqlUrl = url.replace(/^file:\/\//, "file:").replace(/^(?!file:|libsql:|https?:)/, "file:");
@@ -88,7 +112,7 @@ async function main() {
     { email: "guest20@test.com", name: "Tina Fey" },
   ];
 
-  const guests: any[] = [];
+  const guests: UserModel[] = [];
   for (const data of guestUsersData) {
     const u = await db.user.upsert({
       where: { email: data.email },
@@ -384,7 +408,7 @@ async function main() {
   console.log("Rich test data seeding complete!");
 }
 
-async function seedRsvpsAndRelatedData(event: any, eventTemp: any, guests: any[]) {
+async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTemplate, guests: UserModel[]) {
   const now = new Date();
   let numGuests = 8;
   if (eventTemp.title.includes("BBQ")) numGuests = 16;
@@ -400,7 +424,7 @@ async function seedRsvpsAndRelatedData(event: any, eventTemp: any, guests: any[]
   const eventGuests = guests.slice(0, numGuests);
 
   // Handle Questionnaire fields
-  let rsvpFields: any[] = [];
+  let rsvpFields: RSVPFieldModel[] = [];
   if (eventTemp.questionnaireEnabled) {
     const field1 = await db.rSVPField.create({
       data: {
@@ -430,7 +454,7 @@ async function seedRsvpsAndRelatedData(event: any, eventTemp: any, guests: any[]
   });
   let potluckItemIdx = 0;
 
-  const rsvps: any[] = [];
+  const rsvps: RSVPModel[] = [];
   const guestComments: { name: string; body: string; rsvpId?: string }[] = [];
 
   for (let i = 0; i < eventGuests.length; i++) {
@@ -447,9 +471,9 @@ async function seedRsvpsAndRelatedData(event: any, eventTemp: any, guests: any[]
     let plusOneCount = 0;
     if (status === "GOING" && eventTemp.plusOneAllowed) {
       if (i % 3 === 1) {
-        plusOneCount = Math.min(1, eventTemp.plusOneMax);
+        plusOneCount = Math.min(1, eventTemp.plusOneMax ?? 1);
       } else if (i % 6 === 0) {
-        plusOneCount = Math.min(2, eventTemp.plusOneMax);
+        plusOneCount = Math.min(2, eventTemp.plusOneMax ?? 2);
       }
     }
 
@@ -477,7 +501,7 @@ async function seedRsvpsAndRelatedData(event: any, eventTemp: any, guests: any[]
     const rsvp = await db.rSVP.create({
       data: {
         eventId: event.id,
-        guestName: guestUser.name,
+        guestName: guestUser.name ?? "Guest",
         guestEmail: guestUser.email,
         status,
         plusOneCount,
@@ -496,7 +520,7 @@ async function seedRsvpsAndRelatedData(event: any, eventTemp: any, guests: any[]
         await db.plusOneGuest.create({
           data: {
             rsvpId: rsvp.id,
-            name: `${guestUser.name}'s Guest ${pIdx + 1}`,
+            name: `${guestUser.name ?? "Guest"}'s Guest ${pIdx + 1}`,
             order: pIdx,
           }
         });
@@ -550,7 +574,7 @@ async function seedRsvpsAndRelatedData(event: any, eventTemp: any, guests: any[]
         "Should we bring our own drinks?",
       ];
       guestComments.push({
-        name: guestUser.name,
+        name: guestUser.name ?? "Guest",
         body: commentPool[i % commentPool.length],
         rsvpId: rsvp.id,
       });

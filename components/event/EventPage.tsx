@@ -2127,6 +2127,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             <h3 style={{ fontSize: "18px", fontWeight: 800, color: t.textPrimary, margin: "0 0 16px" }}>Event QR Code</h3>
             <div style={{ background: "#fff", padding: "16px", borderRadius: "16px", display: "inline-block", marginBottom: "16px" }}>
               {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={qrDataUrl}
                   alt="Event QR Code"
