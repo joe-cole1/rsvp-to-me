@@ -854,10 +854,12 @@ type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GO
 
 export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string } | null }) {
   const [event, setEvent] = useState(initial);
+  const [prevInitial, setPrevInitial] = useState(initial);
 
-  useEffect(() => {
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
     setEvent(initial);
-  }, [initial]);
+  }
 
   const [guestName] = useState(guestRsvp?.guestName ?? "");
   const [guestRsvpId] = useState<string | null>(guestRsvp?.id ?? null);
