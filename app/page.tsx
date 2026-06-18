@@ -21,7 +21,7 @@ export default async function Home() {
             WebkitTextFillColor: "transparent",
           }}
         >
-          rsvp.to
+          RSVP
         </h1>
         <p style={{ fontSize: "18px", color: APP_SHELL.textSecondary, marginBottom: "40px", lineHeight: 1.6 }}>
           Beautiful, personal event pages for wine nights, dinner parties, and everything in between.

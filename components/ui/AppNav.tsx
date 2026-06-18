@@ -7,13 +7,13 @@ const navBase: React.CSSProperties = {
   alignItems: "center",
 };
 
-export function AppNavLogo({ trailing }: { trailing?: React.ReactNode }) {
+export function AppNavLogo({ href = "/", trailing }: { href?: string; trailing?: React.ReactNode }) {
   return (
     <nav style={{ ...navBase, justifyContent: "space-between" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <a href={href} style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "inherit" }}>
         <span style={{ fontSize: "22px" }}>🎉</span>
-        <span style={{ fontSize: "17px", fontWeight: 800 }}>rsvp.to</span>
-      </div>
+        <span style={{ fontSize: "17px", fontWeight: 800 }}>RSVP</span>
+      </a>
       {trailing}
     </nav>
   );

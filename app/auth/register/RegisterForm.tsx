@@ -54,7 +54,7 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
       <div style={{ width: "100%", maxWidth: "400px" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
-          <h1 style={{ color: APP_SHELL.textPrimary, fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>rsvp.to</h1>
+          <h1 style={{ color: APP_SHELL.textPrimary, fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>RSVP</h1>
           <p style={{ color: APP_SHELL.textSecondary, fontSize: "15px" }}>Create an account</p>
         </div>
 
