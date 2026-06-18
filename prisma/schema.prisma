@@ -397,6 +397,8 @@ model Poll {
   question         String
   multiChoice      Boolean      @default(false)
   allowGuestsToAdd Boolean      @default(true)
+  locked           Boolean      @default(false)
+  hideVoters       Boolean      @default(false)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
