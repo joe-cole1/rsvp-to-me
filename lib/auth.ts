@@ -44,6 +44,18 @@ export async function createMagicLink(identifier: string): Promise<string | null
   return `${appUrl}/auth/verify?token=${token}`;
 }
 
+export async function isOpenRegistrationActive(): Promise<boolean> {
+  try {
+    const config = await db.systemConfig.findUnique({ where: { key: "open_registration" } });
+    if (config) {
+      return config.value === "true";
+    }
+  } catch (err) {
+    console.warn("[auth] Failed to check system config from DB, falling back to env:", err);
+  }
+  return process.env.OPEN_REGISTRATION === "true";
+}
+
 export async function verifyMagicToken(token: string): Promise<boolean> {
   const record = await db.magicToken.findUnique({ where: { token } });
 
@@ -56,12 +68,85 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) return false;
 
+  let role = user.role;
+  const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
+  if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
+    await db.user.update({
+      where: { id: user.id },
+      data: { role: "ADMIN" },
+    });
+    role = "ADMIN";
+  }
+
   await createSession({
     userId: user.id,
     email: user.email ?? user.phone ?? "",
-    role: user.role as "HOST" | "ADMIN" | "GUEST",
+    role: role as "HOST" | "ADMIN" | "GUEST",
   });
   return true;
+}
+
+export async function verifyChangeToken(
+  token: string
+): Promise<{ success: boolean; error?: string; type?: "EMAIL" | "PHONE"; newValue?: string }> {
+  const record = await db.magicToken.findUnique({ where: { token } });
+
+  if (!record || record.used || record.expiresAt < new Date()) {
+    return { success: false, error: "Invalid, used, or expired verification link." };
+  }
+
+  if (record.type === "LOGIN") {
+    return { success: false, error: "This link is for signing in, not for profile updates." };
+  }
+
+  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
+
+  const user = await db.user.findUnique({ where: { id: record.userId } });
+  if (!user) {
+    return { success: false, error: "User not found." };
+  }
+
+  const isEmail = record.type === "EMAIL_CHANGE";
+  const newValue = record.metadata;
+  if (!newValue) {
+    return { success: false, error: "Invalid request metadata." };
+  }
+
+  if (isEmail) {
+    const existing = await db.user.findFirst({ where: { email: newValue, NOT: { id: user.id } } });
+    if (existing) {
+      return { success: false, error: "An account with this email already exists." };
+    }
+    await db.user.update({
+      where: { id: user.id },
+      data: { email: newValue },
+    });
+    await db.rSVP.updateMany({
+      where: { userId: user.id },
+      data: { guestEmail: newValue },
+    });
+  } else {
+    const existing = await db.user.findFirst({ where: { phone: newValue, NOT: { id: user.id } } });
+    if (existing) {
+      return { success: false, error: "An account with this phone number already exists." };
+    }
+    await db.user.update({
+      where: { id: user.id },
+      data: { phone: newValue },
+    });
+    await db.rSVP.updateMany({
+      where: { userId: user.id },
+      data: { guestPhone: newValue },
+    });
+  }
+
+  await createSession({
+    userId: user.id,
+    email: newValue,
+    role: user.role as "HOST" | "ADMIN" | "GUEST",
+  });
+
+  return { success: true, type: isEmail ? "EMAIL" : "PHONE", newValue };
 }
 
 export async function registerHost(
@@ -70,7 +155,7 @@ export async function registerHost(
   inviteCode: string
 ): Promise<{ success: boolean; error?: string }> {
   const normalizedEmail = email.toLowerCase().trim();
-  const openRegistration = process.env.OPEN_REGISTRATION === "true";
+  const openRegistration = await isOpenRegistrationActive();
 
   const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {

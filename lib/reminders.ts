@@ -30,7 +30,17 @@ export async function processReminders(): Promise<void> {
       host: { select: { name: true } },
       rsvps: {
         where: { approved: true },
-        select: { guestEmail: true, guestPhone: true, status: true },
+        select: {
+          guestEmail: true,
+          guestPhone: true,
+          status: true,
+          user: {
+            select: {
+              emailNotifications: true,
+              smsNotifications: true,
+            },
+          },
+        },
       },
       sentReminders: { select: { type: true } },
     },
@@ -41,8 +51,16 @@ export async function processReminders(): Promise<void> {
     const sent = new Set(event.sentReminders.map((r) => r.type));
     const startAt = event.startAt;
 
-    const emails = event.rsvps.flatMap((r) => (r.guestEmail ? [r.guestEmail] : []));
-    const phones = event.rsvps.flatMap((r) => (r.guestPhone ? [r.guestPhone] : []));
+    const emails = event.rsvps.flatMap((r) => {
+      if (!r.guestEmail) return [];
+      if (r.user && !r.user.emailNotifications) return [];
+      return [r.guestEmail];
+    });
+    const phones = event.rsvps.flatMap((r) => {
+      if (!r.guestPhone) return [];
+      if (r.user && !r.user.smsNotifications) return [];
+      return [r.guestPhone];
+    });
     const rsvpEmails = new Set(emails);
     const rsvpPhones = new Set(phones);
 

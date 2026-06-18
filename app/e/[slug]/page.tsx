@@ -68,7 +68,8 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const session = await getSession();
   const isHostOwner = session?.userId === event.hostId;
   const isCohost = event.coHosts.some((ch) => ch.userId === session?.userId);
-  const isHost = !isPreview && (isHostOwner || isCohost);
+  const isAdminModerating = session?.role === "ADMIN" && searchParams?.admin === "1";
+  const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
 
   // Password gate — hosts bypass it
   if (event.password && !isHost && searchParams?.pw !== event.password) {
