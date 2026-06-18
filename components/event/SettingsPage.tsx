@@ -52,6 +52,34 @@ type EventInput = {
   rsvpFields: RsvpFieldEntry[];
 };
 
+interface SettingsOverrides {
+  commentsEnabled?: boolean;
+  plusOneAllowed?: boolean;
+  plusOneMax?: number;
+  plusOneNamesRequired?: boolean;
+  approvalRequired?: boolean;
+  rsvpDeadline?: string | null;
+  capacity?: number | null;
+  guestListVis?: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
+  visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  maybeEnabled?: boolean;
+  questionnaireEnabled?: boolean;
+  showTimestamps?: boolean;
+  password?: string | null;
+  guestSharingEnabled?: boolean;
+}
+
+interface ReminderOverrides {
+  emailWeekBefore?: boolean;
+  emailDayBefore?: boolean;
+  emailHoursBefore?: number;
+  smsWeekBefore?: boolean;
+  smsDayBefore?: boolean;
+  smsHoursBefore?: number;
+  nudgeUnresponded?: boolean;
+  postEventPrompt?: boolean;
+}
+
 export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED" | "ERROR">("IDLE");
@@ -127,7 +155,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       try {
         await saveEventTheme(event.id, newBase, newAccent);
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
         setErr("Failed to save theme settings.");
       }
@@ -135,7 +163,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   };
 
   // ── Settings Auto-Save ──
-  const triggerSaveSettings = (overrides: Partial<any>) => {
+  const triggerSaveSettings = (overrides: SettingsOverrides) => {
     setSaveStatus("SAVING");
     setErr(null);
     const data = {
@@ -163,7 +191,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         } else {
           setSaveStatus("SAVED");
         }
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
         setErr("Failed to save settings.");
       }
@@ -171,7 +199,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   };
 
   // ── Reminders Auto-Save ──
-  const triggerSaveReminders = (overrides: Partial<any>) => {
+  const triggerSaveReminders = (overrides: ReminderOverrides) => {
     setSaveStatus("SAVING");
     setErr(null);
     const data = {
@@ -188,7 +216,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       try {
         await saveReminderSettings(event.id, data);
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
         setErr("Failed to save reminders.");
       }
@@ -213,7 +241,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         }]);
         setCohostEmail("");
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setCohostError("An unexpected error occurred.");
         setSaveStatus("ERROR");
       }
@@ -227,7 +255,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         await removeCoHost(cohostRecordId);
         setCoHosts((prev) => prev.filter((c) => c.id !== cohostRecordId));
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
       }
     });
@@ -266,7 +294,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         } else {
           setSaveStatus("ERROR");
         }
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
       }
     });
@@ -279,7 +307,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         await updateRsvpField(fieldId, { fieldType });
         setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, fieldType } : x));
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
       }
     });
@@ -292,7 +320,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         await updateRsvpField(fieldId, { required });
         setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, required } : x));
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
       }
     });
@@ -307,7 +335,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         await updateRsvpField(fieldId, { label });
         setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, label } : x));
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
       }
     });
@@ -321,7 +349,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         await updateRsvpField(fieldId, { options });
         setFields((prev) => prev.map((x) => x.id === fieldId ? { ...x, options } : x));
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
       }
     });
@@ -334,7 +362,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         await deleteRsvpField(fieldId);
         setFields((prev) => prev.filter((x) => x.id !== fieldId));
         setSaveStatus("SAVED");
-      } catch (e) {
+      } catch {
         setSaveStatus("ERROR");
       }
     });

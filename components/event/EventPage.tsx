@@ -243,6 +243,45 @@ function InlineEdit({
 
 // ── Date/time inline editor ────────────────────────────────────────────────────
 
+const CalendarMenuItem = ({
+  href,
+  children,
+  download,
+  target,
+  rel,
+  onClick,
+  theme: t,
+}: {
+  href: string;
+  children: React.ReactNode;
+  download?: string;
+  target?: string;
+  rel?: string;
+  onClick?: () => void;
+  theme: ResolvedTheme;
+}) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <a
+      href={href}
+      download={download}
+      target={target}
+      rel={rel}
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "block", padding: "10px 16px", color: t.textPrimary,
+        textDecoration: "none", fontSize: "14px", fontWeight: 500,
+        background: hover ? t.inputBg : "transparent", cursor: "pointer",
+        textAlign: "left", borderRadius: "8px"
+      }}
+    >
+      {children}
+    </a>
+  );
+};
+
 function DateEdit({
   startAt,
   endAt,
@@ -329,38 +368,15 @@ function DateEdit({
     "PRODID:-//rsvp-to-me//Event//EN",
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
-    `SUMMARY:${eventTitle}`,
-    `DTSTART:${formatUtcForCal(startAt)}`,
-    `DTEND:${formatUtcForCal(endUtcDate)}`,
-    `DESCRIPTION:${(eventDescription || "").replace(/\n/g, "\\n")}`,
-    `LOCATION:${calendarLocation}`,
+    "SUMMARY:" + eventTitle,
+    "DTSTART:" + formatUtcForCal(startAt),
+    "DTEND:" + formatUtcForCal(endUtcDate),
+    "DESCRIPTION:" + (eventDescription || "").replace(/\n/g, "\\n"),
+    "LOCATION:" + calendarLocation,
     "END:VEVENT",
     "END:VCALENDAR"
   ].join("\r\n");
   const icalDataUri = "data:text/calendar;charset=utf-8," + encodeURIComponent(icalContent);
-
-  const CalendarMenuItem = ({ href, children, download, target, rel, onClick }: { href: string; children: React.ReactNode; download?: string; target?: string; rel?: string; onClick?: () => void }) => {
-    const [hover, setHover] = useState(false);
-    return (
-      <a
-        href={href}
-        download={download}
-        target={target}
-        rel={rel}
-        onClick={onClick}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={{
-          display: "block", padding: "10px 16px", color: t.textPrimary,
-          textDecoration: "none", fontSize: "14px", fontWeight: 500,
-          background: hover ? t.inputBg : "transparent", cursor: "pointer",
-          textAlign: "left", borderRadius: "8px"
-        }}
-      >
-        {children}
-      </a>
-    );
-  };
 
   return (
     <div ref={wrapRef} style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "20px" }}>
@@ -386,10 +402,10 @@ function DateEdit({
             backdropFilter: "blur(20px)",
             display: "flex", flexDirection: "column", gap: "2px"
           }}>
-            <CalendarMenuItem href={gcalUrl} target="_blank" rel="noopener noreferrer" onClick={() => setCalOpen(false)}>
+            <CalendarMenuItem href={gcalUrl} target="_blank" rel="noopener noreferrer" onClick={() => setCalOpen(false)} theme={t}>
               Google Calendar
             </CalendarMenuItem>
-            <CalendarMenuItem href={icalDataUri} download={`${eventTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.ics`} onClick={() => setCalOpen(false)}>
+            <CalendarMenuItem href={icalDataUri} download={`${eventTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.ics`} onClick={() => setCalOpen(false)} theme={t}>
               iCal / Outlook (.ics)
             </CalendarMenuItem>
           </div>
