@@ -916,7 +916,6 @@ export async function getDashboardActivity(eventIds: string[]): Promise<Dashboar
     orderBy: {
       createdAt: "desc",
     },
-    take: 10,
   });
 }
 
@@ -941,69 +940,115 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
   if (!session) throw new Error("Unauthorized");
   const event = await assertHost(eventId);
 
-  const cleanInput = emailOrPhone.trim();
-  const isEmail = cleanInput.includes("@");
+  const entries = emailOrPhone
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 
-  let user = await db.user.findFirst({
-    where: isEmail ? { email: cleanInput } : { phone: cleanInput },
-  });
-  if (!user) {
-    user = await db.user.create({
-      data: isEmail
-        ? { email: cleanInput, role: "GUEST" }
-        : { phone: cleanInput, role: "GUEST" },
-    });
+  if (entries.length === 0) {
+    throw new Error("No valid emails or phone numbers provided.");
   }
 
-  let rsvp = await db.rSVP.findFirst({
-    where: { eventId, userId: user.id },
-  });
+  const invited: string[] = [];
+  const errors: string[] = [];
 
-  if (!rsvp) {
-    const namePrefix = isEmail ? cleanInput.split("@")[0] : cleanInput;
-    rsvp = await db.rSVP.create({
-      data: {
-        eventId,
-        guestName: namePrefix,
-        guestEmail: isEmail ? cleanInput : null,
-        guestPhone: isEmail ? null : cleanInput,
-        status: "GOING",
-        responded: false,
-        approved: true,
-        userId: user.id,
-      },
-    });
+  for (const entry of entries) {
+    try {
+      const isEmail = entry.includes("@");
+      
+      // Basic input validation
+      if (isEmail) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry)) {
+          throw new Error(`Invalid email: ${entry}`);
+        }
+      } else {
+        if (!/^\+?[0-9\s\-()]{7,}$/.test(entry)) {
+          throw new Error(`Invalid phone: ${entry}`);
+        }
+      }
+
+      let user = await db.user.findFirst({
+        where: isEmail ? { email: entry } : { phone: entry },
+      });
+      if (!user) {
+        user = await db.user.create({
+          data: isEmail
+            ? { email: entry, role: "GUEST" }
+            : { phone: entry, role: "GUEST" },
+        });
+      }
+
+      let rsvp = await db.rSVP.findFirst({
+        where: { eventId, userId: user.id },
+      });
+
+      if (!rsvp) {
+        const namePrefix = isEmail ? entry.split("@")[0] : entry;
+        rsvp = await db.rSVP.create({
+          data: {
+            eventId,
+            guestName: namePrefix,
+            guestEmail: isEmail ? entry : null,
+            guestPhone: isEmail ? null : entry,
+            status: "GOING",
+            responded: false,
+            approved: true,
+            userId: user.id,
+          },
+        });
+      }
+
+      // Prevent duplicate invitations for the same target
+      const existingInvitation = await db.invitation.findFirst({
+        where: { eventId, sentTo: entry },
+      });
+
+      if (!existingInvitation) {
+        await db.invitation.create({
+          data: {
+            eventId,
+            sentTo: entry,
+            channel: isEmail ? "EMAIL" : "SMS",
+            rsvpId: rsvp.id,
+          },
+        });
+      }
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const inviteLink = `${appUrl}/e/${event.slug}?token=${rsvp.editToken}`;
+
+      if (isEmail) {
+        const eventDetails = await db.event.findUnique({
+          where: { id: eventId },
+          select: { title: true, locationName: true },
+        });
+        await sendEventInviteEmail(entry, {
+          guestName: rsvp.guestName,
+          hostName: session.email ? session.email.split("@")[0] : "Your Host",
+          eventTitle: eventDetails?.title ?? "Event",
+          eventSlug: event.slug,
+          startAt: new Date(),
+          locationName: eventDetails?.locationName ?? "TBD",
+          inviteLink,
+        });
+      } else {
+        await sendMagicLinkSms(entry, inviteLink);
+      }
+
+      invited.push(entry);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push(message);
+    }
   }
 
-  await db.invitation.create({
-    data: {
-      eventId,
-      sentTo: cleanInput,
-      channel: isEmail ? "EMAIL" : "SMS",
-      rsvpId: rsvp.id,
-    },
-  });
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const inviteLink = `${appUrl}/e/${event.slug}?token=${rsvp.editToken}`;
-
-  if (isEmail) {
-    const eventDetails = await db.event.findUnique({
-      where: { id: eventId },
-      select: { title: true, locationName: true },
-    });
-    await sendEventInviteEmail(cleanInput, {
-      guestName: rsvp.guestName,
-      hostName: session.email ? session.email.split("@")[0] : "Your Host",
-      eventTitle: eventDetails?.title ?? "Event",
-      eventSlug: event.slug,
-      startAt: new Date(),
-      locationName: eventDetails?.locationName ?? "TBD",
-      inviteLink,
-    });
-  } else {
-    await sendMagicLinkSms(cleanInput, inviteLink);
+  if (invited.length === 0) {
+    throw new Error(`Failed to send invites: ${errors.join("; ")}`);
   }
 
-  return { success: true, emailOrPhone: cleanInput };
+  return {
+    success: true,
+    emailOrPhone: invited.join(", "),
+    errors: errors.length > 0 ? errors : undefined,
+  };
 }

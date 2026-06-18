@@ -32,6 +32,7 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "hosting" | "co-hosting">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "PUBLISHED" | "DRAFT" | "CANCELLED">("all");
+  const [activityPage, setActivityPage] = useState(1);
   
   // State for card hovers to add micro-animations
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
@@ -482,62 +483,122 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
                 <Sparkles size={24} style={{ display: "block", margin: "0 auto 8px", opacity: 0.5 }} />
                 No activity logged yet. When guests RSVP or comments are posted, they will appear here!
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {recentActivities.map((act) => {
-                  const { Icon, color } = getActivityMeta(act.type);
-                  return (
-                    <div key={act.id} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                      {/* Activity icon box */}
-                      <div style={{ 
-                        width: "28px", 
-                        height: "28px", 
-                        borderRadius: "6px", 
-                        background: `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, 0.1)`, 
-                        display: "flex", 
-                        alignItems: "center", 
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        marginTop: "2px"
-                      }}>
-                        <Icon size={14} color={color} />
-                      </div>
-                      
-                      {/* Activity details */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ color: APP_SHELL.textPrimary, fontSize: "12px", lineHeight: "1.4", margin: 0, wordBreak: "break-word" }}>
-                          {act.detail}
-                        </p>
-                        
-                        {/* Event Link & Time */}
-                        <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "4px" }}>
-                          <Link 
-                            href={`/e/${act.event.slug}`} 
-                            style={{ 
-                              color: APP_SHELL.accent, 
-                              textDecoration: "none", 
-                              fontSize: "11px", 
-                              fontWeight: 600,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              maxWidth: "110px",
-                              display: "inline-block"
-                            }}
-                          >
-                            {act.event.title}
-                          </Link>
-                          <span style={{ color: APP_SHELL.textTertiary, fontSize: "11px" }}>·</span>
-                          <span style={{ color: APP_SHELL.textMuted, fontSize: "11px" }}>
-                            {formatRelativeTime(act.createdAt)}
-                          </span>
+            ) : (() => {
+              const PAGE_SIZE = 10;
+              const totalPages = Math.ceil(recentActivities.length / PAGE_SIZE);
+              // Safety: ensure current page is within bounds
+              const currentPage = Math.min(activityPage, Math.max(totalPages, 1));
+              const displayedActivities = recentActivities.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+              return (
+                <>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {displayedActivities.map((act) => {
+                      const { Icon, color } = getActivityMeta(act.type);
+                      return (
+                        <div key={act.id} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                          {/* Activity icon box */}
+                          <div style={{ 
+                            width: "28px", 
+                            height: "28px", 
+                            borderRadius: "6px", 
+                            background: `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, 0.1)`, 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            marginTop: "2px"
+                          }}>
+                            <Icon size={14} color={color} />
+                          </div>
+                          
+                          {/* Activity details */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ color: APP_SHELL.textPrimary, fontSize: "12px", lineHeight: "1.4", margin: 0, wordBreak: "break-word" }}>
+                              {act.detail}
+                            </p>
+                            
+                            {/* Event Link & Time */}
+                            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "4px" }}>
+                              <Link 
+                                href={`/e/${act.event.slug}`} 
+                                style={{ 
+                                  color: APP_SHELL.accent, 
+                                  textDecoration: "none", 
+                                  fontSize: "11px", 
+                                  fontWeight: 600,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "110px",
+                                  display: "inline-block"
+                                }}
+                              >
+                                {act.event.title}
+                              </Link>
+                              <span style={{ color: APP_SHELL.textTertiary, fontSize: "11px" }}>·</span>
+                              <span style={{ color: APP_SHELL.textMuted, fontSize: "11px" }}>
+                                {formatRelativeTime(act.createdAt)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginTop: "20px",
+                      paddingTop: "12px",
+                      borderTop: `1px solid ${APP_SHELL.cardBorder}`,
+                    }}>
+                      <button
+                        onClick={() => setActivityPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        style={{
+                          padding: "6px 12px",
+                          background: currentPage === 1 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.06)",
+                          border: `1px solid ${APP_SHELL.cardBorder}`,
+                          borderRadius: "8px",
+                          color: currentPage === 1 ? APP_SHELL.textMuted : APP_SHELL.textPrimary,
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        Prev
+                      </button>
+                      <span style={{ color: APP_SHELL.textSecondary, fontSize: "11px" }}>
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setActivityPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          padding: "6px 12px",
+                          background: currentPage === totalPages ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.06)",
+                          border: `1px solid ${APP_SHELL.cardBorder}`,
+                          borderRadius: "8px",
+                          color: currentPage === totalPages ? APP_SHELL.textMuted : APP_SHELL.textPrimary,
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        Next
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 

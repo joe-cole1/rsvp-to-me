@@ -230,7 +230,7 @@ export function RsvpFlow({
             </div>
           )}
           <a
-            href={returnPath ?? `/e/${event.slug}`}
+            href={returnPath ?? `/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`}
             style={{ display: "block", background: t.accent, color: t.accentFg, textDecoration: "none", borderRadius: t.btnRadius, padding: "14px", fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"], fontSize: "15px", textAlign: "center", boxShadow: t.accentShadow }}
           >
             {returnPath ? "Back to guest list" : "Back to event"}
@@ -259,7 +259,7 @@ export function RsvpFlow({
       <div style={S.page}>
         {renderDecorations()}
         <div style={S.header}>
-          <a href={`/e/${event.slug}`} style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", padding: "12px 0" }}>
+          <a href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`} style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", padding: "12px 0" }}>
             ← Back
           </a>
           <div style={{ marginBottom: "20px" }}>
@@ -375,7 +375,7 @@ export function RsvpFlow({
         </div>
 
         <div style={S.footer}>
-          <a href={`/e/${event.slug}`} style={{ ...S.cancelBtn, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+          <a href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`} style={{ ...S.cancelBtn, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
             Cancel
           </a>
           <button
