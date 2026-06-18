@@ -841,6 +841,20 @@ export type DashboardEvent = {
   maybe: number;
   pending: number;
   isCohost: boolean;
+  host?: { name: string | null; email: string | null } | null;
+};
+
+export type DashboardActivity = {
+  id: string;
+  eventId: string;
+  type: string;
+  actorName: string | null;
+  detail: string;
+  createdAt: Date;
+  event: {
+    title: string;
+    slug: string;
+  };
 };
 
 export async function getDashboardEvents(): Promise<DashboardEvent[]> {
@@ -858,6 +872,7 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       theme: { select: { accentColor: true } },
       rsvps: { select: { status: true, approved: true } },
       coHosts: { select: { userId: true } },
+      host: { select: { name: true, email: true } },
     },
     orderBy: { startAt: "desc" },
   });
@@ -877,7 +892,31 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       maybe,
       pending,
       isCohost: e.hostId !== session.userId,
+      host: e.host,
     };
+  });
+}
+
+export async function getDashboardActivity(eventIds: string[]): Promise<DashboardActivity[]> {
+  const session = await getSession();
+  if (!session || eventIds.length === 0) return [];
+
+  return db.activityEvent.findMany({
+    where: {
+      eventId: { in: eventIds },
+    },
+    include: {
+      event: {
+        select: {
+          title: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 10,
   });
 }
 

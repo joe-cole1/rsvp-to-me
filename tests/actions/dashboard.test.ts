@@ -2,14 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoist all mock functions so vi.mock factories can reference them ──────────
 
-const { mockEventFindMany, mockGetSession } = vi.hoisted(() => ({
+const { mockEventFindMany, mockActivityFindMany, mockGetSession } = vi.hoisted(() => ({
   mockEventFindMany: vi.fn(),
+  mockActivityFindMany: vi.fn(),
   mockGetSession: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
     event: { findMany: mockEventFindMany },
+    activityEvent: { findMany: mockActivityFindMany },
   },
 }));
 
@@ -24,7 +26,7 @@ vi.mock("@/lib/sms", () => ({
   sendSmsBlast: vi.fn().mockResolvedValue(2),
 }));
 
-import { getDashboardEvents } from "@/app/actions/event";
+import { getDashboardEvents, getDashboardActivity } from "@/app/actions/event";
 
 const USER_ID = "user-1";
 const OTHER_HOST_ID = "host-2";
@@ -195,5 +197,44 @@ describe("getDashboardEvents", () => {
     expect(result).toHaveLength(2);
     expect(result[0].id).toBe("e1");
     expect(result[1].id).toBe("e2");
+  });
+});
+
+// ── getDashboardActivity ───────────────────────────────────────────────────────
+
+describe("getDashboardActivity", () => {
+  it("returns empty array when no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    const result = await getDashboardActivity(["e1"]);
+    expect(result).toEqual([]);
+    expect(mockActivityFindMany).not.toHaveBeenCalled();
+  });
+
+  it("returns empty array when eventIds list is empty", async () => {
+    asUser();
+    const result = await getDashboardActivity([]);
+    expect(result).toEqual([]);
+    expect(mockActivityFindMany).not.toHaveBeenCalled();
+  });
+
+  it("queries activityEvents by eventIds and orders them", async () => {
+    asUser();
+    mockActivityFindMany.mockResolvedValue([]);
+    await getDashboardActivity(["e1", "e2"]);
+    expect(mockActivityFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        eventId: { in: ["e1", "e2"] },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: {
+        event: {
+          select: {
+            title: true,
+            slug: true,
+          },
+        },
+      },
+    }));
   });
 });
