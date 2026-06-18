@@ -5,27 +5,35 @@ const {
   mockPollCreate,
   mockPollFindUnique,
   mockPollDelete,
+  mockPollUpdate,
   mockPollOptionCreateMany,
   mockPollOptionCreate,
   mockPollOptionFindFirst,
+  mockPollOptionFindUnique,
+  mockPollOptionDelete,
   mockPollVoteDeleteMany,
   mockPollVoteUpsert,
   mockRsvpFindFirst,
   mockGetSession,
   mockUserFindUnique,
+  mockActivityEventCreate,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
   mockPollCreate: vi.fn(),
   mockPollFindUnique: vi.fn(),
   mockPollDelete: vi.fn(),
+  mockPollUpdate: vi.fn(),
   mockPollOptionCreateMany: vi.fn(),
   mockPollOptionCreate: vi.fn(),
   mockPollOptionFindFirst: vi.fn(),
+  mockPollOptionFindUnique: vi.fn(),
+  mockPollOptionDelete: vi.fn(),
   mockPollVoteDeleteMany: vi.fn(),
   mockPollVoteUpsert: vi.fn(),
   mockRsvpFindFirst: vi.fn(),
   mockGetSession: vi.fn(),
   mockUserFindUnique: vi.fn(),
+  mockActivityEventCreate: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock("@/lib/db", () => {
@@ -35,11 +43,14 @@ vi.mock("@/lib/db", () => {
       create: mockPollCreate,
       findUnique: mockPollFindUnique,
       delete: mockPollDelete,
+      update: mockPollUpdate,
     },
     pollOption: {
       createMany: mockPollOptionCreateMany,
       create: mockPollOptionCreate,
       findFirst: mockPollOptionFindFirst,
+      findUnique: mockPollOptionFindUnique,
+      delete: mockPollOptionDelete,
     },
     pollVote: {
       deleteMany: mockPollVoteDeleteMany,
@@ -52,7 +63,7 @@ vi.mock("@/lib/db", () => {
       findUnique: mockUserFindUnique,
     },
     activityEvent: {
-      create: vi.fn().mockResolvedValue({}),
+      create: mockActivityEventCreate,
     },
   };
   return {
@@ -74,7 +85,7 @@ vi.mock("@/lib/sms", () => ({
   sendSmsBlast: vi.fn(),
 }));
 
-import { createPoll, deletePoll, castVote, addPollOption } from "@/app/actions/event";
+import { createPoll, deletePoll, castVote, addPollOption, updatePollSettings, deletePollOption } from "@/app/actions/event";
 
 const HOST_ID = "host-1";
 const COHOST_ID = "cohost-1";
@@ -183,12 +194,14 @@ describe("castVote", () => {
       id: "poll-1",
       eventId: EVENT_ID,
       multiChoice: false,
+      hideVoters: false,
       event: {
         hostId: HOST_ID,
         slug: EVENT_SLUG,
         coHosts: [],
       },
     });
+    mockPollOptionFindUnique.mockResolvedValue({ id: "option-1", text: "Pizza" });
   });
 
   it("allows a host to vote without a guest RSVP ID", async () => {
@@ -279,6 +292,40 @@ describe("castVote", () => {
       where: { pollOptionId: "option-1", voterName: "Host Person" },
     });
   });
+
+  it("logs activity when a vote is cast in a public poll", async () => {
+    asHost();
+    // hideVoters is false by default in beforeEach
+    const result = await castVote("poll-1", "option-1", "Host Person", true);
+    expect(result.success).toBe(true);
+    expect(mockActivityEventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "poll_vote",
+          actorName: "Host Person",
+        }),
+      })
+    );
+  });
+
+  it("does not log activity when a vote is cast in an anonymous poll", async () => {
+    asHost();
+    mockPollFindUnique.mockResolvedValue({
+      id: "poll-1",
+      eventId: EVENT_ID,
+      multiChoice: false,
+      hideVoters: true,
+      event: {
+        hostId: HOST_ID,
+        slug: EVENT_SLUG,
+        coHosts: [],
+      },
+    });
+    
+    const result = await castVote("poll-1", "option-1", "Host Person", true);
+    expect(result.success).toBe(true);
+    expect(mockActivityEventCreate).not.toHaveBeenCalled();
+  });
 });
 
 // ── addPollOption ──────────────────────────────────────────────────────────────
@@ -363,5 +410,86 @@ describe("addPollOption", () => {
     await expect(addPollOption("poll-1", "   ", "Host Person")).rejects.toThrow(
       "Option text cannot be empty"
     );
+  });
+  it("throws error if poll is locked", async () => {
+    asHost();
+    mockPollFindUnique.mockResolvedValue({
+      id: "poll-1",
+      eventId: EVENT_ID,
+      locked: true,
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+    });
+    await expect(addPollOption("poll-1", "Fries", "Host Person")).rejects.toThrow(
+      "This poll is locked"
+    );
+  });
+});
+
+describe("locked polls voting", () => {
+  it("castVote throws error if poll is locked", async () => {
+    asHost();
+    mockPollFindUnique.mockResolvedValue({
+      id: "poll-1",
+      eventId: EVENT_ID,
+      locked: true,
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+    });
+    await expect(castVote("poll-1", "option-1", "Host Person", true)).rejects.toThrow(
+      "This poll is locked"
+    );
+  });
+});
+
+describe("updatePollSettings", () => {
+  beforeEach(() => {
+    asHost();
+    mockPollFindUnique.mockResolvedValue({ id: "poll-1", eventId: EVENT_ID, question: "Question" });
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockPollUpdate.mockResolvedValue({ id: "poll-1" });
+  });
+
+  it("updates poll settings successfully when host edits", async () => {
+    const result = await updatePollSettings("poll-1", {
+      question: "New Question",
+      locked: true,
+      hideVoters: true,
+    });
+    expect(result.success).toBe(true);
+    expect(mockPollUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "poll-1" },
+        data: expect.objectContaining({
+          question: "New Question",
+          locked: true,
+          hideVoters: true,
+        }),
+      })
+    );
+  });
+
+  it("throws Forbidden when unauthorized user tries to update settings", async () => {
+    mockGetSession.mockResolvedValue({ userId: "stranger", email: "stranger@example.com" });
+    await expect(updatePollSettings("poll-1", { question: "New Question" })).rejects.toThrow("Forbidden");
+  });
+});
+
+describe("deletePollOption", () => {
+  beforeEach(() => {
+    asHost();
+    mockPollFindUnique.mockResolvedValue({ id: "poll-1", eventId: EVENT_ID, question: "Question" });
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockPollOptionFindUnique.mockResolvedValue({ id: "option-1", text: "Fries" });
+    mockPollOptionDelete.mockResolvedValue({ id: "option-1" });
+  });
+
+  it("deletes option successfully when host deletes", async () => {
+    const result = await deletePollOption("poll-1", "option-1");
+    expect(result.success).toBe(true);
+    expect(mockPollOptionDelete).toHaveBeenCalledWith({ where: { id: "option-1" } });
+  });
+
+  it("throws Forbidden when unauthorized user tries to delete option", async () => {
+    mockGetSession.mockResolvedValue({ userId: "stranger", email: "stranger@example.com" });
+    await expect(deletePollOption("poll-1", "option-1")).rejects.toThrow("Forbidden");
   });
 });

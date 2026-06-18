@@ -1060,7 +1060,8 @@ export async function createPoll(
   question: string,
   options: string[],
   multiChoice: boolean,
-  allowGuestsToAdd: boolean
+  allowGuestsToAdd: boolean,
+  hideVoters: boolean = false
 ) {
   const event = await assertHostOrCohost(eventId);
   if (!question.trim()) throw new Error("Question cannot be empty");
@@ -1074,6 +1075,7 @@ export async function createPoll(
         question: question.trim(),
         multiChoice,
         allowGuestsToAdd,
+        hideVoters,
       },
     });
 
@@ -1147,6 +1149,7 @@ export async function castVote(
     },
   });
   if (!poll) throw new Error("Poll not found");
+  if (poll.locked) throw new Error("This poll is locked");
 
   // Auth verification
   const session = await getSession();
@@ -1168,6 +1171,12 @@ export async function castVote(
       throw new Error("Unauthorized: Voter name does not match guest name");
     }
   }
+
+  const option = await db.pollOption.findUnique({
+    where: { id: pollOptionId },
+    select: { text: true },
+  });
+  if (!option) throw new Error("Option not found");
 
   if (isVoted) {
     if (!poll.multiChoice) {
@@ -1205,6 +1214,18 @@ export async function castVote(
     });
   }
 
+  // Log activity if the poll is public (not anonymous)
+  if (!poll.hideVoters) {
+    await logActivity(
+      poll.eventId,
+      isVoted ? "poll_vote" : "poll_vote_retracted",
+      isVoted
+        ? `voted for "${option.text}" in the poll "${poll.question}"`
+        : `retracted vote for "${option.text}" in the poll "${poll.question}"`,
+      voterName
+    ).catch(() => null);
+  }
+
   revalidatePath(`/e/${poll.event.slug}`);
   return { success: true };
 }
@@ -1230,6 +1251,7 @@ export async function addPollOption(
     },
   });
   if (!poll) throw new Error("Poll not found");
+  if (poll.locked) throw new Error("This poll is locked");
 
   const session = await getSession();
   const isOwner = session?.userId === poll.event.hostId;
@@ -1280,4 +1302,97 @@ export async function addPollOption(
 
   revalidatePath(`/e/${poll.event.slug}`);
   return { success: true, id: option.id };
+}
+
+export async function updatePollSettings(
+  pollId: string,
+  data: {
+    question?: string;
+    multiChoice?: boolean;
+    allowGuestsToAdd?: boolean;
+    locked?: boolean;
+    hideVoters?: boolean;
+  }
+) {
+  const poll = await db.poll.findUnique({
+    where: { id: pollId },
+    select: { eventId: true, question: true },
+  });
+  if (!poll) throw new Error("Poll not found");
+
+  const event = await assertHostOrCohost(poll.eventId);
+
+  const session = await getSession();
+  let hostName = "Host";
+  if (session?.userId) {
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      select: { name: true, email: true },
+    });
+    hostName = user?.name ?? user?.email?.split("@")[0] ?? "Host";
+  }
+
+  await db.poll.update({
+    where: { id: pollId },
+    data: {
+      question: data.question !== undefined ? data.question.trim() : undefined,
+      multiChoice: data.multiChoice,
+      allowGuestsToAdd: data.allowGuestsToAdd,
+      locked: data.locked,
+      hideVoters: data.hideVoters,
+    },
+  });
+
+  // Log activity for significant updates (like lock/unlock)
+  if (data.locked !== undefined) {
+    await logActivity(
+      poll.eventId,
+      data.locked ? "poll_lock" : "poll_unlock",
+      `${data.locked ? "locked" : "unlocked"} the poll: "${poll.question}"`,
+      hostName
+    ).catch(() => null);
+  }
+
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true };
+}
+
+export async function deletePollOption(pollId: string, optionId: string) {
+  const poll = await db.poll.findUnique({
+    where: { id: pollId },
+    select: { eventId: true, question: true },
+  });
+  if (!poll) throw new Error("Poll not found");
+
+  const event = await assertHostOrCohost(poll.eventId);
+
+  const option = await db.pollOption.findUnique({
+    where: { id: optionId },
+    select: { text: true },
+  });
+  if (!option) throw new Error("Option not found");
+
+  await db.pollOption.delete({
+    where: { id: optionId },
+  });
+
+  const session = await getSession();
+  let hostName = "Host";
+  if (session?.userId) {
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      select: { name: true, email: true },
+    });
+    hostName = user?.name ?? user?.email?.split("@")[0] ?? "Host";
+  }
+
+  await logActivity(
+    poll.eventId,
+    "poll_option_delete",
+    `deleted option "${option.text}" from the poll: "${poll.question}"`,
+    hostName
+  ).catch(() => null);
+
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true };
 }

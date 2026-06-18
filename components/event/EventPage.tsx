@@ -32,7 +32,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, createPoll, deletePoll, castVote, addPollOption } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, createPoll, deletePoll, castVote, addPollOption, updatePollSettings, deletePollOption } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import { ThemePicker } from "./ThemePicker";
 import QRCode from "qrcode";
@@ -79,6 +79,8 @@ type EventData = {
     question: string;
     multiChoice: boolean;
     allowGuestsToAdd: boolean;
+    locked: boolean;
+    hideVoters: boolean;
     createdAt: Date;
     options: {
       id: string;
@@ -899,7 +901,16 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [newPollOptions, setNewPollOptions] = useState<string[]>(["", ""]);
   const [newPollMultiChoice, setNewPollMultiChoice] = useState(false);
   const [newPollAllowGuestsToAdd, setNewPollAllowGuestsToAdd] = useState(true);
+  const [newPollHideVoters, setNewPollHideVoters] = useState(false);
   const [newPollOptionTexts, setNewPollOptionTexts] = useState<Record<string, string>>({});
+
+  // Poll editing states
+  const [editingPollId, setEditingPollId] = useState<string | null>(null);
+  const [editPollQuestion, setEditPollQuestion] = useState("");
+  const [editPollMultiChoice, setEditPollMultiChoice] = useState(false);
+  const [editPollAllowGuestsToAdd, setEditPollAllowGuestsToAdd] = useState(true);
+  const [editPollLocked, setEditPollLocked] = useState(false);
+  const [editPollHideVoters, setEditPollHideVoters] = useState(false);
 
   useEffect(() => {
     if (showShareQr && typeof window !== "undefined") {
@@ -1218,7 +1229,8 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         newPollQuestion.trim(),
         newPollOptions,
         newPollMultiChoice,
-        newPollAllowGuestsToAdd
+        newPollAllowGuestsToAdd,
+        newPollHideVoters
       );
       if (result.success) {
         const newPoll = {
@@ -1226,6 +1238,8 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           question: newPollQuestion.trim(),
           multiChoice: newPollMultiChoice,
           allowGuestsToAdd: newPollAllowGuestsToAdd,
+          locked: false,
+          hideVoters: newPollHideVoters,
           createdAt: new Date(),
           options: newPollOptions
             .map((o) => o.trim())
@@ -1248,6 +1262,65 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         setNewPollOptions(["", ""]);
         setNewPollMultiChoice(false);
         setNewPollAllowGuestsToAdd(true);
+        setNewPollHideVoters(false);
+      }
+    });
+  };
+
+  const handleStartEditPoll = (poll: EventData["polls"][number]) => {
+    setEditingPollId(poll.id);
+    setEditPollQuestion(poll.question);
+    setEditPollMultiChoice(poll.multiChoice);
+    setEditPollAllowGuestsToAdd(poll.allowGuestsToAdd);
+    setEditPollLocked(poll.locked || false);
+    setEditPollHideVoters(poll.hideVoters || false);
+  };
+
+  const handleSavePollSettings = async (pollId: string) => {
+    startTransition(async () => {
+      const result = await updatePollSettings(pollId, {
+        question: editPollQuestion.trim(),
+        multiChoice: editPollMultiChoice,
+        allowGuestsToAdd: editPollAllowGuestsToAdd,
+        locked: editPollLocked,
+        hideVoters: editPollHideVoters,
+      });
+      if (result.success) {
+        setEvent((e) => ({
+          ...e,
+          polls: e.polls.map((p) =>
+            p.id === pollId
+              ? {
+                  ...p,
+                  question: editPollQuestion.trim(),
+                  multiChoice: editPollMultiChoice,
+                  allowGuestsToAdd: editPollAllowGuestsToAdd,
+                  locked: editPollLocked,
+                  hideVoters: editPollHideVoters,
+                }
+              : p
+          ),
+        }));
+        setEditingPollId(null);
+      }
+    });
+  };
+
+  const handleDeletePollOption = async (pollId: string, optionId: string) => {
+    if (!confirm("Delete this option? All votes cast for it will be lost.")) return;
+    startTransition(async () => {
+      const result = await deletePollOption(pollId, optionId);
+      if (result.success) {
+        setEvent((e) => ({
+          ...e,
+          polls: e.polls.map((p) => {
+            if (p.id !== pollId) return p;
+            return {
+              ...p,
+              options: p.options.filter((o) => o.id !== optionId),
+            };
+          }),
+        }));
       }
     });
   };
@@ -1774,6 +1847,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     />
                     <span>Allow guests to suggest options</span>
                   </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={newPollHideVoters}
+                      onChange={(e) => setNewPollHideVoters(e.target.checked)}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span>Hide voter names from other guests</span>
+                  </label>
                 </div>
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
@@ -1790,6 +1872,8 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                       setNewPollQuestion("");
                       setNewPollOptions(["", ""]);
                       setNewPollMultiChoice(false);
+                      setNewPollAllowGuestsToAdd(true);
+                      setNewPollHideVoters(false);
                     }}
                     style={{ ...S.mutedBtn, padding: "8px 16px", flex: 1 }}
                   >
@@ -1802,9 +1886,86 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             {/* Polls List */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {event.polls?.map((poll) => {
+                if (editingPollId === poll.id) {
+                  return (
+                    <div
+                      key={poll.id}
+                      style={{
+                        background: "rgba(255, 255, 255, 0.03)",
+                        padding: "16px",
+                        borderRadius: t.cardRadius,
+                        border: `1px solid rgba(255, 255, 255, 0.05)`,
+                        marginBottom: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: "14px" }}>Edit Poll Settings</div>
+                      <input
+                        style={S.inp}
+                        value={editPollQuestion}
+                        onChange={(e) => setEditPollQuestion(e.target.value)}
+                        placeholder="Poll Question"
+                      />
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={editPollMultiChoice}
+                            onChange={(e) => setEditPollMultiChoice(e.target.checked)}
+                          />
+                          <span>Allow voting for multiple options</span>
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={editPollAllowGuestsToAdd}
+                            onChange={(e) => setEditPollAllowGuestsToAdd(e.target.checked)}
+                          />
+                          <span>Allow guests to suggest options</span>
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={editPollHideVoters}
+                            onChange={(e) => setEditPollHideVoters(e.target.checked)}
+                          />
+                          <span>Hide voter names from other guests</span>
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={editPollLocked}
+                            onChange={(e) => setEditPollLocked(e.target.checked)}
+                          />
+                          <span>Lock voting</span>
+                        </label>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                        <button
+                          onClick={() => handleSavePollSettings(poll.id)}
+                          disabled={!editPollQuestion.trim() || isPending}
+                          style={{ ...S.btn, padding: "8px 16px", flex: 1 }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingPollId(null)}
+                          style={{ ...S.mutedBtn, padding: "8px 16px", flex: 1 }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const totalVotes = poll.options.reduce((sum, o) => sum + o.votes.length, 0);
                 const voter = isHost ? "Host" : guestName;
                 const isEligibleToVote = isHost || (rsvpDone && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
+                const canVote = isEligibleToVote && !poll.locked && !isPending;
+                const shouldShowVoters = !poll.hideVoters || isHost;
 
                 return (
                   <div
@@ -1816,17 +1977,38 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
-                      <div style={{ fontWeight: 600, fontSize: "15px", color: t.textPrimary }}>
-                        {poll.question}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <div style={{ fontWeight: 600, fontSize: "15px", color: t.textPrimary }}>
+                          {poll.question}
+                        </div>
+                        {poll.locked && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 6px", borderRadius: "99px", background: "rgba(239, 68, 68, 0.15)", color: "#f87171" }}>
+                            🔒 Locked
+                          </span>
+                        )}
+                        {poll.hideVoters && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 6px", borderRadius: "99px", background: "rgba(255, 255, 255, 0.08)", color: t.textSecondary }}>
+                            🕶️ Anonymous
+                          </span>
+                        )}
                       </div>
                       {isHost && (
-                        <button
-                          onClick={() => handleDeletePoll(poll.id)}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}
-                          title="Delete poll"
-                        >
-                          <X size={15} />
-                        </button>
+                        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                          <button
+                            onClick={() => handleStartEditPoll(poll)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", fontSize: "13px" }}
+                            title="Edit poll settings"
+                          >
+                            ⚙️
+                          </button>
+                          <button
+                            onClick={() => handleDeletePoll(poll.id)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px" }}
+                            title="Delete poll"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -1879,7 +2061,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                                   display: "flex",
                                   alignItems: "center",
                                   gap: "8px",
-                                  cursor: isEligibleToVote ? "pointer" : "default",
+                                  cursor: canVote ? "pointer" : "default",
                                   flex: 1,
                                   fontSize: "13.5px",
                                   fontWeight: isVoted ? 600 : 500,
@@ -1890,9 +2072,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                                   type={poll.multiChoice ? "checkbox" : "radio"}
                                   name={`poll-${poll.id}`}
                                   checked={isVoted}
-                                  disabled={!isEligibleToVote || isPending}
+                                  disabled={!canVote}
                                   onChange={(e) => handleVote(poll.id, opt.id, e.target.checked)}
-                                  style={{ cursor: isEligibleToVote ? "pointer" : "default" }}
+                                  style={{ cursor: canVote ? "pointer" : "default" }}
                                 />
                                 <span>{opt.text}</span>
                                 {opt.creatorName && (
@@ -1902,15 +2084,30 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                                 )}
                               </label>
 
-                              <span style={{ fontSize: "12px", fontWeight: 700, color: isVoted ? t.accent : t.textSecondary }}>
-                                {percent}% ({optVotesCount})
-                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", zIndex: 2 }}>
+                                {isHost && (
+                                  <button
+                                    onClick={() => handleDeletePollOption(poll.id, opt.id)}
+                                    style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", display: "flex", alignItems: "center" }}
+                                    title="Delete option"
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                )}
+                                <span style={{ fontSize: "12px", fontWeight: 700, color: isVoted ? t.accent : t.textSecondary }}>
+                                  {percent}% ({optVotesCount})
+                                </span>
+                              </div>
                             </div>
 
                             {/* Show voters names */}
                             {optVotesCount > 0 && (
                               <div style={{ position: "relative" as const, zIndex: 1, fontSize: "11px", color: t.textMuted, marginLeft: "22px", marginTop: "2px" }}>
-                                {opt.votes.map((v) => v.voterName).join(", ")}
+                                {shouldShowVoters ? (
+                                  opt.votes.map((v) => v.voterName).join(", ")
+                                ) : (
+                                  <span style={{ fontStyle: "italic" }}>Voters hidden</span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1919,7 +2116,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                     </div>
 
                     {/* Suggest Option form for Guests */}
-                    {poll.allowGuestsToAdd && isEligibleToVote && (
+                    {poll.allowGuestsToAdd && isEligibleToVote && !poll.locked && (
                       <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
                         <input
                           style={{ ...S.inp, padding: "8px 12px", fontSize: "12.5px" }}
@@ -1942,9 +2139,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                       </div>
                     )}
 
-                    {!isEligibleToVote && (
+                    {!isEligibleToVote && !poll.locked && (
                       <div style={{ fontSize: "11.5px", color: t.textMuted, fontStyle: "italic", marginTop: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
                         🔒 RSVP (GOING or MAYBE) to vote and suggest options!
+                      </div>
+                    )}
+
+                    {poll.locked && (
+                      <div style={{ fontSize: "11.5px", color: t.textMuted, fontStyle: "italic", marginTop: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+                        🔒 This poll is locked. Voting is closed.
                       </div>
                     )}
                   </div>
