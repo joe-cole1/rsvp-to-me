@@ -874,8 +874,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       })
         .then((url) => setQrDataUrl(url))
         .catch((err) => console.error("Error generating QR code:", err));
-    } else if (!showShareQr) {
-      setQrDataUrl(null);
     }
   }, [showShareQr, event.slug]);
 
@@ -1969,7 +1967,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               )}
             </div>
             <button
-              onClick={() => setShowShareQr(false)}
+              onClick={() => {
+                setShowShareQr(false);
+                setQrDataUrl(null);
+              }}
               style={{
                 width: "100%", padding: "12px", background: t.accent, color: t.accentFg, border: "none",
                 borderRadius: t.btnRadius, cursor: "pointer", fontFamily: "inherit", fontWeight: 700
