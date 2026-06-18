@@ -843,6 +843,9 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const rsvpDone = !!guestRsvp?.id;
   const [pendingDelete, setPendingDelete] = useState<{ id: string; section: EventData["infoSections"][number]; timer: ReturnType<typeof setTimeout> } | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [feedPage, setFeedPage] = useState(1);
   const [addingSection, setAddingSection] = useState(false);
   const [sectionDraft, setSectionDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -972,6 +975,52 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           ...e,
           comments: [{ id: result.id!, guestName: guestName || "Guest", body: commentText.trim(), createdAt: new Date(), replies: [] }, ...e.comments],
         }));
+        setFeedPage(1);
+      }
+    });
+  };
+
+  const submitReply = async (parentId: string) => {
+    if (!replyText.trim()) return;
+    const name = isHost
+      ? `${event.host.name || event.host.email} (Host)`
+      : guestName || "Guest";
+
+    startTransition(async () => {
+      const result = await addComment({
+        eventId: event.id,
+        guestName: name,
+        body: replyText.trim(),
+        rsvpId: guestRsvpId ?? undefined,
+        parentId,
+      });
+
+      if (result.success) {
+        setReplyText("");
+        setReplyingToId(null);
+        setEvent((e) => ({
+          ...e,
+          comments: e.comments.map((c) => {
+            if (c.id === parentId) {
+              return {
+                ...c,
+                replies: [
+                  ...c.replies,
+                  {
+                    id: result.id!,
+                    guestName: name,
+                    body: replyText.trim(),
+                    createdAt: new Date(),
+                  },
+                ],
+              };
+            }
+            return c;
+          }),
+        }));
+        setFeedPage(1);
+      } else {
+        alert(result.error || "Failed to add reply");
       }
     });
   };
@@ -1067,6 +1116,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           updates: [{ id: result.id!, body: updateDraft.trim(), notifyGuests: notifyOnUpdate, createdAt: result.createdAt! }, ...e.updates],
         }));
         setUpdateDraft("");
+        setFeedPage(1);
       }
     } finally {
       setIsPostingUpdate(false);
@@ -1819,99 +1869,223 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 ...(event.commentsEnabled ? event.comments.map((c) => ({ kind: "comment" as const, id: c.id, guestName: c.guestName, body: c.body, createdAt: new Date(c.createdAt), replies: c.replies.map((r) => ({ ...r, createdAt: new Date(r.createdAt) })) })) : []),
                 ...event.activityEvents.map((a) => ({ kind: "activity" as const, id: a.id, type: a.type, actorName: a.actorName, detail: a.detail, createdAt: new Date(a.createdAt) })),
               ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+              const PAGE_SIZE = 10;
+              const totalPages = Math.ceil(feed.length / PAGE_SIZE);
+              const currentPage = Math.min(feedPage, Math.max(totalPages, 1));
+              const displayedFeed = feed.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {feed.length === 0 ? (
+                  {displayedFeed.length === 0 ? (
                     <p style={{ color: t.textMuted, fontSize: "14px", textAlign: "center", padding: "12px 0" }}>No activity yet — be the first!</p>
-                  ) : feed.map((item) => {
-                    if (item.kind === "update") return (
-                      <div key={`u-${item.id}`} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                        <div style={{ fontSize: "18px", flexShrink: 0, marginTop: "2px" }}>📣</div>
-                        <div style={{ flex: 1, minWidth: 0, background: t.accentBg, border: `1px solid ${t.accentBorder}`, borderRadius: "14px", padding: "10px 14px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontWeight: 700, fontSize: "13px", color: t.accent }}>Update from {event.host.name ?? event.host.email}</span>
-                            {isHost && (
-                              <button onClick={() => removeUpdate(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
-                                <X size={13} />
-                              </button>
-                            )}
+                  ) : (
+                    <>
+                      {displayedFeed.map((item) => {
+                        if (item.kind === "update") return (
+                          <div key={`u-${item.id}`} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                            <div style={{ fontSize: "18px", flexShrink: 0, marginTop: "2px" }}>📣</div>
+                            <div style={{ flex: 1, minWidth: 0, background: t.accentBg, border: `1px solid ${t.accentBorder}`, borderRadius: "14px", padding: "10px 14px" }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <span style={{ fontWeight: 700, fontSize: "13px", color: t.accent }}>Update from {event.host.name ?? event.host.email}</span>
+                                {isHost && (
+                                  <button onClick={() => removeUpdate(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
+                                    <X size={13} />
+                                  </button>
+                                )}
+                              </div>
+                              {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px" }}>{timeAgo(item.createdAt)}</span>}
+                              <p style={{ color: t.textSecondary, fontSize: "14px", margin: "4px 0 0", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{item.body}</p>
+                            </div>
                           </div>
-                          {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px" }}>{timeAgo(item.createdAt)}</span>}
-                          <p style={{ color: t.textSecondary, fontSize: "14px", margin: "4px 0 0", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{item.body}</p>
-                        </div>
-                      </div>
-                    );
-                    if (item.kind === "activity") {
-                      const iconEl = (() => {
-                        if (item.type === "rsvp_new" || item.type === "rsvp_update") return <Users size={14} style={{ color: t.accent }} />;
-                        if (item.type === "event_date") return <Calendar size={14} style={{ color: t.accent }} />;
-                        if (item.type === "info_add") return <Plus size={14} style={{ color: t.accent }} />;
-                        if (item.type === "info_delete") return <X size={14} style={{ color: t.textMuted }} />;
-                        if (item.type === "potluck_claim") return <Gift size={14} style={{ color: t.accent }} />;
-                        if (item.type === "potluck_unclaim") return <Gift size={14} style={{ color: t.textMuted }} />;
-                        return <Pencil size={14} style={{ color: t.accent }} />;
-                      })();
-                      const [mainDetail, ...commentLines] = item.detail.split("\n");
-                      const rsvpComment = commentLines.join("\n").trim();
-                      return (
-                        <div key={`a-${item.id}`} style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "6px 0" }}>
-                          <div style={{
-                            width: "28px", height: "28px", borderRadius: "50%",
-                            background: (item.type.startsWith("rsvp") || item.type === "potluck_claim") ? t.accentBg : t.pillBg,
-                            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: rsvpComment ? "2px" : 0,
-                          }}>
-                            {iconEl}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div>
-                              <span style={{ fontSize: "13px", color: t.textSecondary }}>{mainDetail}</span>
-                              {event.showTimestamps && (
-                                <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>
+                        );
+                        if (item.kind === "activity") {
+                          const iconEl = (() => {
+                            if (item.type === "rsvp_new" || item.type === "rsvp_update") return <Users size={14} style={{ color: t.accent }} />;
+                            if (item.type === "event_date") return <Calendar size={14} style={{ color: t.accent }} />;
+                            if (item.type === "info_add") return <Plus size={14} style={{ color: t.accent }} />;
+                            if (item.type === "info_delete") return <X size={14} style={{ color: t.textMuted }} />;
+                            if (item.type === "potluck_claim") return <Gift size={14} style={{ color: t.accent }} />;
+                            if (item.type === "potluck_unclaim") return <Gift size={14} style={{ color: t.textMuted }} />;
+                            return <Pencil size={14} style={{ color: t.accent }} />;
+                          })();
+                          const [mainDetail, ...commentLines] = item.detail.split("\n");
+                          const rsvpComment = commentLines.join("\n").trim();
+                          return (
+                            <div key={`a-${item.id}`} style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "6px 0" }}>
+                              <div style={{
+                                width: "28px", height: "28px", borderRadius: "50%",
+                                background: (item.type.startsWith("rsvp") || item.type === "potluck_claim") ? t.accentBg : t.pillBg,
+                                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: rsvpComment ? "2px" : 0,
+                              }}>
+                                {iconEl}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div>
+                                  <span style={{ fontSize: "13px", color: t.textSecondary }}>{mainDetail}</span>
+                                  {event.showTimestamps && (
+                                    <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>
+                                  )}
+                                </div>
+                                {rsvpComment && (
+                                  <div style={{ marginTop: "6px", borderLeft: `3px solid ${t.cardBorder}`, paddingLeft: "10px", color: t.textMuted, fontSize: "13px", fontStyle: "italic", lineHeight: 1.5 }}>
+                                    {rsvpComment}
+                                  </div>
+                                )}
+                              </div>
+                              {isHost && (
+                                <button
+                                  onClick={() => removeActivityEvent(item.id)}
+                                  title="Hide from activity"
+                                  style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0, opacity: 0.6 }}
+                                >
+                                  <X size={12} />
+                                </button>
                               )}
                             </div>
-                            {rsvpComment && (
-                              <div style={{ marginTop: "6px", borderLeft: `3px solid ${t.cardBorder}`, paddingLeft: "10px", color: t.textMuted, fontSize: "13px", fontStyle: "italic", lineHeight: 1.5 }}>
-                                {rsvpComment}
-                              </div>
-                            )}
-                          </div>
-                          {isHost && (
-                            <button
-                              onClick={() => removeActivityEvent(item.id)}
-                              title="Hide from activity"
-                              style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0, opacity: 0.6 }}
-                            >
-                              <X size={12} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    }
-                    return (
-                      <div key={`c-${item.id}`} style={{ display: "flex", gap: "10px" }}>
-                        <div style={{ ...S.avatar }}>{item.guestName[0].toUpperCase()}</div>
-                        <div style={{ flex: 1, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
-                          <span style={{ fontWeight: 700, fontSize: "13px" }}>{item.guestName}</span>
-                          {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>}
-                          <p style={{ color: t.textSecondary, fontSize: "14px", margin: "4px 0 0" }}>{item.body}</p>
-                          {item.replies.length > 0 && (
-                            <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                              {item.replies.map((r) => (
-                                <div key={r.id} style={{ display: "flex", gap: "8px" }}>
-                                  <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
-                                  <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: "10px", padding: "6px 10px" }}>
-                                    <span style={{ fontWeight: 700, fontSize: "12px" }}>{r.guestName}</span>
-                                    {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "6px" }}>{timeAgo(r.createdAt)}</span>}
-                                    <p style={{ fontSize: "13px", margin: "2px 0 0", color: t.textSecondary }}>{r.body}</p>
-                                  </div>
+                          );
+                        }
+                        return (
+                          <div key={`c-${item.id}`} style={{ display: "flex", gap: "10px" }}>
+                            <div style={{ ...S.avatar }}>{item.guestName[0].toUpperCase()}</div>
+                            <div style={{ flex: 1, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
+                              <span style={{ fontWeight: 700, fontSize: "13px" }}>{item.guestName}</span>
+                              {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>}
+                              <p style={{ color: t.textSecondary, fontSize: "14px", margin: "4px 0 0" }}>{item.body}</p>
+                              {(isHost || guestRsvpId) && (
+                                <button
+                                  onClick={() => {
+                                    setReplyingToId(replyingToId === item.id ? null : item.id);
+                                    setReplyText("");
+                                  }}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    color: t.textMuted,
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    padding: "4px 0",
+                                    display: "inline-block",
+                                    marginTop: "6px",
+                                  }}
+                                >
+                                  Reply
+                                </button>
+                              )}
+                              {item.replies.length > 0 && (
+                                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                                  {item.replies.map((r) => (
+                                    <div key={r.id} style={{ display: "flex", gap: "8px" }}>
+                                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
+                                      <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: "10px", padding: "6px 10px" }}>
+                                        <span style={{ fontWeight: 700, fontSize: "12px" }}>{r.guestName}</span>
+                                        {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "6px" }}>{timeAgo(r.createdAt)}</span>}
+                                        <p style={{ fontSize: "13px", margin: "2px 0 0", color: t.textSecondary }}>{r.body}</p>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                              )}
+                              {replyingToId === item.id && (
+                                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                                  <input
+                                    type="text"
+                                    placeholder="Write a reply..."
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    style={{
+                                      flex: 1,
+                                      background: "rgba(255, 255, 255, 0.05)",
+                                      border: `1px solid ${t.cardBorder}`,
+                                      borderRadius: "10px",
+                                      padding: "6px 12px",
+                                      color: t.textPrimary,
+                                      fontSize: "13px",
+                                      outline: "none",
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && !isPending && replyText.trim()) {
+                                        submitReply(item.id);
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    onClick={() => submitReply(item.id)}
+                                    disabled={!replyText.trim() || isPending}
+                                    style={{
+                                      background: t.accent,
+                                      color: t.accentFg,
+                                      border: "none",
+                                      borderRadius: "10px",
+                                      padding: "0 12px",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      opacity: !replyText.trim() ? 0.5 : 1,
+                                    }}
+                                  >
+                                    <Send size={12} />
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginTop: "16px",
+                          paddingTop: "12px",
+                          borderTop: `1px solid ${t.cardBorder || "rgba(255,255,255,0.1)"}`,
+                        }}>
+                          <button
+                            onClick={() => setFeedPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            style={{
+                              padding: "6px 12px",
+                              background: currentPage === 1 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.06)",
+                              border: `1px solid ${t.cardBorder || "rgba(255,255,255,0.1)"}`,
+                              borderRadius: "8px",
+                              color: currentPage === 1 ? t.textMuted : t.textPrimary,
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            Prev
+                          </button>
+                          <span style={{ color: t.textSecondary, fontSize: "12px" }}>
+                            Page {currentPage} of {totalPages}
+                          </span>
+                          <button
+                            onClick={() => setFeedPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            style={{
+                              padding: "6px 12px",
+                              background: currentPage === totalPages ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.06)",
+                              border: `1px solid ${t.cardBorder || "rgba(255,255,255,0.1)"}`,
+                              borderRadius: "8px",
+                              color: currentPage === totalPages ? t.textMuted : t.textPrimary,
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            Next
+                          </button>
                         </div>
-                      </div>
-                    );
-                  })}
+                      )}
+                    </>
+                  )}
                 </div>
               );
             })()}
