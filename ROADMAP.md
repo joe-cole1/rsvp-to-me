@@ -37,24 +37,40 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   *   [ ] Render local markdown files (e.g., GitHub README, setup guides, and `docs/cloudflare_workers.md`) dynamically.
 *   *   [ ] Implement search, category navigation, and responsive layout styling.
 
+### 7. UI/UX Polish & Immediate Fixes
+*   [ ] **Fix Invite Guests Copy Link**: The copy link button is currently broken. Make it copy the event URL to the clipboard and update the button style to green with a checkbox upon success.
+*   [ ] **Toast & Success Message UX**: Adjust styling for confirmation, "Saved", and success messages across the entire site to render at the top of the viewport (fixed position) rather than the absolute top of the page, so they are visible without scrolling up.
+*   [ ] **Eliminate All-Caps Overuse**: Audit and remove unnecessary all-caps text throughout the website to improve readability.
+*   [ ] **RSVP Settings Grouping**: In Event Settings, group "Require host approval for each RSVP" and "Guests can RSVP 'Maybe'" under a new subtitle: "RSVP & Approval Options".
+*   [ ] **Clean up Event Settings Navigation**: Restructure the Event Settings page so each setting section is linked from a menu and opens in a sub-view/page, with clear links back to settings or the event.
+*   [ ] **Consistent Profile Picture Usage**: Make every user profile icon (event page, activity log, comments, etc.) render the uploaded profile picture if available.
+
 ---
 
 ## 💡 Future Work & Ideas (Icebox)
 *Product ideas and long-term improvements to track but not work on immediately.*
 
-### 🛠️ Administration & Email Settings
+### 🛠️ Administration & Settings
 *   **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard instead of requiring console log checks.
 *   **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.
 *   **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
 *   **Auth Fallback Alerts**: Alert users during login errors to reference the container console rescue log fallback.
+*   **Draft & Visibility Controls**: Add the ability to save events as drafts (unpublished). This should live in "Display & Privacy" under Event Visibility settings.
+*   **Event Settings Navigation & Photo Sharing**: Move the post-event photo sharing option to its own dedicated section in settings, eventually building it out to link to shared albums (Google Photos, Apple, Immich, etc.).
 
 ### 🎨 Themes & Customization
 *   **Rich Theme Presets**: Expand the theme builder with custom typography (from Google Fonts), vibrant gradients, and dynamic layout choices.
 *   **Custom Cover Images**: Enable host upload cropping and stock image selection templates.
+*   **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
 
 ### 💬 Messaging & Notifications
 *   **SMS Blasts (Twilio)**: Integrate Twilio out-of-the-box for hosts to text blast guests.
 *   **Email RSVP Updates**: Send automatic emails to hosts when someone RSVPs, and alerts to guests when event details change.
+*   **Inbound Reply Logging (Emails & SMS)**: 
+    *   Log guest email/SMS replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
+    *   Add SMS response triggers (e.g., if a guest replies "YES" to an invitation SMS, it automatically records their RSVP).
+*   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
+*   **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
 
 ---
 

@@ -7,6 +7,7 @@
 Instead, follow this workflow:
 1. At the start of a session, check remote main, sync, and create a new feature branch via the GitHub MCP tool to work from.
 2. When changes are complete, verified, and ready, show the exact PowerShell git commands for the USER to run on their system (e.g., `git add`, `git commit -m "..."`, and `git push origin <branch>`) to push to the feature branch.
+   - **Skip Lint Check for Non-Substantive Changes:** If the changes do NOT affect application source code (e.g., only modifying `AGENTS.md`, `ROADMAP.md`, or markdown files in `docs/`), explicitly append the `--no-verify` flag to the suggested `git commit` command to bypass lint/compile hooks. If there are any functional code modifications, do NOT include this flag.
 3. Instruct the user to open a Pull Request (PR) from their feature branch to `main` (never commit or push directly to `main`, use `gh pr create` or the GitHub web UI).
 4. Verify that the local diff matches the changes we want to push before handing off.
 5. Only use GitHub MCP tools for branch creation at startup and read-only operations (like checking PRs/commits) unless requested.
