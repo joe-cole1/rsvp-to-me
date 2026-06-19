@@ -185,7 +185,7 @@ export async function addRSVP(data: {
 }) {
   const event = await db.event.findUnique({
     where: { id: data.eventId },
-    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true } } },
+    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true, email: true } } },
   });
   if (!event) return { success: false, error: "Event not found" };
   if (event.rsvpDeadline && event.rsvpDeadline < new Date()) return { success: false, error: "RSVP deadline has passed" };
@@ -264,6 +264,7 @@ export async function addRSVP(data: {
       editToken: rsvp.editToken,
       startAt: event.startAt,
       locationName: event.locationName,
+      replyTo: event.host.email || undefined,
     }).catch(() => {});
   }
   if (data.guestPhone) {
@@ -443,7 +444,7 @@ export async function sendBlast(
 
   const event = await db.event.findUnique({
     where: { id: eventId },
-    select: { title: true, slug: true, host: { select: { name: true } } },
+    select: { title: true, slug: true, host: { select: { name: true, email: true } } },
   });
   if (!event) throw new Error("Event not found");
 
@@ -461,6 +462,7 @@ export async function sendBlast(
     eventSlug: event.slug,
     message,
     hostName: event.host.name ?? "Your host",
+    replyTo: event.host.email || undefined,
   });
 
   db.invitation.createMany({
@@ -552,7 +554,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
@@ -569,6 +571,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
       eventSlug: rsvp.event.slug,
       approved: true,
       message,
+      replyTo: rsvp.event.host.email || undefined,
     }).catch(() => {});
   } else if (rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
@@ -587,7 +590,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
@@ -602,6 +605,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
       eventSlug: rsvp.event.slug,
       approved: false,
       message,
+      replyTo: rsvp.event.host.email || undefined,
     }).catch(() => {});
   } else if (rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
@@ -652,13 +656,14 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
     if (emails.length > 0) {
       const fullEvent = await db.event.findUnique({
         where: { id: eventId },
-        select: { title: true, host: { select: { name: true } } },
+        select: { title: true, host: { select: { name: true, email: true } } },
       });
       sendBlastEmail(emails, {
         eventTitle: fullEvent?.title ?? event.slug,
         eventSlug: event.slug,
         message: body,
         hostName: fullEvent?.host.name ?? "Your host",
+        replyTo: fullEvent?.host.email || undefined,
       }).catch(() => {});
     }
   }
@@ -1031,7 +1036,7 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
       if (isEmail) {
         const eventDetails = await db.event.findUnique({
           where: { id: eventId },
-          select: { title: true, locationName: true },
+          select: { title: true, locationName: true, host: { select: { email: true } } },
         });
         await sendEventInviteEmail(entry, {
           guestName: rsvp.guestName,
@@ -1041,6 +1046,7 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
           startAt: new Date(),
           locationName: eventDetails?.locationName ?? "TBD",
           inviteLink,
+          replyTo: eventDetails?.host?.email || undefined,
         });
       } else {
         await sendMagicLinkSms(entry, inviteLink);

@@ -117,7 +117,7 @@ export async function getUserProfile() {
   const session = await getSession();
   if (!session) return null;
 
-  return db.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id: session.userId },
     select: {
       id: true,
@@ -130,4 +130,17 @@ export async function getUserProfile() {
       smsNotifications: true,
     },
   });
+
+  if (user) {
+    const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
+    if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
+      await db.user.update({
+        where: { id: user.id },
+        data: { role: "ADMIN" },
+      });
+      user.role = "ADMIN";
+    }
+  }
+
+  return user;
 }

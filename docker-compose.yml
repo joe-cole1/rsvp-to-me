@@ -8,6 +8,8 @@ services:
       DATABASE_URL: file:/app/data/prod.db
       OPEN_REGISTRATION: "false"   # set to "true" to allow anyone to register
       SEED_TEST_DATA: "true"
+      CLOUDFLARE_WORKER_EMAIL_URL: ""
+      CLOUDFLARE_WORKER_API_SECRET: ""
 
 
     volumes:

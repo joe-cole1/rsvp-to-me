@@ -97,6 +97,51 @@ export default function AdminClient({
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const [emailProvider, setEmailProvider] = useState(config.email_provider || "console");
+  const [emailFrom, setEmailFrom] = useState(config.email_from || "");
+  const [smtpHost, setSmtpHost] = useState(config.smtp_host || "");
+  const [smtpPort, setSmtpPort] = useState(config.smtp_port || "587");
+  const [smtpSecure, setSmtpSecure] = useState(config.smtp_secure === "true");
+  const [smtpUser, setSmtpUser] = useState(config.smtp_user || "");
+  const [smtpPass, setSmtpPass] = useState(config.smtp_pass || "");
+  const [cfWorkerUrl, setCfWorkerUrl] = useState(config.cloudflare_worker_email_url || "");
+  const [cfWorkerSecret, setCfWorkerSecret] = useState(config.cloudflare_worker_api_secret || "");
+
+  const handleSaveEmailConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
+    startTransition(async () => {
+      try {
+        await updateSystemConfig("email_provider", emailProvider);
+        await updateSystemConfig("email_from", emailFrom.trim());
+        await updateSystemConfig("smtp_host", smtpHost.trim());
+        await updateSystemConfig("smtp_port", smtpPort.trim());
+        await updateSystemConfig("smtp_secure", smtpSecure ? "true" : "false");
+        await updateSystemConfig("smtp_user", smtpUser.trim());
+        await updateSystemConfig("smtp_pass", smtpPass.trim());
+        await updateSystemConfig("cloudflare_worker_email_url", cfWorkerUrl.trim());
+        await updateSystemConfig("cloudflare_worker_api_secret", cfWorkerSecret.trim());
+
+        setConfig((prev) => ({
+          ...prev,
+          email_provider: emailProvider,
+          email_from: emailFrom.trim(),
+          smtp_host: smtpHost.trim(),
+          smtp_port: smtpPort.trim(),
+          smtp_secure: smtpSecure ? "true" : "false",
+          smtp_user: smtpUser.trim(),
+          smtp_pass: smtpPass.trim(),
+          cloudflare_worker_email_url: cfWorkerUrl.trim(),
+          cloudflare_worker_api_secret: cfWorkerSecret.trim(),
+        }));
+        setFeedback({ type: "success", message: "Email delivery configuration saved successfully." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to save configuration.";
+        setFeedback({ type: "error", message });
+      }
+    });
+  };
+
   // Search handlers
   const handleUserSearch = async (val: string) => {
     setUserSearch(val);
@@ -782,63 +827,349 @@ export default function AdminClient({
 
             {/* PANEL: SETTINGS */}
             {activeTab === "settings" && (
-              <div
-                style={{
-                  backgroundColor: APP_SHELL.cardBg,
-                  border: `1px solid ${APP_SHELL.cardBorder}`,
-                  borderRadius: APP_SHELL.cardRadius,
-                  padding: "24px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "24px",
-                }}
-              >
-                <div>
-                  <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
-                    Global System Configuration
-                  </h3>
-                  <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
-                    Toggles stored in database taking priority over environment variables.
-                  </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Section 1: Global System Configuration */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "24px",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                      Global System Configuration
+                    </h3>
+                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
+                      Toggles stored in database taking priority over environment variables.
+                    </p>
+                  </div>
+
+                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>Open Host Registration</div>
+                      <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
+                        Allow anyone to sign up as a host without entering an invite code.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleOpenReg}
+                      style={{
+                        width: "50px",
+                        height: "26px",
+                        borderRadius: "13px",
+                        border: "none",
+                        backgroundColor: config.open_registration === "true" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
+                        cursor: "pointer",
+                        position: "relative",
+                        transition: "background-color 0.2s",
+                        padding: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          backgroundColor: "#fff",
+                          position: "absolute",
+                          top: "3px",
+                          left: config.open_registration === "true" ? "27px" : "3px",
+                          transition: "left 0.2s",
+                        }}
+                      />
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
-
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                {/* Section 2: Server Configuration & Email Delivery */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "24px",
+                  }}
+                >
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>Open Host Registration</div>
-                    <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
-                      Allow anyone to sign up as a host without entering an invite code.
-                    </div>
+                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                      Server Configuration & Email Delivery
+                    </h3>
+                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
+                      Choose your email provider and configure settings (database config overrides env variables).
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleToggleOpenReg}
-                    style={{
-                      width: "50px",
-                      height: "26px",
-                      borderRadius: "13px",
-                      border: "none",
-                      backgroundColor: config.open_registration === "true" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-                      cursor: "pointer",
-                      position: "relative",
-                      transition: "background-color 0.2s",
-                      padding: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        backgroundColor: "#fff",
-                        position: "absolute",
-                        top: "3px",
-                        left: config.open_registration === "true" ? "27px" : "3px",
-                        transition: "left 0.2s",
-                      }}
-                    />
-                  </button>
+
+                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
+
+                  <form onSubmit={handleSaveEmailConfig} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                        Email Provider
+                      </label>
+                      <select
+                        value={emailProvider}
+                        onChange={(e) => setEmailProvider(e.target.value)}
+                        style={{
+                          width: "100%",
+                          backgroundColor: APP_SHELL.inputBg,
+                          border: `1px solid ${APP_SHELL.inputBorder}`,
+                          borderRadius: APP_SHELL.inputRadius,
+                          padding: "10px 14px",
+                          color: APP_SHELL.textPrimary,
+                          fontSize: "13px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <option value="console">Console Fallback (Local Dev / Logging)</option>
+                        <option value="smtp">SMTP Server</option>
+                        <option value="cloudflare">Cloudflare Workers</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                        From Address
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. RSVP to Me <noreply@yourdomain.com>"
+                        value={emailFrom}
+                        onChange={(e) => setEmailFrom(e.target.value)}
+                        style={{
+                          width: "100%",
+                          backgroundColor: APP_SHELL.inputBg,
+                          border: `1px solid ${APP_SHELL.inputBorder}`,
+                          borderRadius: APP_SHELL.inputRadius,
+                          padding: "10px 14px",
+                          color: APP_SHELL.textPrimary,
+                          fontSize: "13px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+
+                    {emailProvider === "smtp" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "16px" }}>
+                          <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                              SMTP Host
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. smtp.gmail.com"
+                              value={smtpHost}
+                              onChange={(e) => setSmtpHost(e.target.value)}
+                              style={{
+                                width: "100%",
+                                backgroundColor: APP_SHELL.inputBg,
+                                border: `1px solid ${APP_SHELL.inputBorder}`,
+                                borderRadius: APP_SHELL.inputRadius,
+                                padding: "10px 14px",
+                                color: APP_SHELL.textPrimary,
+                                fontSize: "13px",
+                                outline: "none",
+                                boxSizing: "border-box",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                              SMTP Port
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="587"
+                              value={smtpPort}
+                              onChange={(e) => setSmtpPort(e.target.value)}
+                              style={{
+                                width: "100%",
+                                backgroundColor: APP_SHELL.inputBg,
+                                border: `1px solid ${APP_SHELL.inputBorder}`,
+                                borderRadius: APP_SHELL.inputRadius,
+                                padding: "10px 14px",
+                                color: APP_SHELL.textPrimary,
+                                fontSize: "13px",
+                                outline: "none",
+                                boxSizing: "border-box",
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: "13px", color: APP_SHELL.textPrimary }}>Use Secure Connection (SSL/TLS)</div>
+                            <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
+                              Set true for port 465, false for 587 (STARTTLS).
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSmtpSecure((prev) => !prev)}
+                            style={{
+                              width: "50px",
+                              height: "26px",
+                              borderRadius: "13px",
+                              border: "none",
+                              backgroundColor: smtpSecure ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
+                              cursor: "pointer",
+                              position: "relative",
+                              transition: "background-color 0.2s",
+                              padding: 0,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                backgroundColor: "#fff",
+                                position: "absolute",
+                                top: "3px",
+                                left: smtpSecure ? "27px" : "3px",
+                                transition: "left 0.2s",
+                              }}
+                            />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            SMTP Username (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. user@gmail.com"
+                            value={smtpUser}
+                            onChange={(e) => setSmtpUser(e.target.value)}
+                            style={{
+                              width: "100%",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: APP_SHELL.inputRadius,
+                              padding: "10px 14px",
+                              color: APP_SHELL.textPrimary,
+                              fontSize: "13px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            SMTP Password (Optional)
+                          </label>
+                          <input
+                            type="password"
+                            placeholder="Password"
+                            value={smtpPass}
+                            onChange={(e) => setSmtpPass(e.target.value)}
+                            style={{
+                              width: "100%",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: APP_SHELL.inputRadius,
+                              padding: "10px 14px",
+                              color: APP_SHELL.textPrimary,
+                              fontSize: "13px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {emailProvider === "cloudflare" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            Worker Email URL
+                          </label>
+                          <input
+                            type="url"
+                            required
+                            placeholder="https://rsvp-email-worker.yourname.workers.dev"
+                            value={cfWorkerUrl}
+                            onChange={(e) => setCfWorkerUrl(e.target.value)}
+                            style={{
+                              width: "100%",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: APP_SHELL.inputRadius,
+                              padding: "10px 14px",
+                              color: APP_SHELL.textPrimary,
+                              fontSize: "13px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            Worker API Secret
+                          </label>
+                          <input
+                            type="password"
+                            required
+                            placeholder="API Secret Token"
+                            value={cfWorkerSecret}
+                            onChange={(e) => setCfWorkerSecret(e.target.value)}
+                            style={{
+                              width: "100%",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: APP_SHELL.inputRadius,
+                              padding: "10px 14px",
+                              color: APP_SHELL.textPrimary,
+                              fontSize: "13px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "10px" }}>
+                      <button
+                        type="submit"
+                        disabled={isPending}
+                        style={{
+                          backgroundColor: APP_SHELL.accent,
+                          border: "none",
+                          color: "#fff",
+                          borderRadius: "10px",
+                          padding: "10px 20px",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          opacity: isPending ? 0.6 : 1,
+                        }}
+                      >
+                        Save Settings
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             )}
