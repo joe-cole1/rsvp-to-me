@@ -138,6 +138,9 @@ async function send(opts: MailOpts) {
 }
 
 export async function sendMagicLinkEmail(to: string, magicLink: string) {
+  // Always log magic link to container logs as a rescue fallback for administrators
+  console.log(`[auth:magic-link-fallback] Magic link for ${to} is: ${magicLink}`);
+
   return send({
     to,
     subject: "Your sign-in link for RSVP to Me",
