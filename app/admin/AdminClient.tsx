@@ -175,31 +175,8 @@ export default function AdminClient({
     return `// WARNING: If you modify this template, make sure to also update the file
 // worker/worker.ts to keep them in sync.
 
-import type { SendEmail, Message, ExportedHandler } from "@cloudflare/workers-types";
-
-interface Env {
-  SEND_EMAIL: SendEmail;
-  WORKER_API_SECRET?: string;
-  INBOUND_FORWARD_TO?: string;
-}
-
-interface WorkerSendPayload {
-  from: string;
-  to: string | string[];
-  bcc?: string | string[];
-  replyTo?: string;
-  subject: string;
-  html?: string;
-  text?: string;
-}
-
-function extractRawEmail(fromStr: string): string {
-  const match = fromStr.match(/<([^>]+)>/);
-  return match ? match[1].trim() : fromStr.trim();
-}
-
 export default {
-  async email(message: Message, env: Env) {
+  async email(message, env) {
     if (!env.INBOUND_FORWARD_TO) {
       throw new Error("INBOUND_FORWARD_TO environment variable is not set.");
     }
@@ -212,7 +189,7 @@ export default {
     });
   },
 
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request, env) {
     if (!env.WORKER_API_SECRET) {
       return new Response("Unauthorized: WORKER_API_SECRET environment variable is not set.", { status: 401 });
     }
@@ -224,7 +201,7 @@ export default {
     }
 
     try {
-      const body: WorkerSendPayload = await request.json();
+      const body = await request.json();
       if (!body.from || !body.to || !body.subject || (!body.html && !body.text)) {
         return new Response("Missing required fields", { status: 422 });
       }
@@ -250,12 +227,17 @@ export default {
       );
 
       return Response.json({ ok: true });
-    } catch (err: unknown) {
+    } catch (err) {
       const message = err instanceof Error ? err.message : "Internal Server Error";
       return new Response(message, { status: 500 });
     }
   },
-} satisfies ExportedHandler<Env>;
+};
+
+function extractRawEmail(fromStr) {
+  const match = fromStr.match(/<([^>]+)>/);
+  return match ? match[1].trim() : fromStr.trim();
+}
 `;
   };
 
