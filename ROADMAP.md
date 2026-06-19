@@ -21,6 +21,17 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [ ] Design a mobile-friendly host scanner view to scan QR codes and check guests in.
 *   [ ] Provide a manual toggle check-in flow on the guest list.
 
+### 4. SMS Integration & Testing (Twilio)
+*   [ ] Build configuration panel in `/admin` for Twilio settings (Account SID, Auth Token, Sender Phone Number).
+*   [ ] Add connection diagnostics testing for Twilio SMS in `/admin` (similar to email testing).
+*   [ ] Implement outbound SMS blast mechanisms using Twilio's client.
+*   [ ] Write automated unit tests for `lib/sms.ts` to mock and verify Twilio service connectivity.
+
+### 5. Database Migration (SQLite to PostgreSQL)
+*   [ ] Transition the Prisma schema and database provider from SQLite to PostgreSQL for production scalability.
+*   [ ] Update singletons, docker-compose configurations, and deployment guidelines.
+*   [ ] Define database migration paths for existing production data.
+
 ---
 
 ## 💡 Future Work & Ideas (Icebox)
@@ -60,3 +71,4 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [x] **Setup Wizards**: Generate secrets, pre-fill Cloudflare subdomains, and toggle visibility.
 *   [x] **Email Diagnostics & Safety**: Connection-testing suite in `/admin`, SSRF validation checks, and console auth lockout safety fallbacks.
 *   [x] **Cloudflare Email Service Migration**: Upgraded Cloudflare Worker integration from Email Routing (`SEND_EMAIL`) to the newer Cloudflare Email Service (`EMAIL`), enabling transactional emails to arbitrary external recipients.
+*   [x] **Cloudflare Email REST API Option**: Direct transactional email sending using the v4 Cloudflare Accounts endpoint, with visual settings guides, DMARC warnings, and secrets masking.

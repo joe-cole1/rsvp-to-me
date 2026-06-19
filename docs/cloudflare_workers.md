@@ -11,15 +11,34 @@ This guide describes how to configure the Cloudflare Email integration for the *
 
 ---
 
+## ⚠️ CRITICAL PREREQUISITE: Authorize Cloudflare Email Sending (SPF & DKIM)
+
+Before you configure either option below, you **MUST** authorize Cloudflare to send emails on behalf of your domain. If you skip this, major providers (like Gmail and Yahoo) will block or reject your emails due to **DMARC policy violations** (as indicated by errors like `5.7.26 Unauthenticated email...`).
+
+To authorize email sending:
+1. Log in to your [Cloudflare Dashboard](https://dash.cloudflare.com) and click on your domain.
+2. In the left-hand sidebar, navigate to **Email** > **Email Routing** (or **Email** > **Email Sending** if available).
+3. Select the **Email Sending** (or **Sending**) tab at the top.
+4. Click **Get Started** or **Configure**.
+5. Cloudflare will present the required DNS records to sign and authorize your emails:
+   * **TXT (SPF) record** for `cf-bounce.yourdomain.com` (authorizes Cloudflare's servers).
+   * **TXT (DKIM) record** for `cf-bounce._domainkey.yourdomain.com` (cryptographically signs your outbound emails).
+   * **MX record** for `cf-bounce.yourdomain.com` (tracks bounced emails).
+6. Click **Add records automatically** to let Cloudflare insert these records into your DNS settings, or copy them and add them manually under **DNS** > **Records**.
+7. Wait for the status of your domain under the Sending tab to show as **Active** or **Verified** (this usually takes 1-2 minutes).
+
+Once verified, continue to configure Option A or Option B below.
+
+---
+
 ## Option A: Cloudflare Email REST API (Outbound Only)
 
 This option allows the application to send invite and confirmation emails directly using Cloudflare's transactional email API, without needing to create or deploy any Workers.
 
 ### 1. Get your Cloudflare Account ID
-1. Log in to your [Cloudflare Dashboard](https://dash.cloudflare.com).
-2. Click on your website domain from the list.
-3. On the right-hand sidebar of the Overview page, locate the **Account ID** section.
-4. Copy the 32-character string.
+1. Go to your domain page on the [Cloudflare Dashboard](https://dash.cloudflare.com).
+2. On the right-hand sidebar of the Overview page, locate the **Account ID** section.
+3. Copy the 32-character string.
 
 ### 2. Create a Cloudflare API Token
 To authorize email sending, you must create a custom API Token with restricted permissions:
