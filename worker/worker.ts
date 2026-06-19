@@ -1,9 +1,12 @@
+// WARNING: If you modify this file, make sure to also update the static worker code template
+// in app/admin/AdminClient.tsx to keep them in sync.
+
 import type { SendEmail, Message, ExportedHandler } from "@cloudflare/workers-types";
 
 interface Env {
   SEND_EMAIL: SendEmail;
-  WORKER_API_SECRET: string;
-  INBOUND_FORWARD_TO: string;
+  WORKER_API_SECRET?: string;
+  INBOUND_FORWARD_TO?: string;
 }
 
 interface WorkerSendPayload {
@@ -23,6 +26,9 @@ function extractRawEmail(fromStr: string): string {
 
 export default {
   async email(message: Message, env: Env) {
+    if (!env.INBOUND_FORWARD_TO) {
+      throw new Error("INBOUND_FORWARD_TO environment variable is not set.");
+    }
     await message.forward(env.INBOUND_FORWARD_TO);
     await env.SEND_EMAIL.send({
       from: extractRawEmail(message.to),
@@ -33,6 +39,9 @@ export default {
   },
 
   async fetch(request: Request, env: Env): Promise<Response> {
+    if (!env.WORKER_API_SECRET) {
+      return new Response("Unauthorized: WORKER_API_SECRET environment variable is not set.", { status: 401 });
+    }
     if (request.headers.get("Authorization") !== `Bearer ${env.WORKER_API_SECRET}`) {
       return new Response("Unauthorized", { status: 401 });
     }
@@ -42,7 +51,7 @@ export default {
 
     try {
       const body: WorkerSendPayload = await request.json();
-      if (!body.to || !body.subject || (!body.html && !body.text)) {
+      if (!body.from || !body.to || !body.subject || (!body.html && !body.text)) {
         return new Response("Missing required fields", { status: 422 });
       }
 

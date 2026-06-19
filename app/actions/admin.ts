@@ -259,11 +259,27 @@ export async function getSystemConfig() {
     configMap["cloudflare_worker_api_secret"] = process.env.CLOUDFLARE_WORKER_API_SECRET ?? "";
   }
 
+  if (!configMap.hasOwnProperty("cloudflare_inbound_forward_to")) {
+    configMap["cloudflare_inbound_forward_to"] = process.env.INBOUND_FORWARD_TO ?? "";
+  }
+
+  // Mask sensitive values before returning to client/UI
+  if (configMap["cloudflare_worker_api_secret"]) {
+    configMap["cloudflare_worker_api_secret"] = "••••••••";
+  }
+  if (configMap["smtp_pass"]) {
+    configMap["smtp_pass"] = "••••••••";
+  }
+
   return configMap;
 }
 
 export async function updateSystemConfig(key: string, value: string) {
   await assertAdmin();
+
+  if ((key === "cloudflare_worker_api_secret" || key === "smtp_pass") && value === "••••••••") {
+    return { success: true };
+  }
 
   await db.systemConfig.upsert({
     where: { key },
@@ -274,3 +290,4 @@ export async function updateSystemConfig(key: string, value: string) {
   revalidatePath("/admin");
   return { success: true };
 }
+

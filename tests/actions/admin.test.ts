@@ -196,10 +196,16 @@ describe("app/actions/admin.ts", () => {
       expect(res.code).toEqual(mockCode);
     });
 
-    it("fetches system config", async () => {
-      mockSystemConfigFindMany.mockResolvedValue([{ key: "open_registration", value: "true" }]);
+    it("fetches system config and masks sensitive values", async () => {
+      mockSystemConfigFindMany.mockResolvedValue([
+        { key: "open_registration", value: "true" },
+        { key: "smtp_pass", value: "super-secret-password" },
+        { key: "cloudflare_worker_api_secret", value: "worker-api-token" },
+      ]);
       const config = await getSystemConfig();
       expect(config.open_registration).toBe("true");
+      expect(config.smtp_pass).toBe("••••••••");
+      expect(config.cloudflare_worker_api_secret).toBe("••••••••");
     });
 
     it("updates system config setting", async () => {
@@ -214,5 +220,13 @@ describe("app/actions/admin.ts", () => {
         })
       );
     });
+
+    it("skips updating sensitive config setting if the value is the mask placeholder", async () => {
+      mockSystemConfigUpsert.mockClear();
+      const res = await updateSystemConfig("smtp_pass", "••••••••");
+      expect(res.success).toBe(true);
+      expect(mockSystemConfigUpsert).not.toHaveBeenCalled();
+    });
   });
 });
+
