@@ -1,77 +1,94 @@
-# Cloudflare Workers Email Integration Setup Guide
+# Cloudflare Email Integration Setup Guide
 
-This guide describes how to configure the Cloudflare Workers outbound and inbound email transport layer for the RSVP to Me application.
+This guide describes how to configure the Cloudflare Email integration for the **RSVP to Me** application. We support two methods:
 
-Once configured, the application sends all outbound transactional emails (such as magic links, guest RSVPs, and host updates) natively via Cloudflare's `send_email` bindings, and forwards guest replies back to the host.
-
----
-
-## 1. Deploy the Cloudflare Worker
-
-The worker code is located under the `/worker` directory.
-
-1. Navigate to the worker directory:
-   ```bash
-   cd worker
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Login and deploy to Cloudflare:
-   ```bash
-   npx wrangler login
-   npx wrangler deploy
-   ```
-   *Note the URL of the deployed worker (e.g. `https://rsvp-email-worker.yourname.workers.dev`).*
-
-4. Set the worker secrets:
-   ```bash
-   # Secret token to authorize Next.js sending requests
-   npx wrangler secret put WORKER_API_SECRET
-
-   # Default backup inbox for guest replies
-   npx wrangler secret put INBOUND_FORWARD_TO
-   ```
+*   **Option A: Cloudflare Email REST API (Recommended for Simple Outbound Setup)**
+    *   *Complexity:* Very Low (takes 2 minutes)
+    *   *Capability:* Outbound sending only. Guest replies will not trigger automatic worker-based RSVP confirmations (standard forwarding rules still work).
+*   **Option B: Cloudflare Workers Integration (Full Inbound & Outbound Auto-Replies)**
+    *   *Complexity:* Medium (takes 5 minutes)
+    *   *Capability:* Outbound sending and automatic confirmation replies when guests respond to invite emails.
 
 ---
 
-## 2. Configure Cloudflare Email Routing
+## Option A: Cloudflare Email REST API (Outbound Only)
 
-To forward replies sent to your domain (e.g., guests replying to RSVP emails):
+This option allows the application to send invite and confirmation emails directly using Cloudflare's transactional email API, without needing to create or deploy any Workers.
 
-1. Go to your Cloudflare Dashboard: **Websites > [Your Domain] > Email > Email Routing > Routes**.
-2. Click **Add route**.
-3. Configure the route:
-   - **Custom address**: Enter a catch-all or a specific address (e.g., `rsvps@yourdomain.com`).
-   - **Action**: Select **Send to Worker**.
-   - **Destination worker**: Select `rsvp-email-worker`.
-4. Click **Save**.
+### 1. Get your Cloudflare Account ID
+1. Log in to your [Cloudflare Dashboard](https://dash.cloudflare.com).
+2. Click on your website domain from the list.
+3. On the right-hand sidebar of the Overview page, locate the **Account ID** section.
+4. Copy the 32-character string.
 
----
+### 2. Create a Cloudflare API Token
+To authorize email sending, you must create a custom API Token with restricted permissions:
+1. In the top-right corner of the Cloudflare Dashboard, click the user profile icon and select **My Profile**.
+2. Click **API Tokens** in the sidebar.
+3. Click **Create Token**.
+4. Scroll to the bottom of the page and click **Create Custom Token**.
+5. Set the **Token name** to something recognizable, like `RSVP to Me Sending Token`.
+6. Under **Permissions**, add the following rule:
+   * **Account** | **Email Sending** | **Edit**
+7. Under **Account Resources**, choose **Include** and select your account.
+8. Under **Zone Resources**, choose **Include** > **Specific zone** > select your domain.
+9. Click **Continue to summary**, then click **Create Token**.
+10. Copy the generated token and save it somewhere secure (it will only be shown once).
 
-## 3. Configure the RSVP to Me Application
-
-You can configure the application's email delivery settings in one of two ways:
-
-### Option A: via Admin Panel (Recommended - No Container Restart Needed)
+### 3. Configure RSVP to Me Settings
 1. Log in to the application as an `ADMIN` user.
-2. Go to the Admin dashboard at `/admin` and select the **Settings** tab.
+2. Go to the Admin settings panel at `/admin` and select the **Settings** tab.
 3. Under **Server Configuration & Email Delivery**:
-   - Change the **Email Provider** selection to **Cloudflare Workers**.
-   - Set **From Address** to your verified sender address (e.g., `RSVP to Me <noreply@yourdomain.com>`).
-   - Set **Worker Email URL** to your deployed worker URL.
-   - Set **Worker API Secret** to your configured `WORKER_API_SECRET`.
-4. Click **Save Settings**.
+   * Select **Cloudflare Email REST API** as your Email Provider.
+   * **From Address**: Enter your sending address (e.g., `RSVP to Me <rsvps@yourdomain.com>`).
+   * **Cloudflare Account ID**: Paste your 32-character Account ID.
+   * **Cloudflare API Token**: Paste your custom API Token.
+4. Click **Save Settings** and then click **Test Connection** to verify end-to-end delivery.
 
-### Option B: via Docker Compose / Environment Variables
-Add the following variables to your `docker-compose.yml` or `.env` file and restart the container:
+---
 
-```yaml
-environment:
-  # ... existing variables ...
-  CLOUDFLARE_WORKER_EMAIL_URL: "https://rsvp-email-worker.yourname.workers.dev"
-  CLOUDFLARE_WORKER_API_SECRET: "your-strong-worker-api-secret-token"
-```
+## Option B: Cloudflare Workers Integration (Full Setup)
 
-*Note: Database configuration in the Admin Panel takes priority over environment variables. If no configuration is present in either the database or environment variables, the system automatically falls back to standard SMTP sending or console logging in development.*
+This option deploys a small Worker to handle outbound sending and automatically intercept inbound replies from guests to perform auto-responses.
+
+### 1. Deploy the Cloudflare Worker (No CLI Required)
+1. Log in to your [Cloudflare Dashboard](https://dash.cloudflare.com).
+2. From the sidebar, navigate to **Workers & Pages** > **Create application** > **Create Worker**.
+3. Name your worker (for example, `rsvp-email-worker`) and click **Deploy**.
+4. Once deployed, click **Edit Code** to open the online Quick Edit editor.
+5. Delete the default boilerplate code, copy the entire contents of `worker/worker.ts` (or copy the generated code directly from the **RSVP to Me** Admin settings panel at `/admin`), and paste it into the editor.
+6. Click **Save and deploy** at the top right.
+
+### 2. Configure Worker Variables and Email Service Binding
+1. Go back to your worker’s dashboard in Cloudflare.
+2. Select the **Settings** tab, then select **Variables** (within the **Variables & Secrets** section).
+3. Under **Environment Variables**, click **Add variable** and configure the following:
+   * **Variable name**: `WORKER_API_SECRET`
+     * Set it as a **Secret** and enter a strong, random password. (Ensure this matches the **Worker API Secret** you enter in the RSVP to Me Admin panel).
+   * **Variable name**: `INBOUND_FORWARD_TO`
+     * Set it as a **Text** value and enter the destination email where you want to receive guest replies (e.g., your personal host email address).
+4. Under **Send Email Bindings** on the same page:
+   * Click **Add binding**.
+   * Set **Variable name** to `EMAIL`.
+5. Click **Save and Deploy** (or **Save** at the bottom of the page) to apply the configurations.
+
+### 3. Configure Cloudflare Email Routing
+1. Navigate back to your account home in the Cloudflare Dashboard.
+2. Select your domain under **Websites**.
+3. From the sidebar, go to **Email** > **Email Routing** > **Routes**.
+4. Ensure your host destination email (the address you entered in `INBOUND_FORWARD_TO`) is verified under the **Destination addresses** tab.
+5. Under the **Routing Rules** tab, click **Add route**:
+   * **Custom address**: Enter your preferred sender routing address (e.g., `rsvps@yourdomain.com`).
+   * **Action**: Select **Send to Worker**.
+   * **Destination worker**: Select `rsvp-email-worker`.
+6. Click **Save**.
+
+### 4. Configure the RSVP to Me Application
+1. Log in to the application as an `ADMIN` user.
+2. Go to the Admin settings panel at `/admin` and select the **Settings** tab.
+3. Under **Server Configuration & Email Delivery**:
+   * Select **Cloudflare Workers** as your Email Provider.
+   * **From Address**: Enter your verified domain address (e.g., `RSVP to Me <rsvps@yourdomain.com>`).
+   * **Worker Email URL**: Enter your deployed worker URL (e.g., `https://rsvp-email-worker.yourname.workers.dev`).
+   * **Worker API Secret**: Enter the same token you set for `WORKER_API_SECRET`.
+4. Click **Save Settings** and then click **Test Connection** to verify end-to-end delivery.

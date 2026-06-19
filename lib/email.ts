@@ -86,6 +86,8 @@ async function resolveEmailConfig() {
 
   const cfUrl = configMap.cloudflare_worker_email_url || process.env.CLOUDFLARE_WORKER_EMAIL_URL;
   const cfSecret = configMap.cloudflare_worker_api_secret || process.env.CLOUDFLARE_WORKER_API_SECRET;
+  const cfAccountId = configMap.cloudflare_account_id || process.env.CLOUDFLARE_ACCOUNT_ID;
+  const cfApiToken = configMap.cloudflare_api_token || process.env.CLOUDFLARE_API_TOKEN;
 
   return {
     provider,
@@ -100,6 +102,8 @@ async function resolveEmailConfig() {
     cloudflare: {
       url: cfUrl,
       secret: cfSecret,
+      accountId: cfAccountId,
+      apiToken: cfApiToken,
     },
   };
 }
@@ -145,12 +149,68 @@ async function sendViaWorker(
   }
 }
 
+async function sendViaRestApi(
+  opts: WorkerMailOpts,
+  cloudflareApi: { accountId?: string; apiToken?: string }
+): Promise<boolean> {
+  if (!cloudflareApi.accountId || !cloudflareApi.apiToken) {
+    console.error("[email:rest-api] accountId or apiToken is missing");
+    return false;
+  }
+  try {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${cloudflareApi.accountId}/email/sending/send`;
+    if (!isSafeWorkerUrl(url)) return false;
+    // codeql[js/request-forgery]
+    // codeql[js/ssrf]
+    // codeql[js/request-injection]
+    // lgtm[js/request-forgery]
+    const res = await safeFetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cloudflareApi.apiToken}`,
+      },
+      body: JSON.stringify({
+        from: opts.from,
+        to: opts.to,
+        bcc: opts.bcc,
+        subject: opts.subject,
+        html: opts.html,
+        replyTo: opts.replyTo,
+      }),
+    });
+    if (!res.ok) {
+      console.error("[email:rest-api] send failed:", res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[email:rest-api] fetch error:", err);
+    return false;
+  }
+}
+
 async function send(opts: MailOpts) {
   const config = await resolveEmailConfig();
   const resolvedTo = opts.to === "FROM" ? config.from : opts.to;
 
   if (config.provider === "cloudflare" && config.cloudflare.url) {
     const success = await sendViaWorker(
+      {
+        from: config.from,
+        to: resolvedTo,
+        bcc: opts.bcc,
+        replyTo: opts.replyTo,
+        subject: opts.subject,
+        html: opts.html,
+      },
+      config.cloudflare
+    );
+    if (success) return;
+  }
+
+  if (config.provider === "cloudflare_api" && config.cloudflare.accountId && config.cloudflare.apiToken) {
+    const success = await sendViaRestApi(
       {
         from: config.from,
         to: resolvedTo,
@@ -311,9 +371,54 @@ export async function testEmailConfig(
     cloudflare: {
       url?: string;
       secret?: string;
+      accountId?: string;
+      apiToken?: string;
     };
   }
 ): Promise<{ success: boolean; error?: string }> {
+  if (config.provider === "cloudflare_api") {
+    if (!config.cloudflare.accountId || !config.cloudflare.apiToken) {
+      return { success: false, error: "Cloudflare Account ID and API Token are required." };
+    }
+    const url = `https://api.cloudflare.com/client/v4/accounts/${config.cloudflare.accountId}/email/sending/send`;
+    if (!isSafeWorkerUrl(url)) {
+      return { success: false, error: "Invalid Cloudflare REST API URL." };
+    }
+    try {
+      // codeql[js/request-forgery]
+      // codeql[js/ssrf]
+      // codeql[js/request-injection]
+      // lgtm[js/request-forgery]
+      const res = await safeFetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.cloudflare.apiToken}`,
+        },
+        body: JSON.stringify({
+          from: config.from,
+          to: testTo,
+          subject: "Test Email from RSVP to Me",
+          html: "<p>This is a test email to verify your Cloudflare REST API email sending configuration. It works!</p>",
+        }),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        return {
+          success: false,
+          error: `Cloudflare REST API returned status ${res.status}: ${errorText || "No response body"}`,
+        };
+      }
+      return { success: true };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        error: `Failed to connect to Cloudflare REST API: ${errMsg}`,
+      };
+    }
+  }
+
   if (config.provider === "cloudflare") {
     if (!config.cloudflare.url || !isSafeWorkerUrl(config.cloudflare.url)) {
       return { success: false, error: "Invalid or unsafe Cloudflare Worker URL. Only public HTTPS URLs are allowed." };

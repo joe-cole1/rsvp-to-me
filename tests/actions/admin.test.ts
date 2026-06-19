@@ -207,11 +207,13 @@ describe("app/actions/admin.ts", () => {
         { key: "open_registration", value: "true" },
         { key: "smtp_pass", value: "super-secret-password" },
         { key: "cloudflare_worker_api_secret", value: "worker-api-token" },
+        { key: "cloudflare_api_token", value: "cf-api-token" },
       ]);
       const config = await getSystemConfig();
       expect(config.open_registration).toBe("true");
       expect(config.smtp_pass).toBe("••••••••");
-      expect(config.cloudflare_worker_api_secret).toBe("worker-api-token");
+      expect(config.cloudflare_worker_api_secret).toBe("••••••••");
+      expect(config.cloudflare_api_token).toBe("••••••••");
     });
 
     it("updates system config setting", async () => {
@@ -236,10 +238,11 @@ describe("app/actions/admin.ts", () => {
 
     it("runs testEmailConfigAction successfully, resolving masked passwords from database", async () => {
       mockTestEmailConfig.mockResolvedValue({ success: true });
-      // Stub db.systemConfig.findUnique for SMTP password and Cloudflare secret
+      // Stub db.systemConfig.findUnique for SMTP password, Cloudflare secret, and Cloudflare API token
       const mockFindUnique = vi.fn().mockImplementation(({ where }) => {
         if (where.key === "smtp_pass") return Promise.resolve({ value: "actual-smtp-password" });
         if (where.key === "cloudflare_worker_api_secret") return Promise.resolve({ value: "actual-worker-secret" });
+        if (where.key === "cloudflare_api_token") return Promise.resolve({ value: "actual-cf-api-token" });
         return Promise.resolve(null);
       });
       // Add mock to db
@@ -256,6 +259,8 @@ describe("app/actions/admin.ts", () => {
         smtpPass: "••••••••",
         cfWorkerUrl: "https://worker.example.com",
         cfWorkerSecret: "••••••••",
+        cfAccountId: "cf-account-id",
+        cfApiToken: "••••••••",
       });
 
       expect(res.success).toBe(true);
@@ -269,6 +274,8 @@ describe("app/actions/admin.ts", () => {
           }),
           cloudflare: expect.objectContaining({
             secret: "actual-worker-secret",
+            accountId: "cf-account-id",
+            apiToken: "actual-cf-api-token",
           }),
         })
       );
