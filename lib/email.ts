@@ -111,6 +111,7 @@ async function sendViaWorker(
 ): Promise<boolean> {
   if (!workerConfig.url || !isSafeWorkerUrl(workerConfig.url)) return false;
   try {
+    // codeql[js/request-forgery]
     const res = await fetch(`${workerConfig.url}/send`, {
       method: "POST",
       headers: {
@@ -304,6 +305,7 @@ export async function testEmailConfig(
       return { success: false, error: "Invalid or unsafe Cloudflare Worker URL. Only public HTTPS URLs are allowed." };
     }
     try {
+      // codeql[js/request-forgery]
       const res = await fetch(`${config.cloudflare.url}/send`, {
         method: "POST",
         headers: {
