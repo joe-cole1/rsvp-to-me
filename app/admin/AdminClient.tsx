@@ -486,11 +486,12 @@ export default function AdminClient({
                                     padding: "4px 8px",
                                     fontSize: "12px",
                                     outline: "none",
+                                    colorScheme: "dark",
                                   }}
                                 >
-                                  <option value="GUEST">GUEST</option>
-                                  <option value="HOST">HOST</option>
-                                  <option value="ADMIN">ADMIN</option>
+                                  <option value="GUEST" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>GUEST</option>
+                                  <option value="HOST" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>HOST</option>
+                                  <option value="ADMIN" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>ADMIN</option>
                                 </select>
                               </td>
                               <td style={{ padding: "16px", textAlign: "right" }}>
@@ -930,11 +931,12 @@ export default function AdminClient({
                           fontSize: "13px",
                           outline: "none",
                           boxSizing: "border-box",
+                          colorScheme: "dark",
                         }}
                       >
-                        <option value="console">Console Fallback (Local Dev / Logging)</option>
-                        <option value="smtp">SMTP Server</option>
-                        <option value="cloudflare">Cloudflare Workers</option>
+                        <option value="console" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Console Fallback (Local Dev / Logging)</option>
+                        <option value="smtp" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>SMTP Server</option>
+                        <option value="cloudflare" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Cloudflare Workers</option>
                       </select>
                     </div>
 
