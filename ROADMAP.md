@@ -32,6 +32,11 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [ ] Update singletons, docker-compose configurations, and deployment guidelines.
 *   [ ] Define database migration paths for existing production data.
 
+### 6. Interactive Documentation Dashboard
+*   [ ] Build an in-app documentation portal accessible via the host dashboard.
+*   *   [ ] Render local markdown files (e.g., GitHub README, setup guides, and `docs/cloudflare_workers.md`) dynamically.
+*   *   [ ] Implement search, category navigation, and responsive layout styling.
+
 ---
 
 ## 💡 Future Work & Ideas (Icebox)
