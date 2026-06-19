@@ -80,6 +80,7 @@ export default function AdminClient({
   sessionUser,
 }: AdminClientProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings">("overview");
+  const [copied, setCopied] = useState(false);
 
   const [users, setUsers] = useState(initialUsers);
   const [events, setEvents] = useState(initialEvents);
@@ -106,6 +107,7 @@ export default function AdminClient({
   const [smtpPass, setSmtpPass] = useState(config.smtp_pass || "");
   const [cfWorkerUrl, setCfWorkerUrl] = useState(config.cloudflare_worker_email_url || "");
   const [cfWorkerSecret, setCfWorkerSecret] = useState(config.cloudflare_worker_api_secret || "");
+  const [cfInboundForwardTo, setCfInboundForwardTo] = useState(config.cloudflare_inbound_forward_to || sessionUser?.email || "");
 
   const handleSaveEmailConfig = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +123,7 @@ export default function AdminClient({
         await updateSystemConfig("smtp_pass", smtpPass.trim());
         await updateSystemConfig("cloudflare_worker_email_url", cfWorkerUrl.trim());
         await updateSystemConfig("cloudflare_worker_api_secret", cfWorkerSecret.trim());
+        await updateSystemConfig("cloudflare_inbound_forward_to", cfInboundForwardTo.trim());
 
         setConfig((prev) => ({
           ...prev,
@@ -133,6 +136,7 @@ export default function AdminClient({
           smtp_pass: smtpPass.trim(),
           cloudflare_worker_email_url: cfWorkerUrl.trim(),
           cloudflare_worker_api_secret: cfWorkerSecret.trim(),
+          cloudflare_inbound_forward_to: cfInboundForwardTo.trim(),
         }));
         setFeedback({ type: "success", message: "Email delivery configuration saved successfully." });
       } catch (err) {
@@ -141,6 +145,95 @@ export default function AdminClient({
       }
     });
   };
+
+  const generateWorkerCode = () => {
+    return `// WARNING: If you modify this template, make sure to also update the file
+// worker/worker.ts to keep them in sync.
+
+import type { SendEmail, Message, ExportedHandler } from "@cloudflare/workers-types";
+
+interface Env {
+  SEND_EMAIL: SendEmail;
+  WORKER_API_SECRET?: string;
+  INBOUND_FORWARD_TO?: string;
+}
+
+interface WorkerSendPayload {
+  from: string;
+  to: string | string[];
+  bcc?: string | string[];
+  replyTo?: string;
+  subject: string;
+  html?: string;
+  text?: string;
+}
+
+function extractRawEmail(fromStr: string): string {
+  const match = fromStr.match(/<([^>]+)>/);
+  return match ? match[1].trim() : fromStr.trim();
+}
+
+export default {
+  async email(message: Message, env: Env) {
+    if (!env.INBOUND_FORWARD_TO) {
+      throw new Error("INBOUND_FORWARD_TO environment variable is not set.");
+    }
+    await message.forward(env.INBOUND_FORWARD_TO);
+    await env.SEND_EMAIL.send({
+      from: extractRawEmail(message.to),
+      to: message.from,
+      subject: \`Re: \${message.headers.get("subject") ?? "Your RSVP"}\`,
+      text: "Thanks for your reply. The event host has been notified.",
+    });
+  },
+
+  async fetch(request: Request, env: Env): Promise<Response> {
+    if (!env.WORKER_API_SECRET) {
+      return new Response("Unauthorized: WORKER_API_SECRET environment variable is not set.", { status: 401 });
+    }
+    if (request.headers.get("Authorization") !== \`Bearer \${env.WORKER_API_SECRET}\`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    if (request.method !== "POST" || new URL(request.url).pathname !== "/send") {
+      return new Response("Not found", { status: 404 });
+    }
+
+    try {
+      const body: WorkerSendPayload = await request.json();
+      if (!body.from || !body.to || !body.subject || (!body.html && !body.text)) {
+        return new Response("Missing required fields", { status: 422 });
+      }
+
+      const rawFrom = extractRawEmail(body.from);
+      const rawReplyTo = body.replyTo ? extractRawEmail(body.replyTo) : undefined;
+
+      const recipients = Array.isArray(body.to) ? body.to : [body.to];
+      const bcc = body.bcc ? (Array.isArray(body.bcc) ? body.bcc : [body.bcc]) : [];
+      const allRecipients = [...recipients, ...bcc];
+
+      await Promise.all(
+        allRecipients.map((to) =>
+          env.SEND_EMAIL.send({
+            from: rawFrom,
+            to,
+            subject: body.subject,
+            html: body.html,
+            text: body.text,
+            replyTo: rawReplyTo,
+          })
+        )
+      );
+
+      return Response.json({ ok: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Internal Server Error";
+      return new Response(message, { status: 500 });
+    }
+  },
+} satisfies ExportedHandler<Env>;
+`;
+  };
+
 
   // Search handlers
   const handleUserSearch = async (val: string) => {
@@ -1104,12 +1197,12 @@ export default function AdminClient({
                       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                         <div>
                           <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                            Worker Email URL
+                            Cloudflare Worker URL
                           </label>
                           <input
                             type="url"
                             required
-                            placeholder="https://rsvp-email-worker.yourname.workers.dev"
+                            placeholder="https://rsvp-email-worker.[your-subdomain].workers.dev"
                             value={cfWorkerUrl}
                             onChange={(e) => setCfWorkerUrl(e.target.value)}
                             style={{
@@ -1124,18 +1217,78 @@ export default function AdminClient({
                               boxSizing: "border-box",
                             }}
                           />
+                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
+                            The public HTTP endpoint of your worker. Usually formatted as <code>https://rsvp-email-worker.[your-subdomain].workers.dev</code>. You can find this in your Cloudflare Dashboard under your worker&apos;s <strong>Triggers</strong> or <strong>Routes</strong> tab.
+                          </span>
                         </div>
 
                         <div>
                           <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
                             Worker API Secret
                           </label>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <input
+                              type="password"
+                              required
+                              placeholder="API Secret Token"
+                              value={cfWorkerSecret}
+                              onChange={(e) => setCfWorkerSecret(e.target.value)}
+                              style={{
+                                flex: 1,
+                                backgroundColor: APP_SHELL.inputBg,
+                                border: `1px solid ${APP_SHELL.inputBorder}`,
+                                borderRadius: APP_SHELL.inputRadius,
+                                padding: "10px 14px",
+                                color: APP_SHELL.textPrimary,
+                                fontSize: "13px",
+                                outline: "none",
+                                boxSizing: "border-box",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                                const array = new Uint8Array(32);
+                                window.crypto.getRandomValues(array);
+                                let secret = "";
+                                for (let i = 0; i < array.length; i++) {
+                                  secret += chars[array[i] % chars.length];
+                                }
+                                setCfWorkerSecret(secret);
+                              }}
+                              style={{
+                                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                                border: `1px solid ${APP_SHELL.inputBorder}`,
+                                borderRadius: APP_SHELL.inputRadius,
+                                color: APP_SHELL.textPrimary,
+                                padding: "0 14px",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                transition: "background-color 0.2s",
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)"}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)"}
+                            >
+                              ⚡ Generate
+                            </button>
+                          </div>
+                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
+                            A secure token used to authenticate Next.js requests to your worker. Click <strong>Generate</strong> to create one, then copy it.
+                          </span>
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            Inbound Forward Email (Guidance only)
+                          </label>
                           <input
-                            type="password"
+                            type="email"
                             required
-                            placeholder="API Secret Token"
-                            value={cfWorkerSecret}
-                            onChange={(e) => setCfWorkerSecret(e.target.value)}
+                            placeholder="e.g. host@domain.com"
+                            value={cfInboundForwardTo}
+                            onChange={(e) => setCfInboundForwardTo(e.target.value)}
                             style={{
                               width: "100%",
                               backgroundColor: APP_SHELL.inputBg,
@@ -1148,7 +1301,61 @@ export default function AdminClient({
                               boxSizing: "border-box",
                             }}
                           />
+                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
+                            <strong>Note:</strong> Next.js does not send this value to the worker automatically. You must configure this email address as the <code>INBOUND_FORWARD_TO</code> environment variable in your Cloudflare worker settings (see instructions below).
+                          </span>
                         </div>
+
+                        <div style={{ marginTop: "12px", padding: "16px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <h4 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: "0 0 10px 0" }}>
+                            ⚡ Quick Browser Setup (No CLI Required)
+                          </h4>
+                          <ol style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0 0 16px 0", lineHeight: "1.6" }}>
+                            <li style={{ marginBottom: "6px" }}>Log in to <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: APP_SHELL.accent, textDecoration: "underline" }}>dash.cloudflare.com</a> (sign up for a free account if you haven&apos;t already).</li>
+                            <li style={{ marginBottom: "6px" }}>Go to <strong>Websites &gt; [Your Domain] &gt; Email &gt; Email Routing &gt; Email Workers</strong>.</li>
+                            <li style={{ marginBottom: "6px" }}>Click <strong>Create Email Worker</strong>, name it <code>rsvp-email-worker</code>, and select <strong>Create my own</strong> (which opens the online code editor).</li>
+                            <li style={{ marginBottom: "8px" }}>Click the button below to copy the clean worker code:</li>
+                          </ol>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generateWorkerCode());
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 2000);
+                            }}
+                            style={{
+                              backgroundColor: copied ? "#22c55e" : APP_SHELL.accent,
+                              border: "none",
+                              color: "#fff",
+                              borderRadius: "6px",
+                              padding: "8px 16px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              transition: "background-color 0.2s",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              marginBottom: "12px",
+                            }}
+                          >
+                            {copied ? "✓ Copied!" : "📋 Copy Worker Code"}
+                          </button>
+                          
+                          <ol start={4} style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0", lineHeight: "1.6" }}>
+                            <li style={{ marginBottom: "6px" }}>Delete everything in the Cloudflare editor, paste the copied code, and click <strong>Save and Deploy</strong>.</li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Go to the worker&apos;s <strong>Settings &gt; Variables</strong> tab in Cloudflare, and add two <strong>Environment Variables</strong>:
+                              <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
+                                <li style={{ marginBottom: "4px" }}><code>WORKER_API_SECRET</code>: Paste your <strong>Worker API Secret</strong> configured above.</li>
+                                <li style={{ marginBottom: "4px" }}><code>INBOUND_FORWARD_TO</code>: Paste your <strong>Inbound Forward Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
+                              </ul>
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>Back in <strong>Email Routing &gt; Routes</strong>, click <strong>Add Route</strong>, select <strong>Send to Worker</strong>, and choose <code>rsvp-email-worker</code>.</li>
+                          </ol>
+                        </div>
+
                       </div>
                     )}
 
