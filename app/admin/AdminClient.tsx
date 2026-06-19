@@ -1642,16 +1642,37 @@ function extractRawEmail(fromStr) {
                           <ol start={4} style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0", lineHeight: "1.6" }}>
                             <li style={{ marginBottom: "6px" }}>Delete everything in the Cloudflare editor, paste the copied code, and click <strong>Save and Deploy</strong>.</li>
                             <li style={{ marginBottom: "6px" }}>
-                              Go to the worker&apos;s <strong>Settings &gt; Variables</strong> tab in Cloudflare, and add two <strong>Environment Variables</strong>:
+                              Go to the Cloudflare main dashboard and click on <strong>Workers & Pages</strong> (left-hand sidebar) &gt; click your worker (<code>rsvp-email-worker</code>) &gt; select the <strong>Settings</strong> tab &gt; select <strong>Variables</strong> in the settings menu.
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Under the <strong>Environment Variables</strong> table:
                               <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
-                                <li style={{ marginBottom: "4px" }}><code>WORKER_API_SECRET</code>: Paste your <strong>Worker API Secret</strong> configured above.</li>
-                                <li style={{ marginBottom: "4px" }}><code>INBOUND_FORWARD_TO</code>: Paste your <strong>Guest Reply Forwarding Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
+                                <li style={{ marginBottom: "4px" }}>Click the <strong>Edit variables</strong> button first (required before you can add or change variables).</li>
+                                <li style={{ marginBottom: "4px" }}>Click <strong>Add variable</strong>: set Name to <code>WORKER_API_SECRET</code>, select Type as <strong>Secret</strong> (using the dropdown or padlock icon), and paste your <strong>Worker API Secret</strong> from above.</li>
+                                <li style={{ marginBottom: "4px" }}>Click <strong>Add variable</strong> again: set Name to <code>INBOUND_FORWARD_TO</code>, leave Type as <strong>Text</strong>, and paste your <strong>Guest Reply Forwarding Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
                               </ul>
                             </li>
                             <li style={{ marginBottom: "6px" }}>
-                              Scroll down to the <strong>Send Email Bindings</strong> section on the same page, click <strong>Add Binding</strong>, set the <strong>Variable name</strong> to <code>EMAIL</code>, and click <strong>Save and Deploy</strong>.
+                              Scroll down to the <strong>Bindings</strong> section on the same page:
+                              <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
+                                <li style={{ marginBottom: "4px" }}>Click <strong>Add binding</strong>.</li>
+                                <li style={{ marginBottom: "4px" }}>Select <strong>Email Service</strong> from the Type dropdown.</li>
+                                <li style={{ marginBottom: "4px" }}>Set the Name to <code>EMAIL</code> (must be all capital letters).</li>
+                                <li style={{ marginBottom: "4px" }}><em>Note: Do not enter anything for Value. Once saved, it will display as a dash (<code>—</code>), which is correct and expected.</em></li>
+                              </ul>
                             </li>
-                            <li style={{ marginBottom: "6px" }}>Back in <strong>Email Routing &gt; Routes</strong>, click <strong>Add Route</strong>, select <strong>Send to Worker</strong>, and choose <code>rsvp-email-worker</code>.</li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Click the <strong>Save and deploy</strong> button at the bottom of the page to apply all variables and bindings.
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Go to your domain dashboard under <strong>Websites &gt; [Your Domain] &gt; Email &gt; Email Routing &gt; Routes</strong>, and click <strong>Add Route</strong>:
+                              <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
+                                <li style={{ marginBottom: "4px" }}><strong>Custom address</strong>: Enter your preferred custom sender address (e.g., <code>{emailFrom.match(/<([^>]+)>/)?.[1] || emailFrom || "rsvps@yourdomain.com"}</code>).</li>
+                                <li style={{ marginBottom: "4px" }}><strong>Action</strong>: Select <strong>Send to Worker</strong>.</li>
+                                <li style={{ marginBottom: "4px" }}><strong>Destination worker</strong>: Select <code>rsvp-email-worker</code>.</li>
+                                <li style={{ marginBottom: "4px" }}>Click <strong>Save</strong>.</li>
+                              </ul>
+                            </li>
                           </ol>
                         </div>
 

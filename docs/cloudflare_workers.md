@@ -79,28 +79,37 @@ This option deploys a small Worker to handle outbound sending and automatically 
 6. Click **Save and deploy** at the top right.
 
 ### 2. Configure Worker Variables and Email Service Binding
-1. Go back to your worker’s dashboard in Cloudflare.
-2. Select the **Settings** tab, then select **Variables** (within the **Variables & Secrets** section).
-3. Under **Environment Variables**, click **Add variable** and configure the following:
-   * **Variable name**: `WORKER_API_SECRET`
-     * Set it as a **Secret** and enter a strong, random password. (Ensure this matches the **Worker API Secret** you enter in the RSVP to Me Admin panel).
-   * **Variable name**: `INBOUND_FORWARD_TO`
-     * Set it as a **Text** value and enter the destination email where you want to receive guest replies (e.g., your personal host email address).
-4. Under **Send Email Bindings** on the same page:
+1. In the left-hand sidebar of the main Cloudflare Dashboard, navigate to **Workers & Pages**.
+2. Click on your newly created worker (e.g., `rsvp-email-worker`) to open its overview dashboard.
+3. Select the **Settings** tab at the top.
+4. In the settings left-side menu, select **Variables** (within the **Variables & Secrets** section).
+5. **Add the Environment Variables**:
+   * Under the **Environment Variables** table, click the **Edit variables** button first (you must click this to edit variables).
+   * Click **Add variable**:
+     * **Name/Key**: `WORKER_API_SECRET`
+     * **Type**: Change this from *Text* to **Secret** (by clicking the dropdown or padlock icon).
+     * **Value**: Paste the secure API secret token you generated/entered in the RSVP to Me Admin settings panel.
+   * Click **Add variable** again:
+     * **Name/Key**: `INBOUND_FORWARD_TO`
+     * **Type**: Leave as **Text**.
+     * **Value**: Enter the destination email where you want to receive guest replies (e.g., your personal email address).
+6. **Add the Email Service Binding**:
+   * Scroll down to the **Bindings** section on the same page.
    * Click **Add binding**.
-   * Set **Variable name** to `EMAIL`.
-5. Click **Save and Deploy** (or **Save** at the bottom of the page) to apply the configurations.
+   * **Type**: Select **Email Service** from the dropdown menu.
+   * **Variable name / Name**: Enter `EMAIL` (in all capital letters).
+   * **Value / Destination**: *Note: For Email Service bindings, do NOT enter any value. Leave this blank. Once saved, Cloudflare will automatically display this as a dash (`—`), which is the correct and expected behavior.*
+7. Click the **Save and deploy** button at the bottom of the page to apply both the environment variables and the binding.
 
-### 3. Configure Cloudflare Email Routing
-1. Navigate back to your account home in the Cloudflare Dashboard.
-2. Select your domain under **Websites**.
-3. From the sidebar, go to **Email** > **Email Routing** > **Routes**.
-4. Ensure your host destination email (the address you entered in `INBOUND_FORWARD_TO`) is verified under the **Destination addresses** tab.
-5. Under the **Routing Rules** tab, click **Add route**:
-   * **Custom address**: Enter your preferred sender routing address (e.g., `rsvps@yourdomain.com`).
-   * **Action**: Select **Send to Worker**.
-   * **Destination worker**: Select `rsvp-email-worker`.
-6. Click **Save**.
+### 3. Configure Cloudflare Email Routing (Inbound Route)
+1. Go back to the main Cloudflare Dashboard home and select your domain under **Websites**.
+2. From the left-hand sidebar, navigate to **Email** > **Email Routing** > **Routes**.
+3. Under the **Destination addresses** tab, ensure the destination email you used for `INBOUND_FORWARD_TO` is verified (if not, add it and click the verification link in the email Cloudflare sends you).
+4. Select the **Routing Rules** tab and click **Add route**:
+   * **Custom address**: Enter your custom sender email address (e.g., `rsvps@yourdomain.com`). This should match the **From Address** you configure in the RSVP to Me Admin panel.
+   * **Action**: Select **Send to Worker** from the dropdown.
+   * **Destination worker**: Select your worker (`rsvp-email-worker`).
+5. Click **Save**.
 
 ### 4. Configure the RSVP to Me Application
 1. Log in to the application as an `ADMIN` user.
