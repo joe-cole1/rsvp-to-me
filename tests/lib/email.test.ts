@@ -344,5 +344,26 @@ describe("lib/email.ts", () => {
       expect(res.success).toBe(false);
       expect(res.error).toContain("Failed to connect to Cloudflare Worker: Network Error");
     });
+
+    it("rejects invalid or unsafe Cloudflare Worker URLs (SSRF mitigation)", async () => {
+      const { testEmailConfig } = await loadModule();
+      for (const unsafeUrl of [
+        "http://worker.example.com",
+        "https://localhost/send",
+        "https://127.0.0.1/send",
+        "https://192.168.1.1/send",
+        "https://169.254.169.254/send",
+        "https://myhost.local/send",
+      ]) {
+        const res = await testEmailConfig("admin@example.com", {
+          provider: "cloudflare",
+          from: "noreply@example.com",
+          smtp: { port: 587, secure: false },
+          cloudflare: { url: unsafeUrl, secret: "secret" },
+        });
+        expect(res.success).toBe(false);
+        expect(res.error).toContain("Invalid or unsafe Cloudflare Worker URL");
+      }
+    });
   });
 });

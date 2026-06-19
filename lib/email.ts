@@ -3,6 +3,33 @@ import nodemailer from "nodemailer";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+function isSafeWorkerUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+    const host = parsed.hostname.toLowerCase();
+    // Block localhost, loopback, private networks, and link-local metadata addresses
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "[::1]" ||
+      host === "0.0.0.0" ||
+      host.endsWith(".local") ||
+      host.startsWith("10.") ||
+      host.startsWith("192.168.") ||
+      host.startsWith("169.254.") ||
+      /^(172\.(1[6-9]|2[0-9]|3[0-1]))\./.test(host)
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 type MailOpts = {
   to: string | string[];
   bcc?: string | string[];
@@ -82,7 +109,7 @@ async function sendViaWorker(
   opts: WorkerMailOpts,
   workerConfig: { url?: string; secret?: string }
 ): Promise<boolean> {
-  if (!workerConfig.url) return false;
+  if (!workerConfig.url || !isSafeWorkerUrl(workerConfig.url)) return false;
   try {
     const res = await fetch(`${workerConfig.url}/send`, {
       method: "POST",
@@ -273,8 +300,8 @@ export async function testEmailConfig(
   }
 ): Promise<{ success: boolean; error?: string }> {
   if (config.provider === "cloudflare") {
-    if (!config.cloudflare.url) {
-      return { success: false, error: "Cloudflare Worker URL is not configured." };
+    if (!config.cloudflare.url || !isSafeWorkerUrl(config.cloudflare.url)) {
+      return { success: false, error: "Invalid or unsafe Cloudflare Worker URL. Only public HTTPS URLs are allowed." };
     }
     try {
       const res = await fetch(`${config.cloudflare.url}/send`, {
