@@ -15,6 +15,7 @@ import {
   updateSystemConfig,
   getAdminUsers,
   getAdminEvents,
+  testEmailConfigAction,
 } from "@/app/actions/admin";
 
 interface AdminUser {
@@ -114,6 +115,7 @@ export default function AdminClient({
   const [suggestedSubdomain, setSuggestedSubdomain] = useState("your-subdomain");
 
   const [showCode, setShowCode] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -133,6 +135,41 @@ export default function AdminClient({
       }
     }
   }, [config.cloudflare_worker_email_url]);
+
+  const handleTestEmailConfig = async () => {
+    setFeedback(null);
+    setIsTestingEmail(true);
+    try {
+      const res = await testEmailConfigAction({
+        provider: emailProvider,
+        from: emailFrom,
+        smtpHost,
+        smtpPort,
+        smtpSecure,
+        smtpUser,
+        smtpPass,
+        cfWorkerUrl,
+        cfWorkerSecret,
+      });
+
+      if (res.success) {
+        setFeedback({
+          type: "success",
+          message: `Test email sent successfully to ${sessionUser?.email ?? "your email"}. Please check your inbox (and spam folder)!`,
+        });
+      } else {
+        setFeedback({
+          type: "error",
+          message: `Test connection failed: ${res.error || "Unknown error"}`,
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to test connection.";
+      setFeedback({ type: "error", message });
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
 
   const handleSaveEmailConfig = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1484,10 +1521,30 @@ function extractRawEmail(fromStr) {
                       </div>
                     )}
 
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "10px" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                      <button
+                        type="button"
+                        disabled={isPending || isTestingEmail}
+                        onClick={handleTestEmailConfig}
+                        style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.08)",
+                          border: `1px solid ${APP_SHELL.inputBorder}`,
+                          color: APP_SHELL.textPrimary,
+                          borderRadius: "10px",
+                          padding: "10px 20px",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          cursor: (isPending || isTestingEmail) ? "not-allowed" : "pointer",
+                          transition: "background-color 0.2s",
+                          opacity: (isPending || isTestingEmail) ? 0.6 : 1,
+                        }}
+                      >
+                        {isTestingEmail ? "Testing..." : "Test Connection"}
+                      </button>
+
                       <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || isTestingEmail}
                         style={{
                           backgroundColor: APP_SHELL.accent,
                           border: "none",
@@ -1496,8 +1553,8 @@ function extractRawEmail(fromStr) {
                           padding: "10px 20px",
                           fontSize: "13px",
                           fontWeight: 700,
-                          cursor: "pointer",
-                          opacity: isPending ? 0.6 : 1,
+                          cursor: (isPending || isTestingEmail) ? "not-allowed" : "pointer",
+                          opacity: (isPending || isTestingEmail) ? 0.6 : 1,
                         }}
                       >
                         Save Settings

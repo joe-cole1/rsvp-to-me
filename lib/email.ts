@@ -253,3 +253,97 @@ export async function sendRsvpConfirmationEmail(
     replyTo: opts.replyTo,
   });
 }
+
+export async function testEmailConfig(
+  testTo: string,
+  config: {
+    provider: string;
+    from: string;
+    smtp: {
+      host?: string;
+      port: number;
+      secure: boolean;
+      user?: string;
+      pass?: string;
+    };
+    cloudflare: {
+      url?: string;
+      secret?: string;
+    };
+  }
+): Promise<{ success: boolean; error?: string }> {
+  if (config.provider === "cloudflare") {
+    if (!config.cloudflare.url) {
+      return { success: false, error: "Cloudflare Worker URL is not configured." };
+    }
+    try {
+      const res = await fetch(`${config.cloudflare.url}/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.cloudflare.secret ?? ""}`,
+        },
+        body: JSON.stringify({
+          from: config.from,
+          to: testTo,
+          subject: "Test Email from RSVP to Me",
+          html: "<p>This is a test email to verify your Cloudflare Worker email routing configuration. It works!</p>",
+        }),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        return {
+          success: false,
+          error: `Cloudflare Worker returned status ${res.status}: ${errorText || "No response body"}`,
+        };
+      }
+      return { success: true };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        error: `Failed to connect to Cloudflare Worker: ${errMsg}`,
+      };
+    }
+  }
+
+  if (config.provider === "smtp") {
+    if (!config.smtp.host) {
+      return { success: false, error: "SMTP Host is not configured." };
+    }
+    try {
+      const transport = nodemailer.createTransport({
+        host: config.smtp.host,
+        port: config.smtp.port,
+        secure: config.smtp.secure,
+        auth: config.smtp.user
+          ? { user: config.smtp.user, pass: config.smtp.pass }
+          : undefined,
+      });
+
+      // 1. Verify connection/handshake
+      await transport.verify();
+
+      // 2. Send the actual email
+      await transport.sendMail({
+        from: config.from,
+        to: testTo,
+        subject: "Test Email from RSVP to Me",
+        html: "<p>This is a test email to verify your SMTP configuration. It works!</p>",
+      });
+
+      return { success: true };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        error: `SMTP error: ${errMsg}`,
+      };
+    }
+  }
+
+  // console provider fallback
+  console.log("[email:dev-test]", { to: testTo, subject: "Test Email from RSVP to Me" });
+  return { success: true };
+}
+

@@ -18,6 +18,7 @@ const {
   mockSystemConfigFindMany,
   mockSystemConfigUpsert,
   mockGetSession,
+  mockTestEmailConfig,
 } = vi.hoisted(() => ({
   mockUserCount: vi.fn(),
   mockEventCount: vi.fn(),
@@ -36,6 +37,7 @@ const {
   mockSystemConfigFindMany: vi.fn(),
   mockSystemConfigUpsert: vi.fn(),
   mockGetSession: vi.fn(),
+  mockTestEmailConfig: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -76,6 +78,9 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/email", () => ({
+  testEmailConfig: mockTestEmailConfig,
+}));
 
 import {
   getAdminStats,
@@ -87,6 +92,7 @@ import {
   createInviteCode,
   getSystemConfig,
   updateSystemConfig,
+  testEmailConfigAction,
 } from "@/app/actions/admin";
 
 describe("app/actions/admin.ts", () => {
@@ -205,7 +211,7 @@ describe("app/actions/admin.ts", () => {
       const config = await getSystemConfig();
       expect(config.open_registration).toBe("true");
       expect(config.smtp_pass).toBe("••••••••");
-      expect(config.cloudflare_worker_api_secret).toBe("••••••••");
+      expect(config.cloudflare_worker_api_secret).toBe("worker-api-token");
     });
 
     it("updates system config setting", async () => {
@@ -226,6 +232,72 @@ describe("app/actions/admin.ts", () => {
       const res = await updateSystemConfig("smtp_pass", "••••••••");
       expect(res.success).toBe(true);
       expect(mockSystemConfigUpsert).not.toHaveBeenCalled();
+    });
+
+    it("runs testEmailConfigAction successfully, resolving masked passwords from database", async () => {
+      mockTestEmailConfig.mockResolvedValue({ success: true });
+      // Stub db.systemConfig.findUnique for SMTP password and Cloudflare secret
+      const mockFindUnique = vi.fn().mockImplementation(({ where }) => {
+        if (where.key === "smtp_pass") return Promise.resolve({ value: "actual-smtp-password" });
+        if (where.key === "cloudflare_worker_api_secret") return Promise.resolve({ value: "actual-worker-secret" });
+        return Promise.resolve(null);
+      });
+      // Add mock to db
+      const { db } = await import("@/lib/db");
+      db.systemConfig.findUnique = mockFindUnique;
+
+      const res = await testEmailConfigAction({
+        provider: "smtp",
+        from: "noreply@example.com",
+        smtpHost: "smtp.example.com",
+        smtpPort: "587",
+        smtpSecure: false,
+        smtpUser: "user",
+        smtpPass: "••••••••",
+        cfWorkerUrl: "https://worker.example.com",
+        cfWorkerSecret: "••••••••",
+      });
+
+      expect(res.success).toBe(true);
+      expect(mockTestEmailConfig).toHaveBeenCalledWith(
+        "admin@example.com",
+        expect.objectContaining({
+          provider: "smtp",
+          smtp: expect.objectContaining({
+            host: "smtp.example.com",
+            pass: "actual-smtp-password",
+          }),
+          cloudflare: expect.objectContaining({
+            secret: "actual-worker-secret",
+          }),
+        })
+      );
+    });
+
+    it("runs testEmailConfigAction and respects non-masked secrets", async () => {
+      mockTestEmailConfig.mockResolvedValue({ success: true });
+      const res = await testEmailConfigAction({
+        provider: "cloudflare",
+        from: "noreply@example.com",
+        smtpHost: "",
+        smtpPort: "587",
+        smtpSecure: false,
+        smtpUser: "",
+        smtpPass: "",
+        cfWorkerUrl: "https://worker.example.com",
+        cfWorkerSecret: "newly-generated-secret",
+      });
+
+      expect(res.success).toBe(true);
+      expect(mockTestEmailConfig).toHaveBeenCalledWith(
+        "admin@example.com",
+        expect.objectContaining({
+          provider: "cloudflare",
+          cloudflare: expect.objectContaining({
+            secret: "newly-generated-secret",
+          }),
+        })
+      );
     });
   });
 });
