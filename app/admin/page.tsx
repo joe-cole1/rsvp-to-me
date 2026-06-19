@@ -21,16 +21,28 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  const [stats, users, events, inviteCodes, systemConfig, dbUser] = await Promise.all([
+  const dbUser = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { name: true, email: true, role: true, avatarUrl: true },
+  });
+
+  if (dbUser) {
+    const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
+    if (initialAdminEmail && dbUser.email?.toLowerCase().trim() === initialAdminEmail && dbUser.role !== "ADMIN") {
+      await db.user.update({
+        where: { id: session.userId },
+        data: { role: "ADMIN" },
+      });
+      dbUser.role = "ADMIN";
+    }
+  }
+
+  const [stats, users, events, inviteCodes, systemConfig] = await Promise.all([
     getAdminStats(),
     getAdminUsers(),
     getAdminEvents(),
     getInviteCodes(),
     getSystemConfig(),
-    db.user.findUnique({
-      where: { id: session.userId },
-      select: { name: true, email: true, role: true, avatarUrl: true },
-    }),
   ]);
 
   return (

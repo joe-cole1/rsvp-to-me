@@ -25,10 +25,17 @@ export async function getSession(): Promise<SessionData | null> {
   if (!sealed) return null;
 
   try {
-    return await unsealData<SessionData>(sealed, {
+    const session = await unsealData<SessionData>(sealed, {
       password: getPassword(),
       ttl: TTL,
     });
+    if (session) {
+      const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
+      if (initialAdminEmail && session.email?.toLowerCase().trim() === initialAdminEmail && session.role !== "ADMIN") {
+        session.role = "ADMIN";
+      }
+    }
+    return session;
   } catch {
     return null;
   }

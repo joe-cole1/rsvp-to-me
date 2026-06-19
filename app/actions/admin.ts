@@ -216,6 +216,49 @@ export async function getSystemConfig() {
     configMap["open_registration"] = process.env.OPEN_REGISTRATION ?? "false";
   }
 
+  // Ensure defaults for email server configuration
+  if (!configMap.hasOwnProperty("email_provider")) {
+    let defaultProvider = "console";
+    if (process.env.CLOUDFLARE_WORKER_EMAIL_URL) {
+      defaultProvider = "cloudflare";
+    } else if (process.env.SMTP_HOST) {
+      defaultProvider = "smtp";
+    }
+    configMap["email_provider"] = defaultProvider;
+  }
+
+  if (!configMap.hasOwnProperty("email_from")) {
+    configMap["email_from"] = process.env.EMAIL_FROM ?? "RSVP to Me <noreply@example.com>";
+  }
+
+  if (!configMap.hasOwnProperty("smtp_host")) {
+    configMap["smtp_host"] = process.env.SMTP_HOST ?? "";
+  }
+
+  if (!configMap.hasOwnProperty("smtp_port")) {
+    configMap["smtp_port"] = process.env.SMTP_PORT ?? "587";
+  }
+
+  if (!configMap.hasOwnProperty("smtp_secure")) {
+    configMap["smtp_secure"] = process.env.SMTP_SECURE ?? "false";
+  }
+
+  if (!configMap.hasOwnProperty("smtp_user")) {
+    configMap["smtp_user"] = process.env.SMTP_USER ?? "";
+  }
+
+  if (!configMap.hasOwnProperty("smtp_pass")) {
+    configMap["smtp_pass"] = process.env.SMTP_PASS ?? "";
+  }
+
+  if (!configMap.hasOwnProperty("cloudflare_worker_email_url")) {
+    configMap["cloudflare_worker_email_url"] = process.env.CLOUDFLARE_WORKER_EMAIL_URL ?? "";
+  }
+
+  if (!configMap.hasOwnProperty("cloudflare_worker_api_secret")) {
+    configMap["cloudflare_worker_api_secret"] = process.env.CLOUDFLARE_WORKER_API_SECRET ?? "";
+  }
+
   return configMap;
 }
 

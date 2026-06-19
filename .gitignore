@@ -55,3 +55,8 @@ next-env.d.ts
 
 # Docker data volume
 /data/
+
+# Cloudflare Worker files
+/worker/node_modules/
+/worker/.wrangler/
+/worker/dist/

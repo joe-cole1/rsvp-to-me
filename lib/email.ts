@@ -1,30 +1,140 @@
+import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
 
-const FROM = process.env.EMAIL_FROM ?? "RSVP to Me <noreply@example.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-function getTransport() {
-  const host = process.env.SMTP_HOST;
-  if (!host) return null;
+type MailOpts = {
+  to: string | string[];
+  bcc?: string | string[];
+  subject: string;
+  html: string;
+  replyTo?: string;
+};
+
+type WorkerMailOpts = {
+  from: string;
+  to: string | string[];
+  bcc?: string | string[];
+  replyTo?: string;
+  subject: string;
+  html: string;
+};
+
+async function resolveEmailConfig() {
+  const configs = await db.systemConfig.findMany();
+  const configMap: Record<string, string> = {};
+  for (const c of configs) {
+    configMap[c.key] = c.value;
+  }
+
+  const from = configMap.email_from || process.env.EMAIL_FROM || "RSVP to Me <noreply@example.com>";
+
+  let provider = configMap.email_provider;
+  if (!provider) {
+    if (process.env.CLOUDFLARE_WORKER_EMAIL_URL) {
+      provider = "cloudflare";
+    } else if (process.env.SMTP_HOST) {
+      provider = "smtp";
+    } else {
+      provider = "console";
+    }
+  }
+
+  const smtpHost = configMap.smtp_host || process.env.SMTP_HOST;
+  const smtpPort = parseInt(configMap.smtp_port || process.env.SMTP_PORT || "587");
+  const smtpSecure = (configMap.smtp_secure || process.env.SMTP_SECURE) === "true";
+  const smtpUser = configMap.smtp_user || process.env.SMTP_USER;
+  const smtpPass = configMap.smtp_pass || process.env.SMTP_PASS;
+
+  const cfUrl = configMap.cloudflare_worker_email_url || process.env.CLOUDFLARE_WORKER_EMAIL_URL;
+  const cfSecret = configMap.cloudflare_worker_api_secret || process.env.CLOUDFLARE_WORKER_API_SECRET;
+
+  return {
+    provider,
+    from,
+    smtp: {
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      user: smtpUser,
+      pass: smtpPass,
+    },
+    cloudflare: {
+      url: cfUrl,
+      secret: cfSecret,
+    },
+  };
+}
+
+function getSmtpTransport(smtpConfig: { host?: string; port: number; secure: boolean; user?: string; pass?: string }) {
+  if (!smtpConfig.host) return null;
   return nodemailer.createTransport({
-    host,
-    port: parseInt(process.env.SMTP_PORT ?? "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: process.env.SMTP_USER
-      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    host: smtpConfig.host,
+    port: smtpConfig.port,
+    secure: smtpConfig.secure,
+    auth: smtpConfig.user
+      ? { user: smtpConfig.user, pass: smtpConfig.pass }
       : undefined,
   });
 }
 
-type MailOpts = { to: string | string[]; bcc?: string | string[]; subject: string; html: string };
+async function sendViaWorker(
+  opts: WorkerMailOpts,
+  workerConfig: { url?: string; secret?: string }
+): Promise<boolean> {
+  if (!workerConfig.url) return false;
+  try {
+    const res = await fetch(`${workerConfig.url}/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${workerConfig.secret ?? ""}`,
+      },
+      body: JSON.stringify(opts),
+    });
+    if (!res.ok) {
+      console.error("[email:worker] send failed:", res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[email:worker] fetch error:", err);
+    return false;
+  }
+}
 
 async function send(opts: MailOpts) {
-  const transport = getTransport();
+  const config = await resolveEmailConfig();
+  const resolvedTo = opts.to === "FROM" ? config.from : opts.to;
+
+  if (config.provider === "cloudflare" && config.cloudflare.url) {
+    const success = await sendViaWorker(
+      {
+        from: config.from,
+        to: resolvedTo,
+        bcc: opts.bcc,
+        replyTo: opts.replyTo,
+        subject: opts.subject,
+        html: opts.html,
+      },
+      config.cloudflare
+    );
+    if (success) return;
+  }
+
+  const transport = getSmtpTransport(config.smtp);
   if (!transport) {
-    console.log("[email:dev]", { to: opts.to, subject: opts.subject, html: opts.html });
+    console.log("[email:dev]", { to: resolvedTo, subject: opts.subject, html: opts.html });
     return;
   }
-  return transport.sendMail({ from: FROM, ...opts });
+  return transport.sendMail({
+    from: config.from,
+    to: resolvedTo,
+    bcc: opts.bcc,
+    subject: opts.subject,
+    html: opts.html,
+    replyTo: opts.replyTo,
+  });
 }
 
 export async function sendMagicLinkEmail(to: string, magicLink: string) {
@@ -46,7 +156,7 @@ export async function sendMagicLinkEmail(to: string, magicLink: string) {
 
 export async function sendEventInviteEmail(
   to: string,
-  opts: { guestName: string; hostName: string; eventTitle: string; eventSlug: string; startAt: Date; locationName?: string | null; inviteLink?: string }
+  opts: { guestName: string; hostName: string; eventTitle: string; eventSlug: string; startAt: Date; locationName?: string | null; inviteLink?: string; replyTo?: string }
 ) {
   const eventUrl = opts.inviteLink ?? `${APP_URL}/e/${opts.eventSlug}`;
   const dateStr = opts.startAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
@@ -64,12 +174,13 @@ export async function sendEventInviteEmail(
         </a>
       </div>
     `,
+    replyTo: opts.replyTo,
   });
 }
 
 export async function sendApprovalEmail(
   to: string,
-  opts: { guestName: string; eventTitle: string; eventSlug: string; approved: boolean; message?: string }
+  opts: { guestName: string; eventTitle: string; eventSlug: string; approved: boolean; message?: string; replyTo?: string }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const subject = opts.approved ? `RSVP Approved: ${opts.eventTitle}` : `RSVP Declined: ${opts.eventTitle}`;
@@ -89,16 +200,17 @@ export async function sendApprovalEmail(
         ${opts.approved ? `<p style="margin-top:16px"><a href="${eventUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">View Event</a></p>` : ""}
       </div>
     `,
+    replyTo: opts.replyTo,
   });
 }
 
 export async function sendBlastEmail(
   to: string[],
-  opts: { eventTitle: string; eventSlug: string; message: string; hostName: string }
+  opts: { eventTitle: string; eventSlug: string; message: string; hostName: string; replyTo?: string }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   return send({
-    to: FROM,
+    to: "FROM",
     bcc: to,
     subject: `Update from ${opts.hostName}: ${opts.eventTitle}`,
     html: `
@@ -108,12 +220,13 @@ export async function sendBlastEmail(
         <a href="${eventUrl}" style="display:inline-block;color:#a855f7;text-decoration:none;font-size:14px">View event →</a>
       </div>
     `,
+    replyTo: opts.replyTo,
   });
 }
 
 export async function sendRsvpConfirmationEmail(
   to: string,
-  opts: { guestName: string; eventTitle: string; eventSlug: string; status: "GOING" | "MAYBE" | "NO"; editToken: string; startAt: Date; locationName?: string | null }
+  opts: { guestName: string; eventTitle: string; eventSlug: string; status: "GOING" | "MAYBE" | "NO"; editToken: string; startAt: Date; locationName?: string | null; replyTo?: string }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
@@ -134,5 +247,6 @@ export async function sendRsvpConfirmationEmail(
         </p>
       </div>
     `,
+    replyTo: opts.replyTo,
   });
 }

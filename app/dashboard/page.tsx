@@ -16,6 +16,15 @@ export default async function DashboardPage() {
     redirect("/auth/sign-out");
   }
 
+  const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
+  if (initialAdminEmail && userExists.email?.toLowerCase().trim() === initialAdminEmail && userExists.role !== "ADMIN") {
+    await db.user.update({
+      where: { id: userExists.id },
+      data: { role: "ADMIN" },
+    });
+    userExists.role = "ADMIN";
+  }
+
   const events = await getDashboardEvents();
   const eventIds = events.map(e => e.id);
   const recentActivities = await getDashboardActivity(eventIds);
