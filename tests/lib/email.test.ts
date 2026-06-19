@@ -225,6 +225,29 @@ describe("lib/email.ts", () => {
       );
       expect(mockFetch).not.toHaveBeenCalled();
     });
+
+    it("prioritizes database email_provider: 'cloudflare_api' over environment variables", async () => {
+      mockSystemConfigFindMany.mockResolvedValue([
+        { key: "email_provider", value: "cloudflare_api" },
+        { key: "cloudflare_account_id", value: "db-account-id" },
+        { key: "cloudflare_api_token", value: "db-api-token" },
+      ]);
+
+      const { sendMagicLinkEmail } = await loadModule();
+      await sendMagicLinkEmail("user@example.com", "http://localhost:3000/auth/verify?token=abc");
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.cloudflare.com/client/v4/accounts/db-account-id/email/sending/send",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "Bearer db-api-token",
+          }),
+          body: expect.stringContaining("user@example.com"),
+        })
+      );
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
   });
 
   describe("testEmailConfig", () => {
@@ -364,6 +387,49 @@ describe("lib/email.ts", () => {
         expect(res.success).toBe(false);
         expect(res.error).toContain("Invalid or unsafe Cloudflare Worker URL");
       }
+    });
+
+    it("handles Cloudflare Email REST API send success", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+        text: async () => "OK",
+      });
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "cloudflare_api",
+        from: "noreply@example.com",
+        smtp: { port: 587, secure: false },
+        cloudflare: { accountId: "db-account-id", apiToken: "db-api-token" },
+      });
+      expect(res.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.cloudflare.com/client/v4/accounts/db-account-id/email/sending/send",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "Bearer db-api-token",
+          }),
+          body: expect.stringContaining("admin@example.com"),
+        })
+      );
+    });
+
+    it("handles Cloudflare Email REST API send failure (e.g. 400)", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => "Bad Request details",
+      });
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "cloudflare_api",
+        from: "noreply@example.com",
+        smtp: { port: 587, secure: false },
+        cloudflare: { accountId: "db-account-id", apiToken: "db-api-token" },
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Cloudflare REST API returned status 400: Bad Request details");
     });
   });
 });

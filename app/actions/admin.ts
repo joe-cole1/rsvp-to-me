@@ -263,9 +263,23 @@ export async function getSystemConfig() {
     configMap["cloudflare_inbound_forward_to"] = process.env.INBOUND_FORWARD_TO ?? "";
   }
 
+  if (!configMap.hasOwnProperty("cloudflare_account_id")) {
+    configMap["cloudflare_account_id"] = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
+  }
+
+  if (!configMap.hasOwnProperty("cloudflare_api_token")) {
+    configMap["cloudflare_api_token"] = process.env.CLOUDFLARE_API_TOKEN ?? "";
+  }
+
   // Mask sensitive values before returning to client/UI
   if (configMap["smtp_pass"]) {
     configMap["smtp_pass"] = "••••••••";
+  }
+  if (configMap["cloudflare_worker_api_secret"]) {
+    configMap["cloudflare_worker_api_secret"] = "••••••••";
+  }
+  if (configMap["cloudflare_api_token"]) {
+    configMap["cloudflare_api_token"] = "••••••••";
   }
 
   return configMap;
@@ -274,7 +288,7 @@ export async function getSystemConfig() {
 export async function updateSystemConfig(key: string, value: string) {
   await assertAdmin();
 
-  if ((key === "cloudflare_worker_api_secret" || key === "smtp_pass") && value === "••••••••") {
+  if ((key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token") && value === "••••••••") {
     return { success: true };
   }
 
@@ -291,46 +305,56 @@ export async function updateSystemConfig(key: string, value: string) {
 export async function testEmailConfigAction(data: {
   provider: string;
   from: string;
-  smtpHost: string;
-  smtpPort: string;
-  smtpSecure: boolean;
-  smtpUser: string;
-  smtpPass: string;
-  cfWorkerUrl: string;
-  cfWorkerSecret: string;
+  smtpHost?: string;
+  smtpPort?: string;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPass?: string;
+  cfWorkerUrl?: string;
+  cfWorkerSecret?: string;
+  cfAccountId?: string;
+  cfApiToken?: string;
 }) {
   const session = await assertAdmin();
   if (!session.email) {
     throw new Error("Admin email is required to send test email.");
   }
 
-  let finalSmtpPass = data.smtpPass;
-  if (data.smtpPass === "••••••••") {
+  let finalSmtpPass = data.smtpPass || "";
+  if (finalSmtpPass === "••••••••") {
     const existing = await db.systemConfig.findUnique({ where: { key: "smtp_pass" } });
     finalSmtpPass = existing ? existing.value : "";
   }
 
-  let finalCfWorkerSecret = data.cfWorkerSecret;
-  if (data.cfWorkerSecret === "••••••••") {
+  let finalCfWorkerSecret = data.cfWorkerSecret || "";
+  if (finalCfWorkerSecret === "••••••••") {
     const existing = await db.systemConfig.findUnique({ where: { key: "cloudflare_worker_api_secret" } });
     finalCfWorkerSecret = existing ? existing.value : "";
+  }
+
+  let finalCfApiToken = data.cfApiToken || "";
+  if (finalCfApiToken === "••••••••") {
+    const existing = await db.systemConfig.findUnique({ where: { key: "cloudflare_api_token" } });
+    finalCfApiToken = existing ? existing.value : "";
   }
 
   const { testEmailConfig } = await import("@/lib/email");
 
   const result = await testEmailConfig(session.email, {
     provider: data.provider,
-    from: data.from.trim(),
+    from: (data.from || "").trim(),
     smtp: {
-      host: data.smtpHost.trim(),
-      port: parseInt(data.smtpPort.trim() || "587"),
-      secure: data.smtpSecure,
-      user: data.smtpUser.trim(),
+      host: (data.smtpHost || "").trim(),
+      port: parseInt((data.smtpPort || "").trim() || "587"),
+      secure: !!data.smtpSecure,
+      user: (data.smtpUser || "").trim(),
       pass: finalSmtpPass,
     },
     cloudflare: {
-      url: data.cfWorkerUrl.trim(),
+      url: (data.cfWorkerUrl || "").trim(),
       secret: finalCfWorkerSecret,
+      accountId: (data.cfAccountId || "").trim(),
+      apiToken: finalCfApiToken,
     },
   });
 

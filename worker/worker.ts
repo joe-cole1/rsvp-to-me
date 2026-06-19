@@ -4,7 +4,7 @@
 import type { SendEmail, Message, ExportedHandler } from "@cloudflare/workers-types";
 
 interface Env {
-  SEND_EMAIL: SendEmail;
+  EMAIL: SendEmail;
   WORKER_API_SECRET?: string;
   INBOUND_FORWARD_TO?: string;
 }
@@ -30,7 +30,7 @@ export default {
       throw new Error("INBOUND_FORWARD_TO environment variable is not set.");
     }
     await message.forward(env.INBOUND_FORWARD_TO);
-    await env.SEND_EMAIL.send({
+    await env.EMAIL.send({
       from: extractRawEmail(message.to),
       to: message.from,
       subject: `Re: ${message.headers.get("subject") ?? "Your RSVP"}`,
@@ -62,18 +62,15 @@ export default {
       const bcc = body.bcc ? (Array.isArray(body.bcc) ? body.bcc : [body.bcc]) : [];
       const allRecipients = [...recipients, ...bcc];
 
-      await Promise.all(
-        allRecipients.map((to) =>
-          env.SEND_EMAIL.send({
-            from: rawFrom,
-            to,
-            subject: body.subject,
-            html: body.html,
-            text: body.text,
-            replyTo: rawReplyTo,
-          })
-        )
-      );
+      await env.EMAIL.send({
+        from: rawFrom,
+        to: recipients,
+        bcc: bcc.length > 0 ? bcc : undefined,
+        subject: body.subject,
+        html: body.html || undefined,
+        text: body.text || undefined,
+        replyTo: rawReplyTo,
+      });
 
       return Response.json({ ok: true });
     } catch (err: unknown) {

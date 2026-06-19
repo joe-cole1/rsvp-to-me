@@ -110,6 +110,9 @@ export default function AdminClient({
   const [cfWorkerUrl, setCfWorkerUrl] = useState(config.cloudflare_worker_email_url || "");
   const [cfWorkerSecret, setCfWorkerSecret] = useState(config.cloudflare_worker_api_secret || "");
   const [cfInboundForwardTo, setCfInboundForwardTo] = useState(config.cloudflare_inbound_forward_to || sessionUser?.email || "");
+  const [cfAccountId, setCfAccountId] = useState(config.cloudflare_account_id || "");
+  const [cfApiToken, setCfApiToken] = useState(config.cloudflare_api_token || "");
+  const [showCfApiToken, setShowCfApiToken] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [secretCopied, setSecretCopied] = useState(false);
   const [suggestedSubdomain, setSuggestedSubdomain] = useState("your-subdomain");
@@ -150,6 +153,8 @@ export default function AdminClient({
         smtpPass,
         cfWorkerUrl,
         cfWorkerSecret,
+        cfAccountId,
+        cfApiToken,
       });
 
       if (res.success) {
@@ -186,6 +191,8 @@ export default function AdminClient({
         await updateSystemConfig("cloudflare_worker_email_url", cfWorkerUrl.trim());
         await updateSystemConfig("cloudflare_worker_api_secret", cfWorkerSecret.trim());
         await updateSystemConfig("cloudflare_inbound_forward_to", cfInboundForwardTo.trim());
+        await updateSystemConfig("cloudflare_account_id", cfAccountId.trim());
+        await updateSystemConfig("cloudflare_api_token", cfApiToken.trim());
 
         setConfig((prev) => ({
           ...prev,
@@ -199,6 +206,8 @@ export default function AdminClient({
           cloudflare_worker_email_url: cfWorkerUrl.trim(),
           cloudflare_worker_api_secret: cfWorkerSecret.trim(),
           cloudflare_inbound_forward_to: cfInboundForwardTo.trim(),
+          cloudflare_account_id: cfAccountId.trim(),
+          cloudflare_api_token: cfApiToken.trim(),
         }));
         setFeedback({ type: "success", message: "Email delivery configuration saved successfully." });
       } catch (err) {
@@ -218,7 +227,7 @@ export default {
       throw new Error("INBOUND_FORWARD_TO environment variable is not set.");
     }
     await message.forward(env.INBOUND_FORWARD_TO);
-    await env.SEND_EMAIL.send({
+    await env.EMAIL.send({
       from: extractRawEmail(message.to),
       to: message.from,
       subject: \`Re: \${message.headers.get("subject") ?? "Your RSVP"}\`,
@@ -250,18 +259,15 @@ export default {
       const bcc = body.bcc ? (Array.isArray(body.bcc) ? body.bcc : [body.bcc]) : [];
       const allRecipients = [...recipients, ...bcc];
 
-      await Promise.all(
-        allRecipients.map((to) =>
-          env.SEND_EMAIL.send({
-            from: rawFrom,
-            to,
-            subject: body.subject,
-            html: body.html,
-            text: body.text,
-            replyTo: rawReplyTo,
-          })
-        )
-      );
+      await env.EMAIL.send({
+        from: rawFrom,
+        to: recipients,
+        bcc: bcc.length > 0 ? bcc : undefined,
+        subject: body.subject,
+        html: body.html || undefined,
+        text: body.text || undefined,
+        replyTo: rawReplyTo,
+      });
 
       return Response.json({ ok: true });
     } catch (err) {
@@ -1074,6 +1080,7 @@ function extractRawEmail(fromStr) {
                         <option value="console" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Console Fallback (Local Dev / Logging)</option>
                         <option value="smtp" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>SMTP Server</option>
                         <option value="cloudflare" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Cloudflare Workers</option>
+                        <option value="cloudflare_api" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Cloudflare Email REST API</option>
                       </select>
                     </div>
 
@@ -1233,6 +1240,132 @@ function extractRawEmail(fromStr) {
                               boxSizing: "border-box",
                             }}
                           />
+                        </div>
+                      </div>
+                    )}
+
+                    {emailProvider === "cloudflare_api" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <div style={{
+                          padding: "12px 16px",
+                          backgroundColor: "rgba(245, 158, 11, 0.1)",
+                          border: "1px solid rgba(245, 158, 11, 0.3)",
+                          borderRadius: "8px",
+                          color: "#fbbf24",
+                          fontSize: "12px",
+                          lineHeight: "1.5",
+                          display: "flex",
+                          gap: "8px",
+                          alignItems: "flex-start"
+                        }}>
+                          <span style={{ fontSize: "16px" }}>⚠️</span>
+                          <div>
+                            <strong>One-Way Outbound Only:</strong> Direct API sending does not deploy any code to Cloudflare. 
+                            As a result, guest replies to invite emails will not trigger automatic worker-based auto-responses. 
+                            Any replies will only follow standard email forwarding/routing rules configured in your Cloudflare dashboard.
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            Cloudflare Account ID
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 1a2b3c4d5e6f..."
+                            value={cfAccountId}
+                            onChange={(e) => setCfAccountId(e.target.value)}
+                            style={{
+                              width: "100%",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: APP_SHELL.inputRadius,
+                              padding: "10px 14px",
+                              color: APP_SHELL.textPrimary,
+                              fontSize: "13px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
+                            Your unique 32-character Cloudflare Account ID. You can find this on your Cloudflare Dashboard homepage (sidebar on the right under <strong>Account ID</strong>).
+                          </span>
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            Cloudflare API Token
+                          </label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type={showCfApiToken ? "text" : "password"}
+                              required
+                              placeholder="Cloudflare API Token"
+                              value={cfApiToken}
+                              onChange={(e) => setCfApiToken(e.target.value)}
+                              style={{
+                                width: "100%",
+                                backgroundColor: APP_SHELL.inputBg,
+                                border: `1px solid ${APP_SHELL.inputBorder}`,
+                                borderRadius: APP_SHELL.inputRadius,
+                                padding: "10px 40px 10px 14px",
+                                color: APP_SHELL.textPrimary,
+                                fontSize: "13px",
+                                outline: "none",
+                                boxSizing: "border-box",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowCfApiToken(!showCfApiToken)}
+                              style={{
+                                position: "absolute",
+                                right: "10px",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: APP_SHELL.textSecondary,
+                                padding: "4px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                              title={showCfApiToken ? "Hide token" : "Show token"}
+                            >
+                              {showCfApiToken ? (
+                                <EyeOff size={16} />
+                              ) : (
+                                <Eye size={16} />
+                              )}
+                            </button>
+                          </div>
+                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
+                            An API Token with <strong>Account &gt; Email Sending: Edit</strong> permissions.
+                          </span>
+                        </div>
+
+                        <div style={{ marginTop: "12px", padding: "16px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <h4 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: "0 0 10px 0" }}>
+                            ⚡ Quick Dashboard Setup (No CLI Required)
+                          </h4>
+                          <ol style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0", lineHeight: "1.6" }}>
+                            <li style={{ marginBottom: "6px" }}>Log in to <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: APP_SHELL.accent, textDecoration: "underline" }}>dash.cloudflare.com</a>.</li>
+                            <li style={{ marginBottom: "6px" }}>In the left sidebar, click on your domain (under <strong>Websites</strong>), then navigate to <strong>Email &gt; Email Routing &gt; Destination addresses</strong> to verify your email routing is configured.</li>
+                            <li style={{ marginBottom: "6px" }}>Go to <strong>My Profile &gt; API Tokens</strong> (top right user icon &gt; My Profile &gt; API Tokens).</li>
+                            <li style={{ marginBottom: "6px" }}>Click <strong>Create Token</strong>. Scroll to the bottom and click <strong>Create Custom Token</strong>.</li>
+                            <li style={{ marginBottom: "6px" }}>Give your token a name (e.g., <code>RSVP to Me API Token</code>).</li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Under <strong>Permissions</strong>, select:
+                              <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
+                                <li style={{ marginBottom: "4px" }}><strong>Account</strong> | <strong>Email Sending</strong> | <strong>Edit</strong></li>
+                              </ul>
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>Under <strong>Account Resources</strong>, choose <strong>Include</strong> and select your account. Under <strong>Zone Resources</strong>, choose <strong>Include</strong> &gt; <strong>Specific zone</strong> &gt; select your domain.</li>
+                            <li style={{ marginBottom: "6px" }}>Click <strong>Continue to summary</strong>, then click <strong>Create Token</strong>. Copy the token and paste it above!</li>
+                          </ol>
                         </div>
                       </div>
                     )}
@@ -1513,6 +1646,9 @@ function extractRawEmail(fromStr) {
                                 <li style={{ marginBottom: "4px" }}><code>WORKER_API_SECRET</code>: Paste your <strong>Worker API Secret</strong> configured above.</li>
                                 <li style={{ marginBottom: "4px" }}><code>INBOUND_FORWARD_TO</code>: Paste your <strong>Guest Reply Forwarding Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
                               </ul>
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Scroll down to the <strong>Send Email Bindings</strong> section on the same page, click <strong>Add Binding</strong>, set the <strong>Variable name</strong> to <code>EMAIL</code>, and click <strong>Save and Deploy</strong>.
                             </li>
                             <li style={{ marginBottom: "6px" }}>Back in <strong>Email Routing &gt; Routes</strong>, click <strong>Add Route</strong>, select <strong>Send to Worker</strong>, and choose <code>rsvp-email-worker</code>.</li>
                           </ol>
