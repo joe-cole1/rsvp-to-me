@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -108,6 +109,25 @@ export default function AdminClient({
   const [cfWorkerUrl, setCfWorkerUrl] = useState(config.cloudflare_worker_email_url || "");
   const [cfWorkerSecret, setCfWorkerSecret] = useState(config.cloudflare_worker_api_secret || "");
   const [cfInboundForwardTo, setCfInboundForwardTo] = useState(config.cloudflare_inbound_forward_to || sessionUser?.email || "");
+  const [showSecret, setShowSecret] = useState(false);
+  const [secretCopied, setSecretCopied] = useState(false);
+  const [suggestedSubdomain, setSuggestedSubdomain] = useState("your-subdomain");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hostname = window.location.hostname;
+      if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
+        const parts = hostname.split(".");
+        if (parts.length >= 2) {
+          // e.g. rsvp.mybrand.com -> mybrand; mybrand.com -> mybrand
+          const sub = parts[parts.length - 2];
+          setTimeout(() => {
+            setSuggestedSubdomain(sub);
+          }, 0);
+        }
+      }
+    }
+  }, []);
 
   const handleSaveEmailConfig = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1202,7 +1222,7 @@ export default {
                           <input
                             type="url"
                             required
-                            placeholder="https://rsvp-email-worker.[your-subdomain].workers.dev"
+                            placeholder={`https://rsvp-email-worker.${suggestedSubdomain}.workers.dev`}
                             value={cfWorkerUrl}
                             onChange={(e) => setCfWorkerUrl(e.target.value)}
                             style={{
@@ -1218,7 +1238,7 @@ export default {
                             }}
                           />
                           <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            The public HTTP endpoint of your worker. Usually formatted as <code>https://rsvp-email-worker.[your-subdomain].workers.dev</code>. You can find this in your Cloudflare Dashboard under your worker&apos;s <strong>Triggers</strong> or <strong>Routes</strong> tab.
+                            The public HTTP endpoint of your worker. Usually formatted as <code>https://rsvp-email-worker.{suggestedSubdomain}.workers.dev</code>. You can find this in your Cloudflare Dashboard under your worker&apos;s <strong>Triggers</strong> or <strong>Routes</strong> tab.
                           </span>
                         </div>
 
@@ -1226,25 +1246,89 @@ export default {
                           <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
                             Worker API Secret
                           </label>
-                          <div style={{ display: "flex", gap: "8px" }}>
-                            <input
-                              type="password"
-                              required
-                              placeholder="API Secret Token"
-                              value={cfWorkerSecret}
-                              onChange={(e) => setCfWorkerSecret(e.target.value)}
-                              style={{
-                                flex: 1,
-                                backgroundColor: APP_SHELL.inputBg,
-                                border: `1px solid ${APP_SHELL.inputBorder}`,
-                                borderRadius: APP_SHELL.inputRadius,
-                                padding: "10px 14px",
-                                color: APP_SHELL.textPrimary,
-                                fontSize: "13px",
-                                outline: "none",
-                                boxSizing: "border-box",
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <div style={{ position: "relative", flex: 1 }}>
+                              <input
+                                type={showSecret ? "text" : "password"}
+                                required
+                                placeholder="API Secret Token"
+                                value={cfWorkerSecret}
+                                onChange={(e) => setCfWorkerSecret(e.target.value)}
+                                style={{
+                                  width: "100%",
+                                  backgroundColor: APP_SHELL.inputBg,
+                                  border: `1px solid ${APP_SHELL.inputBorder}`,
+                                  borderRadius: APP_SHELL.inputRadius,
+                                  padding: "10px 40px 10px 14px",
+                                  color: APP_SHELL.textPrimary,
+                                  fontSize: "13px",
+                                  outline: "none",
+                                  boxSizing: "border-box",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowSecret(!showSecret)}
+                                style={{
+                                  position: "absolute",
+                                  right: "10px",
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: APP_SHELL.textSecondary,
+                                  padding: "4px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                                title={showSecret ? "Hide secret" : "Show secret"}
+                              >
+                                {showSecret ? (
+                                  <EyeOff size={16} />
+                                ) : (
+                                  <Eye size={16} />
+                                )}
+                              </button>
+                            </div>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(cfWorkerSecret);
+                                setSecretCopied(true);
+                                setTimeout(() => setSecretCopied(false), 2000);
                               }}
-                            />
+                              disabled={!cfWorkerSecret}
+                              style={{
+                                backgroundColor: secretCopied ? "#22c55e" : "rgba(255, 255, 255, 0.08)",
+                                border: `1px solid ${secretCopied ? "#22c55e" : APP_SHELL.inputBorder}`,
+                                borderRadius: APP_SHELL.inputRadius,
+                                color: "#fff",
+                                padding: "0 14px",
+                                height: "38px",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                cursor: cfWorkerSecret ? "pointer" : "not-allowed",
+                                opacity: cfWorkerSecret ? 1 : 0.5,
+                                transition: "background-color 0.2s, border-color 0.2s",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "4px",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (cfWorkerSecret && !secretCopied) e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+                              }}
+                              onMouseLeave={(e) => {
+                                if (cfWorkerSecret && !secretCopied) e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+                              }}
+                              title="Copy secret to clipboard"
+                            >
+                              {secretCopied ? "✓" : "📋"}
+                            </button>
+
                             <button
                               type="button"
                               onClick={() => {
@@ -1263,6 +1347,7 @@ export default {
                                 borderRadius: APP_SHELL.inputRadius,
                                 color: APP_SHELL.textPrimary,
                                 padding: "0 14px",
+                                height: "38px",
                                 fontSize: "12px",
                                 fontWeight: 600,
                                 cursor: "pointer",
