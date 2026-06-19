@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockSendMail = vi.fn().mockResolvedValue({ messageId: "test-id" });
-const mockCreateTransport = vi.fn().mockReturnValue({ sendMail: mockSendMail });
+const mockVerify = vi.fn().mockResolvedValue(true);
+const mockCreateTransport = vi.fn().mockReturnValue({ sendMail: mockSendMail, verify: mockVerify });
 
 vi.mock("nodemailer", () => ({
   default: { createTransport: mockCreateTransport },
@@ -30,6 +31,8 @@ describe("lib/email.ts", () => {
   beforeEach(() => {
     vi.resetModules();
     mockSendMail.mockClear();
+    mockVerify.mockClear();
+    mockVerify.mockResolvedValue(true);
     mockCreateTransport.mockClear();
     mockSystemConfigFindMany.mockClear();
     mockSystemConfigFindMany.mockResolvedValue([]);
@@ -221,6 +224,146 @@ describe("lib/email.ts", () => {
         })
       );
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("testEmailConfig", () => {
+    it("handles console provider fallback", async () => {
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "console",
+        from: "noreply@example.com",
+        smtp: { port: 587, secure: false },
+        cloudflare: {},
+      });
+      expect(res.success).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith("[email:dev-test]", expect.any(Object));
+      consoleSpy.mockRestore();
+    });
+
+    it("handles SMTP connection success", async () => {
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "smtp",
+        from: "noreply@example.com",
+        smtp: { host: "smtp.example.com", port: 587, secure: false, user: "u", pass: "p" },
+        cloudflare: {},
+      });
+      expect(res.success).toBe(true);
+      expect(mockVerify).toHaveBeenCalled();
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "admin@example.com",
+          subject: "Test Email from RSVP to Me",
+        })
+      );
+    });
+
+    it("handles SMTP connection verification failure", async () => {
+      mockVerify.mockRejectedValue(new Error("Handshake failed"));
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "smtp",
+        from: "noreply@example.com",
+        smtp: { host: "smtp.example.com", port: 587, secure: false },
+        cloudflare: {},
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("SMTP error: Handshake failed");
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+
+    it("handles SMTP message sending failure", async () => {
+      mockSendMail.mockRejectedValue(new Error("SMTP send failed"));
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "smtp",
+        from: "noreply@example.com",
+        smtp: { host: "smtp.example.com", port: 587, secure: false },
+        cloudflare: {},
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("SMTP error: SMTP send failed");
+      expect(mockVerify).toHaveBeenCalled();
+      expect(mockSendMail).toHaveBeenCalled();
+    });
+
+    it("handles Cloudflare Worker send success", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+        text: async () => "OK",
+      });
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "cloudflare",
+        from: "noreply@example.com",
+        smtp: { port: 587, secure: false },
+        cloudflare: { url: "https://worker.example.com", secret: "secret" },
+      });
+      expect(res.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://worker.example.com/send",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "Bearer secret",
+          }),
+          body: expect.stringContaining("admin@example.com"),
+        })
+      );
+    });
+
+    it("handles Cloudflare Worker status failure (e.g. 401)", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => "Unauthorized",
+      });
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "cloudflare",
+        from: "noreply@example.com",
+        smtp: { port: 587, secure: false },
+        cloudflare: { url: "https://worker.example.com", secret: "secret" },
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Cloudflare Worker returned status 401: Unauthorized");
+    });
+
+    it("handles Cloudflare Worker connection/fetch error", async () => {
+      mockFetch.mockRejectedValue(new Error("Network Error"));
+      const { testEmailConfig } = await loadModule();
+      const res = await testEmailConfig("admin@example.com", {
+        provider: "cloudflare",
+        from: "noreply@example.com",
+        smtp: { port: 587, secure: false },
+        cloudflare: { url: "https://worker.example.com", secret: "secret" },
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Failed to connect to Cloudflare Worker: Network Error");
+    });
+
+    it("rejects invalid or unsafe Cloudflare Worker URLs (SSRF mitigation)", async () => {
+      const { testEmailConfig } = await loadModule();
+      for (const unsafeUrl of [
+        "http://worker.example.com",
+        "https://localhost/send",
+        "https://127.0.0.1/send",
+        "https://192.168.1.1/send",
+        "https://169.254.169.254/send",
+        "https://myhost.local/send",
+      ]) {
+        const res = await testEmailConfig("admin@example.com", {
+          provider: "cloudflare",
+          from: "noreply@example.com",
+          smtp: { port: 587, secure: false },
+          cloudflare: { url: unsafeUrl, secret: "secret" },
+        });
+        expect(res.success).toBe(false);
+        expect(res.error).toContain("Invalid or unsafe Cloudflare Worker URL");
+      }
     });
   });
 });

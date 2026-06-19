@@ -264,9 +264,6 @@ export async function getSystemConfig() {
   }
 
   // Mask sensitive values before returning to client/UI
-  if (configMap["cloudflare_worker_api_secret"]) {
-    configMap["cloudflare_worker_api_secret"] = "••••••••";
-  }
   if (configMap["smtp_pass"]) {
     configMap["smtp_pass"] = "••••••••";
   }
@@ -290,4 +287,54 @@ export async function updateSystemConfig(key: string, value: string) {
   revalidatePath("/admin");
   return { success: true };
 }
+
+export async function testEmailConfigAction(data: {
+  provider: string;
+  from: string;
+  smtpHost: string;
+  smtpPort: string;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPass: string;
+  cfWorkerUrl: string;
+  cfWorkerSecret: string;
+}) {
+  const session = await assertAdmin();
+  if (!session.email) {
+    throw new Error("Admin email is required to send test email.");
+  }
+
+  let finalSmtpPass = data.smtpPass;
+  if (data.smtpPass === "••••••••") {
+    const existing = await db.systemConfig.findUnique({ where: { key: "smtp_pass" } });
+    finalSmtpPass = existing ? existing.value : "";
+  }
+
+  let finalCfWorkerSecret = data.cfWorkerSecret;
+  if (data.cfWorkerSecret === "••••••••") {
+    const existing = await db.systemConfig.findUnique({ where: { key: "cloudflare_worker_api_secret" } });
+    finalCfWorkerSecret = existing ? existing.value : "";
+  }
+
+  const { testEmailConfig } = await import("@/lib/email");
+
+  const result = await testEmailConfig(session.email, {
+    provider: data.provider,
+    from: data.from.trim(),
+    smtp: {
+      host: data.smtpHost.trim(),
+      port: parseInt(data.smtpPort.trim() || "587"),
+      secure: data.smtpSecure,
+      user: data.smtpUser.trim(),
+      pass: finalSmtpPass,
+    },
+    cloudflare: {
+      url: data.cfWorkerUrl.trim(),
+      secret: finalCfWorkerSecret,
+    },
+  });
+
+  return result;
+}
+
 
