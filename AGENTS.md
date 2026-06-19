@@ -38,9 +38,7 @@ At the start of every new chat session or when resuming work:
 
 After making changes and before presenting Git commands to the user to push to GitHub:
 1. **Verify Linter and TypeScript Correctness**:
-   - Ensure all ESLint rules and TypeScript type checks pass with 0 errors.
-   - Remind the user to run the local linter check via Docker:
-     `docker run --rm -v "${PWD}:/app" -w /app node:20-alpine sh -c "npm run lint"`
+   - Note: Do NOT run `npm run lint` or ESLint commands inside Antigravity's terminal environment. The linter will run automatically on the user's command line via their Git `pre-commit` hook during the commit process.
    - Verify that the local Git `pre-commit` hook is configured in `.git/hooks/pre-commit` to catch styling issues before committing.
 2. **Wipe and Rebuild Local Docker Environment**:
    - Run `docker compose down` to shut down and clean up active containers and networks.

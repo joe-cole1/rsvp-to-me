@@ -113,6 +113,8 @@ export default function AdminClient({
   const [secretCopied, setSecretCopied] = useState(false);
   const [suggestedSubdomain, setSuggestedSubdomain] = useState("your-subdomain");
 
+  const [showCode, setShowCode] = useState(false);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hostname = window.location.hostname;
@@ -123,11 +125,14 @@ export default function AdminClient({
           const sub = parts[parts.length - 2];
           setTimeout(() => {
             setSuggestedSubdomain(sub);
+            if (!config.cloudflare_worker_email_url) {
+              setCfWorkerUrl(`https://rsvp-email-worker.${sub}.workers.dev`);
+            }
           }, 0);
         }
       }
     }
-  }, []);
+  }, [config.cloudflare_worker_email_url]);
 
   const handleSaveEmailConfig = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1332,6 +1337,13 @@ export default {
                             <button
                               type="button"
                               onClick={() => {
+                                const hasSavedSecret = !!config.cloudflare_worker_api_secret;
+                                if (hasSavedSecret) {
+                                  const confirmOverwrite = window.confirm(
+                                    "Warning: A worker API secret is already saved in the database. Generating a new one will overwrite it. You must also update the WORKER_API_SECRET in your Cloudflare dashboard to match. Are you sure you want to continue?"
+                                  );
+                                  if (!confirmOverwrite) return;
+                                }
                                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                                 const array = new Uint8Array(32);
                                 window.crypto.getRandomValues(array);
@@ -1366,7 +1378,7 @@ export default {
 
                         <div>
                           <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                            Inbound Forward Email (Guidance only)
+                            Guest Reply Forwarding Email
                           </label>
                           <input
                             type="email"
@@ -1387,7 +1399,7 @@ export default {
                             }}
                           />
                           <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            <strong>Note:</strong> Next.js does not send this value to the worker automatically. You must configure this email address as the <code>INBOUND_FORWARD_TO</code> environment variable in your Cloudflare worker settings (see instructions below).
+                            When guests reply to invite emails, where should their replies go? Because this app uses Cloudflare to send emails, you must enter this same address in your Cloudflare settings so Cloudflare knows where to send replies. Setting it here is just for your reference.
                           </span>
                         </div>
 
@@ -1399,34 +1411,80 @@ export default {
                             <li style={{ marginBottom: "6px" }}>Log in to <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: APP_SHELL.accent, textDecoration: "underline" }}>dash.cloudflare.com</a> (sign up for a free account if you haven&apos;t already).</li>
                             <li style={{ marginBottom: "6px" }}>Go to <strong>Websites &gt; [Your Domain] &gt; Email &gt; Email Routing &gt; Email Workers</strong>.</li>
                             <li style={{ marginBottom: "6px" }}>Click <strong>Create Email Worker</strong>, name it <code>rsvp-email-worker</code>, and select <strong>Create my own</strong> (which opens the online code editor).</li>
-                            <li style={{ marginBottom: "8px" }}>Click the button below to copy the clean worker code:</li>
+                            <li style={{ marginBottom: "8px" }}>Click the button below to copy or view the worker code:</li>
                           </ol>
                           
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(generateWorkerCode());
-                              setCopied(true);
-                              setTimeout(() => setCopied(false), 2000);
-                            }}
-                            style={{
-                              backgroundColor: copied ? "#22c55e" : APP_SHELL.accent,
-                              border: "none",
-                              color: "#fff",
-                              borderRadius: "6px",
-                              padding: "8px 16px",
-                              fontSize: "12px",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              transition: "background-color 0.2s",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              marginBottom: "12px",
-                            }}
-                          >
-                            {copied ? "✓ Copied!" : "📋 Copy Worker Code"}
-                          </button>
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(generateWorkerCode());
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                              }}
+                              style={{
+                                backgroundColor: copied ? "#22c55e" : APP_SHELL.accent,
+                                border: "none",
+                                color: "#fff",
+                                borderRadius: "6px",
+                                padding: "8px 16px",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                transition: "background-color 0.2s",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              {copied ? "✓ Copied!" : "📋 Copy Worker Code"}
+                            </button>
+                            
+                            <button
+                              type="button"
+                              onClick={() => setShowCode(!showCode)}
+                              style={{
+                                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                                border: `1px solid ${APP_SHELL.inputBorder}`,
+                                borderRadius: "6px",
+                                color: APP_SHELL.textPrimary,
+                                padding: "8px 16px",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                transition: "background-color 0.2s",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)"}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)"}
+                            >
+                              <span>&lt;/&gt;</span> {showCode ? "Hide Worker Code" : "View Worker Code"}
+                            </button>
+                          </div>
+
+                          {showCode && (
+                            <div style={{ marginBottom: "12px" }}>
+                              <pre style={{
+                                margin: 0,
+                                padding: "12px",
+                                backgroundColor: "rgba(0,0,0,0.3)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                color: "#e2e8f0",
+                                overflowX: "auto",
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-all",
+                                fontFamily: "monospace",
+                                maxHeight: "250px",
+                                overflowY: "auto",
+                              }}>
+                                {generateWorkerCode()}
+                              </pre>
+                            </div>
+                          )}
                           
                           <ol start={4} style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0", lineHeight: "1.6" }}>
                             <li style={{ marginBottom: "6px" }}>Delete everything in the Cloudflare editor, paste the copied code, and click <strong>Save and Deploy</strong>.</li>
@@ -1434,7 +1492,7 @@ export default {
                               Go to the worker&apos;s <strong>Settings &gt; Variables</strong> tab in Cloudflare, and add two <strong>Environment Variables</strong>:
                               <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
                                 <li style={{ marginBottom: "4px" }}><code>WORKER_API_SECRET</code>: Paste your <strong>Worker API Secret</strong> configured above.</li>
-                                <li style={{ marginBottom: "4px" }}><code>INBOUND_FORWARD_TO</code>: Paste your <strong>Inbound Forward Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
+                                <li style={{ marginBottom: "4px" }}><code>INBOUND_FORWARD_TO</code>: Paste your <strong>Guest Reply Forwarding Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
                               </ul>
                             </li>
                             <li style={{ marginBottom: "6px" }}>Back in <strong>Email Routing &gt; Routes</strong>, click <strong>Add Route</strong>, select <strong>Send to Worker</strong>, and choose <code>rsvp-email-worker</code>.</li>
