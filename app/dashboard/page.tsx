@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
-import { getDashboardEvents, getDashboardActivity } from "@/app/actions/event";
+import { getDashboardEvents, getDashboardActivity, getDashboardInvites } from "@/app/actions/event";
+import { isOpenRegistrationActive } from "@/lib/auth";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
@@ -9,7 +10,7 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
   const session = await getSession();
-  if (!session || session.role === "GUEST") redirect("/auth/sign-in");
+  if (!session) redirect("/auth/sign-in");
 
   const userExists = await db.user.findUnique({ where: { id: session.userId } });
   if (!userExists) {
@@ -26,9 +27,13 @@ export default async function DashboardPage() {
   }
 
   const events = await getDashboardEvents();
-  const eventIds = events.map(e => e.id);
+  const invites = await getDashboardInvites();
+  const openRegistration = await isOpenRegistrationActive();
+
+  const eventIds = [...events.map(e => e.id), ...invites.map(i => i.id)];
   const recentActivities = await getDashboardActivity(eventIds);
-  const userName = userExists.name || userExists.email?.split("@")[0] || "Host";
+  
+  const userName = userExists.name || userExists.email?.split("@")[0] || "User";
 
   return (
     <AppShell>
@@ -47,8 +52,11 @@ export default async function DashboardPage() {
       />
       <DashboardClient
         initialEvents={events}
+        initialInvites={invites}
         recentActivities={recentActivities}
         userName={userName}
+        userRole={userExists.role as "GUEST" | "HOST" | "ADMIN"}
+        openRegistration={openRegistration}
       />
     </AppShell>
   );

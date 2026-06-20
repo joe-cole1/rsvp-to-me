@@ -282,7 +282,6 @@ export async function addRSVP(data: {
 }
 
 // ── Comments ──────────────────────────────────────────────────────────────────
-
 export async function addComment(data: {
   eventId: string;
   guestName: string;
@@ -305,6 +304,15 @@ export async function addComment(data: {
       parentId: data.parentId,
     },
   });
+
+  // Log comment activity
+  const bodyPreview = data.body.slice(0, 30) + (data.body.length > 30 ? "..." : "");
+  await logActivity(
+    data.eventId,
+    "comment_new",
+    `${data.guestName} commented: "${bodyPreview}"`,
+    data.guestName
+  ).catch(() => {});
 
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: comment.id };
@@ -885,12 +893,32 @@ export type DashboardEvent = {
   title: string;
   startAt: Date;
   status: string;
-  theme: { accentColor: string } | null;
+  theme: { accentColor: string; coverImageUrl: string | null } | null;
   going: number;
   maybe: number;
   pending: number;
   isCohost: boolean;
-  host?: { name: string | null; email: string | null } | null;
+  host?: { name: string | null; email: string | null; avatarUrl: string | null } | null;
+  coHosts?: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
+  commentCount: number;
+};
+
+export type DashboardInvite = {
+  id: string;
+  slug: string;
+  title: string;
+  startAt: Date;
+  status: string;
+  theme: { accentColor: string; coverImageUrl: string | null } | null;
+  going: number;
+  maybe: number;
+  pending: number;
+  isCohost: boolean;
+  host: { name: string | null; email: string | null; avatarUrl: string | null } | null;
+  coHosts?: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
+  commentCount: number;
+  userRsvpStatus: string;
+  userRsvpEditToken: string;
 };
 
 export type DashboardActivity = {
@@ -906,6 +934,16 @@ export type DashboardActivity = {
   };
 };
 
+type CoHostQueryItem = {
+  user?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+  } | null;
+  userId?: string;
+};
+
 export async function getDashboardEvents(): Promise<DashboardEvent[]> {
   const session = await getSession();
   if (!session) return [];
@@ -918,10 +956,24 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       ],
     },
     include: {
-      theme: { select: { accentColor: true } },
+      theme: { select: { accentColor: true, coverImageUrl: true } },
       rsvps: { select: { status: true, approved: true } },
-      coHosts: { select: { userId: true } },
-      host: { select: { name: true, email: true } },
+      coHosts: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            }
+          }
+        }
+      },
+      host: { select: { name: true, email: true, avatarUrl: true } },
+      _count: {
+        select: { comments: true }
+      }
     },
     orderBy: { startAt: "desc" },
   });
@@ -942,6 +994,90 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       pending,
       isCohost: e.hostId !== session.userId,
       host: e.host,
+      coHosts: e.coHosts ? (e.coHosts.map((ch: CoHostQueryItem) => ch.user || (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)).filter(Boolean) as { id: string; name: string | null; email: string | null; avatarUrl: string | null }[]) : [],
+      commentCount: e._count?.comments ?? 0,
+    };
+  });
+}
+
+export async function getDashboardInvites(): Promise<DashboardInvite[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  // Find user email/phone for matching
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { email: true, phone: true }
+  });
+  if (!user) return [];
+
+  const userEmails = user.email ? [user.email.toLowerCase().trim()] : [];
+  const userPhone = user.phone ? user.phone.trim().replace(/[\s\-().]/g, "") : null;
+
+  const rsvps = await db.rSVP.findMany({
+    where: {
+      OR: [
+        { userId: session.userId },
+        ...(userEmails.length > 0 ? [{ guestEmail: { in: userEmails } }] : []),
+        ...(userPhone ? [{ guestPhone: userPhone }] : []),
+      ],
+      // Exclude events they host themselves to avoid duplicates
+      event: {
+        hostId: { not: session.userId }
+      }
+    },
+    include: {
+      event: {
+        include: {
+          theme: { select: { accentColor: true, coverImageUrl: true } },
+          rsvps: { select: { status: true, approved: true } },
+          host: { select: { name: true, email: true, avatarUrl: true } },
+          coHosts: {
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatarUrl: true,
+                }
+              }
+            }
+          },
+          _count: {
+            select: { comments: true }
+          }
+        }
+      }
+    },
+    orderBy: { event: { startAt: "desc" } }
+  });
+
+  return rsvps.map((r) => {
+    const e = r.event;
+    const going = e.rsvps.filter((rv: { status: string; approved: boolean }) => rv.approved && rv.status === "GOING").length;
+    const maybe = e.rsvps.filter((rv: { status: string; approved: boolean }) => rv.approved && rv.status === "MAYBE").length;
+    const pending = e.rsvps.filter((rv: { status: string; approved: boolean }) => !rv.approved).length;
+
+    // Check if the current user is a co-host of this event
+    const isCohost = e.coHosts ? e.coHosts.some((ch: CoHostQueryItem) => ch.user?.id === session.userId || ch.userId === session.userId) : false;
+
+    return {
+      id: e.id,
+      slug: e.slug,
+      title: e.title,
+      startAt: e.startAt,
+      status: e.status,
+      theme: e.theme,
+      going,
+      maybe,
+      pending,
+      isCohost,
+      host: e.host,
+      coHosts: e.coHosts ? (e.coHosts.map((ch: CoHostQueryItem) => ch.user || (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)).filter(Boolean) as { id: string; name: string | null; email: string | null; avatarUrl: string | null }[]) : [],
+      commentCount: e._count?.comments ?? 0,
+      userRsvpStatus: r.status,
+      userRsvpEditToken: r.editToken,
     };
   });
 }

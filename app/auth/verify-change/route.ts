@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
+import { linkRsvpsToUser } from "@/lib/auth";
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -56,6 +57,9 @@ export async function GET(request: NextRequest) {
       data: { guestPhone: newValue },
     });
   }
+
+  // Link any matching RSVPs dynamically on profile change verification
+  await linkRsvpsToUser(user.id);
 
   const sealed = await sealSession({
     userId: user.id,

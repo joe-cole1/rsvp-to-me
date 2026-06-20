@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   Search, 
   Plus, 
@@ -12,71 +13,152 @@ import {
   Calendar, 
   MapPin, 
   Activity, 
-  Users, 
-  Hourglass,
   Clock,
   Sparkles,
-  ChevronRight
+  MessageSquare,
+  MoreHorizontal
 } from "lucide-react";
 import { APP_SHELL } from "@/lib/theme";
-import type { DashboardEvent, DashboardActivity } from "@/app/actions/event";
+import type { DashboardEvent, DashboardInvite, DashboardActivity } from "@/app/actions/event";
+
+export interface DashboardGridItem {
+  id: string;
+  slug: string;
+  title: string;
+  startAt: Date | string;
+  status: string;
+  theme: { accentColor: string; coverImageUrl: string | null } | null;
+  going: number;
+  maybe: number;
+  pending: number;
+  isCohost: boolean;
+  host?: { name: string | null; email: string | null; avatarUrl: string | null } | null;
+  coHosts?: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
+  commentCount: number;
+  isInvite: boolean;
+  userRsvpStatus?: string;
+  userRsvpEditToken?: string;
+}
+
+export interface CoHostProfile {
+  id: string;
+  name: string | null;
+  email: string | null;
+  avatarUrl: string | null;
+}
 
 interface DashboardClientProps {
   initialEvents: DashboardEvent[];
+  initialInvites: DashboardInvite[];
   recentActivities: DashboardActivity[];
   userName: string;
+  userRole: "GUEST" | "HOST" | "ADMIN";
+  openRegistration: boolean;
 }
 
-export function DashboardClient({ initialEvents, recentActivities, userName }: DashboardClientProps) {
-  // State for search and filtering
+export function DashboardClient({ 
+  initialEvents, 
+  initialInvites, 
+  recentActivities, 
+  userName, 
+  userRole,
+  openRegistration 
+}: DashboardClientProps) {
+  // Filter state: "upcoming" | "hosting" | "invites" | "attended" | "past"
+  const [activeFilter, setActiveFilter] = useState<"upcoming" | "hosting" | "invites" | "attended" | "past">("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "hosting" | "co-hosting">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "PUBLISHED" | "DRAFT" | "CANCELLED">("all");
+  const [showSearchInput, setShowSearchInput] = useState(false);
   const [activityPage, setActivityPage] = useState(1);
-  
-  // State for card hovers to add micro-animations
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
+  const [activeDropdownCardId, setActiveDropdownCardId] = useState<string | null>(null);
 
   const now = new Date();
 
-  // Statistics calculation based on upcoming events
-  const upcomingEvents = initialEvents.filter(e => new Date(e.startAt) >= now);
-  const activeEventsCount = upcomingEvents.length;
-  const totalGoingRSVPs = upcomingEvents.reduce((acc, curr) => acc + curr.going, 0);
-  const totalPendingApprovals = upcomingEvents.reduce((acc, curr) => acc + curr.pending, 0);
+  // Unified items structure
+  const hostedOrCohosted = initialEvents.map(e => ({
+    ...e,
+    isInvite: false,
+    userRsvpStatus: undefined,
+    userRsvpEditToken: undefined,
+  }));
 
-  // Client-side filtering logic
-  const filteredEvents = initialEvents.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesRole = 
-      roleFilter === "all" ? true :
-      roleFilter === "hosting" ? !event.isCohost :
-      event.isCohost;
+  const guestInvites = initialInvites.map(i => ({
+    ...i,
+    isInvite: true,
+  }));
 
-    const matchesStatus = 
-      statusFilter === "all" ? true :
-      event.status === statusFilter;
+  // Helper to close dropdown when clicking outside
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveDropdownCardId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  // Filter computations
+  const upcomingItems = [
+    ...hostedOrCohosted.filter(e => new Date(e.startAt) >= now),
+    ...guestInvites.filter(i => new Date(i.startAt) >= now)
+  ].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 
-  const upcomingFiltered = filteredEvents.filter(e => new Date(e.startAt) >= now);
-  const pastFiltered = filteredEvents.filter(e => new Date(e.startAt) < now);
+  const hostingItems = hostedOrCohosted.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 
-  // Helper for formatting date
-  const formatEventDate = (dateVal: Date | string) => {
-    const d = new Date(dateVal);
-    return d.toLocaleDateString("en-US", { 
-      weekday: "short", 
-      month: "short", 
-      day: "numeric", 
-      year: "numeric" 
-    });
+  const openInviteItems = guestInvites
+    .filter(i => new Date(i.startAt) >= now)
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+
+  const attendedItems = guestInvites
+    .filter(i => new Date(i.startAt) < now && (i.userRsvpStatus === "GOING" || i.userRsvpStatus === "MAYBE"))
+    .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime()); // newest past first
+
+  const pastItems = [
+    ...hostedOrCohosted.filter(e => new Date(e.startAt) < now),
+    ...guestInvites.filter(i => new Date(i.startAt) < now)
+  ].sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime()); // newest past first
+
+  // Select items based on active pill
+  let displayedItems = 
+    activeFilter === "upcoming" ? upcomingItems :
+    activeFilter === "hosting" ? hostingItems :
+    activeFilter === "invites" ? openInviteItems :
+    activeFilter === "attended" ? attendedItems :
+    pastItems;
+
+  // Apply search query
+  if (searchQuery.trim() !== "") {
+    displayedItems = displayedItems.filter(item => 
+      item.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+
+  // Counts for pills
+  const counts = {
+    upcoming: upcomingItems.length,
+    hosting: hostingItems.length,
+    invites: openInviteItems.length,
+    attended: attendedItems.length,
+    past: pastItems.length,
   };
 
-  // Helper for relative time in activity log
+  // Helper to format date Partiful-style: "Sat 11/15 at 4pm"
+  const formatPartifulDate = (dateVal: Date | string) => {
+    const d = new Date(dateVal);
+    const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+    const dateStr = d.toLocaleDateString("en-US", { month: "numeric", day: "numeric" });
+    const hour = d.getHours();
+    const minute = d.getMinutes();
+    const ampm = hour >= 12 ? "pm" : "am";
+    const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+    const formattedMin = minute === 0 ? "" : `:${minute.toString().padStart(2, "0")}`;
+    return `${weekday} ${dateStr} at ${formattedHour}${formattedMin}${ampm}`;
+  };
+
+  // Relative time helper for activity log
   const formatRelativeTime = (dateInput: Date | string) => {
     const date = new Date(dateInput);
     const currTime = new Date();
@@ -93,7 +175,7 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  // Helper to resolve activity type to icon & color
+  // Activity type icon lookup
   const getActivityMeta = (type: string) => {
     switch (type) {
       case "rsvp_new":
@@ -102,6 +184,8 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
         return { Icon: Edit3, color: "#6366f1" }; // Indigo
       case "rsvp_delete":
         return { Icon: Trash2, color: "#ef4444" }; // Red
+      case "comment_new":
+        return { Icon: MessageSquare, color: "#10b981" }; // Green
       case "potluck_claim":
         return { Icon: Utensils, color: "#10b981" }; // Green
       case "potluck_unclaim":
@@ -118,350 +202,193 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
     }
   };
 
+  // Determine if Guest sees the + New Event card
+  const showNewEventCardForGuest = userRole === "GUEST" && openRegistration;
+  const showNewEventCard = userRole !== "GUEST" || showNewEventCardForGuest;
+
+  // We only show + New Event card on active filters where new events belong
+  const displayNewEventPlaceholder = showNewEventCard && (activeFilter === "upcoming" || activeFilter === "hosting");
+
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 20px 100px" }}>
+    <div style={{ maxWidth: "1150px", margin: "0 auto", padding: "40px 24px 100px" }}>
       
-      {/* 1. Dashboard Greeting/Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "36px", flexWrap: "wrap", gap: "20px" }}>
-        <div>
-          <h1 style={{ 
-            fontSize: "28px", 
-            fontWeight: 900, 
-            background: "linear-gradient(to right, #ffffff, rgba(255,255,255,0.7))", 
-            WebkitBackgroundClip: "text", 
-            WebkitTextFillColor: "transparent",
-            marginBottom: "6px" 
-          }}>
-            Hey, {userName}!
-          </h1>
-          <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px" }}>
-            Welcome back to your events cockpit.
-          </p>
-        </div>
-        
-        <Link
-          href="/dashboard/events/new"
-          style={{ 
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "12px 24px", 
-            background: `linear-gradient(135deg, ${APP_SHELL.accent} 0%, #ec4899 100%)`, 
-            color: APP_SHELL.textPrimary, 
-            borderRadius: APP_SHELL.btnRadius, 
-            textDecoration: "none", 
-            fontSize: "14px", 
-            fontWeight: 800, 
-            boxShadow: `0 4px 14px rgba(168, 85, 247, 0.4)`,
-            transition: "transform 0.2s, box-shadow 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "translateY(-1px)";
-            e.currentTarget.style.boxShadow = `0 6px 18px rgba(168, 85, 247, 0.5)`;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.boxShadow = `0 4px 14px rgba(168, 85, 247, 0.4)`;
-          }}
-        >
-          <Plus size={16} strokeWidth={3} />
-          New Event
-        </Link>
-      </div>
-
-      {/* 2. Glassmorphic Analytics Panel */}
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", 
-        gap: "16px", 
-        marginBottom: "40px" 
-      }}>
-        {/* Metric 1: Active Invites */}
-        <div 
-          style={{ 
-            background: APP_SHELL.cardBg, 
-            border: `1px solid ${hoveredCard === "active" ? `rgba(168, 85, 247, 0.4)` : APP_SHELL.cardBorder}`, 
-            borderRadius: APP_SHELL.cardRadius, 
-            padding: "20px 24px",
-            boxShadow: hoveredCard === "active" ? "0 8px 30px rgba(168, 85, 247, 0.08)" : "none",
-            transform: hoveredCard === "active" ? "translateY(-2px)" : "translateY(0)",
-            transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-            cursor: "default"
-          }}
-          onMouseEnter={() => setHoveredCard("active")}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: APP_SHELL.textSecondary }}>Active Invites</span>
-            <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "rgba(168, 85, 247, 0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Calendar size={16} color={APP_SHELL.accent} />
-            </div>
-          </div>
-          <div style={{ fontSize: "28px", fontWeight: 900, color: APP_SHELL.textPrimary }}>{activeEventsCount}</div>
-          <div style={{ fontSize: "12px", color: APP_SHELL.textMuted, marginTop: "4px" }}>Upcoming scheduled events</div>
-        </div>
-
-        {/* Metric 2: Going Guests */}
-        <div 
-          style={{ 
-            background: APP_SHELL.cardBg, 
-            border: `1px solid ${hoveredCard === "going" ? `rgba(236, 72, 153, 0.4)` : APP_SHELL.cardBorder}`, 
-            borderRadius: APP_SHELL.cardRadius, 
-            padding: "20px 24px",
-            boxShadow: hoveredCard === "going" ? "0 8px 30px rgba(236, 72, 153, 0.08)" : "none",
-            transform: hoveredCard === "going" ? "translateY(-2px)" : "translateY(0)",
-            transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-            cursor: "default"
-          }}
-          onMouseEnter={() => setHoveredCard("going")}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: APP_SHELL.textSecondary }}>Going Guests</span>
-            <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "rgba(236, 72, 153, 0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Users size={16} color="#ec4899" />
-            </div>
-          </div>
-          <div style={{ fontSize: "28px", fontWeight: 900, color: APP_SHELL.textPrimary }}>{totalGoingRSVPs}</div>
-          <div style={{ fontSize: "12px", color: APP_SHELL.textMuted, marginTop: "4px" }}>RSVPs across upcoming events</div>
-        </div>
-
-        {/* Metric 3: Pending Approvals */}
-        <div 
-          style={{ 
-            background: APP_SHELL.cardBg, 
-            border: `1px solid ${totalPendingApprovals > 0 ? (hoveredCard === "pending" ? `rgba(245, 158, 11, 0.6)` : `rgba(245, 158, 11, 0.3)`) : APP_SHELL.cardBorder}`, 
-            borderRadius: APP_SHELL.cardRadius, 
-            padding: "20px 24px",
-            boxShadow: hoveredCard === "pending" ? "0 8px 30px rgba(245, 158, 11, 0.08)" : "none",
-            transform: hoveredCard === "pending" ? "translateY(-2px)" : "translateY(0)",
-            transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-            cursor: "default"
-          }}
-          onMouseEnter={() => setHoveredCard("pending")}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: APP_SHELL.textSecondary }}>Pending RSVPs</span>
-            <div style={{ 
-              width: "32px", 
-              height: "32px", 
-              borderRadius: "8px", 
-              background: totalPendingApprovals > 0 ? "rgba(245, 158, 11, 0.15)" : "rgba(255,255,255,0.05)", 
-              display: "flex", 
-              alignItems: "center", 
-              justifyContent: "center" 
-            }}>
-              <Hourglass size={16} color={totalPendingApprovals > 0 ? "#f59e0b" : APP_SHELL.textMuted} />
-            </div>
-          </div>
-          <div style={{ 
-            fontSize: "28px", 
-            fontWeight: 900, 
-            color: totalPendingApprovals > 0 ? "#f59e0b" : APP_SHELL.textPrimary 
-          }}>{totalPendingApprovals}</div>
-          <div style={{ fontSize: "12px", color: totalPendingApprovals > 0 ? "#fbbf24" : APP_SHELL.textMuted, marginTop: "4px" }}>
-            {totalPendingApprovals > 0 ? "⚠️ Requires host review" : "No pending approvals"}
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Main Split View: Left list, Right activity feed */}
-      <div className="flex flex-col lg:flex-row gap-8">
-        
-        {/* Left Section: Event Listing */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          
-          {/* Controls Bar: Search & Tabs */}
-          <div style={{ 
-            background: "rgba(255,255,255,0.02)", 
-            border: `1px solid ${APP_SHELL.cardBorder}`,
-            borderRadius: APP_SHELL.itemRadius,
-            padding: "16px",
-            marginBottom: "24px"
-          }}>
-            {/* Search Input */}
-            <div style={{ position: "relative", marginBottom: "16px" }}>
-              <Search 
-                size={18} 
-                style={{ 
-                  position: "absolute", 
-                  left: "14px", 
-                  top: "50%", 
-                  transform: "translateY(-50%)", 
-                  color: APP_SHELL.textMuted 
-                }} 
-              />
-              <input 
-                type="text" 
-                placeholder="Search events by title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ 
-                  width: "100%", 
-                  padding: "12px 14px 12px 42px", 
-                  background: APP_SHELL.inputBg, 
-                  border: `1px solid ${APP_SHELL.inputBorder}`, 
-                  borderRadius: APP_SHELL.inputRadius, 
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "14px",
-                  outline: "none",
-                  transition: "border-color 0.2s"
-                }}
-                onFocus={(e) => e.target.style.borderColor = APP_SHELL.accent}
-                onBlur={(e) => e.target.style.borderColor = APP_SHELL.inputBorder}
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery("")}
-                  style={{ 
-                    position: "absolute", 
-                    right: "14px", 
-                    top: "50%", 
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    color: APP_SHELL.textMuted,
-                    cursor: "pointer",
-                    fontSize: "13px"
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Filter Tabs */}
-            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
-              
-              {/* Role tabs */}
-              <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "10px", gap: "4px" }}>
-                {(["all", "hosting", "co-hosting"] as const).map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => setRoleFilter(role)}
-                    style={{
-                      padding: "6px 12px",
-                      background: roleFilter === role ? "rgba(255,255,255,0.08)" : "transparent",
-                      color: roleFilter === role ? APP_SHELL.textPrimary : APP_SHELL.textSecondary,
-                      border: "none",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      textTransform: "capitalize",
-                      transition: "all 0.2s"
-                    }}
-                  >
-                    {role === "all" ? "All Roles" : role === "co-hosting" ? "Co-Hosting" : "Hosting"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Status tabs */}
-              <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "10px", gap: "4px" }}>
-                {(["all", "PUBLISHED", "DRAFT", "CANCELLED"] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    style={{
-                      padding: "6px 10px",
-                      background: statusFilter === status ? "rgba(255,255,255,0.08)" : "transparent",
-                      color: statusFilter === status ? APP_SHELL.textPrimary : APP_SHELL.textSecondary,
-                      border: "none",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "all 0.2s"
-                    }}
-                  >
-                    {status === "all" ? "All Status" : status}
-                  </button>
-                ))}
-              </div>
-
-            </div>
-          </div>
-
-          {/* Results Lists */}
-          {filteredEvents.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 20px", background: APP_SHELL.cardBg, border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: APP_SHELL.cardRadius }}>
-              <div style={{ fontSize: "40px", marginBottom: "16px" }}>🔍</div>
-              <p style={{ color: APP_SHELL.textMuted, fontSize: "14px", marginBottom: "20px" }}>
-                No events found matching your search and filters.
-              </p>
-              {(searchQuery || roleFilter !== "all" || statusFilter !== "all") && (
-                <button 
-                  onClick={() => {
-                    setSearchQuery("");
-                    setRoleFilter("all");
-                    setStatusFilter("all");
-                  }}
-                  style={{
-                    padding: "8px 16px",
-                    background: "rgba(255,255,255,0.05)",
-                    border: `1px solid ${APP_SHELL.cardBorder}`,
-                    color: APP_SHELL.textPrimary,
-                    borderRadius: "8px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer"
-                  }}
-                >
-                  Reset All Filters
-                </button>
-              )}
-            </div>
-          ) : (
+      {/* 1. Header greeting */}
+      <div style={{ marginBottom: "32px" }}>
+        <h1 style={{ 
+          fontSize: "36px", 
+          fontWeight: 900, 
+          color: "#fff",
+          marginBottom: "8px",
+          letterSpacing: "-0.03em"
+        }}>
+          Welcome back {userName}!
+        </h1>
+        <p style={{ color: APP_SHELL.textSecondary, fontSize: "15px", margin: 0 }}>
+          {counts.upcoming === 0 ? (
             <>
-              {/* Upcoming Section */}
-              {upcomingFiltered.length > 0 && (
-                <div style={{ marginBottom: "32px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "99px", background: APP_SHELL.accent }}></div>
-                    <h2 style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: APP_SHELL.textSecondary }}>
-                      Upcoming ({upcomingFiltered.length})
-                    </h2>
-                  </div>
-                  {upcomingFiltered.map(event => (
-                    <EventCard 
-                      key={event.id} 
-                      event={event} 
-                      isHovered={hoveredEventId === event.id}
-                      onHover={(isHover) => setHoveredEventId(isHover ? event.id : null)}
-                      formatEventDate={formatEventDate}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Past Section */}
-              {pastFiltered.length > 0 && (
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "99px", background: APP_SHELL.textMuted }}></div>
-                    <h2 style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: APP_SHELL.textTertiary }}>
-                      Past Events ({pastFiltered.length})
-                    </h2>
-                  </div>
-                  {pastFiltered.map(event => (
-                    <EventCard 
-                      key={event.id} 
-                      event={event} 
-                      isHovered={hoveredEventId === event.id}
-                      onHover={(isHover) => setHoveredEventId(isHover ? event.id : null)}
-                      formatEventDate={formatEventDate}
-                    />
-                  ))}
-                </div>
+              {"You don't have any upcoming events right now. "}
+              {showNewEventCard && (
+                <Link 
+                  href={userRole === "GUEST" ? "/auth/register" : "/dashboard/events/new"} 
+                  style={{ color: APP_SHELL.accent, fontWeight: 800, textDecoration: "none" }}
+                >
+                  Host one!
+                </Link>
               )}
             </>
+          ) : (
+            `You have ${counts.upcoming} upcoming event${counts.upcoming > 1 ? "s" : ""} scheduled.`
           )}
+        </p>
+      </div>
 
+      {/* 2. Filter Pills row */}
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginBottom: "32px" }}>
+        
+        {/* Search Toggle Pill */}
+        <button
+          onClick={() => {
+            setShowSearchInput(!showSearchInput);
+            if (showSearchInput) setSearchQuery("");
+          }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "8px 18px",
+            background: showSearchInput ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)",
+            border: showSearchInput ? "1px solid #fff" : "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "99px",
+            color: "#fff",
+            fontSize: "13px",
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.15s ease-in-out"
+          }}
+        >
+          <Search size={14} strokeWidth={2.5} />
+          Search
+        </button>
+
+        {/* Filter Tab Pills */}
+        <PillTab filter="upcoming" active={activeFilter} label="Upcoming" count={counts.upcoming} onClick={setActiveFilter} />
+        {userRole !== "GUEST" && (
+          <PillTab filter="hosting" active={activeFilter} label="Hosting" count={counts.hosting} onClick={setActiveFilter} />
+        )}
+        <PillTab filter="invites" active={activeFilter} label="Open invite" count={counts.invites} onClick={setActiveFilter} />
+        <PillTab filter="attended" active={activeFilter} label="Attended" count={counts.attended} onClick={setActiveFilter} />
+        <PillTab filter="past" active={activeFilter} label="All past events" count={counts.past} onClick={setActiveFilter} />
+
+      </div>
+
+      {/* Inline Search Input */}
+      {showSearchInput && (
+        <div style={{ marginBottom: "28px", animation: "slideDown 0.2s ease-out" }}>
+          <input
+            type="text"
+            placeholder="Search events by title..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+            style={{
+              width: "100%",
+              maxWidth: "400px",
+              padding: "10px 16px",
+              background: APP_SHELL.inputBg,
+              border: `1px solid ${APP_SHELL.inputBorder}`,
+              borderRadius: "20px",
+              color: "#fff",
+              fontSize: "14px",
+              outline: "none",
+              borderImage: `linear-gradient(to right, ${APP_SHELL.accent}, #ec4899) 1`
+            }}
+          />
+        </div>
+      )}
+
+      {/* 3. Split view: Grid of events (left) + Recent activity (right) */}
+      <div className="flex flex-col lg:flex-row gap-10" style={{ alignItems: "flex-start" }}>
+        
+        {/* Left Section: Event Cards Grid */}
+        <div style={{ flex: 1, minWidth: 0, width: "100%" }}>
+          {displayedItems.length === 0 && !displayNewEventPlaceholder ? (
+            <div style={{
+              textAlign: "center",
+              padding: "60px 20px",
+              background: APP_SHELL.cardBg,
+              border: `1px solid ${APP_SHELL.cardBorder}`,
+              borderRadius: APP_SHELL.cardRadius
+            }}>
+              <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "6px" }}>No events found</h3>
+              <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", margin: 0 }}>
+                {searchQuery ? "Try a different search query." : "When you host or get invited, they will show up here!"}
+              </p>
+            </div>
+          ) : (
+            <div 
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+                gap: "24px"
+              }}
+            >
+              {/* + New Event Card (if active and allowed) */}
+              {displayNewEventPlaceholder && (
+                <Link
+                  href={userRole === "GUEST" ? "/auth/register" : "/dashboard/events/new"}
+                  style={{ textDecoration: "none" }}
+                >
+                  <div
+                    style={{
+                      aspectRatio: "1/1",
+                      borderRadius: "16px",
+                      border: "2px dashed rgba(255,255,255,0.15)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      color: APP_SHELL.textSecondary,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease-in-out",
+                      background: "rgba(255,255,255,0.01)"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = APP_SHELL.accent;
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                      e.currentTarget.style.color = APP_SHELL.textSecondary;
+                      e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+                    }}
+                  >
+                    <Plus size={24} strokeWidth={2.5} />
+                    <span style={{ fontSize: "14px", fontWeight: 800 }}>New event</span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Event Cards */}
+              {displayedItems.map(item => (
+                <EventCard
+                  key={item.id}
+                  item={item}
+                  formatPartifulDate={formatPartifulDate}
+                  isDropdownOpen={activeDropdownCardId === item.id}
+                  onToggleDropdown={(open) => {
+                    setActiveDropdownCardId(open ? item.id : null);
+                  }}
+                  dropdownRef={activeDropdownCardId === item.id ? dropdownRef : undefined}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Right Section: Recent Activity (1/3 width on wide screens) */}
+        {/* Right Section: Recent Activity (Sidebar) */}
         <div style={{ width: "100%", maxWidth: "340px", flexShrink: 0 }} className="dashboard-sidebar">
           <div style={{ 
             background: APP_SHELL.cardBg, 
@@ -486,7 +413,6 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
             ) : (() => {
               const PAGE_SIZE = 10;
               const totalPages = Math.ceil(recentActivities.length / PAGE_SIZE);
-              // Safety: ensure current page is within bounds
               const currentPage = Math.min(activityPage, Math.max(totalPages, 1));
               const displayedActivities = recentActivities.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
@@ -497,7 +423,7 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
                       const { Icon, color } = getActivityMeta(act.type);
                       return (
                         <div key={act.id} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                          {/* Activity icon box */}
+                          {/* Icon container */}
                           <div style={{ 
                             width: "28px", 
                             height: "28px", 
@@ -512,13 +438,13 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
                             <Icon size={14} color={color} />
                           </div>
                           
-                          {/* Activity details */}
+                          {/* Details */}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ color: APP_SHELL.textPrimary, fontSize: "12px", lineHeight: "1.4", margin: 0, wordBreak: "break-word" }}>
                               {act.detail}
                             </p>
                             
-                            {/* Event Link & Time */}
+                            {/* Link and Time */}
                             <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "4px" }}>
                               <Link 
                                 href={`/e/${act.event.slug}`} 
@@ -547,7 +473,7 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
                     })}
                   </div>
 
-                  {/* Pagination Controls */}
+                  {/* Pagination */}
                   {totalPages > 1 && (
                     <div style={{
                       display: "flex",
@@ -608,163 +534,310 @@ export function DashboardClient({ initialEvents, recentActivities, userName }: D
 }
 
 // ──────────────────────────────────────────────
-// Helper Child Component: Status Badge
+// Helper Component: PillTab
 // ──────────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
-  if (status === "PUBLISHED") return null;
-  const colors: Record<string, { bg: string; text: string }> = {
-    DRAFT:     { bg: "rgba(245,158,11,0.15)", text: "#fbbf24" },
-    CANCELLED: { bg: "rgba(239,68,68,0.15)",  text: "#f87171" },
-  };
-  const c = colors[status] ?? colors.DRAFT;
+interface PillTabProps {
+  filter: "upcoming" | "hosting" | "invites" | "attended" | "past";
+  active: "upcoming" | "hosting" | "invites" | "attended" | "past";
+  label: string;
+  count: number;
+  onClick: (f: "upcoming" | "hosting" | "invites" | "attended" | "past") => void;
+}
+
+function PillTab({ filter, active, label, count, onClick }: PillTabProps) {
+  const isActive = active === filter;
   return (
-    <span style={{ 
-      fontSize: "10px", 
-      fontWeight: 700, 
-      background: c.bg, 
-      color: c.text, 
-      padding: "2px 8px", 
-      borderRadius: "99px", 
-      flexShrink: 0, 
-      letterSpacing: "0.04em" 
-    }}>
-      {status}
-    </span>
+    <button
+      onClick={() => onClick(filter)}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "8px 18px",
+        background: isActive ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.02)",
+        border: isActive ? "1px solid #fff" : "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "99px",
+        color: isActive ? "#fff" : APP_SHELL.textSecondary,
+        fontSize: "13px",
+        fontWeight: isActive ? 800 : 600,
+        cursor: "pointer",
+        transition: "all 0.15s ease-in-out"
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) e.currentTarget.style.color = "#fff";
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) e.currentTarget.style.color = APP_SHELL.textSecondary;
+      }}
+    >
+      {label} <span style={{ marginLeft: "4px", opacity: isActive ? 1 : 0.6, fontSize: "11px" }}>{count}</span>
+    </button>
   );
 }
 
 // ──────────────────────────────────────────────
-// Helper Child Component: Stat Item inside Cards
-// ──────────────────────────────────────────────
-function MiniStat({ value, label, color }: { value: number; label: string; color: string }) {
-  return (
-    <div style={{ textAlign: "right", minWidth: "50px" }}>
-      <div style={{ color, fontWeight: 800, fontSize: "14px", lineHeight: "1.1" }}>{value}</div>
-      <div style={{ color: APP_SHELL.textTertiary, fontSize: "10px", fontWeight: 600, textTransform: "uppercase", marginTop: "2px" }}>{label}</div>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────
-// Helper Child Component: Event Card
+// Helper Component: Event Card
 // ──────────────────────────────────────────────
 interface EventCardProps {
-  event: DashboardEvent;
-  isHovered: boolean;
-  onHover: (hover: boolean) => void;
-  formatEventDate: (date: Date | string) => string;
+  item: DashboardGridItem;
+  formatPartifulDate: (d: Date | string) => string;
+  isDropdownOpen: boolean;
+  onToggleDropdown: (open: boolean) => void;
+  dropdownRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function EventCard({ event, isHovered, onHover, formatEventDate }: EventCardProps) {
-  const accent = event.theme?.accentColor ?? APP_SHELL.accent;
+function EventCard({ item, formatPartifulDate, isDropdownOpen, onToggleDropdown, dropdownRef }: EventCardProps) {
+  const accent = item.theme?.accentColor ?? APP_SHELL.accent;
+  const coverUrl = item.theme?.coverImageUrl;
+  const isInvite = item.isInvite;
+
+  // Status/Badge mapping
+  let overlayText = "";
+  let overlayColor = "rgba(0,0,0,0.75)";
   
+  if (!isInvite) {
+    overlayText = item.isCohost ? "👑 CO-HOST" : "👑 HOSTING";
+  } else {
+    if (item.userRsvpStatus === "GOING") {
+      overlayText = "✅ GOING";
+      overlayColor = "rgba(16,185,129,0.9)"; // green
+    } else if (item.userRsvpStatus === "MAYBE") {
+      overlayText = "❓ MAYBE";
+      overlayColor = "rgba(245,158,11,0.9)"; // amber
+    } else if (item.userRsvpStatus === "NO") {
+      overlayText = "❌ DECLINED";
+      overlayColor = "rgba(239,68,68,0.9)"; // red
+    }
+  }
+
+  const hostName = item.host?.name || item.host?.email?.split("@")[0] || "Host";
+
   return (
-    <div 
-      style={{ 
-        background: APP_SHELL.cardBg, 
-        border: `1px solid ${isHovered ? `rgba(${parseInt(accent.slice(1,3), 16)}, ${parseInt(accent.slice(3,5), 16)}, ${parseInt(accent.slice(5,7), 16)}, 0.3)` : APP_SHELL.cardBorder}`, 
-        borderRadius: APP_SHELL.itemRadius, 
-        marginBottom: "12px", 
-        overflow: "hidden",
-        transform: isHovered ? "translateY(-1px)" : "translateY(0)",
-        boxShadow: isHovered ? `0 6px 20px rgba(${parseInt(accent.slice(1,3), 16)}, ${parseInt(accent.slice(3,5), 16)}, ${parseInt(accent.slice(5,7), 16)}, 0.04)` : "none",
-        transition: "all 0.2s ease-in-out"
-      }}
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
-    >
-      {/* Main card row */}
-      <div style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-        
-        {/* Left Side: Avatar/Emoji icon */}
-        <div style={{ 
-          width: "44px", 
-          height: "44px", 
-          borderRadius: "12px", 
-          background: `rgba(${parseInt(accent.slice(1,3), 16)}, ${parseInt(accent.slice(3,5), 16)}, ${parseInt(accent.slice(5,7), 16)}, 0.15)`, 
-          border: `1px solid rgba(${parseInt(accent.slice(1,3), 16)}, ${parseInt(accent.slice(3,5), 16)}, ${parseInt(accent.slice(5,7), 16)}, 0.25)`,
-          flexShrink: 0, 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center", 
-          fontSize: "20px" 
-        }}>
-          🎉
-        </div>
-
-        {/* Center: Event Details */}
-        <div style={{ flex: 1, minWidth: "200px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-            <Link 
-              href={`/e/${event.slug}`} 
-              style={{ 
-                color: APP_SHELL.textPrimary, 
-                fontWeight: 800, 
-                fontSize: "15px", 
-                textDecoration: "none",
-                transition: "color 0.2s"
+    <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+      
+      {/* 1. Cover Photo Area */}
+      <div 
+        style={{
+          position: "relative",
+          width: "100%",
+          paddingBottom: "100%", // 1:1 Aspect ratio
+          borderRadius: "16px",
+          overflow: "hidden",
+          background: coverUrl ? "transparent" : `linear-gradient(135deg, #18181b 0%, ${accent}aa 100%)`,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+          transition: "transform 0.2s ease-in-out"
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.01)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+        }}
+      >
+        {/* Clickable Image Cover Link */}
+        <Link 
+          href={`/e/${item.slug}`}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 1,
+            display: "block"
+          }}
+        >
+          {/* Actual Cover image */}
+          {coverUrl && (
+            <Image 
+              src={coverUrl} 
+              alt={item.title} 
+              unoptimized
+              fill
+              style={{
+                objectFit: "cover"
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = accent}
-              onMouseLeave={(e) => e.currentTarget.style.color = APP_SHELL.textPrimary}
+            />
+          )}
+
+          {/* Fallback pattern if no cover url */}
+          {!coverUrl && (
+            <div style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "48px",
+              opacity: 0.85
+            }}>
+              🎉
+            </div>
+          )}
+        </Link>
+
+        {/* Date Overlay (Top-Left) */}
+        <div style={{
+          position: "absolute",
+          top: "12px",
+          left: "12px",
+          background: "rgba(255, 255, 255, 0.95)",
+          color: "#000",
+          fontSize: "11px",
+          fontWeight: 800,
+          padding: "5px 10px",
+          borderRadius: "99px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          letterSpacing: "-0.01em",
+          zIndex: 2,
+          pointerEvents: "none" // click passes through to the Link
+        }}>
+          {formatPartifulDate(item.startAt)}
+        </div>
+
+        {/* Dots Menu Button (Top-Right) */}
+        <div style={{ position: "absolute", top: "12px", right: "12px", zIndex: 3 }}>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation(); // prevent navigating to event page
+              onToggleDropdown(!isDropdownOpen);
+            }}
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              background: "rgba(0,0,0,0.5)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              cursor: "pointer",
+              backdropFilter: "blur(4px)"
+            }}
+          >
+            <MoreHorizontal size={14} strokeWidth={2.5} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div 
+              ref={dropdownRef}
+              style={{
+                position: "absolute",
+                top: "34px",
+                right: 0,
+                background: "#18181b",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "10px",
+                padding: "6px",
+                minWidth: "120px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                zIndex: 50,
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px"
+              }}
             >
-              {event.title}
-            </Link>
-            
-            <StatusBadge status={event.status} />
-
-            {event.isCohost && (
-              <span style={{ 
-                fontSize: "9px", 
-                fontWeight: 800, 
-                background: "rgba(168,85,247,0.15)", 
-                color: "#c084fc", 
-                padding: "2px 7px", 
-                borderRadius: "99px",
-                border: "1px solid rgba(168,85,247,0.25)",
-                flexShrink: 0 
-              }}>
-                CO-HOST
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-            <span style={{ color: APP_SHELL.textSecondary, fontSize: "13px" }}>
-              {formatEventDate(event.startAt)}
-            </span>
-            {event.isCohost && event.host && (
-              <>
-                <span style={{ color: APP_SHELL.textTertiary, fontSize: "13px" }}>·</span>
-                <span style={{ color: APP_SHELL.textMuted, fontSize: "12px" }}>
-                  Host: {event.host.name || event.host.email?.split("@")[0]}
-                </span>
-              </>
-            )}
-          </div>
+              {!isInvite ? (
+                <>
+                  <DropdownLink href={`/e/${item.slug}`}>View Page</DropdownLink>
+                  <DropdownLink href={`/e/${item.slug}/guests`}>Guests List</DropdownLink>
+                  <DropdownLink href={`/e/${item.slug}/settings`}>Settings</DropdownLink>
+                </>
+              ) : (
+                <>
+                  <DropdownLink href={`/e/${item.slug}`}>View Invite</DropdownLink>
+                  {item.userRsvpEditToken && (
+                    <DropdownLink href={`/e/${item.slug}/rsvp?token=${item.userRsvpEditToken}`}>
+                      Edit RSVP
+                    </DropdownLink>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Right Side: Quick Stats */}
-        <div style={{ display: "flex", gap: "16px", alignItems: "center", flexShrink: 0, marginLeft: "auto" }}>
-          <MiniStat value={event.going} label="going" color={accent} />
-          {event.maybe > 0 && <MiniStat value={event.maybe} label="maybe" color={APP_SHELL.textSecondary} />}
-          {event.pending > 0 && <MiniStat value={event.pending} label="pending" color="#f59e0b" />}
-          
-          <ChevronRight size={18} style={{ color: APP_SHELL.textTertiary, marginLeft: "4px", opacity: isHovered ? 0.8 : 0.4, transition: "opacity 0.2s" }} />
-        </div>
+        {/* Status Overlay Badge (Bottom-Right) */}
+        {overlayText && (
+          <div style={{
+            position: "absolute",
+            bottom: "12px",
+            right: "12px",
+            background: overlayColor,
+            color: "#fff",
+            fontSize: "10px",
+            fontWeight: 900,
+            padding: "4px 10px",
+            borderRadius: "6px",
+            letterSpacing: "0.03em",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+            zIndex: 2,
+            pointerEvents: "none" // click passes through to the Link
+          }}>
+            {overlayText}
+          </div>
+        )}
 
       </div>
 
-      {/* Action Strip (Bottom) */}
-      <div style={{ 
-        borderTop: `1px solid ${APP_SHELL.cardBorder}`, 
-        background: "rgba(0,0,0,0.1)",
-        padding: "8px 20px", 
-        display: "flex", 
-        gap: "16px" 
-      }}>
-        <QuickLink href={`/e/${event.slug}`}>View Page</QuickLink>
-        <QuickLink href={`/e/${event.slug}/guests`}>Guests List</QuickLink>
-        <QuickLink href={`/e/${event.slug}/settings`}>Settings</QuickLink>
+      {/* 2. Text Details below photo */}
+      <div style={{ marginTop: "12px", padding: "0 2px" }}>
+        
+        {/* Title */}
+        <Link 
+          href={`/e/${item.slug}`}
+          style={{
+            fontSize: "15px",
+            fontWeight: 800,
+            color: "#fff",
+            textDecoration: "none",
+            display: "-webkit-box",
+            WebkitLineClamp: 1,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            transition: "color 0.15s ease-in-out"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = accent}
+          onMouseLeave={(e) => e.currentTarget.style.color = "#fff"}
+        >
+          {item.title}
+        </Link>
+
+        {/* Hosted By & Avatars */}
+        <div style={{ display: "flex", alignItems: "center", marginTop: "4px", gap: "6px" }}>
+          <span style={{ color: APP_SHELL.textSecondary, fontSize: "11px" }}>
+            Hosted by
+          </span>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {/* Host avatar */}
+            <AvatarBubble name={hostName} avatarUrl={item.host?.avatarUrl} accentColor={accent} />
+            {/* Co-hosts avatars */}
+            {item.coHosts && item.coHosts.map((ch: CoHostProfile) => (
+              <AvatarBubble 
+                key={ch.id} 
+                name={ch.name || ch.email?.split("@")[0] || "Co-host"} 
+                avatarUrl={ch.avatarUrl} 
+                accentColor={accent} 
+                isSibling 
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Comment count and Stats subtext */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px", color: APP_SHELL.textTertiary, fontSize: "11px" }}>
+          <span>{item.going} going</span>
+          {item.commentCount > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+              <span>·</span>
+              <MessageSquare size={10} />
+              <span>{item.commentCount}</span>
+            </div>
+          )}
+        </div>
+
       </div>
 
     </div>
@@ -772,24 +845,73 @@ function EventCard({ event, isHovered, onHover, formatEventDate }: EventCardProp
 }
 
 // ──────────────────────────────────────────────
-// Helper Child Component: Action Link
+// Helper Component: DropdownLink
 // ──────────────────────────────────────────────
-function QuickLink({ href, children }: { href: string; children: React.ReactNode }) {
+function DropdownLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link 
-      href={href} 
-      style={{ 
-        fontSize: "12px", 
-        fontWeight: 700, 
-        color: APP_SHELL.textSecondary, 
-        textDecoration: "none", 
-        padding: "4px 0",
-        transition: "color 0.15s"
+    <Link
+      href={href}
+      style={{
+        display: "block",
+        padding: "6px 12px",
+        color: APP_SHELL.textSecondary,
+        fontSize: "12px",
+        fontWeight: 600,
+        textDecoration: "none",
+        borderRadius: "6px",
+        transition: "all 0.15s ease"
       }}
-      onMouseEnter={(e) => e.currentTarget.style.color = APP_SHELL.textPrimary}
-      onMouseLeave={(e) => e.currentTarget.style.color = APP_SHELL.textSecondary}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+        e.currentTarget.style.color = "#fff";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "transparent";
+        e.currentTarget.style.color = APP_SHELL.textSecondary;
+      }}
     >
       {children}
     </Link>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Helper Component: AvatarBubble
+// ──────────────────────────────────────────────
+function AvatarBubble({ name, avatarUrl, accentColor, isSibling }: { name: string; avatarUrl: string | null | undefined; accentColor: string; isSibling?: boolean }) {
+  const initial = name ? name.charAt(0).toUpperCase() : "?";
+  return (
+    <div 
+      title={name}
+      style={{
+        width: "18px",
+        height: "18px",
+        borderRadius: "50%",
+        background: avatarUrl ? "transparent" : `rgba(${parseInt(accentColor.slice(1,3), 16)}, ${parseInt(accentColor.slice(3,5), 16)}, ${parseInt(accentColor.slice(5,7), 16)}, 0.3)`,
+        border: "1.5px solid #09090b",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "8px",
+        fontWeight: 800,
+        color: "#fff",
+        marginLeft: isSibling ? "-5px" : "0",
+        overflow: "hidden",
+        position: "relative",
+        flexShrink: 0
+      }}
+    >
+      {avatarUrl ? (
+        <Image 
+          src={avatarUrl} 
+          alt={name} 
+          unoptimized
+          fill
+          style={{ objectFit: "cover" }} 
+        />
+      ) : (
+        initial
+      )}
+    </div>
   );
 }

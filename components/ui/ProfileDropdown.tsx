@@ -1,8 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useRef, useEffect } from "react";
 import { APP_SHELL } from "@/lib/theme";
+import Image from "next/image";
 
 interface DropdownUser {
   name?: string | null;
@@ -52,17 +52,26 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
         }}
       >
         {user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt={displayName}
+          <div
             style={{
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              objectFit: "cover",
+              overflow: "hidden",
               border: `2px solid ${isOpen ? APP_SHELL.accent : APP_SHELL.cardBorder}`,
+              position: "relative"
             }}
-          />
+          >
+            <Image
+              src={user.avatarUrl}
+              alt={displayName}
+              unoptimized
+              fill
+              style={{
+                objectFit: "cover",
+              }}
+            />
+          </div>
         ) : (
           <div
             style={{

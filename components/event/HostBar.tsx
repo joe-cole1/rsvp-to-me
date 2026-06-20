@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock, Check } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { sendBlast, sendSmsBlast, saveEventSettings, inviteGuest } from "@/app/actions/event";
+import Image from "next/image";
 import QRCode from "qrcode";
 
 type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -255,8 +256,14 @@ export function HostBar({
           </div>
           {qrDataUrl && (
             <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrDataUrl} alt="Event QR code" width={160} height={160} style={{ borderRadius: "12px" }} />
+              <Image 
+                src={qrDataUrl} 
+                alt="Event QR code" 
+                width={160} 
+                height={160} 
+                unoptimized
+                style={{ borderRadius: "12px" }} 
+              />
             </div>
           )}
 
