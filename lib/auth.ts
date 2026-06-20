@@ -56,6 +56,47 @@ export async function isOpenRegistrationActive(): Promise<boolean> {
   return process.env.OPEN_REGISTRATION === "true";
 }
 
+export async function linkRsvpsToUser(userId: string) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { email: true, phone: true }
+  });
+  if (!user) return;
+
+  const emailMatches = user.email ? user.email.toLowerCase().trim() : null;
+  const phoneMatches = user.phone ? user.phone.trim().replace(/[\s\-().]/g, "") : null;
+
+  if (!emailMatches && !phoneMatches) return;
+
+  const conditions = [];
+  if (emailMatches) {
+    conditions.push({ guestEmail: emailMatches });
+  }
+  if (phoneMatches) {
+    conditions.push({ guestPhone: phoneMatches });
+  }
+
+  // Update all RSVPs that match email or phone but don't currently point to this user
+  if (!db.rSVP) return;
+
+  await db.rSVP.updateMany({
+    where: {
+      AND: [
+        { OR: conditions },
+        {
+          OR: [
+            { userId: { not: userId } },
+            { userId: null }
+          ]
+        }
+      ]
+    },
+    data: {
+      userId: userId
+    }
+  });
+}
+
 export async function verifyMagicToken(token: string): Promise<boolean> {
   const record = await db.magicToken.findUnique({ where: { token } });
 
@@ -77,6 +118,9 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
     });
     role = "ADMIN";
   }
+
+  // Auto-link any matching RSVPs
+  await linkRsvpsToUser(user.id);
 
   await createSession({
     userId: user.id,
@@ -140,6 +184,9 @@ export async function verifyChangeToken(
     });
   }
 
+  // Auto-link any new matching RSVPs
+  await linkRsvpsToUser(user.id);
+
   await createSession({
     userId: user.id,
     email: newValue,
@@ -169,6 +216,7 @@ export async function registerHost(
         where: { id: existing.id },
         data: { name, role: "HOST" },
       });
+      await linkRsvpsToUser(existing.id);
       return { success: true };
     }
 
@@ -199,11 +247,13 @@ export async function registerHost(
       }),
     ]);
 
+    await linkRsvpsToUser(existing.id);
     return { success: true };
   }
 
   if (openRegistration) {
-    await db.user.create({ data: { email: normalizedEmail, name, role: "HOST" } });
+    const newUser = await db.user.create({ data: { email: normalizedEmail, name, role: "HOST" } });
+    await linkRsvpsToUser(newUser.id);
     return { success: true };
   }
 
@@ -223,7 +273,7 @@ export async function registerHost(
     return { success: false, error: "Invalid or expired invite code." };
   }
 
-  await db.$transaction([
+  const [newUser] = await db.$transaction([
     db.user.create({ data: { email: normalizedEmail, name, role: "HOST" } }),
     db.hostInviteCode.update({
       where: { id: validCode.id },
@@ -231,5 +281,7 @@ export async function registerHost(
     }),
   ]);
 
+  await linkRsvpsToUser(newUser.id);
   return { success: true };
 }
+

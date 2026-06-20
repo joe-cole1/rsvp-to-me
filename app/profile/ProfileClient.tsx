@@ -1,8 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useRef, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import NextImage from "next/image";
 import { updateProfileSettings, updateNotificationSettings } from "@/app/actions/profile";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
@@ -281,17 +281,26 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
               <div style={{ position: "relative" }}>
                 {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt="Avatar"
+                  <div
                     style={{
                       width: "80px",
                       height: "80px",
                       borderRadius: "50%",
-                      objectFit: "cover",
+                      overflow: "hidden",
                       border: `2px solid ${APP_SHELL.cardBorder}`,
+                      position: "relative"
                     }}
-                  />
+                  >
+                    <NextImage
+                      src={avatarUrl}
+                      alt="Avatar"
+                      unoptimized
+                      fill
+                      style={{
+                        objectFit: "cover",
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div
                     style={{

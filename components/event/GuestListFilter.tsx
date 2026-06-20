@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { deleteRsvpAsHost } from "@/app/actions/event";
+import Image from "next/image";
 
 type RSVPAnswer = { label: string; value: string };
 
@@ -139,18 +140,26 @@ export function GuestListFilter({
         <>
           {displayedRsvps.map((r) => (
              <div key={r.id} style={{ ...cardStyle, opacity: deletingId === r.id ? 0.5 : 1 }}>
-               <div style={{
-                 width: "38px", height: "38px", borderRadius: "50%",
-                 background: t.avatarGradient,
-                 display: "flex", alignItems: "center", justifyContent: "center",
-                 fontWeight: 800, fontSize: "15px", flexShrink: 0, color: t.accentFg,
-                 opacity: r.status === "NO" ? 0.4 : r.status === "MAYBE" ? 0.7 : 1,
-                 overflow: "hidden",
-               }}>
-                 {r.user?.avatarUrl ? (
-                   // eslint-disable-next-line @next/next/no-img-element
-                   <img src={r.user.avatarUrl} alt={r.guestName} style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover" }} />
-                 ) : (
+                <div style={{
+                  width: "38px", height: "38px", borderRadius: "50%",
+                  background: t.avatarGradient,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontWeight: 800, fontSize: "15px", flexShrink: 0, color: t.accentFg,
+                  opacity: r.status === "NO" ? 0.4 : r.status === "MAYBE" ? 0.7 : 1,
+                  overflow: "hidden",
+                  position: "relative",
+                }}>
+                  {r.user?.avatarUrl ? (
+                    <Image
+                      src={r.user.avatarUrl}
+                      alt={r.guestName}
+                      unoptimized
+                      fill
+                      style={{
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
                    r.guestName[0].toUpperCase()
                  )}
                </div>

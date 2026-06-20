@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
+import { linkRsvpsToUser } from "@/lib/auth";
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -22,6 +23,9 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return NextResponse.redirect(`${APP_URL()}/auth/sign-in?error=invalid-token`);
   }
+
+  // Link any matching RSVPs dynamically on sign-in
+  await linkRsvpsToUser(user.id);
 
   const sealed = await sealSession({
     userId: user.id,

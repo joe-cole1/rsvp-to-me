@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
+import NextImage from "next/image";
 
 // Cover images display at ~260px tall in a ~800px wide card. 1600×900 is
 // plenty for 2× retina; quality 0.85 JPEG keeps file size under ~200KB.
@@ -897,20 +898,23 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     
     if (url) {
       return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={url}
-          alt={name}
+        <div
           style={{
-            width: baseAvatarStyle.width,
-            height: baseAvatarStyle.height,
-            borderRadius: baseAvatarStyle.borderRadius,
-            objectFit: "cover",
-            flexShrink: 0,
-            minWidth: baseAvatarStyle.minWidth || baseAvatarStyle.width,
-            marginTop: baseAvatarStyle.marginTop,
+            ...baseAvatarStyle,
+            position: "relative",
+            overflow: "hidden",
           }}
-        />
+        >
+          <NextImage
+            src={url}
+            alt={name}
+            unoptimized
+            fill
+            style={{
+              objectFit: "cover",
+            }}
+          />
+        </div>
       );
     }
     return <div style={baseAvatarStyle as React.CSSProperties}>{initial}</div>;
@@ -1416,11 +1420,16 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             <a
               href="/dashboard"
               title="Go to dashboard"
-              style={{ width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#fff", textDecoration: "none", flexShrink: 0, overflow: "hidden" }}
+              style={{ width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#fff", textDecoration: "none", flexShrink: 0, overflow: "hidden", position: "relative" }}
             >
               {sessionUser.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={sessionUser.avatarUrl} alt={sessionUser.name ?? "User"} style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
+                <NextImage 
+                  src={sessionUser.avatarUrl} 
+                  alt={sessionUser.name ?? "User"} 
+                  unoptimized 
+                  fill 
+                  style={{ objectFit: "cover" }} 
+                />
               ) : (
                 navUserInitial
               )}
@@ -2429,12 +2438,12 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             <h3 style={{ fontSize: "18px", fontWeight: 800, color: t.textPrimary, margin: "0 0 16px" }}>Event QR Code</h3>
             <div style={{ background: "#fff", padding: "16px", borderRadius: "16px", display: "inline-block", marginBottom: "16px" }}>
               {qrDataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <NextImage
                   src={qrDataUrl}
                   alt="Event QR Code"
                   width={200}
                   height={200}
+                  unoptimized
                   style={{ display: "block" }}
                 />
               ) : (
