@@ -84,7 +84,7 @@ export async function runBackup(): Promise<string> {
     filename = `backup_${timestamp}.sql`;
     outputPath = path.join(BACKUPS_DIR, filename);
 
-    console.log(`[backup] Starting PostgreSQL backup to ${filename}...`);
+    console.log("[backup] Starting PostgreSQL backup to %s...", filename);
     
     // Parse PostgreSQL URL credentials using the URL class
     let dbUrl: URL;
@@ -125,17 +125,13 @@ export async function runBackup(): Promise<string> {
     filename = `backup_${timestamp}.sqlite`;
     outputPath = path.join(BACKUPS_DIR, filename);
 
-    console.log(`[backup] Starting SQLite backup to ${filename}...`);
-    // SQLite database path is in data/prod.db inside the container by default
-    const sqlitePath = path.join(process.cwd(), "data", "prod.db");
-    
-    if (!fs.existsSync(sqlitePath)) {
-      throw new Error(`SQLite database file not found at: ${sqlitePath}`);
-    }
+    console.log("[backup] Starting SQLite backup to %s...", filename);
 
     try {
-      fs.copyFileSync(sqlitePath, outputPath);
-      console.log(`[backup] SQLite backup successful: ${filename}`);
+      // Safe SQLite online backup using VACUUM INTO to prevent corruption
+      const safePath = outputPath.replace(/\\/g, "/");
+      await db.$executeRawUnsafe(`VACUUM INTO '${safePath}'`);
+      console.log("[backup] SQLite backup successful: %s", filename);
     } catch (err) {
       console.error("[backup] SQLite clone failed:", err);
       if (fs.existsSync(outputPath)) {
@@ -168,7 +164,7 @@ export async function runBackup(): Promise<string> {
  */
 async function rotateBackups(): Promise<void> {
   const keepCount = await getBackupKeepCount();
-  console.log(`[backup] Rotating backups. Keeping last ${keepCount} files...`);
+  console.log("[backup] Rotating backups. Keeping last %d files...", keepCount);
 
   const list = await listBackups();
   if (list.length <= keepCount) {
@@ -182,10 +178,10 @@ async function rotateBackups(): Promise<void> {
     try {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        console.log(`[backup] Deleted old backup file: ${item.filename}`);
+        console.log("[backup] Deleted old backup file: %s", item.filename);
       }
     } catch (err) {
-      console.error(`[backup] Failed to delete old backup ${item.filename}:`, err);
+      console.error("[backup] Failed to delete old backup %s:", item.filename, err);
     }
   }
 }
@@ -200,12 +196,12 @@ export async function deleteBackup(filename: string): Promise<boolean> {
   try {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      console.log(`[backup] Manually deleted backup file: ${safeFilename}`);
+      console.log("[backup] Manually deleted backup file: %s", safeFilename);
       return true;
     }
     return false;
   } catch (err) {
-    console.error(`[backup] Failed to delete backup file ${safeFilename}:`, err);
+    console.error("[backup] Failed to delete backup file %s:", safeFilename, err);
     return false;
   }
 }

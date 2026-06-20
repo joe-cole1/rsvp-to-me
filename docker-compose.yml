@@ -20,8 +20,6 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
-    depends_on:
-      - redis
 
   cron:
     build: .
@@ -35,11 +33,3 @@ services:
     restart: unless-stopped
     depends_on:
       - app
-      - redis
-
-  redis:
-    image: redis:alpine
-    restart: unless-stopped
-    volumes:
-      - ./redis_data:/data
-

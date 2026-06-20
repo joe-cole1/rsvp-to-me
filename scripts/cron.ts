@@ -41,7 +41,7 @@ async function syncBackupJob() {
     currentBackupSchedule = schedule;
 
     if (schedule && schedule !== "disabled" && schedule !== "false") {
-      console.log(`[cron] Scheduling database backup job with pattern: "${schedule}"`);
+      console.log("[cron] Scheduling database backup job with pattern: \"%s\"", schedule);
       try {
         if (cron.validate(schedule)) {
           backupTask = cron.schedule(schedule, () => {
@@ -49,7 +49,7 @@ async function syncBackupJob() {
             runBackup().catch((err) => console.error("[cron] Scheduled database backup failed:", err));
           });
         } else {
-          console.error(`[cron] Invalid database backup cron pattern: "${schedule}"`);
+          console.error("[cron] Invalid database backup cron pattern: \"%s\"", schedule);
         }
       } catch (err) {
         console.error("[cron] Failed to schedule database backup cron:", err);
@@ -63,8 +63,8 @@ async function syncBackupJob() {
 // Initial sync on startup
 syncBackupJob().catch((err) => console.error("[cron] Initial backup sync failed:", err));
 
-// Check and sync backup schedule configuration every minute
-cron.schedule("* * * * *", () => {
+// Check and sync backup schedule configuration every 5 minutes
+cron.schedule("*/5 * * * *", () => {
   syncBackupJob().catch((err) => console.error("[cron] Sync backup job failed:", err));
 });
 

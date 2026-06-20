@@ -53,7 +53,10 @@ export function decryptConfig(encryptedData: string): string {
 }
 
 export function getUnlockSignature(slug: string): string {
-  const secret = process.env.SESSION_SECRET || "default_session_secret_placeholder_value";
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error("SESSION_SECRET is not configured");
+  }
   return createHmac("sha256", secret).update(slug).digest("hex");
 }
 

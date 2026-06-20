@@ -8,6 +8,12 @@ const mockIncr = vi.fn().mockResolvedValue(1);
 const mockExpire = vi.fn().mockResolvedValue(true);
 const mockTtl = vi.fn().mockResolvedValue(60);
 
+const mockMulti = {
+  incr: vi.fn().mockReturnThis(),
+  expire: vi.fn().mockReturnThis(),
+  exec: vi.fn().mockResolvedValue([1, true]),
+};
+
 const mockRedisClient = {
   connect: mockConnect,
   on: vi.fn(),
@@ -17,6 +23,7 @@ const mockRedisClient = {
   incr: mockIncr,
   expire: mockExpire,
   ttl: mockTtl,
+  multi: vi.fn().mockReturnValue(mockMulti),
   isOpen: true,
 };
 

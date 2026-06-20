@@ -148,12 +148,9 @@ export async function redisIncrAndExpire(
   const client = await getRedisClient();
   if (!client) return null;
   try {
-    // Multi exec transaction to increment and set expire
-    const count = await client.incr(key);
-    if (count === 1) {
-      await client.expire(key, ttlSeconds);
-    }
-    return count;
+    const results = await client.multi().incr(key).expire(key, ttlSeconds).exec();
+    if (!results || results.length === 0) return null;
+    return results[0] as number;
   } catch (err) {
     console.error(`[redis] Error incrementing rate limit key ${key}:`, err);
     return null;
