@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { encryptConfig, decryptConfig } from "@/lib/crypto";
 
 async function assertAdmin() {
   const session = await getSession();
@@ -292,10 +293,15 @@ export async function updateSystemConfig(key: string, value: string) {
     return { success: true };
   }
 
+  let finalValue = value;
+  if (key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token") {
+    finalValue = encryptConfig(value);
+  }
+
   await db.systemConfig.upsert({
     where: { key },
-    update: { value },
-    create: { key, value },
+    update: { value: finalValue },
+    create: { key, value: finalValue },
   });
 
   revalidatePath("/admin");
@@ -323,19 +329,19 @@ export async function testEmailConfigAction(data: {
   let finalSmtpPass = data.smtpPass || "";
   if (finalSmtpPass === "••••••••") {
     const existing = await db.systemConfig.findUnique({ where: { key: "smtp_pass" } });
-    finalSmtpPass = existing ? existing.value : "";
+    finalSmtpPass = existing ? decryptConfig(existing.value) : "";
   }
 
   let finalCfWorkerSecret = data.cfWorkerSecret || "";
   if (finalCfWorkerSecret === "••••••••") {
     const existing = await db.systemConfig.findUnique({ where: { key: "cloudflare_worker_api_secret" } });
-    finalCfWorkerSecret = existing ? existing.value : "";
+    finalCfWorkerSecret = existing ? decryptConfig(existing.value) : "";
   }
 
   let finalCfApiToken = data.cfApiToken || "";
   if (finalCfApiToken === "••••••••") {
     const existing = await db.systemConfig.findUnique({ where: { key: "cloudflare_api_token" } });
-    finalCfApiToken = existing ? existing.value : "";
+    finalCfApiToken = existing ? decryptConfig(existing.value) : "";
   }
 
   const { testEmailConfig } = await import("@/lib/email");

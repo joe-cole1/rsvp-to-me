@@ -456,3 +456,20 @@ model PollVote {
 
   @@unique([pollOptionId, voterName])
 }
+
+// ──────────────────────────────────────────────
+// RATE LIMITING & LOCKS
+// ──────────────────────────────────────────────
+
+model RateLimit {
+  key      String   @id
+  points   Int
+  expireAt DateTime
+}
+
+model CronLock {
+  jobName  String   @id
+  lockedAt DateTime
+  expireAt DateTime
+}
+

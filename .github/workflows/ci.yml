@@ -14,15 +14,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@39c5ae27583385e42f067f128c8d14d8724d9c34 # v4.2.0
         with:
           node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
 
       - name: Generate Prisma client
         run: npx prisma generate

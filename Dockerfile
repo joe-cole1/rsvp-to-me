@@ -17,7 +17,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
@@ -35,4 +35,4 @@ RUN mkdir -p /app/data
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && (npx tsx scripts/cron.ts &) && npm start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npm start"]

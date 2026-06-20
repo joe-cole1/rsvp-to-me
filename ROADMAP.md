@@ -44,6 +44,16 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 ## 💡 Future Work & Ideas (Icebox)
 *Product ideas and long-term improvements to track but not work on immediately.*
 
+### 🔒 Security & Best Practices (Deferred)
+*   **Phone Number Encryption at Rest (M-2)**: Encrypt phone numbers deterministically at-rest using HMAC hashes for index lookups and AES-256-GCM for display.
+*   **HTTP Request Logging & Distributed Tracing (G-1)**: Track request duration, method, and statuses using request IDs mapped to Pino structured logs.
+*   **Graceful Shutdown Signal Handling (G-2)**: Handle SIGTERM signals in Next.js/Docker setup to allow in-flight requests to complete before exiting.
+*   **Separate Database Migration Stage (G-3)**: Extract Prisma migrations (`prisma migrate deploy`) out of application container startup to a separate init container or CI/CD deployment pipeline step.
+*   **React Error Boundaries (G-4)**: Wrap core page components in error boundaries to prevent rendering crashes from taking down entire routes.
+*   **Automated Database Backups (G-5)**: Implement cron backup service in `docker-compose.yml` to dump `prod.db` to S3 or secure local backups daily.
+*   **Bot Protection / CAPTCHA (G-6)**: Add Cloudflare Turnstile bot checks to authentication magic link requests and guest registration forms.
+*   **GDPR Compliance APIs (G-7)**: Implement export-data and account-deletion API actions for hosts and guests.
+
 ### 🛠️ Administration & Settings
 *   **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard instead of requiring console log checks.
 *   **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.

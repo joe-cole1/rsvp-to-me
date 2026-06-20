@@ -8,6 +8,38 @@ import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms,
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
+import { AddRsvpSchema, UpdateRsvpSchema, AddCommentSchema } from "@/lib/schemas";
+import { cookies } from "next/headers";
+import { getUnlockSignature } from "@/lib/crypto";
+
+export async function verifyEventPassword(slug: string, rawPassword: string): Promise<{ success: boolean; error?: string }> {
+  const event = await db.event.findUnique({
+    where: { slug },
+    select: { password: true }
+  });
+  
+  if (!event) {
+    return { success: false, error: "Event not found." };
+  }
+  
+  const password = rawPassword.trim();
+  if (event.password !== password) {
+    return { success: false, error: "Incorrect password." };
+  }
+  
+  const cookieStore = await cookies();
+  const signature = getUnlockSignature(slug);
+  
+  cookieStore.set(`rsvp-unlocked-${slug}`, signature, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24, // 24 hours
+    path: "/",
+  });
+  
+  return { success: true };
+}
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
 
@@ -172,17 +204,8 @@ export async function removeInfoSection(sectionId: string) {
 
 // ── RSVP ──────────────────────────────────────────────────────────────────────
 
-export async function addRSVP(data: {
-  eventId: string;
-  guestName: string;
-  guestEmail?: string;
-  guestPhone?: string;
-  status: "GOING" | "MAYBE" | "NO";
-  plusOneCount: number;
-  plusOneGuestNames?: string[];
-  note?: string;
-  answers?: Record<string, string>;
-}) {
+export async function addRSVP(rawInput: unknown) {
+  const data = AddRsvpSchema.parse(rawInput);
   const event = await db.event.findUnique({
     where: { id: data.eventId },
     select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true, email: true } } },
@@ -235,8 +258,8 @@ export async function addRSVP(data: {
   if (data.answers && Object.keys(data.answers).length > 0) {
     await db.rSVPAnswer.createMany({
       data: Object.entries(data.answers)
-        .filter(([, v]) => v.trim())
-        .map(([rsvpFieldId, value]) => ({ rsvpId: rsvp.id, rsvpFieldId, value })),
+        .filter(([, v]) => typeof v === "string" && v.trim())
+        .map(([rsvpFieldId, value]) => ({ rsvpId: rsvp.id, rsvpFieldId, value: value as string })),
     });
   }
 
@@ -282,13 +305,8 @@ export async function addRSVP(data: {
 }
 
 // ── Comments ──────────────────────────────────────────────────────────────────
-export async function addComment(data: {
-  eventId: string;
-  guestName: string;
-  body: string;
-  rsvpId?: string;
-  parentId?: string;
-}) {
+export async function addComment(rawInput: unknown) {
+  const data = AddCommentSchema.parse(rawInput);
   const event = await db.event.findUnique({
     where: { id: data.eventId },
     select: { slug: true, commentsEnabled: true },
@@ -356,8 +374,9 @@ export async function saveEventSettings(
 
 export async function updateRSVP(
   editToken: string,
-  data: { status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; plusOneGuestNames?: string[]; note?: string; answers?: Record<string, string> }
+  rawInput: unknown
 ) {
+  const data = UpdateRsvpSchema.parse(rawInput);
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
     include: { event: { select: { slug: true } } },
@@ -388,12 +407,12 @@ export async function updateRSVP(
   if (data.answers && Object.keys(data.answers).length > 0) {
     await Promise.all(
       Object.entries(data.answers)
-        .filter(([, v]) => v.trim())
+        .filter(([, v]) => typeof v === "string" && v.trim())
         .map(([rsvpFieldId, value]) =>
           db.rSVPAnswer.upsert({
             where: { rsvpId_rsvpFieldId: { rsvpId: rsvp.id, rsvpFieldId } },
-            create: { rsvpId: rsvp.id, rsvpFieldId, value },
-            update: { value },
+            create: { rsvpId: rsvp.id, rsvpFieldId, value: value as string },
+            update: { value: value as string },
           })
         )
     );
