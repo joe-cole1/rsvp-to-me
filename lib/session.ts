@@ -2,6 +2,7 @@ import { sealData, unsealData } from "iron-session";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
+import { redisGet, redisSet, redisDel, isRedisEnabled } from "@/lib/redis";
 
 export interface SessionData {
   userId: string;
@@ -43,6 +44,13 @@ function validateInviteCode() {
 // Run validation on startup
 validateInviteCode();
 
+interface CachedSession {
+  id: string;
+  userId: string;
+  expiresAt: string;
+  userRole: "HOST" | "ADMIN" | "GUEST";
+}
+
 export async function getSession(): Promise<SessionData | null> {
   const cookieStore = await cookies();
   const sealed = cookieStore.get(COOKIE_NAME)?.value;
@@ -55,13 +63,61 @@ export async function getSession(): Promise<SessionData | null> {
     });
     if (!session || !session.sessionId) return null;
 
-    // Verify sessionId exists in DB and is not expired
-    const dbSession = await db.session.findUnique({
-      where: { id: session.sessionId },
-      include: { user: { select: { role: true } } },
-    });
+    const cacheKey = `session:${session.sessionId}`;
+    let dbSession: { id: string; userId: string; expiresAt: Date; user: { role: string } } | null = null;
 
-    if (!dbSession || dbSession.expiresAt < new Date()) {
+    if (isRedisEnabled()) {
+      const cached = await redisGet(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as CachedSession;
+          const expiresAtDate = new Date(parsed.expiresAt);
+          if (expiresAtDate > new Date()) {
+            dbSession = {
+              id: parsed.id,
+              userId: parsed.userId,
+              expiresAt: expiresAtDate,
+              user: { role: parsed.userRole },
+            };
+          }
+        } catch (e) {
+          console.error("[session] Failed to parse cached session:", e);
+        }
+      }
+    }
+
+    // If cache miss or Redis disabled, read from database
+    if (!dbSession) {
+      const dbSessionRecord = await db.session.findUnique({
+        where: { id: session.sessionId },
+        include: { user: { select: { role: true } } },
+      });
+
+      if (dbSessionRecord && dbSessionRecord.expiresAt > new Date()) {
+        dbSession = {
+          id: dbSessionRecord.id,
+          userId: dbSessionRecord.userId,
+          expiresAt: dbSessionRecord.expiresAt,
+          user: { role: dbSessionRecord.user.role },
+        };
+
+        // Cache the session in Redis if enabled
+        if (isRedisEnabled()) {
+          const ttlSeconds = Math.max(0, Math.floor((dbSession.expiresAt.getTime() - Date.now()) / 1000));
+          if (ttlSeconds > 0) {
+            const cacheValue: CachedSession = {
+              id: dbSession.id,
+              userId: dbSession.userId,
+              expiresAt: dbSession.expiresAt.toISOString(),
+              userRole: dbSession.user.role as "HOST" | "ADMIN" | "GUEST",
+            };
+            await redisSet(cacheKey, JSON.stringify(cacheValue), ttlSeconds);
+          }
+        }
+      }
+    }
+
+    if (!dbSession) {
       return null;
     }
 
@@ -76,6 +132,10 @@ export async function getSession(): Promise<SessionData | null> {
       if (adminCount === 0) {
         await db.user.update({ where: { id: session.userId }, data: { role: "ADMIN" } });
         session.role = "ADMIN";
+        // Evict cache to pick up updated role
+        if (isRedisEnabled()) {
+          await redisDel(cacheKey);
+        }
       }
     }
     return session;
@@ -101,6 +161,18 @@ export async function createSession(data: Omit<SessionData, "sessionId">): Promi
       expiresAt,
     },
   });
+
+  // Store in Redis if enabled
+  if (isRedisEnabled()) {
+    const cacheKey = `session:${sessionId}`;
+    const cacheValue: CachedSession = {
+      id: sessionId,
+      userId: data.userId,
+      expiresAt: expiresAt.toISOString(),
+      userRole: data.role,
+    };
+    await redisSet(cacheKey, JSON.stringify(cacheValue), SESSION_TTL);
+  }
 
   const sealed = await sealData(
     { ...data, sessionId },
@@ -128,9 +200,33 @@ export async function destroySession(): Promise<void> {
       });
       if (session?.sessionId) {
         await db.session.delete({ where: { id: session.sessionId } }).catch(() => {});
+        if (isRedisEnabled()) {
+          await redisDel(`session:${session.sessionId}`);
+        }
       }
     } catch {}
   }
   cookieStore.delete(COOKIE_NAME);
 }
+
+/**
+ * Invalidate all Redis sessions for a user (e.g. on role change)
+ */
+export async function invalidateUserSessions(userId: string): Promise<void> {
+  try {
+    const userSessions = await db.session.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    
+    if (isRedisEnabled()) {
+      for (const s of userSessions) {
+        await redisDel(`session:${s.id}`);
+      }
+    }
+  } catch (err) {
+    console.error("[session] Failed to invalidate sessions for user:", err);
+  }
+}
+
 

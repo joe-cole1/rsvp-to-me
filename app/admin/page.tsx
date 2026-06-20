@@ -7,6 +7,8 @@ import {
   getAdminEvents,
   getInviteCodes,
   getSystemConfig,
+  getBackupConfig,
+  listBackupsAction,
 } from "@/app/actions/admin";
 import AdminClient from "./AdminClient";
 
@@ -37,12 +39,14 @@ export default async function AdminPage() {
     }
   }
 
-  const [stats, users, events, inviteCodes, systemConfig] = await Promise.all([
+  const [stats, users, events, inviteCodes, systemConfig, backupConfig, backupsList] = await Promise.all([
     getAdminStats(),
     getAdminUsers(),
     getAdminEvents(),
     getInviteCodes(),
     getSystemConfig(),
+    getBackupConfig(),
+    listBackupsAction(),
   ]);
 
   return (
@@ -52,6 +56,8 @@ export default async function AdminPage() {
       initialEvents={events}
       initialInviteCodes={inviteCodes}
       initialConfig={systemConfig}
+      initialBackupConfig={backupConfig}
+      initialBackups={backupsList}
       sessionUser={dbUser ? {
         name: dbUser.name,
         email: dbUser.email,

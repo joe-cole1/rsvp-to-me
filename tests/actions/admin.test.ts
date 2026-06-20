@@ -76,7 +76,10 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
+vi.mock("@/lib/session", () => ({
+  getSession: mockGetSession,
+  invalidateUserSessions: vi.fn(),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   testEmailConfig: mockTestEmailConfig,

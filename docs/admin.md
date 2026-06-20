@@ -16,7 +16,8 @@ The Admin Panel gives you a complete view of your rsvp-to-me installation: every
    - [SMS Settings](#sms-settings)
    - [Registration Settings](#registration-settings)
 7. [Invite Code Management](#invite-code-management)
-8. [Admin Security Notes](#admin-security-notes)
+8. [Database Backup Management](#database-backup-management)
+9. [Admin Security Notes](#admin-security-notes)
 
 ---
 
@@ -156,6 +157,22 @@ Click the status toggle next to any code in the table to instantly deactivate or
 | **Expiration** | None (always active) | Optional expiration date |
 | **Usage Limits** | Unlimited | Optional max usage count |
 | **Quantity** | Exactly one code | Multiple unique codes |
+
+---
+
+## Database Backup Management
+
+Go to `/admin` > **Database Backups** to manage database snapshots. This system supports SQLite file clones and PostgreSQL `pg_dump` backups, saving them directly to the persistent `/app/data/backups` volume.
+
+### Backup Configuration
+You can configure automated database backup properties:
+*   **Backup Cron Schedule:** Configure automated backup intervals using standard 5-field cron syntax (e.g. `0 0 * * *` for daily at midnight). Set to `disabled` to deactivate scheduled backups.
+*   **Backups to Retain:** Set the retention limit (rotation count). When a new backup runs, the system automatically checks this limit and deletes the oldest backup files to keep disk usage under control.
+
+### Manual Actions
+*   **Create Backup Now:** Trigger an immediate database snapshot. SQLite will duplicate the database file, while PostgreSQL will run a `pg_dump` operation.
+*   **Download Backups:** Click **Download** next to any archive in the list. This streams the file directly to your browser via a secure, admin-authenticated route.
+*   **Delete Backups:** Click **Delete** next to any file to permanently purge the backup from the server's disk storage.
 
 ---
 

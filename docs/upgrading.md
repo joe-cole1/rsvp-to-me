@@ -183,22 +183,33 @@ Go to your event page and test functionality:
 
 ## Rolling Back
 
-If you experience issues, rollback to the previous version.
+If you experience issues, you can roll back your application to the previous working version.
 
 ### Step 1: Restore your Database Backup
+
+#### For SQLite deployments (Default):
+1. Stop the application container to release any database locks:
+   ```bash
+   docker compose stop app
+   ```
+2. Copy your SQLite database backup file back into place:
+   ```bash
+   cp ./data/backups/backup_2026-06-20T15-23-00.sqlite ./data/prod.db
+   ```
+3. Restart the application container:
+   ```bash
+   docker compose start app
+   ```
+
+#### For PostgreSQL deployments:
+To restore a PostgreSQL plain text `.sql` backup file, run the SQL script against your Postgres container:
 ```bash
-# Stop the app container
-docker compose stop app
-
-# Overwrite the database with your backup
-docker cp ./prod-backup-20240315.db rsvp-to-me-app-1:/app/data/prod.db
-
-# Restart the app
-docker compose start app
+# Feed the backup SQL file into the psql command inside the database container
+docker compose exec -T postgres psql -U postgres -d rsvp_db < ./data/backups/backup_2026-06-20T15-23-00.sql
 ```
 
 ### Step 2: Pin the Previous Image Version
-Open your `docker-compose.yml` file and edit the image tag to reference the specific previous release version (e.g. `v1.2.0` instead of `latest`):
+Open your `docker-compose.yml` or `docker-compose.postgres.yml` file and edit the image tag to reference the specific previous release version (e.g. `v1.2.0` instead of `latest`):
 ```yaml
 services:
   app:
@@ -210,7 +221,7 @@ docker compose pull
 docker compose up -d
 ```
 
-> **Warning:** Rolling back to a previous version after a schema migration has run may cause database schema mismatch errors. This is why copying a database backup **prior** to running `docker compose pull` is critical.
+> **Warning:** Rolling back to a previous version after a schema migration has run may cause database schema mismatch errors. This is why having a database backup **prior** to running `docker compose pull` is critical.
 
 ---
 

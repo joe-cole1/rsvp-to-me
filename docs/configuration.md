@@ -24,9 +24,10 @@ All configurable settings for **rsvp-to-me** live in a single `.env` file in the
    - [Cloudflare REST API Email](#cloudflare-rest-api-email)
    - [INBOUND_FORWARD_TO](#inbound_forward_to)
 4. [SMS Configuration (Twilio)](#sms-configuration-twilio)
-5. [Coming Soon: PostgreSQL](#coming-soon-postgresql)
-6. [Coming Soon: Redis](#coming-soon-redis)
-7. [Quick Reference Table](#quick-reference-table)
+5. [PostgreSQL Configuration](#postgresql-configuration)
+6. [Redis Configuration](#redis-configuration)
+7. [Database Backup Configuration](#database-backup-configuration)
+8. [Quick Reference Table](#quick-reference-table)
 
 ---
 
@@ -274,36 +275,70 @@ SMS is optional. When enabled, it allows magic link logins via SMS, text invitat
 
 ---
 
-## Coming Soon: PostgreSQL
+## PostgreSQL Configuration
 
-> **This database provider is not yet supported in the current release.**
+PostgreSQL is supported as an alternative database provider to SQLite. Using PostgreSQL is recommended for production deployments that require high availability, multi-instance scalability, or managed database hosting (e.g., Supabase, Neon, AWS RDS).
 
-Currently, rsvp-to-me runs exclusively on SQLite, which writes all database data to a single local file. In a future release, PostgreSQL support will be introduced. This will enable:
-- Multi-container clustering (since multiple container instances cannot write to a single SQLite file concurrently).
-- Deploying to managed cloud database services (e.g. Neon, Supabase, AWS RDS).
+### DATABASE_URL (PostgreSQL format)
+- **Required**: Yes
+- **Type**: String (Connection URL)
 
-When PostgreSQL support is available, configuration will be enabled by changing the connection string format:
+When connecting to PostgreSQL, your `DATABASE_URL` connection string must follow this format:
 ```env
-# Future format (disabled for now)
-DATABASE_URL="postgresql://db_user:db_password@db_host:5432/rsvp_db?schema=public"
+DATABASE_URL="postgresql://username:password@hostname:5432/database_name?schema=public&sslmode=prefer"
 ```
+Or the shorter `postgres://` protocol:
+```env
+DATABASE_URL="postgres://username:password@hostname:5432/database_name"
+```
+
+*Note: On container startup, the application detects the PostgreSQL protocol and automatically runs `npx prisma db push` to synchronize the database schema, removing the need for manual migration tracking.*
 
 ---
 
-## Coming Soon: Redis
+## Redis Configuration
 
-> **This cache provider is not yet supported in the current release.**
+Redis is an optional cache and data store used to optimize application performance, implement distributed locking, and handle rate-limiting.
 
-A future release will introduce optional Redis integration. This will handle:
-- High-throughput rate limiting.
-- Active session caching (minimizing database queries on every page load).
-- Distributed cron job locking (preventing duplicate sends if running multiple background replicas).
+### REDIS_URL
+- **Required**: No (caching and rate-limiting fall back to the SQL database if unset)
+- **Type**: String (Redis connection URL)
 
-When Redis support is available, configuration will be enabled using the following variable format:
+**Format:**
 ```env
-# Future format (disabled for now)
 REDIS_URL="redis://:redis_password@redis_host:6379"
 ```
+
+When configured, the application enables:
+*   **Active Session Caching:** Session records are cached in Redis, avoiding SQL database queries on every page load.
+*   **High-Throughput Rate Limiting:** Sliding-window rate limits are handled in memory by Redis instead of writing transactions to the SQL database.
+*   **Distributed Cron Locking:** Reminder jobs utilize Redis locks, preventing duplicate message dispatch when running multiple application container replicas.
+
+---
+
+## Database Backup Configuration
+
+Automated and manual database backups can be set up for both SQLite and PostgreSQL. Backup files are saved inside the application's persistent volume (`/app/data/backups/`).
+
+### BACKUP_SCHEDULE
+- **Required**: No
+- **Default**: `disabled`
+- **Type**: String (Cron expression or `"disabled"`)
+
+**What it does:** Defines the cron schedule for automated database backups run by the background cron worker container.
+- `"disabled"`: Automated backups are turned off.
+- `"* * * * *"`: Standard 5-field cron pattern. E.g., `0 0 * * *` triggers a daily backup at midnight.
+
+*Note: This setting can also be configured and updated dynamically at runtime via the **Backups** tab in the Admin Panel.*
+
+### BACKUP_KEEP_COUNT
+- **Required**: No
+- **Default**: `7`
+- **Type**: Number string
+
+**What it does:** Sets the rotation retention limit. The application will keep only this number of backups, automatically deleting the oldest file when a new backup completes.
+
+*Note: This setting can also be configured and updated dynamically at runtime via the **Backups** tab in the Admin Panel.*
 
 ---
 
@@ -311,7 +346,10 @@ REDIS_URL="redis://:redis_password@redis_host:6379"
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DATABASE_URL` | Yes | `file:/app/data/prod.db` | Path to SQLite database file. |
+| `DATABASE_URL` | Yes | `file:/app/data/prod.db` | Path to SQLite database file or PostgreSQL connection URL. |
+| `REDIS_URL` | No | *(none)* | Connection URL to Redis instance for caching, rate limits, and locks. |
+| `BACKUP_SCHEDULE` | No | `disabled` | Cron expression (e.g. `0 0 * * *`) to schedule automated database backups. |
+| `BACKUP_KEEP_COUNT` | No | `7` | Maximum number of backup files to retain before rotating. |
 | `SESSION_SECRET` | Yes | *(none)* | Random string (32+ chars) for signing session cookies. |
 | `ENCRYPTION_KEY` | No | *(falls back)* | Encryption key for database-stored credentials. |
 | `NEXT_PUBLIC_APP_URL` | Yes | *(none)* | Base URL for accessing the application. |

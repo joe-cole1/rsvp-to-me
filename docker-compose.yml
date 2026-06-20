@@ -10,6 +10,7 @@ services:
       SEED_TEST_DATA: "false"
       CLOUDFLARE_WORKER_EMAIL_URL: ""
       CLOUDFLARE_WORKER_API_SECRET: ""
+      REDIS_URL: "" # e.g. redis://redis:6379
     volumes:
       - ./data:/app/data
     healthcheck:
@@ -26,6 +27,7 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: file:/app/data/prod.db
+      REDIS_URL: "" # e.g. redis://redis:6379
     volumes:
       - ./data:/app/data
     restart: unless-stopped

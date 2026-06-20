@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { isRedisEnabled, redisIncrAndExpire, getRedisClient } from "./redis";
 
 export async function rateLimit(
   key: string,
@@ -7,6 +8,32 @@ export async function rateLimit(
 ): Promise<{ success: boolean; limit: number; remaining: number; reset: Date }> {
   const now = new Date();
 
+  // Try Redis rate limiting if enabled
+  if (isRedisEnabled()) {
+    const points = await redisIncrAndExpire(key, windowSeconds);
+    if (points !== null) {
+      const client = await getRedisClient();
+      let ttl = windowSeconds;
+      if (client) {
+        try {
+          const redisTtl = await client.ttl(key);
+          if (redisTtl > 0) {
+            ttl = redisTtl;
+          }
+        } catch {}
+      }
+      
+      const reset = new Date(Date.now() + ttl * 1000);
+      return {
+        success: points <= limit,
+        limit,
+        remaining: Math.max(0, limit - points),
+        reset,
+      };
+    }
+  }
+
+  // Fallback to Database-driven rate limiting
   // Try to find the rate limit record
   const record = await db.rateLimit.findUnique({
     where: { key },
@@ -65,3 +92,4 @@ export async function cleanupRateLimits(): Promise<void> {
     where: { expireAt: { lt: now } },
   }).catch(() => {});
 }
+

@@ -8,7 +8,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate
+RUN npm run db:generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
@@ -17,7 +17,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN apk add --no-cache libc6-compat curl
+RUN apk add --no-cache libc6-compat curl postgresql-client
 
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
@@ -35,4 +35,4 @@ RUN mkdir -p /app/data
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npm start"]
+CMD ["sh", "-c", "node scripts/migrate-db.js && npm run db:seed && npm start"]

@@ -16,6 +16,10 @@ import {
   getAdminUsers,
   getAdminEvents,
   testEmailConfigAction,
+  createBackupAction,
+  listBackupsAction,
+  deleteBackupAction,
+  updateBackupConfigAction,
 } from "@/app/actions/admin";
 
 interface AdminUser {
@@ -53,6 +57,18 @@ interface AdminInviteCode {
   createdAt: Date;
 }
 
+interface BackupFile {
+  filename: string;
+  sizeBytes: number;
+  createdAt: Date;
+}
+
+interface BackupConfig {
+  backup_schedule: string;
+  backup_keep_count: number;
+  last_backup_time: string;
+}
+
 interface AdminClientProps {
   initialStats: {
     totalUsers: number;
@@ -65,6 +81,8 @@ interface AdminClientProps {
   initialEvents: AdminEvent[];
   initialInviteCodes: AdminInviteCode[];
   initialConfig: Record<string, string>;
+  initialBackupConfig: BackupConfig;
+  initialBackups: BackupFile[];
   sessionUser: {
     name: string | null;
     email: string | null;
@@ -79,15 +97,25 @@ export default function AdminClient({
   initialEvents,
   initialInviteCodes,
   initialConfig,
+  initialBackupConfig,
+  initialBackups,
   sessionUser,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings" | "backups">("overview");
   const [copied, setCopied] = useState(false);
 
   const [users, setUsers] = useState(initialUsers);
   const [events, setEvents] = useState(initialEvents);
   const [inviteCodes, setInviteCodes] = useState(initialInviteCodes);
   const [config, setConfig] = useState(initialConfig);
+  
+  // Backup state
+  const [backups, setBackups] = useState<BackupFile[]>(initialBackups);
+  const [backupSchedule, setBackupSchedule] = useState(initialBackupConfig.backup_schedule);
+  const [backupKeepCount, setBackupKeepCount] = useState<number>(initialBackupConfig.backup_keep_count);
+  const [lastBackupTime, setLastBackupTime] = useState(initialBackupConfig.last_backup_time);
+  const [isBackupRunning, setIsBackupRunning] = useState(false);
+  const [isSavingBackupConfig, setIsSavingBackupConfig] = useState(false);
 
   const [userSearch, setUserSearch] = useState("");
   const [eventSearch, setEventSearch] = useState("");
@@ -145,6 +173,60 @@ export default function AdminClient({
       }
     }
   }, [config.cloudflare_worker_email_url]);
+
+  const handleCreateBackup = async () => {
+    setIsBackupRunning(true);
+    setFeedback(null);
+    try {
+      const res = await createBackupAction();
+      if (res.success) {
+        setFeedback({ type: "success", message: `Backup created: ${res.filename}` });
+        const updated = await listBackupsAction();
+        setBackups(updated);
+        setLastBackupTime(new Date().toISOString());
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to create backup.";
+      setFeedback({ type: "error", message: msg });
+    } finally {
+      setIsBackupRunning(false);
+    }
+  };
+
+  const handleDeleteBackup = async (filename: string) => {
+    if (!confirm(`Are you sure you want to delete backup ${filename}?`)) return;
+    setFeedback(null);
+    try {
+      const res = await deleteBackupAction(filename);
+      if (res.success) {
+        setFeedback({ type: "success", message: "Backup deleted successfully." });
+        const updated = await listBackupsAction();
+        setBackups(updated);
+      } else {
+        setFeedback({ type: "error", message: "Failed to delete backup." });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to delete backup.";
+      setFeedback({ type: "error", message: msg });
+    }
+  };
+
+  const handleSaveBackupConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingBackupConfig(true);
+    setFeedback(null);
+    try {
+      const res = await updateBackupConfigAction(backupSchedule, backupKeepCount);
+      if (res.success) {
+        setFeedback({ type: "success", message: "Backup configuration updated successfully." });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update backup configuration.";
+      setFeedback({ type: "error", message: msg });
+    } finally {
+      setIsSavingBackupConfig(false);
+    }
+  };
 
   const handleTestEmailConfig = async () => {
     setFeedback(null);
@@ -504,6 +586,7 @@ function extractRawEmail(fromStr) {
                 { id: "events", label: "🎈 Event Moderation" },
                 { id: "invites", label: "🔑 Invite Codes" },
                 { id: "settings", label: "⚙️ Global Config" },
+                { id: "backups", label: "💾 Database Backups" },
               ] as const
             ).map((tab) => (
               <button
@@ -1741,6 +1824,249 @@ function extractRawEmail(fromStr) {
                       </button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* PANEL: BACKUPS */}
+            {activeTab === "backups" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Section 1: Backup settings */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "20px",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                      Backup Configuration
+                    </h3>
+                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
+                      Configure scheduled database backups. Backups are stored in the persistent application volume.
+                    </p>
+                  </div>
+
+                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
+
+                  <form onSubmit={handleSaveBackupConfig} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>
+                          BACKUP CRON SCHEDULE
+                        </label>
+                        <input
+                          type="text"
+                          value={backupSchedule}
+                          onChange={(e) => setBackupSchedule(e.target.value)}
+                          placeholder="e.g. 0 0 * * * (or 'disabled')"
+                          required
+                          style={{
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "10px",
+                            padding: "10px 14px",
+                            fontSize: "14px",
+                            color: APP_SHELL.textPrimary,
+                            outline: "none",
+                          }}
+                        />
+                        <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
+                          Standard 5-field cron syntax (Minute Hour Day-of-Month Month Day-of-Week). Set to <strong>disabled</strong> to turn off automated backups.
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>
+                          BACKUPS TO RETAIN (ROTATION LIMIT)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={backupKeepCount}
+                          onChange={(e) => setBackupKeepCount(parseInt(e.target.value, 10) || 7)}
+                          required
+                          style={{
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "10px",
+                            padding: "10px 14px",
+                            fontSize: "14px",
+                            color: APP_SHELL.textPrimary,
+                            outline: "none",
+                          }}
+                        />
+                        <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
+                          Maximum number of backup files to keep. Older backups will be automatically deleted on new backup runs.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+                      <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>
+                        <strong>Last Backup Completed:</strong>{" "}
+                        {lastBackupTime ? new Date(lastBackupTime).toLocaleString() : "Never"}
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSavingBackupConfig}
+                        style={{
+                          backgroundColor: APP_SHELL.accent,
+                          border: "none",
+                          color: "#fff",
+                          borderRadius: "10px",
+                          padding: "10px 20px",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          cursor: isSavingBackupConfig ? "not-allowed" : "pointer",
+                          opacity: isSavingBackupConfig ? 0.6 : 1,
+                        }}
+                      >
+                        {isSavingBackupConfig ? "Saving..." : "Save Backup Settings"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Section 2: Manual Trigger */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ maxWidth: "70%" }}>
+                    <h3 style={{ fontSize: "16px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                      Manual Database Backup
+                    </h3>
+                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px", margin: 0 }}>
+                      Instantly trigger a database snapshot. SQLite creates a file copy, while PostgreSQL executes a <code>pg_dump</code> database extract.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCreateBackup}
+                    disabled={isBackupRunning}
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.08)",
+                      border: `1px solid ${APP_SHELL.inputBorder}`,
+                      color: APP_SHELL.textPrimary,
+                      borderRadius: "10px",
+                      padding: "12px 24px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      cursor: isBackupRunning ? "not-allowed" : "pointer",
+                      opacity: isBackupRunning ? 0.6 : 1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {isBackupRunning ? "Backing up..." : "Create Backup Now"}
+                  </button>
+                </div>
+
+                {/* Section 3: Backup List */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "20px",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                      Backup Archives
+                    </h3>
+                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
+                      List of stored backups on this server.
+                    </p>
+                  </div>
+
+                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                      <thead>
+                        <tr style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}`, color: APP_SHELL.textSecondary, fontSize: "12px", fontWeight: 700 }}>
+                          <th style={{ padding: "12px" }}>FILENAME</th>
+                          <th style={{ padding: "12px" }}>CREATED AT</th>
+                          <th style={{ padding: "12px" }}>FILE SIZE</th>
+                          <th style={{ padding: "12px", textAlign: "right" }}>ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {backups.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} style={{ padding: "32px", textAlign: "center", color: APP_SHELL.textMuted }}>
+                              No backup archives found. Create one manually or configure a schedule.
+                            </td>
+                          </tr>
+                        ) : (
+                          backups.map((b) => (
+                            <tr key={b.filename} style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}`, fontSize: "14px" }}>
+                              <td style={{ padding: "14px 12px", fontFamily: "monospace", color: APP_SHELL.textPrimary }}>
+                                {b.filename}
+                              </td>
+                              <td style={{ padding: "14px 12px", color: APP_SHELL.textSecondary }}>
+                                {new Date(b.createdAt).toLocaleString()}
+                              </td>
+                              <td style={{ padding: "14px 12px", color: APP_SHELL.textSecondary }}>
+                                {b.sizeBytes >= 1024 * 1024
+                                  ? `${(b.sizeBytes / (1024 * 1024)).toFixed(2)} MB`
+                                  : `${(b.sizeBytes / 1024).toFixed(2)} KB`}
+                              </td>
+                              <td style={{ padding: "14px 12px", textAlign: "right" }}>
+                                <div style={{ display: "inline-flex", gap: "16px" }}>
+                                  <a
+                                    href={`/api/admin/backups/${b.filename}`}
+                                    download
+                                    style={{
+                                      color: APP_SHELL.accent,
+                                      textDecoration: "none",
+                                      fontWeight: 600,
+                                      fontSize: "13px",
+                                    }}
+                                  >
+                                    Download
+                                  </a>
+                                  <button
+                                    onClick={() => handleDeleteBackup(b.filename)}
+                                    style={{
+                                      backgroundColor: "transparent",
+                                      border: "none",
+                                      color: "#ef4444",
+                                      cursor: "pointer",
+                                      fontWeight: 600,
+                                      fontSize: "13px",
+                                      padding: 0,
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
