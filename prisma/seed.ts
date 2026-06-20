@@ -563,12 +563,12 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
     // Potluck Item claim
     if (status === "GOING" && potluckItems.length > 0 && i % 2 === 0 && potluckItemIdx < potluckItems.length) {
       const item = potluckItems[potluckItemIdx];
-      await db.potluckItem.update({
-        where: { id: item.id },
+      await db.potluckClaim.create({
         data: {
-          claimedQty: 1,
-          claimedBy: guestUser.name,
-          claimedAt: new Date(rsvp.createdAt.getTime() + 5 * 60 * 1000), // claimed 5 mins after RSVPing
+          potluckItemId: item.id,
+          guestName: guestUser.name || "Guest",
+          quantity: 1,
+          createdAt: new Date(rsvp.createdAt.getTime() + 5 * 60 * 1000), // claimed 5 mins after RSVPing
         }
       });
       potluckItemIdx++;

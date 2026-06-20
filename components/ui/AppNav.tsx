@@ -7,9 +7,9 @@ const navBase: React.CSSProperties = {
   alignItems: "center",
 };
 
-export function AppNavLogo({ href = "/", trailing }: { href?: string; trailing?: React.ReactNode }) {
+export function AppNavLogo({ href = "/", trailing, style }: { href?: string; trailing?: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <nav style={{ ...navBase, justifyContent: "space-between" }}>
+    <nav style={{ ...navBase, justifyContent: "space-between", ...style }}>
       <a href={href} style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "inherit" }}>
         <span style={{ fontSize: "22px" }}>🎉</span>
         <span style={{ fontSize: "17px", fontWeight: 800 }}>RSVP</span>
