@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock } from "lucide-react";
+import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock, Check } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { sendBlast, sendSmsBlast, saveEventSettings, inviteGuest } from "@/app/actions/event";
 import QRCode from "qrcode";
@@ -35,14 +35,33 @@ export function HostBar({
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [blastResult, setBlastResult] = useState<string | null>(null);
-  const [smsResult, setSmsResult] = useState<string | null>(null);
+  const [sendEmail, setSendEmail] = useState(true);
+  const [sendSms, setSendSms] = useState(false);
+  const [recipientFilters, setRecipientFilters] = useState<("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]>(["ALL"]);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  const toggleRecipientFilter = (filter: "ALL" | "INVITED" | "GOING" | "MAYBE" | "NO") => {
+    if (filter === "ALL") {
+      setRecipientFilters(["ALL"]);
+    } else {
+      setRecipientFilters((prev) => {
+        const active = prev.includes(filter);
+        const next = prev.filter((f) => f !== "ALL");
+        if (active) {
+          return next.filter((f) => f !== filter);
+        } else {
+          return [...next, filter];
+        }
+      });
+    }
+  };
   const [visibility, setVisibility] = useState<Visibility>(initialVisibility);
   const [visibilityPending, setVisibilityPending] = useState(false);
 
   const [inviteInput, setInviteInput] = useState("");
   const [invitePending, setInvitePending] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const handleSendInvite = async () => {
     if (!inviteInput.trim() || invitePending) return;
@@ -86,22 +105,40 @@ export function HostBar({
     }
   };
 
-  const handleBlast = async (filter: "ALL" | "GOING") => {
-    if (!messageText.trim() || isSending) return;
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || isSending || (!sendEmail && !sendSms) || recipientFilters.length === 0) return;
     setIsSending(true);
     setBlastResult(null);
+    
+    let emailStatus = "";
+    let smsStatus = "";
+    let successCount = 0;
+
     try {
-      const result = await sendBlast(eventId, messageText.trim(), filter);
-      if (result.success) {
-        setBlastResult(
-          result.sent === 0
-            ? "No guests with email addresses found."
-            : `Sent to ${result.sent} guest${result.sent !== 1 ? "s" : ""}.`
-        );
-        setMessageText("");
+      if (sendEmail) {
+        const r = await sendBlast(eventId, messageText.trim(), recipientFilters);
+        if (r.success) {
+          successCount++;
+          emailStatus = r.sent === 0 ? "No guests with email addresses found." : `Sent email to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`;
+        }
       }
-    } catch {
-      setBlastResult("Failed to send. Try again.");
+      if (sendSms) {
+        const r = await sendSmsBlast(eventId, messageText.trim(), recipientFilters);
+        if (r.success) {
+          successCount++;
+          smsStatus = r.sent === 0 ? "No guests with phone numbers found." : `Sent SMS to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`;
+        }
+      }
+
+      if (successCount > 0) {
+        const parts = [emailStatus, smsStatus].filter(Boolean);
+        setBlastResult(parts.join(" "));
+        setMessageText("");
+      } else {
+        setBlastResult("Failed to send message. Try again.");
+      }
+    } catch (err: unknown) {
+      setBlastResult(err instanceof Error ? err.message : "Failed to send message. Try again.");
     } finally {
       setIsSending(false);
     }
@@ -155,6 +192,8 @@ export function HostBar({
                 color: activePanel === id ? t.accent : "rgba(255,255,255,0.7)",
                 fontSize: "11px", fontWeight: 600, fontFamily: "inherit", transition: "all 0.15s",
               }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = activePanel === id ? `rgba(${t.accent},0.2)` : "transparent"; }}
             >
               <Icon size={18} />
               {label}
@@ -185,10 +224,24 @@ export function HostBar({
           </div>
           <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
             <button
-              onClick={() => { if (typeof navigator !== "undefined") navigator.clipboard.writeText(window.location.href); }}
-              style={{ flex: 1, padding: "12px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
+              onClick={() => {
+                if (typeof navigator !== "undefined") {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }
+              }}
+              style={{
+                flex: 1, padding: "12px",
+                background: copiedLink ? "#22c55e" : t.accent,
+                color: "#ffffff",
+                border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                transition: "all 0.15s ease-in-out"
+              }}
             >
-              Copy Link
+              {copiedLink ? <Check size={16} /> : null}
+              {copiedLink ? "Copied!" : "Copy Link"}
             </button>
             {qrDataUrl && (
               <a
@@ -246,7 +299,7 @@ export function HostBar({
 
       {activePanel === "message" && (
         <SlideUp
-          onClose={() => { setActivePanel(null); setBlastResult(null); setSmsResult(null); }}
+          onClose={() => { setActivePanel(null); setBlastResult(null); }}
           title="Message Guests"
         >
           <textarea
@@ -257,77 +310,97 @@ export function HostBar({
             style={{
               width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "12px", padding: "12px 16px", color: "#fff", fontFamily: "inherit",
-              fontSize: "14px", outline: "none", resize: "none", marginBottom: "10px", boxSizing: "border-box",
+              fontSize: "14px", outline: "none", resize: "none", marginBottom: "12px", boxSizing: "border-box",
             }}
           />
 
-          {/* Email blast */}
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
-            📧 Email
-          </p>
           {blastResult && (
-            <p style={{ fontSize: "13px", marginBottom: "8px", padding: "8px 12px", borderRadius: "8px", background: blastResult.startsWith("Sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: blastResult.startsWith("Sent") ? "#4ade80" : "#f87171" }}>
+            <p style={{ fontSize: "13px", marginBottom: "12px", padding: "8px 12px", borderRadius: "8px", background: blastResult.includes("Sent") || blastResult.includes("sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: blastResult.includes("Sent") || blastResult.includes("sent") ? "#4ade80" : "#f87171" }}>
               {blastResult}
             </p>
           )}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
-            <button
-              onClick={() => handleBlast("ALL")}
-              disabled={!messageText.trim() || isSending}
-              style={{ flex: 1, padding: "10px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
-            >
-              {isSending ? "Sending…" : "All"}
-            </button>
-            <button
-              onClick={() => handleBlast("GOING")}
-              disabled={!messageText.trim() || isSending}
-              style={{ flex: 1, padding: "10px", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
-            >
-              Going Only
-            </button>
+
+          {/* Channel selection */}
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+              Delivery Channels
+            </div>
+            <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer", color: "rgba(255,255,255,0.8)" }}>
+                <input
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                  style={{ accentColor: t.accent }}
+                />
+                <span>Email</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer", color: "rgba(255,255,255,0.8)" }}>
+                <input
+                  type="checkbox"
+                  checked={sendSms}
+                  onChange={(e) => setSendSms(e.target.checked)}
+                  style={{ accentColor: t.accent }}
+                />
+                <span>SMS</span>
+              </label>
+            </div>
           </div>
 
-          {/* SMS blast */}
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
-            💬 SMS
-          </p>
-          {smsResult && (
-            <p style={{ fontSize: "13px", marginBottom: "8px", padding: "8px 12px", borderRadius: "8px", background: smsResult.startsWith("Sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: smsResult.startsWith("Sent") ? "#4ade80" : "#f87171" }}>
-              {smsResult}
-            </p>
-          )}
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              onClick={async () => {
-                if (!messageText.trim() || isSending) return;
-                setIsSending(true); setSmsResult(null);
-                try {
-                  const r = await sendSmsBlast(eventId, messageText.trim(), "ALL");
-                  setSmsResult(r.sent === 0 ? "No guests with phone numbers found." : `Sent to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`);
-                  setMessageText("");
-                } catch { setSmsResult("Failed to send. Try again."); } finally { setIsSending(false); }
-              }}
-              disabled={!messageText.trim() || isSending}
-              style={{ flex: 1, padding: "10px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
-            >
-              {isSending ? "Sending…" : "All"}
-            </button>
-            <button
-              onClick={async () => {
-                if (!messageText.trim() || isSending) return;
-                setIsSending(true); setSmsResult(null);
-                try {
-                  const r = await sendSmsBlast(eventId, messageText.trim(), "GOING");
-                  setSmsResult(r.sent === 0 ? "No going guests with phone numbers found." : `Sent to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`);
-                  setMessageText("");
-                } catch { setSmsResult("Failed to send. Try again."); } finally { setIsSending(false); }
-              }}
-              disabled={!messageText.trim() || isSending}
-              style={{ flex: 1, padding: "10px", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: messageText.trim() && !isSending ? "pointer" : "not-allowed", opacity: !messageText.trim() || isSending ? 0.5 : 1 }}
-            >
-              Going Only
-            </button>
+          {/* Recipient selection */}
+          <div style={{ marginBottom: "20px" }}>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+              Recipients
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {(
+                [
+                  { key: "ALL", label: "All" },
+                  { key: "INVITED", label: "Invited" },
+                  { key: "GOING", label: "Yes" },
+                  { key: "MAYBE", label: "Maybe" },
+                  { key: "NO", label: "No" },
+                ] as const
+              ).map(({ key, label }) => {
+                const active = recipientFilters.includes(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleRecipientFilter(key)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: active ? `1px solid ${t.accent}` : "1px solid rgba(255,255,255,0.1)",
+                      background: active ? `rgba(${t.accentRgb}, 0.15)` : "rgba(255,255,255,0.03)",
+                      color: active ? t.accent : "rgba(255,255,255,0.7)",
+                      fontFamily: "inherit",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          <button
+            onClick={handleSendMessage}
+            disabled={!messageText.trim() || isSending || (!sendEmail && !sendSms) || recipientFilters.length === 0}
+            style={{
+              width: "100%", padding: "12px", background: t.accent, color: t.accentFg,
+              border: "none", borderRadius: "10px", fontFamily: "inherit",
+              fontSize: "14px", fontWeight: 700, cursor: (!messageText.trim() || isSending || (!sendEmail && !sendSms)) ? "not-allowed" : "pointer",
+              opacity: (!messageText.trim() || isSending || (!sendEmail && !sendSms)) ? 0.5 : 1,
+              marginTop: "8px"
+            }}
+          >
+            {isSending ? "Sending…" : "Send Message"}
+          </button>
         </SlideUp>
       )}
 

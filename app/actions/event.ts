@@ -438,7 +438,7 @@ export async function deleteActivityEvent(activityId: string) {
 export async function sendBlast(
   eventId: string,
   message: string,
-  filter: "ALL" | "GOING" | "MAYBE"
+  filters: ("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]
 ) {
   await assertHost(eventId);
 
@@ -448,7 +448,24 @@ export async function sendBlast(
   });
   if (!event) throw new Error("Event not found");
 
-  const whereStatus = filter === "ALL" ? {} : { status: filter };
+  const orConditions: { status?: "GOING" | "MAYBE" | "NO"; responded?: boolean }[] = [];
+  for (const filter of filters) {
+    if (filter === "ALL") {
+      orConditions.length = 0;
+      break;
+    } else if (filter === "GOING") {
+      orConditions.push({ status: "GOING", responded: true });
+    } else if (filter === "MAYBE") {
+      orConditions.push({ status: "MAYBE", responded: true });
+    } else if (filter === "NO") {
+      orConditions.push({ status: "NO", responded: true });
+    } else if (filter === "INVITED") {
+      orConditions.push({ responded: false });
+    }
+  }
+
+  const whereStatus = orConditions.length > 0 ? { OR: orConditions } : {};
+
   const rsvps = await db.rSVP.findMany({
     where: { eventId, guestEmail: { not: null }, ...whereStatus },
     select: { guestEmail: true },
@@ -475,7 +492,7 @@ export async function sendBlast(
 export async function sendSmsBlast(
   eventId: string,
   message: string,
-  filter: "ALL" | "GOING" | "MAYBE"
+  filters: ("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]
 ) {
   await assertHost(eventId);
 
@@ -485,7 +502,24 @@ export async function sendSmsBlast(
   });
   if (!event) throw new Error("Event not found");
 
-  const whereStatus = filter === "ALL" ? {} : { status: filter };
+  const orConditions: { status?: "GOING" | "MAYBE" | "NO"; responded?: boolean }[] = [];
+  for (const filter of filters) {
+    if (filter === "ALL") {
+      orConditions.length = 0;
+      break;
+    } else if (filter === "GOING") {
+      orConditions.push({ status: "GOING", responded: true });
+    } else if (filter === "MAYBE") {
+      orConditions.push({ status: "MAYBE", responded: true });
+    } else if (filter === "NO") {
+      orConditions.push({ status: "NO", responded: true });
+    } else if (filter === "INVITED") {
+      orConditions.push({ responded: false });
+    }
+  }
+
+  const whereStatus = orConditions.length > 0 ? { OR: orConditions } : {};
+
   const rsvps = await db.rSVP.findMany({
     where: { eventId, guestPhone: { not: null }, ...whereStatus },
     select: { guestPhone: true },

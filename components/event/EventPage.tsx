@@ -32,9 +32,8 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, createPoll, deletePoll, castVote, addPollOption, updatePollSettings, deletePollOption } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, castVote, addPollOption } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
-import { ThemePicker } from "./ThemePicker";
 import QRCode from "qrcode";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -64,11 +63,11 @@ type EventData = {
   showTimestamps: boolean;
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
-  host: { id: string; name: string | null; email: string };
+  host: { id: string; name: string | null; email: string; avatarUrl?: string | null };
   theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; coverImageUrl: string | null } | null;
   infoSections: { id: string; type: string; title: string | null; content: string; url: string | null; order: number }[];
-  rsvps: { id: string; guestName: string; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; note: string | null; createdAt: Date }[];
-  comments: { id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] }[];
+  rsvps: { id: string; guestName: string; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; note: string | null; createdAt: Date; user?: { avatarUrl: string | null } | null }[];
+  comments: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date; replies: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date }[] }[];
   rsvpFields: { id: string; label: string; fieldType: string; required: boolean; options: string | null }[];
   updates: { id: string; body: string; notifyGuests: boolean; createdAt: Date }[];
   potluckItems: { id: string; label: string; quantity: number; claimedQty: number | null; claimedBy: string | null; claimedAt: Date | null }[];
@@ -456,7 +455,7 @@ function DateEdit({
             boxShadow: t.cardShadow || "0 20px 60px rgba(0,0,0,0.6)",
           }}>
             <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Start</label>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>Start</label>
               <input
                 type="datetime-local"
                 value={startVal}
@@ -465,7 +464,7 @@ function DateEdit({
               />
             </div>
             <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>
                 End <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
               </label>
               <div style={{ display: "flex", gap: "6px" }}>
@@ -768,11 +767,11 @@ function LocationEdit({
           {type === "PHYSICAL" && (
             <>
               <div style={{ marginBottom: "10px" }}>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Name</label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>Name</label>
                 <input style={inputStyle} placeholder="Venue or place name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div style={{ marginBottom: "14px" }}>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Address <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>Address <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
                 <input style={inputStyle} placeholder="123 Main St, City" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
             </>
@@ -780,7 +779,7 @@ function LocationEdit({
 
           {type === "VIRTUAL" && (
             <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.textMuted, marginBottom: "6px" }}>Link</label>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>Link</label>
               <input style={inputStyle} placeholder="https://zoom.us/j/..." type="url" value={vUrl} onChange={(e) => setVUrl(e.target.value)} />
             </div>
           )}
@@ -854,9 +853,67 @@ function getPlaceholder(key: string) {
 
 type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean };
 
-export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string } | null }) {
+export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string; name?: string | null; avatarUrl?: string | null } | null }) {
   const [event, setEvent] = useState(initial);
   const [prevInitial, setPrevInitial] = useState(initial);
+
+  const [eventLinkCopied, setEventLinkCopied] = useState(false);
+
+  const getAvatarUrl = (name: string, rsvpId?: string | null) => {
+    // Check host
+    const isHostName = event.host.name && name.startsWith(event.host.name);
+    if (isHostName && event.host.avatarUrl) {
+      return event.host.avatarUrl;
+    }
+    // Check RSVP list
+    if (rsvpId) {
+      const match = event.rsvps.find((r) => r.id === rsvpId);
+      if (match?.user?.avatarUrl) return match.user.avatarUrl;
+    }
+    const matchByName = event.rsvps.find((r) => r.guestName === name);
+    if (matchByName?.user?.avatarUrl) return matchByName.user.avatarUrl;
+    return null;
+  };
+
+  const renderAvatar = (name: string, rsvpId?: string | null, customStyle: React.CSSProperties = {}) => {
+    const url = getAvatarUrl(name, rsvpId);
+    const initial = name[0]?.toUpperCase() || "?";
+    
+    const baseAvatarStyle = {
+      width: "28px",
+      height: "28px",
+      borderRadius: "50%",
+      background: theme.avatarGradient,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "12px",
+      fontWeight: 700,
+      color: theme.accentFg,
+      flexShrink: 0,
+      minWidth: "28px",
+      ...customStyle,
+    };
+    
+    if (url) {
+      return (
+        <img
+          src={url}
+          alt={name}
+          style={{
+            width: baseAvatarStyle.width,
+            height: baseAvatarStyle.height,
+            borderRadius: baseAvatarStyle.borderRadius,
+            objectFit: "cover",
+            flexShrink: 0,
+            minWidth: baseAvatarStyle.minWidth || baseAvatarStyle.width,
+            marginTop: baseAvatarStyle.marginTop,
+          }}
+        />
+      );
+    }
+    return <div style={baseAvatarStyle as React.CSSProperties}>{initial}</div>;
+  };
 
   if (initial !== prevInitial) {
     setPrevInitial(initial);
@@ -877,12 +934,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [sectionDraft, setSectionDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
-  const [showThemePicker, setShowThemePicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [updateDraft, setUpdateDraft] = useState("");
   const [notifyOnUpdate, setNotifyOnUpdate] = useState(true);
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
-  const [newPotluckLabel, setNewPotluckLabel] = useState("");
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
   const [claimName, setClaimName] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -892,25 +947,10 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [activeApproval, setActiveApproval] = useState<{ rsvpId: string; type: "APPROVE" | "DECLINE"; guestName: string } | null>(null);
   const [approvalMessage, setApprovalMessage] = useState("");
-  const [newPotluckQty, setNewPotluckQty] = useState(1);
   const [claimQty, setClaimQty] = useState(1);
 
   // Poll states
-  const [isCreatingPoll, setIsCreatingPoll] = useState(false);
-  const [newPollQuestion, setNewPollQuestion] = useState("");
-  const [newPollOptions, setNewPollOptions] = useState<string[]>(["", ""]);
-  const [newPollMultiChoice, setNewPollMultiChoice] = useState(false);
-  const [newPollAllowGuestsToAdd, setNewPollAllowGuestsToAdd] = useState(true);
-  const [newPollHideVoters, setNewPollHideVoters] = useState(false);
   const [newPollOptionTexts, setNewPollOptionTexts] = useState<Record<string, string>>({});
-
-  // Poll editing states
-  const [editingPollId, setEditingPollId] = useState<string | null>(null);
-  const [editPollQuestion, setEditPollQuestion] = useState("");
-  const [editPollMultiChoice, setEditPollMultiChoice] = useState(false);
-  const [editPollAllowGuestsToAdd, setEditPollAllowGuestsToAdd] = useState(true);
-  const [editPollLocked, setEditPollLocked] = useState(false);
-  const [editPollHideVoters, setEditPollHideVoters] = useState(false);
 
   useEffect(() => {
     if (showShareQr && typeof window !== "undefined") {
@@ -1174,28 +1214,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     });
   };
 
-  const addItem = async () => {
-    if (!newPotluckLabel.trim()) return;
-    startTransition(async () => {
-      const result = await addPotluckItem(event.id, newPotluckLabel.trim(), newPotluckQty);
-      if (result.success) {
-        setEvent((e) => ({
-          ...e,
-          potluckItems: [...e.potluckItems, { id: result.id!, label: newPotluckLabel.trim(), quantity: newPotluckQty, claimedQty: null, claimedBy: null, claimedAt: null }],
-        }));
-        setNewPotluckLabel("");
-        setNewPotluckQty(1);
-      }
-    });
-  };
-
-  const removeItem = (id: string) => {
-    startTransition(async () => {
-      await removePotluckItem(id);
-      setEvent((e) => ({ ...e, potluckItems: e.potluckItems.filter((i) => i.id !== id) }));
-    });
-  };
-
   const claimItem = async (itemId: string, name: string) => {
     const result = await claimPotluckItem(itemId, name, claimQty);
     if (result.success) {
@@ -1219,120 +1237,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
     }
-  };
-
-  const handleAddPoll = async () => {
-    if (!newPollQuestion.trim()) return;
-    startTransition(async () => {
-      const result = await createPoll(
-        event.id,
-        newPollQuestion.trim(),
-        newPollOptions,
-        newPollMultiChoice,
-        newPollAllowGuestsToAdd,
-        newPollHideVoters
-      );
-      if (result.success) {
-        const newPoll = {
-          id: result.id!,
-          question: newPollQuestion.trim(),
-          multiChoice: newPollMultiChoice,
-          allowGuestsToAdd: newPollAllowGuestsToAdd,
-          locked: false,
-          hideVoters: newPollHideVoters,
-          createdAt: new Date(),
-          options: newPollOptions
-            .map((o) => o.trim())
-            .filter((o) => o.length > 0)
-            .map((o, idx) => ({
-              id: `temp-opt-${idx}-${Date.now()}`,
-              text: o,
-              creatorName: null,
-              createdAt: new Date(),
-              votes: [],
-            })),
-        };
-        setEvent((e) => ({
-          ...e,
-          polls: [...e.polls, newPoll],
-        }));
-
-        setIsCreatingPoll(false);
-        setNewPollQuestion("");
-        setNewPollOptions(["", ""]);
-        setNewPollMultiChoice(false);
-        setNewPollAllowGuestsToAdd(true);
-        setNewPollHideVoters(false);
-      }
-    });
-  };
-
-  const handleStartEditPoll = (poll: EventData["polls"][number]) => {
-    setEditingPollId(poll.id);
-    setEditPollQuestion(poll.question);
-    setEditPollMultiChoice(poll.multiChoice);
-    setEditPollAllowGuestsToAdd(poll.allowGuestsToAdd);
-    setEditPollLocked(poll.locked || false);
-    setEditPollHideVoters(poll.hideVoters || false);
-  };
-
-  const handleSavePollSettings = async (pollId: string) => {
-    startTransition(async () => {
-      const result = await updatePollSettings(pollId, {
-        question: editPollQuestion.trim(),
-        multiChoice: editPollMultiChoice,
-        allowGuestsToAdd: editPollAllowGuestsToAdd,
-        locked: editPollLocked,
-        hideVoters: editPollHideVoters,
-      });
-      if (result.success) {
-        setEvent((e) => ({
-          ...e,
-          polls: e.polls.map((p) =>
-            p.id === pollId
-              ? {
-                  ...p,
-                  question: editPollQuestion.trim(),
-                  multiChoice: editPollMultiChoice,
-                  allowGuestsToAdd: editPollAllowGuestsToAdd,
-                  locked: editPollLocked,
-                  hideVoters: editPollHideVoters,
-                }
-              : p
-          ),
-        }));
-        setEditingPollId(null);
-      }
-    });
-  };
-
-  const handleDeletePollOption = async (pollId: string, optionId: string) => {
-    if (!confirm("Delete this option? All votes cast for it will be lost.")) return;
-    startTransition(async () => {
-      const result = await deletePollOption(pollId, optionId);
-      if (result.success) {
-        setEvent((e) => ({
-          ...e,
-          polls: e.polls.map((p) => {
-            if (p.id !== pollId) return p;
-            return {
-              ...p,
-              options: p.options.filter((o) => o.id !== optionId),
-            };
-          }),
-        }));
-      }
-    });
-  };
-
-  const handleDeletePoll = (pollId: string) => {
-    startTransition(async () => {
-      await deletePoll(pollId);
-      setEvent((e) => ({
-        ...e,
-        polls: e.polls.filter((p) => p.id !== pollId),
-      }));
-    });
   };
 
   const handleVote = async (pollId: string, pollOptionId: string, isVoted: boolean) => {
@@ -1507,13 +1411,17 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               <Settings size={15} />
             </a>
           )}
-          {navUserInitial && (
+          {sessionUser && (
             <a
               href="/dashboard"
               title="Go to dashboard"
-              style={{ width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#fff", textDecoration: "none", flexShrink: 0 }}
+              style={{ width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#fff", textDecoration: "none", flexShrink: 0, overflow: "hidden" }}
             >
-              {navUserInitial}
+              {sessionUser.avatarUrl ? (
+                <img src={sessionUser.avatarUrl} alt={sessionUser.name ?? "User"} style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
+              ) : (
+                navUserInitial
+              )}
             </a>
           )}
         </div>
@@ -1545,7 +1453,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
         {/* ── Host byline ── */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.textSecondary, fontSize: "14px" }}>
-          <div style={{ ...S.avatar, background: t.avatarGradient }}>{event.host.name?.[0] ?? event.host.email[0].toUpperCase()}</div>
+          {renderAvatar(event.host.name ?? event.host.email, null, { width: "28px", height: "28px" })}
           Hosted by {event.host.name ?? event.host.email}
         </div>
 
@@ -1554,23 +1462,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           style={{ ...coverStyle, width: "100%", height: "260px", borderRadius: "20px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", boxShadow: t.pageDecoration === "dark-orbs" ? `0 0 60px ${t.accentBg}` : t.pageDecoration === "soft-blobs" ? "0 20px 60px rgba(0,0,0,0.08)" : "none" }}
         >
           {!event.theme?.coverImageUrl && <span style={{ fontSize: "72px" }}>🎉</span>}
-          {isHost && (
+          {isHost && coverUploadEnabled && (
             <div style={{ position: "absolute", top: "12px", right: "12px", display: "flex", gap: "6px" }}>
               <button
-                onClick={() => setShowThemePicker(true)}
-                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
               >
-                🎨 Theme
+                {uploadStatus === "compressing" ? "Compressing…" : uploadStatus === "uploading" ? "Uploading…" : "📷 Cover"}
               </button>
-              {coverUploadEnabled && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
-                >
-                  {uploadStatus === "compressing" ? "Compressing…" : uploadStatus === "uploading" ? "Uploading…" : "📷 Cover"}
-                </button>
-              )}
             </div>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCoverUpload} />
@@ -1606,7 +1506,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
         {/* ── Description ── */}
         <div style={{ ...S.card, marginBottom: "16px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Details</div>
+          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "none" as const, letterSpacing: "0.02em", color: t.textMuted, marginBottom: "8px" }}>Details</div>
           <InlineEdit value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "16px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
         </div>
 
@@ -1688,7 +1588,13 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
         {/* ── Undo delete toast ── */}
         {pendingDelete && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "12px 16px", marginBottom: "8px", gap: "12px" }}>
+          <div style={{
+            position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+            zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius,
+            padding: "12px 16px", gap: "12px", boxShadow: "0 8px 30px rgba(0, 0, 0, 0.15)",
+            backdropFilter: "blur(8px)"
+          }}>
             <span style={{ fontSize: "13px", color: t.textSecondary }}>Section removed</span>
             <button onClick={undoDeleteSection} style={{ background: "none", border: `1px solid ${t.cardBorder}`, borderRadius: t.btnRadius, padding: "4px 12px", cursor: "pointer", fontSize: "12px", fontWeight: 700, color: t.accent, fontFamily: "inherit" }}>
               Undo
@@ -1766,201 +1672,18 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
 
         {/* ── Polls Section ── */}
-        {(isHost || (event.polls && event.polls.length > 0)) && (
+        {event.polls && event.polls.length > 0 && (
           <div style={{ ...S.card, marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontSize: "16px" }}>📊</span>
                 <span style={{ fontWeight: 700 }}>Polls</span>
               </div>
-              {isHost && !isCreatingPoll && (
-                <button
-                  onClick={() => setIsCreatingPoll(true)}
-                  style={{ ...S.mutedBtn, padding: "4px 10px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}
-                >
-                  <Plus size={14} /> Create Poll
-                </button>
-              )}
             </div>
-
-            {/* Create Poll Form */}
-            {isHost && isCreatingPoll && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "rgba(255, 255, 255, 0.03)", padding: "16px", borderRadius: t.cardRadius, border: `1px solid rgba(255, 255, 255, 0.05)`, marginBottom: "16px" }}>
-                <div style={{ fontWeight: 600, fontSize: "14px" }}>New Poll</div>
-                <input
-                  style={S.inp}
-                  placeholder="Ask a question... (e.g. What day works best?)"
-                  value={newPollQuestion}
-                  onChange={(e) => setNewPollQuestion(e.target.value)}
-                />
-                
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: t.textSecondary }}>Options:</div>
-                  {newPollOptions.map((opt, idx) => (
-                    <div key={idx} style={{ display: "flex", gap: "6px" }}>
-                      <input
-                        style={{ ...S.inp, padding: "8px 12px" }}
-                        placeholder={`Option ${idx + 1}`}
-                        value={opt}
-                        onChange={(e) => {
-                          const updated = [...newPollOptions];
-                          updated[idx] = e.target.value;
-                          setNewPollOptions(updated);
-                        }}
-                      />
-                      {newPollOptions.length > 2 && (
-                        <button
-                          onClick={() => {
-                            setNewPollOptions(newPollOptions.filter((_, i) => i !== idx));
-                          }}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px" }}
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => setNewPollOptions([...newPollOptions, ""])}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: t.accent, fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", alignSelf: "flex-start", padding: "4px 0" }}
-                  >
-                    <Plus size={14} /> Add option
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={newPollMultiChoice}
-                      onChange={(e) => setNewPollMultiChoice(e.target.checked)}
-                      style={{ cursor: "pointer" }}
-                    />
-                    <span>Allow voting for multiple options</span>
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={newPollAllowGuestsToAdd}
-                      onChange={(e) => setNewPollAllowGuestsToAdd(e.target.checked)}
-                      style={{ cursor: "pointer" }}
-                    />
-                    <span>Allow guests to suggest options</span>
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={newPollHideVoters}
-                      onChange={(e) => setNewPollHideVoters(e.target.checked)}
-                      style={{ cursor: "pointer" }}
-                    />
-                    <span>Hide voter names from other guests</span>
-                  </label>
-                </div>
-
-                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                  <button
-                    onClick={handleAddPoll}
-                    disabled={!newPollQuestion.trim() || isPending}
-                    style={{ ...S.btn, padding: "8px 16px", width: "auto", flex: 1 }}
-                  >
-                    Create
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsCreatingPoll(false);
-                      setNewPollQuestion("");
-                      setNewPollOptions(["", ""]);
-                      setNewPollMultiChoice(false);
-                      setNewPollAllowGuestsToAdd(true);
-                      setNewPollHideVoters(false);
-                    }}
-                    style={{ ...S.mutedBtn, padding: "8px 16px", flex: 1 }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Polls List */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {event.polls?.map((poll) => {
-                if (editingPollId === poll.id) {
-                  return (
-                    <div
-                      key={poll.id}
-                      style={{
-                        background: "rgba(255, 255, 255, 0.03)",
-                        padding: "16px",
-                        borderRadius: t.cardRadius,
-                        border: `1px solid rgba(255, 255, 255, 0.05)`,
-                        marginBottom: "16px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "12px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, fontSize: "14px" }}>Edit Poll Settings</div>
-                      <input
-                        style={S.inp}
-                        value={editPollQuestion}
-                        onChange={(e) => setEditPollQuestion(e.target.value)}
-                        placeholder="Poll Question"
-                      />
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={editPollMultiChoice}
-                            onChange={(e) => setEditPollMultiChoice(e.target.checked)}
-                          />
-                          <span>Allow voting for multiple options</span>
-                        </label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={editPollAllowGuestsToAdd}
-                            onChange={(e) => setEditPollAllowGuestsToAdd(e.target.checked)}
-                          />
-                          <span>Allow guests to suggest options</span>
-                        </label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={editPollHideVoters}
-                            onChange={(e) => setEditPollHideVoters(e.target.checked)}
-                          />
-                          <span>Hide voter names from other guests</span>
-                        </label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={editPollLocked}
-                            onChange={(e) => setEditPollLocked(e.target.checked)}
-                          />
-                          <span>Lock voting</span>
-                        </label>
-                      </div>
-                      <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                        <button
-                          onClick={() => handleSavePollSettings(poll.id)}
-                          disabled={!editPollQuestion.trim() || isPending}
-                          style={{ ...S.btn, padding: "8px 16px", flex: 1 }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingPollId(null)}
-                          style={{ ...S.mutedBtn, padding: "8px 16px", flex: 1 }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-
                 const totalVotes = poll.options.reduce((sum, o) => sum + o.votes.length, 0);
                 const voter = isHost ? "Host" : guestName;
                 const isEligibleToVote = isHost || (rsvpDone && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
@@ -1992,24 +1715,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                           </span>
                         )}
                       </div>
-                      {isHost && (
-                        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                          <button
-                            onClick={() => handleStartEditPoll(poll)}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", fontSize: "13px" }}
-                            title="Edit poll settings"
-                          >
-                            ⚙️
-                          </button>
-                          <button
-                            onClick={() => handleDeletePoll(poll.id)}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px" }}
-                            title="Delete poll"
-                          >
-                            <X size={15} />
-                          </button>
-                        </div>
-                      )}
                     </div>
 
                     <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "12px" }}>
@@ -2085,15 +1790,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                               </label>
 
                               <div style={{ display: "flex", alignItems: "center", gap: "8px", zIndex: 2 }}>
-                                {isHost && (
-                                  <button
-                                    onClick={() => handleDeletePollOption(poll.id, opt.id)}
-                                    style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", display: "flex", alignItems: "center" }}
-                                    title="Delete option"
-                                  >
-                                    <X size={13} />
-                                  </button>
-                                )}
                                 <span style={{ fontSize: "12px", fontWeight: 700, color: isVoted ? t.accent : t.textSecondary }}>
                                   {percent}% ({optVotesCount})
                                 </span>
@@ -2159,7 +1855,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
 
         {/* ── Potluck ── */}
-        {(isHost || rsvpStatus === "GOING") && (event.potluckItems.length > 0 || isHost) && (
+        {(isHost || rsvpStatus === "GOING") && event.potluckItems && event.potluckItems.length > 0 && (
           <div style={{ ...S.card, marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
               <span style={{ fontSize: "16px" }}>🍽️</span>
@@ -2197,11 +1893,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         Unclaim
                       </button>
                     )}
-                    {isHost && (
-                      <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "2px", flexShrink: 0 }}>
-                        <X size={13} />
-                      </button>
-                    )}
                   </div>
                   {claimingItemId === item.id && (
                     <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
@@ -2234,32 +1925,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 </div>
               ))}
             </div>
-            {isHost && (
-              <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  style={{ ...S.inp, flex: 1 }}
-                  placeholder="Add an item (e.g. wine, dessert, chairs)"
-                  value={newPotluckLabel}
-                  onChange={(e) => setNewPotluckLabel(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && newPotluckLabel.trim()) addItem(); }}
-                />
-                <input
-                  type="number"
-                  min="1"
-                  style={{ ...S.inp, width: "70px", textAlign: "center" }}
-                  value={newPotluckQty}
-                  onChange={(e) => setNewPotluckQty(Math.max(1, parseInt(e.target.value) || 1))}
-                  placeholder="Qty"
-                />
-                <button
-                  onClick={addItem}
-                  disabled={!newPotluckLabel.trim() || isPending}
-                  style={{ ...S.btn, width: "auto", padding: "10px 16px", opacity: !newPotluckLabel.trim() ? 0.5 : 1 }}
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -2317,7 +1982,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               {event.pendingRsvps.map((r, i) => (
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: i < event.pendingRsvps.length - 1 ? `1px solid ${t.cardBorder}` : "none" }}>
-                  <div style={S.avatar}>{r.guestName[0].toUpperCase()}</div>
+                  {renderAvatar(r.guestName, r.id, { width: "28px", height: "28px" })}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: "14px" }}>{r.guestName}</div>
                     <div style={{ color: t.textMuted, fontSize: "12px" }}>
@@ -2359,16 +2024,23 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 onClick={() => {
                   if (typeof navigator !== "undefined") {
                     navigator.clipboard.writeText(window.location.origin + `/e/${event.slug}`);
-                    alert("Event link copied!");
+                    setEventLinkCopied(true);
+                    setTimeout(() => setEventLinkCopied(false), 2000);
                   }
                 }}
                 style={{
-                  flex: 1, padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
-                  borderRadius: t.btnRadius, color: t.textPrimary, fontFamily: "inherit", fontSize: "13px",
-                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
+                  flex: 1, padding: "10px 14px",
+                  background: eventLinkCopied ? "#22c55e" : t.inputBg,
+                  border: `1px solid ${eventLinkCopied ? "#22c55e" : t.inputBorder}`,
+                  borderRadius: t.btnRadius,
+                  color: eventLinkCopied ? "#ffffff" : t.textPrimary,
+                  fontFamily: "inherit", fontSize: "13px",
+                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                  transition: "all 0.15s ease-in-out"
                 }}
               >
-                <span>📋</span> Copy Link
+                {eventLinkCopied ? <Check size={14} /> : <span>📋</span>}
+                {eventLinkCopied ? "Copied!" : "Copy Link"}
               </button>
               <button
                 onClick={() => setShowShareQr(true)}
@@ -2398,11 +2070,11 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             </div>
             {going.length > 0 && (
               <div style={{ marginBottom: (maybe.length > 0 || no.length > 0) ? "14px" : 0 }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Going · {totalGoing}</div>
+                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "none" as const, letterSpacing: "0.02em", color: t.textMuted, marginBottom: "8px" }}>Going · {totalGoing}</div>
                 <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
                   {going.map((r) => (
                     <div key={r.id} style={{ display: "flex", alignItems: r.note ? "flex-start" : "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px" }}>
-                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px", marginTop: r.note ? "2px" : 0 }}>{r.guestName[0].toUpperCase()}</div>
+                      {renderAvatar(r.guestName, r.id, { width: "20px", height: "20px", fontSize: "10px", minWidth: "20px", marginTop: r.note ? "2px" : 0 })}
                       <div>
                         <div>{r.guestName}{r.plusOneCount > 0 && ` +${r.plusOneCount}`}</div>
                         {r.note && <div style={{ fontSize: "11px", color: t.textMuted, marginTop: "2px" }}>{r.note}</div>}
@@ -2414,11 +2086,11 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             )}
             {maybe.length > 0 && (
               <div style={{ marginBottom: no.length > 0 ? "14px" : 0 }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Maybe · {maybe.length}</div>
+                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "none" as const, letterSpacing: "0.02em", color: t.textMuted, marginBottom: "8px" }}>Maybe · {maybe.length}</div>
                 <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
                   {maybe.map((r) => (
                     <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px", opacity: 0.75 }}>
-                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
+                      {renderAvatar(r.guestName, r.id, { width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" })}
                       <span>{r.guestName}{r.plusOneCount > 0 && ` +${r.plusOneCount}`}</span>
                     </div>
                   ))}
@@ -2427,11 +2099,11 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             )}
             {no.length > 0 && (
               <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: t.textMuted, marginBottom: "8px" }}>Can&apos;t make it · {no.length}</div>
+                <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "none" as const, letterSpacing: "0.02em", color: t.textMuted, marginBottom: "8px" }}>Can&apos;t make it · {no.length}</div>
                 <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
                   {no.map((r) => (
                     <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "14px", background: t.pillBg, border: `1px solid ${t.pillBorder}`, fontSize: "13px", opacity: 0.45 }}>
-                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
+                      {renderAvatar(r.guestName, r.id, { width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" })}
                       <span>{r.guestName}</span>
                     </div>
                   ))}
@@ -2452,7 +2124,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             {/* Compose area — top of card */}
             {isHost && (
               <div style={{ background: t.accentBg, border: `1px solid ${t.accentBorder}`, borderRadius: "12px", padding: "12px", marginBottom: "12px" }}>
-                <div style={{ fontWeight: 700, fontSize: "12px", color: t.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "8px" }}>Post an Update</div>
+                <div style={{ fontWeight: 700, fontSize: "12px", color: t.accent, textTransform: "none" as const, letterSpacing: "0.02em", marginBottom: "8px" }}>Post an Update</div>
                 <textarea
                   style={{ ...S.inp, resize: "none", marginBottom: "8px" } as React.CSSProperties}
                   rows={3}
@@ -2463,7 +2135,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: t.textSecondary, cursor: "pointer" }}>
                     <input type="checkbox" checked={notifyOnUpdate} onChange={(e) => setNotifyOnUpdate(e.target.checked)} style={{ accentColor: t.accent }} />
-                    Notify guests via email
+                    Notify guests of update
                   </label>
                   <button
                     onClick={postUpdate}
@@ -2502,11 +2174,11 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
             {(() => {
               type FeedItem =
                 | { kind: "update"; id: string; body: string; createdAt: Date }
-                | { kind: "comment"; id: string; guestName: string; body: string; createdAt: Date; replies: { id: string; guestName: string; body: string; createdAt: Date }[] }
+                | { kind: "comment"; id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date; replies: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date }[] }
                 | { kind: "activity"; id: string; type: string; actorName: string | null; detail: string; createdAt: Date };
               const feed: FeedItem[] = [
                 ...event.updates.map((u) => ({ kind: "update" as const, id: u.id, body: u.body, createdAt: new Date(u.createdAt) })),
-                ...(event.commentsEnabled ? event.comments.map((c) => ({ kind: "comment" as const, id: c.id, guestName: c.guestName, body: c.body, createdAt: new Date(c.createdAt), replies: c.replies.map((r) => ({ ...r, createdAt: new Date(r.createdAt) })) })) : []),
+                ...(event.commentsEnabled ? event.comments.map((c) => ({ kind: "comment" as const, id: c.id, guestName: c.guestName, body: c.body, rsvpId: c.rsvpId, createdAt: new Date(c.createdAt), replies: c.replies.map((r) => ({ id: r.id, guestName: r.guestName, body: r.body, rsvpId: r.rsvpId, createdAt: new Date(r.createdAt) })) })) : []),
                 ...event.activityEvents.map((a) => ({ kind: "activity" as const, id: a.id, type: a.type, actorName: a.actorName, detail: a.detail, createdAt: new Date(a.createdAt) })),
               ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -2587,7 +2259,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         }
                         return (
                           <div key={`c-${item.id}`} style={{ display: "flex", gap: "10px" }}>
-                            <div style={{ ...S.avatar }}>{item.guestName[0].toUpperCase()}</div>
+                            {renderAvatar(item.guestName, item.rsvpId, { width: "28px", height: "28px" })}
                             <div style={{ flex: 1, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
                               <span style={{ fontWeight: 700, fontSize: "13px" }}>{item.guestName}</span>
                               {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>}
@@ -2617,7 +2289,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                                 <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
                                   {item.replies.map((r) => (
                                     <div key={r.id} style={{ display: "flex", gap: "8px" }}>
-                                      <div style={{ ...S.avatar, width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" }}>{r.guestName[0].toUpperCase()}</div>
+                                      {renderAvatar(r.guestName, r.rsvpId, { width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" })}
                                       <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: "10px", padding: "6px 10px" }}>
                                         <span style={{ fontWeight: 700, fontSize: "12px" }}>{r.guestName}</span>
                                         {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "6px" }}>{timeAgo(r.createdAt)}</span>}
@@ -2738,18 +2410,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       {/* ── Host Bar ── */}
       {isHost && <HostBar eventId={event.id} eventSlug={event.slug} theme={t} visibility={event.visibility} />}
 
-      {/* ── Theme Picker Modal ── */}
-      {showThemePicker && (
-        <ThemePicker
-          eventId={event.id}
-          current={{ base: event.theme?.baseTheme ?? "DARK", accent: event.theme?.accentColor ?? "#a855f7" }}
-          onClose={() => setShowThemePicker(false)}
-          onSave={() => {
-            setShowThemePicker(false);
-            window.location.reload();
-          }}
-        />
-      )}
 
       {/* ── Share QR Modal ── */}
       {showShareQr && (

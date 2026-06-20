@@ -60,7 +60,6 @@ export default {
 
       const recipients = Array.isArray(body.to) ? body.to : [body.to];
       const bcc = body.bcc ? (Array.isArray(body.bcc) ? body.bcc : [body.bcc]) : [];
-      const allRecipients = [...recipients, ...bcc];
 
       await env.EMAIL.send({
         from: rawFrom,

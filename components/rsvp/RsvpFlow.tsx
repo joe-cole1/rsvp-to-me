@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { addRSVP, updateRSVP } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
+import { Check } from "lucide-react";
 
 type RsvpField = { id: string; label: string; fieldType: string; required: boolean; options: string | null };
 
@@ -88,6 +89,7 @@ export function RsvpFlow({
   );
   const [done, setDone] = useState(false);
   const [savedEditToken, setSavedEditToken] = useState(existingRsvp?.editToken ?? "");
+  const [linkCopied, setLinkCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -205,7 +207,7 @@ export function RsvpFlow({
           </p>
           {!email.trim() && !phone.trim() && savedEditToken && (
             <div style={{ background: t.inputBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px", padding: "16px", marginBottom: "24px", textAlign: "left" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: t.accent, marginBottom: "8px" }}>⚠️ Save your Edit Link</div>
+              <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "none", color: t.accent, marginBottom: "8px" }}>⚠️ Save your Edit Link</div>
               <p style={{ fontSize: "13px", color: t.textSecondary, margin: "0 0 12px", lineHeight: 1.5 }}>
                 Since you didn&apos;t add an email or phone, copy this link to change your RSVP later:
               </p>
@@ -219,12 +221,22 @@ export function RsvpFlow({
                   onClick={() => {
                     if (typeof navigator !== "undefined") {
                       navigator.clipboard.writeText(`${window.location.origin}/e/${event.slug}?token=${savedEditToken}`);
-                      alert("Link copied!");
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
                     }
                   }}
-                  style={{ padding: "8px 12px", background: t.accent, border: "none", borderRadius: "10px", color: t.accentFg, fontFamily: "inherit", fontSize: "12px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+                  style={{
+                    padding: "8px 12px",
+                    background: linkCopied ? "#22c55e" : t.accent,
+                    border: "none", borderRadius: "10px",
+                    color: "#ffffff",
+                    fontFamily: "inherit", fontSize: "12px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+                    display: "flex", alignItems: "center", gap: "4px",
+                    transition: "all 0.15s ease-in-out"
+                  }}
                 >
-                  Copy
+                  {linkCopied ? <Check size={12} /> : null}
+                  {linkCopied ? "Copied!" : "Copy"}
                 </button>
               </div>
             </div>
@@ -247,7 +259,7 @@ export function RsvpFlow({
     body: { maxWidth: "540px", margin: "0 auto", padding: "24px 20px 0", position: "relative", zIndex: 1 } as React.CSSProperties,
     footer: { position: "fixed", bottom: 0, left: 0, right: 0, background: t.pageBg, borderTop: `1px solid ${t.cardBorder}`, padding: "14px 20px", display: "flex", gap: "10px", justifyContent: "flex-end", zIndex: 50 } as React.CSSProperties,
     inp: { width: "100%", padding: "13px 16px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "12px", color: t.textPrimary, fontFamily: "inherit", fontSize: "15px", outline: "none", boxSizing: "border-box", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" } as React.CSSProperties,
-    label: { display: "block", fontSize: "12px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: t.textMuted, marginBottom: "8px" },
+    label: { display: "block", fontSize: "12px", fontWeight: 700, textTransform: "none" as const, letterSpacing: "0.02em", color: t.textMuted, marginBottom: "8px" },
     group: { marginBottom: "20px" } as React.CSSProperties,
     cancelBtn: { padding: "12px 22px", background: "transparent", border: `1px solid ${t.cardBorder}`, borderRadius: t.btnRadius, color: t.textMuted, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" } as React.CSSProperties,
     primaryBtn: { padding: "12px 28px", background: t.accent, border: "none", borderRadius: t.btnRadius, color: t.accentFg, fontFamily: "inherit", fontSize: "14px", fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"], cursor: "pointer", boxShadow: t.accentShadow } as React.CSSProperties,
@@ -263,7 +275,7 @@ export function RsvpFlow({
             ← Back
           </a>
           <div style={{ marginBottom: "20px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: t.accent, marginBottom: "4px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.accent, marginBottom: "4px" }}>
               {isEdit ? "Update RSVP" : "RSVP"}
             </div>
             <h1 style={{ fontSize: "22px", fontWeight: 800, margin: "0 0 4px", lineHeight: 1.2 }}>{event.title}</h1>

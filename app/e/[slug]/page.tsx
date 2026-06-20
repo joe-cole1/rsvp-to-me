@@ -14,7 +14,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const event = await db.event.findUnique({
     where: { slug },
     include: {
-      host: { select: { id: true, name: true, email: true } },
+      host: { select: { id: true, name: true, email: true, avatarUrl: true } },
       theme: true,
       infoSections: { orderBy: { order: "asc" } },
       rsvpFields: { orderBy: { order: "asc" } },
@@ -28,6 +28,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
           plusOneCount: true,
           note: true,
           createdAt: true,
+          user: { select: { avatarUrl: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -111,6 +112,21 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     event.theme?.accentColor ?? "#a855f7"
   );
 
+  let sessionUser = null;
+  if (session) {
+    const dbUser = await db.user.findUnique({
+      where: { id: session.userId },
+      select: { email: true, name: true, avatarUrl: true },
+    });
+    if (dbUser) {
+      sessionUser = {
+        email: dbUser.email ?? session.email,
+        name: dbUser.name,
+        avatarUrl: dbUser.avatarUrl,
+      };
+    }
+  }
+
   return (
     <EventPage
       event={{ ...event, pendingRsvps } as Parameters<typeof EventPage>[0]["event"]}
@@ -118,7 +134,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       theme={theme}
       coverUploadEnabled={true}
       guestRsvp={guestRsvp ?? null}
-      sessionUser={session ? { email: session.email } : null}
+      sessionUser={sessionUser}
     />
   );
 }

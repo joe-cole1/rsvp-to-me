@@ -12,6 +12,13 @@ import {
   addRsvpField,
   updateRsvpField,
   deleteRsvpField,
+  createPoll,
+  deletePoll,
+  addPollOption,
+  deletePollOption,
+  updatePollSettings,
+  addPotluckItem,
+  removePotluckItem,
 } from "@/app/actions/event";
 
 type CoHostEntry = { id: string; user: { id: string; name: string | null; email: string } };
@@ -23,6 +30,39 @@ type RsvpFieldEntry = {
   required: boolean;
   options: string | null;
   order: number;
+};
+
+type PollOptionEntry = {
+  id: string;
+  pollId: string;
+  text: string;
+  creatorName: string | null;
+  createdAt: Date;
+  votes: { id: string; voterName: string; createdAt: Date }[];
+};
+
+type PollEntry = {
+  id: string;
+  eventId: string;
+  question: string;
+  multiChoice: boolean;
+  allowGuestsToAdd: boolean;
+  locked: boolean;
+  hideVoters: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  options: PollOptionEntry[];
+};
+
+type PotluckItemEntry = {
+  id: string;
+  eventId: string;
+  label: string;
+  quantity: number;
+  claimedQty: number | null;
+  claimedBy: string | null;
+  claimedAt: Date | null;
+  createdAt: Date;
 };
 
 type EventInput = {
@@ -50,6 +90,8 @@ type EventInput = {
   } | null;
   coHosts: CoHostEntry[];
   rsvpFields: RsvpFieldEntry[];
+  polls: PollEntry[];
+  potluckItems: PotluckItemEntry[];
 };
 
 interface SettingsOverrides {
@@ -84,6 +126,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED" | "ERROR">("IDLE");
   const [err, setErr] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"theme" | "hosts" | "rsvp" | "questionnaire" | "privacy" | "reminders" | "polls" | "potluck" | null>(null);
 
   // ── Theme State ──
   const [base, setBase] = useState<BaseTheme>(event.theme?.baseTheme ?? "DARK");
@@ -139,6 +182,20 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.options ?? ""]))
   );
 
+  // ── Polls State ──
+  const [polls, setPolls] = useState<PollEntry[]>(event.polls || []);
+  const [newPollQuestion, setNewPollQuestion] = useState("");
+  const [newPollOptions, setNewPollOptions] = useState<string[]>(["", ""]);
+  const [newPollMultiChoice, setNewPollMultiChoice] = useState(false);
+  const [newPollAllowGuestsToAdd, setNewPollAllowGuestsToAdd] = useState(true);
+  const [newPollHideVoters, setNewPollHideVoters] = useState(false);
+  const [newPollOptionTexts, setNewPollOptionTexts] = useState<Record<string, string>>({});
+
+  // ── Potluck State ──
+  const [potluckItems, setPotluckItems] = useState<PotluckItemEntry[]>(event.potluckItems || []);
+  const [newPotluckLabel, setNewPotluckLabel] = useState("");
+  const [newPotluckQty, setNewPotluckQty] = useState(1);
+
   // Clear saved status after delay
   useEffect(() => {
     if (saveStatus === "SAVED" || saveStatus === "ERROR") {
@@ -146,6 +203,52 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       return () => clearTimeout(timer);
     }
   }, [saveStatus]);
+
+  // Sync active section with URL query parameter for browser back button support
+  useEffect(() => {
+    const getSectionFromUrl = () => {
+      if (typeof window === "undefined") return null;
+      const params = new URLSearchParams(window.location.search);
+      const section = params.get("section");
+      const validSections = ["theme", "hosts", "rsvp", "questionnaire", "privacy", "reminders", "polls", "potluck"];
+      if (validSections.includes(section || "")) {
+        return section as "theme" | "hosts" | "rsvp" | "questionnaire" | "privacy" | "reminders" | "polls" | "potluck";
+      }
+      return null;
+    };
+
+    const initialSection = getSectionFromUrl();
+    if (initialSection) {
+      setTimeout(() => {
+        setActiveSection(initialSection);
+      }, 0);
+    }
+
+    const handlePopState = () => {
+      setActiveSection(getSectionFromUrl());
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const openSection = (section: "theme" | "hosts" | "rsvp" | "questionnaire" | "privacy" | "reminders" | "polls" | "potluck") => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("section", section);
+    window.history.pushState({ section }, "", url.toString());
+    setActiveSection(section);
+  };
+
+  const closeSection = () => {
+    if (window.history.state && window.history.state.section) {
+      window.history.back();
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("section");
+      window.history.replaceState(null, "", url.toString());
+      setActiveSection(null);
+    }
+  };
 
   // ── Theme Auto-Save ──
   const triggerSaveTheme = (newBase: BaseTheme, newAccent: string) => {
@@ -254,6 +357,196 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       try {
         await removeCoHost(cohostRecordId);
         setCoHosts((prev) => prev.filter((c) => c.id !== cohostRecordId));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  // ── Poll Actions ──
+  const handleAddPoll = () => {
+    const question = newPollQuestion.trim();
+    const opts = newPollOptions.map((o) => o.trim()).filter(Boolean);
+    if (!question || opts.length < 2) return;
+
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        const result = await createPoll(
+          event.id,
+          question,
+          opts,
+          newPollMultiChoice,
+          newPollAllowGuestsToAdd,
+          newPollHideVoters
+        );
+        if (result.success && result.id) {
+          const newPollObj: PollEntry = {
+            id: result.id,
+            eventId: event.id,
+            question,
+            multiChoice: newPollMultiChoice,
+            allowGuestsToAdd: newPollAllowGuestsToAdd,
+            locked: false,
+            hideVoters: newPollHideVoters,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            options: opts.map((text, idx) => ({
+              id: `${result.id}-opt-${idx}-${Date.now()}`,
+              pollId: result.id,
+              text,
+              creatorName: null,
+              createdAt: new Date(),
+              votes: [],
+            })),
+          };
+          setPolls((prev) => [...prev, newPollObj]);
+          setNewPollQuestion("");
+          setNewPollOptions(["", ""]);
+          setNewPollMultiChoice(false);
+          setNewPollAllowGuestsToAdd(true);
+          setNewPollHideVoters(false);
+          setSaveStatus("SAVED");
+        } else {
+          setSaveStatus("ERROR");
+        }
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleDeletePoll = (pollId: string) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await deletePoll(pollId);
+        setPolls((prev) => prev.filter((p) => p.id !== pollId));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleUpdatePollSettings = (pollId: string, settings: { question?: string; multiChoice?: boolean; allowGuestsToAdd?: boolean; locked?: boolean; hideVoters?: boolean }) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await updatePollSettings(pollId, settings);
+        setPolls((prev) =>
+          prev.map((p) => (p.id === pollId ? { ...p, ...settings } : p))
+        );
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleAddPollOption = async (pollId: string) => {
+    const optionText = newPollOptionTexts[pollId]?.trim();
+    if (!optionText) return;
+
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        const result = await addPollOption(pollId, optionText, "Host");
+        if (result.success && result.id) {
+          setPolls((prev) =>
+            prev.map((p) => {
+              if (p.id !== pollId) return p;
+              return {
+                ...p,
+                options: [
+                  ...p.options,
+                  {
+                    id: result.id!,
+                    pollId,
+                    text: optionText,
+                    creatorName: null,
+                    createdAt: new Date(),
+                    votes: [],
+                  },
+                ],
+              };
+            })
+          );
+          setNewPollOptionTexts((prev) => ({ ...prev, [pollId]: "" }));
+          setSaveStatus("SAVED");
+        } else {
+          setSaveStatus("ERROR");
+        }
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleDeletePollOption = async (pollId: string, optionId: string) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await deletePollOption(pollId, optionId);
+        setPolls((prev) =>
+          prev.map((p) => {
+            if (p.id !== pollId) return p;
+            return {
+              ...p,
+              options: p.options.filter((o) => o.id !== optionId),
+            };
+          })
+        );
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  // ── Potluck Actions ──
+  const handleAddPotluckItem = () => {
+    const label = newPotluckLabel.trim();
+    const qty = newPotluckQty;
+    if (!label) return;
+
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        const result = await addPotluckItem(event.id, label, qty);
+        if (result && result.id) {
+          setPotluckItems((prev) => [
+            ...prev,
+            {
+              id: result.id,
+              eventId: event.id,
+              label,
+              quantity: qty,
+              claimedQty: null,
+              claimedBy: null,
+              claimedAt: null,
+              createdAt: new Date(),
+            },
+          ]);
+          setNewPotluckLabel("");
+          setNewPotluckQty(1);
+          setSaveStatus("SAVED");
+        } else {
+          setSaveStatus("ERROR");
+        }
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleRemovePotluckItem = (itemId: string) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await removePotluckItem(itemId);
+        setPotluckItems((prev) => prev.filter((i) => i.id !== itemId));
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -413,10 +706,38 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       {renderDecorations()}
       
       <div style={S.header}>
-        <a href={`/e/${event.slug}`} style={{ display: "flex", alignItems: "center", color: t.textSecondary, textDecoration: "none" }}>
+        <button
+          onClick={() => {
+            if (activeSection) {
+              closeSection();
+            } else {
+              window.location.href = `/e/${event.slug}`;
+            }
+          }}
+          style={{ display: "flex", alignItems: "center", color: t.textSecondary, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+        >
           <ArrowLeft size={20} />
-        </a>
-        <h1 style={{ fontSize: "17px", fontWeight: 700, color: t.textPrimary, flex: 1 }}>Event Settings</h1>
+        </button>
+        <h1 style={{ fontSize: "17px", fontWeight: 700, color: t.textPrimary, flex: 1, marginLeft: "12px" }}>
+          {activeSection ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ cursor: "pointer", opacity: 0.6 }} onClick={closeSection}>Settings</span>
+              <span style={{ opacity: 0.4 }}>/</span>
+              <span>
+                {activeSection === "theme" && "Theme"}
+                {activeSection === "hosts" && "Hosts"}
+                {activeSection === "rsvp" && "RSVP Options"}
+                {activeSection === "questionnaire" && "Questionnaire"}
+                {activeSection === "polls" && "Polls"}
+                {activeSection === "potluck" && "Potluck"}
+                {activeSection === "privacy" && "Display Options"}
+                {activeSection === "reminders" && "Auto-Reminders"}
+              </span>
+            </div>
+          ) : (
+            "Event Settings"
+          )}
+        </h1>
         {saveStatus === "SAVING" && (
           <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: t.textMuted }}>
             <span style={{
@@ -428,49 +749,114 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
             Saving...
           </div>
         )}
-        {saveStatus === "SAVED" && (
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#22c55e", fontWeight: 600 }}>
-            <Check size={14} /> Saved
-          </div>
-        )}
-        {saveStatus === "ERROR" && (
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#ef4444", fontWeight: 600 }}>
-            ⚠️ Error
-          </div>
-        )}
       </div>
+
+      {/* Floating toast notification for settings save status */}
+      {(saveStatus === "SAVED" || saveStatus === "ERROR") && (
+        <div style={{
+          position: "fixed",
+          top: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 10000,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          background: t.cardBg,
+          border: `1px solid ${saveStatus === "SAVED" ? "#22c55e" : "#ef4444"}`,
+          borderRadius: t.cardRadius,
+          padding: "10px 16px",
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.15)",
+          color: saveStatus === "SAVED" ? "#22c55e" : "#ef4444",
+          fontWeight: 600,
+          fontSize: "14px",
+          backdropFilter: "blur(8px)",
+          transition: "all 0.2s ease-in-out"
+        }}>
+          {saveStatus === "SAVED" ? <Check size={16} color="#22c55e" /> : <span>⚠️</span>}
+          {saveStatus === "SAVED" ? "Changes saved" : "Error saving changes"}
+        </div>
+      )}
 
       <div style={S.container}>
 
-        {/* ── Theme ── */}
-        <Section title="Theme" t={t}>
-          <div style={{ marginBottom: "20px" }}>
-            <Label t={t}>Style</Label>
-            <div style={{ display: "flex", gap: "10px" }}>
-              {BASE_THEMES.map((bt) => (
-                <button key={bt.id} onClick={() => { setBase(bt.id); triggerSaveTheme(bt.id, accent); }} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
-                  <div style={{ height: "44px", background: bt.preview }} />
-                  <div style={{ padding: "6px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <Label t={t}>Accent Color</Label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            {ACCENT_PRESETS.map((p) => (
-              <button key={p.value} onClick={() => { setAccent(p.value); triggerSaveTheme(base, p.value); }} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
+        {activeSection === null && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {([
+              ...(isOwner ? [{ id: "hosts" as const, title: "👥 Hosts & Co-hosts", desc: "Manage who can edit this event" }] : []),
+              { id: "privacy", title: "🔒 Display Options", desc: "Guest list visibility, password, and public settings" },
+              { id: "rsvp", title: "✉️ RSVP Options", desc: "+1 settings, RSVP approval, and maybe options" },
+              { id: "theme", title: "🎨 Theme", desc: "Change base theme and accent color" },
+              { id: "reminders", title: "🔔 Auto-Reminders", desc: "Set up automatic emails and texts before/after event" },
+              { id: "polls", title: "📊 Polls", desc: "Create and manage polls for guests" },
+              { id: "questionnaire", title: "📋 Questionnaire", desc: "Ask custom questions to guests during RSVP" },
+              { id: "potluck", title: "🍽️ Potluck", desc: "Manage items guests can sign up to bring" }
+            ] as {
+              id: "theme" | "hosts" | "rsvp" | "questionnaire" | "privacy" | "reminders" | "polls" | "potluck";
+              title: string;
+              desc: string;
+            }[]).map((sec) => (
+              <button
+                key={sec.id}
+                onClick={() => openSection(sec.id)}
+                style={{
+                  textAlign: "left",
+                  background: t.cardBg,
+                  border: `1px solid ${t.cardBorder}`,
+                  borderRadius: t.cardRadius,
+                  padding: "20px",
+                  boxShadow: t.cardShadow,
+                  backdropFilter: "blur(12px)",
+                  cursor: "pointer",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  transition: "all 0.15s ease-in-out"
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: 700, color: t.textPrimary, margin: "0 0 4px" }}>{sec.title}</h3>
+                  <p style={{ fontSize: "13px", color: t.textMuted, margin: 0 }}>{sec.desc}</p>
+                </div>
+                <span style={{ fontSize: "18px", color: t.textMuted }}>➔</span>
               </button>
             ))}
-            <label style={{ width: "32px", height: "32px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
-              🎨
-              <input type="color" value={accent} onChange={(e) => { setAccent(e.target.value); triggerSaveTheme(base, e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-            </label>
           </div>
-        </Section>
+        )}
+
+        {/* ── Theme ── */}
+        {activeSection === "theme" && (
+          <Section title="Theme" t={t}>
+            <div style={{ marginBottom: "20px" }}>
+              <Label t={t}>Style</Label>
+              <div style={{ display: "flex", gap: "10px" }}>
+                {BASE_THEMES.map((bt) => (
+                  <button key={bt.id} onClick={() => { setBase(bt.id); triggerSaveTheme(bt.id, accent); }} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
+                    <div style={{ height: "44px", background: bt.preview }} />
+                    <div style={{ padding: "6px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Label t={t}>Accent Color</Label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {ACCENT_PRESETS.map((p) => (
+                <button key={p.value} onClick={() => { setAccent(p.value); triggerSaveTheme(base, p.value); }} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
+                </button>
+              ))}
+              <label style={{ width: "32px", height: "32px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
+                🎨
+                <input type="color" value={accent} onChange={(e) => { setAccent(e.target.value); triggerSaveTheme(base, e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+              </label>
+            </div>
+          </Section>
+        )}
 
         {/* ── Hosts ── */}
-        {isOwner && (
+        {activeSection === "hosts" && isOwner && (
           <Section title="Hosts" t={t}>
             <div style={{ marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: `1px solid ${t.cardBorder}` }}>
@@ -498,280 +884,542 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                 value={cohostEmail}
                 onChange={(e) => setCohostEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAddCohost(); }}
-                placeholder="Add co-host by email"
-                style={S.inp}
+                placeholder="cohost@email.com"
+                style={{ ...S.inp, flex: 1 }}
               />
-              <button onClick={handleAddCohost} disabled={!cohostEmail.trim() || isPending} style={S.smallBtn}>Add</button>
+              <button onClick={handleAddCohost} disabled={isPending || !cohostEmail.trim()} style={S.smallBtn}>Add</button>
             </div>
             {cohostError && <div style={{ fontSize: "13px", color: "#f87171", marginTop: "8px" }}>{cohostError}</div>}
           </Section>
         )}
 
         {/* ── RSVP Options ── */}
-        <Section title="RSVP Options" t={t}>
-          {/* Max plus-ones select dropdown */}
-          <div style={{ marginBottom: "16px" }}>
-            <Label t={t}>Max plus-ones per guest</Label>
-            <select
-              style={{ ...S.inp, cursor: "pointer" }}
-              value={plusOneAllowed ? plusOneMax : 0}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                const allowed = val > 0;
-                setPlusOneAllowed(allowed);
-                setPlusOneMax(allowed ? val : 0);
-                triggerSaveSettings({ plusOneAllowed: allowed, plusOneMax: allowed ? val : 0 });
-              }}
-            >
-              <option value={0}>No +1s</option>
-              {Array.from({ length: 9 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  Up to {i + 1}
-                </option>
-              ))}
-            </select>
-          </div>
+        {activeSection === "rsvp" && (
+          <Section title="RSVP Options" t={t}>
+            {/* Max plus-ones select dropdown */}
+            <div style={{ marginBottom: "16px" }}>
+              <Label t={t}>Max plus-ones per guest</Label>
+              <select
+                style={{ ...S.inp, cursor: "pointer" }}
+                value={plusOneAllowed ? plusOneMax : 0}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  const allowed = val > 0;
+                  setPlusOneAllowed(allowed);
+                  setPlusOneMax(allowed ? val : 0);
+                  triggerSaveSettings({ plusOneAllowed: allowed, plusOneMax: allowed ? val : 0 });
+                }}
+              >
+                <option value={0}>No +1s</option>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    Up to {i + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {plusOneAllowed && (
+            {plusOneAllowed && (
+              <Toggle
+                label="Require plus-one names"
+                value={plusOneNamesRequired}
+                onChange={(val) => {
+                  setPlusOneNamesRequired(val);
+                  triggerSaveSettings({ plusOneNamesRequired: val });
+                }}
+                t={t}
+              />
+            )}
+
+            <div style={{ borderTop: `1px solid ${t.cardBorder}`, margin: "16px -20px 16px -20px", padding: "16px 20px 0 20px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "none", color: t.textMuted, marginBottom: "12px", letterSpacing: "0.02em" }}>
+                RSVP & Approval Options
+              </div>
+              <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={(val) => { setApprovalRequired(val); triggerSaveSettings({ approvalRequired: val }); }} t={t} />
+              <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={(val) => { setMaybeEnabled(val); triggerSaveSettings({ maybeEnabled: val }); }} t={t} />
+            </div>
+            
+            <div style={{ marginBottom: "16px", marginTop: "16px" }}>
+              <Label t={t}>Capacity limit (optional)</Label>
+              <input
+                type="number"
+                placeholder="No limit"
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                onBlur={() => {
+                  const val = capacity.trim() ? Number(capacity) : null;
+                  triggerSaveSettings({ capacity: val });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const val = capacity.trim() ? Number(capacity) : null;
+                    triggerSaveSettings({ capacity: val });
+                    e.currentTarget.blur();
+                  }
+                }}
+                style={S.inp}
+              />
+            </div>
+            <div>
+              <Label t={t}>RSVP deadline (optional)</Label>
+              <input
+                type="datetime-local"
+                value={rsvpDeadline}
+                onChange={(e) => setRsvpDeadline(e.target.value)}
+                onBlur={() => {
+                  triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
+                    e.currentTarget.blur();
+                  }
+                }}
+                style={S.inp}
+              />
+            </div>
+          </Section>
+        )}
+
+        {/* ── Questionnaire ── */}
+        {activeSection === "questionnaire" && (
+          <Section title="Questionnaire" t={t}>
+            <Toggle label="Ask guests custom questions" value={questionnaireEnabled} onChange={(val) => { setQuestionnaireEnabled(val); triggerSaveSettings({ questionnaireEnabled: val }); }} t={t} />
+
+            {fields.length > 0 && (
+              <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {fields.map((f) => (
+                  <div key={f.id} style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "14px", padding: "14px" }}>
+                    {/* Top row: type select + required + delete */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                      <select
+                        value={f.fieldType}
+                        onChange={(e) => handleUpdateFieldType(f.id, e.target.value as RsvpFieldEntry["fieldType"])}
+                        style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}
+                      >
+                        <option value="TEXT">Short text</option>
+                        <option value="TEXTAREA">Long text</option>
+                        <option value="SELECT">Multiple choice</option>
+                        <option value="CHECKBOX">Checkboxes</option>
+                      </select>
+                      <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: t.textSecondary, whiteSpace: "nowrap" }}>
+                        <input
+                          type="checkbox"
+                          checked={f.required}
+                          onChange={(e) => handleUpdateFieldRequired(f.id, e.target.checked)}
+                          style={{ accentColor: t.accent }}
+                        />
+                        Required
+                      </label>
+                      <button onClick={() => handleDeleteField(f.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                        <X size={15} />
+                      </button>
+                    </div>
+                    {/* Label input */}
+                    <input
+                      value={labelDrafts[f.id] ?? f.label}
+                      onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                      onBlur={() => handleUpdateFieldLabel(f.id)}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                      placeholder="Question text"
+                      style={{ ...S.inp, marginBottom: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? "8px" : 0 }}
+                    />
+                    {/* Options textarea for SELECT/CHECKBOX */}
+                    {(f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") && (
+                      <textarea
+                        value={optionsDrafts[f.id] ?? (f.options ?? "")}
+                        onChange={(e) => setOptionsDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                        onBlur={() => handleUpdateFieldOptions(f.id)}
+                        placeholder="Options, one per line"
+                        style={{ ...S.inp, resize: "none", marginTop: "4px" } as React.CSSProperties}
+                        rows={3}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {addingField ? (
+              <div style={{ marginTop: "12px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "14px", padding: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}>
+                    <option value="TEXT">Short text</option>
+                    <option value="TEXTAREA">Long text</option>
+                    <option value="SELECT">Multiple choice</option>
+                    <option value="CHECKBOX">Checkboxes</option>
+                  </select>
+                  <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: t.textSecondary, whiteSpace: "nowrap" }}>
+                    <input type="checkbox" checked={newFieldRequired} onChange={(e) => setNewFieldRequired(e.target.checked)} style={{ accentColor: t.accent }} />
+                    Required
+                  </label>
+                </div>
+                <input value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="Question text *" style={S.inp} />
+                {(newFieldType === "SELECT" || newFieldType === "CHECKBOX") && (
+                  <textarea value={newFieldOptions} onChange={(e) => setNewFieldOptions(e.target.value)} placeholder="Options, one per line" style={{ ...S.inp, resize: "none" } as React.CSSProperties} rows={3} />
+                )}
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={handleAddField} disabled={!newFieldLabel.trim() || isPending} style={{ ...S.smallBtn, flex: 1 }}>Add Question</button>
+                  <button onClick={() => setAddingField(false)} style={{ ...S.smallBtn, background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}` }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setAddingField(true)} style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "6px", background: t.inputBg, border: `1px dashed ${t.accentBorder}`, borderRadius: "10px", padding: "10px 14px", color: t.textMuted, cursor: "pointer", fontFamily: "inherit", fontSize: "13px", width: "100%" }}>
+                <Plus size={14} /> Add Question
+              </button>
+            )}
+          </Section>
+        )}
+
+        {/* ── Display Options ── */}
+        {activeSection === "privacy" && (
+          <Section title="Display Options" t={t}>
+            <Toggle label="Allow guest comments" value={commentsEnabled} onChange={(val) => { setCommentsEnabled(val); triggerSaveSettings({ commentsEnabled: val }); }} t={t} />
+            
             <Toggle
-              label="Require plus-one names"
-              value={plusOneNamesRequired}
+              label="Allow guest sharing (Copy link & QR code)"
+              value={guestSharingEnabled}
               onChange={(val) => {
-                setPlusOneNamesRequired(val);
-                triggerSaveSettings({ plusOneNamesRequired: val });
+                setGuestSharingEnabled(val);
+                triggerSaveSettings({ guestSharingEnabled: val });
               }}
               t={t}
             />
-          )}
 
-          <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={(val) => { setApprovalRequired(val); triggerSaveSettings({ approvalRequired: val }); }} t={t} />
-          <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={(val) => { setMaybeEnabled(val); triggerSaveSettings({ maybeEnabled: val }); }} t={t} />
-          
-          <div style={{ marginBottom: "16px" }}>
-            <Label t={t}>Capacity limit (optional)</Label>
-            <input
-              type="number"
-              placeholder="No limit"
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              onBlur={() => {
-                const val = capacity.trim() ? Number(capacity) : null;
-                triggerSaveSettings({ capacity: val });
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const val = capacity.trim() ? Number(capacity) : null;
-                  triggerSaveSettings({ capacity: val });
-                  e.currentTarget.blur();
-                }
-              }}
-              style={S.inp}
-            />
-          </div>
-          <div>
-            <Label t={t}>RSVP deadline (optional)</Label>
-            <input
-              type="datetime-local"
-              value={rsvpDeadline}
-              onChange={(e) => setRsvpDeadline(e.target.value)}
-              onBlur={() => {
-                triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
-                  e.currentTarget.blur();
-                }
-              }}
-              style={S.inp}
-            />
-          </div>
-        </Section>
-
-        {/* ── Questionnaire ── */}
-        <Section title="Questionnaire" t={t}>
-          <Toggle label="Ask guests custom questions" value={questionnaireEnabled} onChange={(val) => { setQuestionnaireEnabled(val); triggerSaveSettings({ questionnaireEnabled: val }); }} t={t} />
-
-          {fields.length > 0 && (
-            <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-              {fields.map((f) => (
-                <div key={f.id} style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "14px", padding: "14px" }}>
-                  {/* Top row: type select + required + delete */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                    <select
-                      value={f.fieldType}
-                      onChange={(e) => handleUpdateFieldType(f.id, e.target.value as RsvpFieldEntry["fieldType"])}
-                      style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}
-                    >
-                      <option value="TEXT">Short text</option>
-                      <option value="TEXTAREA">Long text</option>
-                      <option value="SELECT">Multiple choice</option>
-                      <option value="CHECKBOX">Checkboxes</option>
-                    </select>
-                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: t.textSecondary, whiteSpace: "nowrap" }}>
-                      <input
-                        type="checkbox"
-                        checked={f.required}
-                        onChange={(e) => handleUpdateFieldRequired(f.id, e.target.checked)}
-                        style={{ accentColor: t.accent }}
-                      />
-                      Required
-                    </label>
-                    <button onClick={() => handleDeleteField(f.id)} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px", flexShrink: 0, display: "flex", alignItems: "center" }}>
-                      <X size={15} />
-                    </button>
-                  </div>
-                  {/* Label input */}
-                  <input
-                    value={labelDrafts[f.id] ?? f.label}
-                    onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                    onBlur={() => handleUpdateFieldLabel(f.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                    placeholder="Question text"
-                    style={{ ...S.inp, marginBottom: (f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") ? "8px" : 0 }}
-                  />
-                  {/* Options textarea for SELECT/CHECKBOX */}
-                  {(f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") && (
-                    <textarea
-                      value={optionsDrafts[f.id] ?? (f.options ?? "")}
-                      onChange={(e) => setOptionsDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                      onBlur={() => handleUpdateFieldOptions(f.id)}
-                      placeholder="Options, one per line"
-                      style={{ ...S.inp, resize: "none", marginTop: "4px" } as React.CSSProperties}
-                      rows={3}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {addingField ? (
-            <div style={{ marginTop: "12px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "14px", padding: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)} style={{ flex: 1, padding: "6px 10px", background: t.cardBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", fontSize: "12px", cursor: "pointer", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}>
-                  <option value="TEXT">Short text</option>
-                  <option value="TEXTAREA">Long text</option>
-                  <option value="SELECT">Multiple choice</option>
-                  <option value="CHECKBOX">Checkboxes</option>
-                </select>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", fontSize: "12px", color: t.textSecondary, whiteSpace: "nowrap" }}>
-                  <input type="checkbox" checked={newFieldRequired} onChange={(e) => setNewFieldRequired(e.target.checked)} style={{ accentColor: t.accent }} />
-                  Required
-                </label>
-              </div>
-              <input value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="Question text *" style={S.inp} />
-              {(newFieldType === "SELECT" || newFieldType === "CHECKBOX") && (
-                <textarea value={newFieldOptions} onChange={(e) => setNewFieldOptions(e.target.value)} placeholder="Options, one per line" style={{ ...S.inp, resize: "none" } as React.CSSProperties} rows={3} />
-              )}
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={handleAddField} disabled={!newFieldLabel.trim() || isPending} style={{ ...S.smallBtn, flex: 1 }}>Add Question</button>
-                <button onClick={() => setAddingField(false)} style={{ ...S.smallBtn, background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}` }}>Cancel</button>
+            <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={(val) => { setShowTimestamps(val); triggerSaveSettings({ showTimestamps: val }); }} t={t} />
+            
+            <div style={{ marginBottom: "16px" }}>
+              <Label t={t}>Guest list visibility</Label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {([["ALL", "Everyone can see"], ["GUESTS_ONLY", "Going guests only"], ["HOST_ONLY", "Host only"]] as const).map(([val, label]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                    <input type="radio" checked={guestListVis === val} onChange={() => { setGuestListVis(val); triggerSaveSettings({ guestListVis: val }); }} style={{ accentColor: t.accent }} />
+                    <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
+                  </label>
+                ))}
               </div>
             </div>
-          ) : (
-            <button onClick={() => setAddingField(true)} style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "6px", background: t.inputBg, border: `1px dashed ${t.accentBorder}`, borderRadius: "10px", padding: "10px 14px", color: t.textMuted, cursor: "pointer", fontFamily: "inherit", fontSize: "13px", width: "100%" }}>
-              <Plus size={14} /> Add Question
-            </button>
-          )}
-        </Section>
-
-        {/* ── Display & Privacy ── */}
-        <Section title="Display & Privacy" t={t}>
-          <Toggle label="Allow guest comments" value={commentsEnabled} onChange={(val) => { setCommentsEnabled(val); triggerSaveSettings({ commentsEnabled: val }); }} t={t} />
-          
-          <Toggle
-            label="Allow guest sharing (Copy link & QR code)"
-            value={guestSharingEnabled}
-            onChange={(val) => {
-              setGuestSharingEnabled(val);
-              triggerSaveSettings({ guestSharingEnabled: val });
-            }}
-            t={t}
-          />
-
-          <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={(val) => { setShowTimestamps(val); triggerSaveSettings({ showTimestamps: val }); }} t={t} />
-          
-          <div style={{ marginBottom: "16px" }}>
-            <Label t={t}>Guest list visibility</Label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {([["ALL", "Everyone can see"], ["GUESTS_ONLY", "Going guests only"], ["HOST_ONLY", "Host only"]] as const).map(([val, label]) => (
-                <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                  <input type="radio" checked={guestListVis === val} onChange={() => { setGuestListVis(val); triggerSaveSettings({ guestListVis: val }); }} style={{ accentColor: t.accent }} />
-                  <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
-                </label>
-              ))}
+            <div style={{ marginBottom: "16px" }}>
+              <Label t={t}>Event visibility</Label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {([["PUBLIC", "Public — findable by anyone"], ["UNLISTED", "Unlisted — only people with the link"], ["PRIVATE", "Private — invite only"]] as const).map(([val, label]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                    <input type="radio" checked={visibility === val} onChange={() => { setVisibility(val); triggerSaveSettings({ visibility: val }); }} style={{ accentColor: t.accent }} />
+                    <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-          <div style={{ marginBottom: "16px" }}>
-            <Label t={t}>Event visibility</Label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {([["PUBLIC", "Public — findable by anyone"], ["UNLISTED", "Unlisted — only people with the link"], ["PRIVATE", "Private — invite only"]] as const).map(([val, label]) => (
-                <label key={val} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                  <input type="radio" checked={visibility === val} onChange={() => { setVisibility(val); triggerSaveSettings({ visibility: val }); }} style={{ accentColor: t.accent }} />
-                  <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label t={t}>Event password (optional)</Label>
-            <input
-              type="text"
-              placeholder="Leave blank for no password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onBlur={() => {
-                triggerSaveSettings({ password: password.trim() || null });
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
+            <div>
+              <Label t={t}>Event password (optional)</Label>
+              <input
+                type="text"
+                placeholder="Leave blank for no password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => {
                   triggerSaveSettings({ password: password.trim() || null });
-                  e.currentTarget.blur();
-                }
-              }}
-              style={S.inp}
-              autoComplete="off"
-            />
-            {password && <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
-          </div>
-        </Section>
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    triggerSaveSettings({ password: password.trim() || null });
+                    e.currentTarget.blur();
+                  }
+                }}
+                style={S.inp}
+                autoComplete="off"
+              />
+              {password && <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
+            </div>
+          </Section>
+        )}
 
         {/* ── Auto-Reminders ── */}
-        <Section title="Auto-Reminders" t={t}>
-          <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "16px" }}>
-            Reminders are sent to guests who provided their email or phone number.
-          </div>
-          <div style={{ marginBottom: "20px" }}>
-            <Label t={t}>Email reminders</Label>
-            <Toggle label="1 week before" value={emailWeekBefore} onChange={(val) => { setEmailWeekBefore(val); triggerSaveReminders({ emailWeekBefore: val }); }} t={t} />
-            <Toggle label="1 day before" value={emailDayBefore} onChange={(val) => { setEmailDayBefore(val); triggerSaveReminders({ emailDayBefore: val }); }} t={t} />
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-              <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
-              <select value={emailHoursBefore} onChange={(e) => { const val = Number(e.target.value); setEmailHoursBefore(val); triggerSaveReminders({ emailHoursBefore: val }); }} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", cursor: "pointer" }}>
-                <option value={0}>Off</option>
-                <option value={1}>1 hour</option>
-                <option value={2}>2 hours</option>
-                <option value={4}>4 hours</option>
-              </select>
+        {activeSection === "reminders" && (
+          <Section title="Auto-Reminders" t={t}>
+            <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "16px" }}>
+              Reminders are sent to guests who provided their email or phone number.
             </div>
-          </div>
-          <div style={{ marginBottom: "20px" }}>
-            <Label t={t}>SMS reminders</Label>
-            <Toggle label="1 week before" value={smsWeekBefore} onChange={(val) => { setSmsWeekBefore(val); triggerSaveReminders({ smsWeekBefore: val }); }} t={t} />
-            <Toggle label="1 day before" value={smsDayBefore} onChange={(val) => { setSmsDayBefore(val); triggerSaveReminders({ smsDayBefore: val }); }} t={t} />
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-              <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
-              <select value={smsHoursBefore} onChange={(e) => { const val = Number(e.target.value); setSmsHoursBefore(val); triggerSaveReminders({ smsHoursBefore: val }); }} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", cursor: "pointer" }}>
-                <option value={0}>Off</option>
-                <option value={1}>1 hour</option>
-                <option value={2}>2 hours</option>
-              </select>
+            <div style={{ marginBottom: "20px" }}>
+              <Label t={t}>Email reminders</Label>
+              <Toggle label="1 week before" value={emailWeekBefore} onChange={(val) => { setEmailWeekBefore(val); triggerSaveReminders({ emailWeekBefore: val }); }} t={t} />
+              <Toggle label="1 day before" value={emailDayBefore} onChange={(val) => { setEmailDayBefore(val); triggerSaveReminders({ emailDayBefore: val }); }} t={t} />
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
+                <select value={emailHoursBefore} onChange={(e) => { const val = Number(e.target.value); setEmailHoursBefore(val); triggerSaveReminders({ emailHoursBefore: val }); }} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", cursor: "pointer" }}>
+                  <option value={0}>Off</option>
+                  <option value={1}>1 hour</option>
+                  <option value={2}>2 hours</option>
+                  <option value={4}>4 hours</option>
+                </select>
+              </div>
             </div>
-          </div>
-          <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={(val) => { setNudgeUnresponded(val); triggerSaveReminders({ nudgeUnresponded: val }); }} t={t} />
-          <Toggle label="Post-event photo upload prompt" value={postEventPrompt} onChange={(val) => { setPostEventPrompt(val); triggerSaveReminders({ postEventPrompt: val }); }} t={t} />
-        </Section>
+            <div style={{ marginBottom: "20px" }}>
+              <Label t={t}>SMS reminders</Label>
+              <Toggle label="1 week before" value={smsWeekBefore} onChange={(val) => { setSmsWeekBefore(val); triggerSaveReminders({ smsWeekBefore: val }); }} t={t} />
+              <Toggle label="1 day before" value={smsDayBefore} onChange={(val) => { setSmsDayBefore(val); triggerSaveReminders({ smsDayBefore: val }); }} t={t} />
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ fontSize: "14px", color: t.textSecondary, flex: 1 }}>Hours before</span>
+                <select value={smsHoursBefore} onChange={(e) => { const val = Number(e.target.value); setSmsHoursBefore(val); triggerSaveReminders({ smsHoursBefore: val }); }} style={{ padding: "6px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", color: t.textPrimary, fontFamily: "inherit", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", cursor: "pointer" }}>
+                  <option value={0}>Off</option>
+                  <option value={1}>1 hour</option>
+                  <option value={2}>2 hours</option>
+                </select>
+              </div>
+            </div>
+            <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={(val) => { setNudgeUnresponded(val); triggerSaveReminders({ nudgeUnresponded: val }); }} t={t} />
+            <Toggle label="Post-event photo upload prompt" value={postEventPrompt} onChange={(val) => { setPostEventPrompt(val); triggerSaveReminders({ postEventPrompt: val }); }} t={t} />
+          </Section>
+        )}
+
+        {/* ── Polls Sub-page ── */}
+        {activeSection === "polls" && (
+          <Section title="Manage Polls" t={t}>
+            {/* Create Poll Form */}
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "16px", borderRadius: t.cardRadius, border: `1px solid ${t.cardBorder}`, marginBottom: "20px" }}>
+              <div style={{ fontWeight: 700, fontSize: "14px", color: t.textPrimary, marginBottom: "12px" }}>Create a New Poll</div>
+              <div style={{ marginBottom: "12px" }}>
+                <input
+                  style={S.inp}
+                  placeholder="Ask a question... (e.g. What day works best?)"
+                  value={newPollQuestion}
+                  onChange={(e) => setNewPollQuestion(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: t.textMuted }}>Options:</div>
+                {newPollOptions.map((opt, idx) => (
+                  <div key={idx} style={{ display: "flex", gap: "6px" }}>
+                    <input
+                      style={{ ...S.inp, padding: "8px 12px" }}
+                      placeholder={`Option ${idx + 1}`}
+                      value={opt}
+                      onChange={(e) => {
+                        const updated = [...newPollOptions];
+                        updated[idx] = e.target.value;
+                        setNewPollOptions(updated);
+                      }}
+                    />
+                    {newPollOptions.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewPollOptions(newPollOptions.filter((_, i) => i !== idx));
+                        }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px" }}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setNewPollOptions([...newPollOptions, ""])}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: t.accent, fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", alignSelf: "flex-start", padding: "4px 0" }}
+                >
+                  <Plus size={14} /> Add option
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: t.textSecondary, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={newPollMultiChoice}
+                    onChange={(e) => setNewPollMultiChoice(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <span>Allow voting for multiple options</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: t.textSecondary, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={newPollAllowGuestsToAdd}
+                    onChange={(e) => setNewPollAllowGuestsToAdd(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <span>Allow guests to suggest options</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: t.textSecondary, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={newPollHideVoters}
+                    onChange={(e) => setNewPollHideVoters(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <span>Hide voter names from other guests</span>
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddPoll}
+                disabled={!newPollQuestion.trim() || newPollOptions.filter(o => o.trim()).length < 2 || isPending}
+                style={{ ...S.smallBtn, width: "100%", padding: "10px", borderRadius: "10px", fontSize: "13px" }}
+              >
+                Create Poll
+              </button>
+            </div>
+
+            {/* List Existing Polls */}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "14px", color: t.textPrimary, marginBottom: "12px" }}>Active Polls ({polls.length})</div>
+              {polls.length === 0 ? (
+                <div style={{ fontSize: "13px", color: t.textMuted, fontStyle: "italic" }}>No polls created yet. Use the form above to create one.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {polls.map((poll) => (
+                    <div key={poll.id} style={{ background: "rgba(255, 255, 255, 0.02)", border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                        <div style={{ fontWeight: 600, fontSize: "14px", color: t.textPrimary }}>{poll.question}</div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePoll(poll.id)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "12px", fontWeight: 600 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      {/* Poll options list with delete buttons */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
+                        {poll.options.map((opt) => (
+                          <div key={opt.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.inputBg, padding: "6px 10px", borderRadius: "8px", fontSize: "12.5px" }}>
+                            <span style={{ color: t.textSecondary }}>{opt.text} ({opt.votes.length} votes)</span>
+                            {poll.options.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePollOption(poll.id, opt.id)}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, display: "flex", alignItems: "center" }}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Add option to existing poll */}
+                        <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+                          <input
+                            style={{ ...S.inp, padding: "6px 10px", fontSize: "12px" }}
+                            placeholder="Add option..."
+                            value={newPollOptionTexts[poll.id] ?? ""}
+                            onChange={(e) => setNewPollOptionTexts({ ...newPollOptionTexts, [poll.id]: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleAddPollOption(poll.id); }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddPollOption(poll.id)}
+                            style={{ ...S.smallBtn, padding: "6px 12px", fontSize: "12px" }}
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Poll controls */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", borderTop: `1px solid ${t.cardBorder}`, paddingTop: "8px" }}>
+                        <Toggle
+                          label="Locked (closed for voting)"
+                          value={poll.locked}
+                          onChange={(val) => handleUpdatePollSettings(poll.id, { locked: val })}
+                          t={t}
+                        />
+                        <Toggle
+                          label="Multi-choice voting"
+                          value={poll.multiChoice}
+                          onChange={(val) => handleUpdatePollSettings(poll.id, { multiChoice: val })}
+                          t={t}
+                        />
+                        <Toggle
+                          label="Allow guests to add options"
+                          value={poll.allowGuestsToAdd}
+                          onChange={(val) => handleUpdatePollSettings(poll.id, { allowGuestsToAdd: val })}
+                          t={t}
+                        />
+                        <Toggle
+                          label="Hide voter names"
+                          value={poll.hideVoters}
+                          onChange={(val) => handleUpdatePollSettings(poll.id, { hideVoters: val })}
+                          t={t}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Section>
+        )}
+
+        {/* ── Potluck Sub-page ── */}
+        {activeSection === "potluck" && (
+          <Section title="Manage Potluck Items" t={t}>
+            {/* Add Potluck Item Form */}
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "16px", borderRadius: t.cardRadius, border: `1px solid ${t.cardBorder}`, marginBottom: "20px" }}>
+              <div style={{ fontWeight: 700, fontSize: "14px", color: t.textPrimary, marginBottom: "12px" }}>Add a New Item</div>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                <input
+                  style={{ ...S.inp, flex: 1 }}
+                  placeholder="Item name (e.g. Red wine, cups, chips)"
+                  value={newPotluckLabel}
+                  onChange={(e) => setNewPotluckLabel(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddPotluckItem(); }}
+                />
+                <input
+                  type="number"
+                  min="1"
+                  style={{ ...S.inp, width: "70px", textAlign: "center" }}
+                  value={newPotluckQty}
+                  onChange={(e) => setNewPotluckQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  placeholder="Qty"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAddPotluckItem}
+                disabled={!newPotluckLabel.trim() || isPending}
+                style={{ ...S.smallBtn, width: "100%", padding: "10px", borderRadius: "10px", fontSize: "13px" }}
+              >
+                Add Item
+              </button>
+            </div>
+
+            {/* List Existing Potluck Items */}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "14px", color: t.textPrimary, marginBottom: "12px" }}>Items Needed ({potluckItems.length})</div>
+              {potluckItems.length === 0 ? (
+                <div style={{ fontSize: "13px", color: t.textMuted, fontStyle: "italic" }}>No potluck items added yet. Use the form above to add items for guests to claim.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {potluckItems.map((item) => (
+                    <div key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "12px 16px" }}>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>
+                          {item.label} {item.quantity > 1 && `(need ${item.quantity})`}
+                        </span>
+                        {item.claimedBy && (
+                          <div style={{ fontSize: "12px", color: t.accent, marginTop: "2px", fontWeight: 500 }}>
+                            Claimed by {item.claimedBy} {item.claimedQty && `(${item.claimedQty})`}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePotluckItem(item.id)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "12px", fontWeight: 600, padding: "4px" }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Section>
+        )}
 
         {err && <div style={{ color: "#f87171", fontSize: "13px", textAlign: "center", marginTop: "16px" }}>{err}</div>}
       </div>
@@ -782,7 +1430,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function Label({ children, t }: { children: React.ReactNode; t: ResolvedTheme }) {
-  return <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.textMuted, marginBottom: "10px" }}>{children}</div>;
+  return <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "10px" }}>{children}</div>;
 }
 
 function Toggle({ label, value, onChange, t }: { label: string; value: boolean; onChange: (v: boolean) => void; t: ResolvedTheme }) {
