@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { sendBlastEmail } from "./email";
 import { sendSmsBlast } from "./sms";
+import { isRedisEnabled, redisAcquireLock, redisReleaseLock } from "./redis";
 
 type ReminderType =
   | "email_week"
@@ -20,19 +21,32 @@ export async function processReminders(): Promise<void> {
   const jobName = "process_reminders";
   const now = new Date();
   const expireAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes lock expiry
-  
-  // Clean up stale locks
-  await db.cronLock.deleteMany({
-    where: { expireAt: { lt: now } }
-  }).catch(() => {});
+  const lockKey = `lock:cron:${jobName}`;
 
-  try {
-    await db.cronLock.create({
-      data: { jobName, lockedAt: now, expireAt }
-    });
-  } catch {
-    console.log("[cron] Failed to acquire lock (another instance is running). Skipping reminders check.");
-    return;
+  let hasRedisLock = false;
+
+  if (isRedisEnabled()) {
+    // Acquire Redis lock for 10 minutes (600 seconds)
+    const acquired = await redisAcquireLock(lockKey, 600);
+    if (!acquired) {
+      console.log("[cron] Failed to acquire Redis lock (another instance is running). Skipping reminders check.");
+      return;
+    }
+    hasRedisLock = true;
+  } else {
+    // Clean up stale database locks
+    await db.cronLock.deleteMany({
+      where: { expireAt: { lt: now } }
+    }).catch(() => {});
+
+    try {
+      await db.cronLock.create({
+        data: { jobName, lockedAt: now, expireAt }
+      });
+    } catch {
+      console.log("[cron] Failed to acquire database lock (another instance is running). Skipping reminders check.");
+      return;
+    }
   }
 
   try {
@@ -203,6 +217,10 @@ export async function processReminders(): Promise<void> {
   }
   } finally {
     // Release the lock
-    await db.cronLock.delete({ where: { jobName } }).catch(() => {});
+    if (hasRedisLock) {
+      await redisReleaseLock(lockKey).catch(() => {});
+    } else {
+      await db.cronLock.delete({ where: { jobName } }).catch(() => {});
+    }
   }
 }

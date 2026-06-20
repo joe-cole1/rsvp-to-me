@@ -68,6 +68,8 @@ export async function getAdminUsers(query: string = "") {
   return users;
 }
 
+import { invalidateUserSessions } from "@/lib/session";
+
 export async function updateUserRole(userId: string, role: "GUEST" | "HOST" | "ADMIN") {
   const session = await assertAdmin();
   if (userId === session.userId) {
@@ -78,6 +80,9 @@ export async function updateUserRole(userId: string, role: "GUEST" | "HOST" | "A
     where: { id: userId },
     data: { role },
   });
+
+  // Invalidate any active cached sessions
+  await invalidateUserSessions(userId);
 
   revalidatePath("/admin");
   return { success: true };
@@ -365,6 +370,89 @@ export async function testEmailConfigAction(data: {
   });
 
   return result;
+}
+
+/**
+ * Backup Management Actions
+ */
+import { runBackup, listBackups, deleteBackup, getBackupKeepCount } from "@/lib/backup";
+
+export async function createBackupAction() {
+  await assertAdmin();
+  try {
+    const filename = await runBackup();
+    revalidatePath("/admin");
+    return { success: true, filename };
+  } catch (err) {
+    console.error("[admin] Failed to trigger manual backup:", err);
+    const msg = err instanceof Error ? err.message : "Manual database backup failed.";
+    throw new Error(msg);
+  }
+}
+
+export async function listBackupsAction() {
+  await assertAdmin();
+  return listBackups();
+}
+
+export async function deleteBackupAction(filename: string) {
+  await assertAdmin();
+  try {
+    const success = await deleteBackup(filename);
+    revalidatePath("/admin");
+    return { success };
+  } catch (err) {
+    console.error("[admin] Failed to delete backup file:", err);
+    const msg = err instanceof Error ? err.message : "Failed to delete backup file.";
+    throw new Error(msg);
+  }
+}
+
+export async function getBackupConfig() {
+  await assertAdmin();
+  
+  const configs = await db.systemConfig.findMany({
+    where: {
+      key: {
+        in: ["backup_schedule", "backup_keep_count", "last_backup_time"],
+      },
+    },
+  });
+
+  const configMap: Record<string, string> = {};
+  for (const c of configs) {
+    configMap[c.key] = c.value;
+  }
+
+  return {
+    backup_schedule: configMap["backup_schedule"] ?? process.env.BACKUP_SCHEDULE ?? "disabled",
+    backup_keep_count: parseInt(configMap["backup_keep_count"] ?? "", 10) || await getBackupKeepCount(),
+    last_backup_time: configMap["last_backup_time"] ?? "",
+  };
+}
+
+export async function updateBackupConfigAction(schedule: string, keepCount: number) {
+  await assertAdmin();
+  
+  if (keepCount <= 0) {
+    throw new Error("Backup retention count must be at least 1.");
+  }
+
+  await db.$transaction([
+    db.systemConfig.upsert({
+      where: { key: "backup_schedule" },
+      update: { value: schedule },
+      create: { key: "backup_schedule", value: schedule },
+    }),
+    db.systemConfig.upsert({
+      where: { key: "backup_keep_count" },
+      update: { value: keepCount.toString() },
+      create: { key: "backup_keep_count", value: keepCount.toString() },
+    }),
+  ]);
+
+  revalidatePath("/admin");
+  return { success: true };
 }
 
 

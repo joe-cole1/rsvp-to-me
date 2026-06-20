@@ -158,6 +158,35 @@ It should return: `{"status":"ok"}`.
 
 ---
 
+## Deploying with PostgreSQL and Redis (Optional)
+
+If you prefer to run **rsvp-to-me** on a PostgreSQL database and use Redis for caching and rate-limiting, you can use the multi-container configuration defined in `docker-compose.postgres.yml`.
+
+### Step A: Configure PostgreSQL & Redis in `.env`
+Set the database password, connection URL, and Redis URL in your `.env` file:
+```env
+# Database password and PostgreSQL URL
+POSTGRES_PASSWORD="your_secure_password_here"
+DATABASE_URL="postgresql://postgres:your_secure_password_here@postgres:5432/rsvp_db?schema=public"
+
+# Redis connection URL
+REDIS_URL="redis://redis:6379"
+```
+
+### Step B: Start the Services
+Launch the services using the PostgreSQL compose file:
+```bash
+docker compose -f docker-compose.postgres.yml up -d
+```
+This command starts:
+- The `app` and `cron` services.
+- The `postgres` container (with database data mapped to `./pg_data`).
+- The `redis` container (with cache data mapped to `./redis_data`).
+
+The system will automatically initialize the database schema in PostgreSQL on startup.
+
+---
+
 ## Step 5 — First Login and Admin Setup
 
 1. Open your browser and go to the URL you configured in `NEXT_PUBLIC_APP_URL`.
@@ -173,15 +202,25 @@ It should return: `{"status":"ok"}`.
 
 ## Understanding Your Data & Backups
 
-By default, the `docker-compose.yml` mounts a local directory named `./data` on your host machine to `/app/data` inside the containers.
+By default, the application mounts a local directory named `./data` on your host machine to `/app/data` inside the containers.
 
-Your data is stored in two paths inside this directory:
-- **`./data/prod.db`**: The SQLite database file containing all users, events, RSVPs, comments, polls, and potlucks.
-- **`./data/uploads/`**: All uploaded cover images and profile avatars.
+Your data is stored in these paths:
+- **`./data/prod.db`**: The SQLite database file containing all users, events, RSVPs, comments, polls, and potlucks (if running default SQLite).
+- **`./data/uploads/`**: Uploaded cover images and profile avatars.
+- **`./data/backups/`**: Database backup files (`.sqlite` for SQLite or `.sql` for PostgreSQL).
 
-### Backing Up Data
-Because the files live in your `./data` directory on the host, you can copy them directly for backups.
-Always stop the application before copying the database to prevent database corruption.
+### Built-in Backups Manager (Recommended)
+**rsvp-to-me** features a database backup manager located in the **Backups** tab in the **Admin Panel**.
+
+With this panel, you can:
+*   **Configure automated backups:** Input a cron schedule (e.g. `0 0 * * *` for daily backups at midnight) to run backups automatically.
+*   **Adjust rotation limits:** Configure how many backups to keep (e.g. 7) before older files are deleted.
+*   **Trigger manual backups:** Immediately create a copy of the SQLite database or execute `pg_dump` on PostgreSQL.
+*   **Download & Delete backups:** View all archives, download them directly, or delete them from the server.
+
+### Manual Backups
+Because files live in your `./data` directory on the host, you can also copy them directly.
+If taking manual backups of SQLite, stop the application first to prevent database corruption.
 
 **Backup Commands (Linux/Mac):**
 ```bash
