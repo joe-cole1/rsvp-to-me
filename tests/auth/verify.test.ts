@@ -5,10 +5,12 @@ const {
   mockFindUniqueMagicToken,
   mockUpdateMagicToken,
   mockFindUniqueUser,
+  mockCreateSession,
 } = vi.hoisted(() => ({
   mockFindUniqueMagicToken: vi.fn(),
   mockUpdateMagicToken: vi.fn(),
   mockFindUniqueUser: vi.fn(),
+  mockCreateSession: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -20,6 +22,9 @@ vi.mock("@/lib/db", () => ({
     user: {
       findUnique: mockFindUniqueUser,
     },
+    session: {
+      create: mockCreateSession,
+    },
   },
 }));
 
@@ -27,6 +32,11 @@ vi.mock("@/lib/session", () => ({
   sealSession: vi.fn().mockResolvedValue("sealed-cookie-value"),
   COOKIE_NAME: "rsvp-session",
   SESSION_TTL: 2592000,
+}));
+
+vi.mock("@/lib/redis", () => ({
+  isRedisEnabled: vi.fn().mockReturnValue(false),
+  redisSet: vi.fn(),
 }));
 
 import { GET } from "@/app/auth/verify/route";

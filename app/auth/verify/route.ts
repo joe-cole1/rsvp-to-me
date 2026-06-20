@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
 import { linkRsvpsToUser } from "@/lib/auth";
+import { randomUUID } from "crypto";
+import { isRedisEnabled, redisSet } from "@/lib/redis";
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -33,10 +35,37 @@ export async function GET(request: NextRequest) {
   // Link any matching RSVPs dynamically on sign-in
   await linkRsvpsToUser(user.id);
 
+  // Generate session ID and expiration
+  const sessionId = randomUUID();
+  const expiresAt = new Date(Date.now() + SESSION_TTL * 1000);
+
+  // Store the session in the database
+  await db.session.create({
+    data: {
+      id: sessionId,
+      token: sessionId,
+      userId: user.id,
+      expiresAt,
+    },
+  });
+
+  // Store in Redis cache if active
+  if (isRedisEnabled()) {
+    const cacheKey = `session:${sessionId}`;
+    const cacheValue = {
+      id: sessionId,
+      userId: user.id,
+      expiresAt: expiresAt.toISOString(),
+      userRole: user.role,
+    };
+    await redisSet(cacheKey, JSON.stringify(cacheValue), SESSION_TTL);
+  }
+
   const sealed = await sealSession({
     userId: user.id,
     email: user.email ?? user.phone ?? "",
     role: user.role as "HOST" | "ADMIN" | "GUEST",
+    sessionId, // Crucial: Include sessionId so getSession() validates it successfully
   });
 
   const response = redirectWithNoReferrer(`${APP_URL()}/dashboard`);
