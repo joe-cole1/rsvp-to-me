@@ -78,7 +78,7 @@ export default function SignInForm({ openRegistration }: { openRegistration: boo
           ) : (
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: APP_SHELL.textMuted, marginBottom: "8px" }}>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: APP_SHELL.textMuted, marginBottom: "8px" }}>
                   Email or phone number
                 </label>
                 <input

@@ -19,6 +19,24 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
         orderBy: { id: "asc" },
       },
       rsvpFields: { orderBy: { order: "asc" } },
+      potluckItems: { orderBy: { createdAt: "asc" } },
+      polls: {
+        orderBy: { createdAt: "asc" },
+        include: {
+          options: {
+            orderBy: { createdAt: "asc" },
+            include: {
+              votes: {
+                select: {
+                  id: true,
+                  voterName: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 

@@ -22,7 +22,7 @@ const inputStyle: React.CSSProperties = {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: "14px" }}>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: APP_SHELL.textMuted, marginBottom: "6px" }}>
+      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: APP_SHELL.textMuted, marginBottom: "6px" }}>
         {label}
       </label>
       {children}
@@ -33,7 +33,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ background: APP_SHELL.cardBg, border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: APP_SHELL.cardRadius, padding: "20px", marginBottom: "14px" }}>
-      <h2 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "16px" }}>{title}</h2>
+      <h2 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textMuted, textTransform: "none", letterSpacing: "0.02em", marginBottom: "16px" }}>{title}</h2>
       {children}
     </div>
   );

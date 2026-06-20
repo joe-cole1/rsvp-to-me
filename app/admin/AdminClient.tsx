@@ -100,6 +100,13 @@ export default function AdminClient({
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
+
   const [emailProvider, setEmailProvider] = useState(config.email_provider || "console");
   const [emailFrom, setEmailFrom] = useState(config.email_from || "");
   const [smtpHost, setSmtpHost] = useState(config.smtp_host || "");
@@ -453,18 +460,33 @@ function extractRawEmail(fromStr) {
         {/* Feedback Alerts */}
         {feedback && (
           <div
+            onClick={() => setFeedback(null)}
             style={{
-              padding: "16px",
-              borderRadius: APP_SHELL.inputRadius,
-              backgroundColor: feedback.type === "success" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
-              border: `1px solid ${feedback.type === "success" ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
-              color: feedback.type === "success" ? "#4ade80" : "#f87171",
+              position: "fixed",
+              top: "20px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 10000,
+              padding: "12px 20px",
+              borderRadius: "12px",
+              backgroundColor: APP_SHELL.cardBg,
+              border: `1px solid ${feedback.type === "success" ? "#22c55e" : "#ef4444"}`,
+              color: feedback.type === "success" ? "#22c55e" : "#ef4444",
+              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.15)",
               fontSize: "14px",
               fontWeight: 600,
-              marginBottom: "24px",
+              backdropFilter: "blur(8px)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              maxWidth: "90%",
+              width: "max-content",
+              boxSizing: "border-box"
             }}
           >
-            {feedback.message}
+            <span>{feedback.type === "success" ? "✓" : "⚠️"}</span>
+            <span>{feedback.message}</span>
           </div>
         )}
 

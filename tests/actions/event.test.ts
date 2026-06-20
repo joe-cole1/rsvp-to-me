@@ -555,27 +555,65 @@ describe("sendBlast", () => {
   });
 
   it("returns the count of emails sent", async () => {
-    const result = await sendBlast(EVENT_ID, "Party tonight!", "ALL");
+    const result = await sendBlast(EVENT_ID, "Party tonight!", ["ALL"]);
     expect(result).toEqual({ success: true, sent: 2 });
   });
 
   it("returns sent: 0 when no guests have email addresses", async () => {
     mockRsvpFindMany.mockResolvedValue([]);
-    const result = await sendBlast(EVENT_ID, "Party!", "ALL");
+    const result = await sendBlast(EVENT_ID, "Party!", ["ALL"]);
     expect(result).toEqual({ success: true, sent: 0 });
   });
 
   it("passes the GOING status filter to the RSVP query", async () => {
-    await sendBlast(EVENT_ID, "Hey!", "GOING");
+    await sendBlast(EVENT_ID, "Hey!", ["GOING"]);
     expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ status: "GOING" }),
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({ status: "GOING", responded: true })
+        ])
+      }),
+    }));
+  });
+
+  it("passes the INVITED status filter to the RSVP query", async () => {
+    await sendBlast(EVENT_ID, "Hey!", ["INVITED"]);
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({ responded: false })
+        ])
+      }),
+    }));
+  });
+
+  it("passes the MAYBE status filter to the RSVP query", async () => {
+    await sendBlast(EVENT_ID, "Hey!", ["MAYBE"]);
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({ status: "MAYBE", responded: true })
+        ])
+      }),
+    }));
+  });
+
+  it("passes the NO status filter to the RSVP query", async () => {
+    await sendBlast(EVENT_ID, "Hey!", ["NO"]);
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({ status: "NO", responded: true })
+        ])
+      }),
     }));
   });
 
   it("does not filter by status when filter is ALL", async () => {
-    await sendBlast(EVENT_ID, "Hey!", "ALL");
+    await sendBlast(EVENT_ID, "Hey!", ["ALL"]);
     const where = mockRsvpFindMany.mock.calls[0][0].where;
     expect(where.status).toBeUndefined();
+    expect(where.responded).toBeUndefined();
   });
 });
 
@@ -594,16 +632,38 @@ describe("sendSmsBlast", () => {
   });
 
   it("returns the count of messages sent from the SMS library", async () => {
-    const result = await sendSmsBlast(EVENT_ID, "Party!", "ALL");
+    const result = await sendSmsBlast(EVENT_ID, "Party!", ["ALL"]);
     expect(result).toEqual({ success: true, sent: 2 });
   });
 
   it("returns sent: 0 without calling the SMS library when no phone numbers exist", async () => {
     const { sendSmsBlast: smsSendBlast } = await import("@/lib/sms");
     mockRsvpFindMany.mockResolvedValue([]);
-    const result = await sendSmsBlast(EVENT_ID, "Party!", "ALL");
+    const result = await sendSmsBlast(EVENT_ID, "Party!", ["ALL"]);
     expect(result).toEqual({ success: true, sent: 0 });
     expect(smsSendBlast).not.toHaveBeenCalled();
+  });
+
+  it("passes the GOING status filter to the RSVP query", async () => {
+    await sendSmsBlast(EVENT_ID, "Hey!", ["GOING"]);
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({ status: "GOING", responded: true })
+        ])
+      }),
+    }));
+  });
+
+  it("passes the INVITED status filter to the RSVP query", async () => {
+    await sendSmsBlast(EVENT_ID, "Hey!", ["INVITED"]);
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({ responded: false })
+        ])
+      }),
+    }));
   });
 });
 
