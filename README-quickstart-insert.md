@@ -1,26 +1,13 @@
-# RSVP to Me
-
-A beautiful, self-hosted, social-first event and RSVP platform for personal events (house parties, wine nights, dinners). Inspired by Partiful's expressive aesthetic. No payments, no ticketing — just invite links, RSVPs, connection, and social coordination.
-
-## Core Features
-
-- **Beautiful Themes**: Dark, Soft, and Bold templates with custom accent colors and cover image uploads.
-- **Passwordless Authentication**: Login securely via email or SMS magic links — no passwords to remember.
-- **Guest Coordination**: Threaded comment sections, interactive polls, check-in options, co-hosts, and potluck claimed items tracking.
-- **Custom Questionnaires**: Add custom text, select, or checkbox questions directly to the RSVP form.
-- **Automated Reminders**: Schedule email or text reminders for guests 7 days, 1 day, or N hours before the event.
-- **Admin Control Panel**: Manage all users, events, custom invite codes, and system configurations easily.
-
----
-
 # Quick Start
 
-This section gets your **rsvp-to-me** installation up and running in under 10 steps. For the full guide, see [docs/installation.md](docs/installation.md).
+This section gets your **rsvp-to-me** installation up and running in under 10 steps.
 
 ## Prerequisites
 
 - [Docker and Docker Compose](https://docs.docker.com/compose/install/) installed on your machine.
 - A stable URL or IP address (e.g., `http://localhost:3000` or `https://rsvp.yourdomain.com`) where you and your guests can reach the application.
+
+---
 
 ## Step-by-Step Setup
 
