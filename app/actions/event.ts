@@ -747,27 +747,38 @@ export async function removePotluckItem(itemId: string) {
 export async function claimPotluckItem(itemId: string, guestName: string, claimedQty: number = 1) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
-    select: { claimedBy: true, label: true, eventId: true, event: { select: { slug: true } } },
+    include: {
+      claims: true,
+      event: { select: { slug: true } },
+    },
   });
   if (!item) return { success: false, error: "Item not found" };
-  if (item.claimedBy) return { success: false, error: "Already claimed" };
-  await db.potluckItem.update({
-    where: { id: itemId },
-    data: { claimedBy: guestName, claimedAt: new Date(), claimedQty },
+  
+  const totalClaimed = item.claims.reduce((sum, c) => sum + c.quantity, 0);
+  const remaining = item.quantity - totalClaimed;
+  if (claimedQty > remaining) {
+    return { success: false, error: `Only ${remaining} remaining` };
+  }
+
+  const claim = await db.potluckClaim.create({
+    data: {
+      potluckItemId: itemId,
+      guestName,
+      quantity: claimedQty,
+    },
   });
+
   const qtyStr = claimedQty > 1 ? ` (x${claimedQty})` : "";
   const activityEvent = await logActivity(item.eventId, "potluck_claim", `${guestName} is bringing${qtyStr}: ${item.label}`, guestName).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
-  return { success: true, activityEvent };
+  return { success: true, activityEvent, claim };
 }
 
 export async function unclaimPotluckItem(itemId: string, guestName: string) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
-    select: {
-      claimedBy: true,
-      label: true,
-      eventId: true,
+    include: {
+      claims: true,
       event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } },
     },
   });
@@ -777,14 +788,19 @@ export async function unclaimPotluckItem(itemId: string, guestName: string) {
   const isHost = item.event.hostId === session?.userId || session?.role === "ADMIN";
   const isCohost = item.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
 
-  if (!isHost && !isCohost && item.claimedBy !== guestName) {
+  const claim = item.claims.find(c => c.guestName === guestName);
+  if (!claim) {
+    return { success: false, error: "Claim not found" };
+  }
+
+  if (!isHost && !isCohost && claim.guestName !== guestName) {
     return { success: false, error: "Not your claim" };
   }
 
-  await db.potluckItem.update({
-    where: { id: itemId },
-    data: { claimedBy: null, claimedAt: null, claimedQty: null },
+  await db.potluckClaim.delete({
+    where: { id: claim.id },
   });
+
   const activityEvent = await logActivity(item.eventId, "potluck_unclaim", `${guestName} won't bring: ${item.label}`, guestName).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true, activityEvent };

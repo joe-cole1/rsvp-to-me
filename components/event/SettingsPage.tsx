@@ -19,6 +19,7 @@ import {
   updatePollSettings,
   addPotluckItem,
   removePotluckItem,
+  unclaimPotluckItem,
 } from "@/app/actions/event";
 
 type CoHostEntry = { id: string; user: { id: string; name: string | null; email: string } };
@@ -54,15 +55,21 @@ type PollEntry = {
   options: PollOptionEntry[];
 };
 
+type PotluckClaimEntry = {
+  id: string;
+  potluckItemId: string;
+  guestName: string;
+  quantity: number;
+  createdAt: Date;
+};
+
 type PotluckItemEntry = {
   id: string;
   eventId: string;
   label: string;
   quantity: number;
-  claimedQty: number | null;
-  claimedBy: string | null;
-  claimedAt: Date | null;
   createdAt: Date;
+  claims: PotluckClaimEntry[];
 };
 
 type EventInput = {
@@ -122,6 +129,24 @@ interface ReminderOverrides {
   postEventPrompt?: boolean;
 }
 
+const formatOptionsForTextarea = (optionsStr: string | null): string => {
+  if (!optionsStr) return "";
+  try {
+    const parsed = JSON.parse(optionsStr);
+    if (Array.isArray(parsed)) {
+      return parsed.join("\n");
+    }
+  } catch {
+    // fallback
+  }
+  return optionsStr;
+};
+
+const serializeOptionsForDb = (optionsStr: string): string => {
+  const list = optionsStr.split("\n").map(s => s.trim()).filter(Boolean);
+  return JSON.stringify(list);
+};
+
 export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED" | "ERROR">("IDLE");
@@ -179,7 +204,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.label]))
   );
   const [optionsDrafts, setOptionsDrafts] = useState<Record<string, string>>(() =>
-    Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.options ?? ""]))
+    Object.fromEntries(event.rsvpFields.map((f) => [f.id, formatOptionsForTextarea(f.options)]))
   );
 
   // ── Polls State ──
@@ -523,9 +548,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
               eventId: event.id,
               label,
               quantity: qty,
-              claimedQty: null,
-              claimedBy: null,
-              claimedAt: null,
+              claims: [],
               createdAt: new Date(),
             },
           ]);
@@ -554,17 +577,40 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     });
   };
 
-  // ── Questionnaire Actions ──
+  const handleUnclaimItem = (itemId: string, guestName: string) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        const result = await unclaimPotluckItem(itemId, guestName);
+        if (result.success) {
+          setPotluckItems((prev) =>
+            prev.map((i) =>
+              i.id === itemId
+                ? { ...i, claims: i.claims.filter((c) => c.guestName !== guestName) }
+                : i
+            )
+          );
+          setSaveStatus("SAVED");
+        } else {
+          setSaveStatus("ERROR");
+        }
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
   const handleAddField = () => {
     if (!newFieldLabel.trim()) return;
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
+        const serialized = (newFieldType === "SELECT" || newFieldType === "CHECKBOX") ? serializeOptionsForDb(newFieldOptions) : undefined;
         const result = await addRsvpField(event.id, {
           label: newFieldLabel.trim(),
           fieldType: newFieldType,
           required: newFieldRequired,
-          options: (newFieldType === "SELECT" || newFieldType === "CHECKBOX") ? newFieldOptions : undefined,
+          options: serialized,
           order: fields.length,
         });
         if (result.success) {
@@ -573,11 +619,11 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
             label: newFieldLabel.trim(),
             fieldType: newFieldType,
             required: newFieldRequired,
-            options: (newFieldType === "SELECT" || newFieldType === "CHECKBOX") ? newFieldOptions : null,
+            options: serialized ?? null,
             order: prev.length,
           }]);
           setLabelDrafts((prev) => ({ ...prev, [result.id!]: newFieldLabel.trim() }));
-          setOptionsDrafts((prev) => ({ ...prev, [result.id!]: newFieldOptions }));
+          setOptionsDrafts((prev) => ({ ...prev, [result.id!]: formatOptionsForTextarea(serialized ?? null) }));
           setNewFieldLabel("");
           setNewFieldType("TEXT");
           setNewFieldRequired(false);
@@ -635,7 +681,8 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   };
 
   const handleUpdateFieldOptions = (fieldId: string) => {
-    const options = optionsDrafts[fieldId] ?? "";
+    const rawOptions = optionsDrafts[fieldId] ?? "";
+    const options = serializeOptionsForDb(rawOptions);
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
@@ -1394,27 +1441,50 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                 <div style={{ fontSize: "13px", color: t.textMuted, fontStyle: "italic" }}>No potluck items added yet. Use the form above to add items for guests to claim.</div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {potluckItems.map((item) => (
-                    <div key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "12px 16px" }}>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>
-                          {item.label} {item.quantity > 1 && `(need ${item.quantity})`}
-                        </span>
-                        {item.claimedBy && (
-                          <div style={{ fontSize: "12px", color: t.accent, marginTop: "2px", fontWeight: 500 }}>
-                            Claimed by {item.claimedBy} {item.claimedQty && `(${item.claimedQty})`}
+                  {potluckItems.map((item) => {
+                    const totalClaimed = item.claims ? item.claims.reduce((sum, c) => sum + c.quantity, 0) : 0;
+                    const remaining = Math.max(0, item.quantity - totalClaimed);
+                    return (
+                      <div key={item.id} style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: t.cardRadius, padding: "12px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>
+                              {item.label} {item.quantity > 1 && `(need ${item.quantity})`}
+                            </span>
+                            {totalClaimed > 0 && (
+                              <span style={{ fontSize: "12px", color: t.textMuted, marginLeft: "8px" }}>
+                                ({remaining} remaining)
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePotluckItem(item.id)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "12px", fontWeight: 600, padding: "4px" }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        {item.claims && item.claims.length > 0 && (
+                          <div style={{ marginTop: "8px", borderTop: `1px dashed ${t.cardBorder}`, paddingTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {item.claims.map((claim) => (
+                              <div key={claim.id} style={{ fontSize: "12px", color: t.textSecondary, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <span>• {claim.guestName} <span style={{ color: t.textMuted }}>(bringing {claim.quantity})</span></span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnclaimItem(item.id, claim.guestName)}
+                                  style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "11px", fontWeight: 600, padding: "2px 4px" }}
+                                  title="Remove claim"
+                                >
+                                  Unclaim
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePotluckItem(item.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "12px", fontWeight: 600, padding: "4px" }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

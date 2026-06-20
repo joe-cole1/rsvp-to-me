@@ -31,11 +31,13 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
     img.src = url;
   });
 }
-import { Settings, Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet } from "lucide-react";
+import { Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, castVote, addPollOption } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import QRCode from "qrcode";
+import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import { AppNavLogo } from "@/components/ui/AppNav";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -71,7 +73,7 @@ type EventData = {
   comments: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date; replies: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date }[] }[];
   rsvpFields: { id: string; label: string; fieldType: string; required: boolean; options: string | null }[];
   updates: { id: string; body: string; notifyGuests: boolean; createdAt: Date }[];
-  potluckItems: { id: string; label: string; quantity: number; claimedQty: number | null; claimedBy: string | null; claimedAt: Date | null }[];
+  potluckItems: { id: string; label: string; quantity: number; createdAt: Date; claims: { id: string; potluckItemId: string; guestName: string; quantity: number; createdAt: Date }[] }[];
   pendingRsvps: PendingRsvp[];
   activityEvents: { id: string; type: string; actorName: string | null; detail: string; createdAt: Date }[];
   polls: {
@@ -637,10 +639,15 @@ function LocationEdit({
     : cardStyle;
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1, padding: "8px", background: active ? t.accent : t.inputBg,
+    flex: 1, padding: "8px 4px", background: active ? t.accent : t.inputBg,
     color: active ? t.accentFg : t.textSecondary,
     border: active ? "none" : `1px solid ${t.inputBorder}`,
-    borderRadius: "8px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer",
+    borderRadius: "8px", fontFamily: "inherit", fontSize: "12px", fontWeight: 600, cursor: "pointer",
+    whiteSpace: "nowrap",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
   });
 
   const inputStyle: React.CSSProperties = {
@@ -750,10 +757,10 @@ function LocationEdit({
       {/* Popover */}
       {open && (
         <div style={{
-          position: "absolute", top: hasLocation ? "calc(100% + 4px)" : "calc(100% - 16px)", left: 0, zIndex: 200,
+          position: "absolute", top: hasLocation ? "calc(100% + 4px)" : "calc(100% - 16px)", left: 0, right: 0, zIndex: 200,
           background: t.cardBg, backdropFilter: "blur(20px)",
           border: `1px solid ${t.cardBorder}`, borderRadius: "16px",
-          padding: "20px", minWidth: "280px",
+          padding: "20px", boxSizing: "border-box",
           boxShadow: t.cardShadow || "0 20px 60px rgba(0,0,0,0.6)",
         }}>
           {/* Type tabs */}
@@ -854,7 +861,7 @@ function getPlaceholder(key: string) {
 
 type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean };
 
-export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string; name?: string | null; avatarUrl?: string | null } | null }) {
+export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string; name?: string | null; avatarUrl?: string | null; role: "GUEST" | "HOST" | "ADMIN" } | null }) {
   const [event, setEvent] = useState(initial);
   const [prevInitial, setPrevInitial] = useState(initial);
 
@@ -1221,10 +1228,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   const claimItem = async (itemId: string, name: string) => {
     const result = await claimPotluckItem(itemId, name, claimQty);
-    if (result.success) {
+    if (result.success && result.claim) {
+      // Cast the claim to match the type expected in claims array (Date for createdAt)
+      const newClaim = {
+        ...result.claim,
+        createdAt: new Date(result.claim.createdAt),
+      };
       setEvent((e) => ({
         ...e,
-        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: name, claimedAt: new Date(), claimedQty: claimQty } : i),
+        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claims: [...i.claims, newClaim] } : i),
         activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
       setClaimingItemId(null);
@@ -1238,7 +1250,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     if (result.success) {
       setEvent((e) => ({
         ...e,
-        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claimedBy: null, claimedAt: null, claimedQty: null } : i),
+        potluckItems: e.potluckItems.map((i) => i.id === itemId ? { ...i, claims: i.claims.filter((c) => c.guestName !== name) } : i),
         activityEvents: result.activityEvent ? [result.activityEvent, ...e.activityEvents] : e.activityEvents,
       }));
     }
@@ -1384,8 +1396,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const navUserInitial = sessionUser?.email?.[0]?.toUpperCase() ?? null;
-
   return (
     <div style={S.page}>
       <style>{`
@@ -1401,42 +1411,28 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         }
       `}</style>
       {/* ── Top nav ── */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <a href={sessionUser ? "/dashboard" : "/"} style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-          <span style={{ fontSize: "20px" }}>🎉</span>
-          <span style={{ fontSize: "16px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.01em" }}>RSVP</span>
-        </a>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {isHost && (
-            <a
-              href={`/e/${event.slug}/settings`}
-              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "6px 8px", color: "#fff", display: "flex", alignItems: "center", textDecoration: "none" }}
-              title="Event settings"
-            >
-              <Settings size={15} />
-            </a>
-          )}
-          {sessionUser && (
-            <a
-              href="/dashboard"
-              title="Go to dashboard"
-              style={{ width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#fff", textDecoration: "none", flexShrink: 0, overflow: "hidden", position: "relative" }}
-            >
-              {sessionUser.avatarUrl ? (
-                <NextImage 
-                  src={sessionUser.avatarUrl} 
-                  alt={sessionUser.name ?? "User"} 
-                  unoptimized 
-                  fill 
-                  style={{ objectFit: "cover" }} 
-                />
-              ) : (
-                navUserInitial
-              )}
-            </a>
-          )}
-        </div>
-      </nav>
+      <AppNavLogo
+        href={sessionUser ? "/dashboard" : "/"}
+        trailing={
+          sessionUser ? (
+            <ProfileDropdown user={sessionUser} />
+          ) : undefined
+        }
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 200,
+          height: "52px",
+          padding: "0 16px",
+          background: "rgba(0,0,0,0.45)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          color: "#ffffff",
+        }}
+      />
 
       {/* Background decorations */}
       {t.pageDecoration === "dark-orbs" && (
@@ -1873,68 +1869,99 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               <span style={{ fontWeight: 700 }}>What to Bring</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: event.potluckItems.length > 0 ? "12px" : 0 }}>
-              {event.potluckItems.map((item) => (
-                <div key={item.id}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>
-                        {item.label}
-                        {item.quantity > 1 && ` (need ${item.quantity})`}
-                      </span>
-                      {item.claimedBy && (
-                        <span style={{ fontSize: "12px", color: t.textMuted, marginLeft: "8px" }}>
-                          ✓ {item.claimedBy}
-                          {item.claimedQty && ` (bringing ${item.claimedQty})`}
+              {event.potluckItems.map((item) => {
+                const totalClaimed = item.claims.reduce((sum, c) => sum + c.quantity, 0);
+                const remaining = Math.max(0, item.quantity - totalClaimed);
+                return (
+                  <div key={item.id} style={{ borderBottom: `1px solid ${t.cardBorder}`, paddingBottom: "10px", marginBottom: "4px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                      <div>
+                        <span style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>
+                          {item.label}
                         </span>
+                        <span style={{ fontSize: "12px", color: t.textMuted, marginLeft: "6px" }}>
+                          (need {item.quantity}{totalClaimed > 0 && `, ${remaining} remaining`})
+                        </span>
+                      </div>
+                      {remaining > 0 && !isHost && claimingItemId !== item.id && (
+                        <button
+                          onClick={() => { setClaimingItemId(item.id); setClaimName(guestName); setClaimQty(1); }}
+                          style={{ ...S.mutedBtn, padding: "6px 12px", fontSize: "12px", flexShrink: 0 }}
+                        >
+                          I&apos;ll bring it
+                        </button>
                       )}
                     </div>
-                    {!item.claimedBy && !isHost && claimingItemId !== item.id && (
-                      <button
-                        onClick={() => { setClaimingItemId(item.id); setClaimName(guestName); }}
-                        style={{ ...S.mutedBtn, padding: "6px 12px", fontSize: "12px" }}
-                      >
-                        I&apos;ll bring it
-                      </button>
+
+                    {/* Claims list */}
+                    {item.claims.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", paddingLeft: "12px", marginTop: "6px" }}>
+                        {item.claims.map((claim) => {
+                          const canUnclaim = isHost || claim.guestName === guestName;
+                          return (
+                            <div key={claim.id} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: t.textSecondary }}>
+                              <span style={{ color: t.accent }}>✓</span>
+                              <span>{claim.guestName} <span style={{ color: t.textMuted }}>(bringing {claim.quantity})</span></span>
+                              {canUnclaim && (
+                                <button
+                                  onClick={() => unclaimItem(item.id, claim.guestName)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    color: "#ef4444",
+                                    fontSize: "11px",
+                                    padding: "2px 6px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    opacity: 0.8,
+                                  }}
+                                  title="Remove this claim"
+                                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
-                    {item.claimedBy && (isHost || item.claimedBy === guestName) && (
-                      <button
-                        onClick={() => unclaimItem(item.id, item.claimedBy!)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted, fontSize: "12px", padding: "4px" }}
-                      >
-                        Unclaim
-                      </button>
+
+                    {claimingItemId === item.id && (
+                      <div style={{ display: "flex", gap: "6px", marginTop: "8px", paddingLeft: "12px" }}>
+                        <input
+                          style={{ ...S.inp, flex: 1 }}
+                          placeholder="Your name"
+                          value={claimName}
+                          onChange={(e) => setClaimName(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter" && claimName.trim()) claimItem(item.id, claimName.trim()); }}
+                          autoFocus
+                        />
+                        <input
+                          type="number"
+                          min="1"
+                          max={remaining}
+                          style={{ ...S.inp, width: "70px", textAlign: "center" }}
+                          value={claimQty}
+                          onChange={(e) => setClaimQty(Math.min(remaining, Math.max(1, parseInt(e.target.value) || 1)))}
+                          placeholder="Qty"
+                        />
+                        <button
+                          onClick={() => claimName.trim() && claimItem(item.id, claimName.trim())}
+                          disabled={!claimName.trim()}
+                          style={{ ...S.btn, width: "auto", padding: "10px 16px", opacity: !claimName.trim() ? 0.5 : 1 }}
+                        >
+                          Claim
+                        </button>
+                        <button onClick={() => setClaimingItemId(null)} style={S.mutedBtn}>Cancel</button>
+                      </div>
                     )}
                   </div>
-                  {claimingItemId === item.id && (
-                    <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
-                      <input
-                        style={{ ...S.inp, flex: 1 }}
-                        placeholder="Your name"
-                        value={claimName}
-                        onChange={(e) => setClaimName(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter" && claimName.trim()) claimItem(item.id, claimName.trim()); }}
-                        autoFocus
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        style={{ ...S.inp, width: "70px", textAlign: "center" }}
-                        value={claimQty}
-                        onChange={(e) => setClaimQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        placeholder="Qty"
-                      />
-                      <button
-                        onClick={() => claimName.trim() && claimItem(item.id, claimName.trim())}
-                        disabled={!claimName.trim()}
-                        style={{ ...S.btn, width: "auto", padding: "10px 16px", opacity: !claimName.trim() ? 0.5 : 1 }}
-                      >
-                        Claim
-                      </button>
-                      <button onClick={() => setClaimingItemId(null)} style={S.mutedBtn}>Cancel</button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

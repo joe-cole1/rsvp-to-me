@@ -7,6 +7,19 @@ import { Check } from "lucide-react";
 
 type RsvpField = { id: string; label: string; fieldType: string; required: boolean; options: string | null };
 
+const parseOptions = (optionsStr: string | null): string[] => {
+  if (!optionsStr) return [];
+  try {
+    const parsed = JSON.parse(optionsStr);
+    if (Array.isArray(parsed)) {
+      return parsed.map(String);
+    }
+  } catch {
+    // Fall back to newline splitting
+  }
+  return optionsStr.split("\n").map(s => s.trim()).filter(Boolean);
+};
+
 const STATUS_LABELS = { GOING: "Going", MAYBE: "Maybe", NO: "Can't go" } as const;
 const STATUS_EMOJIS = { GOING: "🎉", MAYBE: "🤔", NO: "😔" } as const;
 
@@ -440,13 +453,13 @@ export function RsvpFlow({
                 onChange={(e) => setAnswerValue(f.id, e.target.value)}
               >
                 <option value="">Select…</option>
-                {(f.options ?? "").split("\n").filter(Boolean).map((opt) => (
+                {parseOptions(f.options).map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
             ) : f.fieldType === "CHECKBOX" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {(f.options ?? "").split("\n").filter(Boolean).map((opt) => (
+                {parseOptions(f.options).map((opt) => (
                   <label key={opt} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px" }}>
                     <input
                       type="checkbox"

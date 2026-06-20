@@ -33,7 +33,12 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         orderBy: { createdAt: "asc" },
       },
       updates: { orderBy: { createdAt: "desc" } },
-      potluckItems: { orderBy: { createdAt: "asc" } },
+      potluckItems: {
+        include: {
+          claims: { orderBy: { createdAt: "asc" } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
       comments: {
         where: { parentId: null },
         include: { replies: { orderBy: { createdAt: "asc" } } },
@@ -116,13 +121,14 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   if (session) {
     const dbUser = await db.user.findUnique({
       where: { id: session.userId },
-      select: { email: true, name: true, avatarUrl: true },
+      select: { email: true, name: true, avatarUrl: true, role: true },
     });
     if (dbUser) {
       sessionUser = {
         email: dbUser.email ?? session.email,
         name: dbUser.name,
         avatarUrl: dbUser.avatarUrl,
+        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
       };
     }
   }

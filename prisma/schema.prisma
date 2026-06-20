@@ -349,12 +349,22 @@ model PotluckItem {
   eventId   String
   label     String
   quantity  Int       @default(1)
-  claimedQty Int?
-  claimedBy String?
-  claimedAt DateTime?
   createdAt DateTime  @default(now())
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event  Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  claims PotluckClaim[]
+}
+
+model PotluckClaim {
+  id            String   @id @default(cuid())
+  potluckItemId String
+  guestName     String
+  quantity      Int      @default(1)
+  createdAt     DateTime @default(now())
+
+  potluckItem PotluckItem @relation(fields: [potluckItemId], references: [id], onDelete: Cascade)
+
+  @@index([potluckItemId])
 }
 
 // ──────────────────────────────────────────────

@@ -71,6 +71,38 @@ export function DashboardClient({
   const [activityPage, setActivityPage] = useState(1);
   const [activeDropdownCardId, setActiveDropdownCardId] = useState<string | null>(null);
 
+  const [activityTypeFilter, setActivityTypeFilter] = useState<"all" | "rsvp" | "potluck" | "comment" | "event">("all");
+  const [activityEventFilter, setActivityEventFilter] = useState<"all" | string>("all");
+
+  const groupActivitiesByDate = (activities: DashboardActivity[]) => {
+    const groups: Record<string, DashboardActivity[]> = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    activities.forEach((act) => {
+      const actDate = new Date(act.createdAt);
+      actDate.setHours(0, 0, 0, 0);
+
+      let key = "Older";
+      if (actDate.getTime() === today.getTime()) {
+        key = "Today";
+      } else if (actDate.getTime() === yesterday.getTime()) {
+        key = "Yesterday";
+      } else {
+        key = actDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      }
+
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(act);
+    });
+
+    return groups;
+  };
+
   const now = new Date();
 
   // Unified items structure
@@ -404,74 +436,201 @@ export function DashboardClient({
                 Recent Activity
               </h3>
             </div>
-
             {recentActivities.length === 0 ? (
               <div style={{ padding: "30px 10px", textAlign: "center", color: APP_SHELL.textMuted, fontSize: "13px" }}>
                 <Sparkles size={24} style={{ display: "block", margin: "0 auto 8px", opacity: 0.5 }} />
                 No activity logged yet. When guests RSVP or comments are posted, they will appear here!
               </div>
             ) : (() => {
+              const activityEventsList = Array.from(
+                new Map(recentActivities.map(act => [act.eventId, { id: act.eventId, title: act.event.title, slug: act.event.slug }])).values()
+              );
+
+              const filteredActivities = recentActivities.filter((act) => {
+                if (activityEventFilter !== "all" && act.eventId !== activityEventFilter) {
+                  return false;
+                }
+                if (activityTypeFilter !== "all") {
+                  if (activityTypeFilter === "rsvp") {
+                    return ["rsvp_new", "rsvp_update", "rsvp_delete"].includes(act.type);
+                  }
+                  if (activityTypeFilter === "potluck") {
+                    return ["potluck_claim", "potluck_unclaim"].includes(act.type);
+                  }
+                  if (activityTypeFilter === "comment") {
+                    return act.type === "comment_new";
+                  }
+                  if (activityTypeFilter === "event") {
+                    return ["event_title", "event_description", "event_date", "event_location"].includes(act.type);
+                  }
+                }
+                return true;
+              });
+
               const PAGE_SIZE = 10;
-              const totalPages = Math.ceil(recentActivities.length / PAGE_SIZE);
+              const totalPages = Math.ceil(filteredActivities.length / PAGE_SIZE);
               const currentPage = Math.min(activityPage, Math.max(totalPages, 1));
-              const displayedActivities = recentActivities.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+              const displayedActivities = filteredActivities.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+              const grouped = groupActivitiesByDate(displayedActivities);
 
               return (
                 <>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    {displayedActivities.map((act) => {
-                      const { Icon, color } = getActivityMeta(act.type);
-                      return (
-                        <div key={act.id} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                          {/* Icon container */}
-                          <div style={{ 
-                            width: "28px", 
-                            height: "28px", 
-                            borderRadius: "6px", 
-                            background: `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, 0.1)`, 
-                            display: "flex", 
-                            alignItems: "center", 
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            marginTop: "2px"
-                          }}>
-                            <Icon size={14} color={color} />
-                          </div>
-                          
-                          {/* Details */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ color: APP_SHELL.textPrimary, fontSize: "12px", lineHeight: "1.4", margin: 0, wordBreak: "break-word" }}>
-                              {act.detail}
-                            </p>
-                            
-                            {/* Link and Time */}
-                            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "4px" }}>
-                              <Link 
-                                href={`/e/${act.event.slug}`} 
-                                style={{ 
-                                  color: APP_SHELL.accent, 
-                                  textDecoration: "none", 
-                                  fontSize: "11px", 
-                                  fontWeight: 600,
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  maxWidth: "110px",
-                                  display: "inline-block"
-                                }}
-                              >
-                                {act.event.title}
-                              </Link>
-                              <span style={{ color: APP_SHELL.textTertiary, fontSize: "11px" }}>·</span>
-                              <span style={{ color: APP_SHELL.textMuted, fontSize: "11px" }}>
-                                {formatRelativeTime(act.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Filters */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
+                    <select
+                      value={activityTypeFilter}
+                      onChange={(e) => {
+                        setActivityTypeFilter(e.target.value as "all" | "rsvp" | "potluck" | "comment" | "event");
+                        setActivityPage(1);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        background: "rgba(255,255,255,0.05)",
+                        border: `1px solid ${APP_SHELL.cardBorder}`,
+                        color: APP_SHELL.textPrimary,
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        outline: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value="all" style={{ background: "#12121c" }}>All Activity Types</option>
+                      <option value="rsvp" style={{ background: "#12121c" }}>RSVPs Only</option>
+                      <option value="potluck" style={{ background: "#12121c" }}>Potluck Sign-ups</option>
+                      <option value="comment" style={{ background: "#12121c" }}>Comments Only</option>
+                      <option value="event" style={{ background: "#12121c" }}>Event Updates</option>
+                    </select>
+
+                    <select
+                      value={activityEventFilter}
+                      onChange={(e) => {
+                        setActivityEventFilter(e.target.value);
+                        setActivityPage(1);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        background: "rgba(255,255,255,0.05)",
+                        border: `1px solid ${APP_SHELL.cardBorder}`,
+                        color: APP_SHELL.textPrimary,
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        outline: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value="all" style={{ background: "#12121c" }}>All Events</option>
+                      {activityEventsList.map((e) => (
+                        <option key={e.id} value={e.id} style={{ background: "#12121c" }}>
+                          {e.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
+                  {filteredActivities.length === 0 ? (
+                    <div style={{ padding: "20px 10px", textAlign: "center", color: APP_SHELL.textMuted, fontSize: "12px" }}>
+                      No matching activities found.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      {Object.entries(grouped).map(([dateGroup, items]) => (
+                        <div key={dateGroup} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          <div style={{
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            textTransform: "uppercase",
+                            color: APP_SHELL.textMuted,
+                            letterSpacing: "0.05em",
+                            borderBottom: `1px solid rgba(255,255,255,0.05)`,
+                            paddingBottom: "4px",
+                            marginTop: "4px",
+                          }}>
+                            {dateGroup}
+                          </div>
+                          {items.map((act) => {
+                            const { Icon, color } = getActivityMeta(act.type);
+                            const actorDisplayName = act.actorName || "Someone";
+                            const actorInitials = actorDisplayName.slice(0, 2).toUpperCase();
+                            return (
+                              <div key={act.id} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                                {/* Premium Initials Avatar with overlay badge */}
+                                <div style={{
+                                  width: "32px",
+                                  height: "32px",
+                                  borderRadius: "50%",
+                                  background: `linear-gradient(135deg, ${APP_SHELL.accent}, ${APP_SHELL.accentSecondary})`,
+                                  color: "#fff",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontWeight: 700,
+                                  fontSize: "11px",
+                                  flexShrink: 0,
+                                  position: "relative",
+                                  marginTop: "2px",
+                                  border: `1.5px solid ${APP_SHELL.cardBorder}`,
+                                }}>
+                                  {actorInitials}
+                                  {/* Mini overlay icon */}
+                                  <div style={{
+                                    position: "absolute",
+                                    bottom: "-2px",
+                                    right: "-2px",
+                                    width: "14px",
+                                    height: "14px",
+                                    borderRadius: "50%",
+                                    background: color,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    border: `1px solid ${APP_SHELL.cardBg}`,
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                                  }}>
+                                    <Icon size={8} color="#fff" />
+                                  </div>
+                                </div>
+                                
+                                {/* Details */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ color: APP_SHELL.textPrimary, fontSize: "12px", lineHeight: "1.4", margin: 0, wordBreak: "break-word" }}>
+                                    {act.detail}
+                                  </p>
+                                  
+                                  {/* Link and Time */}
+                                  <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "4px" }}>
+                                    <Link 
+                                      href={`/e/${act.event.slug}`} 
+                                      style={{ 
+                                        color: APP_SHELL.accent, 
+                                        textDecoration: "none", 
+                                        fontSize: "11px", 
+                                        fontWeight: 600,
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        maxWidth: "110px",
+                                        display: "inline-block"
+                                      }}
+                                    >
+                                      {act.event.title}
+                                    </Link>
+                                    <span style={{ color: APP_SHELL.textTertiary, fontSize: "11px" }}>·</span>
+                                    <span style={{ color: APP_SHELL.textMuted, fontSize: "11px" }}>
+                                      {formatRelativeTime(act.createdAt)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Pagination */}
                   {totalPages > 1 && (
