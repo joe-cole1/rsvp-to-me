@@ -897,6 +897,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     
     if (url) {
       return (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={url}
           alt={name}
@@ -1418,6 +1419,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               style={{ width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#fff", textDecoration: "none", flexShrink: 0, overflow: "hidden" }}
             >
               {sessionUser.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={sessionUser.avatarUrl} alt={sessionUser.name ?? "User"} style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
               ) : (
                 navUserInitial

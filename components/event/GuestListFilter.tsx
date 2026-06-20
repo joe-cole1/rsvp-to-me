@@ -148,6 +148,7 @@ export function GuestListFilter({
                  overflow: "hidden",
                }}>
                  {r.user?.avatarUrl ? (
+                   // eslint-disable-next-line @next/next/no-img-element
                    <img src={r.user.avatarUrl} alt={r.guestName} style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover" }} />
                  ) : (
                    r.guestName[0].toUpperCase()
