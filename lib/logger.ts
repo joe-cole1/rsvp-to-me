@@ -29,12 +29,15 @@ function maskPII(obj: unknown): unknown {
 function log(level: LogLevel, message: string, meta?: unknown) {
   if (LOG_LEVELS[level] < LOG_LEVELS[CURRENT_LEVEL]) return;
 
-  const logObject = {
+  const logObject: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     level,
     message,
-    ...(meta && { meta: maskPII(meta) }),
   };
+
+  if (meta !== undefined && meta !== null) {
+    logObject.meta = maskPII(meta);
+  }
 
   if (level === "error") {
     console.error(JSON.stringify(logObject));
