@@ -14,7 +14,11 @@ const FROM = process.env.TWILIO_PHONE_NUMBER ?? "";
 async function send(to: string, body: string) {
   const client = getClient();
   if (!client) {
-    console.log("[sms:dev]", { to, body });
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[sms:dev]", { to, body });
+    } else {
+      console.log("[sms:dev] SMS fallback triggered (Twilio credentials not configured)");
+    }
     return;
   }
   return client.messages.create({ from: FROM, to, body });

@@ -17,14 +17,36 @@ function hoursLabel(n: number) {
 }
 
 export async function processReminders(): Promise<void> {
+  const jobName = "process_reminders";
   const now = new Date();
+  const expireAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes lock expiry
+  
+  // Clean up stale locks
+  await db.cronLock.deleteMany({
+    where: { expireAt: { lt: now } }
+  }).catch(() => {});
 
-  const events = await db.event.findMany({
-    where: {
-      status: { not: "CANCELLED" },
-      startAt: { gt: now },
-      reminderSettings: { isNot: null },
-    },
+  try {
+    await db.cronLock.create({
+      data: { jobName, lockedAt: now, expireAt }
+    });
+  } catch {
+    console.log("[cron] Failed to acquire lock (another instance is running). Skipping reminders check.");
+    return;
+  }
+
+  try {
+    // Clean up expired sessions during the cron run
+    await db.session.deleteMany({
+      where: { expiresAt: { lt: now } }
+    }).catch(() => {});
+
+    const events = await db.event.findMany({
+      where: {
+        status: { not: "CANCELLED" },
+        startAt: { gt: now },
+        reminderSettings: { isNot: null },
+      },
     include: {
       reminderSettings: true,
       host: { select: { name: true } },
@@ -178,5 +200,9 @@ export async function processReminders(): Promise<void> {
         console.error(`[reminders] Failed ${check.type} for "${event.title}":`, err);
       }
     }
+  }
+  } finally {
+    // Release the lock
+    await db.cronLock.delete({ where: { jobName } }).catch(() => {});
   }
 }

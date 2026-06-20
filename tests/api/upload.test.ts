@@ -69,7 +69,8 @@ describe("POST /api/upload", () => {
 
   it("returns url on successful upload", async () => {
     mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com" });
-    const file = new File(["imgdata"], "photo.jpg", { type: "image/jpeg" });
+    const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+    const file = new File([jpegBytes], "photo.jpg", { type: "image/jpeg" });
     const req = makeFormDataRequest(file);
     const res = await POST(req);
     expect(res.status).toBe(200);

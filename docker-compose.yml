@@ -6,12 +6,28 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: file:/app/data/prod.db
-      OPEN_REGISTRATION: "false"   # set to "true" to allow anyone to register
-      SEED_TEST_DATA: "true"
+      OPEN_REGISTRATION: "false"
+      SEED_TEST_DATA: "false"
       CLOUDFLARE_WORKER_EMAIL_URL: ""
       CLOUDFLARE_WORKER_API_SECRET: ""
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
 
-
+  cron:
+    build: .
+    command: npx tsx scripts/cron.ts
+    env_file: .env
+    environment:
+      DATABASE_URL: file:/app/data/prod.db
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    depends_on:
+      - app

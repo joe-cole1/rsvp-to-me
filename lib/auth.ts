@@ -112,11 +112,14 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
   let role = user.role;
   const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
   if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
-    await db.user.update({
-      where: { id: user.id },
-      data: { role: "ADMIN" },
-    });
-    role = "ADMIN";
+    const adminCount = await db.user.count({ where: { role: "ADMIN" } });
+    if (adminCount === 0) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { role: "ADMIN" },
+      });
+      role = "ADMIN";
+    }
   }
 
   // Auto-link any matching RSVPs

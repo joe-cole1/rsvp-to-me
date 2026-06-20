@@ -4,6 +4,8 @@ import { getSession } from "@/lib/session";
 import { resolveTheme } from "@/lib/theme";
 import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
+import { cookies } from "next/headers";
+import { getUnlockSignature } from "@/lib/crypto";
 
 export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;
@@ -77,8 +79,12 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const isAdminModerating = session?.role === "ADMIN" && searchParams?.admin === "1";
   const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
 
+  // Check if event is unlocked via signed cookie
+  const unlockedCookie = (await cookies()).get(`rsvp-unlocked-${slug}`)?.value;
+  const isUnlocked = unlockedCookie === getUnlockSignature(slug);
+
   // Password gate — hosts bypass it
-  if (event.password && !isHost && searchParams?.pw !== event.password) {
+  if (event.password && !isHost && !isUnlocked) {
     return <PasswordGate slug={slug} />;
   }
 

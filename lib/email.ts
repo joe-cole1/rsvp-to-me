@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
+import { decryptConfig } from "./crypto";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -82,12 +83,12 @@ async function resolveEmailConfig() {
   const smtpPort = parseInt(configMap.smtp_port || process.env.SMTP_PORT || "587");
   const smtpSecure = (configMap.smtp_secure || process.env.SMTP_SECURE) === "true";
   const smtpUser = configMap.smtp_user || process.env.SMTP_USER;
-  const smtpPass = configMap.smtp_pass || process.env.SMTP_PASS;
+  const smtpPass = decryptConfig(configMap.smtp_pass) || process.env.SMTP_PASS;
 
   const cfUrl = configMap.cloudflare_worker_email_url || process.env.CLOUDFLARE_WORKER_EMAIL_URL;
-  const cfSecret = configMap.cloudflare_worker_api_secret || process.env.CLOUDFLARE_WORKER_API_SECRET;
+  const cfSecret = decryptConfig(configMap.cloudflare_worker_api_secret) || process.env.CLOUDFLARE_WORKER_API_SECRET;
   const cfAccountId = configMap.cloudflare_account_id || process.env.CLOUDFLARE_ACCOUNT_ID;
-  const cfApiToken = configMap.cloudflare_api_token || process.env.CLOUDFLARE_API_TOKEN;
+  const cfApiToken = decryptConfig(configMap.cloudflare_api_token) || process.env.CLOUDFLARE_API_TOKEN;
 
   return {
     provider,
@@ -240,8 +241,9 @@ async function send(opts: MailOpts) {
 }
 
 export async function sendMagicLinkEmail(to: string, magicLink: string) {
-  // Always log magic link to container logs as a rescue fallback for administrators
-  console.log(`[auth:magic-link-fallback] Magic link for ${to} is: ${magicLink}`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[auth:magic-link-fallback] Magic link for ${to} is: ${magicLink}`);
+  }
 
   return send({
     to,
