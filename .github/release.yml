@@ -1,0 +1,29 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: 🚀 New Features
+      labels:
+        - feature
+    - title: 🎨 UI & Design Polish
+      labels:
+        - ui/ux
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+    - title: 🔧 Refactors & Code Quality
+      labels:
+        - refactor
+    - title: ⚡ Performance
+      labels:
+        - performance
+    - title: 📝 Documentation
+      labels:
+        - documentation
+    - title: 🧪 Testing
+      labels:
+        - tests
+    - title: ⚙️ Maintenance & Dependency Updates
+      labels:
+        - chore
