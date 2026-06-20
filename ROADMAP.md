@@ -7,43 +7,37 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 ## 📅 Short-term Backlog
 *Tasks queued for upcoming sessions.*
 
-### 1. User Dashboard Enhancement (`/dashboard`)
-*   [ ] Add at-a-glance host and co-host event listings.
-*   [ ] Show active guest counts, pending RSVPs, and comment activity.
-*   [ ] Build navigation tabs for "My Invites" and "Events I'm Hosting".
-
-### 2. Guest List Exporters
+### 1. Guest List Exporters
 *   [ ] Implement a robust CSV export action for guest details (names, statuses, responses).
 *   [ ] Create a print-friendly view of the guest list optimized for physical check-ins.
 
-### 3. Check-in Flow
+### 2. Check-in Flow
 *   [ ] Add QR code generation for guest tickets/invitations.
 *   [ ] Design a mobile-friendly host scanner view to scan QR codes and check guests in.
 *   [ ] Provide a manual toggle check-in flow on the guest list.
 
-### 4. SMS Integration & Testing (Twilio)
+### 3. SMS Integration & Testing (Twilio)
 *   [ ] Build configuration panel in `/admin` for Twilio settings (Account SID, Auth Token, Sender Phone Number).
 *   [ ] Add connection diagnostics testing for Twilio SMS in `/admin` (similar to email testing).
 *   [ ] Implement outbound SMS blast mechanisms using Twilio's client.
 *   [ ] Write automated unit tests for `lib/sms.ts` to mock and verify Twilio service connectivity.
 
-### 5. Database Migration (SQLite to PostgreSQL)
+### 4. Database Migration (SQLite to PostgreSQL)
 *   [ ] Transition the Prisma schema and database provider from SQLite to PostgreSQL for production scalability.
 *   [ ] Update singletons, docker-compose configurations, and deployment guidelines.
 *   [ ] Define database migration paths for existing production data.
 
-### 6. Interactive Documentation Dashboard
+### 5. Interactive Documentation Dashboard
 *   [ ] Build an in-app documentation portal accessible via the host dashboard.
 *   *   [ ] Render local markdown files (e.g., GitHub README, setup guides, and `docs/cloudflare_workers.md`) dynamically.
 *   *   [ ] Implement search, category navigation, and responsive layout styling.
 
-### 7. UI/UX Polish & Immediate Fixes
+### 6. UI/UX Polish & Immediate Fixes
 *   [ ] **Fix Invite Guests Copy Link**: The copy link button is currently broken. Make it copy the event URL to the clipboard and update the button style to green with a checkbox upon success.
 *   [ ] **Toast & Success Message UX**: Adjust styling for confirmation, "Saved", and success messages across the entire site to render at the top of the viewport (fixed position) rather than the absolute top of the page, so they are visible without scrolling up.
 *   [ ] **Eliminate All-Caps Overuse**: Audit and remove unnecessary all-caps text throughout the website to improve readability.
 *   [ ] **RSVP Settings Grouping**: In Event Settings, group "Require host approval for each RSVP" and "Guests can RSVP 'Maybe'" under a new subtitle: "RSVP & Approval Options".
 *   [x] **Clean up Event Settings Navigation**: Restructure the Event Settings page so each setting section is linked from a menu and opens in a sub-view/page, with clear links back to settings or the event.
-*   [ ] **Consistent Profile Picture Usage**: Make every user profile icon (event page, activity log, comments, etc.) render the uploaded profile picture if available.
 
 ---
 
@@ -100,3 +94,10 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [x] **Host Control Panel & Cover Refinement**: Added hover highlight effects to all floating menu items and removed the redundant Theme picker button from the cover image.
 *   [x] **Activity Updates Labeling**: Updated "Notify guests via email" to "Notify guests of update" to support multiple notification channels.
 *   [x] **TS/ESLint Quality Sweep**: Cleared all errors and warnings across the app (including dynamic avatar img element warnings).
+
+### Unified Dashboard & Image Refactoring
+*   [x] **Unified Guest/Host Dashboard**: Opened `/dashboard` to guest users, showing active invitations, co-host overlaps, and comment activity counts.
+*   [x] **Partiful-style Grid Layout**: Implemented square cover photo layouts, overlay badges, search and pill-style filter tabs.
+*   [x] **RSVP Auto-linking Utility**: Created background process to merge/link guest RSVPs automatically during registration and login.
+*   [x] **Next.js Image Refactoring**: Replaced all raw `<img>` tags codebase-wide with Next.js `<Image>` / `<NextImage>` component, removing all `@next/next/no-img-element` overrides.
+
