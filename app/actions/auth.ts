@@ -13,10 +13,30 @@ function looksLikePhone(s: string): boolean {
 
 async function getClientIp(): Promise<string> {
   const headersList = await headers();
+
+  const trustedHeader = process.env.TRUSTED_IP_HEADER;
+  if (trustedHeader) {
+    const ip = headersList.get(trustedHeader);
+    if (ip) {
+      return ip.split(",")[0].trim();
+    }
+  }
+
+  const cfConnectingIp = headersList.get("cf-connecting-ip");
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim();
+  }
+
+  const xRealIp = headersList.get("x-real-ip");
+  if (xRealIp) {
+    return xRealIp.trim();
+  }
+
   const xForwardedFor = headersList.get("x-forwarded-for");
   if (xForwardedFor) {
     return xForwardedFor.split(",")[0].trim();
   }
+
   return "127.0.0.1";
 }
 

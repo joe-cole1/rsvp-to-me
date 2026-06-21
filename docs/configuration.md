@@ -87,6 +87,20 @@ Some configuration fields (email provider settings, registration mode) can also 
 
 ---
 
+### TRUSTED_IP_HEADER
+- **Required**: No
+- **Default**: *(none)*
+- **Type**: String (Header Name)
+
+**What it does:** Specifies the trusted request header to use when extracting client IP addresses for rate limiting. When running behind reverse proxies (like Cloudflare, Nginx, or AWS ALBs), this ensures rate-limit tracking resolves the actual client IP instead of proxy IPs.
+
+**Common values:**
+- `CF-Connecting-IP` (Cloudflare)
+- `X-Real-IP` (Nginx, Vercel)
+- `X-Forwarded-For` (Fallback default, checks the first client IP in the chain)
+
+---
+
 ### ENCRYPTION_KEY
 - **Required**: No (falls back to `SESSION_SECRET` if not set)
 - **Default**: *(none)*
@@ -351,6 +365,7 @@ Automated and manual database backups can be set up for both SQLite and PostgreS
 | `BACKUP_SCHEDULE` | No | `disabled` | Cron expression (e.g. `0 0 * * *`) to schedule automated database backups. |
 | `BACKUP_KEEP_COUNT` | No | `7` | Maximum number of backup files to retain before rotating. |
 | `SESSION_SECRET` | Yes | *(none)* | Random string (32+ chars) for signing session cookies. |
+| `TRUSTED_IP_HEADER` | No | *(none)* | Optional header to extract client IP for proxy setups (e.g. CF-Connecting-IP). |
 | `ENCRYPTION_KEY` | No | *(falls back)* | Encryption key for database-stored credentials. |
 | `NEXT_PUBLIC_APP_URL` | Yes | *(none)* | Base URL for accessing the application. |
 | `INITIAL_ADMIN_EMAIL` | No | *(none)* | Email address promoted to Admin on first login. |

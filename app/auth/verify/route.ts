@@ -4,6 +4,7 @@ import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
 import { linkRsvpsToUser } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { isRedisEnabled, redisSet } from "@/lib/redis";
+import { hashToken } from "@/lib/hash";
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -20,7 +21,12 @@ export async function GET(request: NextRequest) {
     return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in`);
   }
 
-  const record = await db.magicToken.findUnique({ where: { token } });
+  if (token.length > 128) {
+    return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in?error=invalid-token`);
+  }
+
+  const hashedToken = hashToken(token);
+  const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
   if (!record || record.used || record.expiresAt < new Date()) {
     return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in?error=invalid-token`);
   }
