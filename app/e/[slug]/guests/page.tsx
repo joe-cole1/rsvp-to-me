@@ -15,7 +15,6 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
       theme: true,
       coHosts: { select: { userId: true } },
       rsvps: {
-        where: { approved: true },
         include: {
           answers: {
             include: { rsvpField: { select: { id: true, label: true } } },
@@ -48,9 +47,12 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
 
   const t = resolveTheme(event.theme?.baseTheme ?? "DARK", event.theme?.accentColor ?? "#a855f7");
 
-  const going = event.rsvps.filter((r) => r.status === "GOING");
-  const maybe = event.rsvps.filter((r) => r.status === "MAYBE");
-  const no = event.rsvps.filter((r) => r.status === "NO");
+  const approvedRsvps = event.rsvps.filter((r) => r.approved);
+  const pendingRsvps = event.rsvps.filter((r) => !r.approved);
+
+  const going = approvedRsvps.filter((r) => r.status === "GOING");
+  const maybe = approvedRsvps.filter((r) => r.status === "MAYBE");
+  const no = approvedRsvps.filter((r) => r.status === "NO");
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
 
   // Serialize dates before crossing server→client boundary
@@ -92,10 +94,13 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
           </Link>
           <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "4px" }}>{event.title}</h1>
           <p style={{ color: t.textMuted, fontSize: "14px" }}>
-            {event.rsvps.length}{" "}
-            {event.rsvps.length === 1 ? "response" : "responses"} · {totalGoing} going
-            {maybe.length > 0 ? ` · ${maybe.length} maybe` : ""}
-            {no.length > 0 ? ` · ${no.length} can't make it` : ""}
+            {[
+              `${event.rsvps.length} ${event.rsvps.length === 1 ? "response" : "responses"}`,
+              `${totalGoing} going`,
+              maybe.length > 0 ? `${maybe.length} maybe` : null,
+              no.length > 0 ? `${no.length} can't make it` : null,
+              pendingRsvps.length > 0 ? `${pendingRsvps.length} pending approval` : null,
+            ].filter(Boolean).join(" · ")}
           </p>
         </div>
 
@@ -108,6 +113,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
             going={going.map(serializeRsvp)}
             maybe={maybe.map(serializeRsvp)}
             no={no.map(serializeRsvp)}
+            pending={isHost ? pendingRsvps.map(serializeRsvp) : []}
             invited={pendingInvitations.map((inv) => ({
               ...inv,
               sentAt: inv.sentAt.toISOString(),

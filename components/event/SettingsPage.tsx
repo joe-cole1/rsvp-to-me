@@ -80,6 +80,7 @@ type EventInput = {
   plusOneMax: number;
   plusOneNamesRequired: boolean;
   guestSharingEnabled: boolean;
+  guestsCanInvite: boolean;
   approvalRequired: boolean;
   rsvpDeadline: Date | null;
   capacity: number | null;
@@ -116,6 +117,7 @@ interface SettingsOverrides {
   showTimestamps?: boolean;
   password?: string | null;
   guestSharingEnabled?: boolean;
+  guestsCanInvite?: boolean;
 }
 
 interface ReminderOverrides {
@@ -162,6 +164,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   const [plusOneMax, setPlusOneMax] = useState(event.plusOneMax);
   const [plusOneNamesRequired, setPlusOneNamesRequired] = useState(event.plusOneNamesRequired);
   const [approvalRequired, setApprovalRequired] = useState(event.approvalRequired);
+  const [guestsCanInvite, setGuestsCanInvite] = useState(event.guestsCanInvite);
   const [maybeEnabled, setMaybeEnabled] = useState(event.maybeEnabled);
   const [capacity, setCapacity] = useState(event.capacity?.toString() ?? "");
   const [rsvpDeadline, setRsvpDeadline] = useState(
@@ -219,7 +222,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   // ── Potluck State ──
   const [potluckItems, setPotluckItems] = useState<PotluckItemEntry[]>(event.potluckItems || []);
   const [newPotluckLabel, setNewPotluckLabel] = useState("");
-  const [newPotluckQty, setNewPotluckQty] = useState(1);
+  const [newPotluckQty, setNewPotluckQty] = useState<number | "">(1);
 
   // Clear saved status after delay
   useEffect(() => {
@@ -299,6 +302,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       plusOneMax: overrides.plusOneMax !== undefined ? overrides.plusOneMax : plusOneMax,
       plusOneNamesRequired: overrides.plusOneNamesRequired !== undefined ? overrides.plusOneNamesRequired : plusOneNamesRequired,
       guestSharingEnabled: overrides.guestSharingEnabled !== undefined ? overrides.guestSharingEnabled : guestSharingEnabled,
+      guestsCanInvite: overrides.guestsCanInvite !== undefined ? overrides.guestsCanInvite : guestsCanInvite,
       approvalRequired: overrides.approvalRequired !== undefined ? overrides.approvalRequired : approvalRequired,
       maybeEnabled: overrides.maybeEnabled !== undefined ? overrides.maybeEnabled : maybeEnabled,
       capacity: overrides.capacity !== undefined ? overrides.capacity : (capacity.trim() ? Number(capacity) : null),
@@ -533,7 +537,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   // ── Potluck Actions ──
   const handleAddPotluckItem = () => {
     const label = newPotluckLabel.trim();
-    const qty = newPotluckQty;
+    const qty = typeof newPotluckQty === "number" ? newPotluckQty : 1;
     if (!label) return;
 
     setSaveStatus("SAVING");
@@ -984,6 +988,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
               </div>
               <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={(val) => { setApprovalRequired(val); triggerSaveSettings({ approvalRequired: val }); }} t={t} />
               <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={(val) => { setMaybeEnabled(val); triggerSaveSettings({ maybeEnabled: val }); }} t={t} />
+              <Toggle label="Allow guests to invite friends (Private events)" value={guestsCanInvite} onChange={(val) => { setGuestsCanInvite(val); triggerSaveSettings({ guestsCanInvite: val }); }} t={t} />
             </div>
             
             <div style={{ marginBottom: "16px", marginTop: "16px" }}>
@@ -1420,7 +1425,15 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
                   min="1"
                   style={{ ...S.inp, width: "70px", textAlign: "center" }}
                   value={newPotluckQty}
-                  onChange={(e) => setNewPotluckQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setNewPotluckQty("");
+                    } else {
+                      const num = parseInt(val);
+                      setNewPotluckQty(isNaN(num) ? "" : Math.max(1, num));
+                    }
+                  }}
                   placeholder="Qty"
                 />
               </div>

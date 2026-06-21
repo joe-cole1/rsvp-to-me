@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { deleteRsvpAsHost } from "@/app/actions/event";
+import { deleteRsvpAsHost, approveRsvp, declineRsvp } from "@/app/actions/event";
 import Image from "next/image";
 
 type RSVPAnswer = { label: string; value: string };
@@ -29,12 +29,13 @@ type InvitedGuest = {
   sentAt: string;
 };
 
-type Filter = "ALL" | "GOING" | "MAYBE" | "NO" | "INVITED";
+type Filter = "ALL" | "GOING" | "MAYBE" | "NO" | "INVITED" | "PENDING";
 
 export function GuestListFilter({
   going: initialGoing,
   maybe: initialMaybe,
   no: initialNo,
+  pending: initialPending = [],
   invited,
   isHost,
   slug,
@@ -43,6 +44,7 @@ export function GuestListFilter({
   going: RSVP[];
   maybe: RSVP[];
   no: RSVP[];
+  pending?: RSVP[];
   invited: InvitedGuest[];
   isHost: boolean;
   slug: string;
@@ -52,8 +54,9 @@ export function GuestListFilter({
   const [going, setGoing] = useState(initialGoing);
   const [maybe, setMaybe] = useState(initialMaybe);
   const [no, setNo] = useState(initialNo);
+  const [pending, setPending] = useState(initialPending);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   const statusLabel = (s: string) =>
     s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't make it";
@@ -66,13 +69,15 @@ export function GuestListFilter({
     filter === "GOING"  ? going :
     filter === "MAYBE"  ? maybe :
     filter === "NO"     ? no :
+    filter === "PENDING" ? pending :
     [];
-
+  
   const chips: { key: Filter; label: string; count: number }[] = [
     { key: "ALL",     label: "All",           count: allRsvps.length + (isHost ? invited.length : 0) },
     { key: "GOING",   label: "Going",         count: going.length },
     { key: "MAYBE",   label: "Maybe",         count: maybe.length },
     { key: "NO",      label: "Can't make it", count: no.length },
+    ...(isHost ? [{ key: "PENDING" as Filter, label: "Pending", count: pending.length }] : []),
     ...(isHost ? [{ key: "INVITED" as Filter, label: "Invited", count: invited.length }] : []),
   ];
 
@@ -111,8 +116,38 @@ export function GuestListFilter({
         setGoing(remove);
         setMaybe(remove);
         setNo(remove);
+        setPending((prev) => prev.filter((r) => r.id !== rsvpId));
       }
       setDeletingId(null);
+    });
+  };
+
+  const handleApprove = (rsvpId: string) => {
+    startTransition(async () => {
+      const res = await approveRsvp(rsvpId);
+      if (res.success) {
+        const approvedItem = pending.find((r) => r.id === rsvpId);
+        if (approvedItem) {
+          setPending((prev) => prev.filter((r) => r.id !== rsvpId));
+          if (approvedItem.status === "GOING") {
+            setGoing((prev) => [...prev, approvedItem]);
+          } else if (approvedItem.status === "MAYBE") {
+            setMaybe((prev) => [...prev, approvedItem]);
+          } else {
+            setNo((prev) => [...prev, approvedItem]);
+          }
+        }
+      }
+    });
+  };
+
+  const handleDecline = (rsvpId: string) => {
+    if (!confirm("Decline and remove this RSVP request?")) return;
+    startTransition(async () => {
+      const res = await declineRsvp(rsvpId);
+      if (res.success) {
+        setPending((prev) => prev.filter((r) => r.id !== rsvpId));
+      }
     });
   };
 
@@ -213,7 +248,34 @@ export function GuestListFilter({
                 </div>
               </div>
 
-              {isHost && (
+              {isHost && filter === "PENDING" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                  <button
+                    onClick={() => handleApprove(r.id)}
+                    disabled={isPending}
+                    style={{
+                      fontSize: "11px", fontWeight: 600, padding: "6px 12px",
+                      background: t.accent, color: t.accentFg, border: "none",
+                      borderRadius: "8px", cursor: isPending ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleDecline(r.id)}
+                    disabled={isPending}
+                    style={{
+                      fontSize: "11px", fontWeight: 600, padding: "6px 12px",
+                      background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
+                      borderRadius: "8px", color: "#f87171", cursor: isPending ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Decline
+                  </button>
+                </div>
+              ) : isHost && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
                   <a
                     href={`/e/${slug}/rsvp?token=${r.editToken}&return=guests`}

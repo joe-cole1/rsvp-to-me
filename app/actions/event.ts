@@ -355,6 +355,7 @@ export async function saveEventSettings(
     showTimestamps?: boolean;
     password?: string | null;
     guestSharingEnabled?: boolean;
+    guestsCanInvite?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHost(eventId);
@@ -1273,6 +1274,114 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
     emailOrPhone: invited.join(", "),
     errors: errors.length > 0 ? errors : undefined,
   };
+}
+
+export async function inviteFriendAsGuest(
+  eventId: string,
+  editToken: string,
+  emailOrPhone: string
+): Promise<{ success: boolean; error?: string }> {
+  const invitingRsvp = await db.rSVP.findUnique({
+    where: { editToken },
+    include: { event: true },
+  });
+  if (!invitingRsvp || invitingRsvp.eventId !== eventId) {
+    return { success: false, error: "Invalid guest token" };
+  }
+  if (invitingRsvp.status !== "GOING" && invitingRsvp.status !== "MAYBE") {
+    return { success: false, error: "Only attending guests can invite friends" };
+  }
+
+  const event = invitingRsvp.event;
+  if (event.visibility !== "PRIVATE") {
+    return { success: false, error: "This feature is only for private events" };
+  }
+  if (!event.guestsCanInvite) {
+    return { success: false, error: "Guests are not allowed to invite others to this event" };
+  }
+
+  const entry = emailOrPhone.trim();
+  if (!entry) {
+    return { success: false, error: "No invite target provided" };
+  }
+
+  const isEmail = entry.includes("@");
+  if (isEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry)) {
+      return { success: false, error: `Invalid email: ${entry}` };
+    }
+  } else {
+    if (!/^\+?[0-9\s\-()]{7,}$/.test(entry)) {
+      return { success: false, error: `Invalid phone: ${entry}` };
+    }
+  }
+
+  let user = await db.user.findFirst({
+    where: isEmail ? { email: entry } : { phone: entry },
+  });
+  if (!user) {
+    user = await db.user.create({
+      data: isEmail
+        ? { email: entry, role: "GUEST" }
+        : { phone: entry, role: "GUEST" },
+    });
+  }
+
+  let rsvp = await db.rSVP.findFirst({
+    where: { eventId, userId: user.id },
+  });
+  if (!rsvp) {
+    const namePrefix = isEmail ? entry.split("@")[0] : entry;
+    rsvp = await db.rSVP.create({
+      data: {
+        eventId,
+        guestName: namePrefix,
+        guestEmail: isEmail ? entry : null,
+        guestPhone: isEmail ? null : entry,
+        status: "GOING",
+        responded: false,
+        approved: false,
+        userId: user.id,
+      },
+    });
+  }
+
+  const existingInvitation = await db.invitation.findFirst({
+    where: { eventId, sentTo: entry },
+  });
+  if (!existingInvitation) {
+    await db.invitation.create({
+      data: {
+        eventId,
+        sentTo: entry,
+        channel: isEmail ? "EMAIL" : "SMS",
+        rsvpId: rsvp.id,
+      },
+    });
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const inviteLink = `${appUrl}/e/${event.slug}?token=${rsvp.editToken}`;
+
+  if (isEmail) {
+    await sendEventInviteEmail(entry, {
+      guestName: rsvp.guestName,
+      hostName: invitingRsvp.guestName,
+      eventTitle: event.title,
+      eventSlug: event.slug,
+      startAt: event.startAt,
+      locationName: event.locationName ?? "TBD",
+      inviteLink,
+      replyTo: invitingRsvp.guestEmail || undefined,
+    });
+  } else {
+    await sendMagicLinkSms(entry, inviteLink);
+  }
+
+  logActivity(eventId, "guest_invite", `${invitingRsvp.guestName} invited ${rsvp.guestName}`).catch(() => {});
+  revalidatePath(`/e/${event.slug}`);
+
+  return { success: true };
 }
 
 // ── Polls ──────────────────────────────────────────────────────────────────────

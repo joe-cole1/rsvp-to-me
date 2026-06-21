@@ -33,7 +33,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet, Settings } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, castVote, addPollOption } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, castVote, addPollOption, inviteFriendAsGuest } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import QRCode from "qrcode";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
@@ -60,6 +60,7 @@ type EventData = {
   plusOneMax: number;
   plusOneNamesRequired: boolean;
   guestSharingEnabled: boolean;
+  guestsCanInvite: boolean;
   approvalRequired: boolean;
   maybeEnabled: boolean;
   questionnaireEnabled: boolean;
@@ -1012,6 +1013,26 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     }
   }, [showShareQr, event.slug]);
 
+  useEffect(() => {
+    const handleScrollToHash = () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+      const id = hash.substring(1);
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    const timer = setTimeout(handleScrollToHash, 250);
+
+    window.addEventListener("hashchange", handleScrollToHash);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("hashchange", handleScrollToHash);
+    };
+  }, [event]);
+
   const t = theme;
 
   const getChipStyle = (isCustom: boolean): React.CSSProperties => {
@@ -1723,9 +1744,142 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         )}
 
 
+        {/* ── RSVP Section ── */}
+        {!isHost && (
+          <div style={S.card}>
+            <h2 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px", fontFamily: t.headingFont }}>Are you coming?</h2>
+
+            {rsvpDone ? (
+              <div style={{ textAlign: "center", padding: "12px 0" }}>
+                <div style={{ fontSize: "40px", marginBottom: "8px" }}>
+                  {rsvpStatus === "GOING" ? "🎉" : rsvpStatus === "MAYBE" ? "🤔" : "😔"}
+                </div>
+                <div style={{ fontWeight: 700, marginBottom: "12px" }}>
+                  {rsvpStatus === "GOING" ? "You're going!" : rsvpStatus === "MAYBE" ? "Marked as maybe" : "Can't make it"}
+                </div>
+                {guestEditToken && (
+                  <a
+                    href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
+                    style={{ fontSize: "13px", color: t.accent, textDecoration: "none", fontWeight: 600 }}
+                  >
+                    Edit my RSVP →
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: "10px" }}>
+                {(["GOING", "MAYBE", "NO"] as const).filter((s) => s !== "MAYBE" || event.maybeEnabled).map((s) => (
+                  <a
+                    key={s}
+                    href={`/e/${event.slug}/rsvp?status=${s}${guestEditToken ? `&token=${guestEditToken}` : ""}`}
+                    style={{
+                      flex: 1, padding: "14px 8px", border: `1px solid ${t.inputBorder}`, borderRadius: t.btnRadius,
+                      fontFamily: "inherit", fontSize: "12px", fontWeight: 700, background: t.inputBg,
+                      color: t.textSecondary, textDecoration: "none", display: "flex", flexDirection: "column",
+                      alignItems: "center", gap: "5px", cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ fontSize: "22px" }}>{s === "GOING" ? "🎉" : s === "MAYBE" ? "🤔" : "😔"}</span>
+                    {s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't go"}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Pending approvals (host only) ── */}
+        {isHost && event.pendingRsvps.length > 0 && (
+          <div style={S.card}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
+              <Users size={16} style={{ color: t.accent }} />
+              <span style={{ fontWeight: 700 }}>Pending Approval ({event.pendingRsvps.length})</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              {event.pendingRsvps.map((r, i) => (
+                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: i < event.pendingRsvps.length - 1 ? `1px solid ${t.cardBorder}` : "none" }}>
+                  {renderAvatar(r.guestName, r.id, { width: "28px", height: "28px" })}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: "14px" }}>{r.guestName}</div>
+                    <div style={{ color: t.textMuted, fontSize: "12px" }}>
+                      {r.status.toLowerCase()}{r.plusOneCount > 0 ? ` +${r.plusOneCount}` : ""}
+                      {r.guestEmail ? ` · ${r.guestEmail}` : ""}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveApproval({ rsvpId: r.id, type: "APPROVE", guestName: r.guestName })}
+                    disabled={isPending}
+                    style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
+                    title="Approve"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    onClick={() => setActiveApproval({ rsvpId: r.id, type: "DECLINE", guestName: r.guestName })}
+                    disabled={isPending}
+                    style={{ background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", cursor: "pointer" }}
+                    title="Decline"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Guest Sharing Card ── */}
+        {!isHost && event.guestSharingEnabled && event.visibility !== "PRIVATE" && (
+          <div style={{ ...S.card, display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "16px" }}>📢</span>
+              <span style={{ fontWeight: 700, fontSize: "14px" }}>Share this event</span>
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => {
+                  if (typeof navigator !== "undefined") {
+                    navigator.clipboard.writeText(window.location.origin + `/e/${event.slug}`);
+                    setEventLinkCopied(true);
+                    setTimeout(() => setEventLinkCopied(false), 2000);
+                  }
+                }}
+                style={{
+                  flex: 1, padding: "10px 14px",
+                  background: eventLinkCopied ? "#22c55e" : t.inputBg,
+                  border: `1px solid ${eventLinkCopied ? "#22c55e" : t.inputBorder}`,
+                  borderRadius: t.btnRadius,
+                  color: eventLinkCopied ? "#ffffff" : t.textPrimary,
+                  fontFamily: "inherit", fontSize: "13px",
+                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                  transition: "all 0.15s ease-in-out"
+                }}
+              >
+                {eventLinkCopied ? <Check size={14} /> : <span>📋</span>}
+                {eventLinkCopied ? "Copied!" : "Copy Link"}
+              </button>
+              <button
+                onClick={() => setShowShareQr(true)}
+                style={{
+                  flex: 1, padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  borderRadius: t.btnRadius, color: t.textPrimary, fontFamily: "inherit", fontSize: "13px",
+                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
+                }}
+              >
+                <span>📱</span> Show QR Code
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Guest Invite Friend Block (for private events when guestsCanInvite is enabled) ── */}
+        {!isHost && event.visibility === "PRIVATE" && event.guestsCanInvite && rsvpDone && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE") && (
+          <GuestInviteFriendCard eventId={event.id} guestToken={guestEditToken ?? ""} theme={t} />
+        )}
+
         {/* ── Polls Section ── */}
         {event.polls && event.polls.length > 0 && (
-          <div style={{ ...S.card, marginBottom: "16px" }}>
+          <div id="polls" style={{ ...S.card, marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontSize: "16px" }}>📊</span>
@@ -1913,7 +2067,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
         {/* ── Potluck ── */}
         {(isHost || rsvpStatus === "GOING") && event.potluckItems && event.potluckItems.length > 0 && (
-          <div style={{ ...S.card, marginBottom: "16px" }}>
+          <div id="potluck" style={{ ...S.card, marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", marginBottom: "14px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontSize: "16px" }}>🍽️</span>
@@ -2035,134 +2189,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                   </div>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* ── RSVP Section ── */}
-        {!isHost && (
-          <div style={S.card}>
-            <h2 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px", fontFamily: t.headingFont }}>Are you coming?</h2>
-
-            {rsvpDone ? (
-              <div style={{ textAlign: "center", padding: "12px 0" }}>
-                <div style={{ fontSize: "40px", marginBottom: "8px" }}>
-                  {rsvpStatus === "GOING" ? "🎉" : rsvpStatus === "MAYBE" ? "🤔" : "😔"}
-                </div>
-                <div style={{ fontWeight: 700, marginBottom: "12px" }}>
-                  {rsvpStatus === "GOING" ? "You're going!" : rsvpStatus === "MAYBE" ? "Marked as maybe" : "Can't make it"}
-                </div>
-                {guestEditToken && (
-                  <a
-                    href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
-                    style={{ fontSize: "13px", color: t.accent, textDecoration: "none", fontWeight: 600 }}
-                  >
-                    Edit my RSVP →
-                  </a>
-                )}
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: "10px" }}>
-                {(["GOING", "MAYBE", "NO"] as const).filter((s) => s !== "MAYBE" || event.maybeEnabled).map((s) => (
-                  <a
-                    key={s}
-                    href={`/e/${event.slug}/rsvp?status=${s}${guestEditToken ? `&token=${guestEditToken}` : ""}`}
-                    style={{
-                      flex: 1, padding: "14px 8px", border: `1px solid ${t.inputBorder}`, borderRadius: t.btnRadius,
-                      fontFamily: "inherit", fontSize: "12px", fontWeight: 700, background: t.inputBg,
-                      color: t.textSecondary, textDecoration: "none", display: "flex", flexDirection: "column",
-                      alignItems: "center", gap: "5px", cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontSize: "22px" }}>{s === "GOING" ? "🎉" : s === "MAYBE" ? "🤔" : "😔"}</span>
-                    {s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't go"}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Pending approvals (host only) ── */}
-        {isHost && event.pendingRsvps.length > 0 && (
-          <div style={S.card}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
-              <Users size={16} style={{ color: t.accent }} />
-              <span style={{ fontWeight: 700 }}>Pending Approval ({event.pendingRsvps.length})</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              {event.pendingRsvps.map((r, i) => (
-                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: i < event.pendingRsvps.length - 1 ? `1px solid ${t.cardBorder}` : "none" }}>
-                  {renderAvatar(r.guestName, r.id, { width: "28px", height: "28px" })}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: "14px" }}>{r.guestName}</div>
-                    <div style={{ color: t.textMuted, fontSize: "12px" }}>
-                      {r.status.toLowerCase()}{r.plusOneCount > 0 ? ` +${r.plusOneCount}` : ""}
-                      {r.guestEmail ? ` · ${r.guestEmail}` : ""}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveApproval({ rsvpId: r.id, type: "APPROVE", guestName: r.guestName })}
-                    disabled={isPending}
-                    style={{ background: t.accent, color: t.accentFg, border: "none", borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
-                    title="Approve"
-                  >
-                    <Check size={14} />
-                  </button>
-                  <button
-                    onClick={() => setActiveApproval({ rsvpId: r.id, type: "DECLINE", guestName: r.guestName })}
-                    disabled={isPending}
-                    style={{ background: t.inputBg, color: t.textSecondary, border: `1px solid ${t.inputBorder}`, borderRadius: "8px", padding: "6px 14px", fontFamily: "inherit", fontSize: "13px", cursor: "pointer" }}
-                    title="Decline"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Guest Sharing Card ── */}
-        {!isHost && event.guestSharingEnabled && event.visibility !== "PRIVATE" && (
-          <div style={{ ...S.card, display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "16px" }}>📢</span>
-              <span style={{ fontWeight: 700, fontSize: "14px" }}>Share this event</span>
-            </div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={() => {
-                  if (typeof navigator !== "undefined") {
-                    navigator.clipboard.writeText(window.location.origin + `/e/${event.slug}`);
-                    setEventLinkCopied(true);
-                    setTimeout(() => setEventLinkCopied(false), 2000);
-                  }
-                }}
-                style={{
-                  flex: 1, padding: "10px 14px",
-                  background: eventLinkCopied ? "#22c55e" : t.inputBg,
-                  border: `1px solid ${eventLinkCopied ? "#22c55e" : t.inputBorder}`,
-                  borderRadius: t.btnRadius,
-                  color: eventLinkCopied ? "#ffffff" : t.textPrimary,
-                  fontFamily: "inherit", fontSize: "13px",
-                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                  transition: "all 0.15s ease-in-out"
-                }}
-              >
-                {eventLinkCopied ? <Check size={14} /> : <span>📋</span>}
-                {eventLinkCopied ? "Copied!" : "Copy Link"}
-              </button>
-              <button
-                onClick={() => setShowShareQr(true)}
-                style={{
-                  flex: 1, padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
-                  borderRadius: t.btnRadius, color: t.textPrimary, fontFamily: "inherit", fontSize: "13px",
-                  fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
-                }}
-              >
-                <span>📱</span> Show QR Code
-              </button>
             </div>
           </div>
         )}
@@ -2628,6 +2654,104 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function GuestInviteFriendCard({ eventId, guestToken, theme: t }: { eventId: string; guestToken: string; theme: ResolvedTheme }) {
+  const [target, setTarget] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSend = () => {
+    const val = target.trim();
+    if (!val) return;
+    setStatus("idle");
+    setErrorMsg("");
+    startTransition(async () => {
+      const res = await inviteFriendAsGuest(eventId, guestToken, val);
+      if (res.success) {
+        setStatus("success");
+        setTarget("");
+      } else {
+        setStatus("error");
+        setErrorMsg(res.error ?? "Failed to send invitation");
+      }
+    });
+  };
+
+  const cardStyle: React.CSSProperties = {
+    background: t.cardBg,
+    border: `1px solid ${t.cardBorder}`,
+    borderRadius: t.cardRadius,
+    padding: "20px",
+    boxShadow: t.cardShadow,
+    backdropFilter: "blur(12px)",
+    marginBottom: "16px"
+  };
+
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
+        <span style={{ fontSize: "16px" }}>✉️</span>
+        <span style={{ fontWeight: 700, fontSize: "14.5px", color: t.textPrimary }}>Invite a friend</span>
+      </div>
+      <p style={{ fontSize: "13px", color: t.textSecondary, margin: "0 0 12px", lineHeight: 1.4 }}>
+        This event is private. You can invite friends by entering their email address or phone number below:
+      </p>
+      <div style={{ display: "flex", gap: "8px", width: "100%" }}>
+        <input
+          style={{
+            flex: 1,
+            padding: "10px 14px",
+            background: t.inputBg,
+            border: `1px solid ${t.inputBorder}`,
+            borderRadius: t.btnRadius,
+            color: t.textPrimary,
+            fontFamily: "inherit",
+            fontSize: "13.5px",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+          placeholder="friend@email.com or +15551234567"
+          value={target}
+          disabled={isPending}
+          onChange={(e) => setTarget(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && target.trim() && !isPending) handleSend(); }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!target.trim() || isPending}
+          style={{
+            padding: "10px 18px",
+            background: t.accent,
+            color: t.accentFg,
+            border: "none",
+            borderRadius: t.btnRadius,
+            fontFamily: "inherit",
+            fontSize: "13px",
+            fontWeight: 700,
+            cursor: (!target.trim() || isPending) ? "not-allowed" : "pointer",
+            opacity: (!target.trim() || isPending) ? 0.6 : 1,
+            boxShadow: t.accentShadow,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {isPending ? "Sending…" : "Send"}
+        </button>
+      </div>
+      {status === "success" && (
+        <div style={{ fontSize: "12.5px", color: "#4ade80", fontWeight: 600, marginTop: "8px" }}>
+          ✓ Invitation sent successfully!
+        </div>
+      )}
+      {status === "error" && (
+        <div style={{ fontSize: "12.5px", color: "#f87171", fontWeight: 600, marginTop: "8px" }}>
+          ✕ ${errorMsg}
         </div>
       )}
     </div>

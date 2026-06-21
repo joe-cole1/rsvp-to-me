@@ -20,6 +20,13 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     include: {
       theme: true,
       rsvpFields: { orderBy: { order: "asc" } },
+      polls: {
+        orderBy: { createdAt: "asc" },
+        include: { options: { orderBy: { createdAt: "asc" } } },
+      },
+      potluckItems: {
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -57,6 +64,8 @@ export default async function RsvpPage({ params, searchParams }: Props) {
           maybeEnabled: event.maybeEnabled,
           questionnaireEnabled: event.questionnaireEnabled,
           rsvpFields: event.rsvpFields,
+          polls: event.polls,
+          potluckItems: event.potluckItems,
         }}
         theme={theme}
         existingRsvp={{
@@ -94,6 +103,8 @@ export default async function RsvpPage({ params, searchParams }: Props) {
         maybeEnabled: event.maybeEnabled,
         questionnaireEnabled: event.questionnaireEnabled,
         rsvpFields: event.rsvpFields,
+        polls: event.polls,
+        potluckItems: event.potluckItems,
       }}
       theme={theme}
       initialStatus={initialStatus}

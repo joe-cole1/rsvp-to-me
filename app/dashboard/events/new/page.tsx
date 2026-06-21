@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { createEvent } from "@/app/actions/createEvent";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavBack } from "@/components/ui/AppNav";
+import LocationSelector from "@/components/event/LocationSelector";
 import { APP_SHELL } from "@/lib/theme";
 
 const inputStyle: React.CSSProperties = {
@@ -84,27 +85,7 @@ export default async function NewEventPage() {
           </Card>
 
           <Card title="Location">
-            <Field label="Type">
-              <div style={{ display: "flex", gap: "8px" }}>
-                {(["PHYSICAL", "VIRTUAL", "TBD"] as const).map((t) => (
-                  <label key={t} style={{ flex: 1, cursor: "pointer" }}>
-                    <input type="radio" name="locationType" value={t} defaultChecked={t === "PHYSICAL"} style={{ display: "none" }} />
-                    <div style={{ padding: "8px", textAlign: "center", background: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: "10px", fontSize: "13px", color: APP_SHELL.textSecondary }}>
-                      {t === "PHYSICAL" ? "📍 In person" : t === "VIRTUAL" ? "💻 Virtual" : "📌 TBD"}
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </Field>
-            <Field label="Venue name">
-              <input name="locationName" placeholder="Casa de Jane" style={inputStyle} />
-            </Field>
-            <Field label="Address">
-              <input name="locationAddress" placeholder="123 Main St, Brooklyn, NY" style={inputStyle} />
-            </Field>
-            <Field label="Virtual link">
-              <input name="virtualUrl" type="url" placeholder="https://zoom.us/j/..." style={inputStyle} />
-            </Field>
+            <LocationSelector />
           </Card>
 
           <Card title="Visibility">
