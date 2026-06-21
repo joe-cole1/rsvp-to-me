@@ -31,7 +31,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
     img.src = url;
   });
 }
-import { Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet } from "lucide-react";
+import { Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet, Settings } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, castVote, addPollOption } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
@@ -213,6 +213,7 @@ function InlineEdit({
   className,
   style,
   isHost,
+  outerRef,
 }: {
   value: string;
   onSave: (v: string) => void;
@@ -221,6 +222,7 @@ function InlineEdit({
   className?: string;
   style?: React.CSSProperties;
   isHost: boolean;
+  outerRef?: React.RefObject<HTMLSpanElement | null>;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -254,6 +256,7 @@ function InlineEdit({
 
   return (
     <span
+      ref={outerRef}
       className={className}
       style={{ ...style, cursor: "text", borderBottom: "1.5px dashed rgba(255,255,255,0.15)" }}
       onClick={() => { setDraft(value); setEditing(true); }}
@@ -332,8 +335,10 @@ function DateEdit({
 }) {
   const [open, setOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
-  const [startVal, setStartVal] = useState("");
-  const [endVal, setEndVal] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [isPending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -360,13 +365,27 @@ function DateEdit({
   }, [open, calOpen]);
 
   const openPopover = () => {
-    setStartVal(toDateTimeLocal(startAt, timezone));
-    setEndVal(endAt ? toDateTimeLocal(endAt, timezone) : "");
+    const sLocal = toDateTimeLocal(startAt, timezone);
+    const [sDate, sTime] = sLocal.split("T");
+    setStartDate(sDate || "");
+    setStartTime(sTime || "");
+
+    if (endAt) {
+      const eLocal = toDateTimeLocal(endAt, timezone);
+      const [eDate, eTime] = eLocal.split("T");
+      setEndDate(eDate || "");
+      setEndTime(eTime || "");
+    } else {
+      setEndDate("");
+      setEndTime("");
+    }
     setOpen(true);
   };
 
   const save = () => {
-    if (!startVal) return;
+    if (!startDate || !startTime) return;
+    const startVal = `${startDate}T${startTime}`;
+    const endVal = (endDate && endTime) ? `${endDate}T${endTime}` : "";
     startTransition(async () => {
       await saveEventDates(eventId, startVal, endVal || null);
       onSave(
@@ -458,27 +477,43 @@ function DateEdit({
             boxShadow: t.cardShadow || "0 20px 60px rgba(0,0,0,0.6)",
           }}>
             <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>Start</label>
-              <input
-                type="datetime-local"
-                value={startVal}
-                onChange={(e) => setStartVal(e.target.value)}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", boxSizing: "border-box" }}
-              />
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>Start Date & Time</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", boxSizing: "border-box" }}
+                />
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", boxSizing: "border-box" }}
+                />
+              </div>
             </div>
             <div style={{ marginBottom: "14px" }}>
               <label style={{ display: "block", fontSize: "11px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: t.textMuted, marginBottom: "6px" }}>
-                End <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                End Date & Time <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
               </label>
               <div style={{ display: "flex", gap: "6px" }}>
-                <input
-                  type="datetime-local"
-                  value={endVal}
-                  onChange={(e) => setEndVal(e.target.value)}
-                  style={{ flex: 1, padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" }}
-                />
-                {endVal && (
-                  <button onClick={() => setEndVal("")} style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.textSecondary, cursor: "pointer", padding: "0 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", flex: 1 }}>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", boxSizing: "border-box" }}
+                  />
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light", boxSizing: "border-box" }}
+                  />
+                </div>
+                {(endDate || endTime) && (
+                  <button onClick={() => { setEndDate(""); setEndTime(""); }} style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.textSecondary, cursor: "pointer", padding: "0 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <X size={14} />
                   </button>
                 )}
@@ -490,8 +525,8 @@ function DateEdit({
             <div style={{ display: "flex", gap: "8px" }}>
               <button
                 onClick={save}
-                disabled={!startVal || isPending}
-                style={{ flex: 1, background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: !startVal || isPending ? "not-allowed" : "pointer", opacity: !startVal || isPending ? 0.5 : 1 }}
+                disabled={!startDate || !startTime || isPending}
+                style={{ flex: 1, background: t.accent, color: t.accentFg, border: "none", borderRadius: "10px", padding: "10px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: !startDate || !startTime || isPending ? "not-allowed" : "pointer", opacity: !startDate || !startTime || isPending ? 0.5 : 1 }}
               >
                 {isPending ? "Saving…" : "Save"}
               </button>
@@ -859,11 +894,12 @@ function getPlaceholder(key: string) {
   }
 }
 
-type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean };
+type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean; responded: boolean };
 
 export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string; name?: string | null; avatarUrl?: string | null; role: "GUEST" | "HOST" | "ADMIN" } | null }) {
   const [event, setEvent] = useState(initial);
   const [prevInitial, setPrevInitial] = useState(initial);
+  const detailsRef = useRef<HTMLSpanElement>(null);
 
   const [eventLinkCopied, setEventLinkCopied] = useState(false);
 
@@ -936,7 +972,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [guestRsvpId] = useState<string | null>(guestRsvp?.id ?? null);
   const [guestEditToken] = useState<string | null>(guestRsvp?.editToken ?? null);
   const rsvpStatus = guestRsvp?.status ?? null;
-  const rsvpDone = !!guestRsvp?.id;
+  const rsvpDone = !!guestRsvp?.id && guestRsvp.responded;
   const [pendingDelete, setPendingDelete] = useState<{ id: string; section: EventData["infoSections"][number]; timer: ReturnType<typeof setTimeout> } | null>(null);
   const [commentText, setCommentText] = useState("");
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
@@ -1513,8 +1549,17 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
         {/* ── Description ── */}
         <div style={{ ...S.card, marginBottom: "16px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "none" as const, letterSpacing: "0.02em", color: t.textMuted, marginBottom: "8px" }}>Details</div>
-          <InlineEdit value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "16px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "none" as const, letterSpacing: "0.02em", color: t.textMuted }}>Details</div>
+            {isHost && (
+              <Pencil
+                size={12}
+                style={{ color: t.textMuted, cursor: "pointer" }}
+                onClick={() => detailsRef.current?.click()}
+              />
+            )}
+          </div>
+          <InlineEdit outerRef={detailsRef} value={event.description ?? ""} onSave={(v) => save("description", v)} placeholder="Add a description…" multiline style={{ color: t.textSecondary, lineHeight: "1.7", fontSize: "16px", whiteSpace: "pre-wrap", display: "block" }} isHost={isHost} />
         </div>
 
         {/* ── Info sections ── */}
@@ -1686,6 +1731,11 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 <span style={{ fontSize: "16px" }}>📊</span>
                 <span style={{ fontWeight: 700 }}>Polls</span>
               </div>
+              {isHost && (
+                <a href={`/e/${event.slug}/settings#polls`} style={{ color: t.textMuted, display: "flex", alignItems: "center" }}>
+                  <Settings size={13} />
+                </a>
+              )}
             </div>
 
             {/* Polls List */}
@@ -1864,9 +1914,16 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         {/* ── Potluck ── */}
         {(isHost || rsvpStatus === "GOING") && event.potluckItems && event.potluckItems.length > 0 && (
           <div style={{ ...S.card, marginBottom: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
-              <span style={{ fontSize: "16px" }}>🍽️</span>
-              <span style={{ fontWeight: 700 }}>What to Bring</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "16px" }}>🍽️</span>
+                <span style={{ fontWeight: 700 }}>What to Bring</span>
+              </div>
+              {isHost && (
+                <a href={"/e/"+event.slug+"/settings#potluck"} style={{ color: t.textMuted, display: "flex", alignItems: "center" }}>
+                  <Settings size={13} />
+                </a>
+              )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: event.potluckItems.length > 0 ? "12px" : 0 }}>
               {event.potluckItems.map((item) => {
@@ -1886,7 +1943,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                       {remaining > 0 && !isHost && claimingItemId !== item.id && (
                         <button
                           onClick={() => { setClaimingItemId(item.id); setClaimName(guestName); setClaimQty(1); }}
-                          style={{ ...S.mutedBtn, padding: "6px 12px", fontSize: "12px", flexShrink: 0 }}
+                          style={{
+                            ...S.mutedBtn,
+                            padding: "6px 12px",
+                            fontSize: "12px",
+                            flexShrink: 0,
+                            background: `rgba(${t.accentRgb}, 0.12)`,
+                            border: `1px solid rgba(${t.accentRgb}, 0.25)`,
+                            color: t.accent,
+                          }}
                         >
                           I&apos;ll bring it
                         </button>
@@ -1952,7 +2017,15 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         <button
                           onClick={() => claimName.trim() && claimItem(item.id, claimName.trim())}
                           disabled={!claimName.trim()}
-                          style={{ ...S.btn, width: "auto", padding: "10px 16px", opacity: !claimName.trim() ? 0.5 : 1 }}
+                          style={{
+                            ...S.mutedBtn,
+                            width: "auto",
+                            padding: "10px 16px",
+                            opacity: !claimName.trim() ? 0.5 : 1,
+                            background: `rgba(${t.accentRgb}, 0.12)`,
+                            border: `1px solid rgba(${t.accentRgb}, 0.25)`,
+                            color: t.accent,
+                          }}
                         >
                           Claim
                         </button>
@@ -1993,7 +2066,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 {(["GOING", "MAYBE", "NO"] as const).filter((s) => s !== "MAYBE" || event.maybeEnabled).map((s) => (
                   <a
                     key={s}
-                    href={`/e/${event.slug}/rsvp?status=${s}`}
+                    href={`/e/${event.slug}/rsvp?status=${s}${guestEditToken ? `&token=${guestEditToken}` : ""}`}
                     style={{
                       flex: 1, padding: "14px 8px", border: `1px solid ${t.inputBorder}`, borderRadius: t.btnRadius,
                       fontFamily: "inherit", fontSize: "12px", fontWeight: 700, background: t.inputBg,

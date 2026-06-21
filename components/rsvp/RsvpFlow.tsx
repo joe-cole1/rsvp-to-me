@@ -86,7 +86,7 @@ export function RsvpFlow({
 
   const [step, setStep] = useState(1);
   const [status, setStatus] = useState<"GOING" | "MAYBE" | "NO">(
-    existingRsvp?.status ?? initialStatus ?? "GOING"
+    initialStatus ?? existingRsvp?.status ?? "GOING"
   );
   const [name, setName] = useState(existingRsvp?.guestName ?? "");
   const [email, setEmail] = useState("");

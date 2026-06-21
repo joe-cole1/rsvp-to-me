@@ -6,6 +6,7 @@ import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
+import { AppShell } from "@/components/ui/AppShell";
 
 export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;
@@ -79,6 +80,26 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const isAdminModerating = session?.role === "ADMIN" && searchParams?.admin === "1";
   const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
 
+  // Block / gate unauthenticated access to UNLISTED and PRIVATE events
+  if (!session && !isHost) {
+    if (event.visibility === "UNLISTED") {
+      notFound();
+    }
+    if (event.visibility === "PRIVATE") {
+      return (
+        <AppShell center>
+          <div style={{ textAlign: "center", maxWidth: "400px", padding: "40px 24px" }}>
+            <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
+            <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>This is a private event</h1>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "15px", lineHeight: 1.5 }}>
+              To attend, contact the host to receive an invitation.
+            </p>
+          </div>
+        </AppShell>
+      );
+    }
+  }
+
   // Check if event is unlocked via signed cookie
   const unlockedCookie = (await cookies()).get(`rsvp-unlocked-${slug}`)?.value;
   const isUnlocked = unlockedCookie === getUnlockSignature(slug);
@@ -96,6 +117,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
           guestName: true,
           editToken: true,
           status: true,
+          responded: true,
           _count: { select: { answers: true } },
         },
       })
@@ -107,6 +129,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         editToken: _guestRsvpRaw.editToken,
         status: _guestRsvpRaw.status as "GOING" | "MAYBE" | "NO",
         hasAnswers: _guestRsvpRaw._count.answers > 0,
+        responded: _guestRsvpRaw.responded,
       }
     : null;
 
