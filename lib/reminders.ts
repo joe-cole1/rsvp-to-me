@@ -29,7 +29,7 @@ export async function processReminders(): Promise<void> {
     // Acquire Redis lock for 10 minutes (600 seconds)
     const acquired = await redisAcquireLock(lockKey, 600);
     if (!acquired) {
-      console.log("[cron] Failed to acquire Redis lock (another instance is running). Skipping reminders check.");
+      console.log("[cron-scheduler] Failed to acquire Redis lock (another instance is running). Skipping reminders check.");
       return;
     }
     hasRedisLock = true;
@@ -44,7 +44,7 @@ export async function processReminders(): Promise<void> {
         data: { jobName, lockedAt: now, expireAt }
       });
     } catch {
-      console.log("[cron] Failed to acquire database lock (another instance is running). Skipping reminders check.");
+      console.log("[cron-scheduler] Failed to acquire database lock (another instance is running). Skipping reminders check.");
       return;
     }
   }

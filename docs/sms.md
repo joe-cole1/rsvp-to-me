@@ -100,10 +100,9 @@ TWILIO_AUTH_TOKEN="your_auth_token_here"
 TWILIO_PHONE_NUMBER="+15558675309"
 ```
 
-Restart your containers to load the environment changes:
+Restart your container to load the environment changes:
 ```bash
 docker compose restart app
-docker compose restart cron
 ```
 
 ---
@@ -159,9 +158,9 @@ TWILIO_ACCOUNT_SID=""
 TWILIO_AUTH_TOKEN=""
 TWILIO_PHONE_NUMBER=""
 ```
-Restart your containers:
+Restart your container:
 ```bash
-docker compose restart app cron
+docker compose restart app
 ```
 
 ---

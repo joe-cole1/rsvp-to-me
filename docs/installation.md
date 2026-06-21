@@ -32,14 +32,13 @@ Before you begin, you need:
 
 ## What You Are Installing
 
-rsvp-to-me runs as two separate Docker containers that work together:
+rsvp-to-me runs as a Docker container:
 
 | Container | Purpose |
 |-----------|---------|
-| `app` | The main web server. It handles webpage rendering, guest RSVPs, comment boards, and admin actions. Runs on port `3000`. |
-| `cron` | A background process runner. It wakes up every 15 minutes to check the database and dispatch scheduled reminder emails and text messages. It has no web interface. |
+| `app` | The main web server. It handles webpage rendering, guest RSVPs, comment boards, and admin actions. It also runs the in-process cron scheduler for reminders and backups. Runs on port `3000`. |
 
-Both services are defined in a single `docker-compose.yml` file, sharing the same SQLite database and image upload folder. They start, stop, and scale together.
+The service is defined in a single `docker-compose.yml` file, using a persistent volume for the SQLite database and image upload folder.
 
 ---
 
@@ -135,9 +134,9 @@ From inside your `rsvp-to-me` directory, start the containers:
 docker compose up -d
 ```
 *What this command does:*
-- Downloads the web server and background worker Docker images.
+- Downloads the web server Docker image.
 - Creates the local database file and runs database migrations.
-- Launches the `app` and `cron` containers in the background.
+- Launches the `app` container in the background.
 
 Verify the container status:
 ```bash
@@ -179,7 +178,7 @@ Launch the services using the PostgreSQL compose file:
 docker compose -f docker-compose.postgres.yml up -d
 ```
 This command starts:
-- The `app` and `cron` services.
+- The `app` service.
 - The `postgres` container (with database data mapped to `./pg_data`).
 - The `redis` container (with cache data mapped to `./redis_data`).
 
@@ -251,10 +250,10 @@ docker compose start app
 
 Manage your containers using these CLI commands:
 
-- **`docker compose stop`**: Gracefully stops the running application and cron services. Your data remains perfectly safe.
-- **`docker compose start`**: Starts the stopped application and cron services.
-- **`docker compose restart`**: Restarts both containers (useful after making small modifications).
-- **`docker compose down`**: Stops and removes the application containers. The `./data` directory on the host remains intact.
+- **`docker compose stop`**: Gracefully stops the running application. Your data remains perfectly safe.
+- **`docker compose start`**: Starts the stopped application.
+- **`docker compose restart`**: Restarts the container (useful after making small modifications).
+- **`docker compose down`**: Stops and removes the application container. The `./data` directory on the host remains intact.
 
 ---
 
@@ -283,8 +282,6 @@ Run `docker compose logs app` to inspect the logs.
 2. Check your spam folder.
 3. If configured, go to `/admin` > **System Configuration** > **Send Test Email** to check for configuration errors.
 
-### The cron container keeps restarting
-The `cron` service depends on the `app` container. If the web server is still performing migrations on startup, the cron container may fail its initial check and restart. This is expected and will stabilize once the web application is fully ready.
 
 ### I lost my administrator access
 Ensure `INITIAL_ADMIN_EMAIL="your-email@domain.com"` is set in `.env`, then run:

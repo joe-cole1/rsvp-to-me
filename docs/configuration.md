@@ -33,7 +33,7 @@ All configurable settings for **rsvp-to-me** live in a single `.env` file in the
 
 ## How Configuration Works
 
-When Docker Compose starts your containers, it loads the `.env` file and passes the variables to both the `app` and `cron` services.
+When Docker Compose starts your containers, it loads the `.env` file and passes the variables to the `app` service.
 
 Most changes to `.env` require a restart to take effect:
 ```bash
@@ -325,7 +325,7 @@ Automated and manual database backups can be set up for both SQLite and PostgreS
 - **Default**: `disabled`
 - **Type**: String (Cron expression or `"disabled"`)
 
-**What it does:** Defines the cron schedule for automated database backups run by the background cron worker container.
+**What it does:** Defines the cron schedule for automated database backups run by the in-process cron scheduler.
 - `"disabled"`: Automated backups are turned off.
 - `"* * * * *"`: Standard 5-field cron pattern. E.g., `0 0 * * *` triggers a daily backup at midnight.
 
