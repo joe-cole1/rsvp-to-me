@@ -277,6 +277,19 @@ export async function getSystemConfig() {
     configMap["cloudflare_api_token"] = process.env.CLOUDFLARE_API_TOKEN ?? "";
   }
 
+  // Twilio SMS Config
+  if (!configMap.hasOwnProperty("twilio_account_sid")) {
+    configMap["twilio_account_sid"] = process.env.TWILIO_ACCOUNT_SID ?? "";
+  }
+
+  if (!configMap.hasOwnProperty("twilio_auth_token")) {
+    configMap["twilio_auth_token"] = process.env.TWILIO_AUTH_TOKEN ?? "";
+  }
+
+  if (!configMap.hasOwnProperty("twilio_phone_number")) {
+    configMap["twilio_phone_number"] = process.env.TWILIO_PHONE_NUMBER ?? "";
+  }
+
   // Mask sensitive values before returning to client/UI
   if (configMap["smtp_pass"]) {
     configMap["smtp_pass"] = "••••••••";
@@ -287,6 +300,9 @@ export async function getSystemConfig() {
   if (configMap["cloudflare_api_token"]) {
     configMap["cloudflare_api_token"] = "••••••••";
   }
+  if (configMap["twilio_auth_token"]) {
+    configMap["twilio_auth_token"] = "••••••••";
+  }
 
   return configMap;
 }
@@ -294,12 +310,12 @@ export async function getSystemConfig() {
 export async function updateSystemConfig(key: string, value: string) {
   await assertAdmin();
 
-  if ((key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token") && value === "••••••••") {
+  if ((key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token" || key === "twilio_auth_token") && value === "••••••••") {
     return { success: true };
   }
 
   let finalValue = value;
-  if (key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token") {
+  if (key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token" || key === "twilio_auth_token") {
     finalValue = encryptConfig(value);
   }
 
@@ -370,6 +386,29 @@ export async function testEmailConfigAction(data: {
   });
 
   return result;
+}
+
+export async function testSmsConfigAction(data: {
+  sid: string;
+  token: string;
+  phone: string;
+  testTo: string;
+}) {
+  await assertAdmin();
+
+  let finalToken = data.token || "";
+  if (finalToken === "••••••••") {
+    const existing = await db.systemConfig.findUnique({ where: { key: "twilio_auth_token" } });
+    finalToken = existing ? decryptConfig(existing.value) : "";
+  }
+
+  const { testSmsConfig } = await import("@/lib/sms");
+
+  return testSmsConfig(data.testTo.trim(), {
+    sid: (data.sid || "").trim(),
+    token: finalToken,
+    phone: (data.phone || "").trim(),
+  });
 }
 
 /**

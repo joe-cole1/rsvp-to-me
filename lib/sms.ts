@@ -1,19 +1,34 @@
 import twilio from "twilio";
+import { db } from "@/lib/db";
+import { decryptConfig } from "./crypto";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-function getClient() {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) return null;
-  return twilio(sid, token);
+async function resolveSmsConfig() {
+  try {
+    const configs = await db.systemConfig.findMany();
+    const configMap: Record<string, string> = {};
+    for (const c of configs) {
+      configMap[c.key] = c.value;
+    }
+    const sid = configMap.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID || "";
+    const tokenEnc = configMap.twilio_auth_token || process.env.TWILIO_AUTH_TOKEN || "";
+    const token = tokenEnc.startsWith("enc:") ? decryptConfig(tokenEnc) : tokenEnc;
+    const phone = configMap.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER || "";
+    return { sid, token, phone };
+  } catch (err) {
+    console.error("[sms] Failed to resolve dynamic SMS config, falling back to environment:", err);
+    return {
+      sid: process.env.TWILIO_ACCOUNT_SID || "",
+      token: process.env.TWILIO_AUTH_TOKEN || "",
+      phone: process.env.TWILIO_PHONE_NUMBER || "",
+    };
+  }
 }
 
-const FROM = process.env.TWILIO_PHONE_NUMBER ?? "";
-
 async function send(to: string, body: string) {
-  const client = getClient();
-  if (!client) {
+  const { sid, token, phone } = await resolveSmsConfig();
+  if (!sid || !token) {
     if (process.env.NODE_ENV !== "production") {
       console.log("[sms:dev]", { to, body });
     } else {
@@ -21,7 +36,29 @@ async function send(to: string, body: string) {
     }
     return;
   }
-  return client.messages.create({ from: FROM, to, body });
+  const client = twilio(sid, token);
+  return client.messages.create({ from: phone, to, body });
+}
+
+export async function testSmsConfig(
+  toPhone: string,
+  config: { sid: string; token: string; phone: string }
+) {
+  if (!config.sid || !config.token || !config.phone) {
+    return { success: false, error: "Twilio Account SID, Auth Token, and Phone Number are required." };
+  }
+  try {
+    const client = twilio(config.sid, config.token);
+    await client.messages.create({
+      from: config.phone,
+      to: toPhone,
+      body: "Test SMS from RSVP to Me. Your SMS configuration is correct!",
+    });
+    return { success: true };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Twilio error: ${errMsg}` };
+  }
 }
 
 export async function sendRsvpConfirmationSms(

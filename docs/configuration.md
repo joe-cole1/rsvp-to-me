@@ -253,7 +253,7 @@ You must configure **exactly one** email provider. If multiple options are defin
 - **Required**: No (Cloudflare Worker only)
 - **Type**: Email address string
 
-**What it does:** When using the Cloudflare Worker, any replies that guests send to event-update emails are automatically forwarded to this email address.
+**What it does:** When using the Cloudflare Worker, this is a fallback catch-all email address. By default, guest replies go dynamically to the event host's email (using the Reply-To header). This address is only used if a guest manually types or replies directly to the system From address. Because Cloudflare restricts email forwarding to verified destinations, this fallback address must be verified in your Cloudflare dashboard.
 
 ---
 
@@ -368,7 +368,7 @@ Automated and manual database backups can be set up for both SQLite and PostgreS
 | `CLOUDFLARE_WORKER_API_SECRET` | Yes (if Worker) | *(none)* | Shared secret token to authorize Worker requests. |
 | `CLOUDFLARE_ACCOUNT_ID` | Yes (if CF API) | *(none)* | Cloudflare Account ID. |
 | `CLOUDFLARE_API_TOKEN` | Yes (if CF API) | *(none)* | Cloudflare API Token with Email Sending permissions. |
-| `INBOUND_FORWARD_TO` | No | *(none)* | Destination email address for guest reply routing. |
+| `INBOUND_FORWARD_TO` | No | *(none)* | Fallback catch-all email address for direct replies. |
 | `TWILIO_ACCOUNT_SID` | Yes (if SMS) | *(none)* | Twilio Account identifier. |
 | `TWILIO_AUTH_TOKEN` | Yes (if SMS) | *(none)* | Twilio API authentication token. |
 | `TWILIO_PHONE_NUMBER` | Yes (if SMS) | *(none)* | Twilio phone number in E.164 format. |
