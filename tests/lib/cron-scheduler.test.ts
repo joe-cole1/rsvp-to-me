@@ -71,12 +71,14 @@ describe("lib/cron-scheduler.ts", () => {
   });
 
   it("executes the cron callbacks when triggered", async () => {
-    let reminderCallback: () => void | Promise<void>;
-    let backupCallback: () => void | Promise<void>;
+    const callbacks = {
+      reminder: undefined as (() => void | Promise<void>) | undefined,
+      backup: undefined as (() => void | Promise<void>) | undefined,
+    };
 
     mockCronSchedule.mockImplementation((pattern, cb) => {
-      if (pattern === "*/15 * * * *") reminderCallback = cb as () => void;
-      if (pattern === "0 1 * * *") backupCallback = cb as () => void;
+      if (pattern === "*/15 * * * *") callbacks.reminder = cb as () => void;
+      if (pattern === "0 1 * * *") callbacks.backup = cb as () => void;
       return { stop: vi.fn() };
     });
 
@@ -84,11 +86,11 @@ describe("lib/cron-scheduler.ts", () => {
     await startInProcessCron();
 
     // Trigger reminder callback
-    await reminderCallback();
+    await callbacks.reminder?.();
     expect(mockProcessReminders).toHaveBeenCalledTimes(2); // startup + trigger
 
     // Trigger backup callback
-    await backupCallback();
+    await callbacks.backup?.();
     expect(mockRunBackup).toHaveBeenCalled();
   });
 
@@ -99,10 +101,12 @@ describe("lib/cron-scheduler.ts", () => {
   });
 
   it("stops existing backup task when schedule changes", async () => {
-    let syncCallback: () => void | Promise<void>;
+    const callbacks = {
+      sync: undefined as (() => void | Promise<void>) | undefined,
+    };
     const stopMock = vi.fn();
     mockCronSchedule.mockImplementation((pattern, cb) => {
-      if (pattern === "*/5 * * * *") syncCallback = cb as () => void;
+      if (pattern === "*/5 * * * *") callbacks.sync = cb as () => void;
       return { stop: stopMock };
     });
 
@@ -111,7 +115,7 @@ describe("lib/cron-scheduler.ts", () => {
 
     // Change DB config on second sync run
     mockSystemConfigFindUnique.mockResolvedValueOnce({ value: "0 2 * * *" });
-    await syncCallback();
+    await callbacks.sync?.();
 
     expect(stopMock).toHaveBeenCalled();
   });
@@ -125,9 +129,11 @@ describe("lib/cron-scheduler.ts", () => {
   });
 
   it("handles processReminders errors silently in startup and cron callbacks", async () => {
-    let reminderCallback: () => void | Promise<void>;
+    const callbacks = {
+      reminder: undefined as (() => void | Promise<void>) | undefined,
+    };
     mockCronSchedule.mockImplementation((pattern, cb) => {
-      if (pattern === "*/15 * * * *") reminderCallback = cb as () => void;
+      if (pattern === "*/15 * * * *") callbacks.reminder = cb as () => void;
       return { stop: vi.fn() };
     });
 
@@ -135,16 +141,18 @@ describe("lib/cron-scheduler.ts", () => {
     await startInProcessCron();
 
     // Trigger the callback which should handle errors silently
-    reminderCallback();
+    callbacks.reminder?.();
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
   it("handles runBackup errors silently inside scheduled backup task callback", async () => {
-    let backupCallback: () => void | Promise<void>;
-    let syncCallback: () => void | Promise<void>;
+    const callbacks = {
+      backup: undefined as (() => void | Promise<void>) | undefined,
+      sync: undefined as (() => void | Promise<void>) | undefined,
+    };
     mockCronSchedule.mockImplementation((pattern, cb) => {
-      if (pattern === "0 1 * * *") backupCallback = cb as () => void;
-      if (pattern === "*/5 * * * *") syncCallback = cb as () => void;
+      if (pattern === "0 1 * * *") callbacks.backup = cb as () => void;
+      if (pattern === "*/5 * * * *") callbacks.sync = cb as () => void;
       return { stop: vi.fn() };
     });
 
@@ -154,11 +162,11 @@ describe("lib/cron-scheduler.ts", () => {
     await startInProcessCron();
     
     // Trigger backup callback
-    backupCallback();
+    callbacks.backup?.();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     // Trigger sync callback
-    syncCallback();
+    callbacks.sync?.();
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 });

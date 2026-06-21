@@ -175,11 +175,13 @@ model EventCoHost {
 }
 
 model EventTheme {
-  id            String    @id @default(cuid())
-  eventId       String    @unique
-  baseTheme     BaseTheme @default(DARK)
-  accentColor   String    @default("#a855f7")
-  coverImageUrl String?
+  id             String    @id @default(cuid())
+  eventId        String    @unique
+  baseTheme      BaseTheme @default(DARK)
+  accentColor    String    @default("#a855f7")
+  secondaryColor String?
+  themePresetId  String?   @default("custom")
+  coverImageUrl  String?
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

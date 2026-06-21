@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { ArrowLeft, Check, Plus, X } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme } from "@/lib/theme";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme, THEME_PRESETS, getReadableText, getSortedPresets } from "@/lib/theme";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -90,7 +90,7 @@ type EventInput = {
   questionnaireEnabled: boolean;
   showTimestamps: boolean;
   password: string | null;
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; coverImageUrl: string | null } | null;
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; secondaryColor: string | null; themePresetId: string | null; coverImageUrl: string | null } | null;
   reminderSettings: {
     emailWeekBefore: boolean; emailDayBefore: boolean; emailHoursBefore: number;
     smsWeekBefore: boolean; smsDayBefore: boolean; smsHoursBefore: number;
@@ -158,6 +158,30 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   // ── Theme State ──
   const [base, setBase] = useState<BaseTheme>(event.theme?.baseTheme ?? "DARK");
   const [accent, setAccent] = useState(event.theme?.accentColor ?? "#a855f7");
+  const [secondary, setSecondary] = useState<string | null>(event.theme?.secondaryColor ?? null);
+  const [presetId, setPresetId] = useState<string>(event.theme?.themePresetId ?? "custom");
+  const [customColor, setCustomColor] = useState(event.theme?.accentColor ?? "#a855f7");
+  const [customSecondaryColor, setCustomSecondaryColor] = useState(event.theme?.secondaryColor ?? "#ec4899");
+  const [customizeOpen, setCustomizeOpen] = useState(event.theme?.themePresetId === "custom" || !event.theme?.themePresetId);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general">("all");
+
+  const sortedPresets = getSortedPresets();
+  const filteredPresets = sortedPresets.filter((p) => {
+    if (p.id === "custom") return false;
+
+    const matchesSearch =
+      p.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesFilter =
+      themeFilter === "all" ||
+      (themeFilter === "seasonal" && p.seasonal) ||
+      (themeFilter === "general" && !p.seasonal);
+
+    return matchesSearch && matchesFilter;
+  });
 
   // ── RSVP Options State ──
   const [plusOneAllowed, setPlusOneAllowed] = useState(event.plusOneAllowed);
@@ -279,12 +303,14 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   };
 
   // ── Theme Auto-Save ──
-  const triggerSaveTheme = (newBase: BaseTheme, newAccent: string) => {
+  const triggerSaveTheme = (newBase: BaseTheme, newAccent: string, newSecondary?: string | null, newPresetId?: string | null) => {
     setSaveStatus("SAVING");
     setErr(null);
+    const secVal = newSecondary !== undefined ? newSecondary : secondary;
+    const preVal = newPresetId !== undefined ? newPresetId : presetId;
     startTransition(async () => {
       try {
-        await saveEventTheme(event.id, newBase, newAccent);
+        await saveEventTheme(event.id, newBase, newAccent, secVal, preVal);
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -713,7 +739,9 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   };
 
   // Resolve theme using state
-  const t = resolveTheme(base, accent);
+  const t = resolveTheme(base, accent, secondary, presetId);
+  const activeAccentPreset = ACCENT_PRESETS.find((p) => p.value === accent);
+  const suggestedSecondary = activeAccentPreset?.suggestedSecondary;
 
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "120px", position: "relative" as const, overflowX: "hidden" as const },
@@ -728,21 +756,21 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     if (t.pageDecoration === "dark-orbs") {
       return (
         <>
-          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: `radial-gradient(circle, rgba(${accent.replace("#","")},0.12) 0%, transparent 70%)`, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
-          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)", filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", top: "-20%", left: "30%", width: "600px", height: "600px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "10%", right: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
         </>
       );
     }
     if (t.pageDecoration === "soft-blobs") {
       return (
         <>
-          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: `radial-gradient(circle, ${t.accentBg} 0%, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
-          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(196,181,253,0.35) 0%, transparent 70%)", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", top: "-10%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "fixed", bottom: "20%", left: "-5%", width: "400px", height: "400px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
         </>
       );
     }
     if (t.pageDecoration === "bold-hero") {
-      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(160deg, ${accent} 0%, #ec4899 45%, #f5eeff 75%, #fafafa 100%)`, zIndex: 0 }} />;
+      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />;
     }
     return null;
   };
@@ -880,28 +908,234 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         {/* ── Theme ── */}
         {activeSection === "theme" && (
           <Section title="Theme" t={t}>
-            <div style={{ marginBottom: "20px" }}>
-              <Label t={t}>Style</Label>
-              <div style={{ display: "flex", gap: "10px" }}>
-                {BASE_THEMES.map((bt) => (
-                  <button key={bt.id} onClick={() => { setBase(bt.id); triggerSaveTheme(bt.id, accent); }} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
-                    <div style={{ height: "44px", background: bt.preview }} />
-                    <div style={{ padding: "6px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Label t={t}>Accent Color</Label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {ACCENT_PRESETS.map((p) => (
-                <button key={p.value} onClick={() => { setAccent(p.value); triggerSaveTheme(base, p.value); }} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
+            {/* Search Input */}
+            <input
+              type="text"
+              placeholder="Search themes (e.g. Summer, Halloween)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                background: t.inputBg,
+                border: `1px solid ${t.inputBorder}`,
+                borderRadius: "12px",
+                color: t.textPrimary,
+                fontSize: "13px",
+                marginBottom: "12px",
+                outline: "none",
+              }}
+            />
+
+            {/* Filter Tabs */}
+            <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
+              {(["all", "seasonal", "general"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setThemeFilter(filter)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "20px",
+                    border: `1px solid ${themeFilter === filter ? t.textPrimary : t.inputBorder}`,
+                    background: themeFilter === filter ? t.accentBg : "transparent",
+                    color: t.textPrimary,
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    textTransform: "capitalize",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {filter}
                 </button>
               ))}
-              <label style={{ width: "32px", height: "32px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
-                🎨
-                <input type="color" value={accent} onChange={(e) => { setAccent(e.target.value); triggerSaveTheme(base, e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-              </label>
+            </div>
+
+            {/* Scrollable vertical grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                gap: "10px",
+                maxHeight: "300px",
+                overflowY: "auto",
+                paddingRight: "4px",
+                marginBottom: "20px",
+                scrollbarWidth: "thin",
+              }}
+            >
+              {filteredPresets.map((p) => {
+                const isSelected = presetId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setPresetId(p.id);
+                      setBase(p.config.base);
+                      setAccent(p.config.accent);
+                      setSecondary(p.config.secondaryColor);
+                      if (p.id !== "custom") setCustomizeOpen(false);
+                      triggerSaveTheme(p.config.base, p.config.accent, p.config.secondaryColor, p.id);
+                    }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "12px 10px",
+                      border: `2px solid ${isSelected ? t.textPrimary : t.cardBorder}`,
+                      borderRadius: "14px",
+                      background: isSelected ? t.accentBg : t.cardBg,
+                      cursor: "pointer",
+                      color: t.textPrimary,
+                      transition: "all 0.15s ease",
+                      textAlign: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: "24px" }}>{p.icon}</span>
+                    <span style={{ fontSize: "11px", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{p.label}</span>
+                    <span style={{ fontSize: "9px", color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{p.description}</span>
+                    <div style={{ width: "36px", height: "8px", borderRadius: "4px", background: `linear-gradient(90deg, ${p.config.accent}, ${p.config.secondaryColor})` }} />
+                  </button>
+                );
+              })}
+              {filteredPresets.length === 0 && (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "20px", color: t.textMuted, fontSize: "13px" }}>
+                  No themes found matching your search.
+                </div>
+              )}
+            </div>
+
+            {/* Customize toggle */}
+            <button
+              onClick={() => setCustomizeOpen(!customizeOpen)}
+              style={{
+                width: "100%", padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                borderRadius: "12px", color: t.textPrimary, display: "flex", alignItems: "center", justifyContent: "space-between",
+                cursor: "pointer", marginBottom: "16px", fontSize: "13px", fontWeight: 600,
+              }}
+            >
+              <span>🎨 Customize Style</span>
+              {customizeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {customizeOpen && (
+              <div style={{ padding: "14px", background: t.cardBg, borderRadius: "14px", border: `1px solid ${t.cardBorder}`, marginBottom: "16px" }}>
+                {/* Style base */}
+                <div style={{ marginBottom: "16px" }}>
+                  <Label t={t}>Style</Label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {BASE_THEMES.map((bt) => (
+                      <button key={bt.id} onClick={() => { setBase(bt.id); setPresetId("custom"); triggerSaveTheme(bt.id, accent, secondary, "custom"); }} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "12px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
+                        <div style={{ height: "32px", background: bt.preview }} />
+                        <div style={{ padding: "4px 2px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label.split(" ")[0]}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Primary Accent */}
+                <div style={{ marginBottom: "16px" }}>
+                  <Label t={t}>Primary Accent</Label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
+                    {ACCENT_PRESETS.map((p) => (
+                      <button key={p.value} onClick={() => { setAccent(p.value); setPresetId("custom"); triggerSaveTheme(base, p.value, secondary, "custom"); }} title={p.name} style={{ width: "28px", height: "28px", borderRadius: "50%", background: p.value, border: `2px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {accent === p.value && <Check size={10} color={getReadableText(p.value)} strokeWidth={3} />}
+                      </button>
+                    ))}
+                    <label style={{ width: "28px", height: "28px", borderRadius: "50%", border: `2px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
+                      🎨
+                      <input type="color" value={customColor} onChange={(e) => { setCustomColor(e.target.value); setAccent(e.target.value); setPresetId("custom"); triggerSaveTheme(base, e.target.value, secondary, "custom"); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Second color */}
+                <div>
+                  <Label t={t}>Second Color</Label>
+                  {suggestedSecondary && (
+                    <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "6px" }}>
+                      Suggested: <button onClick={() => { setSecondary(suggestedSecondary); setPresetId("custom"); triggerSaveTheme(base, accent, suggestedSecondary, "custom"); }} style={{ background: "none", border: "none", color: suggestedSecondary, fontWeight: 700, cursor: "pointer", textDecoration: "underline", padding: 0 }}>{suggestedSecondary}</button>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    <button
+                      onClick={() => { setSecondary(null); setPresetId("custom"); triggerSaveTheme(base, accent, null, "custom"); }}
+                      style={{
+                        padding: "4px 8px", borderRadius: "15px", border: `2px solid ${secondary === null ? t.textPrimary : t.inputBorder}`,
+                        background: secondary === null ? t.accentBg : "transparent", color: t.textPrimary,
+                        fontSize: "10px", fontWeight: 600, cursor: "pointer", height: "28px", display: "flex", alignItems: "center", gap: "4px"
+                      }}
+                    >
+                      Auto
+                      <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: resolveTheme("DARK", accent, null).secondaryAccent, border: `1px solid ${t.cardBorder}` }} />
+                    </button>
+
+                    {ACCENT_PRESETS.map((p) => (
+                      <button key={p.value} onClick={() => { setSecondary(p.value); setPresetId("custom"); triggerSaveTheme(base, accent, p.value, "custom"); }} title={p.name} style={{ width: "28px", height: "28px", borderRadius: "50%", background: p.value, border: `2px solid ${secondary === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {secondary === p.value && <Check size={10} color={getReadableText(p.value)} strokeWidth={3} />}
+                      </button>
+                    ))}
+
+                    <label style={{ width: "28px", height: "28px", borderRadius: "50%", border: `2px solid ${secondary !== null && !ACCENT_PRESETS.some(p => p.value === secondary) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: secondary !== null && ACCENT_PRESETS.some(p => p.value === secondary) ? t.inputBg : (secondary ?? "#ec4899"), position: "relative", overflow: "hidden" }}>
+                      🎨
+                      <input type="color" value={customSecondaryColor} onChange={(e) => { setCustomSecondaryColor(e.target.value); setSecondary(e.target.value); setPresetId("custom"); triggerSaveTheme(base, accent, e.target.value, "custom"); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* LIVE PREVIEW CARD */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", background: t.inputBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px" }}>
+              <div style={{
+                width: "90px", height: "60px", borderRadius: "8px", background: t.pageBg,
+                position: "relative", overflow: "hidden", border: `1px solid ${t.cardBorder}`,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                {t.pageDecoration === "dark-orbs" && (
+                  <>
+                    <div style={{ position: "absolute", top: "-10px", left: "10px", width: "30px", height: "30px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(3px)" }} />
+                    <div style={{ position: "absolute", bottom: "-5px", right: "-5px", width: "20px", height: "20px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(3px)" }} />
+                  </>
+                )}
+                {t.pageDecoration === "soft-blobs" && (
+                  <>
+                    <div style={{ position: "absolute", top: "-5px", right: "-5px", width: "25px", height: "25px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(4px)" }} />
+                    <div style={{ position: "absolute", bottom: "-10px", left: "-5px", width: "20px", height: "20px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(4px)" }} />
+                  </>
+                )}
+                {t.pageDecoration === "bold-hero" && (
+                  <div style={{ position: "absolute", inset: 0, background: t.pageDecorationBg1 }} />
+                )}
+                <div style={{
+                  width: "60px", height: "40px", borderRadius: "6px", background: t.cardBg,
+                  border: `1px solid ${t.cardBorder}`, padding: "4px", display: "flex",
+                  flexDirection: "column", justifyContent: "space-between", position: "relative", zIndex: 1,
+                }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                    <div style={{ width: "20px", height: "3px", borderRadius: "1px", background: t.textPrimary }} />
+                    <div style={{ width: "30px", height: "2px", borderRadius: "1px", background: t.textSecondary }} />
+                  </div>
+                  <div style={{
+                    width: "100%", height: "8px", borderRadius: "2px", background: t.accent,
+                    color: t.accentFg, fontSize: "4px", fontWeight: "bold", display: "flex",
+                    alignItems: "center", justifyContent: "center", textTransform: t.btnTransform as "none" | "capitalize" | "uppercase" | "lowercase",
+                  }}>
+                    RSVP
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ color: t.textPrimary, fontSize: "13px", fontWeight: 700 }}>
+                  {presetId !== "custom" ? THEME_PRESETS.find(p => p.id === presetId)?.label : "Custom Theme"}
+                </div>
+                <div style={{ color: t.textMuted, fontSize: "11px", marginTop: "1px" }}>
+                  Primary: {accent}<br />
+                  Second: {secondary ?? "Auto"}
+                </div>
+              </div>
             </div>
           </Section>
         )}
