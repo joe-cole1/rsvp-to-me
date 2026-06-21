@@ -16,28 +16,10 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [ ] Design a mobile-friendly host scanner view to scan QR codes and check guests in.
 *   [ ] Provide a manual toggle check-in flow on the guest list.
 
-### 3. SMS Integration & Testing (Twilio)
-*   [ ] Build configuration panel in `/admin` for Twilio settings (Account SID, Auth Token, Sender Phone Number).
-*   [ ] Add connection diagnostics testing for Twilio SMS in `/admin` (similar to email testing).
-*   [ ] Implement outbound SMS blast mechanisms using Twilio's client.
-*   [ ] Write automated unit tests for `lib/sms.ts` to mock and verify Twilio service connectivity.
-
-### 4. Database Migration (SQLite to PostgreSQL)
-*   [ ] Transition the Prisma schema and database provider from SQLite to PostgreSQL for production scalability.
-*   [ ] Update singletons, docker-compose configurations, and deployment guidelines.
-*   [ ] Define database migration paths for existing production data.
-
-### 5. Interactive Documentation Dashboard
+### 3. Interactive Documentation Dashboard
 *   [ ] Build an in-app documentation portal accessible via the host dashboard.
 *   *   [ ] Render local markdown files (e.g., GitHub README, setup guides, and `docs/cloudflare_workers.md`) dynamically.
 *   *   [ ] Implement search, category navigation, and responsive layout styling.
-
-### 6. UI/UX Polish & Immediate Fixes
-*   [ ] **Fix Invite Guests Copy Link**: The copy link button is currently broken. Make it copy the event URL to the clipboard and update the button style to green with a checkbox upon success.
-*   [ ] **Toast & Success Message UX**: Adjust styling for confirmation, "Saved", and success messages across the entire site to render at the top of the viewport (fixed position) rather than the absolute top of the page, so they are visible without scrolling up.
-*   [ ] **Eliminate All-Caps Overuse**: Audit and remove unnecessary all-caps text throughout the website to improve readability.
-*   [ ] **RSVP Settings Grouping**: In Event Settings, group "Require host approval for each RSVP" and "Guests can RSVP 'Maybe'" under a new subtitle: "RSVP & Approval Options".
-*   [x] **Clean up Event Settings Navigation**: Restructure the Event Settings page so each setting section is linked from a menu and opens in a sub-view/page, with clear links back to settings or the event.
 
 ---
 
@@ -117,4 +99,14 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [x] **Unified Top Navigation**: Integrated `AppNavLogo` and `ProfileDropdown` menus into the event page header, unifying navigation bars codebase-wide, and removing the redundant top-nav settings button.
 *   [x] **Location Selector Layout Polish**: Prevented layout wrapping of option chips and corrected width scaling for the Physical/Virtual popover edit views to align with other card components.
 *   [x] **Questionnaire Serialization Fix**: Resolved select/checkbox option parsing bugs on RSVP forms by standardizing field config storage as JSON strings.
+
+### PostgreSQL, Redis, In-Process Cron & UX Sweep
+*   [x] **PostgreSQL & Redis Integrations**: Dynamic runtime database selection (SQLite/PostgreSQL), dual Prisma schema generation, connection pooling, Redis session caching, atomic rate-limiting, and Redis-based distributed cron synchronization locks.
+*   [x] **In-Process Cron Scheduler**: Migrated background tasks (automated DB backups and event reminders) to run in-process using Next.js 16's `instrumentation.ts` bootstrap, eliminating the dedicated `cron` container.
+*   [x] **Docker Image Healthcheck**: Integrated a lightweight native HTTP healthcheck into the `Dockerfile` and cleaned up compose configs.
+*   [x] **Dynamic Twilio SMS Config**: Implemented system configurations for Twilio SID, token encryption, and SMS blast capabilities, with connection testing in `/admin`.
+*   [x] **Responsive Mobile Admin Drawer**: Added sliding hamburger drawer navigation for mobile screens in the admin panel.
+*   [x] **Public Event Feed & Private Gating**: Rendered top 20 upcoming public events on the home page and gated unlisted/private events appropriately.
+*   [x] **UI/UX & Form Polish**: Split date/time edit inputs, grouped RSVP options, fixed copy link buttons, and placed toast notifications fixed at the top of the viewport.
+
 

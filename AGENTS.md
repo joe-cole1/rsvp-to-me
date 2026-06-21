@@ -66,6 +66,7 @@ A fun, social-first event and RSVP platform for personal events (house parties, 
 - **PR Labeling & Organization**: Each PR must be categorized using exactly ONE of the repository's standard release labels (`feature`, `ui/ux`, `bug`, `refactor`, `performance`, `documentation`, `tests`, `chore`). It must be the predominant "reason" for the commit/PR. When in doubt, split the work into separate commits and PRs.
 - **PR Creation Commands**: When changes are complete and verified, the agent must always provide the user with a complete, copy-pasteable PowerShell/bash command using the GitHub CLI (`gh pr create`) that automatically populates the PR's `--title`, markdown `--body` (or `--body-file`), and the single appropriate `--label` flag.
 - **Documentation Sync Rule**: The agent WILL update the documentation suite (e.g., installation, configuration, features, email, SMS, admin, and upgrading guides) anytime a procedure, step, feature, environment variable, docker-compose configuration, or anything affected changes, ensuring the documentation always remains fully in sync with the codebase state.
+- **Roadmap Sync Rule**: Every commit or PR that implements or addresses an item on [ROADMAP.md](file:///C:/Users/Joe/Documents/antigravity/optimistic-planck/ROADMAP.md) must update it accordingly (e.g., checking it off, removing it from the backlog, and moving it to the completed milestones).
 
 ## What it is / isn't
 - **Is:** Invite friends, customize a beautiful event page, manage RSVPs, send text blasts and email blasts, see who's coming, let guests comment.
