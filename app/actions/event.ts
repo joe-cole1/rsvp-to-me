@@ -128,12 +128,29 @@ export async function saveEventLocation(
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 
-export async function saveEventTheme(eventId: string, baseTheme: BaseTheme, accentColor: string) {
+export async function saveEventTheme(
+  eventId: string,
+  baseTheme: BaseTheme,
+  accentColor: string,
+  secondaryColor?: string | null,
+  themePresetId?: string | null
+) {
   const event = await assertHost(eventId);
   await db.eventTheme.upsert({
     where: { eventId },
-    update: { baseTheme, accentColor },
-    create: { eventId, baseTheme, accentColor },
+    update: {
+      baseTheme,
+      accentColor,
+      secondaryColor: secondaryColor === undefined ? undefined : secondaryColor,
+      themePresetId: themePresetId === undefined ? undefined : themePresetId,
+    },
+    create: {
+      eventId,
+      baseTheme,
+      accentColor,
+      secondaryColor: secondaryColor || null,
+      themePresetId: themePresetId || "custom",
+    },
   });
   revalidatePath(`/e/${event.slug}`);
 }

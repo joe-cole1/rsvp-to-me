@@ -28,7 +28,7 @@ function AvatarBubble({ name, avatarUrl, accentColor }: { name: string; avatarUr
     if (accentColor.startsWith("#") && accentColor.length === 7) {
       rgb = `${parseInt(accentColor.slice(1,3), 16)},${parseInt(accentColor.slice(3,5), 16)},${parseInt(accentColor.slice(5,7), 16)}`;
     }
-  } catch (e) {}
+  } catch {}
 
   return (
     <div 
@@ -169,7 +169,12 @@ export default async function Home() {
               }}
             >
               {events.map((event) => {
-                const resolved = resolveTheme(event.theme?.baseTheme ?? "DARK", event.theme?.accentColor ?? "#a855f7");
+                const resolved = resolveTheme(
+                  event.theme?.baseTheme ?? "DARK",
+                  event.theme?.accentColor ?? "#a855f7",
+                  event.theme?.secondaryColor,
+                  event.theme?.themePresetId
+                );
                 const accent = resolved.accent;
                 const coverUrl = event.theme?.coverImageUrl;
                 const hostName = event.host?.name || event.host?.email?.split("@")[0] || "Host";

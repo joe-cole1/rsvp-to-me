@@ -1322,8 +1322,8 @@ describe("saveEventTheme", () => {
     await saveEventTheme(EVENT_ID, "DARK", "#ff0000");
     expect(mockEventThemeUpsert).toHaveBeenCalledWith({
       where: { eventId: EVENT_ID },
-      update: { baseTheme: "DARK", accentColor: "#ff0000" },
-      create: { eventId: EVENT_ID, baseTheme: "DARK", accentColor: "#ff0000" },
+      update: { baseTheme: "DARK", accentColor: "#ff0000", secondaryColor: undefined, themePresetId: undefined },
+      create: { eventId: EVENT_ID, baseTheme: "DARK", accentColor: "#ff0000", secondaryColor: null, themePresetId: "custom" },
     });
   });
 });

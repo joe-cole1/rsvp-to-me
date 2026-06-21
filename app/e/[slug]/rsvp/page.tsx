@@ -34,7 +34,9 @@ export default async function RsvpPage({ params, searchParams }: Props) {
 
   const theme = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
-    event.theme?.accentColor ?? "#a855f7"
+    event.theme?.accentColor ?? "#a855f7",
+    event.theme?.secondaryColor,
+    event.theme?.themePresetId
   );
 
   // Edit flow — token provided

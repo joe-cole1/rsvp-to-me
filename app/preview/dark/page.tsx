@@ -1,16 +1,19 @@
+"use client";
+
+import { resolveTheme } from "@/lib/theme";
+
 export default function DarkPreview() {
+  const accent = "#a855f7"; // purple
+  const secondary = "#ec4899"; // pink
+  const t = resolveTheme("DARK", accent, secondary);
+
   return (
     <div
-      className="min-h-screen text-white relative overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, #0a0a0f 0%, #13091f 40%, #0d1117 100%)",
-      }}
+      className="min-h-screen relative overflow-hidden"
+      style={{ background: t.pageBg, color: t.textPrimary }}
     >
       {/* Animated glow orbs */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden
-      >
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <div
           style={{
             position: "absolute",
@@ -19,8 +22,7 @@ export default function DarkPreview() {
             width: "600px",
             height: "600px",
             borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(168,85,247,0.18) 0%, transparent 70%)",
+            background: t.pageDecorationBg1,
             filter: "blur(40px)",
           }}
         />
@@ -32,8 +34,7 @@ export default function DarkPreview() {
             width: "400px",
             height: "400px",
             borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)",
+            background: t.pageDecorationBg2,
             filter: "blur(40px)",
           }}
         />
@@ -46,9 +47,8 @@ export default function DarkPreview() {
           className="w-full rounded-2xl mb-8 flex items-center justify-center"
           style={{
             height: "260px",
-            background:
-              "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%)",
-            boxShadow: "0 0 60px rgba(168,85,247,0.4)",
+            background: t.avatarGradient,
+            boxShadow: t.accentShadow,
           }}
         >
           <span style={{ fontSize: "72px" }}>🍷</span>
@@ -59,9 +59,9 @@ export default function DarkPreview() {
           <span
             className="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
             style={{
-              background: "rgba(168,85,247,0.2)",
-              color: "#c084fc",
-              border: "1px solid rgba(168,85,247,0.3)",
+              background: t.badgeBg,
+              color: t.badgeText,
+              border: `1px solid ${t.accentBorder}`,
             }}
           >
             Friday, June 27
@@ -69,9 +69,9 @@ export default function DarkPreview() {
           <span
             className="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
             style={{
-              background: "rgba(168,85,247,0.2)",
-              color: "#c084fc",
-              border: "1px solid rgba(168,85,247,0.3)",
+              background: t.badgeBg,
+              color: t.badgeText,
+              border: `1px solid ${t.accentBorder}`,
             }}
           >
             8:00 PM
@@ -79,7 +79,7 @@ export default function DarkPreview() {
         </div>
 
         {/* Title */}
-        <h1 className="text-4xl font-bold mb-2" style={{ letterSpacing: "-0.02em" }}>
+        <h1 className="text-4xl font-bold mb-2" style={{ letterSpacing: "-0.02em", fontFamily: t.headingFont }}>
           Wine Night ✨
         </h1>
 
@@ -87,27 +87,27 @@ export default function DarkPreview() {
         <div className="flex items-center gap-2 mb-6">
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-            style={{ background: "linear-gradient(135deg, #a855f7, #ec4899)" }}
+            style={{ background: t.avatarGradient, color: t.accentFg }}
           >
             J
           </div>
-          <span style={{ color: "#a1a1aa" }}>Hosted by Joe</span>
+          <span style={{ color: t.textSecondary }}>Hosted by Joe</span>
         </div>
 
         {/* Location */}
         <div
           className="flex items-start gap-3 mb-8 p-4 rounded-xl"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+          style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}
         >
-          <span style={{ color: "#a855f7", fontSize: "18px" }}>📍</span>
+          <span style={{ color: t.accent, fontSize: "18px" }}>📍</span>
           <div>
             <div className="font-medium">Joe&apos;s Place</div>
-            <div style={{ color: "#71717a", fontSize: "14px" }}>123 Main St, Brooklyn, NY</div>
+            <div style={{ color: t.textMuted, fontSize: "14px" }}>123 Main St, Brooklyn, NY</div>
           </div>
         </div>
 
         {/* Description */}
-        <p className="mb-8 leading-relaxed" style={{ color: "#a1a1aa" }}>
+        <p className="mb-8 leading-relaxed" style={{ color: t.textSecondary }}>
           Monthly wine night at my place! Bring a bottle you love and be ready to share what
           you enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
           anything from Burgundy. 🍇
@@ -117,9 +117,10 @@ export default function DarkPreview() {
         <div
           className="rounded-2xl p-6 mb-6"
           style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(168,85,247,0.2)",
+            background: t.cardBg,
+            border: `1px solid ${t.accentBorder}`,
             backdropFilter: "blur(12px)",
+            boxShadow: t.cardShadow,
           }}
         >
           <h2 className="text-lg font-semibold mb-4">Are you coming?</h2>
@@ -135,14 +136,15 @@ export default function DarkPreview() {
                 style={
                   opt.active
                     ? {
-                        background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                        color: "#fff",
-                        boxShadow: "0 0 20px rgba(168,85,247,0.4)",
+                        background: t.accent,
+                        color: t.accentFg,
+                        boxShadow: t.accentShadow,
+                        border: "none",
                       }
                     : {
-                        background: "rgba(255,255,255,0.06)",
-                        color: "#a1a1aa",
-                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: t.inputBg,
+                        color: t.textSecondary,
+                        border: `1px solid ${t.inputBorder}`,
                       }
                 }
               >
@@ -156,26 +158,27 @@ export default function DarkPreview() {
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               placeholder="Your name"
               style={{
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#fff",
+                background: t.inputBg,
+                border: `1px solid ${t.inputBorder}`,
+                color: t.inputText,
               }}
             />
             <input
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               placeholder="Email (optional — for updates)"
               style={{
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#fff",
+                background: t.inputBg,
+                border: `1px solid ${t.inputBorder}`,
+                color: t.inputText,
               }}
             />
             <button
               className="w-full py-3 rounded-xl font-semibold text-sm"
               style={{
-                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                color: "#fff",
-                boxShadow: "0 0 24px rgba(168,85,247,0.35)",
+                background: t.accent,
+                color: t.accentFg,
+                boxShadow: t.accentShadow,
+                border: "none",
               }}
             >
               Send RSVP
@@ -187,13 +190,13 @@ export default function DarkPreview() {
         <div
           className="rounded-2xl p-5 mb-6"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: t.cardBg,
+            border: `1px solid ${t.cardBorder}`,
           }}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Going (8)</h3>
-            <span style={{ color: "#71717a", fontSize: "13px" }}>3 maybe</span>
+            <span style={{ color: t.textMuted, fontSize: "13px" }}>3 maybe</span>
           </div>
           <div className="flex gap-2 flex-wrap">
             {["Sarah", "Mike", "Emma", "James", "Priya", "Tom", "Leila", "Raj"].map((name) => (
@@ -201,13 +204,13 @@ export default function DarkPreview() {
                 key={name}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
                 style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: t.pillBg,
+                  border: `1px solid ${t.pillBorder}`,
                 }}
               >
                 <div
                   className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                  style={{ background: "linear-gradient(135deg, #a855f7, #ec4899)" }}
+                  style={{ background: t.avatarGradient, color: t.accentFg }}
                 >
                   {name[0]}
                 </div>
@@ -221,8 +224,8 @@ export default function DarkPreview() {
         <div
           className="rounded-2xl p-5"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: t.cardBg,
+            border: `1px solid ${t.cardBorder}`,
           }}
         >
           <h3 className="font-semibold mb-4">Vibes 💬</h3>
@@ -234,17 +237,17 @@ export default function DarkPreview() {
               <div key={c.name} className="flex gap-3">
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)" }}
+                  style={{ background: t.avatarGradient, color: t.accentFg }}
                 >
                   {c.name[0]}
                 </div>
                 <div
                   className="flex-1 px-3 py-2 rounded-xl text-sm"
-                  style={{ background: "rgba(255,255,255,0.05)" }}
+                  style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
                 >
                   <span className="font-medium">{c.name}</span>
-                  <span style={{ color: "#71717a", fontSize: "11px", marginLeft: "8px" }}>{c.time}</span>
-                  <p style={{ color: "#d4d4d8", marginTop: "2px" }}>{c.msg}</p>
+                  <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{c.time}</span>
+                  <p style={{ color: t.textSecondary, marginTop: "2px" }}>{c.msg}</p>
                 </div>
               </div>
             ))}
@@ -254,21 +257,21 @@ export default function DarkPreview() {
               className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
               placeholder="Say something..."
               style={{
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#fff",
+                background: t.inputBg,
+                border: `1px solid ${t.inputBorder}`,
+                color: t.inputText,
               }}
             />
             <button
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(168,85,247,0.3)", color: "#c084fc" }}
+              style={{ background: t.accentBg, color: t.accent, border: `1px solid ${t.accentBorder}` }}
             >
               Post
             </button>
           </div>
         </div>
 
-        <p className="text-center mt-8 text-xs" style={{ color: "#3f3f46" }}>
+        <p className="text-center mt-8 text-xs" style={{ color: t.textMuted }}>
           rsvp to me
         </p>
       </div>

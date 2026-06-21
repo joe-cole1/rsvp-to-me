@@ -45,7 +45,12 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
       })
     : [];
 
-  const t = resolveTheme(event.theme?.baseTheme ?? "DARK", event.theme?.accentColor ?? "#a855f7");
+  const t = resolveTheme(
+    event.theme?.baseTheme ?? "DARK",
+    event.theme?.accentColor ?? "#a855f7",
+    event.theme?.secondaryColor,
+    event.theme?.themePresetId
+  );
 
   const approvedRsvps = event.rsvps.filter((r) => r.approved);
   const pendingRsvps = event.rsvps.filter((r) => !r.approved);
