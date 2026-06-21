@@ -11,7 +11,7 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   *(No pending priority 1 bugs)*
 
 ### 🔒 Routing & System Safety
-*   **Event Slug Collision Resolution**: Define behavior and implement automatic suffixing (e.g., appending `-1`, `-2`) during slug generation in `lib/slug.ts` when two events share the same name.
+*   *(No pending priority 1 routing/safety enhancements)*
 
 ### 👥 Guest List & RSVP Enhancements
 *   *(No pending priority 1 guest list enhancements)*
@@ -140,5 +140,9 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [x] **Responsive Mobile Admin Drawer**: Added sliding hamburger drawer navigation for mobile screens in the admin panel.
 *   [x] **Public Event Feed & Private Gating**: Rendered top 20 upcoming public events on the home page and gated unlisted/private events appropriately.
 *   [x] **UI/UX & Form Polish**: Split date/time edit inputs, grouped RSVP options, fixed copy link buttons, and placed toast notifications fixed at the top of the viewport.
+
+### Theme Presets, Readability & Slug Collision Resolution [fa3e8d]
+*   [x] **Theme Presets & Grids**: Implemented searchable/filterable preset grids, date-based dynamic sorting, light accent contrast improvements, and settings-preview parity.
+*   [x] **Event Slug Collision Resolution**: Verified automatic suffixing (e.g., appending `-1`, `-2`) during slug generation in `lib/slug.ts` when two events share the same name.
 
 
