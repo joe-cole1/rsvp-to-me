@@ -13,7 +13,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run --reporter=verbose"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

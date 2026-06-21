@@ -1,0 +1,82 @@
+import { describe, it, expect, afterEach } from "vitest";
+import { encryptConfig, decryptConfig, getUnlockSignature } from "@/lib/crypto";
+
+describe("encryptConfig", () => {
+  it("returns empty string for empty input", () => {
+    expect(encryptConfig("")).toBe("");
+  });
+
+  it("returns a string with three colon-separated parts", () => {
+    const encrypted = encryptConfig("test-config");
+    expect(encrypted).toContain(":");
+    const parts = encrypted.split(":");
+    expect(parts.length).toBe(3);
+    // iv is 24 hex characters (12 bytes)
+    expect(parts[0]).toMatch(/^[0-9a-f]{24}$/);
+    // authTag is 32 hex characters (16 bytes)
+    expect(parts[1]).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("produces different ciphertext on repeated calls (random IV)", () => {
+    const c1 = encryptConfig("secret");
+    const c2 = encryptConfig("secret");
+    expect(c1).not.toBe(c2);
+  });
+});
+
+describe("decryptConfig", () => {
+  it("returns empty string for empty input", () => {
+    expect(decryptConfig("")).toBe("");
+  });
+
+  it("roundtrip: decryptConfig(encryptConfig(text)) === text for ascii text", () => {
+    const text = "my-secret-key-12345";
+    const encrypted = encryptConfig(text);
+    const decrypted = decryptConfig(encrypted);
+    expect(decrypted).toBe(text);
+  });
+
+  it("roundtrip: decryptConfig(encryptConfig(text)) === text for unicode text", () => {
+    const text = "party 🎉 at Joe's house 🏠";
+    const encrypted = encryptConfig(text);
+    const decrypted = decryptConfig(encrypted);
+    expect(decrypted).toBe(text);
+  });
+
+  it("returns the input unchanged when it has no colons (not encrypted)", () => {
+    const plain = "plaintext";
+    expect(decryptConfig(plain)).toBe(plain);
+  });
+
+  it("returns input string on corrupt data (does not throw)", () => {
+    const corrupt = "abcdef:abcdef:abcdef";
+    const result = decryptConfig(corrupt);
+    expect(result).toBe(corrupt);
+  });
+});
+
+describe("getUnlockSignature", () => {
+  const origSecret = process.env.SESSION_SECRET;
+
+  afterEach(() => {
+    process.env.SESSION_SECRET = origSecret;
+  });
+
+  it("returns a 64-char lowercase hex string", () => {
+    const sig = getUnlockSignature("my-slug");
+    expect(sig).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("is deterministic: same slug always returns same signature", () => {
+    expect(getUnlockSignature("my-slug")).toBe(getUnlockSignature("my-slug"));
+  });
+
+  it("different slugs produce different signatures", () => {
+    expect(getUnlockSignature("slug-1")).not.toBe(getUnlockSignature("slug-2"));
+  });
+
+  it("throws when SESSION_SECRET is not set", () => {
+    delete process.env.SESSION_SECRET;
+    expect(() => getUnlockSignature("my-slug")).toThrow(/SESSION_SECRET/);
+  });
+});

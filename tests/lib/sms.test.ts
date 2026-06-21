@@ -91,5 +91,73 @@ describe("lib/sms.ts", () => {
       });
       expect(count).toBe(2);
     });
+
+    it("testSmsConfig sends message successfully", async () => {
+      const { testSmsConfig } = await loadModule();
+      const res = await testSmsConfig("+15551112222", {
+        sid: "ACtest",
+        token: "authtest",
+        phone: "+15559999999",
+      });
+      expect(res.success).toBe(true);
+      expect(mockCreate).toHaveBeenCalledWith({
+        from: "+15559999999",
+        to: "+15551112222",
+        body: expect.stringContaining("RSVP to Me"),
+      });
+    });
+
+    it("testSmsConfig returns error if missing config fields", async () => {
+      const { testSmsConfig } = await loadModule();
+      const res = await testSmsConfig("+15551112222", {
+        sid: "",
+        token: "authtest",
+        phone: "",
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("required");
+    });
+
+    it("testSmsConfig returns error if twilio throws", async () => {
+      const { testSmsConfig } = await loadModule();
+      mockCreate.mockRejectedValueOnce(new Error("Twilio API Error"));
+      const res = await testSmsConfig("+15551112222", {
+        sid: "ACtest",
+        token: "authtest",
+        phone: "+15559999999",
+      });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Twilio error");
+    });
+
+    it("sendMagicLinkSms sends correct body", async () => {
+      const { sendMagicLinkSms } = await loadModule();
+      await sendMagicLinkSms("+15551112222", "http://magic-link");
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "+15551112222",
+          body: expect.stringContaining("http://magic-link"),
+        })
+      );
+    });
+
+    it("sendApprovalSms sends approved or declined message", async () => {
+      const { sendApprovalSms } = await loadModule();
+      await sendApprovalSms("+15551112222", { eventTitle: "Wine Night", approved: true, message: "Welcome!" });
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "+15551112222",
+          body: expect.stringContaining("approved"),
+        })
+      );
+      
+      await sendApprovalSms("+15551112222", { eventTitle: "Wine Night", approved: false });
+      expect(mockCreate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          to: "+15551112222",
+          body: expect.stringContaining("declined"),
+        })
+      );
+    });
   });
 });

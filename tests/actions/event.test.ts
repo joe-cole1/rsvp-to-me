@@ -34,6 +34,18 @@ const {
   mockInvitationCreate,
   mockRsvpFindFirst,
   mockInvitationFindFirst,
+  mockSendApprovalEmail,
+  mockSendApprovalSms,
+  mockInfoSectionUpdate,
+  mockRsvpAnswerCreateMany,
+  mockPlusOneGuestCreateMany,
+  mockCookiesGet,
+  mockCookiesSet,
+  mockEventThemeFindUnique,
+  mockEventThemeCreate,
+  mockEventThemeUpdate,
+  mockRsvpAnswerUpsert,
+  mockPlusOneGuestDeleteMany,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
   mockEventUpdate: vi.fn(),
@@ -65,6 +77,18 @@ const {
   mockInvitationCreate: vi.fn(),
   mockRsvpFindFirst: vi.fn(),
   mockInvitationFindFirst: vi.fn(),
+  mockSendApprovalEmail: vi.fn().mockResolvedValue(undefined),
+  mockSendApprovalSms: vi.fn().mockResolvedValue(undefined),
+  mockInfoSectionUpdate: vi.fn(),
+  mockRsvpAnswerCreateMany: vi.fn(),
+  mockPlusOneGuestCreateMany: vi.fn(),
+  mockCookiesGet: vi.fn(),
+  mockCookiesSet: vi.fn(),
+  mockEventThemeFindUnique: vi.fn(),
+  mockEventThemeCreate: vi.fn(),
+  mockEventThemeUpdate: vi.fn(),
+  mockRsvpAnswerUpsert: vi.fn(),
+  mockPlusOneGuestDeleteMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -85,8 +109,9 @@ vi.mock("@/lib/db", () => ({
       create: mockInfoSectionCreate,
       findUnique: mockInfoSectionFindUnique,
       delete: mockInfoSectionDelete,
+      update: mockInfoSectionUpdate,
     },
-    eventTheme: { upsert: mockEventThemeUpsert },
+    eventTheme: { upsert: mockEventThemeUpsert, findUnique: mockEventThemeFindUnique, create: mockEventThemeCreate, update: mockEventThemeUpdate },
     eventReminderSettings: { upsert: mockReminderSettingsUpsert },
     eventUpdate: {
       create: mockEventUpdateCreate,
@@ -105,6 +130,8 @@ vi.mock("@/lib/db", () => ({
     },
     invitation: { createMany: mockInvitationCreateMany, create: mockInvitationCreate, findFirst: mockInvitationFindFirst },
     activityEvent: { create: vi.fn().mockResolvedValue({}) },
+    rSVPAnswer: { createMany: mockRsvpAnswerCreateMany, upsert: mockRsvpAnswerUpsert },
+    plusOneGuest: { createMany: mockPlusOneGuestCreateMany, deleteMany: mockPlusOneGuestDeleteMany },
   },
 }));
 
@@ -114,12 +141,22 @@ vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn().mockResolvedValue(undefined),
   sendBlastEmail: vi.fn().mockResolvedValue(undefined),
   sendEventInviteEmail: vi.fn().mockResolvedValue(undefined),
+  sendApprovalEmail: mockSendApprovalEmail,
 }));
 vi.mock("@/lib/sms", () => ({
   sendRsvpConfirmationSms: vi.fn().mockResolvedValue(undefined),
   sendSmsBlast: vi.fn().mockResolvedValue(2),
   sendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
+  sendApprovalSms: mockSendApprovalSms,
 }));
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({
+    get: mockCookiesGet,
+    set: mockCookiesSet,
+    delete: vi.fn(),
+  }),
+}));
+
 
 import {
   saveEventField,
@@ -143,6 +180,12 @@ import {
   claimPotluckItem,
   unclaimPotluckItem,
   inviteGuest,
+  verifyEventPassword,
+  saveEventTheme,
+  saveCoverImage,
+  updateInfoSection,
+  deleteRsvpAsHost,
+  deleteActivityEvent,
 } from "@/app/actions/event";
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
@@ -1233,4 +1276,183 @@ describe("inviteGuest", () => {
     expect(sendEventInviteEmail).toHaveBeenCalled();
     expect(sendMagicLinkSms).toHaveBeenCalled();
   });
+
+  it("throws error when all inputs are invalid and no guests are invited", async () => {
+    await expect(inviteGuest(EVENT_ID, "invalid_entry")).rejects.toThrow("Failed to send invites:");
+  });
 });
+
+describe("verifyEventPassword", () => {
+  beforeEach(() => {
+    mockEventFindUnique.mockResolvedValue({ slug: EVENT_SLUG, password: "password123" });
+  });
+
+  it("returns error when event not found", async () => {
+    mockEventFindUnique.mockResolvedValue(null);
+    const result = await verifyEventPassword(EVENT_SLUG, "password123");
+    expect(result).toEqual({ success: false, error: "Event not found." });
+  });
+
+  it("returns error when password is incorrect", async () => {
+    const result = await verifyEventPassword(EVENT_SLUG, "wrong-password");
+    expect(result).toEqual({ success: false, error: "Incorrect password." });
+  });
+
+  it("returns success:true and sets cookie when password matches", async () => {
+    const result = await verifyEventPassword(EVENT_SLUG, "password123");
+    expect(result).toEqual({ success: true });
+    expect(mockCookiesSet).toHaveBeenCalledWith(`rsvp-unlocked-${EVENT_SLUG}`, expect.any(String), expect.any(Object));
+  });
+});
+
+describe("saveEventTheme", () => {
+  beforeEach(() => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockEventThemeUpsert.mockResolvedValue({});
+  });
+
+  it("throws Unauthorized when no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(saveEventTheme(EVENT_ID, "DARK", "#ff0000")).rejects.toThrow("Unauthorized");
+  });
+
+  it("calls eventTheme.upsert with baseTheme and accentColor", async () => {
+    await saveEventTheme(EVENT_ID, "DARK", "#ff0000");
+    expect(mockEventThemeUpsert).toHaveBeenCalledWith({
+      where: { eventId: EVENT_ID },
+      update: { baseTheme: "DARK", accentColor: "#ff0000" },
+      create: { eventId: EVENT_ID, baseTheme: "DARK", accentColor: "#ff0000" },
+    });
+  });
+});
+
+describe("saveCoverImage", () => {
+  beforeEach(() => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockEventThemeUpsert.mockResolvedValue({});
+  });
+
+  it("calls eventTheme.upsert with coverImageUrl", async () => {
+    await saveCoverImage(EVENT_ID, "http://image.jpg");
+    expect(mockEventThemeUpsert).toHaveBeenCalledWith({
+      where: { eventId: EVENT_ID },
+      update: { coverImageUrl: "http://image.jpg" },
+      create: { eventId: EVENT_ID, coverImageUrl: "http://image.jpg" },
+    });
+  });
+});
+
+describe("updateInfoSection", () => {
+  beforeEach(() => {
+    asHost();
+    mockInfoSectionFindUnique.mockResolvedValue({
+      eventId: EVENT_ID,
+      type: "DRESS_CODE",
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, id: EVENT_ID },
+    });
+    mockInfoSectionUpdate.mockResolvedValue({});
+  });
+
+  it("calls eventInfoSection.update with updated content", async () => {
+    const result = await updateInfoSection("section-1", { content: "New Content", url: null });
+    expect(result.success).toBe(true);
+    expect(mockInfoSectionUpdate).toHaveBeenCalledWith({
+      where: { id: "section-1" },
+      data: {
+        title: null,
+        content: "New Content",
+        url: null,
+      },
+    });
+  });
+});
+
+describe("deleteRsvpAsHost", () => {
+  beforeEach(() => {
+    asHost();
+    mockRsvpFindUnique.mockResolvedValue({
+      id: "rsvp-123",
+      guestName: "Bob",
+      event: { id: EVENT_ID, hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+    });
+    mockRsvpDelete.mockResolvedValue({});
+  });
+
+  it("deletes the RSVP as host", async () => {
+    const result = await deleteRsvpAsHost("rsvp-123");
+    expect(result.success).toBe(true);
+    expect(mockRsvpDelete).toHaveBeenCalledWith({ where: { id: "rsvp-123" } });
+  });
+});
+
+describe("deleteActivityEvent", () => {
+  beforeEach(() => {
+    asHost();
+    mockRsvpFindUnique.mockResolvedValue({
+      id: "act-123",
+      event: { hostId: HOST_ID, coHosts: [] },
+    });
+  });
+
+  it("throws Forbidden when user is not host/co-host", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    const mockActivity = { event: { hostId: HOST_ID, coHosts: [] } };
+    const { db } = await import("@/lib/db");
+    db.activityEvent.findUnique = vi.fn().mockResolvedValue(mockActivity);
+
+    await expect(deleteActivityEvent("act-123")).rejects.toThrow("Forbidden");
+  });
+});
+
+describe("addRSVP questionnaire answers", () => {
+  beforeEach(() => {
+    mockEventFindUnique.mockResolvedValue(BASE_EVENT);
+    mockRsvpCreate.mockResolvedValue({ id: "rsvp-q", editToken: "tok-q" });
+    mockRsvpAnswerCreateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("stores answers when provided", async () => {
+    await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Charlie",
+      status: "GOING",
+      plusOneCount: 0,
+      answers: { "field-1": "answer-1" },
+    });
+    expect(mockRsvpAnswerCreateMany).toHaveBeenCalledWith({
+      data: [{ rsvpId: "rsvp-q", rsvpFieldId: "field-1", value: "answer-1" }],
+    });
+  });
+});
+
+describe("approveRsvp / declineRsvp with notification messages", () => {
+  beforeEach(() => {
+    asHost();
+    mockRsvpFindUnique.mockResolvedValue({
+      id: "rsvp-1",
+      guestName: "Guest",
+      guestEmail: "guest@example.com",
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", host: { email: "host@example.com" }, coHosts: [] },
+    });
+    mockRsvpUpdate.mockResolvedValue({});
+    mockRsvpDelete.mockResolvedValue({});
+  });
+
+  it("approves RSVP and passes custom message to approval email", async () => {
+    await approveRsvp("rsvp-1", "Welcome to the party!");
+    expect(mockSendApprovalEmail).toHaveBeenCalledWith("guest@example.com", expect.objectContaining({
+      message: "Welcome to the party!",
+    }));
+  });
+
+  it("declines RSVP and passes custom message to decline email", async () => {
+    await declineRsvp("rsvp-1", "Sorry, we are full.");
+    expect(mockSendApprovalEmail).toHaveBeenCalledWith("guest@example.com", expect.objectContaining({
+      message: "Sorry, we are full.",
+      approved: false,
+    }));
+  });
+});
+

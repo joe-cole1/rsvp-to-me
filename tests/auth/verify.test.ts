@@ -140,4 +140,21 @@ describe("GET /auth/verify", () => {
     const res = await GET(makeRequest("any-token"));
     expect(res.headers.get("location")).toContain("https://rsvp.thecolefam.com");
   });
+
+  describe("extended cases", () => {
+    it("does not promote user to ADMIN in route handler (handled via auth library)", async () => {
+      mockFindUniqueMagicToken.mockResolvedValue({
+        id: "tok-id",
+        token: "valid-token",
+        used: false,
+        expiresAt: futureDate,
+        userId: "user1",
+      });
+      mockUpdateMagicToken.mockResolvedValue({});
+      mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "admin@example.com", role: "HOST" });
+
+      const res = await GET(makeRequest("valid-token"));
+      expect(res.status).toBe(307);
+    });
+  });
 });

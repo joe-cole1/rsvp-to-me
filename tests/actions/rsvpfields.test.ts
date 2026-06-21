@@ -34,7 +34,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/email", () => ({ sendRsvpConfirmationEmail: vi.fn(), sendBlastEmail: vi.fn() }));
 vi.mock("@/lib/sms", () => ({ sendRsvpConfirmationSms: vi.fn(), sendSmsBlast: vi.fn() }));
 
-import { addRsvpField, updateRsvpField, deleteRsvpField } from "@/app/actions/event";
+import { addRsvpField, updateRsvpField, deleteRsvpField, reorderRsvpFields, getRsvpFieldAnswers } from "@/app/actions/event";
 
 const HOST_ID = "host-1";
 const OTHER_ID = "other-user";
@@ -178,3 +178,49 @@ describe("deleteRsvpField", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
   });
 });
+
+describe("reorderRsvpFields", () => {
+  beforeEach(() => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventWithCohosts());
+    mockRsvpFieldUpdate.mockResolvedValue({});
+  });
+
+  it("throws Unauthorized when no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(reorderRsvpFields(EVENT_ID, [FIELD_ID])).rejects.toThrow("Unauthorized");
+  });
+
+  it("updates each field's order to its index in orderedIds", async () => {
+    await reorderRsvpFields(EVENT_ID, ["field-a", "field-b"]);
+    expect(mockRsvpFieldUpdate).toHaveBeenCalledTimes(2);
+    expect(mockRsvpFieldUpdate).toHaveBeenNthCalledWith(1, {
+      where: { id: "field-a" },
+      data: { order: 0 },
+    });
+    expect(mockRsvpFieldUpdate).toHaveBeenNthCalledWith(2, {
+      where: { id: "field-b" },
+      data: { order: 1 },
+    });
+  });
+});
+
+describe("getRsvpFieldAnswers", () => {
+  beforeEach(() => {
+    asHost();
+  });
+
+  it("returns answers including guest name and value", async () => {
+    mockRsvpFieldFindUnique.mockResolvedValue({
+      id: FIELD_ID,
+      event: { hostId: HOST_ID, coHosts: [] },
+      answers: [
+        { value: "No gluten", rsvp: { guestName: "Alice" } },
+      ],
+    });
+
+    const result = await getRsvpFieldAnswers(FIELD_ID);
+    expect(result).toEqual([{ guestName: "Alice", value: "No gluten" }]);
+  });
+});
+
