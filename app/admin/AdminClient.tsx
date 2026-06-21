@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Menu, X } from "lucide-react";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -16,6 +16,7 @@ import {
   getAdminUsers,
   getAdminEvents,
   testEmailConfigAction,
+  testSmsConfigAction,
   createBackupAction,
   listBackupsAction,
   deleteBackupAction,
@@ -101,7 +102,7 @@ export default function AdminClient({
   initialBackups,
   sessionUser,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings" | "backups">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings" | "email" | "sms" | "backups">("overview");
   const [copied, setCopied] = useState(false);
 
   const [users, setUsers] = useState(initialUsers);
@@ -154,6 +155,15 @@ export default function AdminClient({
 
   const [showCode, setShowCode] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Twilio SMS config state
+  const [twilioAccountSid, setTwilioAccountSid] = useState(config.twilio_account_sid || "");
+  const [twilioAuthToken, setTwilioAuthToken] = useState(config.twilio_auth_token || "");
+  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState(config.twilio_phone_number || "");
+  const [showTwilioToken, setShowTwilioToken] = useState(false);
+  const [isTestingSms, setIsTestingSms] = useState(false);
+  const [smsTestTo, setSmsTestTo] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -228,10 +238,20 @@ export default function AdminClient({
     }
   };
 
+  const getFormattedWorkerUrl = (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  };
+
   const handleTestEmailConfig = async () => {
     setFeedback(null);
     setIsTestingEmail(true);
     try {
+      const formattedUrl = getFormattedWorkerUrl(cfWorkerUrl);
       const res = await testEmailConfigAction({
         provider: emailProvider,
         from: emailFrom,
@@ -240,7 +260,7 @@ export default function AdminClient({
         smtpSecure,
         smtpUser,
         smtpPass,
-        cfWorkerUrl,
+        cfWorkerUrl: formattedUrl,
         cfWorkerSecret,
         cfAccountId,
         cfApiToken,
@@ -270,6 +290,7 @@ export default function AdminClient({
     setFeedback(null);
     startTransition(async () => {
       try {
+        const formattedUrl = getFormattedWorkerUrl(cfWorkerUrl);
         await updateSystemConfig("email_provider", emailProvider);
         await updateSystemConfig("email_from", emailFrom.trim());
         await updateSystemConfig("smtp_host", smtpHost.trim());
@@ -277,7 +298,7 @@ export default function AdminClient({
         await updateSystemConfig("smtp_secure", smtpSecure ? "true" : "false");
         await updateSystemConfig("smtp_user", smtpUser.trim());
         await updateSystemConfig("smtp_pass", smtpPass.trim());
-        await updateSystemConfig("cloudflare_worker_email_url", cfWorkerUrl.trim());
+        await updateSystemConfig("cloudflare_worker_email_url", formattedUrl);
         await updateSystemConfig("cloudflare_worker_api_secret", cfWorkerSecret.trim());
         await updateSystemConfig("cloudflare_inbound_forward_to", cfInboundForwardTo.trim());
         await updateSystemConfig("cloudflare_account_id", cfAccountId.trim());
@@ -292,7 +313,7 @@ export default function AdminClient({
           smtp_secure: smtpSecure ? "true" : "false",
           smtp_user: smtpUser.trim(),
           smtp_pass: smtpPass.trim(),
-          cloudflare_worker_email_url: cfWorkerUrl.trim(),
+          cloudflare_worker_email_url: formattedUrl,
           cloudflare_worker_api_secret: cfWorkerSecret.trim(),
           cloudflare_inbound_forward_to: cfInboundForwardTo.trim(),
           cloudflare_account_id: cfAccountId.trim(),
@@ -301,6 +322,63 @@ export default function AdminClient({
         setFeedback({ type: "success", message: "Email delivery configuration saved successfully." });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to save configuration.";
+        setFeedback({ type: "error", message });
+      }
+    });
+  };
+
+  const handleTestSmsConfig = async () => {
+    if (!smsTestTo.trim()) {
+      setFeedback({ type: "error", message: "Please enter a test phone number." });
+      return;
+    }
+    setFeedback(null);
+    setIsTestingSms(true);
+    try {
+      const res = await testSmsConfigAction({
+        sid: twilioAccountSid,
+        token: twilioAuthToken,
+        phone: twilioPhoneNumber,
+        testTo: smsTestTo,
+      });
+
+      if (res.success) {
+        setFeedback({
+          type: "success",
+          message: "Test SMS sent successfully! Check the destination device or console logs.",
+        });
+      } else {
+        setFeedback({
+          type: "error",
+          message: `Test SMS failed: ${res.error || "Unknown error"}`,
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to test Twilio connection.";
+      setFeedback({ type: "error", message });
+    } finally {
+      setIsTestingSms(false);
+    }
+  };
+
+  const handleSaveSmsConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
+    startTransition(async () => {
+      try {
+        await updateSystemConfig("twilio_account_sid", twilioAccountSid.trim());
+        await updateSystemConfig("twilio_auth_token", twilioAuthToken.trim());
+        await updateSystemConfig("twilio_phone_number", twilioPhoneNumber.trim());
+
+        setConfig((prev) => ({
+          ...prev,
+          twilio_account_sid: twilioAccountSid.trim(),
+          twilio_auth_token: twilioAuthToken.trim(),
+          twilio_phone_number: twilioPhoneNumber.trim(),
+        }));
+        setFeedback({ type: "success", message: "SMS configuration saved successfully." });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to save SMS configuration.";
         setFeedback({ type: "error", message });
       }
     });
@@ -513,9 +591,30 @@ function extractRawEmail(fromStr) {
       <AppNavLogo
         href="/dashboard"
         trailing={
-          sessionUser ? (
-            <ProfileDropdown user={sessionUser} />
-          ) : undefined
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {sessionUser && <ProfileDropdown user={sessionUser} />}
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(true)}
+              className="lg:hidden"
+              style={{
+                background: "rgba(255, 255, 255, 0.08)",
+                border: `1px solid ${APP_SHELL.inputBorder}`,
+                borderRadius: "8px",
+                color: APP_SHELL.textPrimary,
+                padding: "8px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background-color 0.2s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)"}
+            >
+              <Menu size={20} />
+            </button>
+          </div>
         }
       />
 
@@ -576,8 +675,7 @@ function extractRawEmail(fromStr) {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
           {/* Sidebar Tabs */}
           <div
-            className="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 pb-3 lg:pb-0 lg:w-[240px] shrink-0 border-b border-white/5 lg:border-b-0 mb-4 lg:mb-0 scrollbar-none"
-            style={{ display: "flex" }}
+            className="hidden lg:flex lg:flex-col lg:w-[240px] shrink-0 lg:border-b-0 mb-4 lg:mb-0"
           >
             {(
               [
@@ -586,6 +684,8 @@ function extractRawEmail(fromStr) {
                 { id: "events", label: "🎈 Event Moderation" },
                 { id: "invites", label: "🔑 Invite Codes" },
                 { id: "settings", label: "⚙️ Global Config" },
+                { id: "email", label: "📧 Email Settings" },
+                { id: "sms", label: "💬 SMS Settings" },
                 { id: "backups", label: "💾 Database Backups" },
               ] as const
             ).map((tab) => (
@@ -1137,7 +1237,11 @@ function extractRawEmail(fromStr) {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
 
+            {activeTab === "email" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 {/* Section 2: Server Configuration & Email Delivery */}
                 <div
                   style={{
@@ -1488,6 +1592,12 @@ function extractRawEmail(fromStr) {
                             placeholder={`https://rsvp-email-worker.${suggestedSubdomain}.workers.dev`}
                             value={cfWorkerUrl}
                             onChange={(e) => setCfWorkerUrl(e.target.value)}
+                            onBlur={(e) => {
+                              const val = e.target.value.trim();
+                              if (val && !/^https?:\/\//i.test(val)) {
+                                setCfWorkerUrl(`https://${val}`);
+                              }
+                            }}
                             style={{
                               width: "100%",
                               backgroundColor: APP_SHELL.inputBg,
@@ -1507,7 +1617,7 @@ function extractRawEmail(fromStr) {
 
                         <div>
                           <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                            Worker API Secret
+                            Worker API Secret (WORKER_API_SECRET)
                           </label>
                           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                             <div style={{ position: "relative", flex: 1 }}>
@@ -1636,12 +1746,12 @@ function extractRawEmail(fromStr) {
 
                         <div>
                           <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                            Guest Reply Forwarding Email
+                            Admin Fallback Email (INBOUND_FORWARD_TO)
                           </label>
                           <input
                             type="email"
                             required
-                            placeholder="e.g. host@domain.com"
+                            placeholder="e.g. admin@domain.com"
                             value={cfInboundForwardTo}
                             onChange={(e) => setCfInboundForwardTo(e.target.value)}
                             style={{
@@ -1657,7 +1767,7 @@ function extractRawEmail(fromStr) {
                             }}
                           />
                           <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            When guests reply to invite emails, where should their replies go? Because this app uses Cloudflare to send emails, you must enter this same address in your Cloudflare settings so Cloudflare knows where to send replies. Setting it here is just for your reference.
+                            By default, guest replies go dynamically to each event host&apos;s email (using the Reply-To header). This address is a catch-all fallback used only if a guest replies directly to the From address (e.g., noreply@yourdomain.com). Because Cloudflare Email Routing only forwards to verified destination addresses, this fallback email must be verified in your Cloudflare settings.
                           </span>
                         </div>
 
@@ -1747,6 +1857,9 @@ function extractRawEmail(fromStr) {
                           <ol start={4} style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0", lineHeight: "1.6" }}>
                             <li style={{ marginBottom: "6px" }}>Delete everything in the Cloudflare editor, paste the copied code, and click <strong>Save and Deploy</strong>.</li>
                             <li style={{ marginBottom: "6px" }}>
+                              Copy your worker&apos;s public URL (found under your worker&apos;s <strong>Overview</strong> or <strong>Triggers</strong> tab, e.g. <code>https://rsvp-email-worker.{suggestedSubdomain}.workers.dev</code>) and paste it into the <strong>Cloudflare Worker URL</strong> input field at the top of this settings page.
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
                               Go to the Cloudflare main dashboard and click on <strong>Workers & Pages</strong> (left-hand sidebar) &gt; click your worker (<code>rsvp-email-worker</code>) &gt; select the <strong>Settings</strong> tab &gt; select <strong>Variables</strong> in the settings menu.
                             </li>
                             <li style={{ marginBottom: "6px" }}>
@@ -1754,7 +1867,7 @@ function extractRawEmail(fromStr) {
                               <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
                                 <li style={{ marginBottom: "4px" }}>Click the <strong>Edit variables</strong> button first (required before you can add or change variables).</li>
                                 <li style={{ marginBottom: "4px" }}>Click <strong>Add variable</strong>: set Name to <code>WORKER_API_SECRET</code>, select Type as <strong>Secret</strong> (using the dropdown or padlock icon), and paste your <strong>Worker API Secret</strong> from above.</li>
-                                <li style={{ marginBottom: "4px" }}>Click <strong>Add variable</strong> again: set Name to <code>INBOUND_FORWARD_TO</code>, leave Type as <strong>Text</strong>, and paste your <strong>Guest Reply Forwarding Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
+                                <li style={{ marginBottom: "4px" }}>Click <strong>Add variable</strong> again: set Name to <code>INBOUND_FORWARD_TO</code>, leave Type as <strong>Text</strong>, and paste your <strong>Admin Fallback Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
                               </ul>
                             </li>
                             <li style={{ marginBottom: "6px" }}>
@@ -1818,6 +1931,207 @@ function extractRawEmail(fromStr) {
                           fontWeight: 700,
                           cursor: (isPending || isTestingEmail) ? "not-allowed" : "pointer",
                           opacity: (isPending || isTestingEmail) ? 0.6 : 1,
+                        }}
+                      >
+                        Save Settings
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* PANEL: SMS */}
+            {activeTab === "sms" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "24px",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                      SMS Configuration (Twilio)
+                    </h3>
+                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
+                      Configure your Twilio account to enable SMS blasts, RSVP confirmation texts, and magic links via SMS.
+                    </p>
+                  </div>
+
+                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
+
+                  <form onSubmit={handleSaveSmsConfig} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                        Twilio Account SID (TWILIO_ACCOUNT_SID)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                        value={twilioAccountSid}
+                        onChange={(e) => setTwilioAccountSid(e.target.value)}
+                        style={{
+                          width: "100%",
+                          backgroundColor: APP_SHELL.inputBg,
+                          border: `1px solid ${APP_SHELL.inputBorder}`,
+                          borderRadius: APP_SHELL.inputRadius,
+                          padding: "10px 14px",
+                          color: APP_SHELL.textPrimary,
+                          fontSize: "13px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                        Twilio Auth Token (TWILIO_AUTH_TOKEN)
+                      </label>
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <div style={{ position: "relative", flex: 1 }}>
+                          <input
+                            type={showTwilioToken ? "text" : "password"}
+                            placeholder="Twilio Authentication Token"
+                            value={twilioAuthToken}
+                            onChange={(e) => setTwilioAuthToken(e.target.value)}
+                            style={{
+                              width: "100%",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: APP_SHELL.inputRadius,
+                              padding: "10px 40px 10px 14px",
+                              color: APP_SHELL.textPrimary,
+                              fontSize: "13px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowTwilioToken(!showTwilioToken)}
+                            style={{
+                              position: "absolute",
+                              right: "10px",
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: APP_SHELL.textSecondary,
+                              padding: "4px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                            title={showTwilioToken ? "Hide token" : "Show token"}
+                          >
+                            {showTwilioToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                        Twilio Phone Number (TWILIO_PHONE_NUMBER)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. +1234567890"
+                        value={twilioPhoneNumber}
+                        onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                        style={{
+                          width: "100%",
+                          backgroundColor: APP_SHELL.inputBg,
+                          border: `1px solid ${APP_SHELL.inputBorder}`,
+                          borderRadius: APP_SHELL.inputRadius,
+                          padding: "10px 14px",
+                          color: APP_SHELL.textPrimary,
+                          fontSize: "13px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder, margin: "10px 0" }} />
+
+                    {/* SMS Testing Panel */}
+                    <div style={{ padding: "16px", backgroundColor: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <h4 style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: "0 0 6px 0" }}>
+                        ⚡ Test SMS Configuration
+                      </h4>
+                      <p style={{ fontSize: "11px", color: APP_SHELL.textSecondary, margin: "0 0 12px 0", lineHeight: "1.4" }}>
+                        Verify your Twilio connection by sending a test SMS. Note: In development mode, if Twilio is not configured, it will log the SMS details to the console instead.
+                      </p>
+                      
+                      <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginBottom: "4px" }}>
+                            Test Recipient Phone Number
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. +15550199"
+                            value={smsTestTo}
+                            onChange={(e) => setSmsTestTo(e.target.value)}
+                            style={{
+                              width: "100%",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: APP_SHELL.inputRadius,
+                              padding: "8px 12px",
+                              color: APP_SHELL.textPrimary,
+                              fontSize: "12px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isPending || isTestingSms}
+                          onClick={handleTestSmsConfig}
+                          style={{
+                            backgroundColor: "rgba(255, 255, 255, 0.08)",
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            color: APP_SHELL.textPrimary,
+                            borderRadius: "8px",
+                            padding: "8px 16px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            cursor: (isPending || isTestingSms) ? "not-allowed" : "pointer",
+                            opacity: (isPending || isTestingSms) ? 0.6 : 1,
+                            whiteSpace: "nowrap",
+                            height: "33px",
+                          }}
+                        >
+                          {isTestingSms ? "Sending..." : "Test Connection"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                      <button
+                        type="submit"
+                        disabled={isPending || isTestingSms}
+                        style={{
+                          backgroundColor: APP_SHELL.accent,
+                          border: "none",
+                          color: "#fff",
+                          borderRadius: "10px",
+                          padding: "10px 20px",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          cursor: (isPending || isTestingSms) ? "not-allowed" : "pointer",
+                          opacity: (isPending || isTestingSms) ? 0.6 : 1,
                         }}
                       >
                         Save Settings
@@ -2071,6 +2385,115 @@ function extractRawEmail(fromStr) {
               </div>
             )}
           </div>
+          {/* Sliding Drawer for Mobile/Tablet */}
+          {isDrawerOpen && (
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                backdropFilter: "blur(4px)",
+                zIndex: 999,
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes slideIn {
+                  from { transform: translateX(100%); }
+                  to { transform: translateX(0); }
+                }
+              ` }} />
+              <div
+                style={{
+                  width: "280px",
+                  height: "100%",
+                  backgroundColor: APP_SHELL.cardBg,
+                  borderLeft: `1px solid ${APP_SHELL.cardBorder}`,
+                  padding: "24px",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "24px",
+                  position: "relative",
+                  animation: "slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800, color: APP_SHELL.textPrimary }}>
+                    🛠️ Admin Navigation
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawerOpen(false)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: APP_SHELL.textSecondary,
+                      padding: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", overflowY: "auto", flex: 1 }}>
+                  {(
+                    [
+                      { id: "overview", label: "📊 Overview" },
+                      { id: "users", label: "👥 User Management" },
+                      { id: "events", label: "🎈 Event Moderation" },
+                      { id: "invites", label: "🔑 Invite Codes" },
+                      { id: "settings", label: "⚙️ Global Config" },
+                      { id: "email", label: "📧 Email Settings" },
+                      { id: "sms", label: "💬 SMS Settings" },
+                      { id: "backups", label: "💾 Database Backups" },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setFeedback(null);
+                        setIsDrawerOpen(false);
+                      }}
+                      style={{
+                        textAlign: "left",
+                        padding: "12px 16px",
+                        borderRadius: "10px",
+                        border: "none",
+                        backgroundColor: activeTab === tab.id ? APP_SHELL.accent : "transparent",
+                        color: activeTab === tab.id ? "#fff" : APP_SHELL.textSecondary,
+                        fontSize: "14px",
+                        fontWeight: activeTab === tab.id ? 700 : 600,
+                        cursor: "pointer",
+                        transition: "background 0.2s, color 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

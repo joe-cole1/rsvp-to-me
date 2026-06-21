@@ -225,7 +225,7 @@ We use Wrangler CLI to compile and push the worker:
    ```
 3. In the Cloudflare Dashboard:
    - Navigate to **Workers & Pages** > click on your worker (`rsvp-email-worker`) > **Settings** > **Variables**.
-   - Under **Environment Variables**, click **Edit variables** and add `INBOUND_FORWARD_TO` (Text type) with your personal email address (e.g. `you@domain.com`) as the value.
+   - Under **Environment Variables**, click **Edit variables** and add `INBOUND_FORWARD_TO` (Text type) with your admin/fallback email address (e.g. `you@domain.com`) as the value. *Note: Guest replies go dynamically to each host's email by default using the Reply-To header; this address is only a fallback for direct replies.*
    - Scroll down to **Bindings** > click **Add binding** > select **Email Service** > set Variable Name to `EMAIL` (all uppercase) and save.
 
 ---
@@ -247,7 +247,7 @@ Enable the Worker integration in your app:
 CLOUDFLARE_WORKER_EMAIL_URL="https://rsvp-email-worker.yourname.workers.dev"
 CLOUDFLARE_WORKER_API_SECRET="your-generated-hex-secret"
 EMAIL_FROM="RSVP to Me <rsvps@yourdomain.com>"
-INBOUND_FORWARD_TO="you@domain.com"
+INBOUND_FORWARD_TO="you@domain.com" # Admin fallback email address
 ```
 Leave all `SMTP_*` fields blank.
 
