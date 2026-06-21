@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mocks = vi.hoisted(() => ({
   mockCreateMagicLink: vi.fn(),
   mockRegisterHost: vi.fn(),
+  mockIsOpenRegistrationActive: vi.fn().mockResolvedValue(false),
   mockSendMagicLinkEmail: vi.fn().mockResolvedValue(undefined),
   mockSendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
   mockRateLimit: vi.fn().mockResolvedValue({ success: true }),
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => ({
   createMagicLink: mocks.mockCreateMagicLink,
   registerHost: mocks.mockRegisterHost,
+  isOpenRegistrationActive: mocks.mockIsOpenRegistrationActive,
 }));
 
 vi.mock("@/lib/email", () => ({
@@ -113,10 +115,29 @@ describe("registerHostAction", () => {
   });
 
   it("delegates to registerHost with parsed email, name, inviteCode on success", async () => {
+    mocks.mockIsOpenRegistrationActive.mockResolvedValue(false);
     mocks.mockRegisterHost.mockResolvedValue({ success: true });
 
     const result = await registerHostAction("joe@example.com", "Joe", "code123");
     expect(result.success).toBe(true);
     expect(mocks.mockRegisterHost).toHaveBeenCalledWith("joe@example.com", "Joe", "code123");
+  });
+
+  it("fails when open registration is disabled and inviteCode is empty", async () => {
+    mocks.mockIsOpenRegistrationActive.mockResolvedValue(false);
+
+    const result = await registerHostAction("joe@example.com", "Joe", "");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invite code is required");
+    expect(mocks.mockRegisterHost).not.toHaveBeenCalled();
+  });
+
+  it("succeeds when open registration is enabled and inviteCode is empty", async () => {
+    mocks.mockIsOpenRegistrationActive.mockResolvedValue(true);
+    mocks.mockRegisterHost.mockResolvedValue({ success: true });
+
+    const result = await registerHostAction("joe@example.com", "Joe", "");
+    expect(result.success).toBe(true);
+    expect(mocks.mockRegisterHost).toHaveBeenCalledWith("joe@example.com", "Joe", "");
   });
 });
