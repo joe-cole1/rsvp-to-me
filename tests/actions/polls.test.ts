@@ -155,6 +155,12 @@ describe("createPoll", () => {
   it("throws validation error for empty question", async () => {
     await expect(createPoll(EVENT_ID, "   ", [], false, true)).rejects.toThrow("Question cannot be empty");
   });
+
+  it("handles logActivity failure silently when creating a poll", async () => {
+    mockActivityEventCreate.mockRejectedValueOnce(new Error("Activity log failed"));
+    const result = await createPoll(EVENT_ID, "What should we eat?", ["Pizza", "Tacos"], false, true);
+    expect(result.success).toBe(true);
+  });
 });
 
 // ── deletePoll ─────────────────────────────────────────────────────────────────
@@ -326,6 +332,13 @@ describe("castVote", () => {
     expect(result.success).toBe(true);
     expect(mockActivityEventCreate).not.toHaveBeenCalled();
   });
+
+  it("handles logActivity failure silently when casting a vote", async () => {
+    asHost();
+    mockActivityEventCreate.mockRejectedValueOnce(new Error("Activity log failed"));
+    const result = await castVote("poll-1", "option-1", "Host Person", true);
+    expect(result.success).toBe(true);
+  });
 });
 
 // ── addPollOption ──────────────────────────────────────────────────────────────
@@ -379,6 +392,14 @@ describe("addPollOption", () => {
     );
   });
 
+  it("throws error if guest suggests an option but creatorName does not match RSVP guestName", async () => {
+    mockGetSession.mockResolvedValue(null);
+    mockRsvpFindFirst.mockResolvedValue({ id: "rsvp-1", guestName: "Alice", approved: true });
+    await expect(addPollOption("poll-1", "Gin & Tonic", "Bob", "rsvp-1")).rejects.toThrow(
+      "Unauthorized: Creator name does not match guest name"
+    );
+  });
+
   it("throws error if guest suggests an option but allowGuestsToAdd is false", async () => {
     mockPollFindUnique.mockResolvedValue({
       id: "poll-1",
@@ -422,6 +443,13 @@ describe("addPollOption", () => {
     await expect(addPollOption("poll-1", "Fries", "Host Person")).rejects.toThrow(
       "This poll is locked"
     );
+  });
+
+  it("handles logActivity failure silently when adding poll option", async () => {
+    asHost();
+    mockActivityEventCreate.mockRejectedValueOnce(new Error("Activity log failed"));
+    const result = await addPollOption("poll-1", "Fancy Cocktails", "Host Person");
+    expect(result.success).toBe(true);
   });
 });
 
@@ -471,6 +499,13 @@ describe("updatePollSettings", () => {
     mockGetSession.mockResolvedValue({ userId: "stranger", email: "stranger@example.com" });
     await expect(updatePollSettings("poll-1", { question: "New Question" })).rejects.toThrow("Forbidden");
   });
+
+  it("handles logActivity failure silently when updating poll settings", async () => {
+    asHost();
+    mockActivityEventCreate.mockRejectedValueOnce(new Error("Activity log failed"));
+    const result = await updatePollSettings("poll-1", { locked: true });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("deletePollOption", () => {
@@ -491,5 +526,12 @@ describe("deletePollOption", () => {
   it("throws Forbidden when unauthorized user tries to delete option", async () => {
     mockGetSession.mockResolvedValue({ userId: "stranger", email: "stranger@example.com" });
     await expect(deletePollOption("poll-1", "option-1")).rejects.toThrow("Forbidden");
+  });
+
+  it("handles logActivity failure silently when deleting poll option", async () => {
+    asHost();
+    mockActivityEventCreate.mockRejectedValueOnce(new Error("Activity log failed"));
+    const result = await deletePollOption("poll-1", "option-1");
+    expect(result.success).toBe(true);
   });
 });

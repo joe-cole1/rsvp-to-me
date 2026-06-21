@@ -2,16 +2,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoist all mock functions so vi.mock factories can reference them ──────────
 
-const { mockEventFindMany, mockActivityFindMany, mockGetSession } = vi.hoisted(() => ({
+const { mockEventFindMany, mockActivityFindMany, mockGetSession, mockUserFindUnique, mockRsvpFindMany } = vi.hoisted(() => ({
   mockEventFindMany: vi.fn(),
   mockActivityFindMany: vi.fn(),
   mockGetSession: vi.fn(),
+  mockUserFindUnique: vi.fn(),
+  mockRsvpFindMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
     event: { findMany: mockEventFindMany },
     activityEvent: { findMany: mockActivityFindMany },
+    user: { findUnique: mockUserFindUnique },
+    rSVP: { findMany: mockRsvpFindMany },
   },
 }));
 
@@ -26,7 +30,7 @@ vi.mock("@/lib/sms", () => ({
   sendSmsBlast: vi.fn().mockResolvedValue(2),
 }));
 
-import { getDashboardEvents, getDashboardActivity } from "@/app/actions/event";
+import { getDashboardEvents, getDashboardActivity, getDashboardInvites } from "@/app/actions/event";
 
 const USER_ID = "user-1";
 const OTHER_HOST_ID = "host-2";
@@ -237,3 +241,28 @@ describe("getDashboardActivity", () => {
     }));
   });
 });
+
+describe("getDashboardInvites", () => {
+  it("returns empty array when no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    const result = await getDashboardInvites();
+    expect(result).toEqual([]);
+  });
+
+  it("queries RSVPs by guestEmail matching session email", async () => {
+    asUser();
+    mockUserFindUnique.mockResolvedValue({ id: USER_ID, email: "user@example.com", phone: null });
+    mockRsvpFindMany.mockResolvedValue([]);
+
+    await getDashboardInvites();
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: [
+          { userId: USER_ID },
+          { guestEmail: { in: ["user@example.com"] } },
+        ],
+      }),
+    }));
+  });
+});
+

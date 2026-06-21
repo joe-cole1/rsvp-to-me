@@ -1,55 +1,164 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock node-cron
-const mockSchedule = vi.fn().mockReturnValue({ stop: vi.fn() });
-const mockValidate = vi.fn().mockReturnValue(true);
-vi.mock("node-cron", () => ({
-  default: {
-    schedule: mockSchedule,
-    validate: mockValidate,
-  },
+const { mockCronSchedule, mockCronValidate, mockProcessReminders, mockRunBackup, mockSystemConfigFindUnique } = vi.hoisted(() => ({
+  mockCronSchedule: vi.fn(),
+  mockCronValidate: vi.fn().mockReturnValue(true),
+  mockProcessReminders: vi.fn().mockResolvedValue(undefined),
+  mockRunBackup: vi.fn().mockResolvedValue("backup.sqlite"),
+  mockSystemConfigFindUnique: vi.fn(),
 }));
 
-// Mock reminders & backup
-const mockProcessReminders = vi.fn().mockResolvedValue(undefined);
+vi.mock("node-cron", () => {
+  const m = {
+    schedule: mockCronSchedule,
+    validate: mockCronValidate,
+  };
+  return {
+    default: m,
+    ...m,
+  };
+});
+
 vi.mock("@/lib/reminders", () => ({
   processReminders: mockProcessReminders,
 }));
 
-const mockRunBackup = vi.fn().mockResolvedValue("mock-backup-file");
 vi.mock("@/lib/backup", () => ({
   runBackup: mockRunBackup,
-  getBackupKeepCount: vi.fn().mockResolvedValue(7),
 }));
 
-// Mock DB
-const mockFindUnique = vi.fn().mockResolvedValue({ value: "0 0 * * *" });
 vi.mock("@/lib/db", () => ({
   db: {
     systemConfig: {
-      findUnique: mockFindUnique,
+      findUnique: mockSystemConfigFindUnique,
     },
   },
 }));
 
-describe("lib/cron-scheduler.ts", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+let startInProcessCron: () => Promise<void>;
 
-  it("registers cron jobs and performs startup runs", async () => {
-    const { startInProcessCron } = await import("@/lib/cron-scheduler");
-    
+beforeEach(async () => {
+  vi.resetModules();
+  const mod = await import("@/lib/cron-scheduler");
+  startInProcessCron = mod.startInProcessCron;
+
+  vi.clearAllMocks();
+  mockSystemConfigFindUnique.mockResolvedValue(null);
+  mockCronValidate.mockReturnValue(true);
+  mockCronSchedule.mockReturnValue({
+    stop: vi.fn(),
+  });
+  delete process.env.BACKUP_SCHEDULE;
+});
+
+describe("lib/cron-scheduler.ts", () => {
+  it("starts the cron jobs and runs initial syncs", async () => {
+    process.env.BACKUP_SCHEDULE = "0 0 * * *";
+    mockSystemConfigFindUnique.mockResolvedValue({ value: "0 1 * * *" });
+
     await startInProcessCron();
 
-    // Verify reminders are checked immediately on startup
+    // Verify initial processReminders check
     expect(mockProcessReminders).toHaveBeenCalled();
 
-    // Verify schedule is called for reminders (every 15 min), and backup config sync (every 5 min)
-    expect(mockSchedule).toHaveBeenCalledWith("*/15 * * * *", expect.any(Function));
-    expect(mockSchedule).toHaveBeenCalledWith("*/5 * * * *", expect.any(Function));
+    // Verify node-cron.schedule is called for:
+    // 1) Reminders schedule check every 15 minutes (*/15 * * * *)
+    // 2) Backup schedule sync check every 5 minutes (*/5 * * * *)
+    // 3) Scheduled database backup job (0 1 * * *)
+    expect(mockCronSchedule).toHaveBeenCalledWith("*/15 * * * *", expect.any(Function));
+    expect(mockCronSchedule).toHaveBeenCalledWith("*/5 * * * *", expect.any(Function));
+    expect(mockCronSchedule).toHaveBeenCalledWith("0 1 * * *", expect.any(Function));
+  });
 
-    // Verify it schedules the backup pattern fetched from DB
-    expect(mockSchedule).toHaveBeenCalledWith("0 0 * * *", expect.any(Function));
+  it("executes the cron callbacks when triggered", async () => {
+    let reminderCallback: () => void | Promise<void>;
+    let backupCallback: () => void | Promise<void>;
+
+    mockCronSchedule.mockImplementation((pattern, cb) => {
+      if (pattern === "*/15 * * * *") reminderCallback = cb as () => void;
+      if (pattern === "0 1 * * *") backupCallback = cb as () => void;
+      return { stop: vi.fn() };
+    });
+
+    process.env.BACKUP_SCHEDULE = "0 1 * * *";
+    await startInProcessCron();
+
+    // Trigger reminder callback
+    await reminderCallback();
+    expect(mockProcessReminders).toHaveBeenCalledTimes(2); // startup + trigger
+
+    // Trigger backup callback
+    await backupCallback();
+    expect(mockRunBackup).toHaveBeenCalled();
+  });
+
+  it("does not schedule backup when pattern is disabled or false", async () => {
+    process.env.BACKUP_SCHEDULE = "disabled";
+    await startInProcessCron();
+    expect(mockCronSchedule).toHaveBeenCalledTimes(2); // only 15m and 5m tasks, no backup task
+  });
+
+  it("stops existing backup task when schedule changes", async () => {
+    let syncCallback: () => void | Promise<void>;
+    const stopMock = vi.fn();
+    mockCronSchedule.mockImplementation((pattern, cb) => {
+      if (pattern === "*/5 * * * *") syncCallback = cb as () => void;
+      return { stop: stopMock };
+    });
+
+    mockSystemConfigFindUnique.mockResolvedValueOnce({ value: "0 1 * * *" });
+    await startInProcessCron();
+
+    // Change DB config on second sync run
+    mockSystemConfigFindUnique.mockResolvedValueOnce({ value: "0 2 * * *" });
+    await syncCallback();
+
+    expect(stopMock).toHaveBeenCalled();
+  });
+
+  it("logs error and does not schedule if cron validation fails", async () => {
+    mockCronValidate.mockReturnValue(false);
+    process.env.BACKUP_SCHEDULE = "invalid pattern";
+    
+    await startInProcessCron();
+    expect(mockCronSchedule).toHaveBeenCalledTimes(2); // only 15m and 5m tasks
+  });
+
+  it("handles processReminders errors silently in startup and cron callbacks", async () => {
+    let reminderCallback: () => void | Promise<void>;
+    mockCronSchedule.mockImplementation((pattern, cb) => {
+      if (pattern === "*/15 * * * *") reminderCallback = cb as () => void;
+      return { stop: vi.fn() };
+    });
+
+    mockProcessReminders.mockRejectedValue(new Error("Reminder query failed"));
+    await startInProcessCron();
+
+    // Trigger the callback which should handle errors silently
+    reminderCallback();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+  it("handles runBackup errors silently inside scheduled backup task callback", async () => {
+    let backupCallback: () => void | Promise<void>;
+    let syncCallback: () => void | Promise<void>;
+    mockCronSchedule.mockImplementation((pattern, cb) => {
+      if (pattern === "0 1 * * *") backupCallback = cb as () => void;
+      if (pattern === "*/5 * * * *") syncCallback = cb as () => void;
+      return { stop: vi.fn() };
+    });
+
+    process.env.BACKUP_SCHEDULE = "0 1 * * *";
+    mockRunBackup.mockRejectedValue(new Error("Backup exec failed"));
+
+    await startInProcessCron();
+    
+    // Trigger backup callback
+    backupCallback();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Trigger sync callback
+    syncCallback();
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 });

@@ -19,6 +19,12 @@ const {
   mockSystemConfigUpsert,
   mockGetSession,
   mockTestEmailConfig,
+  mockTestSmsConfig,
+  mockRunBackup,
+  mockListBackups,
+  mockDeleteBackup,
+  mockGetBackupKeepCount,
+  mockTransaction,
 } = vi.hoisted(() => ({
   mockUserCount: vi.fn(),
   mockEventCount: vi.fn(),
@@ -38,6 +44,12 @@ const {
   mockSystemConfigUpsert: vi.fn(),
   mockGetSession: vi.fn(),
   mockTestEmailConfig: vi.fn(),
+  mockTestSmsConfig: vi.fn(),
+  mockRunBackup: vi.fn(),
+  mockListBackups: vi.fn(),
+  mockDeleteBackup: vi.fn(),
+  mockGetBackupKeepCount: vi.fn(),
+  mockTransaction: vi.fn((ops) => Promise.all(ops)),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -72,7 +84,9 @@ vi.mock("@/lib/db", () => ({
     systemConfig: {
       findMany: mockSystemConfigFindMany,
       upsert: mockSystemConfigUpsert,
+      findUnique: vi.fn(),
     },
+    $transaction: mockTransaction,
   },
 }));
 
@@ -84,6 +98,16 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   testEmailConfig: mockTestEmailConfig,
 }));
+vi.mock("@/lib/sms", () => ({
+  testSmsConfig: mockTestSmsConfig,
+}));
+vi.mock("@/lib/backup", () => ({
+  runBackup: mockRunBackup,
+  listBackups: mockListBackups,
+  deleteBackup: mockDeleteBackup,
+  getBackupKeepCount: mockGetBackupKeepCount,
+}));
+
 
 import {
   getAdminStats,
@@ -96,6 +120,14 @@ import {
   getSystemConfig,
   updateSystemConfig,
   testEmailConfigAction,
+  revokeInviteCode,
+  getInviteCodes,
+  testSmsConfigAction,
+  createBackupAction,
+  listBackupsAction,
+  deleteBackupAction,
+  getBackupConfig,
+  updateBackupConfigAction,
 } from "@/app/actions/admin";
 
 describe("app/actions/admin.ts", () => {
@@ -308,6 +340,59 @@ describe("app/actions/admin.ts", () => {
           }),
         })
       );
+    });
+
+    it("revokes invite code", async () => {
+      mockHostInviteCodeDelete.mockResolvedValue({});
+      const res = await revokeInviteCode("c-1");
+      expect(res.success).toBe(true);
+      expect(mockHostInviteCodeDelete).toHaveBeenCalledWith({ where: { id: "c-1" } });
+    });
+
+    it("gets invite codes", async () => {
+      mockHostInviteCodeFindMany.mockResolvedValue([]);
+      const res = await getInviteCodes();
+      expect(res).toEqual([]);
+      expect(mockHostInviteCodeFindMany).toHaveBeenCalled();
+    });
+
+    it("tests SMS configuration", async () => {
+      mockTestSmsConfig.mockResolvedValue({ success: true });
+      const res = await testSmsConfigAction({ sid: "sid", token: "token", phone: "phone", testTo: "to" });
+      expect(res).toEqual({ success: true });
+    });
+
+    it("runs backup action", async () => {
+      mockRunBackup.mockResolvedValue("backup.sql");
+      const res = await createBackupAction();
+      expect(res).toEqual({ success: true, filename: "backup.sql" });
+    });
+
+    it("lists backup files", async () => {
+      mockListBackups.mockResolvedValue(["a.sql"]);
+      const res = await listBackupsAction();
+      expect(res).toEqual(["a.sql"]);
+    });
+
+    it("deletes a backup file", async () => {
+      mockDeleteBackup.mockResolvedValue(true);
+      const res = await deleteBackupAction("a.sql");
+      expect(res).toEqual({ success: true });
+    });
+
+    it("gets backup configuration", async () => {
+      mockSystemConfigFindMany.mockResolvedValue([]);
+      mockGetBackupKeepCount.mockResolvedValue(5);
+      const res = await getBackupConfig();
+      expect(res.backup_schedule).toBe("disabled");
+      expect(res.backup_keep_count).toBe(5);
+    });
+
+    it("updates backup configuration", async () => {
+      mockTransaction.mockResolvedValue([{}, {}]);
+      const res = await updateBackupConfigAction("*/5 * * * *", 10);
+      expect(res.success).toBe(true);
+      expect(mockTransaction).toHaveBeenCalled();
     });
   });
 });
