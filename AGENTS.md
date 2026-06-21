@@ -32,6 +32,8 @@ At the start of every new chat session or when resuming work:
    - Verify we are synced with `main`.
    - Create a new feature branch on GitHub using the GitHub MCP `create_branch` tool.
    - Provide the user with the command to checkout and track the new branch locally.
+3. **Go Straight to Plan**:
+   - Do NOT rebuild or spin up Docker containers, run build/lint steps, or verify correctness at the start of a chat session. Simply sync with main, create the feature branch, and immediately proceed to research and plan creation.
 <!-- END:session-setup-rules -->
 
 <!-- BEGIN:post-modification-rules -->

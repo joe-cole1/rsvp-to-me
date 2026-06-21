@@ -77,6 +77,21 @@ describe("RegisterHostSchema", () => {
     });
     expect(res.success).toBe(false);
   });
+
+  it("accepts empty inviteCode or missing inviteCode", () => {
+    const res1 = RegisterHostSchema.safeParse({
+      email: "joe@example.com",
+      name: "Joe",
+      inviteCode: "",
+    });
+    expect(res1.success).toBe(true);
+
+    const res2 = RegisterHostSchema.safeParse({
+      email: "joe@example.com",
+      name: "Joe",
+    });
+    expect(res2.success).toBe(true);
+  });
 });
 
 describe("AddCommentSchema", () => {

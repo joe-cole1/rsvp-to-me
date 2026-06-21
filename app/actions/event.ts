@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { isOpenRegistrationActive } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail } from "@/lib/email";
 import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms } from "@/lib/sms";
@@ -1193,10 +1194,11 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
         where: isEmail ? { email: entry } : { phone: entry },
       });
       if (!user) {
+        const openReg = await isOpenRegistrationActive();
         user = await db.user.create({
           data: isEmail
-            ? { email: entry, role: "GUEST" }
-            : { phone: entry, role: "GUEST" },
+            ? { email: entry, role: openReg ? "HOST" : "GUEST" }
+            : { phone: entry, role: openReg ? "HOST" : "GUEST" },
         });
       }
 
@@ -1320,10 +1322,11 @@ export async function inviteFriendAsGuest(
     where: isEmail ? { email: entry } : { phone: entry },
   });
   if (!user) {
+    const openReg = await isOpenRegistrationActive();
     user = await db.user.create({
       data: isEmail
-        ? { email: entry, role: "GUEST" }
-        : { phone: entry, role: "GUEST" },
+        ? { email: entry, role: openReg ? "HOST" : "GUEST" }
+        : { phone: entry, role: openReg ? "HOST" : "GUEST" },
     });
   }
 

@@ -7,7 +7,7 @@ export const SendMagicLinkSchema = z.object({
 export const RegisterHostSchema = z.object({
   email: z.string().trim().email().toLowerCase().max(100),
   name: z.string().trim().min(1).max(100),
-  inviteCode: z.string().trim().min(1).max(100),
+  inviteCode: z.string().trim().max(100).optional().or(z.literal("")),
 });
 
 export const AddCommentSchema = z.object({

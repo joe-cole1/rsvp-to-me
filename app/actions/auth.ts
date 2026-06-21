@@ -1,6 +1,6 @@
 "use server";
 
-import { createMagicLink, registerHost } from "@/lib/auth";
+import { createMagicLink, registerHost, isOpenRegistrationActive } from "@/lib/auth";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
 import { SendMagicLinkSchema, RegisterHostSchema } from "@/lib/schemas";
@@ -103,7 +103,12 @@ export async function registerHostAction(
     return { success: false, error: "Too many registration attempts. Please try again in an hour." };
   }
 
-  const result = await registerHost(email, name, inviteCode);
+  const openReg = await isOpenRegistrationActive();
+  if (!openReg && (!inviteCode || inviteCode.trim() === "")) {
+    return { success: false, error: "Invite code is required." };
+  }
+
+  const result = await registerHost(email, name, inviteCode ?? "");
   return result;
 }
 
