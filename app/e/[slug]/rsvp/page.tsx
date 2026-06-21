@@ -12,6 +12,9 @@ export default async function RsvpPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { token, status, return: returnTo } = await searchParams;
 
+  const validStatuses = ["GOING", "MAYBE", "NO"] as const;
+  const initialStatus = validStatuses.find((s) => s === status?.toUpperCase());
+
   const event = await db.event.findUnique({
     where: { slug },
     include: {
@@ -66,14 +69,13 @@ export default async function RsvpPage({ params, searchParams }: Props) {
           plusOneGuests: rsvp.plusOneGuests,
           answers: rsvp.answers.map((a) => ({ rsvpFieldId: a.rsvpFieldId, value: a.value })),
         }}
+        initialStatus={initialStatus}
         returnPath={returnTo === "guests" ? `/e/${slug}/guests` : undefined}
       />
     );
   }
 
   // New RSVP flow — status from URL
-  const validStatuses = ["GOING", "MAYBE", "NO"] as const;
-  const initialStatus = validStatuses.find((s) => s === status?.toUpperCase());
   if (!initialStatus) redirect(`/e/${slug}`);
 
   return (

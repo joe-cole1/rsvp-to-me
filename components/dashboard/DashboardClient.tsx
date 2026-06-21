@@ -243,6 +243,11 @@ export function DashboardClient({
 
   return (
     <div style={{ maxWidth: "1150px", margin: "0 auto", padding: "40px 24px 100px" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .new-event-card { aspect-ratio: auto !important; padding: 20px 16px; }
+        }
+      `}</style>
       
       {/* 1. Header greeting */}
       <div style={{ marginBottom: "32px" }}>
@@ -372,8 +377,9 @@ export function DashboardClient({
                   style={{ textDecoration: "none" }}
                 >
                   <div
+                    className="new-event-card"
                     style={{
-                      aspectRatio: "1/1",
+                      aspectRatio: "4/3",
                       borderRadius: "16px",
                       border: "2px dashed rgba(255,255,255,0.15)",
                       display: "flex",
@@ -778,7 +784,7 @@ function EventCard({ item, formatPartifulDate, isDropdownOpen, onToggleDropdown,
         style={{
           position: "relative",
           width: "100%",
-          paddingBottom: "100%", // 1:1 Aspect ratio
+          paddingBottom: "75%", // 4:3 Aspect ratio
           borderRadius: "16px",
           overflow: "hidden",
           background: coverUrl ? "transparent" : `linear-gradient(135deg, #18181b 0%, ${accent}aa 100%)`,
