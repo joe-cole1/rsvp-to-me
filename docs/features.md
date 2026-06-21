@@ -195,7 +195,7 @@ Send messages to your guests:
 
 ## Automated Reminders
 
-The background worker (`cron` container) automatically triggers reminders.
+The in-process cron scheduler automatically triggers reminders.
 
 ### Reminder Types
 - **Email:** 7 days before, 1 day before, and N hours before (you set N).

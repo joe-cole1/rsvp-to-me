@@ -38,7 +38,7 @@ Email dispatches are triggered by the following application events:
 | Nudge for unresponded guests | Invited guests who have not responded yet |
 | Profile email change verification | The user's new email address |
 
-*Note on Reminders:* The background worker (`cron` container) checks every 15 minutes to trigger due reminders. Each reminder type is sent exactly once per user per event.
+*Note on Reminders:* The in-process cron scheduler checks every 15 minutes to trigger due reminders. Each reminder type is sent exactly once per user per event.
 
 ---
 
