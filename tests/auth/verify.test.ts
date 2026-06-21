@@ -71,6 +71,14 @@ describe("GET /auth/verify", () => {
     expect(res.headers.get("location")).toContain("error=invalid-token");
   });
 
+  it("redirects with error when token is longer than 128 chars (length guard)", async () => {
+    const longToken = "a".repeat(129);
+    const res = await GET(makeRequest(longToken));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("error=invalid-token");
+    expect(mockFindUniqueMagicToken).not.toHaveBeenCalled();
+  });
+
   it("redirects with error when token is already used", async () => {
     mockFindUniqueMagicToken.mockResolvedValue({
       id: "1",

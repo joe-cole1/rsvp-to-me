@@ -154,6 +154,27 @@ describe("createMagicLink", () => {
     });
     expect(result).toMatch(new RegExp(`^http://localhost:3000/auth/verify\\?token=[a-f0-9]{64}$`));
   });
+
+  it("stores the hashed token in the database, while returning the raw token in the URL", async () => {
+    mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "user@example.com" });
+    mockMagicTokenUpdateMany.mockResolvedValue({ count: 0 });
+    mockMagicTokenCreate.mockResolvedValue({});
+
+    const result = await createMagicLink("user@example.com");
+    expect(result).toBeDefined();
+
+    const rawToken = result!.split("token=")[1];
+    const { hashToken } = await import("@/lib/hash");
+    const expectedHashedToken = hashToken(rawToken);
+
+    expect(mockMagicTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: "user-1",
+        token: expectedHashedToken,
+        expiresAt: expect.any(Date),
+      }),
+    });
+  });
 });
 
 describe("linkRsvpsToUser", () => {

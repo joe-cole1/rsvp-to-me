@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { db } from "./db";
 import { createSession } from "./session";
+import { hashToken } from "./hash";
 
 const TOKEN_TTL_MINUTES = 15;
 
@@ -35,9 +36,10 @@ export async function createMagicLink(identifier: string): Promise<string | null
 
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60 * 1000);
+  const hashedToken = hashToken(token);
 
   await db.magicToken.create({
-    data: { userId: user.id, token, expiresAt },
+    data: { userId: user.id, token: hashedToken, expiresAt },
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -98,7 +100,11 @@ export async function linkRsvpsToUser(userId: string) {
 }
 
 export async function verifyMagicToken(token: string): Promise<boolean> {
-  const record = await db.magicToken.findUnique({ where: { token } });
+  if (token.length > 128) {
+    return false;
+  }
+  const hashedToken = hashToken(token);
+  const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
 
   if (!record || record.used || record.expiresAt < new Date()) {
     return false;
@@ -136,7 +142,11 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
 export async function verifyChangeToken(
   token: string
 ): Promise<{ success: boolean; error?: string; type?: "EMAIL" | "PHONE"; newValue?: string }> {
-  const record = await db.magicToken.findUnique({ where: { token } });
+  if (token.length > 128) {
+    return { success: false, error: "Invalid, used, or expired verification link." };
+  }
+  const hashedToken = hashToken(token);
+  const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
 
   if (!record || record.used || record.expiresAt < new Date()) {
     return { success: false, error: "Invalid, used, or expired verification link." };

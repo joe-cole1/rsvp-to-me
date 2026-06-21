@@ -39,6 +39,9 @@ export default async function RsvpPage({ params, searchParams }: Props) {
 
   // Edit flow — token provided
   if (token) {
+    if (token.length > 128) {
+      notFound();
+    }
     const rsvp = await db.rSVP.findUnique({
       where: { editToken: token },
       include: {
