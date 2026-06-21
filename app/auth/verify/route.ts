@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
-  if (!record || record.used || record.expiresAt < new Date()) {
+  if (!record || record.used || record.expiresAt < new Date() || record.type !== "LOGIN") {
     return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in?error=invalid-token`);
   }
 
