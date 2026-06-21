@@ -63,8 +63,8 @@ A fun, social-first event and RSVP platform for personal events (house parties, 
 
 ## Development Workflow Rules
 - **CRITICAL: PR Check**: ALWAYS check if there is an open PR (Pull Request) for the branch before committing or pushing additional code. You must query open PRs using the GitHub API or MCP tools to ensure you are not creating conflicts or duplicate work. Do not commit code to a branch with an open PR unless explicitly requested.
-- **PR Labeling & Organization**: Each PR must be categorized using one or more of the repository's standard release labels (`feature`, `ui/ux`, `bug`, `refactor`, `performance`, `documentation`, `tests`, `chore`).
-- **PR Creation Commands**: When changes are complete and verified, the agent must always provide the user with a complete, copy-pasteable PowerShell/bash command using the GitHub CLI (`gh pr create`) that automatically populates the PR's `--title`, markdown `--body` (or `--body-file`), and the appropriate `--label` flags.
+- **PR Labeling & Organization**: Each PR must be categorized using exactly ONE of the repository's standard release labels (`feature`, `ui/ux`, `bug`, `refactor`, `performance`, `documentation`, `tests`, `chore`). It must be the predominant "reason" for the commit/PR. When in doubt, split the work into separate commits and PRs.
+- **PR Creation Commands**: When changes are complete and verified, the agent must always provide the user with a complete, copy-pasteable PowerShell/bash command using the GitHub CLI (`gh pr create`) that automatically populates the PR's `--title`, markdown `--body` (or `--body-file`), and the single appropriate `--label` flag.
 - **Documentation Sync Rule**: The agent WILL update the documentation suite (e.g., installation, configuration, features, email, SMS, admin, and upgrading guides) anytime a procedure, step, feature, environment variable, docker-compose configuration, or anything affected changes, ensuring the documentation always remains fully in sync with the codebase state.
 
 ## What it is / isn't
