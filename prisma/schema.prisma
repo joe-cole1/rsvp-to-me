@@ -109,6 +109,8 @@ model Event {
   plusOneNamesRequired Boolean @default(false)
   guestListVis      GuestListVis @default(ALL)
   guestSharingEnabled  Boolean    @default(true)
+  guestsCanInvite      Boolean    @default(false)
+
 
   // Feature flags
   commentsEnabled      Boolean    @default(true)

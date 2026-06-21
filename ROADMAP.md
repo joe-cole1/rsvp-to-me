@@ -8,15 +8,13 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *Immediate attention items. High impact bugs, UX papercuts, and essential routing/data integrity fixes.*
 
 ### 🛠️ Bugs & Blockers
-*   **Location Selector Fix**: The location selector inside the "Create Event" page does not persist or work correctly. Needs repair to match the updated popover patterns.
-*   **Potluck Quantity Input Behavior**: The default quantity input is locked to `1` and doesn't allow backspacing to empty (making custom typing difficult). Update input handler state to allow temporary empty values.
-*   **Deep Linking Navigation**: Deep linking to specific sections (e.g., `/settings?section=polls#polls` or just `#polls`/`#potluck` on the public event page) doesn't scroll/focus correctly. Implement anchor scrolling behavior.
+*   *(No pending priority 1 bugs)*
 
 ### 🔒 Routing & System Safety
 *   **Event Slug Collision Resolution**: Define behavior and implement automatic suffixing (e.g., appending `-1`, `-2`) during slug generation in `lib/slug.ts` when two events share the same name.
 
 ### 👥 Guest List & RSVP Enhancements
-*   **Pending RSVP Management**: RSVPs pending approval are hidden from the event `/guests` page. Add a "Pending Approval" filter tab, and include pending counts in the stats header (e.g., `"1 response · 1 going · 1 pending approval"`).
+*   *(No pending priority 1 guest list enhancements)*
 
 ---
 
@@ -24,11 +22,10 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *Functional improvements, layout adjustments, and secondary features that can be batched together for UX consistency.*
 
 ### 🎨 Layout & Page Hierarchy
-*   **Event Page Section Reordering**: Position the Polls and Potluck sections below the RSVP card and the "Share this event" block to keep primary call-to-actions at the top.
-*   **RSVP "Next Actions"**: Present next steps (such as voting in active polls or claiming potluck items) on the RSVP success/confirmation page to boost immediate engagement.
+*   *(No pending priority 2 layout enhancements)*
 
 ### 🔒 Privacy & Sharing Controls
-*   **Private Event Invitation Rules**: Hide the generic "Share this event" block for private events requiring an invite. Add an option in Event Settings -> RSVP to let RSVP'd guests invite friends via email/phone, rendering a full-width input block with a "Send" button in the container.
+*   *(No pending priority 2 privacy controls)*
 
 ### ⚙️ Administration & Settings
 *   **RSVP Notification Toggles**: Add toggles in event settings (and optionally global host preferences) to turn on/off automatic email and SMS notifications when guests RSVP.
@@ -87,6 +84,15 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ## ✅ Completed Milestones
 *A log of completed capabilities.*
+
+### Event Page Bugs & RSVP Enhancements [b06146]
+*   [x] **Location Selector**: Implemented a responsive `LocationSelector` client component with PHYSICAL, VIRTUAL, and TBD types for event creation.
+*   [x] **Potluck Quantity Input**: Corrected quantity input behavior to allow temporary empty values for custom typing.
+*   [x] **Deep Linking Navigation**: Implemented smooth anchor scrolling behavior for target hashes (e.g. `#polls` and `#potluck`).
+*   [x] **Pending RSVP Management**: Added a "Pending Approval" filter tab on the guest list and updated stats headers for hosts to approve/decline RSVPs.
+*   [x] **Event Page Section Reordering**: Moved Polls and Potluck sections below the RSVP/sharing containers to improve hierarchy.
+*   [x] **RSVP "Next Actions"**: Added interactive "Next Steps" suggestions on the RSVP success screen to prompt voting and potluck contributions.
+*   [x] **Private Event Invitations**: Configured "guests can invite" settings and added the `inviteFriendAsGuest` server action to generate pending RSVPs.
 
 ### Core Platform Setup
 *   [x] **Next.js 16 + Prisma 7 + SQLite Core**: Database schemas, seeds, and App Router structure.

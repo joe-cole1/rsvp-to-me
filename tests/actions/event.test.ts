@@ -186,6 +186,7 @@ import {
   updateInfoSection,
   deleteRsvpAsHost,
   deleteActivityEvent,
+  inviteFriendAsGuest,
 } from "@/app/actions/event";
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
@@ -1455,4 +1456,92 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
     }));
   });
 });
+
+describe("inviteFriendAsGuest", () => {
+  const INVITING_RSVP = {
+    id: "inviting-rsvp",
+    eventId: EVENT_ID,
+    guestName: "Alice",
+    guestEmail: "alice@example.com",
+    status: "GOING",
+    event: {
+      id: EVENT_ID,
+      slug: EVENT_SLUG,
+      title: "Private Party",
+      startAt: new Date(),
+      locationName: "Alice's House",
+      visibility: "PRIVATE",
+      guestsCanInvite: true,
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRsvpFindUnique.mockResolvedValue(INVITING_RSVP);
+    mockUserFindFirst.mockResolvedValue(null);
+    mockUserCreate.mockResolvedValue({ id: "friend-user-id" });
+    mockRsvpFindFirst.mockResolvedValue(null);
+    mockRsvpCreate.mockResolvedValue({ id: "friend-rsvp-id", editToken: "friend-edit-token", guestName: "bob" });
+    mockInvitationFindFirst.mockResolvedValue(null);
+    mockInvitationCreate.mockResolvedValue({});
+  });
+
+  it("fails if inviting RSVP does not exist", async () => {
+    mockRsvpFindUnique.mockResolvedValue(null);
+    const res = await inviteFriendAsGuest(EVENT_ID, "invalid-token", "bob@example.com");
+    expect(res).toEqual({ success: false, error: "Invalid guest token" });
+  });
+
+  it("fails if inviting RSVP status is not GOING or MAYBE", async () => {
+    mockRsvpFindUnique.mockResolvedValue({
+      ...INVITING_RSVP,
+      status: "NO",
+    });
+    const res = await inviteFriendAsGuest(EVENT_ID, "token", "bob@example.com");
+    expect(res).toEqual({ success: false, error: "Only attending guests can invite friends" });
+  });
+
+  it("fails if event is not private", async () => {
+    mockRsvpFindUnique.mockResolvedValue({
+      ...INVITING_RSVP,
+      event: {
+        ...INVITING_RSVP.event,
+        visibility: "PUBLIC",
+      },
+    });
+    const res = await inviteFriendAsGuest(EVENT_ID, "token", "bob@example.com");
+    expect(res).toEqual({ success: false, error: "This feature is only for private events" });
+  });
+
+  it("fails if guestsCanInvite is disabled", async () => {
+    mockRsvpFindUnique.mockResolvedValue({
+      ...INVITING_RSVP,
+      event: {
+        ...INVITING_RSVP.event,
+        guestsCanInvite: false,
+      },
+    });
+    const res = await inviteFriendAsGuest(EVENT_ID, "token", "bob@example.com");
+    expect(res).toEqual({ success: false, error: "Guests are not allowed to invite others to this event" });
+  });
+
+  it("succeeds, creates user and RSVP, and sends email invite", async () => {
+    const res = await inviteFriendAsGuest(EVENT_ID, "token", "bob@example.com");
+    expect(res).toEqual({ success: true });
+    expect(mockUserCreate).toHaveBeenCalledWith({
+      data: { email: "bob@example.com", role: "GUEST" },
+    });
+    expect(mockRsvpCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        eventId: EVENT_ID,
+        guestEmail: "bob@example.com",
+        status: "GOING",
+        approved: false,
+      }),
+    });
+    const { sendEventInviteEmail } = await import("@/lib/email");
+    expect(sendEventInviteEmail).toHaveBeenCalled();
+  });
+});
+
 

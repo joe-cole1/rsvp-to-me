@@ -55,6 +55,8 @@ type EventData = {
   maybeEnabled: boolean;
   questionnaireEnabled: boolean;
   rsvpFields: RsvpField[];
+  polls?: { id: string; question: string }[];
+  potluckItems?: { id: string; label: string }[];
 };
 
 type ExistingRsvp = {
@@ -251,6 +253,58 @@ export function RsvpFlow({
                   {linkCopied ? <Check size={12} /> : null}
                   {linkCopied ? "Copied!" : "Copy"}
                 </button>
+              </div>
+            </div>
+          )}
+          {(status === "GOING" || status === "MAYBE") && (
+            (event.polls && event.polls.length > 0) ||
+            (event.potluckItems && event.potluckItems.length > 0)
+          ) && (
+            <div style={{ background: t.inputBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px", padding: "16px", marginBottom: "24px", textAlign: "left" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "none", color: t.accent, marginBottom: "12px" }}>👉 Next Steps</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {event.polls && event.polls.length > 0 && (
+                  <a
+                    href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}#polls`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 12px",
+                      background: t.cardBg,
+                      border: `1px solid ${t.inputBorder}`,
+                      borderRadius: "10px",
+                      color: t.textPrimary,
+                      textDecoration: "none",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>📊 Vote in the polls</span>
+                    <span style={{ color: t.accent }}>→</span>
+                  </a>
+                )}
+                {event.potluckItems && event.potluckItems.length > 0 && (
+                  <a
+                    href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}#potluck`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 12px",
+                      background: t.cardBg,
+                      border: `1px solid ${t.inputBorder}`,
+                      borderRadius: "10px",
+                      color: t.textPrimary,
+                      textDecoration: "none",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>🥗 Bring something (Potluck)</span>
+                    <span style={{ color: t.accent }}>→</span>
+                  </a>
+                )}
               </div>
             </div>
           )}
