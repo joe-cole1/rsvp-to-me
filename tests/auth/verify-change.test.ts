@@ -10,6 +10,7 @@ const {
   mockUpdateManyRsvps,
   mockLinkRsvpsToUser,
   mockSealSession,
+  mockCreateSession,
 } = vi.hoisted(() => ({
   mockFindUniqueMagicToken: vi.fn(),
   mockUpdateMagicToken: vi.fn(),
@@ -19,6 +20,7 @@ const {
   mockUpdateManyRsvps: vi.fn(),
   mockLinkRsvpsToUser: vi.fn(),
   mockSealSession: vi.fn(),
+  mockCreateSession: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -35,6 +37,9 @@ vi.mock("@/lib/db", () => ({
     rSVP: {
       updateMany: mockUpdateManyRsvps,
     },
+    session: {
+      create: mockCreateSession,
+    },
   },
 }));
 
@@ -42,6 +47,11 @@ vi.mock("@/lib/session", () => ({
   sealSession: mockSealSession,
   COOKIE_NAME: "rsvp-session",
   SESSION_TTL: 2592000,
+}));
+
+vi.mock("@/lib/redis", () => ({
+  isRedisEnabled: vi.fn().mockReturnValue(false),
+  redisSet: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -76,6 +86,14 @@ describe("GET /auth/verify-change", () => {
     const res = await GET(makeRequest("bad-token"));
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("error=invalid-token");
+  });
+
+  it("redirects with error when token is longer than 128 chars (length guard)", async () => {
+    const longToken = "a".repeat(129);
+    const res = await GET(makeRequest(longToken));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("error=invalid-token");
+    expect(mockFindUniqueMagicToken).not.toHaveBeenCalled();
   });
 
   it("updates token, updates email/phone, links RSVPs, sets cookie and redirects on success", async () => {

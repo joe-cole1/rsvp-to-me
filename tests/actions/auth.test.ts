@@ -111,12 +111,58 @@ describe("registerHostAction", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Too many registration attempts");
   });
-
   it("delegates to registerHost with parsed email, name, inviteCode on success", async () => {
     mocks.mockRegisterHost.mockResolvedValue({ success: true });
 
     const result = await registerHostAction("joe@example.com", "Joe", "code123");
     expect(result.success).toBe(true);
     expect(mocks.mockRegisterHost).toHaveBeenCalledWith("joe@example.com", "Joe", "code123");
+  });
+
+  describe("getClientIp headers priority", () => {
+    beforeEach(() => {
+      delete process.env.TRUSTED_IP_HEADER;
+    });
+
+    it("uses TRUSTED_IP_HEADER if set", async () => {
+      process.env.TRUSTED_IP_HEADER = "x-my-custom-ip";
+      mocks.mockHeadersGet.mockImplementation((h: string) => {
+        if (h === "x-my-custom-ip") return "9.9.9.9";
+        return "127.0.0.1";
+      });
+      await sendMagicLinkAction("test@example.com");
+      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:9.9.9.9:magic-link", 20, 600);
+    });
+
+    it("uses cf-connecting-ip if no TRUSTED_IP_HEADER is set", async () => {
+      mocks.mockHeadersGet.mockImplementation((h: string) => {
+        if (h === "cf-connecting-ip") return "8.8.8.8";
+        if (h === "x-real-ip") return "7.7.7.7";
+        return "127.0.0.1";
+      });
+      await sendMagicLinkAction("test@example.com");
+      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:8.8.8.8:magic-link", 20, 600);
+    });
+
+    it("uses x-real-ip if no cf-connecting-ip is set", async () => {
+      mocks.mockHeadersGet.mockImplementation((h: string) => {
+        if (h === "cf-connecting-ip") return null;
+        if (h === "x-real-ip") return "7.7.7.7";
+        if (h === "x-forwarded-for") return "6.6.6.6";
+        return "127.0.0.1";
+      });
+      await sendMagicLinkAction("test@example.com");
+      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:7.7.7.7:magic-link", 20, 600);
+    });
+
+    it("uses first IP from x-forwarded-for if no other proxy headers set", async () => {
+      mocks.mockHeadersGet.mockImplementation((h: string) => {
+        if (h === "cf-connecting-ip" || h === "x-real-ip") return null;
+        if (h === "x-forwarded-for") return "5.5.5.5, 4.4.4.4";
+        return "127.0.0.1";
+      });
+      await sendMagicLinkAction("test@example.com");
+      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:5.5.5.5:magic-link", 20, 600);
+    });
   });
 });

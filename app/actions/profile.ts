@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
 import { revalidatePath } from "next/cache";
+import { hashToken } from "@/lib/hash";
 
 export async function updateProfileSettings(data: {
   name: string;
@@ -44,11 +45,12 @@ export async function updateProfileSettings(data: {
       // Generate verification token
       const token = randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+      const hashedToken = hashToken(token);
 
       await db.magicToken.create({
         data: {
           userId: user.id,
-          token,
+          token: hashedToken,
           expiresAt,
           type: "EMAIL_CHANGE",
           metadata: newEmail,
@@ -73,11 +75,12 @@ export async function updateProfileSettings(data: {
       // Generate verification token
       const token = randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      const hashedToken = hashToken(token);
 
       await db.magicToken.create({
         data: {
           userId: user.id,
-          token,
+          token: hashedToken,
           expiresAt,
           type: "PHONE_CHANGE",
           metadata: newPhone,
