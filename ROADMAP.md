@@ -11,7 +11,18 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   *(No pending priority 1 bugs)*
 
 ### 🔒 Routing & System Safety
-*   *(No pending priority 1 routing/safety enhancements)*
+*   **Host Account Deletion Flow**: Allow hosts to delete their own account from the dashboard, with safeguards for active event ownership.
+
+    **Recommended approach:**
+    - **Block deletion if upcoming published events exist.** Prompt the host to either cancel or transfer ownership of each event before proceeding. This prevents guests from losing access to events they're attending.
+    - **For past/cancelled events**, reassign `hostId` to a designated system/tombstone user (e.g. a `SYSTEM` role user seeded at startup), so event history is preserved for guests who had RSVPs.
+    - **Anonymize the deleted user's PII** (nullify email, phone, name → `"Deleted User"`, clear avatarUrl) rather than hard-deleting the row. This avoids FK constraint violations on `Event.hostId` (which currently has no cascade or setNull behavior) and preserves audit history.
+    - **RSVPs** already survive gracefully — `RSVP.userId` uses `onDelete: SetNull`, so guest RSVPs remain intact as anonymous records with the guest's name still attached.
+    - **Comments** are already decoupled — `Comment` stores `guestName` as a plain string with no user FK, so they are unaffected.
+    - **Sessions and magic tokens** cascade-delete automatically via existing `onDelete: Cascade`.
+    - **Co-host records** also cascade-delete automatically via `EventCoHost.onDelete: Cascade`.
+    - Add a **confirmation step** with high friction (e.g. type "DELETE" to confirm) and a short **soft-delete grace period** (e.g. 30 days) before the anonymization is finalized, allowing accidental deletions to be reversed by an admin.
+    - Supersedes and replaces the lower-priority **G-7 (GDPR Compliance APIs)** item for the host-side deletion flow; guest-side deletion can remain a separate effort.
 
 ### 👥 Guest List & RSVP Enhancements
 *   *(No pending priority 1 guest list enhancements)*
