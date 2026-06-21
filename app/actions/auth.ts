@@ -109,6 +109,14 @@ export async function registerHostAction(
   }
 
   const result = await registerHost(email, name, inviteCode ?? "");
+
+  if (result.success) {
+    const link = await createMagicLink(email);
+    if (link) {
+      await sendMagicLinkEmail(email, link);
+    }
+  }
+
   return result;
 }
 
