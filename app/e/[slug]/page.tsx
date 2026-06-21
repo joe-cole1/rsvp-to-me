@@ -80,11 +80,8 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const isAdminModerating = session?.role === "ADMIN" && searchParams?.admin === "1";
   const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
 
-  // Block / gate unauthenticated access to UNLISTED and PRIVATE events
+  // Block / gate unauthenticated access to PRIVATE events
   if (!session && !isHost) {
-    if (event.visibility === "UNLISTED") {
-      notFound();
-    }
     if (event.visibility === "PRIVATE") {
       return (
         <AppShell center>
