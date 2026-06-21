@@ -1889,7 +1889,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 <span style={{ fontWeight: 700 }}>Polls</span>
               </div>
               {isHost && (
-                <a href={`/e/${event.slug}/settings#polls`} style={{ color: t.textMuted, display: "flex", alignItems: "center" }}>
+                <a href={`/e/${event.slug}/settings?section=polls`} style={{ color: t.textMuted, display: "flex", alignItems: "center" }}>
                   <Settings size={13} />
                 </a>
               )}
@@ -2077,7 +2077,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                 <span style={{ fontWeight: 700 }}>What to Bring</span>
               </div>
               {isHost && (
-                <a href={"/e/"+event.slug+"/settings#potluck"} style={{ color: t.textMuted, display: "flex", alignItems: "center" }}>
+                <a href={`/e/${event.slug}/settings?section=potluck`} style={{ color: t.textMuted, display: "flex", alignItems: "center" }}>
                   <Settings size={13} />
                 </a>
               )}
