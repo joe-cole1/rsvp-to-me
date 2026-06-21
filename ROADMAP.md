@@ -4,29 +4,72 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ---
 
-## 📅 Short-term Backlog
-*Tasks queued for upcoming sessions.*
+## 🔴 Priority 1: High Priority (Bugs, UX Blockers & Core Fixes)
+*Immediate attention items. High impact bugs, UX papercuts, and essential routing/data integrity fixes.*
 
-### 1. Guest List Exporters
+### 🛠️ Bugs & Blockers
+*   **Location Selector Fix**: The location selector inside the "Create Event" page does not persist or work correctly. Needs repair to match the updated popover patterns.
+*   **Potluck Quantity Input Behavior**: The default quantity input is locked to `1` and doesn't allow backspacing to empty (making custom typing difficult). Update input handler state to allow temporary empty values.
+*   **Deep Linking Navigation**: Deep linking to specific sections (e.g., `/settings?section=polls#polls` or just `#polls`/`#potluck` on the public event page) doesn't scroll/focus correctly. Implement anchor scrolling behavior.
+
+### 🔒 Routing & System Safety
+*   **Event Slug Collision Resolution**: Define behavior and implement automatic suffixing (e.g., appending `-1`, `-2`) during slug generation in `lib/slug.ts` when two events share the same name.
+
+### 👥 Guest List & RSVP Enhancements
+*   **Pending RSVP Management**: RSVPs pending approval are hidden from the event `/guests` page. Add a "Pending Approval" filter tab, and include pending counts in the stats header (e.g., `"1 response · 1 going · 1 pending approval"`).
+
+---
+
+## 🟡 Priority 2: Medium Priority (Core UX & Feature Enhancements)
+*Functional improvements, layout adjustments, and secondary features that can be batched together for UX consistency.*
+
+### 🎨 Layout & Page Hierarchy
+*   **Event Page Section Reordering**: Position the Polls and Potluck sections below the RSVP card and the "Share this event" block to keep primary call-to-actions at the top.
+*   **RSVP "Next Actions"**: Present next steps (such as voting in active polls or claiming potluck items) on the RSVP success/confirmation page to boost immediate engagement.
+
+### 🔒 Privacy & Sharing Controls
+*   **Private Event Invitation Rules**: Hide the generic "Share this event" block for private events requiring an invite. Add an option in Event Settings -> RSVP to let RSVP'd guests invite friends via email/phone, rendering a full-width input block with a "Send" button in the container.
+
+### ⚙️ Administration & Settings
+*   **RSVP Notification Toggles**: Add toggles in event settings (and optionally global host preferences) to turn on/off automatic email and SMS notifications when guests RSVP.
+*   **Draft & Visibility Controls**: Add the ability to save events as drafts (unpublished) in "Display & Privacy" under Event Visibility settings.
+*   **Event Settings Navigation & Photo Sharing**: Move the post-event photo sharing option to its own dedicated section in settings, eventually building it out to link to shared albums (Google Photos, Apple, Immich, etc.).
+
+### 📊 Guest List Exporters
 *   [ ] Implement a robust CSV export action for guest details (names, statuses, responses).
 *   [ ] Create a print-friendly view of the guest list optimized for physical check-ins.
 
-### 2. Check-in Flow
+### 🎟️ Check-in Flow
 *   [ ] Add QR code generation for guest tickets/invitations.
 *   [ ] Design a mobile-friendly host scanner view to scan QR codes and check guests in.
 *   [ ] Provide a manual toggle check-in flow on the guest list.
 
-### 3. Interactive Documentation Dashboard
+### 📖 Interactive Documentation Dashboard
 *   [ ] Build an in-app documentation portal accessible via the host dashboard.
 *   *   [ ] Render local markdown files (e.g., GitHub README, setup guides, and `docs/cloudflare_workers.md`) dynamically.
 *   *   [ ] Implement search, category navigation, and responsive layout styling.
 
 ---
 
-## 💡 Future Work & Ideas (Icebox)
-*Product ideas and long-term improvements to track but not work on immediately.*
+## 🟢 Priority 3: Low Priority & DevOps (Automation, Branding & Integrations)
+*Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox).*
 
-### 🔒 Security & Best Practices (Deferred)
+### 🏷️ Branding & Customization
+*   **White-Label Options**: Add system settings allowing hosts/admins to white-label the application (custom logo, website name, custom branding colors).
+*   **One-Click Bookmark for Magic Links**: Provide hosts with a quick button/shortcut to bookmark their magic link RSVP sessions, keeping them logged in across devices.
+*   **Rich Theme Presets**: Expand the theme builder with custom typography (from Google Fonts), vibrant gradients, and dynamic layout choices.
+*   **Custom Cover Images**: Enable host upload cropping and stock image selection templates.
+*   **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
+
+### 💬 Advanced Messaging Integrations
+*   **One-Click Email RSVPs**: Support one-click RSVP response buttons (Yes / Maybe / No) embedded in invite email bodies, passing secure tokens to pre-fill the guest's email or phone number.
+*   **SMS Reply-to-RSVP (Two-Way SMS)**: Integrate a Twilio webhook receiver to automatically parse guest text message replies (e.g., replying "YES", "MAYBE", or "NO") and record their RSVP status.
+*   **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
+*   **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
+*   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
+
+### ⚙️ DevOps & Security (Deferred)
+*   **GitHub Release Workflow**: Setup a GitHub Actions workflow to automate release tagging, version increments, and changelog generation.
 *   **Phone Number Encryption at Rest (M-2)**: Encrypt phone numbers deterministically at-rest using HMAC hashes for index lookups and AES-256-GCM for display.
 *   **HTTP Request Logging & Distributed Tracing (G-1)**: Track request duration, method, and statuses using request IDs mapped to Pino structured logs.
 *   **Graceful Shutdown Signal Handling (G-2)**: Handle SIGTERM signals in Next.js/Docker setup to allow in-flight requests to complete before exiting.
@@ -35,28 +78,10 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **Automated Database Backups (G-5)**: Implement cron backup service in `docker-compose.yml` to dump `prod.db` to S3 or secure local backups daily.
 *   **Bot Protection / CAPTCHA (G-6)**: Add Cloudflare Turnstile bot checks to authentication magic link requests and guest registration forms.
 *   **GDPR Compliance APIs (G-7)**: Implement export-data and account-deletion API actions for hosts and guests.
-
-### 🛠️ Administration & Settings
-*   **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard instead of requiring console log checks.
+*   **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard.
 *   **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.
 *   **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
 *   **Auth Fallback Alerts**: Alert users during login errors to reference the container console rescue log fallback.
-*   **Draft & Visibility Controls**: Add the ability to save events as drafts (unpublished). This should live in "Display & Privacy" under Event Visibility settings.
-*   **Event Settings Navigation & Photo Sharing**: Move the post-event photo sharing option to its own dedicated section in settings, eventually building it out to link to shared albums (Google Photos, Apple, Immich, etc.).
-
-### 🎨 Themes & Customization
-*   **Rich Theme Presets**: Expand the theme builder with custom typography (from Google Fonts), vibrant gradients, and dynamic layout choices.
-*   **Custom Cover Images**: Enable host upload cropping and stock image selection templates.
-*   **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
-
-### 💬 Messaging & Notifications
-*   **SMS Blasts (Twilio)**: Integrate Twilio out-of-the-box for hosts to text blast guests.
-*   **Email RSVP Updates**: Send automatic emails to hosts when someone RSVPs, and alerts to guests when event details change.
-*   **Inbound Reply Logging (Emails & SMS)**: 
-    *   Log guest email/SMS replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
-    *   Add SMS response triggers (e.g., if a guest replies "YES" to an invitation SMS, it automatically records their RSVP).
-*   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
-*   **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
 
 ---
 
