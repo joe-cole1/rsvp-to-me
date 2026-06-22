@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { resolveTheme } from "@/lib/theme";
 import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
@@ -7,6 +8,13 @@ type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ token?: string; status?: string; return?: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await db.event.findUnique({ where: { slug }, select: { title: true } });
+  if (!event) return {};
+  return { title: `RSVP – ${event.title}` };
+}
 
 export default async function RsvpPage({ params, searchParams }: Props) {
   const { slug } = await params;
