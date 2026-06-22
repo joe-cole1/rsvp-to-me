@@ -117,6 +117,13 @@ CREATE TABLE "Event" (
     "plusOneNamesRequired" BOOLEAN NOT NULL DEFAULT false,
     "guestListVis" "GuestListVis" NOT NULL DEFAULT 'ALL',
     "guestSharingEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "guestsCanInvite" BOOLEAN NOT NULL DEFAULT false,
+    "rsvpConfirmEmail" BOOLEAN NOT NULL DEFAULT true,
+    "rsvpConfirmSms" BOOLEAN NOT NULL DEFAULT true,
+    "hostAlertEmail" BOOLEAN NOT NULL DEFAULT true,
+    "hostAlertSms" BOOLEAN NOT NULL DEFAULT true,
+    "approvalNotifyEmail" BOOLEAN NOT NULL DEFAULT true,
+    "approvalNotifySms" BOOLEAN NOT NULL DEFAULT true,
     "commentsEnabled" BOOLEAN NOT NULL DEFAULT true,
     "maybeEnabled" BOOLEAN NOT NULL DEFAULT true,
     "questionnaireEnabled" BOOLEAN NOT NULL DEFAULT false,
@@ -143,6 +150,8 @@ CREATE TABLE "EventTheme" (
     "eventId" TEXT NOT NULL,
     "baseTheme" "BaseTheme" NOT NULL DEFAULT 'DARK',
     "accentColor" TEXT NOT NULL DEFAULT '#a855f7',
+    "secondaryColor" TEXT,
+    "themePresetId" TEXT DEFAULT 'custom',
     "coverImageUrl" TEXT,
 
     CONSTRAINT "EventTheme_pkey" PRIMARY KEY ("id")
@@ -508,4 +517,3 @@ ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_pollId_fkey" FOREIGN KEY ("pollI
 
 -- AddForeignKey
 ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_pollOptionId_fkey" FOREIGN KEY ("pollOptionId") REFERENCES "PollOption"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

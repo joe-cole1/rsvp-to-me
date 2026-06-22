@@ -1,4 +1,6 @@
 import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient } from "@/app/generated/prisma/client";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -15,7 +17,9 @@ function createPrisma(): PrismaClient {
   if (isPostgres) {
     console.log("[db] Initializing PostgreSQL client connection...");
     process.env.DATABASE_URL = url;
-    return new (PostgresPrismaClient as unknown as new () => PrismaClient)();
+    const pool = new Pool({ connectionString: url });
+    const adapter = new PrismaPg(pool);
+    return new (PostgresPrismaClient as unknown as new (options: { adapter: PrismaPg }) => PrismaClient)({ adapter });
   }
 
   console.log("[db] Initializing SQLite/LibSQL client connection...");
