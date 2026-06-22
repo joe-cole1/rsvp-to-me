@@ -45,24 +45,16 @@ async function main() {
     create: { code, note: "Default invite code from seed" },
   });
 
-  // Seed theme presets if none exist
-  const presetCount = await db.themePreset.count();
-  if (presetCount === 0) {
-    await db.themePreset.createMany({
-      data: THEME_PRESETS.map((p, i) => ({
-        name: p.name,
-        emoji: p.emoji,
-        base: p.base,
-        gradientFrom: p.gradientFrom,
-        gradientTo: p.gradientTo,
-        accentColor: p.accentColor,
-        seasonal: p.seasonal ?? false,
-        active: true,
-        sortOrder: i,
-      })),
+  // Upsert theme presets so seed stays in sync with THEME_PRESETS (migration already inserted defaults)
+  for (let i = 0; i < THEME_PRESETS.length; i++) {
+    const p = THEME_PRESETS[i];
+    await db.themePreset.upsert({
+      where: { id: p.id },
+      update: { name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, sortOrder: i },
+      create: { id: p.id, name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, active: true, sortOrder: i },
     });
-    console.log(`Seeded ${THEME_PRESETS.length} theme presets.`);
   }
+  console.log(`Upserted ${THEME_PRESETS.length} theme presets.`);
 
   console.log(`Seed complete. Default invite code: "${code}"`);
 
