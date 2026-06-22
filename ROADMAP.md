@@ -39,7 +39,6 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   *(No pending priority 2 privacy controls)*
 
 ### ⚙️ Administration & Settings
-*   **RSVP Notification Toggles**: Add toggles in event settings (and optionally global host preferences) to turn on/off automatic email and SMS notifications when guests RSVP.
 *   **Draft & Visibility Controls**: Add the ability to save events as drafts (unpublished) in "Display & Privacy" under Event Visibility settings.
 *   **Event Settings Navigation & Photo Sharing**: Move the post-event photo sharing option to its own dedicated section in settings, eventually building it out to link to shared albums (Google Photos, Apple, Immich, etc.).
 *   **Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.
@@ -155,5 +154,8 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 ### Theme Presets, Readability & Slug Collision Resolution [fa3e8d]
 *   [x] **Theme Presets & Grids**: Implemented searchable/filterable preset grids, date-based dynamic sorting, light accent contrast improvements, and settings-preview parity.
 *   [x] **Event Slug Collision Resolution**: Verified automatic suffixing (e.g., appending `-1`, `-2`) during slug generation in `lib/slug.ts` when two events share the same name.
+
+### RSVP Notification Toggles
+*   [x] **Per-Event Notification Toggles**: Added 6 per-event boolean toggles under Event Settings → RSVP Options → Notification Settings: guest confirmation email/SMS on RSVP submission, host RSVP alert email/SMS (new — hosts are notified with guest name, status, note, and headcount), and approval notification email/SMS when a host approves or declines a pending RSVP. All default to on to preserve existing behavior.
 
 

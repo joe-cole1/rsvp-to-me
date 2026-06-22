@@ -31,7 +31,7 @@ Email dispatches are triggered by the following application events:
 |---------|-----------|
 | User requests login link | The requesting user (magic link) |
 | Host invites guests | The invited guests |
-| Guest submits an RSVP | The guest (confirmation link) & Host (notification) |
+| Guest submits an RSVP | The guest (confirmation) & the host (new RSVP alert) |
 | Host approves/declines a pending RSVP | The approved/declined guest |
 | Host sends an event update blast | All Going and Maybe guests (if notify is selected) |
 | Automated reminder (7 days, 1 day, N hours before) | All Going and Maybe guests with notifications enabled |
@@ -39,6 +39,8 @@ Email dispatches are triggered by the following application events:
 | Profile email change verification | The user's new email address |
 
 *Note on Reminders:* The in-process cron scheduler checks every 15 minutes to trigger due reminders. Each reminder type is sent exactly once per user per event.
+
+*Note on Notification Toggles:* Hosts can control which of the above fire on a per-event basis under **Event Settings → RSVP Options → Notification Settings**. Individual toggles exist for guest confirmations (email/SMS), host RSVP alerts (email/SMS), and approval notifications (email/SMS).
 
 ---
 
