@@ -1,6 +1,5 @@
 import "dotenv/config";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
-import { PrismaClient } from "../app/generated/prisma/client";
+import { db } from "../lib/db";
 import { UserModel, EventModel, RSVPFieldModel, RSVPModel } from "../app/generated/prisma/models";
 
 interface EventTemplate {
@@ -25,11 +24,6 @@ interface EventTemplate {
   infoSections?: { type: string; content: string; order: number }[];
   potluck?: { label: string; quantity: number }[];
 }
-
-const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-const libsqlUrl = url.replace(/^file:\/\//, "file:").replace(/^(?!file:|libsql:|https?:)/, "file:");
-const adapter = new PrismaLibSql({ url: libsqlUrl });
-const db = new PrismaClient({ adapter });
 
 function slugify(title: string): string {
   return title

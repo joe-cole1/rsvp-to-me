@@ -73,7 +73,8 @@ export async function runBackup(): Promise<string> {
     fs.mkdirSync(BACKUPS_DIR, { recursive: true });
   }
 
-  const url = process.env.DATABASE_URL || "";
+  const rawUrl = process.env.DATABASE_URL || "";
+  const url = rawUrl.trim().replace(/^["']|["']$/g, "").trim();
   const isPostgres = url.startsWith("postgres://") || url.startsWith("postgresql://");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   
