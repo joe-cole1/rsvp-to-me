@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+require("dotenv").config();
 const { execSync } = require("child_process");
 
 function main() {
-  const url = process.env.DATABASE_URL || "";
+  const rawUrl = process.env.DATABASE_URL || "";
+  const url = rawUrl.trim().replace(/^["']|["']$/g, "").trim();
   console.log("[migrate-db] Active DATABASE_URL: %s", url ? url.split("@")[1] || url : "not set");
 
   try {
