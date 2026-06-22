@@ -112,6 +112,7 @@ describe("GET /auth/verify", () => {
       used: false,
       expiresAt: futureDate,
       userId: "user1",
+      type: "LOGIN",
     });
     mockUpdateMagicToken.mockResolvedValue({});
     mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
@@ -131,6 +132,7 @@ describe("GET /auth/verify", () => {
       used: false,
       expiresAt: futureDate,
       userId: "user1",
+      type: "LOGIN",
     });
     mockUpdateMagicToken.mockResolvedValue({});
     mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
@@ -157,6 +159,7 @@ describe("GET /auth/verify", () => {
         used: false,
         expiresAt: futureDate,
         userId: "user1",
+        type: "LOGIN",
       });
       mockUpdateMagicToken.mockResolvedValue({});
       mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "admin@example.com", role: "HOST" });
