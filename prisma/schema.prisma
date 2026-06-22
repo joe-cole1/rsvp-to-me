@@ -112,6 +112,14 @@ model Event {
   guestsCanInvite      Boolean    @default(false)
 
 
+  // Notification toggles
+  rsvpConfirmEmail    Boolean @default(true)
+  rsvpConfirmSms      Boolean @default(true)
+  hostAlertEmail      Boolean @default(true)
+  hostAlertSms        Boolean @default(true)
+  approvalNotifyEmail Boolean @default(true)
+  approvalNotifySms   Boolean @default(true)
+
   // Feature flags
   commentsEnabled      Boolean    @default(true)
   maybeEnabled         Boolean    @default(true)

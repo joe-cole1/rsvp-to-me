@@ -90,6 +90,12 @@ type EventInput = {
   questionnaireEnabled: boolean;
   showTimestamps: boolean;
   password: string | null;
+  rsvpConfirmEmail: boolean;
+  rsvpConfirmSms: boolean;
+  hostAlertEmail: boolean;
+  hostAlertSms: boolean;
+  approvalNotifyEmail: boolean;
+  approvalNotifySms: boolean;
   theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; secondaryColor: string | null; themePresetId: string | null; coverImageUrl: string | null } | null;
   reminderSettings: {
     emailWeekBefore: boolean; emailDayBefore: boolean; emailHoursBefore: number;
@@ -118,6 +124,12 @@ interface SettingsOverrides {
   password?: string | null;
   guestSharingEnabled?: boolean;
   guestsCanInvite?: boolean;
+  rsvpConfirmEmail?: boolean;
+  rsvpConfirmSms?: boolean;
+  hostAlertEmail?: boolean;
+  hostAlertSms?: boolean;
+  approvalNotifyEmail?: boolean;
+  approvalNotifySms?: boolean;
 }
 
 interface ReminderOverrides {
@@ -194,6 +206,12 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   const [rsvpDeadline, setRsvpDeadline] = useState(
     event.rsvpDeadline ? new Date(event.rsvpDeadline).toISOString().slice(0, 16) : ""
   );
+  const [rsvpConfirmEmail, setRsvpConfirmEmail] = useState(event.rsvpConfirmEmail);
+  const [rsvpConfirmSms, setRsvpConfirmSms] = useState(event.rsvpConfirmSms);
+  const [hostAlertEmail, setHostAlertEmail] = useState(event.hostAlertEmail);
+  const [hostAlertSms, setHostAlertSms] = useState(event.hostAlertSms);
+  const [approvalNotifyEmail, setApprovalNotifyEmail] = useState(event.approvalNotifyEmail);
+  const [approvalNotifySms, setApprovalNotifySms] = useState(event.approvalNotifySms);
 
   // ── Display & Privacy State ──
   const [commentsEnabled, setCommentsEnabled] = useState(event.commentsEnabled);
@@ -339,6 +357,12 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       visibility: overrides.visibility !== undefined ? overrides.visibility : visibility,
       password: overrides.password !== undefined ? overrides.password : (password.trim() || null),
       questionnaireEnabled: overrides.questionnaireEnabled !== undefined ? overrides.questionnaireEnabled : questionnaireEnabled,
+      rsvpConfirmEmail: overrides.rsvpConfirmEmail !== undefined ? overrides.rsvpConfirmEmail : rsvpConfirmEmail,
+      rsvpConfirmSms: overrides.rsvpConfirmSms !== undefined ? overrides.rsvpConfirmSms : rsvpConfirmSms,
+      hostAlertEmail: overrides.hostAlertEmail !== undefined ? overrides.hostAlertEmail : hostAlertEmail,
+      hostAlertSms: overrides.hostAlertSms !== undefined ? overrides.hostAlertSms : hostAlertSms,
+      approvalNotifyEmail: overrides.approvalNotifyEmail !== undefined ? overrides.approvalNotifyEmail : approvalNotifyEmail,
+      approvalNotifySms: overrides.approvalNotifySms !== undefined ? overrides.approvalNotifySms : approvalNotifySms,
     };
     startTransition(async () => {
       try {
@@ -1225,6 +1249,25 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
               <Toggle label="Allow guests to invite friends (Private events)" value={guestsCanInvite} onChange={(val) => { setGuestsCanInvite(val); triggerSaveSettings({ guestsCanInvite: val }); }} t={t} />
             </div>
             
+            <div style={{ borderTop: `1px solid ${t.cardBorder}`, margin: "16px -20px 16px -20px", padding: "16px 20px 0 20px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "none", color: t.textMuted, marginBottom: "12px", letterSpacing: "0.02em" }}>
+                Notification Settings
+              </div>
+              <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "12px" }}>Guest confirmations</div>
+              <Toggle label="Email guest confirmation on RSVP" value={rsvpConfirmEmail} onChange={(val) => { setRsvpConfirmEmail(val); triggerSaveSettings({ rsvpConfirmEmail: val }); }} t={t} />
+              <Toggle label="Text guest confirmation on RSVP" value={rsvpConfirmSms} onChange={(val) => { setRsvpConfirmSms(val); triggerSaveSettings({ rsvpConfirmSms: val }); }} t={t} />
+              <div style={{ fontSize: "12px", color: t.textMuted, margin: "12px 0" }}>Host alerts (notify me on new RSVPs)</div>
+              <Toggle label="Email me when a guest RSVPs" value={hostAlertEmail} onChange={(val) => { setHostAlertEmail(val); triggerSaveSettings({ hostAlertEmail: val }); }} t={t} />
+              <Toggle label="Text me when a guest RSVPs" value={hostAlertSms} onChange={(val) => { setHostAlertSms(val); triggerSaveSettings({ hostAlertSms: val }); }} t={t} />
+              {approvalRequired && (
+                <>
+                  <div style={{ fontSize: "12px", color: t.textMuted, margin: "12px 0" }}>Approval notifications</div>
+                  <Toggle label="Email guests when approved or declined" value={approvalNotifyEmail} onChange={(val) => { setApprovalNotifyEmail(val); triggerSaveSettings({ approvalNotifyEmail: val }); }} t={t} />
+                  <Toggle label="Text guests when approved or declined" value={approvalNotifySms} onChange={(val) => { setApprovalNotifySms(val); triggerSaveSettings({ approvalNotifySms: val }); }} t={t} />
+                </>
+              )}
+            </div>
+
             <div style={{ marginBottom: "16px", marginTop: "16px" }}>
               <Label t={t}>Capacity limit (optional)</Label>
               <input
