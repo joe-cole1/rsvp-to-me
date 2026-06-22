@@ -1,9 +1,17 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
+
+export async function generateMetadata(props: PageProps<"/e/[slug]/guests">): Promise<Metadata> {
+  const { slug } = await props.params;
+  const event = await db.event.findUnique({ where: { slug }, select: { title: true } });
+  if (!event) return {};
+  return { title: `Guest List – ${event.title}` };
+}
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const { slug } = await props.params;

@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+
+export const metadata: Metadata = { title: "New Event" };
 import { createEvent } from "@/app/actions/createEvent";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavBack } from "@/components/ui/AppNav";

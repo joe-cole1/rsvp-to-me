@@ -44,7 +44,6 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.
 *   **Backup Schedule Picker**: Replace the raw cron text input for the database backup schedule (Admin → Backups) with a dropdown of common presets: Disabled, Every hour, Every 6 hours, Daily at midnight, Every 3 days, Weekly (Sundays at midnight). The underlying `backup_schedule` SystemConfig value stays as a cron string; the dropdown maps human labels to cron expressions. Include a "Custom" option that reveals the raw input field for advanced users.
 *   **Admin Settings History & Refresh**: Sync the active admin tab to the URL as a query parameter (e.g. `/admin?tab=backups`) so that browser back/forward navigation and page refresh work correctly. Use Next.js `useSearchParams` to read the initial tab on mount and `useRouter.replace` (not `push`) to update the URL on tab change without polluting history. The 8 current tab IDs (overview, users, events, invites, settings, email, sms, backups) map directly to param values; default to `overview` when no param is present.
-*   **Favicon & Page Titles**: Fix the placeholder root metadata and add proper per-page titles. Update `app/layout.tsx` with a title template (`"%s | RSVP to Me"`), real description, and Open Graph defaults. Add `generateMetadata` to the event page (`app/e/[slug]/page.tsx`) for dynamic titles like `"Summer BBQ | RSVP to Me"`. Replace `app/favicon.ico` with a custom branded icon and add apple-touch-icon, `site.webmanifest`, and a 512×512 PNG for PWA/bookmark support. Audit remaining pages (home, sign-in, dashboard) to ensure each has a meaningful title.
 
 ### 📊 Guest List Exporters
 *   [ ] Implement a robust CSV export action for guest details (names, statuses, responses).
@@ -121,6 +120,12 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ## ✅ Completed Milestones
 *A log of completed capabilities.*
+
+### Favicon & Page Titles
+*   [x] **Root Layout Metadata**: Replaced `"Create Next App"` placeholder with branded title template (`"%s | RSVP to Me"`), real description, and Open Graph site defaults.
+*   [x] **Dynamic Event Metadata**: Added `generateMetadata` to `/e/[slug]` (title + OG cover image), `/e/[slug]/rsvp`, `/e/[slug]/settings`, and `/e/[slug]/guests`.
+*   [x] **Static Page Titles**: Added `metadata` exports to home, sign-in, register, dashboard, and new-event pages.
+*   [x] **Branded Favicon Set**: Added `app/icon.svg` (stylized "R", brand purple), `app/apple-icon.tsx` (180×180 ImageResponse PNG), and `public/site.webmanifest` for PWA/bookmark support.
 
 ### Event Page Bugs & RSVP Enhancements [b06146]
 *   [x] **Location Selector**: Implemented a responsive `LocationSelector` client component with PHYSICAL, VIRTUAL, and TBD types for event creation.

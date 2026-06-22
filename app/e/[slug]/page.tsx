@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { resolveTheme } from "@/lib/theme";
@@ -7,6 +8,24 @@ import { PasswordGate } from "@/components/event/PasswordGate";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
 import { AppShell } from "@/components/ui/AppShell";
+
+export async function generateMetadata(props: PageProps<"/e/[slug]">): Promise<Metadata> {
+  const { slug } = await props.params;
+  const event = await db.event.findUnique({
+    where: { slug },
+    select: { title: true, description: true, theme: { select: { coverImageUrl: true } } },
+  });
+  if (!event) return {};
+  return {
+    title: event.title,
+    description: event.description ?? `RSVP to ${event.title}`,
+    openGraph: {
+      title: event.title,
+      description: event.description ?? `RSVP to ${event.title}`,
+      images: event.theme?.coverImageUrl ? [{ url: event.theme.coverImageUrl }] : [],
+    },
+  };
+}
 
 export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;

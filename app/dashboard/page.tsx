@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+
+export const metadata: Metadata = { title: "Dashboard" };
 import { db } from "@/lib/db";
 import { getDashboardEvents, getDashboardActivity, getDashboardInvites } from "@/app/actions/event";
 import { isOpenRegistrationActive } from "@/lib/auth";

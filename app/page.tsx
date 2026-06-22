@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+
+export const metadata: Metadata = {
+  title: "RSVP to Me",
+  description:
+    "Beautiful, personal event pages for wine nights, dinner parties, and everything in between.",
+};
 import { AppShell } from "@/components/ui/AppShell";
 import { APP_SHELL } from "@/lib/theme";
 import { db } from "@/lib/db";
