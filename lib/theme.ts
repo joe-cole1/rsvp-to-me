@@ -167,6 +167,9 @@ export interface ResolvedTheme {
 
   // Avatar gradient
   avatarGradient: string;
+
+  // Optional seasonal decoration hint (e.g. "bats", "snowflakes", "hearts")
+  decorationVariant?: string;
 }
 
 // ── WCAG helpers ──────────────────────────────────────────────────────────────
@@ -181,7 +184,7 @@ function getRelativeLuminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-function getReadableText(bg: string): "#ffffff" | "#0a0a0a" {
+export function getReadableText(bg: string): "#ffffff" | "#0a0a0a" {
   const L = getRelativeLuminance(bg);
   const contrastWhite = 1.05 / (L + 0.05);
   const contrastBlack = (L + 0.05) / 0.05;

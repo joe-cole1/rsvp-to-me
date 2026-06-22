@@ -5,7 +5,7 @@ import { resolveTheme } from "@/lib/theme";
 export default function BoldPreview() {
   const accent = "#f97316"; // orange
   const secondary = "#0ea5e9"; // sky
-  const t = resolveTheme("BOLD", accent, secondary);
+  const t = resolveTheme("BOLD", accent, secondary, accent);
 
   return (
     <div
@@ -20,7 +20,7 @@ export default function BoldPreview() {
           left: 0,
           right: 0,
           height: "340px",
-          background: `linear-gradient(135deg, ${t.accent} 0%, ${t.secondaryAccent} 100%)`,
+          background: `linear-gradient(135deg, ${t.gradientFrom} 0%, ${t.gradientTo} 100%)`,
           zIndex: 0,
         }}
       />
@@ -169,7 +169,7 @@ export default function BoldPreview() {
                 <div
                   key={name}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold"
-                  style={{ background: t.pillBg, color: t.accentText, border: `1px solid ${t.pillBorder}` }}
+                  style={{ background: t.pillBg, color: t.accent, border: `1px solid ${t.pillBorder}` }}
                 >
                   {name}
                 </div>
