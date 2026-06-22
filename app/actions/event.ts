@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { isOpenRegistrationActive } from "@/lib/auth";
 import { getSession } from "@/lib/session";
-import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms } from "@/lib/sms";
+import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail, sendHostRsvpAlertEmail } from "@/lib/email";
+import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms, sendHostRsvpAlertSms } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -226,7 +226,7 @@ export async function addRSVP(rawInput: unknown) {
   const data = AddRsvpSchema.parse(rawInput);
   const event = await db.event.findUnique({
     where: { id: data.eventId },
-    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true, email: true } } },
+    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, rsvpConfirmEmail: true, rsvpConfirmSms: true, hostAlertEmail: true, hostAlertSms: true, host: { select: { name: true, email: true, phone: true } } },
   });
   if (!event) return { success: false, error: "Event not found" };
   if (event.rsvpDeadline && event.rsvpDeadline < new Date()) return { success: false, error: "RSVP deadline has passed" };
@@ -296,7 +296,7 @@ export async function addRSVP(rawInput: unknown) {
     : `${data.guestName} is ${statusText}${plusStr}`;
   logActivity(data.eventId, "rsvp_new", detail, data.guestName).catch(() => {});
 
-  if (data.guestEmail) {
+  if (event.rsvpConfirmEmail && data.guestEmail) {
     sendRsvpConfirmationEmail(data.guestEmail, {
       guestName: data.guestName,
       eventTitle: event.title,
@@ -308,7 +308,7 @@ export async function addRSVP(rawInput: unknown) {
       replyTo: event.host.email || undefined,
     }).catch(() => {});
   }
-  if (data.guestPhone) {
+  if (event.rsvpConfirmSms && data.guestPhone) {
     sendRsvpConfirmationSms(data.guestPhone, {
       guestName: data.guestName,
       eventTitle: event.title,
@@ -316,6 +316,34 @@ export async function addRSVP(rawInput: unknown) {
       status: data.status,
       editToken: rsvp.editToken,
     }).catch(() => {});
+  }
+
+  if (event.hostAlertEmail || event.hostAlertSms) {
+    const counts = await db.rSVP.groupBy({
+      by: ["status"],
+      where: { eventId: data.eventId, approved: true },
+      _count: { status: true },
+    });
+    const goingCount = counts.find((c) => c.status === "GOING")?._count.status ?? 0;
+    const maybeCount = counts.find((c) => c.status === "MAYBE")?._count.status ?? 0;
+    const noCount = counts.find((c) => c.status === "NO")?._count.status ?? 0;
+    const alertPayload = {
+      guestName: data.guestName,
+      status: data.status,
+      plusOneCount: data.plusOneCount,
+      note: data.note || null,
+      eventTitle: event.title,
+      eventSlug: event.slug,
+      goingCount,
+      maybeCount,
+      noCount,
+    };
+    if (event.hostAlertEmail && event.host.email) {
+      sendHostRsvpAlertEmail(event.host.email, alertPayload).catch(() => {});
+    }
+    if (event.hostAlertSms && event.host.phone) {
+      sendHostRsvpAlertSms(event.host.phone, alertPayload).catch(() => {});
+    }
   }
 
   revalidatePath(`/e/${event.slug}`);
@@ -374,6 +402,12 @@ export async function saveEventSettings(
     password?: string | null;
     guestSharingEnabled?: boolean;
     guestsCanInvite?: boolean;
+    rsvpConfirmEmail?: boolean;
+    rsvpConfirmSms?: boolean;
+    hostAlertEmail?: boolean;
+    hostAlertSms?: boolean;
+    approvalNotifyEmail?: boolean;
+    approvalNotifySms?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHost(eventId);
@@ -634,17 +668,17 @@ export async function approveRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, approvalNotifyEmail: true, approvalNotifySms: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
   const isAdmin = session.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
-  
+
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
 
-  if (rsvp.guestEmail) {
+  if (rsvp.event.approvalNotifyEmail && rsvp.guestEmail) {
     await sendApprovalEmail(rsvp.guestEmail, {
       guestName: rsvp.guestName,
       eventTitle: rsvp.event.title,
@@ -653,7 +687,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
       message,
       replyTo: rsvp.event.host.email || undefined,
     }).catch(() => {});
-  } else if (rsvp.guestPhone) {
+  } else if (rsvp.event.approvalNotifySms && rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
       eventTitle: rsvp.event.title,
       approved: true,
@@ -670,7 +704,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, approvalNotifyEmail: true, approvalNotifySms: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
@@ -678,7 +712,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   const isAdmin = session.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
 
-  if (rsvp.guestEmail) {
+  if (rsvp.event.approvalNotifyEmail && rsvp.guestEmail) {
     await sendApprovalEmail(rsvp.guestEmail, {
       guestName: rsvp.guestName,
       eventTitle: rsvp.event.title,
@@ -687,7 +721,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
       message,
       replyTo: rsvp.event.host.email || undefined,
     }).catch(() => {});
-  } else if (rsvp.guestPhone) {
+  } else if (rsvp.event.approvalNotifySms && rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
       eventTitle: rsvp.event.title,
       approved: false,

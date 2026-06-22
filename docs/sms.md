@@ -29,11 +29,12 @@ Without SMS configured, the app works entirely through email. With Twilio connec
 | **Magic Link Sign-In via Text** | Users can sign in by entering their phone number instead of email. |
 | **SMS Invitations** | Send event invitations directly to guest phone numbers. |
 | **RSVP Confirmations** | Guests receive an automated text confirming their Going/Maybe status. |
+| **Host RSVP Alerts** | Hosts receive a text when a guest RSVPs, including the guest's name, status, note, and a link to the guest list. |
 | **Approval Notifications** | Guests receive updates when their RSVPs are approved/declined. |
 | **Event Update Blasts** | Send immediate text notifications to all Going/Maybe guests. |
 | **Automated Reminders** | Schedule text reminders 7 days, 1 day, or N hours before the event. |
 
-Each user can control their own notification preferences (Email vs SMS) in their Profile.
+Each user can control their own notification preferences (Email vs SMS) in their Profile. Hosts can also toggle each notification type individually per event under **Event Settings → RSVP Options → Notification Settings**.
 
 ---
 

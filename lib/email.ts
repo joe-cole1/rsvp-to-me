@@ -358,6 +358,43 @@ export async function sendRsvpConfirmationEmail(
   });
 }
 
+export async function sendHostRsvpAlertEmail(
+  to: string,
+  opts: {
+    guestName: string;
+    status: "GOING" | "MAYBE" | "NO";
+    plusOneCount: number;
+    note?: string | null;
+    eventTitle: string;
+    eventSlug: string;
+    goingCount: number;
+    maybeCount: number;
+    noCount: number;
+  }
+) {
+  const guestListUrl = `${APP_URL}/e/${opts.eventSlug}#guests`;
+  const statusLabel = opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
+  const plusStr = opts.plusOneCount > 0 ? ` +${opts.plusOneCount}` : "";
+  const noteHtml = opts.note?.trim()
+    ? `<p style="margin:12px 0;padding:10px 14px;background:#f5f5f5;border-left:3px solid #a855f7;border-radius:4px;font-size:14px;color:#555">"${opts.note.trim()}"</p>`
+    : "";
+  return send({
+    to,
+    subject: `New RSVP: ${opts.guestName} is ${statusLabel} — ${opts.eventTitle}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="margin:0 0 8px">New RSVP on ${opts.eventTitle}</h2>
+        <p style="margin:0 0 4px"><strong>${opts.guestName}${plusStr}</strong> — ${statusLabel}</p>
+        ${noteHtml}
+        <p style="margin:16px 0 8px;font-size:13px;color:#888">Current headcount: ${opts.goingCount} going · ${opts.maybeCount} maybe · ${opts.noCount} can't go</p>
+        <a href="${guestListUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">
+          View Guest List
+        </a>
+      </div>
+    `,
+  });
+}
+
 export async function testEmailConfig(
   testTo: string,
   config: {

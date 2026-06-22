@@ -1435,7 +1435,7 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
       id: "rsvp-1",
       guestName: "Guest",
       guestEmail: "guest@example.com",
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", host: { email: "host@example.com" }, coHosts: [] },
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", approvalNotifyEmail: true, approvalNotifySms: true, host: { email: "host@example.com" }, coHosts: [] },
     });
     mockRsvpUpdate.mockResolvedValue({});
     mockRsvpDelete.mockResolvedValue({});

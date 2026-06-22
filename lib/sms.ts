@@ -101,3 +101,24 @@ export async function sendApprovalSms(
   const msgStr = opts.message ? ` Message from host: "${opts.message}"` : "";
   return send(to, `Your RSVP for ${opts.eventTitle} was ${statusStr}.${msgStr}`);
 }
+
+export async function sendHostRsvpAlertSms(
+  to: string,
+  opts: {
+    guestName: string;
+    status: "GOING" | "MAYBE" | "NO";
+    plusOneCount: number;
+    note?: string | null;
+    eventTitle: string;
+    eventSlug: string;
+  }
+) {
+  const statusLabel = opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
+  const plusStr = opts.plusOneCount > 0 ? ` +${opts.plusOneCount}` : "";
+  const noteStr = opts.note?.trim() ? ` "${opts.note.trim().slice(0, 60)}${opts.note.trim().length > 60 ? "…" : ""}"` : "";
+  const guestListUrl = `${APP_URL}/e/${opts.eventSlug}#guests`;
+  return send(
+    to,
+    `${opts.guestName}${plusStr} RSVP'd ${statusLabel} to ${opts.eventTitle}.${noteStr} View guests: ${guestListUrl}`
+  );
+}
