@@ -25,7 +25,7 @@ async function main() {
 
   // Replace provider in datasource
   content = content.replace(
-    /datasource db \{[\s\S]*?\}/,
+    /datasource db {[\s\S]*?}/,
     `datasource db {
   provider = "postgresql"
 }`
