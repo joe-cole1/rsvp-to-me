@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { db } from "../lib/db";
 import { UserModel, EventModel, RSVPFieldModel, RSVPModel } from "../app/generated/prisma/models";
+import { THEME_PRESETS } from "../lib/theme";
 
 interface EventTemplate {
   title: string;
@@ -43,6 +44,17 @@ async function main() {
     update: {},
     create: { code, note: "Default invite code from seed" },
   });
+
+  // Upsert theme presets so seed stays in sync with THEME_PRESETS (migration already inserted defaults)
+  for (let i = 0; i < THEME_PRESETS.length; i++) {
+    const p = THEME_PRESETS[i];
+    await db.themePreset.upsert({
+      where: { id: p.id },
+      update: { name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, sortOrder: i },
+      create: { id: p.id, name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, active: true, sortOrder: i },
+    });
+  }
+  console.log(`Upserted ${THEME_PRESETS.length} theme presets.`);
 
   console.log(`Seed complete. Default invite code: "${code}"`);
 

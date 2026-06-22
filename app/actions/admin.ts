@@ -495,3 +495,54 @@ export async function updateBackupConfigAction(schedule: string, keepCount: numb
 }
 
 
+
+// ── Theme Presets (admin CRUD) ────────────────────────────────────────────────
+
+export async function getThemePresets() {
+  return db.themePreset.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
+}
+
+export async function createThemePreset(data: {
+  name: string;
+  emoji: string;
+  base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal: boolean;
+}) {
+  await assertAdmin();
+  const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
+  const preset = await db.themePreset.create({
+    data: { ...data, active: true, sortOrder: (maxOrder._max.sortOrder ?? -1) + 1 },
+  });
+  revalidatePath("/admin");
+  return preset;
+}
+
+export async function updateThemePreset(
+  id: string,
+  data: Partial<{
+    name: string;
+    emoji: string;
+    base: "DARK" | "SOFT" | "BOLD";
+    gradientFrom: string;
+    gradientTo: string;
+    accentColor: string;
+    seasonal: boolean;
+    active: boolean;
+    sortOrder: number;
+  }>
+) {
+  await assertAdmin();
+  await db.themePreset.update({ where: { id }, data });
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function deleteThemePreset(id: string) {
+  await assertAdmin();
+  await db.themePreset.delete({ where: { id } });
+  revalidatePath("/admin");
+  return { success: true };
+}

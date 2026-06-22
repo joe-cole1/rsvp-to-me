@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { ArrowLeft, Check, Plus, X } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, THEME_PRESETS, type BaseTheme, resolveTheme, type ResolvedTheme } from "@/lib/theme";
+import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme } from "@/lib/theme";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -149,7 +149,18 @@ const serializeOptionsForDb = (optionsStr: string): string => {
   return JSON.stringify(list);
 };
 
-export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: boolean }) {
+type DbThemePreset = {
+  id: string;
+  name: string;
+  emoji: string;
+  base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal: boolean;
+};
+
+export function SettingsPage({ event, isOwner, themePresets = [] }: { event: EventInput; isOwner: boolean; themePresets?: DbThemePreset[] }) {
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED" | "ERROR">("IDLE");
   const [err, setErr] = useState<string | null>(null);
@@ -912,7 +923,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
             <div style={{ marginBottom: "20px" }}>
               <Label t={t}>Presets</Label>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                {THEME_PRESETS.filter(p => p.base === base).map((p) => {
+                {themePresets.filter(p => p.base === base).map((p) => {
                   const isActive = gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
                   return (
                     <button

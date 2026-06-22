@@ -1046,8 +1046,8 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     cursor: "pointer",
     fontFamily: "inherit",
     transition: "all 0.2s ease",
-    background: "rgba(255, 255, 255, 0.15)",
-    border: isCustom ? `1px dashed ${t.accent}` : `1px solid ${t.accent}`,
+    background: "rgba(255,255,255,0.88)",
+    border: isCustom ? `1.5px dashed ${t.accent}` : `1.5px solid ${t.accent}`,
     color: t.accent,
   });
 
