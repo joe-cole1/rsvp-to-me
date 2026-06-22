@@ -1,12 +1,5 @@
-import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-
-export const metadata: Metadata = {
-  title: "RSVP to Me",
-  description:
-    "Beautiful, personal event pages for wine nights, dinner parties, and everything in between.",
-};
 import { AppShell } from "@/components/ui/AppShell";
 import { APP_SHELL } from "@/lib/theme";
 import { db } from "@/lib/db";
@@ -35,7 +28,7 @@ function AvatarBubble({ name, avatarUrl, accentColor }: { name: string; avatarUr
     if (accentColor.startsWith("#") && accentColor.length === 7) {
       rgb = `${parseInt(accentColor.slice(1,3), 16)},${parseInt(accentColor.slice(3,5), 16)},${parseInt(accentColor.slice(5,7), 16)}`;
     }
-  } catch {}
+  } catch (e) {}
 
   return (
     <div 
@@ -178,9 +171,9 @@ export default async function Home() {
               {events.map((event) => {
                 const resolved = resolveTheme(
                   event.theme?.baseTheme ?? "DARK",
-                  event.theme?.accentColor ?? "#a855f7",
-                  event.theme?.secondaryColor,
-                  event.theme?.themePresetId
+                  event.theme?.gradientFrom ?? "#7c3aed",
+                  event.theme?.gradientTo ?? "#1e40af",
+                  event.theme?.accentColor ?? "#a855f7"
                 );
                 const accent = resolved.accent;
                 const coverUrl = event.theme?.coverImageUrl;

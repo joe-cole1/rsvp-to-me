@@ -61,7 +61,7 @@ export function GuestListFilter({
   const statusLabel = (s: string) =>
     s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't make it";
   const statusColor = (s: string) =>
-    s === "GOING" ? t.accentText : s === "MAYBE" ? t.textSecondary : t.textMuted;
+    s === "GOING" ? t.badgeText : s === "MAYBE" ? t.textSecondary : t.textMuted;
 
   const allRsvps = [...going, ...maybe, ...no];
   const displayedRsvps =

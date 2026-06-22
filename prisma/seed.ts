@@ -13,7 +13,7 @@ interface EventTemplate {
   capacity?: number;
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "CANCELLED";
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string };
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string };
   plusOneAllowed: boolean;
   plusOneMax?: number;
   plusOneNamesRequired?: boolean;
@@ -144,7 +144,7 @@ async function main() {
       locationAddress: "123 Vineyard Lane, Napa Valley, CA",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#d946ef" }, // magenta
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#fda4af", gradientTo: "#f0abfc", accentColor: "#d946ef" }, // magenta
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -163,7 +163,7 @@ async function main() {
       virtualUrl: "https://zoom.us/j/123456789",
       visibility: "UNLISTED" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, accentColor: "#06b6d4" }, // cyan
+      theme: { baseTheme: "DARK" as const, gradientFrom: "#164e63", gradientTo: "#1e3a5f", accentColor: "#06b6d4" }, // cyan
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: false,
@@ -176,7 +176,7 @@ async function main() {
       locationType: "TBD" as const,
       visibility: "PRIVATE" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, accentColor: "#f97316" }, // orange
+      theme: { baseTheme: "BOLD" as const, gradientFrom: "#f97316", gradientTo: "#ec4899", accentColor: "#f97316" }, // orange
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: false,
@@ -193,7 +193,7 @@ async function main() {
       locationAddress: "456 Sunny Meadow Lane, Austin, TX",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#10b981" }, // emerald
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#bbf7d0", gradientTo: "#a5f3fc", accentColor: "#10b981" }, // emerald
       plusOneAllowed: true,
       plusOneMax: 2,
       plusOneNamesRequired: true,
@@ -225,7 +225,7 @@ async function main() {
       capacity: 50,
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, accentColor: "#8b5cf6" }, // violet
+      theme: { baseTheme: "BOLD" as const, gradientFrom: "#7c3aed", gradientTo: "#ec4899", accentColor: "#8b5cf6" }, // violet
       plusOneAllowed: true,
       plusOneMax: 1,
       plusOneNamesRequired: false,
@@ -241,7 +241,7 @@ async function main() {
       virtualUrl: "https://meet.google.com/abc-defg-hij",
       visibility: "UNLISTED" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, accentColor: "#64748b" }, // slate
+      theme: { baseTheme: "DARK" as const, gradientFrom: "#334155", gradientTo: "#0f172a", accentColor: "#64748b" }, // slate
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: true,
@@ -256,7 +256,7 @@ async function main() {
       locationAddress: "101 Crust St, Chicago, IL",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#f43f5e" }, // rose
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#fecdd3", gradientTo: "#fda4af", accentColor: "#f43f5e" }, // rose
       plusOneAllowed: true,
       plusOneMax: 3,
       commentsEnabled: true,
@@ -273,7 +273,7 @@ async function main() {
       locationAddress: "666 Cobweb Lane, Salem, MA",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, accentColor: "#ea580c" }, // orange
+      theme: { baseTheme: "DARK" as const, gradientFrom: "#9a3412", gradientTo: "#1c1917", accentColor: "#ea580c" }, // orange
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -295,7 +295,7 @@ async function main() {
       capacity: 100,
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, accentColor: "#eab308" }, // yellow/gold
+      theme: { baseTheme: "BOLD" as const, gradientFrom: "#eab308", gradientTo: "#f97316", accentColor: "#eab308" }, // yellow/gold
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: true,
@@ -309,7 +309,7 @@ async function main() {
       locationType: "TBD" as const,
       visibility: "PUBLIC" as const,
       status: "DRAFT" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#14b8a6" }, // teal
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#ccfbf1", gradientTo: "#a5f3fc", accentColor: "#14b8a6" }, // teal
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -349,6 +349,8 @@ async function main() {
       data: {
         eventId: event.id,
         baseTheme: temp.theme.baseTheme,
+        gradientFrom: temp.theme.gradientFrom,
+        gradientTo: temp.theme.gradientTo,
         accentColor: temp.theme.accentColor,
       }
     });

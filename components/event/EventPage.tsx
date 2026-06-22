@@ -68,7 +68,7 @@ type EventData = {
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   host: { id: string; name: string | null; email: string; avatarUrl?: string | null };
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; coverImageUrl: string | null } | null;
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
   infoSections: { id: string; type: string; title: string | null; content: string; url: string | null; order: number }[];
   rsvps: { id: string; guestName: string; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; note: string | null; createdAt: Date; user?: { avatarUrl: string | null } | null }[];
   comments: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date; replies: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date }[] }[];
@@ -1083,7 +1083,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       await saveCoverImage(event.id, url);
       setEvent((ev) => ({
         ...ev,
-        theme: { ...(ev.theme ?? { baseTheme: "DARK" as const, accentColor: "#a855f7" }), coverImageUrl: url },
+        theme: { ...(ev.theme ?? { baseTheme: "DARK" as const, gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#a855f7" }), coverImageUrl: url },
       }));
     } catch (err) {
       console.error("Cover upload failed:", err);

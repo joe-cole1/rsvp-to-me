@@ -5,7 +5,7 @@ import { resolveTheme } from "@/lib/theme";
 export default function DarkPreview() {
   const accent = "#a855f7"; // purple
   const secondary = "#ec4899"; // pink
-  const t = resolveTheme("DARK", accent, secondary);
+  const t = resolveTheme("DARK", accent, secondary, accent);
 
   return (
     <div
