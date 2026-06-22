@@ -1733,3 +1733,12 @@ export async function deletePollOption(pollId: string, optionId: string) {
   revalidatePath(`/e/${event.slug}`);
   return { success: true };
 }
+
+// ── Public theme preset fetch (for ThemePicker / SettingsPage) ────────────────
+
+export async function getActiveThemePresets() {
+  return db.themePreset.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+}

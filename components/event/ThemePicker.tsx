@@ -2,17 +2,29 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, THEME_PRESETS, type BaseTheme } from "@/lib/theme";
+import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme } from "@/lib/theme";
 import { saveEventTheme } from "@/app/actions/event";
+
+type DbThemePreset = {
+  id: string;
+  name: string;
+  emoji: string;
+  base: BaseTheme;
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+};
 
 export function ThemePicker({
   eventId,
   current,
+  presets = [],
   onClose,
   onSave,
 }: {
   eventId: string;
   current: { base: BaseTheme; gradientFrom: string; gradientTo: string; accentColor: string };
+  presets?: DbThemePreset[];
   onClose: () => void;
   onSave: (base: BaseTheme, gradientFrom: string, gradientTo: string, accentColor: string) => void;
 }) {
@@ -31,7 +43,7 @@ export function ThemePicker({
     onSave(base, gradientFrom, gradientTo, accent);
   };
 
-  const applyPreset = (p: typeof THEME_PRESETS[number]) => {
+  const applyPreset = (p: DbThemePreset) => {
     setBase(p.base);
     setGradientFrom(p.gradientFrom);
     setGradientTo(p.gradientTo);
@@ -108,7 +120,7 @@ export function ThemePicker({
               Presets
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-              {THEME_PRESETS.filter((p) => p.base === base).map((p) => {
+              {presets.filter((p) => p.base === base).map((p) => {
                 const isActive = gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
                 return (
                   <button

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { db } from "../lib/db";
 import { UserModel, EventModel, RSVPFieldModel, RSVPModel } from "../app/generated/prisma/models";
+import { THEME_PRESETS } from "../lib/theme";
 
 interface EventTemplate {
   title: string;
@@ -43,6 +44,25 @@ async function main() {
     update: {},
     create: { code, note: "Default invite code from seed" },
   });
+
+  // Seed theme presets if none exist
+  const presetCount = await db.themePreset.count();
+  if (presetCount === 0) {
+    await db.themePreset.createMany({
+      data: THEME_PRESETS.map((p, i) => ({
+        name: p.name,
+        emoji: p.emoji,
+        base: p.base,
+        gradientFrom: p.gradientFrom,
+        gradientTo: p.gradientTo,
+        accentColor: p.accentColor,
+        seasonal: p.seasonal ?? false,
+        active: true,
+        sortOrder: i,
+      })),
+    });
+    console.log(`Seeded ${THEME_PRESETS.length} theme presets.`);
+  }
 
   console.log(`Seed complete. Default invite code: "${code}"`);
 

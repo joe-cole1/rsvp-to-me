@@ -192,6 +192,20 @@ enum BaseTheme {
   BOLD
 }
 
+model ThemePreset {
+  id           String    @id @default(cuid())
+  name         String
+  emoji        String    @default("🎨")
+  base         BaseTheme
+  gradientFrom String
+  gradientTo   String
+  accentColor  String
+  seasonal     Boolean   @default(false)
+  active       Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+}
+
 // Partiful-style info chips: Dress Code, Food, Parking, Link, Custom
 model EventInfoSection {
   id      String  @id @default(cuid())
