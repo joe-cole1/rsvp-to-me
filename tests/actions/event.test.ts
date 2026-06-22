@@ -1315,15 +1315,15 @@ describe("saveEventTheme", () => {
 
   it("throws Unauthorized when no session", async () => {
     mockGetSession.mockResolvedValue(null);
-    await expect(saveEventTheme(EVENT_ID, "DARK", "#ff0000")).rejects.toThrow("Unauthorized");
+    await expect(saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000")).rejects.toThrow("Unauthorized");
   });
 
-  it("calls eventTheme.upsert with baseTheme and accentColor", async () => {
-    await saveEventTheme(EVENT_ID, "DARK", "#ff0000");
+  it("calls eventTheme.upsert with baseTheme, gradients, and accentColor", async () => {
+    await saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000");
     expect(mockEventThemeUpsert).toHaveBeenCalledWith({
       where: { eventId: EVENT_ID },
-      update: { baseTheme: "DARK", accentColor: "#ff0000", secondaryColor: undefined, themePresetId: undefined },
-      create: { eventId: EVENT_ID, baseTheme: "DARK", accentColor: "#ff0000", secondaryColor: null, themePresetId: "custom" },
+      update: { baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000" },
+      create: { eventId: EVENT_ID, baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000" },
     });
   });
 });
@@ -1435,7 +1435,7 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
       id: "rsvp-1",
       guestName: "Guest",
       guestEmail: "guest@example.com",
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", approvalNotifyEmail: true, approvalNotifySms: true, host: { email: "host@example.com" }, coHosts: [] },
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", host: { email: "host@example.com" }, coHosts: [] },
     });
     mockRsvpUpdate.mockResolvedValue({});
     mockRsvpDelete.mockResolvedValue({});

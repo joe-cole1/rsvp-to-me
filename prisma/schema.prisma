@@ -112,14 +112,6 @@ model Event {
   guestsCanInvite      Boolean    @default(false)
 
 
-  // Notification toggles
-  rsvpConfirmEmail    Boolean @default(true)
-  rsvpConfirmSms      Boolean @default(true)
-  hostAlertEmail      Boolean @default(true)
-  hostAlertSms        Boolean @default(true)
-  approvalNotifyEmail Boolean @default(true)
-  approvalNotifySms   Boolean @default(true)
-
   // Feature flags
   commentsEnabled      Boolean    @default(true)
   maybeEnabled         Boolean    @default(true)
@@ -183,13 +175,13 @@ model EventCoHost {
 }
 
 model EventTheme {
-  id             String    @id @default(cuid())
-  eventId        String    @unique
-  baseTheme      BaseTheme @default(DARK)
-  accentColor    String    @default("#a855f7")
-  secondaryColor String?
-  themePresetId  String?   @default("custom")
-  coverImageUrl  String?
+  id            String    @id @default(cuid())
+  eventId       String    @unique
+  baseTheme     BaseTheme @default(DARK)
+  gradientFrom  String    @default("#7c3aed")
+  gradientTo    String    @default("#1e40af")
+  accentColor   String    @default("#a855f7")
+  coverImageUrl String?
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

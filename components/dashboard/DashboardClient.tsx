@@ -27,7 +27,7 @@ export interface DashboardGridItem {
   title: string;
   startAt: Date | string;
   status: string;
-  theme: { accentColor: string; coverImageUrl: string | null } | null;
+  theme: { gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
   going: number;
   maybe: number;
   pending: number;
