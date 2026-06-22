@@ -85,7 +85,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
         </>
       )}
       {t.pageDecoration === "bold-hero" && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "340px", background: t.pageDecorationBg1, zIndex: 0 }} />
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />
       )}
 
       <div style={{ maxWidth: "600px", margin: "0 auto", padding: "32px 16px 80px", position: "relative", zIndex: 1 }}>

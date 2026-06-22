@@ -1481,7 +1481,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         </>
       )}
       {t.pageDecoration === "bold-hero" && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "340px", background: t.pageDecorationBg1, zIndex: 0 }} />
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />
       )}
       {t.decorationVariant && (
         <div data-decoration-variant={t.decorationVariant} style={{ display: "none" }} />
