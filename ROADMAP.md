@@ -70,8 +70,31 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
 
 ### 💬 Advanced Messaging Integrations
-*   **One-Click Email RSVPs**: Support one-click RSVP response buttons (Yes / Maybe / No) embedded in invite email bodies, passing secure tokens to pre-fill the guest's email or phone number.
-*   **SMS Reply-to-RSVP (Two-Way SMS)**: Integrate a Twilio webhook receiver to automatically parse guest text message replies (e.g., replying "YES", "MAYBE", or "NO") and record their RSVP status.
+*   **Email RSVP Buttons + SMS Reply-to-RSVP** *(specced — ready for implementation)*
+
+    Replaces the single "RSVP Now" email button and generic SMS magic-link with a full two-way RSVP experience.
+
+    **Email flow:**
+    - Invite emails show YES / NO / MAYBE anchor buttons (MAYBE hidden when `event.maybeEnabled = false`).
+    - Each button links to `/e/{slug}/rsvp?token={editToken}&status=GOING` — the guest's pre-created RSVP edit form with their response pre-selected. No new token column needed; the existing `RSVP.editToken` serves as the per-invitation URL token.
+    - Guest still completes their name and any questionnaire on the form before submitting. No one-click blind submits.
+    - Re-clicking a different button in the same email loads the form with the new status pre-selected, updating the existing RSVP.
+
+    **SMS flow:**
+    - Invite SMS reads: `"Reply YES XK72 to RSVP yes, NO XK72 to decline [, MAYBE XK72 to say maybe]. Details: {url}"`
+    - Each event gets a unique auto-generated 5-character alphanumeric `smsCode` (e.g. `XK72A`) stored as `Event.smsCode`. Codes use an unambiguous character set (no 0/O/1/I). Generated on event creation; lazily assigned to existing events on first SMS invite.
+    - Twilio webhook at `POST /api/webhooks/twilio` receives guest replies, validates the Twilio HMAC signature, parses `"YES XK72A"`, looks up the event by code, looks up the guest's `Invitation` record by phone, updates `RSVP.status` and sets `responded = true`, then replies via TwiML with a confirmation SMS containing their edit link.
+    - Edge cases handled: invalid code, invalid format, MAYBE on maybe-disabled events, past `rsvpDeadline`, event at capacity (no silent updates — guest is notified).
+
+    **Schema change:** Add `smsCode String? @unique` to `Event`.
+
+    **New file:** `app/api/webhooks/twilio/route.ts`
+
+    **Modified files:** `lib/email.ts`, `lib/sms.ts`, `app/actions/event.ts`, `app/actions/createEvent.ts`, `app/e/[slug]/settings/page.tsx` (read-only smsCode display for hosts).
+
+*   **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
+*   **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
+*   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
 *   **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
 *   **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
 *   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
