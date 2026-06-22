@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-const url = process.env.DATABASE_URL || "";
+const rawUrl = process.env.DATABASE_URL || "";
+const url = rawUrl.trim().replace(/^["']|["']$/g, "").trim();
 const isPostgres = url.startsWith("postgres://") || url.startsWith("postgresql://");
 
 export default defineConfig({

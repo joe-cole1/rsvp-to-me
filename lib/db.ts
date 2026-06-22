@@ -8,7 +8,8 @@ import { PrismaClient as PostgresPrismaClient } from "@/app/generated/prisma-pos
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrisma(): PrismaClient {
-  const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+  const rawUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+  const url = rawUrl.trim().replace(/^["']|["']$/g, "").trim();
   const isPostgres = url.startsWith("postgres://") || url.startsWith("postgresql://");
 
   if (isPostgres) {
