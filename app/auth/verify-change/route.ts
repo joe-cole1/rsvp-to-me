@@ -31,8 +31,6 @@ export async function GET(request: NextRequest) {
     return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
   }
 
-  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
-
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) {
     return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
@@ -44,11 +42,22 @@ export async function GET(request: NextRequest) {
     return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
   }
 
+  // Check for conflicts before consuming the token so it isn't burned on a recoverable error
   if (isEmail) {
     const existing = await db.user.findFirst({ where: { email: newValue, NOT: { id: user.id } } });
     if (existing) {
       return redirectWithNoReferrer(`${APP_URL()}/profile?error=email-taken`);
     }
+  } else {
+    const existing = await db.user.findFirst({ where: { phone: newValue, NOT: { id: user.id } } });
+    if (existing) {
+      return redirectWithNoReferrer(`${APP_URL()}/profile?error=phone-taken`);
+    }
+  }
+
+  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
+
+  if (isEmail) {
     await db.user.update({
       where: { id: user.id },
       data: { email: newValue },
@@ -58,10 +67,6 @@ export async function GET(request: NextRequest) {
       data: { guestEmail: newValue },
     });
   } else {
-    const existing = await db.user.findFirst({ where: { phone: newValue, NOT: { id: user.id } } });
-    if (existing) {
-      return redirectWithNoReferrer(`${APP_URL()}/profile?error=phone-taken`);
-    }
     await db.user.update({
       where: { id: user.id },
       data: { phone: newValue },

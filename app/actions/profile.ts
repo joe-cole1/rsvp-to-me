@@ -42,6 +42,12 @@ export async function updateProfileSettings(data: {
         throw new Error("An account with this email already exists.");
       }
 
+      // Invalidate any previous pending email-change tokens
+      await db.magicToken.updateMany({
+        where: { userId: user.id, type: "EMAIL_CHANGE", used: false },
+        data: { used: true },
+      });
+
       // Generate verification token
       const token = randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
@@ -71,6 +77,12 @@ export async function updateProfileSettings(data: {
       if (existing) {
         throw new Error("An account with this phone number already exists.");
       }
+
+      // Invalidate any previous pending phone-change tokens
+      await db.magicToken.updateMany({
+        where: { userId: user.id, type: "PHONE_CHANGE", used: false },
+        data: { used: true },
+      });
 
       // Generate verification token
       const token = randomBytes(32).toString("hex");
@@ -137,11 +149,14 @@ export async function getUserProfile() {
   if (user) {
     const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
     if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
-      await db.user.update({
-        where: { id: user.id },
-        data: { role: "ADMIN" },
-      });
-      user.role = "ADMIN";
+      const adminCount = await db.user.count({ where: { role: "ADMIN" } });
+      if (adminCount === 0) {
+        await db.user.update({
+          where: { id: user.id },
+          data: { role: "ADMIN" },
+        });
+        user.role = "ADMIN";
+      }
     }
   }
 
