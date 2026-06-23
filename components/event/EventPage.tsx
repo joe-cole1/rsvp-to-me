@@ -900,7 +900,7 @@ function getPlaceholder(key: string) {
   }
 }
 
-type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO"; hasAnswers: boolean; responded: boolean };
+type GuestRsvp = { id: string; guestName: string; editToken: string; status: "GOING" | "MAYBE" | "NO" | "INVITED"; hasAnswers: boolean; responded: boolean };
 
 export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = false, guestRsvp = null, sessionUser = null }: { event: EventData; isHost: boolean; theme: ResolvedTheme; coverUploadEnabled?: boolean; guestRsvp?: GuestRsvp | null; sessionUser?: { email: string; name?: string | null; avatarUrl?: string | null; role: "GUEST" | "HOST" | "ADMIN" } | null }) {
   const [event, setEvent] = useState(initial);
