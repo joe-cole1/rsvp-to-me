@@ -150,6 +150,7 @@ vi.mock("@/lib/sms", () => ({
   sendRsvpConfirmationSms: vi.fn().mockResolvedValue(undefined),
   sendSmsBlast: vi.fn().mockResolvedValue(2),
   sendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
+  sendEventInviteSms: vi.fn().mockResolvedValue(undefined),
   sendApprovalSms: mockSendApprovalSms,
 }));
 vi.mock("next/headers", () => ({
@@ -637,7 +638,7 @@ describe("sendBlast", () => {
     expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         OR: expect.arrayContaining([
-          expect.objectContaining({ responded: false })
+          expect.objectContaining({ status: "INVITED" })
         ])
       }),
     }));
@@ -716,7 +717,7 @@ describe("sendSmsBlast", () => {
     expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         OR: expect.arrayContaining([
-          expect.objectContaining({ responded: false })
+          expect.objectContaining({ status: "INVITED" })
         ])
       }),
     }));
@@ -1253,7 +1254,7 @@ describe("inviteGuest", () => {
   });
 
   it("sends an SMS invite for phone inputs", async () => {
-    const { sendMagicLinkSms } = await import("@/lib/sms");
+    const { sendEventInviteSms } = await import("@/lib/sms");
     const result = await inviteGuest(EVENT_ID, INVITE_PHONE);
 
     expect(result).toEqual({ success: true, emailOrPhone: INVITE_PHONE });
@@ -1263,12 +1264,12 @@ describe("inviteGuest", () => {
     expect(mockInvitationCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: { eventId: EVENT_ID, sentTo: INVITE_PHONE, channel: "SMS", rsvpId: "rsvp-new-id" }
     }));
-    expect(sendMagicLinkSms).toHaveBeenCalled();
+    expect(sendEventInviteSms).toHaveBeenCalled();
   });
 
   it("handles mixed comma-separated entries with some valid and some invalid", async () => {
     const { sendEventInviteEmail } = await import("@/lib/email");
-    const { sendMagicLinkSms } = await import("@/lib/sms");
+    const { sendEventInviteSms } = await import("@/lib/sms");
 
     const result = await inviteGuest(EVENT_ID, `${INVITE_EMAIL}, invalid_entry, ${INVITE_PHONE}`);
 
@@ -1279,7 +1280,7 @@ describe("inviteGuest", () => {
     expect(result.errors?.[0]).toContain("Invalid phone");
 
     expect(sendEventInviteEmail).toHaveBeenCalled();
-    expect(sendMagicLinkSms).toHaveBeenCalled();
+    expect(sendEventInviteSms).toHaveBeenCalled();
   });
 
   it("throws error when all inputs are invalid and no guests are invited", async () => {
@@ -1557,7 +1558,7 @@ describe("inviteFriendAsGuest", () => {
       data: expect.objectContaining({
         eventId: EVENT_ID,
         guestEmail: "bob@example.com",
-        status: "GOING",
+        status: "INVITED",
         approved: false,
       }),
     });
