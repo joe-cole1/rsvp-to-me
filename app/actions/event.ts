@@ -720,7 +720,6 @@ export async function saveReminderSettings(
     smsDayBefore: boolean;
     smsHoursBefore: number;
     nudgeUnresponded: boolean;
-    postEventPrompt: boolean;
   }
 ) {
   const event = await assertHost(eventId);

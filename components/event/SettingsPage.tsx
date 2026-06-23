@@ -94,7 +94,7 @@ type EventInput = {
   reminderSettings: {
     emailWeekBefore: boolean; emailDayBefore: boolean; emailHoursBefore: number;
     smsWeekBefore: boolean; smsDayBefore: boolean; smsHoursBefore: number;
-    nudgeUnresponded: boolean; postEventPrompt: boolean;
+    nudgeUnresponded: boolean;
   } | null;
   coHosts: CoHostEntry[];
   rsvpFields: RsvpFieldEntry[];
@@ -128,7 +128,6 @@ interface ReminderOverrides {
   smsDayBefore?: boolean;
   smsHoursBefore?: number;
   nudgeUnresponded?: boolean;
-  postEventPrompt?: boolean;
 }
 
 const formatOptionsForTextarea = (optionsStr: string | null): string => {
@@ -205,7 +204,6 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
   const [smsDayBefore, setSmsDayBefore] = useState(rs?.smsDayBefore ?? false);
   const [smsHoursBefore, setSmsHoursBefore] = useState(rs?.smsHoursBefore ?? 0);
   const [nudgeUnresponded, setNudgeUnresponded] = useState(rs?.nudgeUnresponded ?? true);
-  const [postEventPrompt, setPostEventPrompt] = useState(rs?.postEventPrompt ?? false);
 
   // ── Co-hosts State ──
   const [coHosts, setCoHosts] = useState<CoHostEntry[]>(event.coHosts);
@@ -374,7 +372,6 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
       smsDayBefore: overrides.smsDayBefore !== undefined ? overrides.smsDayBefore : smsDayBefore,
       smsHoursBefore: overrides.smsHoursBefore !== undefined ? overrides.smsHoursBefore : smsHoursBefore,
       nudgeUnresponded: overrides.nudgeUnresponded !== undefined ? overrides.nudgeUnresponded : nudgeUnresponded,
-      postEventPrompt: overrides.postEventPrompt !== undefined ? overrides.postEventPrompt : postEventPrompt,
     };
     startTransition(async () => {
       try {
@@ -1188,9 +1185,9 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
               </div>
               <Toggle label="Require host approval for each RSVP" value={approvalRequired} onChange={(val) => { setApprovalRequired(val); triggerSaveSettings({ approvalRequired: val }); }} t={t} />
               <Toggle label="Guests can RSVP «Maybe»" value={maybeEnabled} onChange={(val) => { setMaybeEnabled(val); triggerSaveSettings({ maybeEnabled: val }); }} t={t} />
-              <Toggle label="Allow guests to invite friends (Private events)" value={guestsCanInvite} onChange={(val) => { setGuestsCanInvite(val); triggerSaveSettings({ guestsCanInvite: val }); }} t={t} />
             </div>
-            
+            <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={(val) => { setShowTimestamps(val); triggerSaveSettings({ showTimestamps: val }); }} t={t} />
+
             <div style={{ marginBottom: "16px", marginTop: "16px" }}>
               <Label t={t}>Capacity limit (optional)</Label>
               <input
@@ -1338,8 +1335,6 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
               t={t}
             />
 
-            <Toggle label="Show RSVP timestamps" value={showTimestamps} onChange={(val) => { setShowTimestamps(val); triggerSaveSettings({ showTimestamps: val }); }} t={t} />
-            
             <div style={{ marginBottom: "16px" }}>
               <Label t={t}>Guest list visibility</Label>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -1362,27 +1357,37 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
                 ))}
               </div>
             </div>
-            <div>
-              <Label t={t}>Event password (optional)</Label>
-              <input
-                type="text"
-                placeholder="Leave blank for no password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onBlur={() => {
-                  triggerSaveSettings({ password: password.trim() || null });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    triggerSaveSettings({ password: password.trim() || null });
-                    e.currentTarget.blur();
-                  }
-                }}
-                style={S.inp}
-                autoComplete="off"
+            {visibility === "PRIVATE" && (
+              <Toggle
+                label="Allow guests to invite friends"
+                value={guestsCanInvite}
+                onChange={(val) => { setGuestsCanInvite(val); triggerSaveSettings({ guestsCanInvite: val }); }}
+                t={t}
               />
-              {password && <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
-            </div>
+            )}
+            {visibility === "PRIVATE" && (
+              <div>
+                <Label t={t}>Event password (optional)</Label>
+                <input
+                  type="text"
+                  placeholder="Leave blank for no password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => {
+                    triggerSaveSettings({ password: password.trim() || null });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      triggerSaveSettings({ password: password.trim() || null });
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  style={S.inp}
+                  autoComplete="off"
+                />
+                {password && <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
+              </div>
+            )}
           </Section>
         )}
 
@@ -1392,6 +1397,7 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
             <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "16px" }}>
               Reminders are sent to guests who provided their email or phone number.
             </div>
+            <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={(val) => { setNudgeUnresponded(val); triggerSaveReminders({ nudgeUnresponded: val }); }} t={t} />
             <div style={{ marginBottom: "20px" }}>
               <Label t={t}>Email reminders</Label>
               <Toggle label="1 week before" value={emailWeekBefore} onChange={(val) => { setEmailWeekBefore(val); triggerSaveReminders({ emailWeekBefore: val }); }} t={t} />
@@ -1419,8 +1425,6 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
                 </select>
               </div>
             </div>
-            <Toggle label="Nudge guests who haven't RSVP'd (3 days before)" value={nudgeUnresponded} onChange={(val) => { setNudgeUnresponded(val); triggerSaveReminders({ nudgeUnresponded: val }); }} t={t} />
-            <Toggle label="Post-event photo upload prompt" value={postEventPrompt} onChange={(val) => { setPostEventPrompt(val); triggerSaveReminders({ postEventPrompt: val }); }} t={t} />
           </Section>
         )}
 

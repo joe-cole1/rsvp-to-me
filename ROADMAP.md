@@ -29,7 +29,7 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ### ⚙️ Administration & Settings
 *   **Draft & Visibility Controls**: Add the ability to save events as drafts (unpublished) in "Display & Privacy" under Event Visibility settings.
-*   **Event Settings Navigation & Photo Sharing**: Move the post-event photo sharing option to its own dedicated section in settings, eventually building it out to link to shared albums (Google Photos, Apple, Immich, etc.).
+*   **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
 *   **Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.
 
 ### 📊 Guest List Exporters
@@ -50,6 +50,9 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ## 🟢 Priority 3: Low Priority & DevOps (Automation, Branding & Integrations)
 *Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox).*
+
+### 📸 Post-Event & Follow-Up
+*   **Post-Event Photo Upload Prompt (low priority)**: After an event ends, prompt guests to upload or share their photos. Removed from Auto-Reminders settings as an unimplemented stub; the full feature would integrate with a dedicated photo-sharing section and optionally link to external album services (see Priority 2).
 
 ### 🏷️ Branding & Customization
 *   **White-Label Options**: Add system settings allowing hosts/admins to white-label the application (custom logo, website name, custom branding colors).

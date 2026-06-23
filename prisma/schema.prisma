@@ -233,7 +233,6 @@ model EventReminderSettings {
   smsDayBefore     Boolean @default(false)
   smsHoursBefore   Int     @default(0)
   nudgeUnresponded Boolean @default(true)
-  postEventPrompt  Boolean @default(false)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
