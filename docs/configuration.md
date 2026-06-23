@@ -51,16 +51,18 @@ Some configuration fields (email provider settings, registration mode) can also 
 
 ### DATABASE_URL
 - **Required**: Yes
-- **Default**: `file:/app/data/prod.db`
-- **Type**: String (SQLite file URI)
+- **Type**: String (PostgreSQL connection URL)
 
-**What it does:** Tells the application where to write its SQLite database file. All user profiles, events, RSVPs, comments, polls, and potluck lists are stored in this single file.
+**What it does:** Connection string for the PostgreSQL 18 database. All user profiles, events, RSVPs, comments, polls, and potluck lists are stored here.
 
-**Format:** Must start with the `file:` prefix.
+**Format:**
+```env
+DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
+```
 
-**Docker Context:** The path `/app/data/prod.db` is mapped to a bind mount directory (`./data/prod.db`) on your host machine. Do not change this path unless you change your `docker-compose.yml` volumes.
+**Docker Context:** When using `docker-compose.yml`, the app connects to the bundled `postgres` container. The `pg_data/` directory on your host persists the database across restarts.
 
-> **Caution:** This database file represents the entire state of your application. Changing this path to a non-existent directory will cause the app to crash or boot with an empty database. Back it up regularly!
+> **Caution:** PostgreSQL 18 is required. The application will not start without a valid Postgres connection URL.
 
 ---
 
@@ -106,7 +108,7 @@ Some configuration fields (email provider settings, registration mode) can also 
 - **Default**: *(none)*
 - **Type**: Random string (at least 32 characters)
 
-**What it does:** Used to encrypt sensitive configuration credentials (like SMTP passwords and API tokens) at rest before saving them to the SQLite database.
+**What it does:** Used to encrypt sensitive configuration credentials (like SMTP passwords and API tokens) at rest before saving them to the database.
 
 **How to generate:** Use the same method as `SESSION_SECRET` to generate a separate unique key.
 
@@ -291,31 +293,31 @@ SMS is optional. When enabled, it allows magic link logins via SMS, text invitat
 
 ## PostgreSQL Configuration
 
-PostgreSQL is supported as an alternative database provider to SQLite. Using PostgreSQL is recommended for production deployments that require high availability, multi-instance scalability, or managed database hosting (e.g., Supabase, Neon, AWS RDS).
+PostgreSQL 18 is the only supported database. Managed PostgreSQL hosting (e.g., Supabase, Neon, AWS RDS) or the bundled `docker-compose.yml` Postgres container are both supported.
 
-### DATABASE_URL (PostgreSQL format)
+### DATABASE_URL (PostgreSQL)
 - **Required**: Yes
 - **Type**: String (Connection URL)
 
-When connecting to PostgreSQL, your `DATABASE_URL` connection string must follow this format:
+Your `DATABASE_URL` connection string must follow this format:
 ```env
-DATABASE_URL="postgresql://username:password@hostname:5432/database_name?schema=public&sslmode=prefer"
+DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 ```
 Or the shorter `postgres://` protocol:
 ```env
 DATABASE_URL="postgres://username:password@hostname:5432/database_name"
 ```
 
-*Note: On container startup, the application detects the PostgreSQL protocol and automatically runs `npx prisma db push` to synchronize the database schema, removing the need for manual migration tracking.*
+On container startup the application runs `prisma migrate deploy` to apply any pending schema migrations automatically.
 
 ---
 
 ## Redis Configuration
 
-Redis is an optional cache and data store used to optimize application performance, implement distributed locking, and handle rate-limiting.
+Redis is required for session caching, distributed locking, and rate-limiting.
 
 ### REDIS_URL
-- **Required**: No (caching and rate-limiting fall back to the SQL database if unset)
+- **Required**: Yes (the app will not start without a valid Redis URL)
 - **Type**: String (Redis connection URL)
 
 **Format:**
@@ -332,7 +334,7 @@ When configured, the application enables:
 
 ## Database Backup Configuration
 
-Automated and manual database backups can be set up for both SQLite and PostgreSQL. Backup files are saved inside the application's persistent volume (`/app/data/backups/`).
+Automated and manual database backups use `pg_dump` to create `.sql` dump files saved in `/app/data/backups/`.
 
 ### BACKUP_SCHEDULE
 - **Required**: No
@@ -360,8 +362,8 @@ Automated and manual database backups can be set up for both SQLite and PostgreS
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DATABASE_URL` | Yes | `file:/app/data/prod.db` | Path to SQLite database file or PostgreSQL connection URL. |
-| `REDIS_URL` | No | *(none)* | Connection URL to Redis instance for caching, rate limits, and locks. |
+| `DATABASE_URL` | Yes | *(none)* | PostgreSQL 18 connection URL (e.g. `postgresql://user:pass@host:5432/db`). |
+| `REDIS_URL` | Yes | *(none)* | Redis connection URL for caching, rate limits, and distributed locks. |
 | `BACKUP_SCHEDULE` | No | `disabled` | Cron expression (e.g. `0 0 * * *`) to schedule automated database backups. |
 | `BACKUP_KEEP_COUNT` | No | `7` | Maximum number of backup files to retain before rotating. |
 | `SESSION_SECRET` | Yes | *(none)* | Random string (32+ chars) for signing session cookies. |

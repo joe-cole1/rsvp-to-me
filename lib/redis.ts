@@ -7,60 +7,54 @@ const globalForRedis = globalThis as unknown as {
   redisConnected?: boolean;
 };
 
-let redisClient: RedisClientType | null = null;
 const redisUrl = process.env.REDIS_URL;
 
-if (redisUrl) {
-  if (!globalForRedis.redis) {
-    console.log("[redis] Initializing Redis client...");
-    globalForRedis.redis = createClient({ url: redisUrl });
-    globalForRedis.redisConnected = false;
-
-    globalForRedis.redis.on("error", (err) => {
-      console.error("[redis] Redis client error:", err);
-    });
-
-    globalForRedis.redis.on("connect", () => {
-      console.log("[redis] Redis client connected.");
-      globalForRedis.redisConnected = true;
-    });
-
-    globalForRedis.redis.on("end", () => {
-      console.log("[redis] Redis client connection closed.");
-      globalForRedis.redisConnected = false;
-    });
-
-    // Initiate async connection in the background
-    globalForRedis.redis.connect().catch((err) => {
-      console.error("[redis] Failed to connect to Redis on startup:", err);
-    });
-  }
-  redisClient = globalForRedis.redis;
+if (!redisUrl) {
+  throw new Error("[redis] REDIS_URL is required");
 }
 
+if (!globalForRedis.redis) {
+  console.log("[redis] Initializing Redis client...");
+  globalForRedis.redis = createClient({ url: redisUrl });
+  globalForRedis.redisConnected = false;
+
+  globalForRedis.redis.on("error", (err) => {
+    console.error("[redis] Redis client error:", err);
+  });
+
+  globalForRedis.redis.on("connect", () => {
+    console.log("[redis] Redis client connected.");
+    globalForRedis.redisConnected = true;
+  });
+
+  globalForRedis.redis.on("end", () => {
+    console.log("[redis] Redis client connection closed.");
+    globalForRedis.redisConnected = false;
+  });
+
+  globalForRedis.redis.connect().catch((err) => {
+    console.error("[redis] Failed to connect to Redis on startup:", err);
+  });
+}
+
+const redisClient: RedisClientType = globalForRedis.redis;
+
 export function isRedisEnabled(): boolean {
-  return !!redisUrl && !!redisClient && !!globalForRedis.redisConnected;
+  return !!redisClient && !!globalForRedis.redisConnected;
 }
 
 export async function getRedisClient(): Promise<RedisClientType | null> {
-  if (!redisUrl || !redisClient) return null;
-  
-  // If not connected yet, we can check/wait briefly or just check connection status
   if (!globalForRedis.redisConnected) {
     try {
-      // If client is closed or disconnected, try reconnecting
       if (!redisClient.isOpen) {
         await redisClient.connect().catch(() => {});
       }
     } catch {}
   }
-  
+
   return globalForRedis.redisConnected ? redisClient : null;
 }
 
-/**
- * Cache operations
- */
 export async function redisGet(key: string): Promise<string | null> {
   const client = await getRedisClient();
   if (!client) return null;
@@ -104,9 +98,6 @@ export async function redisDel(key: string): Promise<boolean> {
   }
 }
 
-/**
- * Distributed Lock operations
- */
 export async function redisAcquireLock(
   lockKey: string,
   ttlSeconds: number
@@ -137,10 +128,6 @@ export async function redisReleaseLock(lockKey: string): Promise<boolean> {
   }
 }
 
-/**
- * Rate Limiter operations
- * Implements a simple sliding window or fixed window rate limit increment
- */
 export async function redisIncrAndExpire(
   key: string,
   ttlSeconds: number

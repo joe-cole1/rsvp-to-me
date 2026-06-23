@@ -8,7 +8,7 @@
     "start": "prisma migrate deploy && next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate && tsx scripts/generate-postgres-schema.ts",
+    "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push",
@@ -18,8 +18,6 @@
     "test:ci": "vitest run --reporter=verbose"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.4",
-    "@prisma/adapter-libsql": "^7.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/themes": "^3.3.0",
