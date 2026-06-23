@@ -10,6 +10,12 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 ### 🛠️ Bugs & Blockers
 *   **SMS Test Suite Failures** (`tests/lib/sms.test.ts`): All 9 SMS tests fail locally and in any environment where `npm run db:generate` has not been run. `lib/sms.ts` pulls in `lib/db.ts` which requires the generated Prisma client at `@/app/generated/prisma/client`. The test file has no mock for `lib/db.ts`, so the import chain breaks before any test executes. Fix by adding a `vi.mock('@/lib/db', ...)` in the test file (matching the pattern used in `tests/lib/redis.test.ts`), or restructuring `lib/sms.ts` so it does not import `lib/db.ts` at module load time. *(Identified during redis v4→v5 upgrade — out of scope for that branch.)*
 
+*   **TypeScript Errors — `DELETED` EventStatus missing from Prisma enum** (`app/actions/event.ts` lines 995, 1759, 1779; `app/e/[slug]/guests/page.tsx:30`; `app/e/[slug]/page.tsx:77`; `app/e/[slug]/rsvp/page.tsx:33`; `app/page.tsx:75`): The `DELETED` value is used as an `EventStatus` throughout the codebase (added as part of the host account deletion flow) but is not declared in the `EventStatus` enum in `prisma/schema.prisma`. Fix: add `DELETED` to the `enum EventStatus` in the schema and regenerate the Prisma client. A migration to set existing rows is not needed since `DELETED` is only written by the deletion flow.
+
+*   **TypeScript Errors — Missing Prisma `include` clauses** (`app/actions/event.ts` lines 1025–1041; `app/page.tsx` lines 173–182, 278): Several Prisma queries access relations (`.rsvps`, `.theme`, `.host`, `.coHosts`, `._count`, `.comments`) on result objects that were fetched without an `include` for those relations. TypeScript correctly flags these as missing properties. Fix: add the appropriate `include: { rsvps: true, theme: true, host: true, coHosts: true, _count: true, comments: true }` to each affected query, or narrow the result type if the relation is intentionally omitted.
+
+*   **TypeScript Error — `deletionScheduledAt` not in `UserWhereInput`** (`lib/cron-scheduler.ts:9`): The cron scheduler filters users by `deletionScheduledAt` but that field does not exist on the `User` model in `prisma/schema.prisma`. Fix: add `deletionScheduledAt DateTime?` to the `User` model and create a migration, or rename the field to match whatever column was actually added for the deletion scheduling feature.
+
 ### 🔒 Routing & System Safety
 *   *(No pending priority 1 routing/safety items)*
 
