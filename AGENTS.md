@@ -266,7 +266,7 @@ TWILIO_PHONE_NUMBER=""
 
 Every chat session is associated with a unique conversation hash (the first 6 characters of the UUID Conversation ID, e.g., `db8e2d`):
 1. **Identify Hash**: Extract the first 6 characters of the current Conversation ID (e.g., `db8e2d`).
-2. **Suggest Chat Rename**: Once the topic of the session is clear (not necessarily at the very start — wait until the goal is understood), suggest renaming the chat to `[hash] <Short Topic>` (e.g., `[db8e2d] RSVP Security Review`). State this as a clear recommendation the user can action in one step.
+2. **Chat Rename (Claude Code)**: When working in Claude Code (Claude's CLI/desktop agent), do NOT suggest renaming the chat — the user will manually rename the session to the branch name once the branch has been created. For all other Claude interfaces, suggest renaming the chat to `[hash] <Short Topic>` (e.g., `[db8e2d] RSVP Security Review`) once the topic is clear.
 3. **Branch Names**: All feature branch names must start with the hash (e.g., `feature/db8e2d-security-review`).
 4. **Commit Messages**: All commit messages must begin with the hash prefix (e.g., `[db8e2d] feat: add rate limiter`).
 5. **PR Titles**: The `gh pr create` command must prefix the PR title with `[hash]` (e.g., `[db8e2d] Security & Best Practices Review`).
