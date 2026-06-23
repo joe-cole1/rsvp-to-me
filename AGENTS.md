@@ -34,6 +34,10 @@ At the start of every new chat session or when resuming work:
    - Provide the user with the command to checkout and track the new branch locally.
 3. **Go Straight to Plan**:
    - Do NOT rebuild or spin up Docker containers, run build/lint steps, or verify correctness at the start of a chat session. Simply sync with main, create the feature branch, and immediately proceed to research and plan creation.
+4. **Approval Gate**:
+   - Present the full implementation plan to the user before touching any source code.
+   - Do NOT begin editing files until the user gives explicit approval to proceed.
+   - If the plan requires clarification or the user requests changes to the approach, revise and re-present before implementing.
 <!-- END:session-setup-rules -->
 
 <!-- BEGIN:post-modification-rules -->
@@ -41,13 +45,13 @@ At the start of every new chat session or when resuming work:
 
 After making changes and before presenting Git commands to the user to push to GitHub:
 1. **Verify Linter and TypeScript Correctness**:
-   - Note: Do NOT run `npm run lint` or ESLint commands inside Antigravity's terminal environment. The linter will run automatically on the user's command line via their Git `pre-commit` hook during the commit process.
+   - Note: Do NOT run `npm run lint` or ESLint commands directly. The linter will run automatically on the user's command line via their Git `pre-commit` hook during the commit process.
    - Verify that the local Git `pre-commit` hook is configured in `.git/hooks/pre-commit` to catch styling issues before committing.
 2. **Wipe and Rebuild Local Docker Environment**:
-   - Run `docker compose down` to shut down and clean up active containers and networks.
-   - Run `docker compose up --build -d` to compile the application with the new changes and launch the containers from scratch, ensuring no cached database state, assets, or CSS remain.
+   - Run `docker compose down -v` to shut down containers and wipe all Docker volumes (including the PostgreSQL data volume), ensuring a completely fresh database state.
+   - Run `docker compose up --build -d` to rebuild the application image and launch all containers from scratch. The seed script will run automatically on startup to populate fresh data.
 3. **Verify Correctness**:
-   - Ensure the application builds successfully, and tests pass.
+   - Ensure the application builds successfully, and tests pass (`npm test`).
 <!-- END:post-modification-rules -->
 
 <!-- BEGIN:pre-modification-rules -->
@@ -248,13 +252,23 @@ TWILIO_PHONE_NUMBER=""
 
 ---
 
+<!-- BEGIN:tone-rules -->
+# Tone and Collaboration Style
+
+- **Be technical, structured, and concise.** Avoid conversational filler, preamble, or restating what was just done.
+- **Let the user drive decisions.** Present options and trade-offs clearly; do not make architectural choices unilaterally.
+- **Flag unexpected discoveries immediately.** If something in the codebase contradicts the plan or introduces risk, stop and surface it before continuing.
+- **Never guess at Next.js 16 or Prisma 7 patterns.** If uncertain, read `node_modules/next/dist/docs/` or `schema.prisma` before writing code.
+<!-- END:tone-rules -->
+
 <!-- BEGIN:chat-tagging-rules -->
 # Conversation Hash Tagging and Code Linkage
 
 Every chat session is associated with a unique conversation hash (the first 6 characters of the UUID Conversation ID, e.g., `db8e2d`):
-1. **Identify Hash**: The agent must extract the first 6 characters of the current `Conversation ID` (e.g., `db8e2d`).
-2. **Suggest Chat Rename**: At the start of the chat, the agent will suggest renaming the chat title to start with `[hash]` (e.g., `[db8e2d] RSVP Security Review`).
-3. **Branch Names**: All suggested feature branch names must start with the hash (e.g., `feature/db8e2d-security-review`).
-4. **Commit Messages**: All suggested commit messages must begin with the hash prefix (e.g., `[db8e2d] feat: add rate limiter`).
-5. **PR Titles**: The suggested `gh pr create` command must prefix the PR title with `[hash]` (e.g., `[db8e2d] Security & Best Practices Review`).
+1. **Identify Hash**: Extract the first 6 characters of the current Conversation ID (e.g., `db8e2d`).
+2. **Suggest Chat Rename**: Once the topic of the session is clear (not necessarily at the very start — wait until the goal is understood), suggest renaming the chat to `[hash] <Short Topic>` (e.g., `[db8e2d] RSVP Security Review`). State this as a clear recommendation the user can action in one step.
+3. **Branch Names**: All feature branch names must start with the hash (e.g., `feature/db8e2d-security-review`).
+4. **Commit Messages**: All commit messages must begin with the hash prefix (e.g., `[db8e2d] feat: add rate limiter`).
+5. **PR Titles**: The `gh pr create` command must prefix the PR title with `[hash]` (e.g., `[db8e2d] Security & Best Practices Review`).
+6. **Git Command Formatting**: Always break git and gh commands into individual fenced code blocks — one command per block — so the user can copy and execute them one at a time. Never bundle multiple commands into a single block.
 <!-- END:chat-tagging-rules -->
