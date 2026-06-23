@@ -7,6 +7,14 @@ const mockTwilio = vi.fn().mockReturnValue({
 
 vi.mock("twilio", () => ({ default: mockTwilio }));
 
+vi.mock("@/lib/db", () => ({
+  db: {
+    systemConfig: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
 const loadModule = () => import("@/lib/sms");
 
 describe("lib/sms.ts", () => {
