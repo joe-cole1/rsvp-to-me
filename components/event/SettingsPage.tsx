@@ -90,7 +90,7 @@ type EventInput = {
   questionnaireEnabled: boolean;
   showTimestamps: boolean;
   password: string | null;
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null; appliedPresetId?: string | null } | null;
   reminderSettings: {
     emailWeekBefore: boolean; emailDayBefore: boolean; emailHoursBefore: number;
     smsWeekBefore: boolean; smsDayBefore: boolean; smsHoursBefore: number;
@@ -149,6 +149,17 @@ const serializeOptionsForDb = (optionsStr: string): string => {
   return JSON.stringify(list);
 };
 
+type ThemeSnapObj = {
+  name: string;
+  emoji: string;
+  base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal: boolean;
+  month?: number | null;
+};
+
 type DbThemePreset = {
   id: string;
   name: string;
@@ -159,6 +170,7 @@ type DbThemePreset = {
   accentColor: string;
   seasonal?: boolean | null;
   month?: number | null;
+  defaultSnapshot?: unknown;
 };
 
 export function SettingsPage({ event, isOwner, themePresets = [] }: { event: EventInput; isOwner: boolean; themePresets?: DbThemePreset[] }) {
@@ -172,6 +184,7 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
   const [gradientFrom, setGradientFrom] = useState(event.theme?.gradientFrom ?? "#7c3aed");
   const [gradientTo, setGradientTo] = useState(event.theme?.gradientTo ?? "#1e40af");
   const [accent, setAccent] = useState(event.theme?.accentColor ?? "#a855f7");
+  const [themePresetId, setThemePresetId] = useState<string | null>(event.theme?.appliedPresetId ?? null);
   const [themeSearch, setThemeSearch] = useState("");
   const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">("all");
   const [themeCustomizeOpen, setThemeCustomizeOpen] = useState(false);
@@ -311,12 +324,12 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
   }, [sortedThemePresets, themeFilter, themeSearch]);
 
   // ── Theme Auto-Save ──
-  const triggerSaveTheme = (newBase: BaseTheme, newFrom: string, newTo: string, newAccent: string) => {
+  const triggerSaveTheme = (newBase: BaseTheme, newFrom: string, newTo: string, newAccent: string, presetId?: string | null) => {
     setSaveStatus("SAVING");
     setErr(null);
     startTransition(async () => {
       try {
-        await saveEventTheme(event.id, newBase, newFrom, newTo, newAccent);
+        await saveEventTheme(event.id, newBase, newFrom, newTo, newAccent, presetId !== undefined ? presetId : themePresetId);
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -934,39 +947,64 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
               const savedTo = event.theme?.gradientTo ?? "#1e40af";
               const savedAccent = event.theme?.accentColor ?? "#a855f7";
               const hasChanged = base !== savedBase || gradientFrom !== savedFrom || gradientTo !== savedTo || accent !== savedAccent;
+              const appliedPreset = themePresetId ? themePresets.find((p) => p.id === themePresetId) : null;
+              const presetDefault = (appliedPreset?.defaultSnapshot as ThemeSnapObj | null) ?? null;
+              const divergedFromPreset = presetDefault && (
+                base !== presetDefault.base ||
+                gradientFrom !== presetDefault.gradientFrom ||
+                gradientTo !== presetDefault.gradientTo ||
+                accent !== presetDefault.accentColor
+              );
               return (
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
-                  <div style={{ display: "flex", gap: "6px", flex: 1, overflowX: "auto" }}>
-                    {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                    <div style={{ display: "flex", gap: "6px", flex: 1, overflowX: "auto" }}>
+                      {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setThemeFilter(f)}
+                          style={{
+                            padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                            border: `1px solid ${themeFilter === f ? t.accent : t.inputBorder}`,
+                            background: themeFilter === f ? t.accentBg : "transparent",
+                            color: themeFilter === f ? t.accent : t.textMuted,
+                          }}
+                        >
+                          {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : f === "general" ? "🎨 General" : f === "light" ? "☀️ Light" : "🌙 Dark"}
+                        </button>
+                      ))}
+                    </div>
+                    {hasChanged && (
                       <button
-                        key={f}
-                        onClick={() => setThemeFilter(f)}
-                        style={{
-                          padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                          border: `1px solid ${themeFilter === f ? t.accent : t.inputBorder}`,
-                          background: themeFilter === f ? t.accentBg : "transparent",
-                          color: themeFilter === f ? t.accent : t.textMuted,
+                        onClick={() => {
+                          setBase(savedBase);
+                          setGradientFrom(savedFrom);
+                          setGradientTo(savedTo);
+                          setAccent(savedAccent);
+                          triggerSaveTheme(savedBase, savedFrom, savedTo, savedAccent);
                         }}
+                        style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted }}
                       >
-                        {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : f === "general" ? "🎨 General" : f === "light" ? "☀️ Light" : "🌙 Dark"}
+                        ↺ Reset
                       </button>
-                    ))}
+                    )}
                   </div>
-                  {hasChanged && (
+                  {divergedFromPreset && presetDefault && appliedPreset && (
                     <button
+                      type="button"
                       onClick={() => {
-                        setBase(savedBase);
-                        setGradientFrom(savedFrom);
-                        setGradientTo(savedTo);
-                        setAccent(savedAccent);
-                        triggerSaveTheme(savedBase, savedFrom, savedTo, savedAccent);
+                        setBase(presetDefault.base);
+                        setGradientFrom(presetDefault.gradientFrom);
+                        setGradientTo(presetDefault.gradientTo);
+                        setAccent(presetDefault.accentColor);
+                        triggerSaveTheme(presetDefault.base, presetDefault.gradientFrom, presetDefault.gradientTo, presetDefault.accentColor, themePresetId);
                       }}
-                      style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted }}
+                      style={{ width: "100%", marginBottom: "8px", padding: "8px 12px", background: "transparent", border: `1px solid ${t.accentBorder}`, borderRadius: "10px", color: t.accent, fontSize: "12px", fontWeight: 600, cursor: "pointer", textAlign: "center" }}
                     >
-                      ↺ Reset
+                      ↺ Restore to &ldquo;{appliedPreset.name}&rdquo; defaults
                     </button>
                   )}
-                </div>
+                </>
               );
             })()}
 
@@ -991,7 +1029,8 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
                       setGradientFrom(p.gradientFrom);
                       setGradientTo(p.gradientTo);
                       setAccent(p.accentColor);
-                      triggerSaveTheme(p.base, p.gradientFrom, p.gradientTo, p.accentColor);
+                      setThemePresetId(p.id);
+                      triggerSaveTheme(p.base, p.gradientFrom, p.gradientTo, p.accentColor, p.id);
                     }}
                     style={{
                       padding: 0,
