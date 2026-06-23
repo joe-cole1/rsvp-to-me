@@ -16,6 +16,8 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 *   **TypeScript Error — `deletionScheduledAt` not in `UserWhereInput`** (`lib/cron-scheduler.ts:9`): The cron scheduler filters users by `deletionScheduledAt` but that field does not exist on the `User` model in `prisma/schema.prisma`. Fix: add `deletionScheduledAt DateTime?` to the `User` model and create a migration, or rename the field to match whatever column was actually added for the deletion scheduling feature.
 
+*   **ESLint Warning — Unused variable `e`** (`app/page.tsx:31`): `'e' is defined but never used` — a leftover catch or event parameter. Fix: prefix with `_` or remove entirely.
+
 ### 🔒 Routing & System Safety
 *   *(No pending priority 1 routing/safety items)*
 
