@@ -169,6 +169,7 @@ export default function AdminClient({
     seasonal: boolean;
     month?: number | null;
   } | null>(null);
+  const [themePresetOriginal, setThemePresetOriginal] = useState<typeof themePresetForm>(null);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   const [userSearch, setUserSearch] = useState("");
@@ -2685,8 +2686,8 @@ function extractRawEmail(fromStr) {
                             </div>
                             <div style={{ display: "flex", gap: "6px" }}>
                               <button
-                                onClick={() =>
-                                  setThemePresetForm({
+                                onClick={() => {
+                                  const vals = {
                                     id: preset.id,
                                     name: preset.name,
                                     emoji: preset.emoji,
@@ -2696,8 +2697,10 @@ function extractRawEmail(fromStr) {
                                     accentColor: preset.accentColor,
                                     seasonal: preset.seasonal,
                                     month: preset.month ?? null,
-                                  })
-                                }
+                                  };
+                                  setThemePresetForm(vals);
+                                  setThemePresetOriginal(vals);
+                                }}
                                 style={{
                                   flex: 1,
                                   fontSize: "11px",
@@ -2952,6 +2955,28 @@ function extractRawEmail(fromStr) {
                       >
                         Cancel
                       </button>
+                      {themePresetForm.id && themePresetOriginal && (
+                        (() => {
+                          const isDirty =
+                            themePresetForm.name !== themePresetOriginal.name ||
+                            themePresetForm.emoji !== themePresetOriginal.emoji ||
+                            themePresetForm.base !== themePresetOriginal.base ||
+                            themePresetForm.gradientFrom !== themePresetOriginal.gradientFrom ||
+                            themePresetForm.gradientTo !== themePresetOriginal.gradientTo ||
+                            themePresetForm.accentColor !== themePresetOriginal.accentColor ||
+                            themePresetForm.seasonal !== themePresetOriginal.seasonal ||
+                            themePresetForm.month !== themePresetOriginal.month;
+                          return isDirty ? (
+                            <button
+                              type="button"
+                              onClick={() => setThemePresetForm(themePresetOriginal)}
+                              style={{ flex: 1, padding: "12px", background: "transparent", border: `1px solid rgba(239,68,68,0.4)`, borderRadius: "10px", color: "#ef4444", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                            >
+                              ↺ Reset
+                            </button>
+                          ) : null;
+                        })()
+                      )}
                       <button
                         type="submit"
                         disabled={isSavingPreset}
