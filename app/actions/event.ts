@@ -992,6 +992,7 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
 
   const events = await db.event.findMany({
     where: {
+      status: { not: "DELETED" },
       OR: [
         { hostId: session.userId },
         { coHosts: { some: { userId: session.userId } } },
@@ -1741,4 +1742,44 @@ export async function getActiveThemePresets() {
     where: { active: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
+}
+
+// Tombstones the event as DELETED and hard-deletes all guest data for GDPR compliance.
+// Only the host (or admin) may delete their own event this way.
+export async function deleteHostEvent(eventId: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, hostId: true, slug: true, status: true },
+  });
+  if (!event) throw new Error("Event not found");
+  if (event.hostId !== session.userId && session.role !== "ADMIN") throw new Error("Forbidden");
+  if (event.status === "DELETED") throw new Error("Event is already deleted");
+
+  // Hard-delete all guest data before tombstoning (GDPR: purpose no longer exists)
+  await db.$transaction([
+    db.rSVPAnswer.deleteMany({ where: { rsvp: { eventId } } }),
+    db.plusOneGuest.deleteMany({ where: { rsvp: { eventId } } }),
+    db.rSVP.deleteMany({ where: { eventId } }),
+    db.checkIn.deleteMany({ where: { eventId } }),
+    db.comment.deleteMany({ where: { eventId } }),
+    db.pollVote.deleteMany({ where: { poll: { eventId } } }),
+    db.pollOption.deleteMany({ where: { poll: { eventId } } }),
+    db.poll.deleteMany({ where: { eventId } }),
+    db.potluckClaim.deleteMany({ where: { potluckItem: { eventId } } }),
+    db.potluckItem.deleteMany({ where: { eventId } }),
+    db.invitation.deleteMany({ where: { eventId } }),
+    db.eventUpdate.deleteMany({ where: { eventId } }),
+    db.eventInfoSection.deleteMany({ where: { eventId } }),
+    db.sentReminder.deleteMany({ where: { eventId } }),
+    db.activityEvent.deleteMany({ where: { eventId } }),
+    db.eventCoHost.deleteMany({ where: { eventId } }),
+    db.event.update({ where: { id: eventId }, data: { status: "DELETED" } }),
+  ]);
+
+  revalidatePath(`/e/${event.slug}`);
+  revalidatePath("/dashboard");
+  return { success: true };
 }

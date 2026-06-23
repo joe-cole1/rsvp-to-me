@@ -27,7 +27,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     },
   });
 
-  if (!event || event.status === "CANCELLED") notFound();
+  if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
 
   const session = await getSession();
   const isHostOwner = session?.userId === event.hostId;

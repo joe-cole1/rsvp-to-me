@@ -72,7 +72,23 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     },
   });
 
-  if (!event || event.status === "CANCELLED") notFound();
+  if (!event) notFound();
+
+  if (event.status === "DELETED") {
+    return (
+      <AppShell center>
+        <div style={{ textAlign: "center", maxWidth: "400px", padding: "40px 24px" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🗑️</div>
+          <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>This event was deleted</h1>
+          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "15px", lineHeight: 1.5 }}>
+            The host has removed this event.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (event.status === "CANCELLED") notFound();
 
   const session = await getSession();
   const isHostOwner = session?.userId === event.hostId;

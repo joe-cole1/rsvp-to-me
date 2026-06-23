@@ -72,7 +72,7 @@ export default async function Home() {
   const events = await db.event.findMany({
     where: {
       visibility: "PUBLIC",
-      status: { not: "CANCELLED" }
+      status: { notIn: ["CANCELLED", "DELETED"] }
     },
     orderBy: {
       startAt: "asc"

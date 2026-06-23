@@ -11,18 +11,7 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   *(No pending priority 1 bugs)*
 
 ### 🔒 Routing & System Safety
-*   **Host Account Deletion Flow**: Allow hosts to delete their own account from the dashboard, with safeguards for active event ownership.
-
-    **Recommended approach:**
-    - **Block deletion if upcoming published events exist.** Prompt the host to either cancel or transfer ownership of each event before proceeding. This prevents guests from losing access to events they're attending.
-    - **For past/cancelled events**, reassign `hostId` to a designated system/tombstone user (e.g. a `SYSTEM` role user seeded at startup), so event history is preserved for guests who had RSVPs.
-    - **Anonymize the deleted user's PII** (nullify email, phone, name → `"Deleted User"`, clear avatarUrl) rather than hard-deleting the row. This avoids FK constraint violations on `Event.hostId` (which currently has no cascade or setNull behavior) and preserves audit history.
-    - **RSVPs** already survive gracefully — `RSVP.userId` uses `onDelete: SetNull`, so guest RSVPs remain intact as anonymous records with the guest's name still attached.
-    - **Comments** are already decoupled — `Comment` stores `guestName` as a plain string with no user FK, so they are unaffected.
-    - **Sessions and magic tokens** cascade-delete automatically via existing `onDelete: Cascade`.
-    - **Co-host records** also cascade-delete automatically via `EventCoHost.onDelete: Cascade`.
-    - Add a **confirmation step** with high friction (e.g. type "DELETE" to confirm) and a short **soft-delete grace period** (e.g. 30 days) before the anonymization is finalized, allowing accidental deletions to be reversed by an admin.
-    - Supersedes and replaces the lower-priority **G-7 (GDPR Compliance APIs)** item for the host-side deletion flow; guest-side deletion can remain a separate effort.
+*   *(No pending priority 1 routing/safety items)*
 
 ### 👥 Guest List & RSVP Enhancements
 *   *(No pending priority 1 guest list enhancements)*
@@ -42,8 +31,6 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **Draft & Visibility Controls**: Add the ability to save events as drafts (unpublished) in "Display & Privacy" under Event Visibility settings.
 *   **Event Settings Navigation & Photo Sharing**: Move the post-event photo sharing option to its own dedicated section in settings, eventually building it out to link to shared albums (Google Photos, Apple, Immich, etc.).
 *   **Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.
-*   **Backup Schedule Picker**: Replace the raw cron text input for the database backup schedule (Admin → Backups) with a dropdown of common presets: Disabled, Every hour, Every 6 hours, Daily at midnight, Every 3 days, Weekly (Sundays at midnight). The underlying `backup_schedule` SystemConfig value stays as a cron string; the dropdown maps human labels to cron expressions. Include a "Custom" option that reveals the raw input field for advanced users.
-*   **Admin Settings History & Refresh**: Sync the active admin tab to the URL as a query parameter (e.g. `/admin?tab=backups`) so that browser back/forward navigation and page refresh work correctly. Use Next.js `useSearchParams` to read the initial tab on mount and `useRouter.replace` (not `push`) to update the URL on tab change without polluting history. The 8 current tab IDs (overview, users, events, invites, settings, email, sms, backups) map directly to param values; default to `overview` when no param is present.
 
 ### 📊 Guest List Exporters
 *   [ ] Implement a robust CSV export action for guest details (names, statuses, responses).
@@ -120,6 +107,11 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ## ✅ Completed Milestones
 *A log of completed capabilities.*
+
+### Admin UX & Host Account Deletion [7nce6r]
+*   [x] **Admin Settings History & Refresh**: Active admin tab is synced to the URL (`/admin?tab=backups`) via `useSearchParams` + `router.replace`. Browser back/forward and page refresh all preserve the selected tab.
+*   [x] **Backup Schedule Picker**: Replaced raw cron text input (Admin → Backups) with a preset dropdown (Disabled, Hourly, Every 6h, Daily, Every 3 days, Weekly). A "Custom" option reveals the raw input for advanced cron expressions.
+*   [x] **Host Account Deletion Flow**: Hosts can delete their account from Profile settings. Upcoming published events must be explicitly deleted first (each shows a "Delete event" button; deleted events show a tombstone page at their original URL). After clearing events, the host types "DELETE" to confirm. Account is signed out immediately and anonymized within 24 hours. Admins see a "Deletion Pending" badge in the Users tab and can cancel within the window. Past events are reassigned to a SYSTEM tombstone user; guest RSVP/comment data for past events is preserved (GDPR-defensible: it is the guests' data). Added `DELETED` EventStatus; `deleteHostEvent()` server action; `requestAccountDeletion()` and `cancelAccountDeletion()` actions; hourly cron processing in `lib/cron-scheduler.ts`; Prisma migration `add_deletion_fields`.
 
 ### Favicon & Page Titles
 *   [x] **Root Layout Metadata**: Replaced `"Create Next App"` placeholder with branded title template (`"%s | RSVP to Me"`), real description, and Open Graph site defaults.

@@ -30,7 +30,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     },
   });
 
-  if (!event || event.status === "CANCELLED") notFound();
+  if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
 
   const theme = resolveTheme(
     event.theme?.baseTheme ?? "DARK",

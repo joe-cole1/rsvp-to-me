@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Menu, X } from "lucide-react";
 import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -8,6 +9,7 @@ import ProfileDropdown from "@/components/ui/ProfileDropdown";
 import {
   updateUserRole,
   deleteUserAccount,
+  cancelAccountDeletion,
   deleteEventAdmin,
   createInviteCode,
   revokeInviteCode,
@@ -32,6 +34,8 @@ interface AdminUser {
   phone: string | null;
   role: "GUEST" | "HOST" | "ADMIN";
   createdAt: Date;
+  deletionRequestedAt: Date | null;
+  deletionScheduledAt: Date | null;
   _count: {
     events: number;
     rsvps: number;
@@ -110,6 +114,19 @@ interface AdminClientProps {
   } | null;
 }
 
+const VALID_TABS = ["overview", "users", "events", "invites", "settings", "email", "sms", "backups", "themes"] as const;
+type TabId = typeof VALID_TABS[number];
+
+const BACKUP_PRESETS = [
+  { label: "Disabled",                     value: "disabled"    },
+  { label: "Every hour",                   value: "0 * * * *"   },
+  { label: "Every 6 hours",               value: "0 */6 * * *" },
+  { label: "Daily at midnight",            value: "0 0 * * *"   },
+  { label: "Every 3 days",                value: "0 0 */3 * *" },
+  { label: "Weekly (Sundays at midnight)", value: "0 0 * * 0"   },
+  { label: "Custom",                       value: "custom"      },
+] as const;
+
 export default function AdminClient({
   initialStats,
   initialUsers,
@@ -121,7 +138,9 @@ export default function AdminClient({
   initialThemePresets,
   sessionUser,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings" | "email" | "sms" | "backups" | "themes">("overview");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [copied, setCopied] = useState(false);
 
   const [users, setUsers] = useState(initialUsers);
@@ -169,6 +188,21 @@ export default function AdminClient({
       return () => clearTimeout(timer);
     }
   }, [feedback]);
+
+  // Sync active tab from URL query param (?tab=backups)
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const tab = searchParams.get("tab") as TabId | null;
+    if (tab && VALID_TABS.includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  function handleTabChange(id: TabId) {
+    setActiveTab(id);
+    router.replace(`/admin?tab=${id}`, { scroll: false });
+  }
 
   const [emailProvider, setEmailProvider] = useState(config.email_provider || "console");
   const [emailFrom, setEmailFrom] = useState(config.email_from || "");
@@ -543,6 +577,22 @@ function extractRawEmail(fromStr) {
     });
   };
 
+  const handleCancelDeletion = (userId: string, name: string) => {
+    setFeedback(null);
+    startTransition(async () => {
+      try {
+        const res = await cancelAccountDeletion(userId);
+        if (res.success) {
+          setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, deletionRequestedAt: null, deletionScheduledAt: null } : u));
+          setFeedback({ type: "success", message: `Cancelled deletion for ${name}.` });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to cancel deletion.";
+        setFeedback({ type: "error", message });
+      }
+    });
+  };
+
   const handleEventDelete = (eventId: string, title: string) => {
     if (!confirm(`Are you sure you want to moderate/delete the event "${title}"? This is permanent.`)) {
       return;
@@ -791,7 +841,7 @@ function extractRawEmail(fromStr) {
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveTab(tab.id);
+                  handleTabChange(tab.id);
                   setFeedback(null);
                 }}
                 style={{
@@ -916,6 +966,11 @@ function extractRawEmail(fromStr) {
                               <td style={{ padding: "16px" }}>
                                 <div style={{ fontWeight: 700, color: APP_SHELL.textPrimary }}>{u.name || "Unnamed User"}</div>
                                 <div style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>Registered {new Date(u.createdAt).toLocaleDateString()}</div>
+                                {u.deletionScheduledAt && (
+                                  <div style={{ fontSize: "11px", color: "#ef4444", fontWeight: 600, marginTop: "4px" }}>
+                                    Deletion pending — {new Date(u.deletionScheduledAt).toLocaleString()}
+                                  </div>
+                                )}
                               </td>
                               <td style={{ padding: "16px" }}>
                                 <div style={{ color: APP_SHELL.textPrimary }}>{u.email || "-"}</div>
@@ -942,19 +997,37 @@ function extractRawEmail(fromStr) {
                                 </select>
                               </td>
                               <td style={{ padding: "16px", textAlign: "right" }}>
-                                <button
-                                  onClick={() => handleUserDelete(u.id, u.name || u.email || "Unknown User")}
-                                  style={{
-                                    backgroundColor: "transparent",
-                                    border: "none",
-                                    color: "#ef4444",
-                                    cursor: "pointer",
-                                    fontWeight: 600,
-                                    fontSize: "13px",
-                                  }}
-                                >
-                                  Delete
-                                </button>
+                                {u.deletionScheduledAt ? (
+                                  <button
+                                    onClick={() => handleCancelDeletion(u.id, u.name || u.email || "Unknown User")}
+                                    style={{
+                                      backgroundColor: "transparent",
+                                      border: "1px solid #ef4444",
+                                      color: "#ef4444",
+                                      cursor: "pointer",
+                                      fontWeight: 600,
+                                      fontSize: "12px",
+                                      borderRadius: "6px",
+                                      padding: "4px 10px",
+                                    }}
+                                  >
+                                    Cancel Deletion
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUserDelete(u.id, u.name || u.email || "Unknown User")}
+                                    style={{
+                                      backgroundColor: "transparent",
+                                      border: "none",
+                                      color: "#ef4444",
+                                      cursor: "pointer",
+                                      fontWeight: 600,
+                                      fontSize: "13px",
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))
@@ -2271,27 +2344,58 @@ function extractRawEmail(fromStr) {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>
-                          BACKUP CRON SCHEDULE
+                          BACKUP SCHEDULE
                         </label>
-                        <input
-                          type="text"
-                          value={backupSchedule}
-                          onChange={(e) => setBackupSchedule(e.target.value)}
-                          placeholder="e.g. 0 0 * * * (or 'disabled')"
-                          required
-                          style={{
-                            backgroundColor: APP_SHELL.inputBg,
-                            border: `1px solid ${APP_SHELL.inputBorder}`,
-                            borderRadius: "10px",
-                            padding: "10px 14px",
-                            fontSize: "14px",
-                            color: APP_SHELL.textPrimary,
-                            outline: "none",
-                          }}
-                        />
-                        <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
-                          Standard 5-field cron syntax (Minute Hour Day-of-Month Month Day-of-Week). Set to <strong>disabled</strong> to turn off automated backups.
-                        </span>
+                        {(() => {
+                          const isCustom = !BACKUP_PRESETS.some(p => p.value !== "custom" && p.value === backupSchedule);
+                          return (
+                            <>
+                              <select
+                                value={isCustom ? "custom" : backupSchedule}
+                                onChange={(e) => {
+                                  if (e.target.value !== "custom") setBackupSchedule(e.target.value);
+                                }}
+                                style={{
+                                  backgroundColor: APP_SHELL.inputBg,
+                                  border: `1px solid ${APP_SHELL.inputBorder}`,
+                                  borderRadius: "10px",
+                                  padding: "10px 14px",
+                                  fontSize: "14px",
+                                  color: APP_SHELL.textPrimary,
+                                  outline: "none",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {BACKUP_PRESETS.map(p => (
+                                  <option key={p.value} value={p.value}>{p.label}</option>
+                                ))}
+                              </select>
+                              {isCustom && (
+                                <input
+                                  type="text"
+                                  value={backupSchedule}
+                                  onChange={(e) => setBackupSchedule(e.target.value)}
+                                  placeholder="e.g. 0 0 * * * (or 'disabled')"
+                                  required
+                                  style={{
+                                    backgroundColor: APP_SHELL.inputBg,
+                                    border: `1px solid ${APP_SHELL.inputBorder}`,
+                                    borderRadius: "10px",
+                                    padding: "10px 14px",
+                                    fontSize: "14px",
+                                    color: APP_SHELL.textPrimary,
+                                    outline: "none",
+                                  }}
+                                />
+                              )}
+                              <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
+                                {isCustom
+                                  ? "Standard 5-field cron syntax (Minute Hour Day-of-Month Month Day-of-Week)."
+                                  : backupSchedule === "disabled" ? "Automated backups are off." : `Cron: ${backupSchedule}`}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
 
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -2932,7 +3036,7 @@ function extractRawEmail(fromStr) {
                     <button
                       key={tab.id}
                       onClick={() => {
-                        setActiveTab(tab.id);
+                        handleTabChange(tab.id);
                         setFeedback(null);
                         setIsDrawerOpen(false);
                       }}

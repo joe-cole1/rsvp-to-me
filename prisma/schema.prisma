@@ -12,15 +12,17 @@ datasource db {
 // ──────────────────────────────────────────────
 
 model User {
-  id                 String   @id @default(cuid())
-  email              String?  @unique
-  phone              String?  @unique
-  name               String?
-  avatarUrl          String?
-  role               Role     @default(GUEST)
-  emailNotifications Boolean  @default(true)
-  smsNotifications   Boolean  @default(true)
-  createdAt          DateTime @default(now())
+  id                  String    @id @default(cuid())
+  email               String?   @unique
+  phone               String?   @unique
+  name                String?
+  avatarUrl           String?
+  role                Role      @default(GUEST)
+  emailNotifications  Boolean   @default(true)
+  smsNotifications    Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  deletionRequestedAt DateTime?
+  deletionScheduledAt DateTime?
 
   events         Event[]
   coHostedEvents EventCoHost[]
@@ -155,6 +157,7 @@ enum EventStatus {
   DRAFT
   PUBLISHED
   CANCELLED
+  DELETED
 }
 
 enum GuestListVis {
