@@ -300,6 +300,7 @@ enum RSVPStatus {
   GOING
   MAYBE
   NO
+  INVITED
 }
 
 model RSVPAnswer {
