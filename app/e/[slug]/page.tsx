@@ -96,45 +96,55 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const isAdminModerating = session?.role === "ADMIN" && searchParams?.admin === "1";
   const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
 
-  // Block / gate unauthenticated access to PRIVATE events
-  if (!session && !isHost) {
-    if (event.visibility === "PRIVATE") {
-      return (
-        <AppShell center>
-          <div style={{ textAlign: "center", maxWidth: "400px", padding: "40px 24px" }}>
-            <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
-            <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>This is a private event</h1>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "15px", lineHeight: 1.5 }}>
-              To attend, contact the host to receive an invitation.
-            </p>
-            <a
-              href={`/sign-in?redirect=/e/${slug}`}
-              style={{
-                display: "inline-block",
-                marginTop: "20px",
-                padding: "10px 22px",
-                background: "rgba(168,85,247,0.15)",
-                border: "1px solid rgba(168,85,247,0.4)",
-                borderRadius: "8px",
-                color: "#c084fc",
-                textDecoration: "none",
-                fontSize: "14px",
-                fontWeight: 600,
-              }}
-            >
-              Sign in to access
-            </a>
-          </div>
-        </AppShell>
-      );
-    }
-  }
-
   // Check if event is unlocked via signed cookie
   const unlockedCookie = (await cookies()).get(`rsvp-unlocked-${slug}`)?.value;
   const isUnlocked = unlockedCookie === getUnlockSignature(slug);
 
-  // Password gate — hosts bypass it
+  // Check if the URL token corresponds to a valid RSVP (lets INVITED guests through the private gate)
+  const hasValidToken = token
+    ? !!(await db.rSVP.findFirst({
+        where: { editToken: token, eventId: event.id },
+        select: { id: true },
+      }))
+    : false;
+
+  // Block / gate access to PRIVATE events
+  if (event.visibility === "PRIVATE" && !isHost && !isUnlocked && !hasValidToken) {
+    if (event.password) {
+      // Password is a valid access path — show the entry form
+      return <PasswordGate slug={slug} />;
+    }
+    return (
+      <AppShell center>
+        <div style={{ textAlign: "center", maxWidth: "400px", padding: "40px 24px" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
+          <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>This is a private event</h1>
+          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "15px", lineHeight: 1.5 }}>
+            To attend, contact the host to receive an invitation.
+          </p>
+          <a
+            href={`/sign-in?redirect=/e/${slug}`}
+            style={{
+              display: "inline-block",
+              marginTop: "20px",
+              padding: "10px 22px",
+              background: "rgba(168,85,247,0.15)",
+              border: "1px solid rgba(168,85,247,0.4)",
+              borderRadius: "8px",
+              color: "#c084fc",
+              textDecoration: "none",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            Sign in to access
+          </a>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Password gate for non-private events with a password — hosts bypass it
   if (event.password && !isHost && !isUnlocked) {
     return <PasswordGate slug={slug} />;
   }

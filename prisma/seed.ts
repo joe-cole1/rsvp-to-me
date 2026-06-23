@@ -386,7 +386,6 @@ async function main() {
         smsDayBefore: false,
         smsHoursBefore: 0,
         nudgeUnresponded: true,
-        postEventPrompt: false,
       }
     });
 

@@ -821,7 +821,7 @@ describe("saveReminderSettings", () => {
   const SETTINGS = {
     emailWeekBefore: true,  emailDayBefore: true,  emailHoursBefore: 2,
     smsWeekBefore: false,   smsDayBefore: false,   smsHoursBefore: 0,
-    nudgeUnresponded: false, postEventPrompt: false,
+    nudgeUnresponded: false,
   };
 
   beforeEach(() => {

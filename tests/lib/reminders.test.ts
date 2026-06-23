@@ -62,7 +62,6 @@ function makeReminderEvent(overrides: Record<string, unknown> = {}) {
       smsDayBefore: false,
       smsHoursBefore: 0,
       nudgeUnresponded: false,
-      postEventPrompt: false,
     },
     rsvps: [],
     sentReminders: [],
