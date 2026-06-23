@@ -176,6 +176,7 @@ export interface ResolvedTheme {
 
   // Cards
   cardBg: string;
+  cardBgAlpha?: number; // 0–1 white-glass opacity (SOFT/BOLD); undefined for DARK (uses dark surface model)
   cardBorder: string;
   cardRadius: string;
   cardShadow: string;
@@ -342,6 +343,7 @@ export function resolveTheme(
       accentBorder: `rgba(${accentRgb},0.35)`,
       accentShadow: `0 4px 20px rgba(${accentRgb},0.3)`,
       cardBg: "rgba(255,255,255,0.85)",
+      cardBgAlpha: 0.85,
       cardBorder: `hsla(${h1},${Math.min(s1,15)}%,85%,0.5)`,
       cardRadius: "24px",
       cardShadow: "0 4px 24px rgba(0,0,0,0.06)",
@@ -381,7 +383,8 @@ export function resolveTheme(
     accentBg: `rgba(${accentRgb},0.12)`,
     accentBorder: `rgba(${accentRgb},0.25)`,
     accentShadow: "none",
-    cardBg: "#ffffff",
+    cardBg: "rgba(255,255,255,0.80)",
+    cardBgAlpha: 0.80,
     cardBorder: "rgba(255,255,255,0.55)",
     cardRadius: "24px",
     cardShadow: "0 8px 40px rgba(0,0,0,0.18)",
