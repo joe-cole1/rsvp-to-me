@@ -132,13 +132,14 @@ export async function saveEventTheme(
   baseTheme: BaseTheme,
   gradientFrom: string,
   gradientTo: string,
-  accentColor: string
+  accentColor: string,
+  presetId?: string | null
 ) {
   const event = await assertHost(eventId);
   await db.eventTheme.upsert({
     where: { eventId },
-    update: { baseTheme, gradientFrom, gradientTo, accentColor },
-    create: { eventId, baseTheme, gradientFrom, gradientTo, accentColor },
+    update: { baseTheme, gradientFrom, gradientTo, accentColor, ...(presetId !== undefined ? { appliedPresetId: presetId } : {}) },
+    create: { eventId, baseTheme, gradientFrom, gradientTo, accentColor, appliedPresetId: presetId ?? null },
   });
   revalidatePath(`/e/${event.slug}`);
 }

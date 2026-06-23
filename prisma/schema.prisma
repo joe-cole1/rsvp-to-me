@@ -178,13 +178,14 @@ model EventCoHost {
 }
 
 model EventTheme {
-  id            String    @id @default(cuid())
-  eventId       String    @unique
-  baseTheme     BaseTheme @default(DARK)
-  gradientFrom  String    @default("#7c3aed")
-  gradientTo    String    @default("#1e40af")
-  accentColor   String    @default("#a855f7")
-  coverImageUrl String?
+  id              String    @id @default(cuid())
+  eventId         String    @unique
+  baseTheme       BaseTheme @default(DARK)
+  gradientFrom    String    @default("#7c3aed")
+  gradientTo      String    @default("#1e40af")
+  accentColor     String    @default("#a855f7")
+  coverImageUrl   String?
+  appliedPresetId String?
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
@@ -196,18 +197,20 @@ enum BaseTheme {
 }
 
 model ThemePreset {
-  id           String    @id @default(cuid())
-  name         String
-  emoji        String    @default("🎨")
-  base         BaseTheme
-  gradientFrom String
-  gradientTo   String
-  accentColor  String
-  seasonal     Boolean   @default(false)
-  active       Boolean   @default(true)
-  sortOrder    Int       @default(0)
-  month        Int?
-  createdAt    DateTime  @default(now())
+  id               String    @id @default(cuid())
+  name             String
+  emoji            String    @default("🎨")
+  base             BaseTheme
+  gradientFrom     String
+  gradientTo       String
+  accentColor      String
+  seasonal         Boolean   @default(false)
+  active           Boolean   @default(true)
+  sortOrder        Int       @default(0)
+  month            Int?
+  createdAt        DateTime  @default(now())
+  originalSnapshot Json?
+  defaultSnapshot  Json?
 }
 
 // Partiful-style info chips: Dress Code, Food, Parking, Link, Custom

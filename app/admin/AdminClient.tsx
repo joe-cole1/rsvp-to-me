@@ -25,6 +25,7 @@ import {
   createThemePreset,
   updateThemePreset,
   deleteThemePreset,
+  saveThemePresetDefault,
 } from "@/app/actions/admin";
 
 interface AdminUser {
@@ -76,6 +77,12 @@ interface BackupConfig {
   last_backup_time: string;
 }
 
+type ThemeSnapObj = {
+  name: string; emoji: string; base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string; gradientTo: string; accentColor: string;
+  seasonal: boolean; month?: number | null;
+};
+
 interface AdminThemePreset {
   id: string;
   name: string;
@@ -89,6 +96,8 @@ interface AdminThemePreset {
   sortOrder: number;
   month?: number | null;
   createdAt: Date;
+  originalSnapshot: unknown;
+  defaultSnapshot: unknown;
 }
 
 interface AdminClientProps {
@@ -680,10 +689,8 @@ function extractRawEmail(fromStr) {
     });
   };
 
-  const handleSaveThemePreset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!themePresetForm) return;
-    setIsSavingPreset(true);
+  const doSaveThemePreset = async (): Promise<boolean> => {
+    if (!themePresetForm) return false;
     try {
       if (themePresetForm.id) {
         await updateThemePreset(themePresetForm.id, {
@@ -716,12 +723,40 @@ function extractRawEmail(fromStr) {
         setThemePresets((prev) => [...prev, created as AdminThemePreset]);
         setFeedback({ type: "success", message: "Preset created." });
       }
-      setThemePresetForm(null);
+      return true;
     } catch (err) {
       setFeedback({ type: "error", message: err instanceof Error ? err.message : "Failed to save preset." });
-    } finally {
-      setIsSavingPreset(false);
+      return false;
     }
+  };
+
+  const handleSaveThemePreset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingPreset(true);
+    const ok = await doSaveThemePreset();
+    if (ok) setThemePresetForm(null);
+    setIsSavingPreset(false);
+  };
+
+  const handleSaveThemePresetAsDefault = async () => {
+    if (!themePresetForm?.id) return;
+    setIsSavingPreset(true);
+    const ok = await doSaveThemePreset();
+    if (ok) {
+      await saveThemePresetDefault(themePresetForm.id);
+      const snap: ThemeSnapObj = {
+        name: themePresetForm.name, emoji: themePresetForm.emoji, base: themePresetForm.base,
+        gradientFrom: themePresetForm.gradientFrom, gradientTo: themePresetForm.gradientTo,
+        accentColor: themePresetForm.accentColor, seasonal: themePresetForm.seasonal,
+        month: themePresetForm.month ?? null,
+      };
+      setThemePresets((prev) =>
+        prev.map((p) => p.id === themePresetForm.id ? { ...p, defaultSnapshot: snap } : p)
+      );
+      setFeedback({ type: "success", message: "Preset saved and set as new default." });
+      setThemePresetForm(null);
+    }
+    setIsSavingPreset(false);
   };
 
   const handleDeleteThemePreset = async (id: string) => {
@@ -2780,17 +2815,74 @@ function extractRawEmail(fromStr) {
                     color: APP_SHELL.textPrimary,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                    <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700 }}>
-                      {themePresetForm.id ? "Edit Preset" : "New Preset"}
-                    </h3>
-                    <button
-                      onClick={() => setThemePresetForm(null)}
-                      style={{ background: "none", border: "none", color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "20px", padding: "2px 6px" }}
-                    >
-                      ×
-                    </button>
-                  </div>
+                  {(() => {
+                    const editingPreset = themePresetForm.id
+                      ? themePresets.find((p) => p.id === themePresetForm.id) : null;
+                    const defSnap = (editingPreset?.defaultSnapshot as ThemeSnapObj | null) ?? null;
+                    const origSnap = (editingPreset?.originalSnapshot as ThemeSnapObj | null) ?? null;
+                    const formDiffersFromDefault = defSnap && (
+                      themePresetForm.name !== defSnap.name ||
+                      themePresetForm.emoji !== defSnap.emoji ||
+                      themePresetForm.base !== defSnap.base ||
+                      themePresetForm.gradientFrom !== defSnap.gradientFrom ||
+                      themePresetForm.gradientTo !== defSnap.gradientTo ||
+                      themePresetForm.accentColor !== defSnap.accentColor ||
+                      themePresetForm.seasonal !== defSnap.seasonal ||
+                      themePresetForm.month !== (defSnap.month ?? null)
+                    );
+                    const origDiffersFromDefault = origSnap && defSnap && (
+                      origSnap.name !== defSnap.name ||
+                      origSnap.emoji !== defSnap.emoji ||
+                      origSnap.base !== defSnap.base ||
+                      origSnap.gradientFrom !== defSnap.gradientFrom ||
+                      origSnap.gradientTo !== defSnap.gradientTo ||
+                      origSnap.accentColor !== defSnap.accentColor ||
+                      origSnap.seasonal !== defSnap.seasonal ||
+                      (origSnap.month ?? null) !== (defSnap.month ?? null)
+                    );
+                    const formDiffersFromOriginal = origSnap && (
+                      themePresetForm.name !== origSnap.name ||
+                      themePresetForm.emoji !== origSnap.emoji ||
+                      themePresetForm.base !== origSnap.base ||
+                      themePresetForm.gradientFrom !== origSnap.gradientFrom ||
+                      themePresetForm.gradientTo !== origSnap.gradientTo ||
+                      themePresetForm.accentColor !== origSnap.accentColor ||
+                      themePresetForm.seasonal !== origSnap.seasonal ||
+                      themePresetForm.month !== (origSnap.month ?? null)
+                    );
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+                        <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, flex: 1, minWidth: 0 }}>
+                          {themePresetForm.id ? "Edit Preset" : "New Preset"}
+                        </h3>
+                        {formDiffersFromDefault && defSnap && (
+                          <button
+                            type="button"
+                            onClick={() => setThemePresetForm((f) => f && { ...f, ...defSnap })}
+                            style={{ background: "none", border: "1px solid rgba(139,92,246,0.5)", borderRadius: "7px", color: "#a78bfa", cursor: "pointer", fontSize: "11px", fontWeight: 600, padding: "4px 8px", whiteSpace: "nowrap" }}
+                          >
+                            ↺ Reset to Default
+                          </button>
+                        )}
+                        {origDiffersFromDefault && formDiffersFromOriginal && origSnap && (
+                          <button
+                            type="button"
+                            onClick={() => setThemePresetForm((f) => f && { ...f, ...origSnap })}
+                            style={{ background: "none", border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: "7px", color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "11px", fontWeight: 600, padding: "4px 8px", whiteSpace: "nowrap" }}
+                          >
+                            ↺ Reset to Original
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setThemePresetForm(null)}
+                          style={{ background: "none", border: "none", color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "20px", padding: "2px 6px", lineHeight: 1 }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })()}
 
                   <form onSubmit={handleSaveThemePreset} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     {/* Name + emoji row */}
@@ -2984,6 +3076,16 @@ function extractRawEmail(fromStr) {
                       >
                         {isSavingPreset ? "Saving…" : themePresetForm.id ? "Save Changes" : "Create Preset"}
                       </button>
+                      {themePresetForm.id && (
+                        <button
+                          type="button"
+                          disabled={isSavingPreset}
+                          onClick={handleSaveThemePresetAsDefault}
+                          style={{ flex: 2, padding: "12px", background: "transparent", border: "1px solid rgba(139,92,246,0.5)", borderRadius: "10px", color: "#a78bfa", fontSize: "14px", fontWeight: 600, cursor: "pointer", opacity: isSavingPreset ? 0.7 : 1 }}
+                        >
+                          Save as Default
+                        </button>
+                      )}
                     </div>
                   </form>
                 </div>

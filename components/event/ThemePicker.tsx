@@ -5,6 +5,17 @@ import { Check } from "lucide-react";
 import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, getSortedPresets } from "@/lib/theme";
 import { saveEventTheme } from "@/app/actions/event";
 
+type ThemeSnapObj = {
+  name: string;
+  emoji: string;
+  base: BaseTheme;
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal: boolean;
+  month?: number | null;
+};
+
 type DbThemePreset = {
   id: string;
   name: string;
@@ -15,6 +26,7 @@ type DbThemePreset = {
   accentColor: string;
   seasonal?: boolean | null;
   month?: number | null;
+  defaultSnapshot?: unknown;
 };
 
 export function ThemePicker({
@@ -25,7 +37,7 @@ export function ThemePicker({
   onSave,
 }: {
   eventId: string;
-  current: { base: BaseTheme; gradientFrom: string; gradientTo: string; accentColor: string };
+  current: { base: BaseTheme; gradientFrom: string; gradientTo: string; accentColor: string; appliedPresetId?: string | null };
   presets?: DbThemePreset[];
   onClose: () => void;
   onSave: (base: BaseTheme, gradientFrom: string, gradientTo: string, accentColor: string) => void;
@@ -34,6 +46,7 @@ export function ThemePicker({
   const [gradientFrom, setGradientFrom] = useState(current.gradientFrom);
   const [gradientTo, setGradientTo] = useState(current.gradientTo);
   const [accent, setAccent] = useState(current.accentColor);
+  const [appliedPresetId, setAppliedPresetId] = useState<string | null>(current.appliedPresetId ?? null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">("all");
@@ -43,7 +56,7 @@ export function ThemePicker({
 
   const handleSave = async () => {
     setSaving(true);
-    await saveEventTheme(eventId, base, gradientFrom, gradientTo, accent);
+    await saveEventTheme(eventId, base, gradientFrom, gradientTo, accent, appliedPresetId);
     setSaving(false);
     onSave(base, gradientFrom, gradientTo, accent);
   };
@@ -53,6 +66,7 @@ export function ThemePicker({
     setGradientFrom(p.gradientFrom);
     setGradientTo(p.gradientTo);
     setAccent(p.accentColor);
+    setAppliedPresetId(p.id);
   };
 
   const sortedPresets = useMemo(() => getSortedPresets(presets), [presets]);
@@ -82,6 +96,15 @@ export function ThemePicker({
     fontWeight: 600,
     cursor: "pointer",
   });
+
+  const appliedPreset = appliedPresetId ? presets.find((p) => p.id === appliedPresetId) : null;
+  const presetDefault = (appliedPreset?.defaultSnapshot as ThemeSnapObj | null) ?? null;
+  const divergedFromPreset = presetDefault && (
+    base !== presetDefault.base ||
+    gradientFrom !== presetDefault.gradientFrom ||
+    gradientTo !== presetDefault.gradientTo ||
+    accent !== presetDefault.accentColor
+  );
 
   return (
     <>
@@ -184,6 +207,27 @@ export function ThemePicker({
               </div>
             )}
           </div>
+
+          {/* Restore to preset default */}
+          {divergedFromPreset && presetDefault && appliedPreset && (
+            <button
+              type="button"
+              onClick={() => {
+                setBase(presetDefault.base);
+                setGradientFrom(presetDefault.gradientFrom);
+                setGradientTo(presetDefault.gradientTo);
+                setAccent(presetDefault.accentColor);
+              }}
+              style={{
+                width: "100%", marginBottom: "12px", padding: "10px 14px",
+                background: "transparent", border: "1px solid rgba(167,139,250,0.4)",
+                borderRadius: "12px", color: "#a78bfa", fontSize: "13px",
+                fontWeight: 600, cursor: "pointer", textAlign: "center",
+              }}
+            >
+              ↺ Restore to &ldquo;{appliedPreset.name}&rdquo; defaults
+            </button>
+          )}
 
           {/* Customize accordion */}
           <div style={{ marginBottom: "20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", overflow: "hidden" }}>

@@ -505,11 +505,28 @@ export async function createThemePreset(data: {
 }) {
   await assertAdmin();
   const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
+  const snapshot = {
+    name: data.name, emoji: data.emoji, base: data.base,
+    gradientFrom: data.gradientFrom, gradientTo: data.gradientTo,
+    accentColor: data.accentColor, seasonal: data.seasonal, month: data.month ?? null,
+  };
   const preset = await db.themePreset.create({
-    data: { ...data, active: true, sortOrder: (maxOrder._max.sortOrder ?? -1) + 1 },
+    data: { ...data, active: true, sortOrder: (maxOrder._max.sortOrder ?? -1) + 1, originalSnapshot: snapshot, defaultSnapshot: snapshot },
   });
   revalidatePath("/admin");
   return preset;
+}
+
+export async function saveThemePresetDefault(id: string) {
+  await assertAdmin();
+  const preset = await db.themePreset.findUniqueOrThrow({ where: { id } });
+  const snapshot = {
+    name: preset.name, emoji: preset.emoji, base: preset.base,
+    gradientFrom: preset.gradientFrom, gradientTo: preset.gradientTo,
+    accentColor: preset.accentColor, seasonal: preset.seasonal, month: preset.month ?? null,
+  };
+  await db.themePreset.update({ where: { id }, data: { defaultSnapshot: snapshot } });
+  revalidatePath("/admin");
 }
 
 export async function updateThemePreset(
