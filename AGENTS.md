@@ -45,7 +45,6 @@ After making changes and before presenting Git commands to the user to push to G
    - Verify that the local Git `pre-commit` hook is configured in `.git/hooks/pre-commit` to catch styling issues before committing.
 2. **Wipe and Rebuild Local Docker Environment**:
    - Run `docker compose down` to shut down and clean up active containers and networks.
-   - Delete the local dev database file `data/prod.db` to ensure a completely fresh data state (clearing stale DB records and seeding fresh).
    - Run `docker compose up --build -d` to compile the application with the new changes and launch the containers from scratch, ensuring no cached database state, assets, or CSS remain.
 3. **Verify Correctness**:
    - Ensure the application builds successfully, and tests pass.
@@ -93,7 +92,8 @@ A fun, social-first event and RSVP platform for personal events (house parties, 
 | **Language** | TypeScript |
 | **Styling** | Tailwind CSS v4 + Radix Themes |
 | **Icons** | Lucide React |
-| **Database** | SQLite via Prisma 7 |
+| **Database** | PostgreSQL 18 via Prisma 7 |
+| **Cache / Locks** | Redis (required) |
 | **Auth** | Custom magic-link (iron-session cookies) |
 | **Email** | nodemailer (SMTP); console fallback in dev |
 | **SMS** | Twilio (optional) |
@@ -167,8 +167,8 @@ tests/
   lib/              # email + sms unit tests
   setup.ts          # global env setup for tests
 prisma/
-  schema.prisma     # Source of truth for DB schema
-  migrations/       # Auto-managed by Prisma
+  schema.prisma          # Source of truth for PostgreSQL schema
+  postgres-migrations/   # Auto-managed by Prisma (single squashed init migration)
 .github/
   workflows/
     ci.yml          # Lint + test + build on every PR and push to main
@@ -220,7 +220,8 @@ Local filesystem storage — no external service needed.
 ## Environment Variables
 ```bash
 # Required
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/rsvp_db"
+REDIS_URL="redis://:password@localhost:6379"
 SESSION_SECRET=""             # 32+ random chars for iron-session encryption
 OPEN_REGISTRATION="false"     # set "true" to allow anyone to register (no invite code)
 HOST_INVITE_CODE=""           # Default invite code for host registration (only used when OPEN_REGISTRATION=false)
