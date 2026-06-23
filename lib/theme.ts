@@ -161,6 +161,11 @@ export interface ResolvedTheme {
   textMuted: string;
   headingFont: string;
 
+  // Hero text — for BOLD where all content sits on a vivid full-page gradient;
+  // undefined for DARK/SOFT which already have good native contrast
+  heroText?: string;
+  heroTextShadow?: string;
+
   // Accent
   accent: string;
   accentRgb: string;
@@ -355,19 +360,21 @@ export function resolveTheme(
     };
   }
 
-  // BOLD: hero strip uses gradientFrom → gradientTo directly; white card below
+  // BOLD: full-page vivid gradient; white cards float on top
   const pageBg = `hsl(${h1},${Math.min(s1,10)}%,98%)`;
   return {
     gradientFrom,
     gradientTo,
     pageBg,
     pageDecoration: "bold-hero",
-    pageDecorationBg1: `linear-gradient(160deg, ${gradientFrom} 0%, ${gradientTo} 25%, ${pageBg} 55%)`,
+    pageDecorationBg1: `linear-gradient(160deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
     pageDecorationBg2: "none",
     textPrimary: "#0a0a0a",
     textSecondary: "#52525b",
     textMuted: "#a1a1aa",
     headingFont: "inherit",
+    heroText: "#ffffff",
+    heroTextShadow: "0 1px 4px rgba(0,0,0,0.3)",
     accent: accentColor,
     accentRgb,
     accentFg,
@@ -375,9 +382,9 @@ export function resolveTheme(
     accentBorder: `rgba(${accentRgb},0.25)`,
     accentShadow: "none",
     cardBg: "#ffffff",
-    cardBorder: `hsla(${h1},${Math.min(s1,15)}%,90%,0.5)`,
+    cardBorder: "rgba(255,255,255,0.55)",
     cardRadius: "24px",
-    cardShadow: "0 8px 40px rgba(0,0,0,0.08)",
+    cardShadow: "0 8px 40px rgba(0,0,0,0.18)",
     inputBg: `hsla(${h1},${Math.min(s1,10)}%,96%,0.5)`,
     inputBorder: `hsla(${h1},${Math.min(s1,15)}%,88%,0.6)`,
     inputText: "#0a0a0a",
