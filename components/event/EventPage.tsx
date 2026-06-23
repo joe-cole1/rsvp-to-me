@@ -75,6 +75,7 @@ type EventData = {
   rsvpFields: { id: string; label: string; fieldType: string; required: boolean; options: string | null }[];
   updates: { id: string; body: string; notifyGuests: boolean; createdAt: Date }[];
   potluckItems: { id: string; label: string; quantity: number; createdAt: Date; claims: { id: string; potluckItemId: string; guestName: string; quantity: number; createdAt: Date }[] }[];
+  rsvpDeadline: Date | null;
   pendingRsvps: PendingRsvp[];
   activityEvents: { id: string; type: string; actorName: string | null; detail: string; createdAt: Date }[];
   polls: {
@@ -456,17 +457,20 @@ function DateEdit({
       </div>
 
       <div>
-        <div
-          style={{ cursor: isHost ? "pointer" : "default", display: "inline-block" }}
-          onClick={isHost ? openPopover : undefined}
-          title={isHost ? "Click to edit date/time" : undefined}
-        >
-          <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.02em", color: t.textPrimary, borderBottom: isHost ? "1.5px dashed rgba(255,255,255,0.2)" : "none" }}>
-            {formatDate(startAt, timezone)}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+          <div
+            style={{ cursor: isHost ? "pointer" : "default" }}
+            onClick={isHost ? openPopover : undefined}
+            title={isHost ? "Click to edit date/time" : undefined}
+          >
+            <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.02em", color: t.textPrimary }}>
+              {formatDate(startAt, timezone)}
+            </div>
+            <div style={{ fontSize: "16px", color: t.textSecondary, marginTop: "4px", fontWeight: 500 }}>
+              {formatTime(startAt, timezone)}{endAt ? ` – ${formatTime(endAt, timezone)}` : ""}
+            </div>
           </div>
-          <div style={{ fontSize: "16px", color: t.textSecondary, marginTop: "4px", fontWeight: 500 }}>
-            {formatTime(startAt, timezone)}{endAt ? ` – ${formatTime(endAt, timezone)}` : ""}
-          </div>
+          {isHost && <Pencil size={12} style={{ color: t.textMuted, cursor: "pointer", marginTop: "6px", flexShrink: 0 }} onClick={openPopover} />}
         </div>
 
         {open && (
@@ -671,7 +675,7 @@ function LocationEdit({
   };
 
   const editCardStyle: React.CSSProperties = isHost
-    ? { ...cardStyle, cursor: "pointer", borderStyle: "dashed" }
+    ? { ...cardStyle, cursor: "pointer" }
     : cardStyle;
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -728,8 +732,9 @@ function LocationEdit({
       {/* Display */}
       {hasLocation ? (
         isHost ? (
-          <div style={editCardStyle} onClick={openPopover} title="Click to edit location">
-            {locationCardInner}
+          <div style={{ ...editCardStyle, justifyContent: "space-between" }} onClick={openPopover} title="Click to edit location">
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1 }}>{locationCardInner}</div>
+            <Pencil size={12} style={{ color: t.textMuted, flexShrink: 0, marginTop: "2px" }} />
           </div>
         ) : initialType === "PHYSICAL" && (initialName || initialAddress) ? (
           <>
@@ -901,6 +906,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   const [event, setEvent] = useState(initial);
   const [prevInitial, setPrevInitial] = useState(initial);
   const detailsRef = useRef<HTMLSpanElement>(null);
+  const titleRef = useRef<HTMLSpanElement>(null);
 
   const [eventLinkCopied, setEventLinkCopied] = useState(false);
 
@@ -1490,14 +1496,22 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       <div style={S.container}>
 
         {/* ── Title ── */}
-        <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", marginBottom: "8px", fontFamily: t.headingFont, color: t.textPrimary }}>
-          <InlineEdit value={event.title} onSave={(v) => save("title", v)} placeholder="Event title" style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont }} isHost={isHost} />
-        </h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+          <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont, color: t.textPrimary, margin: 0 }}>
+            <InlineEdit outerRef={titleRef} value={event.title} onSave={(v) => save("title", v)} placeholder="Event title" style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont }} isHost={isHost} />
+          </h1>
+          {isHost && <Pencil size={12} style={{ color: t.textMuted, cursor: "pointer", marginTop: "10px", flexShrink: 0 }} onClick={() => titleRef.current?.click()} />}
+        </div>
 
         {/* ── Host byline ── */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.textSecondary, fontSize: "14px" }}>
           {renderAvatar(event.host.name ?? event.host.email, null, { width: "28px", height: "28px" })}
           Hosted by {event.host.name ?? event.host.email}
+          {isHost && (
+            <a href={`/e/${event.slug}/settings?section=hosts`} style={{ marginLeft: "2px", color: t.textMuted, display: "flex", alignItems: "center" }} title="Host settings">
+              <Settings size={13} />
+            </a>
+          )}
         </div>
 
         {/* ── Cover image ── */}
@@ -1726,7 +1740,20 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         {/* ── RSVP Section ── */}
         {!isHost && (
           <div style={S.card}>
-            <h2 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px", fontFamily: t.headingFont }}>Are you coming?</h2>
+            <h2 style={{ fontSize: "17px", fontWeight: 700, marginBottom: event.rsvpDeadline ? "6px" : "16px", fontFamily: t.headingFont }}>Are you coming?</h2>
+            {event.rsvpDeadline && (() => {
+              const deadline = new Date(event.rsvpDeadline);
+              const now = new Date();
+              const diffMs = deadline.getTime() - now.getTime();
+              const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+              const dateStr = deadline.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+              const countdownStr = diffDays > 1 ? `${diffDays} days remaining` : diffDays === 1 ? "1 day remaining" : diffDays === 0 ? "today" : "deadline passed";
+              return (
+                <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "16px" }}>
+                  RSVPs requested no later than {dateStr} · {countdownStr}
+                </div>
+              );
+            })()}
 
             {rsvpDone ? (
               <div style={{ textAlign: "center", padding: "12px 0" }}>
