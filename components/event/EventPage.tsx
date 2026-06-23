@@ -429,8 +429,13 @@ function DateEdit({
         <button
           onClick={() => setCalOpen(!calOpen)}
           style={{
-            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px",
-            color: t.textSecondary, cursor: "pointer", width: "48px", height: "48px",
+            background: t.heroText ? "rgba(255,255,255,0.2)" : t.cardBg,
+            border: `1px solid ${t.heroText ? "rgba(255,255,255,0.3)" : t.cardBorder}`,
+            borderRadius: "12px",
+            color: t.heroText ?? t.textSecondary,
+            backdropFilter: t.heroText ? "blur(8px)" : undefined,
+            WebkitBackdropFilter: t.heroText ? "blur(8px)" : undefined,
+            cursor: "pointer", width: "48px", height: "48px",
             display: "flex", alignItems: "center", justifyContent: "center",
             boxSizing: "border-box", transition: "all 0.2s ease"
           }}
@@ -463,14 +468,14 @@ function DateEdit({
             onClick={isHost ? openPopover : undefined}
             title={isHost ? "Click to edit date/time" : undefined}
           >
-            <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.02em", color: t.textPrimary }}>
+            <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.02em", color: t.heroText ?? t.textPrimary, textShadow: t.heroTextShadow }}>
               {formatDate(startAt, timezone)}
             </div>
-            <div style={{ fontSize: "16px", color: t.textSecondary, marginTop: "4px", fontWeight: 500 }}>
+            <div style={{ fontSize: "16px", color: t.heroText ? "rgba(255,255,255,0.85)" : t.textSecondary, marginTop: "4px", fontWeight: 500, textShadow: t.heroTextShadow }}>
               {formatTime(startAt, timezone)}{endAt ? ` – ${formatTime(endAt, timezone)}` : ""}
             </div>
           </div>
-          {isHost && <Pencil size={12} style={{ color: t.textMuted, cursor: "pointer", marginTop: "6px", flexShrink: 0 }} onClick={openPopover} />}
+          {isHost && <Pencil size={12} style={{ color: t.heroText ? "rgba(255,255,255,0.45)" : t.textMuted, cursor: "pointer", marginTop: "6px", flexShrink: 0 }} onClick={openPopover} />}
         </div>
 
         {open && (
@@ -1497,18 +1502,18 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
         {/* ── Title ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-          <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont, color: t.textPrimary, margin: 0 }}>
+          <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont, color: t.heroText ?? t.textPrimary, textShadow: t.heroTextShadow, margin: 0 }}>
             <InlineEdit outerRef={titleRef} value={event.title} onSave={(v) => save("title", v)} placeholder="Event title" style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont }} isHost={isHost} />
           </h1>
-          {isHost && <Pencil size={12} style={{ color: t.textMuted, cursor: "pointer", marginTop: "10px", flexShrink: 0 }} onClick={() => titleRef.current?.click()} />}
+          {isHost && <Pencil size={12} style={{ color: t.heroText ? "rgba(255,255,255,0.45)" : t.textMuted, cursor: "pointer", marginTop: "10px", flexShrink: 0 }} onClick={() => titleRef.current?.click()} />}
         </div>
 
         {/* ── Host byline ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.textSecondary, fontSize: "14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.heroText ? "rgba(255,255,255,0.85)" : t.textSecondary, fontSize: "14px", textShadow: t.heroTextShadow }}>
           {renderAvatar(event.host.name ?? event.host.email, null, { width: "28px", height: "28px" })}
           Hosted by {event.host.name ?? event.host.email}
           {isHost && (
-            <a href={`/e/${event.slug}/settings?section=hosts`} style={{ marginLeft: "2px", color: t.textMuted, display: "flex", alignItems: "center" }} title="Host settings">
+            <a href={`/e/${event.slug}/settings?section=hosts`} style={{ marginLeft: "2px", color: t.heroText ? "rgba(255,255,255,0.5)" : t.textMuted, display: "flex", alignItems: "center" }} title="Host settings">
               <Settings size={13} />
             </a>
           )}
