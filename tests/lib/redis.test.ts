@@ -155,7 +155,7 @@ describe("lib/redis.ts", () => {
 
   it("redisIncrAndExpire returns the incremented value", async () => {
     g.redisConnected = true;
-    mockExec.mockResolvedValue([5, 1]);
+    mockExec.mockResolvedValue([5, true]);
     const val = await redisModule.redisIncrAndExpire("rate-limit-key", 10);
     expect(val).toBe(5);
     expect(mockIncr).toHaveBeenCalledWith("rate-limit-key");
