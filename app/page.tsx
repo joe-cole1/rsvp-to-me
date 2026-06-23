@@ -28,7 +28,7 @@ function AvatarBubble({ name, avatarUrl, accentColor }: { name: string; avatarUr
     if (accentColor.startsWith("#") && accentColor.length === 7) {
       rgb = `${parseInt(accentColor.slice(1,3), 16)},${parseInt(accentColor.slice(3,5), 16)},${parseInt(accentColor.slice(5,7), 16)}`;
     }
-  } catch (e) {}
+  } catch {}
 
   return (
     <div 
