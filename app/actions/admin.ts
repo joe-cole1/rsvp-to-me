@@ -56,6 +56,8 @@ export async function getAdminUsers(query: string = "") {
       phone: true,
       role: true,
       createdAt: true,
+      deletionRequestedAt: true,
+      deletionScheduledAt: true,
       _count: {
         select: {
           events: true,
@@ -545,6 +547,16 @@ export async function updateThemePreset(
 export async function deleteThemePreset(id: string) {
   await assertAdmin();
   await db.themePreset.delete({ where: { id } });
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function cancelAccountDeletion(userId: string) {
+  await assertAdmin();
+  await db.user.update({
+    where: { id: userId },
+    data: { deletionRequestedAt: null, deletionScheduledAt: null },
+  });
   revalidatePath("/admin");
   return { success: true };
 }

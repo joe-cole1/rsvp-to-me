@@ -56,6 +56,14 @@ async function main() {
   }
   console.log(`Upserted ${THEME_PRESETS.length} theme presets.`);
 
+  // Upsert the SYSTEM tombstone user used when anonymizing deleted host accounts
+  await db.user.upsert({
+    where: { id: "system" },
+    create: { id: "system", role: "ADMIN", name: "System", email: null, phone: null },
+    update: {},
+  });
+  console.log("Upserted SYSTEM tombstone user.");
+
   console.log(`Seed complete. Default invite code: "${code}"`);
 
   // Check if we should seed heavy test data
