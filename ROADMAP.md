@@ -89,6 +89,7 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
 
 ### ⚙️ DevOps & Security (Deferred)
+*   **ESLint 10 Upgrade (blocked)**: `eslint` is held at `^9` because `eslint-plugin-react` v7 (bundled in `eslint-config-next@16.2.9`) calls `context.getFilename()` which was removed in ESLint 10. Unblock by upgrading to a `next` / `eslint-config-next` version whose bundled plugins declare ESLint ≥10 peer deps. Tracked as of 2026-06-23.
 *   **GitHub Release Workflow**: Setup a GitHub Actions workflow to automate release tagging, version increments, and changelog generation.
 *   **Phone Number Encryption at Rest (M-2)**: Encrypt phone numbers deterministically at-rest using HMAC hashes for index lookups and AES-256-GCM for display.
 *   **HTTP Request Logging & Distributed Tracing (G-1)**: Track request duration, method, and statuses using request IDs mapped to Pino structured logs.
