@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getSession, destroySession, invalidateUserSessions } from "@/lib/session";
+import { getSession, destroySession } from "@/lib/session";
+import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
@@ -169,29 +170,10 @@ export async function requestAccountDeletion() {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
 
-  const now = new Date();
-  const upcomingEvents = await db.event.findMany({
-    where: {
-      hostId: session.userId,
-      status: "PUBLISHED",
-      startAt: { gt: now },
-    },
-    select: { id: true, title: true, slug: true },
-  });
+  const result = await scheduleUserDeletion(session.userId);
 
-  if (upcomingEvents.length > 0) {
-    return { blocked: true, events: upcomingEvents };
-  }
+  if ("blocked" in result) return result;
 
-  // Schedule anonymization 30 days from now (grace window for admin reversal)
-  const scheduledAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  await db.user.update({
-    where: { id: session.userId },
-    data: { deletionRequestedAt: now, deletionScheduledAt: scheduledAt },
-  });
-
-  await invalidateUserSessions(session.userId);
   await destroySession();
-
-  return { success: true };
+  return result;
 }

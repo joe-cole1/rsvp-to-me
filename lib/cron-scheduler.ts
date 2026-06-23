@@ -23,7 +23,17 @@ async function processExpiredDeletions() {
       continue;
     }
 
-    // Reassign past events to the SYSTEM tombstone user
+    // Delete user's guest RSVPs on other events (cascades: RSVPAnswers, PlusOneGuests, CheckIns)
+    await db.rSVP.deleteMany({ where: { userId: user.id } });
+
+    // Remove co-host slots on other events
+    await db.eventCoHost.deleteMany({ where: { userId: user.id } });
+
+    // Clean up auth tokens and sessions
+    await db.magicToken.deleteMany({ where: { userId: user.id } });
+    await db.session.deleteMany({ where: { userId: user.id } });
+
+    // Reassign hosted events to the SYSTEM tombstone user
     await db.event.updateMany({ where: { hostId: user.id }, data: { hostId: "system" } });
 
     // Anonymize PII
