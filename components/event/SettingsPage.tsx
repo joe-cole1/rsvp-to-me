@@ -173,7 +173,7 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
   const [gradientTo, setGradientTo] = useState(event.theme?.gradientTo ?? "#1e40af");
   const [accent, setAccent] = useState(event.theme?.accentColor ?? "#a855f7");
   const [themeSearch, setThemeSearch] = useState("");
-  const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general">("all");
+  const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">("all");
   const [themeCustomizeOpen, setThemeCustomizeOpen] = useState(false);
 
   // ── RSVP Options State ──
@@ -301,6 +301,8 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
     let result = sortedThemePresets;
     if (themeFilter === "seasonal") result = result.filter((p) => p.seasonal);
     if (themeFilter === "general") result = result.filter((p) => !p.seasonal);
+    if (themeFilter === "light") result = result.filter((p) => p.base === "SOFT" || p.base === "BOLD");
+    if (themeFilter === "dark") result = result.filter((p) => p.base === "DARK");
     if (themeSearch.trim()) {
       const q = themeSearch.toLowerCase();
       result = result.filter((p) => p.name.toLowerCase().includes(q) || p.emoji.includes(q));
@@ -925,23 +927,48 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
               />
             </div>
 
-            {/* Filter pills */}
-            <div style={{ display: "flex", gap: "7px", marginBottom: "12px" }}>
-              {(["all", "seasonal", "general"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setThemeFilter(f)}
-                  style={{
-                    padding: "4px 11px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer",
-                    border: `1px solid ${themeFilter === f ? t.accent : t.inputBorder}`,
-                    background: themeFilter === f ? t.accentBg : "transparent",
-                    color: themeFilter === f ? t.accent : t.textMuted,
-                  }}
-                >
-                  {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : "🎨 General"}
-                </button>
-              ))}
-            </div>
+            {/* Filter pills + reset */}
+            {(() => {
+              const savedBase: BaseTheme = event.theme?.baseTheme ?? "DARK";
+              const savedFrom = event.theme?.gradientFrom ?? "#7c3aed";
+              const savedTo = event.theme?.gradientTo ?? "#1e40af";
+              const savedAccent = event.theme?.accentColor ?? "#a855f7";
+              const hasChanged = base !== savedBase || gradientFrom !== savedFrom || gradientTo !== savedTo || accent !== savedAccent;
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", gap: "6px", flex: 1, overflowX: "auto" }}>
+                    {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setThemeFilter(f)}
+                        style={{
+                          padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                          border: `1px solid ${themeFilter === f ? t.accent : t.inputBorder}`,
+                          background: themeFilter === f ? t.accentBg : "transparent",
+                          color: themeFilter === f ? t.accent : t.textMuted,
+                        }}
+                      >
+                        {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : f === "general" ? "🎨 General" : f === "light" ? "☀️ Light" : "🌙 Dark"}
+                      </button>
+                    ))}
+                  </div>
+                  {hasChanged && (
+                    <button
+                      onClick={() => {
+                        setBase(savedBase);
+                        setGradientFrom(savedFrom);
+                        setGradientTo(savedTo);
+                        setAccent(savedAccent);
+                        triggerSaveTheme(savedBase, savedFrom, savedTo, savedAccent);
+                      }}
+                      style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted }}
+                    >
+                      ↺ Reset
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Preset grid */}
             <div

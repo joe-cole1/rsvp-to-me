@@ -36,7 +36,7 @@ export function ThemePicker({
   const [accent, setAccent] = useState(current.accentColor);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "seasonal" | "general">("all");
+  const [filter, setFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">("all");
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const isPreset = ACCENT_PRESETS.some((p) => p.value === accent);
@@ -61,6 +61,8 @@ export function ThemePicker({
     let result = sortedPresets;
     if (filter === "seasonal") result = result.filter((p) => p.seasonal);
     if (filter === "general") result = result.filter((p) => !p.seasonal);
+    if (filter === "light") result = result.filter((p) => p.base === "SOFT" || p.base === "BOLD");
+    if (filter === "dark") result = result.filter((p) => p.base === "DARK");
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((p) => p.name.toLowerCase().includes(q) || p.emoji.includes(q));
@@ -129,10 +131,12 @@ export function ThemePicker({
           </div>
 
           {/* Filter pills */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
-            <button style={filterPillStyle(filter === "all")} onClick={() => setFilter("all")}>All</button>
-            <button style={filterPillStyle(filter === "seasonal")} onClick={() => setFilter("seasonal")}>🎉 Seasonal</button>
-            <button style={filterPillStyle(filter === "general")} onClick={() => setFilter("general")}>🎨 General</button>
+          <div style={{ display: "flex", gap: "7px", marginBottom: "14px", overflowX: "auto" }}>
+            {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
+              <button key={f} style={{ ...filterPillStyle(filter === f), whiteSpace: "nowrap", flexShrink: 0 }} onClick={() => setFilter(f)}>
+                {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : f === "general" ? "🎨 General" : f === "light" ? "☀️ Light" : "🌙 Dark"}
+              </button>
+            ))}
           </div>
 
           {/* Preset grid */}
