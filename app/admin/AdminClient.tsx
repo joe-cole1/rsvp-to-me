@@ -559,19 +559,28 @@ function extractRawEmail(fromStr) {
   };
 
   const handleUserDelete = (userId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${name}'s account? This will permanently delete all events hosted by them and cannot be undone.`)) {
+    if (!confirm(`Schedule ${name}'s account for deletion? They will be signed out immediately and their data anonymized after a 30-day grace period. You can restore the account before that window closes.`)) {
       return;
     }
     setFeedback(null);
     startTransition(async () => {
       try {
         const res = await deleteUserAccount(userId);
+        if ("blocked" in res && res.blocked) {
+          const titles = res.events.map((e) => `"${e.title}"`).join(", ");
+          setFeedback({ type: "error", message: `Cannot schedule deletion — ${name} has upcoming published events: ${titles}. Delete those events first.` });
+          return;
+        }
         if (res.success) {
-          setUsers((prev) => prev.filter((u) => u.id !== userId));
-          setFeedback({ type: "success", message: "User account deleted successfully." });
+          const scheduledAt = new Date(res.scheduledAt);
+          setUsers((prev) => prev.map((u) => u.id === userId
+            ? { ...u, deletionRequestedAt: new Date(), deletionScheduledAt: scheduledAt }
+            : u
+          ));
+          setFeedback({ type: "success", message: `${name}'s account scheduled for deletion on ${scheduledAt.toLocaleDateString()}.` });
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to delete account.";
+        const message = err instanceof Error ? err.message : "Failed to schedule deletion.";
         setFeedback({ type: "error", message });
       }
     });
@@ -584,7 +593,7 @@ function extractRawEmail(fromStr) {
         const res = await cancelAccountDeletion(userId);
         if (res.success) {
           setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, deletionRequestedAt: null, deletionScheduledAt: null } : u));
-          setFeedback({ type: "success", message: `Cancelled deletion for ${name}.` });
+          setFeedback({ type: "success", message: `${name}'s account has been restored.` });
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to cancel deletion.";
@@ -1011,7 +1020,7 @@ function extractRawEmail(fromStr) {
                                       padding: "4px 10px",
                                     }}
                                   >
-                                    Cancel Deletion
+                                    Restore Account
                                   </button>
                                 ) : (
                                   <button

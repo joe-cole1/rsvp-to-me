@@ -574,7 +574,6 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             </div>
           </div>
         </form>
-      </div>
 
       {/* Danger Zone */}
       <div style={{
@@ -621,6 +620,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           </>
         )}
       </div>
+      </div>
 
       {/* Delete Account Modal */}
       {showDeleteModal && (
@@ -629,7 +629,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px",
         }}>
           <div style={{
-            backgroundColor: APP_SHELL.cardBg,
+            backgroundColor: "#1a1228",
             border: `1px solid ${APP_SHELL.navBorder}`,
             borderRadius: "16px",
             padding: "28px",

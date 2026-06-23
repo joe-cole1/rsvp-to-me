@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, invalidateUserSessions } from "@/lib/session";
+import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { revalidatePath } from "next/cache";
 import { encryptConfig, decryptConfig } from "@/lib/crypto";
 
@@ -70,8 +71,6 @@ export async function getAdminUsers(query: string = "") {
   return users;
 }
 
-import { invalidateUserSessions } from "@/lib/session";
-
 export async function updateUserRole(userId: string, role: "GUEST" | "HOST" | "ADMIN") {
   const session = await assertAdmin();
   if (userId === session.userId) {
@@ -96,20 +95,10 @@ export async function deleteUserAccount(userId: string) {
     throw new Error("You cannot delete your own admin account.");
   }
 
-  // Deleting user's hosted events (this will cascade delete all associated RSVPs, comments, etc.)
-  const userEvents = await db.event.findMany({ where: { hostId: userId }, select: { id: true } });
-  for (const event of userEvents) {
-    await db.event.delete({ where: { id: event.id } });
-  }
-
-  // Delete co-host slots
-  await db.eventCoHost.deleteMany({ where: { userId } });
-
-  // Delete user record
-  await db.user.delete({ where: { id: userId } });
+  const result = await scheduleUserDeletion(userId);
 
   revalidatePath("/admin");
-  return { success: true };
+  return result;
 }
 
 export async function getAdminEvents(query: string = "") {

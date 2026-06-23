@@ -211,13 +211,25 @@ describe("app/actions/admin.ts", () => {
       await expect(updateUserRole(ADMIN_ID, "HOST")).rejects.toThrow("You cannot change your own admin role.");
     });
 
-    it("deletes user account", async () => {
+    it("schedules user account for deletion", async () => {
       mockEventFindMany.mockResolvedValue([]);
-      mockUserDelete.mockResolvedValue({ id: "u-1" });
+      mockUserUpdate.mockResolvedValue({ id: "u-1" });
 
       const res = await deleteUserAccount("u-1");
       expect(res.success).toBe(true);
-      expect(mockUserDelete).toHaveBeenCalledWith({ where: { id: "u-1" } });
+      expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: "u-1" },
+        data: expect.objectContaining({ deletionRequestedAt: expect.any(Date), deletionScheduledAt: expect.any(Date) }),
+      }));
+      expect(mockUserDelete).not.toHaveBeenCalled();
+    });
+
+    it("blocks deletion when user has upcoming published events", async () => {
+      mockEventFindMany.mockResolvedValue([{ id: "e-1", title: "Big Party", slug: "big-party" }]);
+
+      const res = await deleteUserAccount("u-1");
+      expect("blocked" in res && res.blocked).toBe(true);
+      expect(mockUserUpdate).not.toHaveBeenCalled();
     });
 
     it("lists events", async () => {
