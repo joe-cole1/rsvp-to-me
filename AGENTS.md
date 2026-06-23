@@ -57,6 +57,18 @@ After making changes and before presenting Git commands to the user to push to G
 **CRITICAL RULE:** Always force a `git fetch` and `git pull` (or use GitHub MCP tools as appropriate to sync) to ensure you have the latest remote code *before* you touch, edit, or modify any files. Do this at the start of a chat session, when resuming work, or anytime the user indicates they made manual changes.
 <!-- END:pre-modification-rules -->
 
+<!-- BEGIN:out-of-scope-issues-rules -->
+# Out-of-Scope Issues — Log, Never Ignore
+
+**CRITICAL RULE:** If you encounter broken, incorrect, or insecure code, or failing tests that are **outside the scope of the current branch or prompt**, you MUST add them as a task in `ROADMAP.md` before moving on. Never silently pass over them.
+
+- Add bugs and broken code under **🔴 Priority 1 — Bugs & Blockers**.
+- Add security issues under **🔴 Priority 1 — Routing & System Safety** (or **⚙️ DevOps & Security** if deferred is more appropriate).
+- Add failing tests under **🔴 Priority 1 — Bugs & Blockers** with a note that tests are failing.
+- Be specific: include the file path, the nature of the problem, and why it was left out of scope.
+- Do NOT fix out-of-scope issues in the current branch — log them and continue. Fixing unrelated things in the same PR creates noise and risk.
+<!-- END:out-of-scope-issues-rules -->
+
 ---
 
 # RSVP to Me — Developer Reference & Context Guide
