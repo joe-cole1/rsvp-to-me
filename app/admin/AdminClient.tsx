@@ -2925,8 +2925,8 @@ function extractRawEmail(fromStr) {
                       { id: "settings", label: "⚙️ Global Config" },
                       { id: "email", label: "📧 Email Settings" },
                       { id: "sms", label: "💬 SMS Settings" },
-                      { id: "backups", label: "💾 Database Backups" },
                       { id: "themes", label: "🎨 Theme Presets" },
+                      { id: "backups", label: "💾 Database Backups" },
                     ] as const
                   ).map((tab) => (
                     <button
