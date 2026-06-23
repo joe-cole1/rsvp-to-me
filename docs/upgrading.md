@@ -243,6 +243,8 @@ rsvp-to-me uses PostgreSQL 18. When a new major PostgreSQL version is released a
      image: postgres:19-alpine   # bump to the new major version
    ```
 
+   > **Note:** The volume mount uses `./pg_data:/var/lib/postgresql` (not `/var/lib/postgresql/data`). This is intentional for Postgres 18+: Postgres creates a `data/` subdirectory within the mount automatically, which enables link-mode upgrades without crossing filesystem mount boundaries.
+
 4. **Delete the old data directory** (incompatible between major versions):
    ```bash
    rm -rf ./pg_data
