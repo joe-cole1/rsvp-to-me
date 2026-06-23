@@ -426,6 +426,7 @@ describe("app/actions/admin.ts", () => {
         gradientTo: "#1e40af",
         accentColor: "#a855f7",
         seasonal: false,
+        month: null,
       };
 
       it("getThemePresets returns presets ordered by sortOrder then createdAt", async () => {
@@ -480,7 +481,7 @@ describe("app/actions/admin.ts", () => {
   describe("Non-admin access", () => {
     it("createThemePreset throws Forbidden for non-admin", async () => {
       mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
-      await expect(createThemePreset({ name: "x", emoji: "x", base: "DARK", gradientFrom: "#000", gradientTo: "#000", accentColor: "#000", seasonal: false })).rejects.toThrow("Forbidden");
+      await expect(createThemePreset({ name: "x", emoji: "x", base: "DARK", gradientFrom: "#000", gradientTo: "#000", accentColor: "#000", seasonal: false, month: null })).rejects.toThrow("Forbidden");
     });
 
     it("updateThemePreset throws Forbidden for non-admin", async () => {

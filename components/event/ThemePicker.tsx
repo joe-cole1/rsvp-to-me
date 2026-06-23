@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Check } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme } from "@/lib/theme";
+import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, getSortedPresets } from "@/lib/theme";
 import { saveEventTheme } from "@/app/actions/event";
 
 type DbThemePreset = {
@@ -13,6 +13,8 @@ type DbThemePreset = {
   gradientFrom: string;
   gradientTo: string;
   accentColor: string;
+  seasonal?: boolean | null;
+  month?: number | null;
 };
 
 export function ThemePicker({
@@ -33,6 +35,9 @@ export function ThemePicker({
   const [gradientTo, setGradientTo] = useState(current.gradientTo);
   const [accent, setAccent] = useState(current.accentColor);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "seasonal" | "general">("all");
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const isPreset = ACCENT_PRESETS.some((p) => p.value === accent);
 
@@ -50,7 +55,31 @@ export function ThemePicker({
     setAccent(p.accentColor);
   };
 
+  const sortedPresets = useMemo(() => getSortedPresets(presets), [presets]);
+
+  const visiblePresets = useMemo(() => {
+    let result = sortedPresets;
+    if (filter === "seasonal") result = result.filter((p) => p.seasonal);
+    if (filter === "general") result = result.filter((p) => !p.seasonal);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((p) => p.name.toLowerCase().includes(q) || p.emoji.includes(q));
+    }
+    return result;
+  }, [sortedPresets, filter, search]);
+
   const previewBg = `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`;
+
+  const filterPillStyle = (active: boolean): React.CSSProperties => ({
+    padding: "5px 12px",
+    borderRadius: "20px",
+    border: `1px solid ${active ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.15)"}`,
+    background: active ? "rgba(255,255,255,0.15)" : "transparent",
+    color: active ? "#fff" : "rgba(255,255,255,0.5)",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+  });
 
   return (
     <>
@@ -79,148 +108,183 @@ export function ThemePicker({
             color: "#fff",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
             <h3 style={{ color: "#fff", fontWeight: 700, fontSize: "17px" }}>Event Theme</h3>
             <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: "22px", padding: "2px 6px" }}>×</button>
           </div>
 
-          {/* Style selector */}
-          <div style={{ marginBottom: "20px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "10px" }}>
-              Style
-            </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              {BASE_THEMES.map((bt) => (
+          {/* Search */}
+          <div style={{ marginBottom: "10px" }}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search themes…"
+              style={{
+                width: "100%", boxSizing: "border-box", padding: "9px 14px",
+                background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "12px", color: "#fff", fontSize: "14px", outline: "none",
+              }}
+            />
+          </div>
+
+          {/* Filter pills */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+            <button style={filterPillStyle(filter === "all")} onClick={() => setFilter("all")}>All</button>
+            <button style={filterPillStyle(filter === "seasonal")} onClick={() => setFilter("seasonal")}>🎉 Seasonal</button>
+            <button style={filterPillStyle(filter === "general")} onClick={() => setFilter("general")}>🎨 General</button>
+          </div>
+
+          {/* Preset grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
+              gap: "8px",
+              maxHeight: "340px",
+              overflowY: "auto",
+              marginBottom: "16px",
+            }}
+          >
+            {visiblePresets.map((p) => {
+              const isActive = base === p.base && gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
+              return (
                 <button
-                  key={bt.id}
-                  onClick={() => {
-                    setBase(bt.id);
-                    setGradientFrom(bt.defaultGradientFrom);
-                    setGradientTo(bt.defaultGradientTo);
-                    setAccent(bt.defaultAccent);
-                  }}
+                  key={p.id}
+                  onClick={() => applyPreset(p)}
                   style={{
-                    flex: 1, padding: "0", border: `2px solid ${base === bt.id ? "#fff" : "rgba(255,255,255,0.1)"}`,
-                    borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none",
-                    transition: "border-color 0.15s",
+                    padding: "0",
+                    border: `2px solid ${isActive ? accent : "rgba(255,255,255,0.1)"}`,
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    background: isActive ? "rgba(168,85,247,0.12)" : "rgba(255,255,255,0.04)",
+                    transition: "all 0.15s",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
-                  <div style={{ height: "52px", background: bt.preview }} />
-                  <div style={{ padding: "8px 6px", color: "#fff", fontSize: "11px", fontWeight: 600, background: "rgba(255,255,255,0.05)" }}>
-                    {bt.label}
+                  <div style={{ position: "relative", height: "40px", background: `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})` }}>
+                    <span style={{ position: "absolute", top: "4px", left: "5px", fontSize: "11px" }}>{p.emoji}</span>
+                    <div style={{ position: "absolute", bottom: "4px", right: "5px", width: "8px", height: "8px", borderRadius: "50%", background: p.accentColor, border: "1px solid rgba(255,255,255,0.3)" }} />
+                  </div>
+                  <div style={{ padding: "5px 6px", fontSize: "10px", fontWeight: 600, color: "rgba(255,255,255,0.7)", textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {p.name}
                   </div>
                 </button>
-              ))}
-            </div>
+              );
+            })}
+            {visiblePresets.length === 0 && (
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "24px", color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>
+                No themes match your search
+              </div>
+            )}
           </div>
 
-          {/* Presets */}
-          <div style={{ marginBottom: "20px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "10px" }}>
-              Presets
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-              {presets.filter((p) => p.base === base).map((p) => {
-                const isActive = gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => applyPreset(p)}
-                    style={{
-                      padding: "8px 6px", border: `2px solid ${isActive ? "#a855f7" : "rgba(255,255,255,0.1)"}`,
-                      borderRadius: "12px", cursor: "pointer",
-                      background: isActive ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.04)",
-                      transition: "all 0.15s", display: "flex", flexDirection: "column", alignItems: "center", gap: "5px",
-                    }}
-                  >
-                    <div style={{ width: "100%", height: "28px", borderRadius: "6px", background: `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})` }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                      <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: p.accentColor, flexShrink: 0 }} />
-                      <span style={{ fontSize: "9px", fontWeight: 600, color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+          {/* Customize accordion */}
+          <div style={{ marginBottom: "20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", overflow: "hidden" }}>
+            <button
+              onClick={() => setCustomizeOpen((o) => !o)}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "12px 16px", background: "rgba(255,255,255,0.05)", border: "none",
+                cursor: "pointer", color: "#fff", fontSize: "13px", fontWeight: 600,
+              }}
+            >
+              <span>Customize colors</span>
+              <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", transform: customizeOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+            </button>
+
+            {customizeOpen && (
+              <div style={{ padding: "16px" }}>
+                {/* Style selector */}
+                <div style={{ marginBottom: "16px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "8px" }}>Style</div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {BASE_THEMES.map((bt) => (
+                      <button
+                        key={bt.id}
+                        onClick={() => {
+                          setBase(bt.id);
+                          setGradientFrom(bt.defaultGradientFrom);
+                          setGradientTo(bt.defaultGradientTo);
+                          setAccent(bt.defaultAccent);
+                        }}
+                        style={{
+                          flex: 1, padding: "0", border: `2px solid ${base === bt.id ? "#fff" : "rgba(255,255,255,0.1)"}`,
+                          borderRadius: "10px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s",
+                        }}
+                      >
+                        <div style={{ height: "36px", background: bt.preview }} />
+                        <div style={{ padding: "5px 4px", color: "#fff", fontSize: "10px", fontWeight: 600, background: "rgba(255,255,255,0.05)" }}>{bt.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Background colors */}
+                <div style={{ marginBottom: "14px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "8px" }}>Background</div>
+                  <div style={{ display: "flex", gap: "10px", marginBottom: "8px" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "4px" }}>Start</div>
+                      <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", cursor: "pointer" }}>
+                        <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: gradientFrom, flexShrink: 0 }} />
+                        <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{gradientFrom}</span>
+                        <input type="color" value={gradientFrom} onChange={(e) => setGradientFrom(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                      </label>
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "4px" }}>End</div>
+                      <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", cursor: "pointer" }}>
+                        <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: gradientTo, flexShrink: 0 }} />
+                        <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{gradientTo}</span>
+                        <input type="color" value={gradientTo} onChange={(e) => setGradientTo(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                      </label>
+                    </div>
+                  </div>
+                  <div style={{ height: "28px", borderRadius: "6px", background: previewBg, border: "1px solid rgba(255,255,255,0.1)" }} />
+                </div>
 
-          {/* Background colors */}
-          <div style={{ marginBottom: "20px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "10px" }}>
-              Background
-            </div>
-            <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", marginBottom: "5px" }}>Start</div>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", cursor: "pointer" }}>
-                  <div style={{ width: "20px", height: "20px", borderRadius: "5px", background: gradientFrom, flexShrink: 0 }} />
-                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{gradientFrom}</span>
-                  <input type="color" value={gradientFrom} onChange={(e) => setGradientFrom(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-                </label>
+                {/* Accent color */}
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "8px" }}>Accent Color</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                    {ACCENT_PRESETS.map((p) => (
+                      <button
+                        key={p.value}
+                        onClick={() => setAccent(p.value)}
+                        title={p.name}
+                        style={{
+                          width: "32px", height: "32px", borderRadius: "50%", background: p.value,
+                          border: `3px solid ${accent === p.value ? "#fff" : "transparent"}`,
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        {accent === p.value && <Check size={12} color="#fff" strokeWidth={3} />}
+                      </button>
+                    ))}
+                    <label
+                      title="Custom color"
+                      style={{
+                        width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer",
+                        border: `3px solid ${!isPreset ? "#fff" : "transparent"}`,
+                        overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
+                        background: isPreset ? "rgba(255,255,255,0.1)" : accent,
+                      }}
+                    >
+                      <span style={{ fontSize: "14px", zIndex: 1 }}>🎨</span>
+                      <input
+                        type="color"
+                        value={accent}
+                        onChange={(e) => setAccent(e.target.value)}
+                        style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%" }}
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", marginBottom: "5px" }}>End</div>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", cursor: "pointer" }}>
-                  <div style={{ width: "20px", height: "20px", borderRadius: "5px", background: gradientTo, flexShrink: 0 }} />
-                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{gradientTo}</span>
-                  <input type="color" value={gradientTo} onChange={(e) => setGradientTo(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-                </label>
-              </div>
-            </div>
-            {/* Live preview strip */}
-            <div style={{ height: "32px", borderRadius: "8px", background: previewBg, border: "1px solid rgba(255,255,255,0.1)" }} />
-          </div>
-
-          {/* Accent color */}
-          <div style={{ marginBottom: "24px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "10px" }}>
-              Accent Color
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
-              {ACCENT_PRESETS.map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => setAccent(p.value)}
-                  title={p.name}
-                  style={{
-                    width: "36px", height: "36px", borderRadius: "50%", background: p.value,
-                    border: `3px solid ${accent === p.value ? "#fff" : "transparent"}`,
-                    cursor: "pointer", position: "relative", transition: "border 0.15s",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  {accent === p.value && <Check size={14} color="#fff" strokeWidth={3} />}
-                </button>
-              ))}
-              <label
-                title="Custom color"
-                style={{
-                  width: "36px", height: "36px", borderRadius: "50%", cursor: "pointer",
-                  border: `3px solid ${!isPreset ? "#fff" : "transparent"}`,
-                  overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
-                  background: isPreset ? "rgba(255,255,255,0.1)" : accent,
-                  transition: "border 0.15s",
-                }}
-              >
-                <span style={{ fontSize: "16px", zIndex: 1 }}>🎨</span>
-                <input
-                  type="color"
-                  value={accent}
-                  onChange={(e) => setAccent(e.target.value)}
-                  style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%" }}
-                />
-              </label>
-            </div>
-
-            {/* Live accent preview */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", background: "rgba(255,255,255,0.05)", borderRadius: "12px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: accent, flexShrink: 0 }} />
-              <div>
-                <div style={{ color: "#fff", fontSize: "13px", fontWeight: 600 }}>Accent preview</div>
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>{accent}</div>
-              </div>
-              <div style={{ marginLeft: "auto", background: accent, color: "#fff", padding: "4px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: 700 }}>Button</div>
-            </div>
+            )}
           </div>
 
           {/* Save */}

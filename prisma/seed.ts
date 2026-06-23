@@ -50,8 +50,8 @@ async function main() {
     const p = THEME_PRESETS[i];
     await db.themePreset.upsert({
       where: { id: p.id },
-      update: { name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, sortOrder: i },
-      create: { id: p.id, name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, active: true, sortOrder: i },
+      update: { name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, month: p.month ?? null, sortOrder: i },
+      create: { id: p.id, name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, month: p.month ?? null, active: true, sortOrder: i },
     });
   }
   console.log(`Upserted ${THEME_PRESETS.length} theme presets.`);

@@ -72,6 +72,7 @@ export interface ThemePreset {
   gradientTo: string;
   accentColor: string;
   seasonal?: boolean;
+  month?: number; // 1-12; drives date-proximity sort for seasonal presets
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -80,6 +81,8 @@ export const THEME_PRESETS: ThemePreset[] = [
   { id: "midnight-indigo", name: "Midnight Indigo",   emoji: "✨", base: "DARK", gradientFrom: "#312e81", gradientTo: "#1e1b4b", accentColor: "#818cf8" },
   { id: "obsidian",        name: "Obsidian",          emoji: "🖤", base: "DARK", gradientFrom: "#7c2d12", gradientTo: "#1c1917", accentColor: "#f97316" },
   { id: "emerald-night",   name: "Emerald Night",     emoji: "🌿", base: "DARK", gradientFrom: "#14532d", gradientTo: "#0f172a", accentColor: "#22c55e" },
+  { id: "retro-synthwave", name: "Retro Synthwave",   emoji: "🎛️", base: "DARK", gradientFrom: "#4a044e", gradientTo: "#0c0a3e", accentColor: "#f0abfc" },
+  { id: "cyberpunk",       name: "Cyberpunk",         emoji: "🤖", base: "DARK", gradientFrom: "#052e16", gradientTo: "#0a0a0f", accentColor: "#84cc16" },
   // Soft presets
   { id: "rose-cloud",      name: "Rosé Cloud",        emoji: "🌸", base: "SOFT", gradientFrom: "#fda4af", gradientTo: "#ddd6fe", accentColor: "#e11d48" },
   { id: "peach-cream",     name: "Peach Cream",       emoji: "🍑", base: "SOFT", gradientFrom: "#fde68a", gradientTo: "#fbcfe8", accentColor: "#f59e0b" },
@@ -90,14 +93,40 @@ export const THEME_PRESETS: ThemePreset[] = [
   { id: "electric-blue",   name: "Electric Blue",     emoji: "⚡", base: "BOLD", gradientFrom: "#0ea5e9", gradientTo: "#6366f1", accentColor: "#0ea5e9" },
   { id: "deep-sea",        name: "Deep Sea",          emoji: "🌊", base: "BOLD", gradientFrom: "#14b8a6", gradientTo: "#6366f1", accentColor: "#0d9488" },
   // Seasonal
-  { id: "valentines",      name: "Valentine's Day",   emoji: "❤️",  base: "SOFT", gradientFrom: "#fecdd3", gradientTo: "#fda4af", accentColor: "#e11d48",  seasonal: true },
-  { id: "st-patricks",     name: "St. Patrick's Day", emoji: "🍀", base: "BOLD", gradientFrom: "#16a34a", gradientTo: "#15803d", accentColor: "#ca8a04",  seasonal: true },
-  { id: "fourth-of-july",  name: "4th of July",       emoji: "🇺🇸", base: "BOLD", gradientFrom: "#dc2626", gradientTo: "#1d4ed8", accentColor: "#dc2626",  seasonal: true },
-  { id: "halloween",       name: "Halloween",         emoji: "🎃", base: "DARK", gradientFrom: "#9a3412", gradientTo: "#1c1917", accentColor: "#f97316",  seasonal: true },
-  { id: "thanksgiving",    name: "Thanksgiving",      emoji: "🦃", base: "BOLD", gradientFrom: "#b45309", gradientTo: "#92400e", accentColor: "#d97706",  seasonal: true },
-  { id: "winter-holidays", name: "Winter Holidays",   emoji: "🎄", base: "DARK", gradientFrom: "#166534", gradientTo: "#0f172a", accentColor: "#fbbf24",  seasonal: true },
-  { id: "new-years",       name: "New Year's Eve",    emoji: "🥂", base: "DARK", gradientFrom: "#1e1b4b", gradientTo: "#0f172a", accentColor: "#fbbf24",  seasonal: true },
+  { id: "valentines",      name: "Valentine's Day",   emoji: "❤️",  base: "SOFT", gradientFrom: "#fecdd3", gradientTo: "#fda4af", accentColor: "#e11d48",  seasonal: true, month: 2 },
+  { id: "st-patricks",     name: "St. Patrick's Day", emoji: "🍀", base: "BOLD", gradientFrom: "#16a34a", gradientTo: "#15803d", accentColor: "#ca8a04",  seasonal: true, month: 3 },
+  { id: "spring",          name: "Spring",            emoji: "🌱", base: "SOFT", gradientFrom: "#bbf7d0", gradientTo: "#bae6fd", accentColor: "#059669",  seasonal: true, month: 3 },
+  { id: "easter",          name: "Easter",            emoji: "🐣", base: "SOFT", gradientFrom: "#e9d5ff", gradientTo: "#fde68a", accentColor: "#a855f7",  seasonal: true, month: 3 },
+  { id: "cherry-blossom",  name: "Cherry Blossom",    emoji: "🌸", base: "SOFT", gradientFrom: "#fbcfe8", gradientTo: "#f9a8d4", accentColor: "#ec4899",  seasonal: true, month: 4 },
+  { id: "mothers-day",     name: "Mother's Day",      emoji: "🌹", base: "SOFT", gradientFrom: "#f0abfc", gradientTo: "#c4b5fd", accentColor: "#a855f7",  seasonal: true, month: 5 },
+  { id: "summer",          name: "Summer Vibes",      emoji: "☀️", base: "BOLD", gradientFrom: "#fde68a", gradientTo: "#fdba74", accentColor: "#d97706",  seasonal: true, month: 6 },
+  { id: "fourth-of-july",  name: "4th of July",       emoji: "🇺🇸", base: "BOLD", gradientFrom: "#dc2626", gradientTo: "#1d4ed8", accentColor: "#dc2626",  seasonal: true, month: 7 },
+  { id: "fall",            name: "Fall",              emoji: "🍂", base: "DARK", gradientFrom: "#c2410c", gradientTo: "#78350f", accentColor: "#f97316",  seasonal: true, month: 9 },
+  { id: "halloween",       name: "Halloween",         emoji: "🎃", base: "DARK", gradientFrom: "#9a3412", gradientTo: "#1c1917", accentColor: "#f97316",  seasonal: true, month: 10 },
+  { id: "thanksgiving",    name: "Thanksgiving",      emoji: "🦃", base: "BOLD", gradientFrom: "#b45309", gradientTo: "#92400e", accentColor: "#d97706",  seasonal: true, month: 11 },
+  { id: "winter-holidays", name: "Winter Holidays",   emoji: "🎄", base: "DARK", gradientFrom: "#166534", gradientTo: "#0f172a", accentColor: "#fbbf24",  seasonal: true, month: 12 },
+  { id: "winter",          name: "Winter",            emoji: "❄️", base: "DARK", gradientFrom: "#0369a1", gradientTo: "#1e3a5f", accentColor: "#bae6fd",  seasonal: true, month: 12 },
+  { id: "new-years",       name: "New Year's Eve",    emoji: "🥂", base: "DARK", gradientFrom: "#1e1b4b", gradientTo: "#0f172a", accentColor: "#fbbf24",  seasonal: true, month: 12 },
 ];
+
+export function getSortedPresets<T extends { month?: number | null; seasonal?: boolean | null; name: string }>(
+  presets: T[],
+  now = new Date()
+): T[] {
+  const currentMonth = now.getMonth() + 1;
+  return [...presets].sort((a, b) => {
+    const aSeasonal = !!(a.seasonal && a.month != null);
+    const bSeasonal = !!(b.seasonal && b.month != null);
+    if (aSeasonal && !bSeasonal) return -1;
+    if (!aSeasonal && bSeasonal) return 1;
+    if (aSeasonal && bSeasonal) {
+      const aDist = (a.month! - currentMonth + 12) % 12;
+      const bDist = (b.month! - currentMonth + 12) % 12;
+      if (aDist !== bDist) return aDist - bDist;
+    }
+    return a.name.localeCompare(b.name);
+  });
+}
 
 // Curated accent color presets
 export const ACCENT_PRESETS = [
@@ -333,7 +362,7 @@ export function resolveTheme(
     gradientTo,
     pageBg,
     pageDecoration: "bold-hero",
-    pageDecorationBg1: `linear-gradient(160deg, ${gradientFrom} 0%, ${gradientTo} 50%, ${pageBg} 100%)`,
+    pageDecorationBg1: `linear-gradient(160deg, ${gradientFrom} 0%, ${gradientTo} 25%, ${pageBg} 55%)`,
     pageDecorationBg2: "none",
     textPrimary: "#0a0a0a",
     textSecondary: "#52525b",

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { ArrowLeft, Check, Plus, X } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme } from "@/lib/theme";
+import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme, getSortedPresets } from "@/lib/theme";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -157,7 +157,8 @@ type DbThemePreset = {
   gradientFrom: string;
   gradientTo: string;
   accentColor: string;
-  seasonal: boolean;
+  seasonal?: boolean | null;
+  month?: number | null;
 };
 
 export function SettingsPage({ event, isOwner, themePresets = [] }: { event: EventInput; isOwner: boolean; themePresets?: DbThemePreset[] }) {
@@ -171,6 +172,9 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
   const [gradientFrom, setGradientFrom] = useState(event.theme?.gradientFrom ?? "#7c3aed");
   const [gradientTo, setGradientTo] = useState(event.theme?.gradientTo ?? "#1e40af");
   const [accent, setAccent] = useState(event.theme?.accentColor ?? "#a855f7");
+  const [themeSearch, setThemeSearch] = useState("");
+  const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general">("all");
+  const [themeCustomizeOpen, setThemeCustomizeOpen] = useState(false);
 
   // ── RSVP Options State ──
   const [plusOneAllowed, setPlusOneAllowed] = useState(event.plusOneAllowed);
@@ -290,6 +294,19 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
       setActiveSection(null);
     }
   };
+
+  // ── Theme Presets (sorted by month proximity) ──
+  const sortedThemePresets = useMemo(() => getSortedPresets(themePresets), [themePresets]);
+  const visibleThemePresets = useMemo(() => {
+    let result = sortedThemePresets;
+    if (themeFilter === "seasonal") result = result.filter((p) => p.seasonal);
+    if (themeFilter === "general") result = result.filter((p) => !p.seasonal);
+    if (themeSearch.trim()) {
+      const q = themeSearch.toLowerCase();
+      result = result.filter((p) => p.name.toLowerCase().includes(q) || p.emoji.includes(q));
+    }
+    return result;
+  }, [sortedThemePresets, themeFilter, themeSearch]);
 
   // ── Theme Auto-Save ──
   const triggerSaveTheme = (newBase: BaseTheme, newFrom: string, newTo: string, newAccent: string) => {
@@ -893,99 +910,171 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
         {/* ── Theme ── */}
         {activeSection === "theme" && (
           <Section title="Theme" t={t}>
-            {/* Style (base) */}
-            <div style={{ marginBottom: "20px" }}>
-              <Label t={t}>Style</Label>
-              <div style={{ display: "flex", gap: "10px" }}>
-                {BASE_THEMES.map((bt) => (
-                  <button
-                    key={bt.id}
-                    onClick={() => {
-                      const newFrom = bt.defaultGradientFrom;
-                      const newTo = bt.defaultGradientTo;
-                      const newAccent = bt.defaultAccent;
-                      setBase(bt.id);
-                      setGradientFrom(newFrom);
-                      setGradientTo(newTo);
-                      setAccent(newAccent);
-                      triggerSaveTheme(bt.id, newFrom, newTo, newAccent);
-                    }}
-                    style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "16px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}
-                  >
-                    <div style={{ height: "44px", background: bt.preview }} />
-                    <div style={{ padding: "6px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
-                  </button>
-                ))}
-              </div>
+            {/* Search */}
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="text"
+                value={themeSearch}
+                onChange={(e) => setThemeSearch(e.target.value)}
+                placeholder="Search themes…"
+                style={{
+                  width: "100%", boxSizing: "border-box", padding: "8px 12px",
+                  background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  borderRadius: "10px", color: t.textPrimary, fontSize: "13px", outline: "none",
+                }}
+              />
             </div>
 
-            {/* Presets */}
-            <div style={{ marginBottom: "20px" }}>
-              <Label t={t}>Presets</Label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                {themePresets.filter(p => p.base === base).map((p) => {
-                  const isActive = gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setGradientFrom(p.gradientFrom);
-                        setGradientTo(p.gradientTo);
-                        setAccent(p.accentColor);
-                        triggerSaveTheme(base, p.gradientFrom, p.gradientTo, p.accentColor);
-                      }}
-                      style={{
-                        padding: "8px 6px", border: `2px solid ${isActive ? t.accent : t.inputBorder}`, borderRadius: "12px",
-                        cursor: "pointer", background: isActive ? t.accentBg : t.inputBg, transition: "all 0.15s",
-                        display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
-                      }}
-                    >
-                      <div style={{ width: "100%", height: "28px", borderRadius: "6px", background: `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})` }} />
-                      <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                        <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: p.accentColor, flexShrink: 0 }} />
-                        <span style={{ fontSize: "9px", fontWeight: 600, color: t.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Background colors */}
-            <div style={{ marginBottom: "16px" }}>
-              <Label t={t}>Background Colors</Label>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "6px" }}>Start</div>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", cursor: "pointer" }}>
-                    <div style={{ width: "22px", height: "22px", borderRadius: "6px", background: gradientFrom, border: "1px solid rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                    <span style={{ fontSize: "12px", color: t.textSecondary, fontFamily: "monospace" }}>{gradientFrom}</span>
-                    <input type="color" value={gradientFrom} onChange={(e) => { setGradientFrom(e.target.value); triggerSaveTheme(base, e.target.value, gradientTo, accent); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-                  </label>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "6px" }}>End</div>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", cursor: "pointer" }}>
-                    <div style={{ width: "22px", height: "22px", borderRadius: "6px", background: gradientTo, border: "1px solid rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                    <span style={{ fontSize: "12px", color: t.textSecondary, fontFamily: "monospace" }}>{gradientTo}</span>
-                    <input type="color" value={gradientTo} onChange={(e) => { setGradientTo(e.target.value); triggerSaveTheme(base, gradientFrom, e.target.value, accent); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Accent color */}
-            <Label t={t}>Accent Color</Label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "10px" }}>
-              {ACCENT_PRESETS.map((p) => (
-                <button key={p.value} onClick={() => { setAccent(p.value); triggerSaveTheme(base, gradientFrom, gradientTo, p.value); }} title={p.name} style={{ width: "32px", height: "32px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
+            {/* Filter pills */}
+            <div style={{ display: "flex", gap: "7px", marginBottom: "12px" }}>
+              {(["all", "seasonal", "general"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setThemeFilter(f)}
+                  style={{
+                    padding: "4px 11px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                    border: `1px solid ${themeFilter === f ? t.accent : t.inputBorder}`,
+                    background: themeFilter === f ? t.accentBg : "transparent",
+                    color: themeFilter === f ? t.accent : t.textMuted,
+                  }}
+                >
+                  {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : "🎨 General"}
                 </button>
               ))}
-              <label style={{ width: "32px", height: "32px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
-                🎨
-                <input type="color" value={accent} onChange={(e) => { setAccent(e.target.value); triggerSaveTheme(base, gradientFrom, gradientTo, e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-              </label>
+            </div>
+
+            {/* Preset grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+                gap: "7px",
+                maxHeight: "300px",
+                overflowY: "auto",
+                marginBottom: "14px",
+              }}
+            >
+              {visibleThemePresets.map((p) => {
+                const isActive = base === p.base && gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setBase(p.base);
+                      setGradientFrom(p.gradientFrom);
+                      setGradientTo(p.gradientTo);
+                      setAccent(p.accentColor);
+                      triggerSaveTheme(p.base, p.gradientFrom, p.gradientTo, p.accentColor);
+                    }}
+                    style={{
+                      padding: 0,
+                      border: `2px solid ${isActive ? t.accent : t.inputBorder}`,
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      background: isActive ? t.accentBg : t.inputBg,
+                      transition: "all 0.15s",
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <div style={{ position: "relative", height: "36px", background: `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})` }}>
+                      <span style={{ position: "absolute", top: "3px", left: "4px", fontSize: "10px" }}>{p.emoji}</span>
+                      <div style={{ position: "absolute", bottom: "3px", right: "4px", width: "7px", height: "7px", borderRadius: "50%", background: p.accentColor, border: "1px solid rgba(255,255,255,0.3)" }} />
+                    </div>
+                    <div style={{ padding: "4px 5px", fontSize: "9px", fontWeight: 600, color: t.textSecondary, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {p.name}
+                    </div>
+                  </button>
+                );
+              })}
+              {visibleThemePresets.length === 0 && (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "20px", color: t.textMuted, fontSize: "12px" }}>
+                  No themes match
+                </div>
+              )}
+            </div>
+
+            {/* Customize accordion */}
+            <div style={{ marginBottom: "12px", border: `1px solid ${t.inputBorder}`, borderRadius: "12px", overflow: "hidden" }}>
+              <button
+                onClick={() => setThemeCustomizeOpen((o) => !o)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 14px", background: t.inputBg, border: "none",
+                  cursor: "pointer", color: t.textPrimary, fontSize: "13px", fontWeight: 600,
+                }}
+              >
+                <span>Customize colors</span>
+                <span style={{ fontSize: "11px", color: t.textMuted, transform: themeCustomizeOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+              </button>
+
+              {themeCustomizeOpen && (
+                <div style={{ padding: "14px", borderTop: `1px solid ${t.inputBorder}` }}>
+                  {/* Style selector */}
+                  <div style={{ marginBottom: "14px" }}>
+                    <Label t={t}>Style</Label>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {BASE_THEMES.map((bt) => (
+                        <button
+                          key={bt.id}
+                          onClick={() => {
+                            const newFrom = bt.defaultGradientFrom;
+                            const newTo = bt.defaultGradientTo;
+                            const newAccent = bt.defaultAccent;
+                            setBase(bt.id);
+                            setGradientFrom(newFrom);
+                            setGradientTo(newTo);
+                            setAccent(newAccent);
+                            triggerSaveTheme(bt.id, newFrom, newTo, newAccent);
+                          }}
+                          style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "12px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}
+                        >
+                          <div style={{ height: "36px", background: bt.preview }} />
+                          <div style={{ padding: "5px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Background colors */}
+                  <div style={{ marginBottom: "14px" }}>
+                    <Label t={t}>Background Colors</Label>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>Start</div>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "9px", cursor: "pointer" }}>
+                          <div style={{ width: "18px", height: "18px", borderRadius: "5px", background: gradientFrom, flexShrink: 0 }} />
+                          <span style={{ fontSize: "11px", color: t.textSecondary, fontFamily: "monospace" }}>{gradientFrom}</span>
+                          <input type="color" value={gradientFrom} onChange={(e) => { setGradientFrom(e.target.value); triggerSaveTheme(base, e.target.value, gradientTo, accent); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        </label>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>End</div>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "9px", cursor: "pointer" }}>
+                          <div style={{ width: "18px", height: "18px", borderRadius: "5px", background: gradientTo, flexShrink: 0 }} />
+                          <span style={{ fontSize: "11px", color: t.textSecondary, fontFamily: "monospace" }}>{gradientTo}</span>
+                          <input type="color" value={gradientTo} onChange={(e) => { setGradientTo(e.target.value); triggerSaveTheme(base, gradientFrom, e.target.value, accent); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Accent color */}
+                  <Label t={t}>Accent Color</Label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                    {ACCENT_PRESETS.map((p) => (
+                      <button key={p.value} onClick={() => { setAccent(p.value); triggerSaveTheme(base, gradientFrom, gradientTo, p.value); }} title={p.name} style={{ width: "30px", height: "30px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
+                      </button>
+                    ))}
+                    <label style={{ width: "30px", height: "30px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
+                      🎨
+                      <input type="color" value={accent} onChange={(e) => { setAccent(e.target.value); triggerSaveTheme(base, gradientFrom, gradientTo, e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </Section>
         )}
