@@ -510,6 +510,7 @@ export async function createThemePreset(data: {
   gradientTo: string;
   accentColor: string;
   seasonal: boolean;
+  month?: number | null;
 }) {
   await assertAdmin();
   const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
@@ -532,6 +533,7 @@ export async function updateThemePreset(
     seasonal: boolean;
     active: boolean;
     sortOrder: number;
+    month: number | null;
   }>
 ) {
   await assertAdmin();

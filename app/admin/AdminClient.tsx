@@ -85,6 +85,7 @@ interface AdminThemePreset {
   seasonal: boolean;
   active: boolean;
   sortOrder: number;
+  month?: number | null;
   createdAt: Date;
 }
 
@@ -149,6 +150,7 @@ export default function AdminClient({
     gradientTo: string;
     accentColor: string;
     seasonal: boolean;
+    month?: number | null;
   } | null>(null);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
 
@@ -634,6 +636,7 @@ function extractRawEmail(fromStr) {
           gradientTo: themePresetForm.gradientTo,
           accentColor: themePresetForm.accentColor,
           seasonal: themePresetForm.seasonal,
+          month: themePresetForm.month ?? null,
         });
         setThemePresets((prev) =>
           prev.map((p) =>
@@ -650,6 +653,7 @@ function extractRawEmail(fromStr) {
           gradientTo: themePresetForm.gradientTo,
           accentColor: themePresetForm.accentColor,
           seasonal: themePresetForm.seasonal,
+          month: themePresetForm.month ?? null,
         });
         setThemePresets((prev) => [...prev, created as AdminThemePreset]);
         setFeedback({ type: "success", message: "Preset created." });
@@ -2511,6 +2515,7 @@ function extractRawEmail(fromStr) {
                           gradientTo: "#16213e",
                           accentColor: "#a855f7",
                           seasonal: false,
+                          month: null,
                         })
                       }
                       style={{
@@ -2579,6 +2584,7 @@ function extractRawEmail(fromStr) {
                                     gradientTo: preset.gradientTo,
                                     accentColor: preset.accentColor,
                                     seasonal: preset.seasonal,
+                                    month: preset.month ?? null,
                                   })
                                 }
                                 style={{
@@ -2771,16 +2777,36 @@ function extractRawEmail(fromStr) {
                       </div>
                     </div>
 
-                    {/* Seasonal toggle */}
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px", color: APP_SHELL.textPrimary }}>
-                      <input
-                        type="checkbox"
-                        checked={themePresetForm.seasonal}
-                        onChange={(e) => setThemePresetForm((f) => f && { ...f, seasonal: e.target.checked })}
-                        style={{ width: "16px", height: "16px", cursor: "pointer" }}
-                      />
-                      Seasonal preset (for informational tagging only)
-                    </label>
+                    {/* Seasonal toggle + month */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px", color: APP_SHELL.textPrimary }}>
+                        <input
+                          type="checkbox"
+                          checked={themePresetForm.seasonal}
+                          onChange={(e) => setThemePresetForm((f) => f && { ...f, seasonal: e.target.checked, month: e.target.checked ? f.month : null })}
+                          style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                        />
+                        Seasonal preset
+                      </label>
+                      {themePresetForm.seasonal && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>MONTH (1–12)</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={12}
+                            value={themePresetForm.month ?? ""}
+                            onChange={(e) => setThemePresetForm((f) => f && { ...f, month: e.target.value ? parseInt(e.target.value, 10) : null })}
+                            placeholder="e.g. 10"
+                            style={{
+                              width: "72px", backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: "8px", padding: "7px 10px", fontSize: "14px",
+                              color: APP_SHELL.textPrimary, outline: "none",
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     {/* Preview strip */}
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", backgroundColor: APP_SHELL.inputBg, borderRadius: "10px" }}>

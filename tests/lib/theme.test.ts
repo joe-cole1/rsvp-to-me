@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveTheme, getReadableText, THEME_PRESETS } from "@/lib/theme";
+import { resolveTheme, getReadableText, THEME_PRESETS, getSortedPresets } from "@/lib/theme";
 
 describe("Theme Resolution", () => {
   describe("getReadableText", () => {
@@ -72,6 +72,79 @@ describe("Theme Resolution", () => {
         expect(preset).toHaveProperty("accentColor");
         expect(preset).toHaveProperty("base");
       }
+    });
+  });
+
+  describe("getSortedPresets", () => {
+    const seasonal = (id: string, name: string, month: number) => ({ id, name, seasonal: true, month });
+    const general = (id: string, name: string) => ({ id, name, seasonal: false });
+
+    it("seasonal presets float before non-seasonal", () => {
+      const presets = [general("g1", "Zebra"), seasonal("s1", "Alpha", 6)];
+      const result = getSortedPresets(presets, new Date("2026-01-01"));
+      expect(result[0].id).toBe("s1");
+      expect(result[1].id).toBe("g1");
+    });
+
+    it("sorts seasonal presets by month proximity to current month", () => {
+      const oct = new Date("2026-10-01");
+      const presets = [
+        seasonal("thanksgiving", "Thanksgiving", 11),
+        seasonal("halloween", "Halloween", 10),
+        seasonal("valentines", "Valentine's Day", 2),
+      ];
+      const result = getSortedPresets(presets, oct);
+      expect(result[0].id).toBe("halloween");   // distance 0
+      expect(result[1].id).toBe("thanksgiving"); // distance 1
+      expect(result[2].id).toBe("valentines");   // distance 4
+    });
+
+    it("wrap-around: November → December before February", () => {
+      const nov = new Date("2026-11-01");
+      const presets = [
+        seasonal("valentines", "Valentine's Day", 2),
+        seasonal("winter-holidays", "Winter Holidays", 12),
+      ];
+      const result = getSortedPresets(presets, nov);
+      expect(result[0].id).toBe("winter-holidays"); // 1 month away
+      expect(result[1].id).toBe("valentines");       // 3 months away
+    });
+
+    it("ties broken by name alphabetically", () => {
+      const jan = new Date("2026-01-01");
+      const presets = [
+        seasonal("easter", "Easter", 3),
+        seasonal("spring", "Spring", 3),
+        seasonal("st-patricks", "St. Patrick's Day", 3),
+      ];
+      const result = getSortedPresets(presets, jan);
+      expect(result.map((p) => p.id)).toEqual(["easter", "spring", "st-patricks"]);
+    });
+
+    it("non-seasonal presets sorted alphabetically among themselves", () => {
+      const presets = [general("z", "Zebra"), general("a", "Apple"), general("m", "Mango")];
+      const result = getSortedPresets(presets);
+      expect(result.map((p) => p.name)).toEqual(["Apple", "Mango", "Zebra"]);
+    });
+
+    it("seasonal presets without a month sort with non-seasonal alphabetically", () => {
+      const presets = [
+        { id: "s-no-month", name: "Autumn Fest", seasonal: true, month: undefined },
+        general("g1", "Zebra"),
+        seasonal("s1", "Alpha", 6),
+      ];
+      const result = getSortedPresets(presets, new Date("2026-01-01"));
+      expect(result[0].id).toBe("s1");
+      // "Autumn Fest" and "Zebra" are non-month-seasonal and general — both treated as non-month
+      expect(result[1].name).toBe("Autumn Fest");
+      expect(result[2].name).toBe("Zebra");
+    });
+
+    it("does not mutate the original array", () => {
+      const presets = [seasonal("s1", "B", 6), seasonal("s2", "A", 6)];
+      const original = [...presets];
+      getSortedPresets(presets);
+      expect(presets).toEqual(original);
     });
   });
 });

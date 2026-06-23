@@ -203,6 +203,7 @@ model ThemePreset {
   seasonal     Boolean   @default(false)
   active       Boolean   @default(true)
   sortOrder    Int       @default(0)
+  month        Int?
   createdAt    DateTime  @default(now())
 }
 
