@@ -52,8 +52,10 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     event.theme?.accentColor ?? "#a855f7"
   );
 
-  const approvedRsvps = event.rsvps.filter((r) => r.approved);
-  const pendingRsvps = event.rsvps.filter((r) => !r.approved);
+  const approvedRsvps = event.rsvps.filter((r) => r.approved && r.status !== "INVITED");
+  const pendingRsvps = event.rsvps.filter((r) => !r.approved && r.status !== "INVITED");
+  // Guests with INVITED status haven't responded yet; shown in host-only Invited tab
+  const invitedRsvps = event.rsvps.filter((r) => r.status === "INVITED");
 
   const going = approvedRsvps.filter((r) => r.status === "GOING");
   const maybe = approvedRsvps.filter((r) => r.status === "MAYBE");
@@ -100,7 +102,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
           <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "4px" }}>{event.title}</h1>
           <p style={{ color: t.textMuted, fontSize: "14px" }}>
             {[
-              `${event.rsvps.length} ${event.rsvps.length === 1 ? "response" : "responses"}`,
+              `${approvedRsvps.length + pendingRsvps.length} ${approvedRsvps.length + pendingRsvps.length === 1 ? "response" : "responses"}`,
               `${totalGoing} going`,
               maybe.length > 0 ? `${maybe.length} maybe` : null,
               no.length > 0 ? `${no.length} can't make it` : null,
@@ -119,10 +121,22 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
             maybe={maybe.map(serializeRsvp)}
             no={no.map(serializeRsvp)}
             pending={isHost ? pendingRsvps.map(serializeRsvp) : []}
-            invited={pendingInvitations.map((inv) => ({
-              ...inv,
-              sentAt: inv.sentAt.toISOString(),
-            }))}
+            invited={[
+              // RSVPs with INVITED status (host pre-invited, awaiting response)
+              ...invitedRsvps.map((r) => ({
+                id: r.id,
+                sentTo: r.guestEmail || r.guestPhone || r.guestName,
+                channel: (r.guestEmail ? "EMAIL" : "SMS") as "EMAIL" | "SMS",
+                sentAt: r.createdAt.toISOString(),
+                guestName: r.guestName,
+              })),
+              // Invitation records with no linked RSVP (blast tracking)
+              ...pendingInvitations.map((inv) => ({
+                ...inv,
+                sentAt: inv.sentAt.toISOString(),
+                guestName: undefined,
+              })),
+            ]}
             isHost={isHost}
             slug={slug}
             t={t}

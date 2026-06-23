@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "RSVPStatus" ADD VALUE 'INVITED';

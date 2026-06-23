@@ -12,7 +12,7 @@ type RSVP = {
   guestName: string;
   guestEmail: string | null;
   guestPhone: string | null;
-  status: "GOING" | "MAYBE" | "NO";
+  status: "GOING" | "MAYBE" | "NO" | "INVITED";
   plusOneCount: number;
   note: string | null;
   createdAt: string;
@@ -27,6 +27,7 @@ type InvitedGuest = {
   sentTo: string;
   channel: "EMAIL" | "SMS";
   sentAt: string;
+  guestName?: string;
 };
 
 type Filter = "ALL" | "GOING" | "MAYBE" | "NO" | "INVITED" | "PENDING";
@@ -59,7 +60,7 @@ export function GuestListFilter({
   const [isPending, startTransition] = useTransition();
 
   const statusLabel = (s: string) =>
-    s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't make it";
+    s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : s === "INVITED" ? "Invited" : "Can't make it";
   const statusColor = (s: string) =>
     s === "GOING" ? t.badgeText : s === "MAYBE" ? t.textSecondary : t.textMuted;
 
@@ -133,9 +134,10 @@ export function GuestListFilter({
             setGoing((prev) => [...prev, approvedItem]);
           } else if (approvedItem.status === "MAYBE") {
             setMaybe((prev) => [...prev, approvedItem]);
-          } else {
+          } else if (approvedItem.status === "NO") {
             setNo((prev) => [...prev, approvedItem]);
           }
+          // INVITED: remove from pending only; page revalidates to show in Invited tab
         }
       }
     });
@@ -316,9 +318,15 @@ export function GuestListFilter({
                 ✉
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
+                {inv.guestName && (
+                  <div style={{ fontWeight: 700, fontSize: "14px", marginBottom: "2px" }}>
+                    {inv.guestName}
+                  </div>
+                )}
                 <div style={{
-                  fontWeight: 600, fontSize: "14px",
+                  fontWeight: inv.guestName ? 400 : 600, fontSize: "14px",
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  color: inv.guestName ? t.textMuted : "inherit",
                 }}>
                   {inv.sentTo}
                 </div>

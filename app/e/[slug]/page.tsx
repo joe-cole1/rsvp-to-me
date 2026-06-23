@@ -23,7 +23,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       rsvpFields: { orderBy: { order: "asc" } },
       coHosts: { select: { userId: true } },
       rsvps: {
-        where: { approved: true },
+        where: { approved: true, status: { not: "INVITED" } },
         select: {
           id: true,
           guestName: true,
@@ -107,6 +107,23 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
             <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "15px", lineHeight: 1.5 }}>
               To attend, contact the host to receive an invitation.
             </p>
+            <a
+              href={`/sign-in?redirect=/e/${slug}`}
+              style={{
+                display: "inline-block",
+                marginTop: "20px",
+                padding: "10px 22px",
+                background: "rgba(168,85,247,0.15)",
+                border: "1px solid rgba(168,85,247,0.4)",
+                borderRadius: "8px",
+                color: "#c084fc",
+                textDecoration: "none",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              Sign in to access
+            </a>
           </div>
         </AppShell>
       );
@@ -140,7 +157,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         id: _guestRsvpRaw.id,
         guestName: _guestRsvpRaw.guestName,
         editToken: _guestRsvpRaw.editToken,
-        status: _guestRsvpRaw.status as "GOING" | "MAYBE" | "NO",
+        status: _guestRsvpRaw.status as "GOING" | "MAYBE" | "NO" | "INVITED",
         hasAnswers: _guestRsvpRaw._count.answers > 0,
         responded: _guestRsvpRaw.responded,
       }
@@ -148,7 +165,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   const pendingRsvps = isHost
     ? await db.rSVP.findMany({
-        where: { eventId: event.id, approved: false },
+        where: { eventId: event.id, approved: false, status: { not: "INVITED" } },
         select: { id: true, guestName: true, guestEmail: true, status: true, plusOneCount: true, createdAt: true },
         orderBy: { createdAt: "asc" },
       })

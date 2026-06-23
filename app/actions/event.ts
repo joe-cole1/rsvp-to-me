@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms } from "@/lib/sms";
+import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendEventInviteSms } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -246,20 +246,42 @@ export async function addRSVP(rawInput: unknown) {
     userId = guestUser.id;
   }
 
-  const rsvp = await db.rSVP.create({
-    data: {
-      eventId: data.eventId,
-      guestName: data.guestName,
-      guestEmail: data.guestEmail,
-      guestPhone: data.guestPhone,
-      status: data.status,
-      plusOneCount: data.plusOneCount,
-      note: data.note || null,
-      approved: !event.approvalRequired,
-      responded: true,
-      userId,
-    },
-  });
+  // If a host pre-invited this guest, update their existing INVITED RSVP instead of creating a duplicate
+  const existingInvited = userId
+    ? await db.rSVP.findFirst({
+        where: { eventId: data.eventId, userId, status: "INVITED" },
+      })
+    : null;
+
+  let rsvp;
+  if (existingInvited) {
+    rsvp = await db.rSVP.update({
+      where: { id: existingInvited.id },
+      data: {
+        guestName: data.guestName,
+        status: data.status,
+        plusOneCount: data.plusOneCount,
+        note: data.note || null,
+        approved: !event.approvalRequired,
+        responded: true,
+      },
+    });
+  } else {
+    rsvp = await db.rSVP.create({
+      data: {
+        eventId: data.eventId,
+        guestName: data.guestName,
+        guestEmail: data.guestEmail,
+        guestPhone: data.guestPhone,
+        status: data.status,
+        plusOneCount: data.plusOneCount,
+        note: data.note || null,
+        approved: !event.approvalRequired,
+        responded: true,
+        userId,
+      },
+    });
+  }
 
   if (data.answers && Object.keys(data.answers).length > 0) {
     await db.rSVPAnswer.createMany({
@@ -482,7 +504,7 @@ export async function sendBlast(
   });
   if (!event) throw new Error("Event not found");
 
-  const orConditions: { status?: "GOING" | "MAYBE" | "NO"; responded?: boolean }[] = [];
+  const orConditions: { status?: "GOING" | "MAYBE" | "NO" | "INVITED"; responded?: boolean }[] = [];
   for (const filter of filters) {
     if (filter === "ALL") {
       orConditions.length = 0;
@@ -494,7 +516,7 @@ export async function sendBlast(
     } else if (filter === "NO") {
       orConditions.push({ status: "NO", responded: true });
     } else if (filter === "INVITED") {
-      orConditions.push({ responded: false });
+      orConditions.push({ status: "INVITED" });
     }
   }
 
@@ -536,7 +558,7 @@ export async function sendSmsBlast(
   });
   if (!event) throw new Error("Event not found");
 
-  const orConditions: { status?: "GOING" | "MAYBE" | "NO"; responded?: boolean }[] = [];
+  const orConditions: { status?: "GOING" | "MAYBE" | "NO" | "INVITED"; responded?: boolean }[] = [];
   for (const filter of filters) {
     if (filter === "ALL") {
       orConditions.length = 0;
@@ -548,7 +570,7 @@ export async function sendSmsBlast(
     } else if (filter === "NO") {
       orConditions.push({ status: "NO", responded: true });
     } else if (filter === "INVITED") {
-      orConditions.push({ responded: false });
+      orConditions.push({ status: "INVITED" });
     }
   }
 
@@ -1219,7 +1241,7 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
             guestName: namePrefix,
             guestEmail: isEmail ? entry : null,
             guestPhone: isEmail ? null : entry,
-            status: "GOING",
+            status: "INVITED",
             responded: false,
             approved: true,
             userId: user.id,
@@ -1244,25 +1266,35 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
       }
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-      const inviteLink = `${appUrl}/e/${event.slug}?token=${rsvp.editToken}`;
+      const rsvpBaseUrl = `${appUrl}/e/${event.slug}/rsvp?token=${rsvp.editToken}`;
 
       if (isEmail) {
         const eventDetails = await db.event.findUnique({
           where: { id: eventId },
-          select: { title: true, locationName: true, host: { select: { email: true } } },
+          select: { title: true, startAt: true, locationName: true, maybeEnabled: true, host: { select: { name: true, email: true } } },
         });
         await sendEventInviteEmail(entry, {
           guestName: rsvp.guestName,
-          hostName: session.email ? session.email.split("@")[0] : "Your Host",
+          hostName: eventDetails?.host?.name ?? session.email?.split("@")[0] ?? "Your Host",
           eventTitle: eventDetails?.title ?? "Event",
           eventSlug: event.slug,
-          startAt: new Date(),
-          locationName: eventDetails?.locationName ?? "TBD",
-          inviteLink,
+          startAt: eventDetails?.startAt ?? new Date(),
+          locationName: eventDetails?.locationName,
+          rsvpBaseUrl,
+          maybeEnabled: eventDetails?.maybeEnabled ?? true,
           replyTo: eventDetails?.host?.email || undefined,
         });
       } else {
-        await sendMagicLinkSms(entry, inviteLink);
+        const eventDetails = await db.event.findUnique({
+          where: { id: eventId },
+          select: { title: true, maybeEnabled: true, host: { select: { name: true } } },
+        });
+        await sendEventInviteSms(entry, {
+          hostName: eventDetails?.host?.name ?? session.email?.split("@")[0] ?? "Your Host",
+          eventTitle: eventDetails?.title ?? "Event",
+          rsvpBaseUrl,
+          maybeEnabled: eventDetails?.maybeEnabled ?? true,
+        });
       }
 
       invited.push(entry);
@@ -1345,7 +1377,7 @@ export async function inviteFriendAsGuest(
         guestName: namePrefix,
         guestEmail: isEmail ? entry : null,
         guestPhone: isEmail ? null : entry,
-        status: "GOING",
+        status: "INVITED",
         responded: false,
         approved: false,
         userId: user.id,
@@ -1368,7 +1400,7 @@ export async function inviteFriendAsGuest(
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const inviteLink = `${appUrl}/e/${event.slug}?token=${rsvp.editToken}`;
+  const rsvpBaseUrl = `${appUrl}/e/${event.slug}/rsvp?token=${rsvp.editToken}`;
 
   if (isEmail) {
     await sendEventInviteEmail(entry, {
@@ -1377,12 +1409,18 @@ export async function inviteFriendAsGuest(
       eventTitle: event.title,
       eventSlug: event.slug,
       startAt: event.startAt,
-      locationName: event.locationName ?? "TBD",
-      inviteLink,
+      locationName: event.locationName,
+      rsvpBaseUrl,
+      maybeEnabled: event.maybeEnabled,
       replyTo: invitingRsvp.guestEmail || undefined,
     });
   } else {
-    await sendMagicLinkSms(entry, inviteLink);
+    await sendEventInviteSms(entry, {
+      hostName: invitingRsvp.guestName,
+      eventTitle: event.title,
+      rsvpBaseUrl,
+      maybeEnabled: event.maybeEnabled,
+    });
   }
 
   logActivity(eventId, "guest_invite", `${invitingRsvp.guestName} invited ${rsvp.guestName}`).catch(() => {});

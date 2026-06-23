@@ -263,10 +263,23 @@ export async function sendMagicLinkEmail(to: string, magicLink: string) {
 
 export async function sendEventInviteEmail(
   to: string,
-  opts: { guestName: string; hostName: string; eventTitle: string; eventSlug: string; startAt: Date; locationName?: string | null; inviteLink?: string; replyTo?: string }
+  opts: {
+    guestName: string;
+    hostName: string;
+    eventTitle: string;
+    eventSlug: string;
+    startAt: Date;
+    locationName?: string | null;
+    rsvpBaseUrl: string;
+    maybeEnabled: boolean;
+    replyTo?: string;
+  }
 ) {
-  const eventUrl = opts.inviteLink ?? `${APP_URL}/e/${opts.eventSlug}`;
+  const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const dateStr = opts.startAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const maybeBtn = opts.maybeEnabled
+    ? `<a href="${opts.rsvpBaseUrl}&status=MAYBE" style="display:inline-block;background:#f59e0b;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px">Maybe</a>`
+    : "";
   return send({
     to,
     subject: `You're invited: ${opts.eventTitle}`,
@@ -276,9 +289,12 @@ export async function sendEventInviteEmail(
         <h2 style="margin:4px 0">${opts.eventTitle}</h2>
         <p style="color:#666">${dateStr}${opts.locationName ? ` · ${opts.locationName}` : ""}</p>
         <p style="color:#444">Hosted by ${opts.hostName}</p>
-        <a href="${eventUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:8px">
-          RSVP Now
-        </a>
+        <div style="margin-top:16px">
+          <a href="${opts.rsvpBaseUrl}&status=GOING" style="display:inline-block;background:#22c55e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px">Going</a>
+          ${maybeBtn}
+          <a href="${opts.rsvpBaseUrl}&status=NO" style="display:inline-block;background:#ef4444;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">Can't Go</a>
+        </div>
+        <p style="margin-top:12px"><a href="${eventUrl}" style="color:#a855f7;font-size:14px;text-decoration:none">View event details →</a></p>
       </div>
     `,
     replyTo: opts.replyTo,

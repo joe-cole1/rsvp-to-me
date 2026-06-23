@@ -16,6 +16,8 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 *   **TypeScript Error — `deletionScheduledAt` not in `UserWhereInput`** (`lib/cron-scheduler.ts:9`): The cron scheduler filters users by `deletionScheduledAt` but that field does not exist on the `User` model in `prisma/schema.prisma`. Fix: add `deletionScheduledAt DateTime?` to the `User` model and create a migration, or rename the field to match whatever column was actually added for the deletion scheduling feature.
 
+*   **ESLint Warning — Unused variable `e`** (`app/page.tsx:31`): `'e' is defined but never used` — a leftover catch or event parameter. Fix: prefix with `_` or remove entirely.
+
 ### 🔒 Routing & System Safety
 *   *(No pending priority 1 routing/safety items)*
 
@@ -65,31 +67,6 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
 
 ### 💬 Advanced Messaging Integrations
-*   **Email RSVP Buttons + SMS Reply-to-RSVP** *(specced — ready for implementation)*
-
-    Replaces the single "RSVP Now" email button and generic SMS magic-link with a full two-way RSVP experience.
-
-    **Email flow:**
-    - Invite emails show YES / NO / MAYBE anchor buttons (MAYBE hidden when `event.maybeEnabled = false`).
-    - Each button links to `/e/{slug}/rsvp?token={editToken}&status=GOING` — the guest's pre-created RSVP edit form with their response pre-selected. No new token column needed; the existing `RSVP.editToken` serves as the per-invitation URL token.
-    - Guest still completes their name and any questionnaire on the form before submitting. No one-click blind submits.
-    - Re-clicking a different button in the same email loads the form with the new status pre-selected, updating the existing RSVP.
-
-    **SMS flow:**
-    - Invite SMS reads: `"Reply YES XK72 to RSVP yes, NO XK72 to decline [, MAYBE XK72 to say maybe]. Details: {url}"`
-    - Each event gets a unique auto-generated 5-character alphanumeric `smsCode` (e.g. `XK72A`) stored as `Event.smsCode`. Codes use an unambiguous character set (no 0/O/1/I). Generated on event creation; lazily assigned to existing events on first SMS invite.
-    - Twilio webhook at `POST /api/webhooks/twilio` receives guest replies, validates the Twilio HMAC signature, parses `"YES XK72A"`, looks up the event by code, looks up the guest's `Invitation` record by phone, updates `RSVP.status` and sets `responded = true`, then replies via TwiML with a confirmation SMS containing their edit link.
-    - Edge cases handled: invalid code, invalid format, MAYBE on maybe-disabled events, past `rsvpDeadline`, event at capacity (no silent updates — guest is notified).
-
-    **Schema change:** Add `smsCode String? @unique` to `Event`.
-
-    **New file:** `app/api/webhooks/twilio/route.ts`
-
-    **Modified files:** `lib/email.ts`, `lib/sms.ts`, `app/actions/event.ts`, `app/actions/createEvent.ts`, `app/e/[slug]/settings/page.tsx` (read-only smsCode display for hosts).
-
-*   **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
-*   **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
-*   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
 *   **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
 *   **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
 *   **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
@@ -191,5 +168,12 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ### RSVP Notification Toggles
 *   [x] **Per-Event Notification Toggles**: Added 6 per-event boolean toggles under Event Settings → RSVP Options → Notification Settings: guest confirmation email/SMS on RSVP submission, host RSVP alert email/SMS (new — hosts are notified with guest name, status, note, and headcount), and approval notification email/SMS when a host approves or declines a pending RSVP. All default to on to preserve existing behavior.
+
+### INVITED Status + Email RSVP Buttons + SMS Reply-to-RSVP
+*   [x] **INVITED RSVPStatus Enum**: Added `INVITED` to `RSVPStatus` (alongside `GOING`, `MAYBE`, `NO`). Host-invited guests now carry an INVITED RSVP instead of a phantom GOING one, eliminating false "going" counts before guests respond.
+*   [x] **Email RSVP Buttons**: Replaced single "RSVP Now" button in invite emails with three colored anchor buttons — Going (green), Maybe (amber, hidden when `maybeEnabled = false`), Can't Go (red). Each links to `/e/{slug}/rsvp?token={editToken}&status=GOING|MAYBE|NO`, pre-selecting the response on the RSVP edit form. Guest still confirms name/questionnaire before submitting.
+*   [x] **SMS RSVP Reply Webhook**: Invite SMS now prompts guests to reply YES / NO / MAYBE. `POST /api/webhooks/twilio` validates the Twilio HMAC signature, looks up the pending invitation by phone number (no event code required), and updates the RSVP. Edge cases handled: past deadline, maybe-disabled events, capacity full, multiple pending invitations (disambiguation).
+*   [x] **Deduplication in addRSVP**: If a guest with an INVITED RSVP submits via the event page form, the existing RSVP is updated rather than a duplicate being created.
+*   [x] **Private Event Sign-in CTA**: Unauthenticated visitors to a private event now see a "Sign in to access" button linking to `/sign-in?redirect=/e/{slug}`.
 
 

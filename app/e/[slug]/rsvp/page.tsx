@@ -74,7 +74,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
           id: rsvp.id,
           editToken: rsvp.editToken,
           guestName: rsvp.guestName,
-          status: rsvp.status as "GOING" | "MAYBE" | "NO",
+          status: (rsvp.status === "INVITED" ? "GOING" : rsvp.status) as "GOING" | "MAYBE" | "NO",
           plusOneCount: rsvp.plusOneCount,
           note: rsvp.note,
           plusOneGuests: rsvp.plusOneGuests,
