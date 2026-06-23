@@ -8,7 +8,7 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *Immediate attention items. High impact bugs, UX papercuts, and essential routing/data integrity fixes.*
 
 ### 🛠️ Bugs & Blockers
-*   *(No pending priority 1 bugs)*
+*   **SMS Test Suite Failures** (`tests/lib/sms.test.ts`): All 9 SMS tests fail locally and in any environment where `npm run db:generate` has not been run. `lib/sms.ts` pulls in `lib/db.ts` which requires the generated Prisma client at `@/app/generated/prisma/client`. The test file has no mock for `lib/db.ts`, so the import chain breaks before any test executes. Fix by adding a `vi.mock('@/lib/db', ...)` in the test file (matching the pattern used in `tests/lib/redis.test.ts`), or restructuring `lib/sms.ts` so it does not import `lib/db.ts` at module load time. *(Identified during redis v4→v5 upgrade — out of scope for that branch.)*
 
 ### 🔒 Routing & System Safety
 *   *(No pending priority 1 routing/safety items)*
