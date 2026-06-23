@@ -10,6 +10,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run db:generate
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL=postgresql://build-placeholder:5432/build
+ENV REDIS_URL=redis://build-placeholder:6379
 RUN npm run build
 
 FROM node:20-alpine AS runner

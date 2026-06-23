@@ -46,6 +46,7 @@ const {
   mockEventThemeUpdate,
   mockRsvpAnswerUpsert,
   mockPlusOneGuestDeleteMany,
+  mockThemePresetFindMany,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
   mockEventUpdate: vi.fn(),
@@ -89,6 +90,7 @@ const {
   mockEventThemeUpdate: vi.fn(),
   mockRsvpAnswerUpsert: vi.fn(),
   mockPlusOneGuestDeleteMany: vi.fn(),
+  mockThemePresetFindMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -132,6 +134,7 @@ vi.mock("@/lib/db", () => ({
     activityEvent: { create: vi.fn().mockResolvedValue({}) },
     rSVPAnswer: { createMany: mockRsvpAnswerCreateMany, upsert: mockRsvpAnswerUpsert },
     plusOneGuest: { createMany: mockPlusOneGuestCreateMany, deleteMany: mockPlusOneGuestDeleteMany },
+    themePreset: { findMany: mockThemePresetFindMany },
   },
 }));
 
@@ -187,6 +190,7 @@ import {
   deleteRsvpAsHost,
   deleteActivityEvent,
   inviteFriendAsGuest,
+  getActiveThemePresets,
 } from "@/app/actions/event";
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
@@ -1315,15 +1319,33 @@ describe("saveEventTheme", () => {
 
   it("throws Unauthorized when no session", async () => {
     mockGetSession.mockResolvedValue(null);
-    await expect(saveEventTheme(EVENT_ID, "DARK", "#ff0000")).rejects.toThrow("Unauthorized");
+    await expect(saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000")).rejects.toThrow("Unauthorized");
   });
 
-  it("calls eventTheme.upsert with baseTheme and accentColor", async () => {
-    await saveEventTheme(EVENT_ID, "DARK", "#ff0000");
+  it("calls eventTheme.upsert with baseTheme, gradients, and accentColor", async () => {
+    await saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000");
     expect(mockEventThemeUpsert).toHaveBeenCalledWith({
       where: { eventId: EVENT_ID },
-      update: { baseTheme: "DARK", accentColor: "#ff0000", secondaryColor: undefined, themePresetId: undefined },
-      create: { eventId: EVENT_ID, baseTheme: "DARK", accentColor: "#ff0000", secondaryColor: null, themePresetId: "custom" },
+      update: { baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000" },
+      create: { eventId: EVENT_ID, baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000" },
+    });
+  });
+});
+
+describe("getActiveThemePresets", () => {
+  it("returns only active presets ordered by sortOrder then createdAt", async () => {
+    const mockPresets = [
+      { id: "dark-night", name: "Dark Night", base: "DARK", active: true, sortOrder: 0 },
+      { id: "sunset", name: "Sunset", base: "BOLD", active: true, sortOrder: 1 },
+    ];
+    mockThemePresetFindMany.mockResolvedValue(mockPresets);
+
+    const res = await getActiveThemePresets();
+
+    expect(res).toEqual(mockPresets);
+    expect(mockThemePresetFindMany).toHaveBeenCalledWith({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
   });
 });
@@ -1435,7 +1457,7 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
       id: "rsvp-1",
       guestName: "Guest",
       guestEmail: "guest@example.com",
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", approvalNotifyEmail: true, approvalNotifySms: true, host: { email: "host@example.com" }, coHosts: [] },
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", host: { email: "host@example.com" }, coHosts: [] },
     });
     mockRsvpUpdate.mockResolvedValue({});
     mockRsvpDelete.mockResolvedValue({});

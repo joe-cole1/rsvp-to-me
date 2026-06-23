@@ -16,10 +16,37 @@ services:
       - "3000:3000"
     env_file: .env
     environment:
-      DATABASE_URL: file:/app/data/prod.db
-      OPEN_REGISTRATION: "false"   # set to "true" to allow anyone to register
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres_password_here}@postgres:5432/rsvp_db
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_password_placeholder}@redis:6379
+      OPEN_REGISTRATION: "false"
       SEED_TEST_DATA: "false"
-
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password_here}
+      POSTGRES_DB: rsvp_db
+    volumes:
+      - ./pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rsvp_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_password_placeholder}
+    volumes:
+      - ./redis_data:/data

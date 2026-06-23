@@ -156,8 +156,6 @@ export async function verifyChangeToken(
     return { success: false, error: "This link is for signing in, not for profile updates." };
   }
 
-  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
-
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) {
     return { success: false, error: "User not found." };
@@ -169,11 +167,22 @@ export async function verifyChangeToken(
     return { success: false, error: "Invalid request metadata." };
   }
 
+  // Check for conflicts before consuming the token so it isn't burned on a recoverable error
   if (isEmail) {
     const existing = await db.user.findFirst({ where: { email: newValue, NOT: { id: user.id } } });
     if (existing) {
       return { success: false, error: "An account with this email already exists." };
     }
+  } else {
+    const existing = await db.user.findFirst({ where: { phone: newValue, NOT: { id: user.id } } });
+    if (existing) {
+      return { success: false, error: "An account with this phone number already exists." };
+    }
+  }
+
+  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
+
+  if (isEmail) {
     await db.user.update({
       where: { id: user.id },
       data: { email: newValue },
@@ -183,10 +192,6 @@ export async function verifyChangeToken(
       data: { guestEmail: newValue },
     });
   } else {
-    const existing = await db.user.findFirst({ where: { phone: newValue, NOT: { id: user.id } } });
-    if (existing) {
-      return { success: false, error: "An account with this phone number already exists." };
-    }
     await db.user.update({
       where: { id: user.id },
       data: { phone: newValue },
@@ -239,13 +244,12 @@ export async function registerHost(
         code: inviteCode,
         active: true,
         AND: [
-          { OR: [{ maxUses: null }, { maxUses: { gt: 0 } }] },
           { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
         ],
       },
     });
 
-    if (!validCode) {
+    if (!validCode || (validCode.maxUses !== null && validCode.uses >= validCode.maxUses)) {
       return { success: false, error: "Invalid or expired invite code." };
     }
 
@@ -276,13 +280,12 @@ export async function registerHost(
       code: inviteCode,
       active: true,
       AND: [
-        { OR: [{ maxUses: null }, { maxUses: { gt: 0 } }] },
         { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
       ],
     },
   });
 
-  if (!validCode) {
+  if (!validCode || (validCode.maxUses !== null && validCode.uses >= validCode.maxUses)) {
     return { success: false, error: "Invalid or expired invite code." };
   }
 

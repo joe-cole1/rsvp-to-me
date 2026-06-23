@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -12,6 +10,21 @@ permissions:
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rsvp_test
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -27,8 +40,13 @@ jobs:
       - name: Audit dependencies
         run: npm audit --audit-level=high
 
-      - name: Generate Prisma clients (SQLite & Postgres)
+      - name: Generate Prisma client
         run: npm run db:generate
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
 
       - name: Lint
         run: npm run lint
@@ -38,12 +56,14 @@ jobs:
         env:
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
           NEXT_PUBLIC_APP_URL: http://localhost:3000
-          DATABASE_URL: file:./ci.db
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
+          REDIS_URL: redis://localhost:6379
 
       - name: Build
         run: npm run build
         env:
-          DATABASE_URL: file:./ci.db
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
+          REDIS_URL: redis://localhost:6379
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
           HOST_INVITE_CODE: ci-test
           EMAIL_FROM: ci@example.com

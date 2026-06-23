@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, invalidateUserSessions } from "@/lib/session";
+import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { revalidatePath } from "next/cache";
 import { encryptConfig, decryptConfig } from "@/lib/crypto";
 
@@ -56,6 +57,8 @@ export async function getAdminUsers(query: string = "") {
       phone: true,
       role: true,
       createdAt: true,
+      deletionRequestedAt: true,
+      deletionScheduledAt: true,
       _count: {
         select: {
           events: true,
@@ -67,8 +70,6 @@ export async function getAdminUsers(query: string = "") {
 
   return users;
 }
-
-import { invalidateUserSessions } from "@/lib/session";
 
 export async function updateUserRole(userId: string, role: "GUEST" | "HOST" | "ADMIN") {
   const session = await assertAdmin();
@@ -94,20 +95,10 @@ export async function deleteUserAccount(userId: string) {
     throw new Error("You cannot delete your own admin account.");
   }
 
-  // Deleting user's hosted events (this will cascade delete all associated RSVPs, comments, etc.)
-  const userEvents = await db.event.findMany({ where: { hostId: userId }, select: { id: true } });
-  for (const event of userEvents) {
-    await db.event.delete({ where: { id: event.id } });
-  }
-
-  // Delete co-host slots
-  await db.eventCoHost.deleteMany({ where: { userId } });
-
-  // Delete user record
-  await db.user.delete({ where: { id: userId } });
+  const result = await scheduleUserDeletion(userId);
 
   revalidatePath("/admin");
-  return { success: true };
+  return result;
 }
 
 export async function getAdminEvents(query: string = "") {
@@ -495,3 +486,66 @@ export async function updateBackupConfigAction(schedule: string, keepCount: numb
 }
 
 
+
+// ── Theme Presets (admin CRUD) ────────────────────────────────────────────────
+
+export async function getThemePresets() {
+  return db.themePreset.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
+}
+
+export async function createThemePreset(data: {
+  name: string;
+  emoji: string;
+  base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal: boolean;
+  month?: number | null;
+}) {
+  await assertAdmin();
+  const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
+  const preset = await db.themePreset.create({
+    data: { ...data, active: true, sortOrder: (maxOrder._max.sortOrder ?? -1) + 1 },
+  });
+  revalidatePath("/admin");
+  return preset;
+}
+
+export async function updateThemePreset(
+  id: string,
+  data: Partial<{
+    name: string;
+    emoji: string;
+    base: "DARK" | "SOFT" | "BOLD";
+    gradientFrom: string;
+    gradientTo: string;
+    accentColor: string;
+    seasonal: boolean;
+    active: boolean;
+    sortOrder: number;
+    month: number | null;
+  }>
+) {
+  await assertAdmin();
+  await db.themePreset.update({ where: { id }, data });
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function deleteThemePreset(id: string) {
+  await assertAdmin();
+  await db.themePreset.delete({ where: { id } });
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function cancelAccountDeletion(userId: string) {
+  await assertAdmin();
+  await db.user.update({
+    where: { id: userId },
+    data: { deletionRequestedAt: null, deletionScheduledAt: null },
+  });
+  revalidatePath("/admin");
+  return { success: true };
+}

@@ -2,10 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import path from "path";
 
-const { mockSystemConfigFindUnique, mockSystemConfigUpsert, mockExecuteRawUnsafe, mockExec } = vi.hoisted(() => ({
+const { mockSystemConfigFindUnique, mockSystemConfigUpsert, mockExec } = vi.hoisted(() => ({
   mockSystemConfigFindUnique: vi.fn(),
   mockSystemConfigUpsert: vi.fn(),
-  mockExecuteRawUnsafe: vi.fn(),
   mockExec: vi.fn(),
 }));
 
@@ -15,7 +14,6 @@ vi.mock("@/lib/db", () => ({
       findUnique: mockSystemConfigFindUnique,
       upsert: mockSystemConfigUpsert,
     },
-    $executeRawUnsafe: mockExecuteRawUnsafe,
   },
 }));
 
@@ -35,20 +33,11 @@ describe("lib/backup.ts", () => {
 
     mockSystemConfigFindUnique.mockResolvedValue(null);
     mockSystemConfigUpsert.mockResolvedValue({});
-    
-    // Make executeRawUnsafe create a dummy file to simulate SQLite vacuum output
-    mockExecuteRawUnsafe.mockImplementation(async (query: string) => {
-      const match = query.match(/VACUUM INTO '(.*)'/);
-      if (match && match[1]) {
-        fs.writeFileSync(match[1], "dummy sqlite backup data");
-      }
-      return {};
-    });
 
     mockExec.mockImplementation((cmd, options, cb) => {
       const callback = cb || options;
       // Extract file path from cmd (e.g. pg_dump -f "/path/to/file")
-      const match = cmd.match(/-f "(.*)"/);
+      const match = cmd.match(/-f "(.*?)"/);
       if (match && match[1]) {
         fs.writeFileSync(match[1], "dummy postgres backup data");
       }
@@ -102,24 +91,15 @@ describe("lib/backup.ts", () => {
   });
 
   describe("listBackups", () => {
-    it("lists backup files in backups folder sorted newest first", async () => {
+    it("lists .sql backup files in backups folder sorted newest first", async () => {
       const testFile1 = path.join(BACKUPS_DIR, "backup_test_1.sql");
-      const testFile2 = path.join(BACKUPS_DIR, "backup_test_2.sqlite");
-      
-      fs.writeFileSync(testFile1, "test postgres backup");
-      fs.writeFileSync(testFile2, "test sqlite backup");
 
-      // Adjust mtimes to control sort order
-      const time1 = new Date();
-      const time2 = new Date(time1.getTime() - 10000); // file2 is older
-      fs.utimesSync(testFile1, time1, time1);
-      fs.utimesSync(testFile2, time2, time2);
+      fs.writeFileSync(testFile1, "test postgres backup");
 
       const list = await listBackups();
       const testList = list.filter((b) => b.filename.startsWith("backup_test_"));
-      expect(testList.length).toBe(2);
+      expect(testList.length).toBe(1);
       expect(testList[0].filename).toBe("backup_test_1.sql");
-      expect(testList[1].filename).toBe("backup_test_2.sqlite");
     });
   });
 
@@ -137,7 +117,7 @@ describe("lib/backup.ts", () => {
       // Traversal protection delete
       const mockTraversalFile = path.join(process.cwd(), "backup_test_traversal.txt");
       fs.writeFileSync(mockTraversalFile, "secret");
-      
+
       const deletedTraversal = await deleteBackup("../../../backup_test_traversal.txt");
       expect(deletedTraversal).toBe(false); // basename restricts it to backups folder
       expect(fs.existsSync(mockTraversalFile)).toBe(true);
@@ -151,25 +131,9 @@ describe("lib/backup.ts", () => {
   });
 
   describe("runBackup & rotation", () => {
-    it("runs SQLite backup successfully using VACUUM INTO", async () => {
-      process.env.DATABASE_URL = "file:./dev.db";
-      
-      const filename = await runBackup();
-      expect(filename).toContain(".sqlite");
-      expect(mockExecuteRawUnsafe).toHaveBeenCalled();
-      expect(mockSystemConfigUpsert).toHaveBeenCalled();
-    });
-
-    it("throws error if SQLite backup query fails", async () => {
-      process.env.DATABASE_URL = "file:./dev.db";
-      mockExecuteRawUnsafe.mockRejectedValue(new Error("VACUUM error"));
-
-      await expect(runBackup()).rejects.toThrow("SQLite backup copy failed");
-    });
-
     it("runs PostgreSQL backup successfully using pg_dump", async () => {
       process.env.DATABASE_URL = "postgres://user:password@localhost:5432/rsvp";
-      
+
       const filename = await runBackup();
       expect(filename).toContain(".sql");
       expect(mockExec).toHaveBeenCalled();
@@ -192,13 +156,13 @@ describe("lib/backup.ts", () => {
     });
 
     it("rotates backups, keeping only the configured keepCount", async () => {
-      process.env.DATABASE_URL = "file:./dev.db";
+      process.env.DATABASE_URL = "postgres://user:password@localhost:5432/rsvp";
       mockSystemConfigFindUnique.mockResolvedValue({ value: "2" }); // Keep only 2 backups
 
       // Create 3 existing backup files in BACKUPS_DIR
-      const file1 = path.join(BACKUPS_DIR, "backup_rotate_1.sqlite");
-      const file2 = path.join(BACKUPS_DIR, "backup_rotate_2.sqlite");
-      const file3 = path.join(BACKUPS_DIR, "backup_rotate_3.sqlite");
+      const file1 = path.join(BACKUPS_DIR, "backup_rotate_1.sql");
+      const file2 = path.join(BACKUPS_DIR, "backup_rotate_2.sql");
+      const file3 = path.join(BACKUPS_DIR, "backup_rotate_3.sql");
 
       fs.writeFileSync(file1, "data");
       fs.writeFileSync(file2, "data");
@@ -213,15 +177,15 @@ describe("lib/backup.ts", () => {
       // Running runBackup will create a 4th backup (newest), making 4 total.
       // Rotation should keep 2 newest and delete the 2 oldest.
       const newBackupName = await runBackup();
-      
+
       const remainingFiles = fs.readdirSync(BACKUPS_DIR).filter(f => f.startsWith("backup_rotate_") || f === newBackupName);
       // We expect the new backup and backup_rotate_1 (newest of the old) to remain.
       // backup_rotate_2 and backup_rotate_3 (oldest) should be rotated (deleted).
       expect(remainingFiles.length).toBe(2);
       expect(remainingFiles).toContain(newBackupName);
-      expect(remainingFiles).toContain("backup_rotate_1.sqlite");
-      expect(remainingFiles).not.toContain("backup_rotate_2.sqlite");
-      expect(remainingFiles).not.toContain("backup_rotate_3.sqlite");
+      expect(remainingFiles).toContain("backup_rotate_1.sql");
+      expect(remainingFiles).not.toContain("backup_rotate_2.sql");
+      expect(remainingFiles).not.toContain("backup_rotate_3.sql");
     });
   });
 });

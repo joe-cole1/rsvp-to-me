@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme, THEME_PRESETS, getReadableText, getSortedPresets } from "@/lib/theme";
+import { useState, useTransition, useEffect, useMemo } from "react";
+import { ArrowLeft, Check, Plus, X } from "lucide-react";
+import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme, getSortedPresets } from "@/lib/theme";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -90,13 +90,7 @@ type EventInput = {
   questionnaireEnabled: boolean;
   showTimestamps: boolean;
   password: string | null;
-  rsvpConfirmEmail: boolean;
-  rsvpConfirmSms: boolean;
-  hostAlertEmail: boolean;
-  hostAlertSms: boolean;
-  approvalNotifyEmail: boolean;
-  approvalNotifySms: boolean;
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; secondaryColor: string | null; themePresetId: string | null; coverImageUrl: string | null } | null;
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
   reminderSettings: {
     emailWeekBefore: boolean; emailDayBefore: boolean; emailHoursBefore: number;
     smsWeekBefore: boolean; smsDayBefore: boolean; smsHoursBefore: number;
@@ -124,12 +118,6 @@ interface SettingsOverrides {
   password?: string | null;
   guestSharingEnabled?: boolean;
   guestsCanInvite?: boolean;
-  rsvpConfirmEmail?: boolean;
-  rsvpConfirmSms?: boolean;
-  hostAlertEmail?: boolean;
-  hostAlertSms?: boolean;
-  approvalNotifyEmail?: boolean;
-  approvalNotifySms?: boolean;
 }
 
 interface ReminderOverrides {
@@ -161,7 +149,19 @@ const serializeOptionsForDb = (optionsStr: string): string => {
   return JSON.stringify(list);
 };
 
-export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: boolean }) {
+type DbThemePreset = {
+  id: string;
+  name: string;
+  emoji: string;
+  base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal?: boolean | null;
+  month?: number | null;
+};
+
+export function SettingsPage({ event, isOwner, themePresets = [] }: { event: EventInput; isOwner: boolean; themePresets?: DbThemePreset[] }) {
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED" | "ERROR">("IDLE");
   const [err, setErr] = useState<string | null>(null);
@@ -169,31 +169,12 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
 
   // ── Theme State ──
   const [base, setBase] = useState<BaseTheme>(event.theme?.baseTheme ?? "DARK");
+  const [gradientFrom, setGradientFrom] = useState(event.theme?.gradientFrom ?? "#7c3aed");
+  const [gradientTo, setGradientTo] = useState(event.theme?.gradientTo ?? "#1e40af");
   const [accent, setAccent] = useState(event.theme?.accentColor ?? "#a855f7");
-  const [secondary, setSecondary] = useState<string | null>(event.theme?.secondaryColor ?? null);
-  const [presetId, setPresetId] = useState<string>(event.theme?.themePresetId ?? "custom");
-  const [customColor, setCustomColor] = useState(event.theme?.accentColor ?? "#a855f7");
-  const [customSecondaryColor, setCustomSecondaryColor] = useState(event.theme?.secondaryColor ?? "#ec4899");
-  const [customizeOpen, setCustomizeOpen] = useState(event.theme?.themePresetId === "custom" || !event.theme?.themePresetId);
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general">("all");
-
-  const sortedPresets = getSortedPresets();
-  const filteredPresets = sortedPresets.filter((p) => {
-    if (p.id === "custom") return false;
-
-    const matchesSearch =
-      p.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesFilter =
-      themeFilter === "all" ||
-      (themeFilter === "seasonal" && p.seasonal) ||
-      (themeFilter === "general" && !p.seasonal);
-
-    return matchesSearch && matchesFilter;
-  });
+  const [themeSearch, setThemeSearch] = useState("");
+  const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">("all");
+  const [themeCustomizeOpen, setThemeCustomizeOpen] = useState(false);
 
   // ── RSVP Options State ──
   const [plusOneAllowed, setPlusOneAllowed] = useState(event.plusOneAllowed);
@@ -206,12 +187,6 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   const [rsvpDeadline, setRsvpDeadline] = useState(
     event.rsvpDeadline ? new Date(event.rsvpDeadline).toISOString().slice(0, 16) : ""
   );
-  const [rsvpConfirmEmail, setRsvpConfirmEmail] = useState(event.rsvpConfirmEmail);
-  const [rsvpConfirmSms, setRsvpConfirmSms] = useState(event.rsvpConfirmSms);
-  const [hostAlertEmail, setHostAlertEmail] = useState(event.hostAlertEmail);
-  const [hostAlertSms, setHostAlertSms] = useState(event.hostAlertSms);
-  const [approvalNotifyEmail, setApprovalNotifyEmail] = useState(event.approvalNotifyEmail);
-  const [approvalNotifySms, setApprovalNotifySms] = useState(event.approvalNotifySms);
 
   // ── Display & Privacy State ──
   const [commentsEnabled, setCommentsEnabled] = useState(event.commentsEnabled);
@@ -320,15 +295,28 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
     }
   };
 
+  // ── Theme Presets (sorted by month proximity) ──
+  const sortedThemePresets = useMemo(() => getSortedPresets(themePresets), [themePresets]);
+  const visibleThemePresets = useMemo(() => {
+    let result = sortedThemePresets;
+    if (themeFilter === "seasonal") result = result.filter((p) => p.seasonal);
+    if (themeFilter === "general") result = result.filter((p) => !p.seasonal);
+    if (themeFilter === "light") result = result.filter((p) => p.base === "SOFT" || p.base === "BOLD");
+    if (themeFilter === "dark") result = result.filter((p) => p.base === "DARK");
+    if (themeSearch.trim()) {
+      const q = themeSearch.toLowerCase();
+      result = result.filter((p) => p.name.toLowerCase().includes(q) || p.emoji.includes(q));
+    }
+    return result;
+  }, [sortedThemePresets, themeFilter, themeSearch]);
+
   // ── Theme Auto-Save ──
-  const triggerSaveTheme = (newBase: BaseTheme, newAccent: string, newSecondary?: string | null, newPresetId?: string | null) => {
+  const triggerSaveTheme = (newBase: BaseTheme, newFrom: string, newTo: string, newAccent: string) => {
     setSaveStatus("SAVING");
     setErr(null);
-    const secVal = newSecondary !== undefined ? newSecondary : secondary;
-    const preVal = newPresetId !== undefined ? newPresetId : presetId;
     startTransition(async () => {
       try {
-        await saveEventTheme(event.id, newBase, newAccent, secVal, preVal);
+        await saveEventTheme(event.id, newBase, newFrom, newTo, newAccent);
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -357,12 +345,6 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       visibility: overrides.visibility !== undefined ? overrides.visibility : visibility,
       password: overrides.password !== undefined ? overrides.password : (password.trim() || null),
       questionnaireEnabled: overrides.questionnaireEnabled !== undefined ? overrides.questionnaireEnabled : questionnaireEnabled,
-      rsvpConfirmEmail: overrides.rsvpConfirmEmail !== undefined ? overrides.rsvpConfirmEmail : rsvpConfirmEmail,
-      rsvpConfirmSms: overrides.rsvpConfirmSms !== undefined ? overrides.rsvpConfirmSms : rsvpConfirmSms,
-      hostAlertEmail: overrides.hostAlertEmail !== undefined ? overrides.hostAlertEmail : hostAlertEmail,
-      hostAlertSms: overrides.hostAlertSms !== undefined ? overrides.hostAlertSms : hostAlertSms,
-      approvalNotifyEmail: overrides.approvalNotifyEmail !== undefined ? overrides.approvalNotifyEmail : approvalNotifyEmail,
-      approvalNotifySms: overrides.approvalNotifySms !== undefined ? overrides.approvalNotifySms : approvalNotifySms,
     };
     startTransition(async () => {
       try {
@@ -763,9 +745,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
   };
 
   // Resolve theme using state
-  const t = resolveTheme(base, accent, secondary, presetId);
-  const activeAccentPreset = ACCENT_PRESETS.find((p) => p.value === accent);
-  const suggestedSecondary = activeAccentPreset?.suggestedSecondary;
+  const t = resolveTheme(base, gradientFrom, gradientTo, accent);
 
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "120px", position: "relative" as const, overflowX: "hidden" as const },
@@ -794,7 +774,7 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
       );
     }
     if (t.pageDecoration === "bold-hero") {
-      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />;
+      return <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "340px", background: t.pageDecorationBg1, zIndex: 0 }} />;
     }
     return null;
   };
@@ -932,234 +912,196 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
         {/* ── Theme ── */}
         {activeSection === "theme" && (
           <Section title="Theme" t={t}>
-            {/* Search Input */}
-            <input
-              type="text"
-              placeholder="Search themes (e.g. Summer, Halloween)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                background: t.inputBg,
-                border: `1px solid ${t.inputBorder}`,
-                borderRadius: "12px",
-                color: t.textPrimary,
-                fontSize: "13px",
-                marginBottom: "12px",
-                outline: "none",
-              }}
-            />
-
-            {/* Filter Tabs */}
-            <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
-              {(["all", "seasonal", "general"] as const).map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setThemeFilter(filter)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    border: `1px solid ${themeFilter === filter ? t.textPrimary : t.inputBorder}`,
-                    background: themeFilter === filter ? t.accentBg : "transparent",
-                    color: t.textPrimary,
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    textTransform: "capitalize",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {filter}
-                </button>
-              ))}
+            {/* Search */}
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="text"
+                value={themeSearch}
+                onChange={(e) => setThemeSearch(e.target.value)}
+                placeholder="Search themes…"
+                style={{
+                  width: "100%", boxSizing: "border-box", padding: "8px 12px",
+                  background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  borderRadius: "10px", color: t.textPrimary, fontSize: "13px", outline: "none",
+                }}
+              />
             </div>
 
-            {/* Scrollable vertical grid */}
+            {/* Filter pills + reset */}
+            {(() => {
+              const savedBase: BaseTheme = event.theme?.baseTheme ?? "DARK";
+              const savedFrom = event.theme?.gradientFrom ?? "#7c3aed";
+              const savedTo = event.theme?.gradientTo ?? "#1e40af";
+              const savedAccent = event.theme?.accentColor ?? "#a855f7";
+              const hasChanged = base !== savedBase || gradientFrom !== savedFrom || gradientTo !== savedTo || accent !== savedAccent;
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", gap: "6px", flex: 1, overflowX: "auto" }}>
+                    {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setThemeFilter(f)}
+                        style={{
+                          padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                          border: `1px solid ${themeFilter === f ? t.accent : t.inputBorder}`,
+                          background: themeFilter === f ? t.accentBg : "transparent",
+                          color: themeFilter === f ? t.accent : t.textMuted,
+                        }}
+                      >
+                        {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : f === "general" ? "🎨 General" : f === "light" ? "☀️ Light" : "🌙 Dark"}
+                      </button>
+                    ))}
+                  </div>
+                  {hasChanged && (
+                    <button
+                      onClick={() => {
+                        setBase(savedBase);
+                        setGradientFrom(savedFrom);
+                        setGradientTo(savedTo);
+                        setAccent(savedAccent);
+                        triggerSaveTheme(savedBase, savedFrom, savedTo, savedAccent);
+                      }}
+                      style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted }}
+                    >
+                      ↺ Reset
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Preset grid */}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
-                gap: "10px",
+                gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+                gap: "7px",
                 maxHeight: "300px",
                 overflowY: "auto",
-                paddingRight: "4px",
-                marginBottom: "20px",
-                scrollbarWidth: "thin",
+                marginBottom: "14px",
               }}
             >
-              {filteredPresets.map((p) => {
-                const isSelected = presetId === p.id;
+              {visibleThemePresets.map((p) => {
+                const isActive = base === p.base && gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
                 return (
                   <button
                     key={p.id}
                     onClick={() => {
-                      setPresetId(p.id);
-                      setBase(p.config.base);
-                      setAccent(p.config.accent);
-                      setSecondary(p.config.secondaryColor);
-                      if (p.id !== "custom") setCustomizeOpen(false);
-                      triggerSaveTheme(p.config.base, p.config.accent, p.config.secondaryColor, p.id);
+                      setBase(p.base);
+                      setGradientFrom(p.gradientFrom);
+                      setGradientTo(p.gradientTo);
+                      setAccent(p.accentColor);
+                      triggerSaveTheme(p.base, p.gradientFrom, p.gradientTo, p.accentColor);
                     }}
                     style={{
+                      padding: 0,
+                      border: `2px solid ${isActive ? t.accent : t.inputBorder}`,
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      background: isActive ? t.accentBg : t.inputBg,
+                      transition: "all 0.15s",
+                      overflow: "hidden",
                       display: "flex",
                       flexDirection: "column",
-                      alignItems: "center",
-                      gap: "6px",
-                      padding: "12px 10px",
-                      border: `2px solid ${isSelected ? t.textPrimary : t.cardBorder}`,
-                      borderRadius: "14px",
-                      background: isSelected ? t.accentBg : t.cardBg,
-                      cursor: "pointer",
-                      color: t.textPrimary,
-                      transition: "all 0.15s ease",
-                      textAlign: "center",
                     }}
                   >
-                    <span style={{ fontSize: "24px" }}>{p.icon}</span>
-                    <span style={{ fontSize: "11px", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{p.label}</span>
-                    <span style={{ fontSize: "9px", color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{p.description}</span>
-                    <div style={{ width: "36px", height: "8px", borderRadius: "4px", background: `linear-gradient(90deg, ${p.config.accent}, ${p.config.secondaryColor})` }} />
+                    <div style={{ position: "relative", height: "36px", background: `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})` }}>
+                      <span style={{ position: "absolute", top: "3px", left: "4px", fontSize: "10px" }}>{p.emoji}</span>
+                      <div style={{ position: "absolute", bottom: "3px", right: "4px", width: "7px", height: "7px", borderRadius: "50%", background: p.accentColor, border: "1px solid rgba(255,255,255,0.3)" }} />
+                    </div>
+                    <div style={{ padding: "4px 5px", fontSize: "9px", fontWeight: 600, color: t.textSecondary, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {p.name}
+                    </div>
                   </button>
                 );
               })}
-              {filteredPresets.length === 0 && (
-                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "20px", color: t.textMuted, fontSize: "13px" }}>
-                  No themes found matching your search.
+              {visibleThemePresets.length === 0 && (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "20px", color: t.textMuted, fontSize: "12px" }}>
+                  No themes match
                 </div>
               )}
             </div>
 
-            {/* Customize toggle */}
-            <button
-              onClick={() => setCustomizeOpen(!customizeOpen)}
-              style={{
-                width: "100%", padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`,
-                borderRadius: "12px", color: t.textPrimary, display: "flex", alignItems: "center", justifyContent: "space-between",
-                cursor: "pointer", marginBottom: "16px", fontSize: "13px", fontWeight: 600,
-              }}
-            >
-              <span>🎨 Customize Style</span>
-              {customizeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
+            {/* Customize accordion */}
+            <div style={{ marginBottom: "12px", border: `1px solid ${t.inputBorder}`, borderRadius: "12px", overflow: "hidden" }}>
+              <button
+                onClick={() => setThemeCustomizeOpen((o) => !o)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 14px", background: t.inputBg, border: "none",
+                  cursor: "pointer", color: t.textPrimary, fontSize: "13px", fontWeight: 600,
+                }}
+              >
+                <span>Customize colors</span>
+                <span style={{ fontSize: "11px", color: t.textMuted, transform: themeCustomizeOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+              </button>
 
-            {customizeOpen && (
-              <div style={{ padding: "14px", background: t.cardBg, borderRadius: "14px", border: `1px solid ${t.cardBorder}`, marginBottom: "16px" }}>
-                {/* Style base */}
-                <div style={{ marginBottom: "16px" }}>
-                  <Label t={t}>Style</Label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    {BASE_THEMES.map((bt) => (
-                      <button key={bt.id} onClick={() => { setBase(bt.id); setPresetId("custom"); triggerSaveTheme(bt.id, accent, secondary, "custom"); }} style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "12px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}>
-                        <div style={{ height: "32px", background: bt.preview }} />
-                        <div style={{ padding: "4px 2px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label.split(" ")[0]}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Primary Accent */}
-                <div style={{ marginBottom: "16px" }}>
-                  <Label t={t}>Primary Accent</Label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
-                    {ACCENT_PRESETS.map((p) => (
-                      <button key={p.value} onClick={() => { setAccent(p.value); setPresetId("custom"); triggerSaveTheme(base, p.value, secondary, "custom"); }} title={p.name} style={{ width: "28px", height: "28px", borderRadius: "50%", background: p.value, border: `2px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {accent === p.value && <Check size={10} color={getReadableText(p.value)} strokeWidth={3} />}
-                      </button>
-                    ))}
-                    <label style={{ width: "28px", height: "28px", borderRadius: "50%", border: `2px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
-                      🎨
-                      <input type="color" value={customColor} onChange={(e) => { setCustomColor(e.target.value); setAccent(e.target.value); setPresetId("custom"); triggerSaveTheme(base, e.target.value, secondary, "custom"); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-                    </label>
-                  </div>
-                </div>
-
-                {/* Second color */}
-                <div>
-                  <Label t={t}>Second Color</Label>
-                  {suggestedSecondary && (
-                    <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "6px" }}>
-                      Suggested: <button onClick={() => { setSecondary(suggestedSecondary); setPresetId("custom"); triggerSaveTheme(base, accent, suggestedSecondary, "custom"); }} style={{ background: "none", border: "none", color: suggestedSecondary, fontWeight: 700, cursor: "pointer", textDecoration: "underline", padding: 0 }}>{suggestedSecondary}</button>
+              {themeCustomizeOpen && (
+                <div style={{ padding: "14px", borderTop: `1px solid ${t.inputBorder}` }}>
+                  {/* Style selector */}
+                  <div style={{ marginBottom: "14px" }}>
+                    <Label t={t}>Style</Label>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {BASE_THEMES.map((bt) => (
+                        <button
+                          key={bt.id}
+                          onClick={() => {
+                            const newFrom = bt.defaultGradientFrom;
+                            const newTo = bt.defaultGradientTo;
+                            const newAccent = bt.defaultAccent;
+                            setBase(bt.id);
+                            setGradientFrom(newFrom);
+                            setGradientTo(newTo);
+                            setAccent(newAccent);
+                            triggerSaveTheme(bt.id, newFrom, newTo, newAccent);
+                          }}
+                          style={{ flex: 1, padding: 0, border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`, borderRadius: "12px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s" }}
+                        >
+                          <div style={{ height: "36px", background: bt.preview }} />
+                          <div style={{ padding: "5px 4px", color: t.textPrimary, fontSize: "10px", fontWeight: 600, background: t.inputBg }}>{bt.label}</div>
+                        </button>
+                      ))}
                     </div>
-                  )}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                    <button
-                      onClick={() => { setSecondary(null); setPresetId("custom"); triggerSaveTheme(base, accent, null, "custom"); }}
-                      style={{
-                        padding: "4px 8px", borderRadius: "15px", border: `2px solid ${secondary === null ? t.textPrimary : t.inputBorder}`,
-                        background: secondary === null ? t.accentBg : "transparent", color: t.textPrimary,
-                        fontSize: "10px", fontWeight: 600, cursor: "pointer", height: "28px", display: "flex", alignItems: "center", gap: "4px"
-                      }}
-                    >
-                      Auto
-                      <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: resolveTheme("DARK", accent, null).secondaryAccent, border: `1px solid ${t.cardBorder}` }} />
-                    </button>
+                  </div>
 
+                  {/* Background colors */}
+                  <div style={{ marginBottom: "14px" }}>
+                    <Label t={t}>Background Colors</Label>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>Start</div>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "9px", cursor: "pointer" }}>
+                          <div style={{ width: "18px", height: "18px", borderRadius: "5px", background: gradientFrom, flexShrink: 0 }} />
+                          <span style={{ fontSize: "11px", color: t.textSecondary, fontFamily: "monospace" }}>{gradientFrom}</span>
+                          <input type="color" value={gradientFrom} onChange={(e) => { setGradientFrom(e.target.value); triggerSaveTheme(base, e.target.value, gradientTo, accent); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        </label>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>End</div>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "9px", cursor: "pointer" }}>
+                          <div style={{ width: "18px", height: "18px", borderRadius: "5px", background: gradientTo, flexShrink: 0 }} />
+                          <span style={{ fontSize: "11px", color: t.textSecondary, fontFamily: "monospace" }}>{gradientTo}</span>
+                          <input type="color" value={gradientTo} onChange={(e) => { setGradientTo(e.target.value); triggerSaveTheme(base, gradientFrom, e.target.value, accent); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Accent color */}
+                  <Label t={t}>Accent Color</Label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
                     {ACCENT_PRESETS.map((p) => (
-                      <button key={p.value} onClick={() => { setSecondary(p.value); setPresetId("custom"); triggerSaveTheme(base, accent, p.value, "custom"); }} title={p.name} style={{ width: "28px", height: "28px", borderRadius: "50%", background: p.value, border: `2px solid ${secondary === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {secondary === p.value && <Check size={10} color={getReadableText(p.value)} strokeWidth={3} />}
+                      <button key={p.value} onClick={() => { setAccent(p.value); triggerSaveTheme(base, gradientFrom, gradientTo, p.value); }} title={p.name} style={{ width: "30px", height: "30px", borderRadius: "50%", background: p.value, border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
                       </button>
                     ))}
-
-                    <label style={{ width: "28px", height: "28px", borderRadius: "50%", border: `2px solid ${secondary !== null && !ACCENT_PRESETS.some(p => p.value === secondary) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: secondary !== null && ACCENT_PRESETS.some(p => p.value === secondary) ? t.inputBg : (secondary ?? "#ec4899"), position: "relative", overflow: "hidden" }}>
+                    <label style={{ width: "30px", height: "30px", borderRadius: "50%", border: `3px solid ${!ACCENT_PRESETS.some(p => p.value === accent) ? t.textPrimary : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: ACCENT_PRESETS.some(p => p.value === accent) ? t.inputBg : accent, position: "relative", overflow: "hidden" }}>
                       🎨
-                      <input type="color" value={customSecondaryColor} onChange={(e) => { setCustomSecondaryColor(e.target.value); setSecondary(e.target.value); setPresetId("custom"); triggerSaveTheme(base, accent, e.target.value, "custom"); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                      <input type="color" value={accent} onChange={(e) => { setAccent(e.target.value); triggerSaveTheme(base, gradientFrom, gradientTo, e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
                     </label>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* LIVE PREVIEW CARD */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", background: t.inputBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px" }}>
-              <div style={{
-                width: "90px", height: "60px", borderRadius: "8px", background: t.pageBg,
-                position: "relative", overflow: "hidden", border: `1px solid ${t.cardBorder}`,
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              }}>
-                {t.pageDecoration === "dark-orbs" && (
-                  <>
-                    <div style={{ position: "absolute", top: "-10px", left: "10px", width: "30px", height: "30px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(3px)" }} />
-                    <div style={{ position: "absolute", bottom: "-5px", right: "-5px", width: "20px", height: "20px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(3px)" }} />
-                  </>
-                )}
-                {t.pageDecoration === "soft-blobs" && (
-                  <>
-                    <div style={{ position: "absolute", top: "-5px", right: "-5px", width: "25px", height: "25px", borderRadius: "50%", background: t.pageDecorationBg1, filter: "blur(4px)" }} />
-                    <div style={{ position: "absolute", bottom: "-10px", left: "-5px", width: "20px", height: "20px", borderRadius: "50%", background: t.pageDecorationBg2, filter: "blur(4px)" }} />
-                  </>
-                )}
-                {t.pageDecoration === "bold-hero" && (
-                  <div style={{ position: "absolute", inset: 0, background: t.pageDecorationBg1 }} />
-                )}
-                <div style={{
-                  width: "60px", height: "40px", borderRadius: "6px", background: t.cardBg,
-                  border: `1px solid ${t.cardBorder}`, padding: "4px", display: "flex",
-                  flexDirection: "column", justifyContent: "space-between", position: "relative", zIndex: 1,
-                }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-                    <div style={{ width: "20px", height: "3px", borderRadius: "1px", background: t.textPrimary }} />
-                    <div style={{ width: "30px", height: "2px", borderRadius: "1px", background: t.textSecondary }} />
-                  </div>
-                  <div style={{
-                    width: "100%", height: "8px", borderRadius: "2px", background: t.accent,
-                    color: t.accentFg, fontSize: "4px", fontWeight: "bold", display: "flex",
-                    alignItems: "center", justifyContent: "center", textTransform: t.btnTransform as "none" | "capitalize" | "uppercase" | "lowercase",
-                  }}>
-                    RSVP
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div style={{ color: t.textPrimary, fontSize: "13px", fontWeight: 700 }}>
-                  {presetId !== "custom" ? THEME_PRESETS.find(p => p.id === presetId)?.label : "Custom Theme"}
-                </div>
-                <div style={{ color: t.textMuted, fontSize: "11px", marginTop: "1px" }}>
-                  Primary: {accent}<br />
-                  Second: {secondary ?? "Auto"}
-                </div>
-              </div>
+              )}
             </div>
           </Section>
         )}
@@ -1249,25 +1191,6 @@ export function SettingsPage({ event, isOwner }: { event: EventInput; isOwner: b
               <Toggle label="Allow guests to invite friends (Private events)" value={guestsCanInvite} onChange={(val) => { setGuestsCanInvite(val); triggerSaveSettings({ guestsCanInvite: val }); }} t={t} />
             </div>
             
-            <div style={{ borderTop: `1px solid ${t.cardBorder}`, margin: "16px -20px 16px -20px", padding: "16px 20px 0 20px" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "none", color: t.textMuted, marginBottom: "12px", letterSpacing: "0.02em" }}>
-                Notification Settings
-              </div>
-              <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "12px" }}>Guest confirmations</div>
-              <Toggle label="Email guest confirmation on RSVP" value={rsvpConfirmEmail} onChange={(val) => { setRsvpConfirmEmail(val); triggerSaveSettings({ rsvpConfirmEmail: val }); }} t={t} />
-              <Toggle label="Text guest confirmation on RSVP" value={rsvpConfirmSms} onChange={(val) => { setRsvpConfirmSms(val); triggerSaveSettings({ rsvpConfirmSms: val }); }} t={t} />
-              <div style={{ fontSize: "12px", color: t.textMuted, margin: "12px 0" }}>Host alerts (notify me on new RSVPs)</div>
-              <Toggle label="Email me when a guest RSVPs" value={hostAlertEmail} onChange={(val) => { setHostAlertEmail(val); triggerSaveSettings({ hostAlertEmail: val }); }} t={t} />
-              <Toggle label="Text me when a guest RSVPs" value={hostAlertSms} onChange={(val) => { setHostAlertSms(val); triggerSaveSettings({ hostAlertSms: val }); }} t={t} />
-              {approvalRequired && (
-                <>
-                  <div style={{ fontSize: "12px", color: t.textMuted, margin: "12px 0" }}>Approval notifications</div>
-                  <Toggle label="Email guests when approved or declined" value={approvalNotifyEmail} onChange={(val) => { setApprovalNotifyEmail(val); triggerSaveSettings({ approvalNotifyEmail: val }); }} t={t} />
-                  <Toggle label="Text guests when approved or declined" value={approvalNotifySms} onChange={(val) => { setApprovalNotifySms(val); triggerSaveSettings({ approvalNotifySms: val }); }} t={t} />
-                </>
-              )}
-            </div>
-
             <div style={{ marginBottom: "16px", marginTop: "16px" }}>
               <Label t={t}>Capacity limit (optional)</Label>
               <input

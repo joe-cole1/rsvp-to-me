@@ -3,7 +3,8 @@
 import { useState, useRef, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import NextImage from "next/image";
-import { updateProfileSettings, updateNotificationSettings } from "@/app/actions/profile";
+import { updateProfileSettings, updateNotificationSettings, requestAccountDeletion } from "@/app/actions/profile";
+import { deleteHostEvent } from "@/app/actions/event";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -18,6 +19,8 @@ interface ProfileData {
   role: "GUEST" | "HOST" | "ADMIN";
   emailNotifications: boolean;
   smsNotifications: boolean;
+  deletionRequestedAt: Date | null;
+  deletionScheduledAt: Date | null;
 }
 
 function compressAvatar(file: File, maxW = 400, maxH = 400, quality = 0.85): Promise<File> {
@@ -65,6 +68,14 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
   const [isUploading, setIsUploading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [infoMessages, setInfoMessages] = useState<string[]>([]);
+
+  // Deletion flow state
+  const [deletionScheduledAt] = useState(initialProfile.deletionScheduledAt);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [blockedEvents, setBlockedEvents] = useState<{ id: string; title: string; slug: string }[] | null>(null);
+  const [isDeletingEvent, setIsDeletingEvent] = useState<string | null>(null);
 
   useEffect(() => {
     if (feedback) {
@@ -563,7 +574,205 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             </div>
           </div>
         </form>
+
+      {/* Danger Zone */}
+      <div style={{
+        backgroundColor: APP_SHELL.cardBg,
+        border: "1px solid #ef444440",
+        borderRadius: "16px",
+        padding: "24px",
+        marginTop: "8px",
+      }}>
+        <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ef4444", marginBottom: "16px" }}>Danger Zone</h2>
+
+        {deletionScheduledAt ? (
+          <div style={{
+            backgroundColor: "rgba(239,68,68,0.1)",
+            border: "1px solid #ef444460",
+            borderRadius: "10px",
+            padding: "16px",
+          }}>
+            <p style={{ color: "#ef4444", fontWeight: 700, margin: 0 }}>Your account is scheduled for deletion</p>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginTop: "6px", marginBottom: 0 }}>
+              Anonymization will occur on or after {new Date(deletionScheduledAt).toLocaleString()}. Contact an admin to reverse this.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
+              Permanently delete your account and all associated data. This cannot be undone.
+            </p>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              style={{
+                backgroundColor: "transparent",
+                border: "1px solid #ef4444",
+                color: "#ef4444",
+                borderRadius: "10px",
+                padding: "10px 20px",
+                fontSize: "14px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Delete My Account
+            </button>
+          </>
+        )}
       </div>
+      </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px",
+        }}>
+          <div style={{
+            backgroundColor: "#1a1228",
+            border: `1px solid ${APP_SHELL.navBorder}`,
+            borderRadius: "16px",
+            padding: "28px",
+            maxWidth: "480px",
+            width: "100%",
+          }}>
+            <h2 style={{ fontSize: "20px", fontWeight: 800, color: APP_SHELL.textPrimary, marginBottom: "12px" }}>
+              Delete your account?
+            </h2>
+
+            {blockedEvents && blockedEvents.length > 0 ? (
+              <>
+                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "16px" }}>
+                  You have upcoming published events. Delete them first before deleting your account.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
+                  {blockedEvents.map(ev => (
+                    <div key={ev.id} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      backgroundColor: "rgba(255,255,255,0.05)", borderRadius: "8px", padding: "10px 14px",
+                    }}>
+                      <span style={{ color: APP_SHELL.textPrimary, fontSize: "14px", fontWeight: 600 }}>{ev.title}</span>
+                      <button
+                        disabled={isDeletingEvent === ev.id}
+                        onClick={async () => {
+                          setIsDeletingEvent(ev.id);
+                          try {
+                            await deleteHostEvent(ev.id);
+                            setBlockedEvents(prev => prev ? prev.filter(e => e.id !== ev.id) : null);
+                          } catch {
+                            setFeedback({ type: "error", message: `Failed to delete "${ev.title}".` });
+                          } finally {
+                            setIsDeletingEvent(null);
+                          }
+                        }}
+                        style={{
+                          backgroundColor: "transparent",
+                          border: "1px solid #ef4444",
+                          color: "#ef4444",
+                          borderRadius: "6px",
+                          padding: "4px 12px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: isDeletingEvent === ev.id ? "not-allowed" : "pointer",
+                          opacity: isDeletingEvent === ev.id ? 0.5 : 1,
+                        }}
+                      >
+                        {isDeletingEvent === ev.id ? "Deleting…" : "Delete event"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {blockedEvents.length === 0 && (
+                  <p style={{ color: "#22c55e", fontSize: "14px", marginBottom: "16px" }}>
+                    All events deleted. You can now confirm account deletion below.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "8px" }}>
+                  Your profile info will be anonymized within 30 days. Past event history is preserved for guests.
+                  You will be signed out immediately.
+                </p>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", marginBottom: "16px" }}>
+                  An admin can reverse this within 30 days if you change your mind.
+                </p>
+                <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginBottom: "8px", fontWeight: 600 }}>
+                  Type DELETE to confirm:
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  style={{
+                    backgroundColor: APP_SHELL.inputBg,
+                    border: `1px solid ${APP_SHELL.inputBorder}`,
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    fontSize: "14px",
+                    color: APP_SHELL.textPrimary,
+                    outline: "none",
+                    width: "100%",
+                    marginBottom: "16px",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </>
+            )}
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); setBlockedEvents(null); }}
+                style={{
+                  backgroundColor: "transparent",
+                  border: `1px solid ${APP_SHELL.navBorder}`,
+                  color: APP_SHELL.textSecondary,
+                  borderRadius: "10px",
+                  padding: "10px 20px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              {(!blockedEvents || blockedEvents.length === 0) && (
+                <button
+                  disabled={deleteConfirmText !== "DELETE" || isDeletingAccount}
+                  onClick={async () => {
+                    if (deleteConfirmText !== "DELETE") return;
+                    setIsDeletingAccount(true);
+                    try {
+                      const result = await requestAccountDeletion();
+                      if ("blocked" in result && result.blocked) {
+                        setBlockedEvents(result.events ?? []);
+                        setDeleteConfirmText("");
+                      } else {
+                        router.push("/auth/sign-in");
+                      }
+                    } catch {
+                      setFeedback({ type: "error", message: "Failed to delete account. Please try again." });
+                      setIsDeletingAccount(false);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: deleteConfirmText === "DELETE" && !isDeletingAccount ? "#ef4444" : "rgba(239,68,68,0.3)",
+                    border: "none",
+                    color: "#fff",
+                    borderRadius: "10px",
+                    padding: "10px 20px",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    cursor: deleteConfirmText === "DELETE" && !isDeletingAccount ? "pointer" : "not-allowed",
+                  }}
+                >
+                  {isDeletingAccount ? "Processing…" : "Confirm Delete"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

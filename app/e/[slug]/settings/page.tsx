@@ -1,7 +1,16 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { SettingsPage } from "@/components/event/SettingsPage";
+import { getActiveThemePresets } from "@/app/actions/event";
+
+export async function generateMetadata(props: PageProps<"/e/[slug]/settings">): Promise<Metadata> {
+  const { slug } = await props.params;
+  const event = await db.event.findUnique({ where: { slug }, select: { title: true } });
+  if (!event) return {};
+  return { title: `Settings – ${event.title}` };
+}
 
 export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/settings">) {
   const { slug } = await props.params;
@@ -52,5 +61,7 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
   const isCohost = event.coHosts.some((ch) => ch.user.id === session.userId);
   if (!isOwner && !isCohost) redirect(`/e/${slug}`);
 
-  return <SettingsPage event={event as Parameters<typeof SettingsPage>[0]["event"]} isOwner={isOwner} />;
+  const themePresets = await getActiveThemePresets();
+
+  return <SettingsPage event={event as Parameters<typeof SettingsPage>[0]["event"]} isOwner={isOwner} themePresets={themePresets} />;
 }

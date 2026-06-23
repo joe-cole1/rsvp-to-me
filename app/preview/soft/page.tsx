@@ -5,7 +5,7 @@ import { resolveTheme } from "@/lib/theme";
 export default function SoftPreview() {
   const accent = "#22c55e"; // green
   const secondary = "#f9a8d4"; // pink
-  const t = resolveTheme("SOFT", accent, secondary);
+  const t = resolveTheme("SOFT", accent, secondary, accent);
 
   return (
     <div
@@ -96,7 +96,7 @@ export default function SoftPreview() {
           className="flex items-start gap-3 mb-8 p-4 rounded-2xl"
           style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}
         >
-          <span style={{ color: t.accentText, fontSize: "18px" }}>📍</span>
+          <span style={{ color: t.accent, fontSize: "18px" }}>📍</span>
           <div>
             <div className="font-medium">Joe&apos;s Place</div>
             <div style={{ color: t.textMuted, fontSize: "14px" }}>123 Main St, Brooklyn, NY</div>
@@ -260,7 +260,7 @@ export default function SoftPreview() {
             />
             <button
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: t.accentBg, color: t.accentText, border: `1px solid ${t.accentBorder}` }}
+              style={{ background: t.accentBg, color: t.accent, border: `1px solid ${t.accentBorder}` }}
             >
               Post
             </button>

@@ -2,10 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { isOpenRegistrationActive } from "@/lib/auth";
 import { getSession } from "@/lib/session";
-import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail, sendHostRsvpAlertEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms, sendHostRsvpAlertSms } from "@/lib/sms";
+import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail } from "@/lib/email";
+import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -131,26 +130,15 @@ export async function saveEventLocation(
 export async function saveEventTheme(
   eventId: string,
   baseTheme: BaseTheme,
-  accentColor: string,
-  secondaryColor?: string | null,
-  themePresetId?: string | null
+  gradientFrom: string,
+  gradientTo: string,
+  accentColor: string
 ) {
   const event = await assertHost(eventId);
   await db.eventTheme.upsert({
     where: { eventId },
-    update: {
-      baseTheme,
-      accentColor,
-      secondaryColor: secondaryColor === undefined ? undefined : secondaryColor,
-      themePresetId: themePresetId === undefined ? undefined : themePresetId,
-    },
-    create: {
-      eventId,
-      baseTheme,
-      accentColor,
-      secondaryColor: secondaryColor || null,
-      themePresetId: themePresetId || "custom",
-    },
+    update: { baseTheme, gradientFrom, gradientTo, accentColor },
+    create: { eventId, baseTheme, gradientFrom, gradientTo, accentColor },
   });
   revalidatePath(`/e/${event.slug}`);
 }
@@ -226,7 +214,7 @@ export async function addRSVP(rawInput: unknown) {
   const data = AddRsvpSchema.parse(rawInput);
   const event = await db.event.findUnique({
     where: { id: data.eventId },
-    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, rsvpConfirmEmail: true, rsvpConfirmSms: true, hostAlertEmail: true, hostAlertSms: true, host: { select: { name: true, email: true, phone: true } } },
+    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true, email: true } } },
   });
   if (!event) return { success: false, error: "Event not found" };
   if (event.rsvpDeadline && event.rsvpDeadline < new Date()) return { success: false, error: "RSVP deadline has passed" };
@@ -296,7 +284,7 @@ export async function addRSVP(rawInput: unknown) {
     : `${data.guestName} is ${statusText}${plusStr}`;
   logActivity(data.eventId, "rsvp_new", detail, data.guestName).catch(() => {});
 
-  if (event.rsvpConfirmEmail && data.guestEmail) {
+  if (data.guestEmail) {
     sendRsvpConfirmationEmail(data.guestEmail, {
       guestName: data.guestName,
       eventTitle: event.title,
@@ -308,7 +296,7 @@ export async function addRSVP(rawInput: unknown) {
       replyTo: event.host.email || undefined,
     }).catch(() => {});
   }
-  if (event.rsvpConfirmSms && data.guestPhone) {
+  if (data.guestPhone) {
     sendRsvpConfirmationSms(data.guestPhone, {
       guestName: data.guestName,
       eventTitle: event.title,
@@ -316,34 +304,6 @@ export async function addRSVP(rawInput: unknown) {
       status: data.status,
       editToken: rsvp.editToken,
     }).catch(() => {});
-  }
-
-  if (event.hostAlertEmail || event.hostAlertSms) {
-    const counts = await db.rSVP.groupBy({
-      by: ["status"],
-      where: { eventId: data.eventId, approved: true },
-      _count: { status: true },
-    });
-    const goingCount = counts.find((c) => c.status === "GOING")?._count.status ?? 0;
-    const maybeCount = counts.find((c) => c.status === "MAYBE")?._count.status ?? 0;
-    const noCount = counts.find((c) => c.status === "NO")?._count.status ?? 0;
-    const alertPayload = {
-      guestName: data.guestName,
-      status: data.status,
-      plusOneCount: data.plusOneCount,
-      note: data.note || null,
-      eventTitle: event.title,
-      eventSlug: event.slug,
-      goingCount,
-      maybeCount,
-      noCount,
-    };
-    if (event.hostAlertEmail && event.host.email) {
-      sendHostRsvpAlertEmail(event.host.email, alertPayload).catch(() => {});
-    }
-    if (event.hostAlertSms && event.host.phone) {
-      sendHostRsvpAlertSms(event.host.phone, alertPayload).catch(() => {});
-    }
   }
 
   revalidatePath(`/e/${event.slug}`);
@@ -402,12 +362,6 @@ export async function saveEventSettings(
     password?: string | null;
     guestSharingEnabled?: boolean;
     guestsCanInvite?: boolean;
-    rsvpConfirmEmail?: boolean;
-    rsvpConfirmSms?: boolean;
-    hostAlertEmail?: boolean;
-    hostAlertSms?: boolean;
-    approvalNotifyEmail?: boolean;
-    approvalNotifySms?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHost(eventId);
@@ -668,17 +622,17 @@ export async function approveRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, approvalNotifyEmail: true, approvalNotifySms: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
   const isAdmin = session.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
-
+  
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
 
-  if (rsvp.event.approvalNotifyEmail && rsvp.guestEmail) {
+  if (rsvp.guestEmail) {
     await sendApprovalEmail(rsvp.guestEmail, {
       guestName: rsvp.guestName,
       eventTitle: rsvp.event.title,
@@ -687,7 +641,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
       message,
       replyTo: rsvp.event.host.email || undefined,
     }).catch(() => {});
-  } else if (rsvp.event.approvalNotifySms && rsvp.guestPhone) {
+  } else if (rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
       eventTitle: rsvp.event.title,
       approved: true,
@@ -704,7 +658,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, approvalNotifyEmail: true, approvalNotifySms: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
+    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
@@ -712,7 +666,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   const isAdmin = session.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
 
-  if (rsvp.event.approvalNotifyEmail && rsvp.guestEmail) {
+  if (rsvp.guestEmail) {
     await sendApprovalEmail(rsvp.guestEmail, {
       guestName: rsvp.guestName,
       eventTitle: rsvp.event.title,
@@ -721,7 +675,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
       message,
       replyTo: rsvp.event.host.email || undefined,
     }).catch(() => {});
-  } else if (rsvp.event.approvalNotifySms && rsvp.guestPhone) {
+  } else if (rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
       eventTitle: rsvp.event.title,
       approved: false,
@@ -981,7 +935,7 @@ export type DashboardEvent = {
   title: string;
   startAt: Date;
   status: string;
-  theme: { accentColor: string; coverImageUrl: string | null } | null;
+  theme: { gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
   going: number;
   maybe: number;
   pending: number;
@@ -997,7 +951,7 @@ export type DashboardInvite = {
   title: string;
   startAt: Date;
   status: string;
-  theme: { accentColor: string; coverImageUrl: string | null } | null;
+  theme: { gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
   going: number;
   maybe: number;
   pending: number;
@@ -1038,13 +992,14 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
 
   const events = await db.event.findMany({
     where: {
+      status: { not: "DELETED" },
       OR: [
         { hostId: session.userId },
         { coHosts: { some: { userId: session.userId } } },
       ],
     },
     include: {
-      theme: { select: { accentColor: true, coverImageUrl: true } },
+      theme: { select: { gradientFrom: true, gradientTo: true, accentColor: true, coverImageUrl: true } },
       rsvps: { select: { status: true, approved: true } },
       coHosts: {
         select: {
@@ -1117,7 +1072,7 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
     include: {
       event: {
         include: {
-          theme: { select: { accentColor: true, coverImageUrl: true } },
+          theme: { select: { gradientFrom: true, gradientTo: true, accentColor: true, coverImageUrl: true } },
           rsvps: { select: { status: true, approved: true } },
           host: { select: { name: true, email: true, avatarUrl: true } },
           coHosts: {
@@ -1245,11 +1200,10 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
         where: isEmail ? { email: entry } : { phone: entry },
       });
       if (!user) {
-        const openReg = await isOpenRegistrationActive();
         user = await db.user.create({
           data: isEmail
-            ? { email: entry, role: openReg ? "HOST" : "GUEST" }
-            : { phone: entry, role: openReg ? "HOST" : "GUEST" },
+            ? { email: entry, role: "GUEST" }
+            : { phone: entry, role: "GUEST" },
         });
       }
 
@@ -1373,11 +1327,10 @@ export async function inviteFriendAsGuest(
     where: isEmail ? { email: entry } : { phone: entry },
   });
   if (!user) {
-    const openReg = await isOpenRegistrationActive();
     user = await db.user.create({
       data: isEmail
-        ? { email: entry, role: openReg ? "HOST" : "GUEST" }
-        : { phone: entry, role: openReg ? "HOST" : "GUEST" },
+        ? { email: entry, role: "GUEST" }
+        : { phone: entry, role: "GUEST" },
     });
   }
 
@@ -1779,5 +1732,54 @@ export async function deletePollOption(pollId: string, optionId: string) {
   ).catch(() => null);
 
   revalidatePath(`/e/${event.slug}`);
+  return { success: true };
+}
+
+// ── Public theme preset fetch (for ThemePicker / SettingsPage) ────────────────
+
+export async function getActiveThemePresets() {
+  return db.themePreset.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+}
+
+// Tombstones the event as DELETED and hard-deletes all guest data for GDPR compliance.
+// Only the host (or admin) may delete their own event this way.
+export async function deleteHostEvent(eventId: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, hostId: true, slug: true, status: true },
+  });
+  if (!event) throw new Error("Event not found");
+  if (event.hostId !== session.userId && session.role !== "ADMIN") throw new Error("Forbidden");
+  if (event.status === "DELETED") throw new Error("Event is already deleted");
+
+  // Hard-delete all guest data before tombstoning (GDPR: purpose no longer exists)
+  await db.$transaction([
+    db.rSVPAnswer.deleteMany({ where: { rsvp: { eventId } } }),
+    db.plusOneGuest.deleteMany({ where: { rsvp: { eventId } } }),
+    db.rSVP.deleteMany({ where: { eventId } }),
+    db.checkIn.deleteMany({ where: { eventId } }),
+    db.comment.deleteMany({ where: { eventId } }),
+    db.pollVote.deleteMany({ where: { poll: { eventId } } }),
+    db.pollOption.deleteMany({ where: { poll: { eventId } } }),
+    db.poll.deleteMany({ where: { eventId } }),
+    db.potluckClaim.deleteMany({ where: { potluckItem: { eventId } } }),
+    db.potluckItem.deleteMany({ where: { eventId } }),
+    db.invitation.deleteMany({ where: { eventId } }),
+    db.eventUpdate.deleteMany({ where: { eventId } }),
+    db.eventInfoSection.deleteMany({ where: { eventId } }),
+    db.sentReminder.deleteMany({ where: { eventId } }),
+    db.activityEvent.deleteMany({ where: { eventId } }),
+    db.eventCoHost.deleteMany({ where: { eventId } }),
+    db.event.update({ where: { id: eventId }, data: { status: "DELETED" } }),
+  ]);
+
+  revalidatePath(`/e/${event.slug}`);
+  revalidatePath("/dashboard");
   return { success: true };
 }

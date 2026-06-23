@@ -34,47 +34,25 @@ Your `docker-compose.yml` uses the `latest` tag by default. Running `docker comp
 
 Always perform a backup before upgrading.
 
-### Method 1: Copy from Stopped Container (recommended)
-Stop the web server, copy the database file and uploads, then restart:
+### Method 1: pg_dump via the Postgres Container (recommended)
+Use `pg_dump` to create a SQL dump while the application is running:
 
-- **Linux/Mac (Terminal):**
-  ```bash
-  # Stop the app container (stops database writes)
-  docker compose stop app
-
-  # Copy the database and uploads directory to your host folder
-  docker cp rsvp-to-me-app-1:/app/data/prod.db ./prod-backup-$(date +%Y%m%d-%H%M%S).db
-  docker cp rsvp-to-me-app-1:/app/data/uploads ./uploads-backup-$(date +%Y%m%d-%H%M%S)
-
-  # Restart the web server
-  docker compose start app
-  ```
-
-- **Windows (PowerShell):**
-  ```powershell
-  # Stop the app container
-  docker compose stop app
-
-  # Copy the database and uploads directory
-  docker cp rsvp-to-me-app-1:/app/data/prod.db ./prod-backup-$(Get-Date -Format "yyyyMMdd-HHmmss").db
-  docker cp rsvp-to-me-app-1:/app/data/uploads ./uploads-backup-$(Get-Date -Format "yyyyMMdd-HHmmss")
-
-  # Restart the web server
-  docker compose start app
-  ```
-
-> **Note:** The container name `rsvp-to-me-app-1` may vary depending on your directory name. Run `docker compose ps` to verify the exact container name.
-
-### Method 2: Hot Copy while Running (faster but slightly riskier)
-SQLite supports copying the file while the application is active. This is faster but carries a small risk of copying the file mid-write.
 ```bash
-docker cp rsvp-to-me-app-1:/app/data/prod.db ./prod-backup-$(date +%Y%m%d).db
+docker compose exec postgres pg_dump -U postgres rsvp_db > ./data/backups/pre-upgrade-$(date +%Y%m%d-%H%M%S).sql
 ```
+
+Also back up your uploaded images:
+```bash
+cp -r ./data/uploads ./uploads-backup-$(date +%Y%m%d-%H%M%S)
+```
+
+### Method 2: Built-in Admin Backup Panel
+Navigate to `/admin` → **Backups** and click **Back Up Now** to create a `pg_dump` snapshot via the Admin UI.
 
 ### Where to Store Backups
 - On a separate machine, drive, or local NAS.
 - Encrypted cloud storage (e.g. Google Drive, Dropbox, Backblaze B2).
-- The SQLite database file is typically very small (<10MB) and compresses easily.
+- SQL dump files compress well with gzip: `gzip ./data/backups/pre-upgrade-*.sql`.
 
 ---
 
@@ -120,18 +98,14 @@ docker compose up -d
 ### Complete Upgrade Script (copy-paste)
 - **Linux/Mac:**
   ```bash
-  docker compose stop app
-  docker cp rsvp-to-me-app-1:/app/data/prod.db ./prod-backup-$(date +%Y%m%d).db
-  docker compose start app
+  docker compose exec postgres pg_dump -U postgres rsvp_db > ./data/backups/pre-upgrade-$(date +%Y%m%d).sql
   docker compose pull
   docker compose up -d
   docker compose logs -f app
   ```
 - **Windows (PowerShell):**
   ```powershell
-  docker compose stop app
-  docker cp rsvp-to-me-app-1:/app/data/prod.db ./prod-backup-$(Get-Date -Format "yyyyMMdd").db
-  docker compose start app
+  docker compose exec postgres pg_dump -U postgres rsvp_db | Out-File -FilePath "./data/backups/pre-upgrade-$(Get-Date -Format 'yyyyMMdd').sql" -Encoding utf8
   docker compose pull
   docker compose up -d
   docker compose logs -f app
@@ -187,25 +161,12 @@ If you experience issues, you can roll back your application to the previous wor
 
 ### Step 1: Restore your Database Backup
 
-#### For SQLite deployments (Default):
-1. Stop the application container to release any database locks:
-   ```bash
-   docker compose stop app
-   ```
-2. Copy your SQLite database backup file back into place:
-   ```bash
-   cp ./data/backups/backup_2026-06-20T15-23-00.sqlite ./data/prod.db
-   ```
-3. Restart the application container:
-   ```bash
-   docker compose start app
-   ```
-
-#### For PostgreSQL deployments:
-To restore a PostgreSQL plain text `.sql` backup file, run the SQL script against your Postgres container:
+To restore a PostgreSQL `.sql` backup, feed it into `psql` via the Postgres container:
 ```bash
-# Feed the backup SQL file into the psql command inside the database container
-docker compose exec -T postgres psql -U postgres -d rsvp_db < ./data/backups/backup_2026-06-20T15-23-00.sql
+# Drop and recreate the database to get a clean slate, then restore
+docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS rsvp_db;"
+docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE rsvp_db;"
+docker compose exec -T postgres psql -U postgres -d rsvp_db < ./data/backups/pre-upgrade-20260623.sql
 ```
 
 ### Step 2: Pin the Previous Image Version
@@ -227,18 +188,13 @@ docker compose up -d
 
 ## Setting Up Automatic Backups
 
-### Option A: Bind Mount Directory
-By default, the `docker-compose.yml` file uses a bind mount directory:
-```yaml
-    volumes:
-      - ./data:/app/data
-```
-This means the database file is always accessible on your host machine at `./data/prod.db` relative to your `docker-compose.yml`. You can direct any standard host-level backup tool (e.g. Restic, Duplicati, or Backblaze) to backup this directory.
+### Option A: Built-in Admin Backup Scheduler
+Navigate to `/admin` → **Backups** and configure a cron schedule (e.g. `0 3 * * *` for daily at 3 AM). The application runs `pg_dump` on schedule and stores the results in `./data/backups/`. Rotation and download are also managed from this panel.
 
 ---
 
-### Option B: Scheduled Cron Script (Linux/Mac)
-You can set up a daily cron job on your host machine to automate backups.
+### Option B: Host-Level Cron Script (Linux/Mac)
+For an extra layer of offsite protection, you can run a host cron job alongside the built-in scheduler.
 
 1. Create a script file `/home/user/backup-rsvp.sh`:
    ```bash
@@ -247,17 +203,11 @@ You can set up a daily cron job on your host machine to automate backups.
    DATE=$(date +%Y%m%d-%H%M%S)
    mkdir -p "$BACKUP_DIR"
 
-   # Stop container to prevent write locks
-   docker compose -f /path/to/rsvp-to-me/docker-compose.yml stop app
-
-   # Copy database
-   cp /path/to/rsvp-to-me/data/prod.db "$BACKUP_DIR/prod-$DATE.db"
-
-   # Restart container
-   docker compose -f /path/to/rsvp-to-me/docker-compose.yml start app
+   docker compose -f /path/to/rsvp-to-me/docker-compose.yml exec -T postgres \
+     pg_dump -U postgres rsvp_db > "$BACKUP_DIR/rsvp-$DATE.sql"
 
    # Keep only the last 30 backups
-   ls -t "$BACKUP_DIR"/*.db | tail -n +31 | xargs rm -f
+   ls -t "$BACKUP_DIR"/*.sql | tail -n +31 | xargs rm -f
    ```
 2. Make the script executable:
    ```bash
@@ -271,3 +221,50 @@ You can set up a daily cron job on your host machine to automate backups.
    ```
    0 3 * * * /home/user/backup-rsvp.sh >> /home/user/rsvp-backup.log 2>&1
    ```
+
+---
+
+## Upgrading the PostgreSQL Major Version
+
+rsvp-to-me uses PostgreSQL 18. When a new major PostgreSQL version is released and you want to upgrade, use the dump-and-restore method (not `pg_upgrade`, which requires native binary installations).
+
+**This procedure requires a brief maintenance window.**
+
+1. **Back up your data** (follow Method 1 above).
+
+2. **Stop the application:**
+   ```bash
+   docker compose down
+   ```
+
+3. **Update the Postgres image tag** in `docker-compose.yml`:
+   ```yaml
+   postgres:
+     image: postgres:19-alpine   # bump to the new major version
+   ```
+
+   > **Note:** The volume mount uses `./pg_data:/var/lib/postgresql` (not `/var/lib/postgresql/data`). This is intentional for Postgres 18+: Postgres creates a `data/` subdirectory within the mount automatically, which enables link-mode upgrades without crossing filesystem mount boundaries.
+
+4. **Delete the old data directory** (incompatible between major versions):
+   ```bash
+   rm -rf ./pg_data
+   ```
+
+5. **Start only the new Postgres container** and wait for it to initialize:
+   ```bash
+   docker compose up -d postgres
+   docker compose logs -f postgres   # wait until "database system is ready"
+   ```
+
+6. **Restore your backup:**
+   ```bash
+   docker compose exec -T postgres psql -U postgres -d rsvp_db < ./data/backups/pre-upgrade-YYYYMMDD.sql
+   ```
+
+7. **Start all services:**
+   ```bash
+   docker compose up -d
+   docker compose logs -f app
+   ```
+
+8. **Verify** by navigating to your app URL and running a quick sanity check on the dashboard and a public event page.

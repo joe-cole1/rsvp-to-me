@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Menu, X } from "lucide-react";
-import { APP_SHELL } from "@/lib/theme";
-import { AppShell } from "@/components/ui/AppShell";
+import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
 import {
   updateUserRole,
   deleteUserAccount,
+  cancelAccountDeletion,
   deleteEventAdmin,
   createInviteCode,
   revokeInviteCode,
@@ -21,6 +22,9 @@ import {
   listBackupsAction,
   deleteBackupAction,
   updateBackupConfigAction,
+  createThemePreset,
+  updateThemePreset,
+  deleteThemePreset,
 } from "@/app/actions/admin";
 
 interface AdminUser {
@@ -30,6 +34,8 @@ interface AdminUser {
   phone: string | null;
   role: "GUEST" | "HOST" | "ADMIN";
   createdAt: Date;
+  deletionRequestedAt: Date | null;
+  deletionScheduledAt: Date | null;
   _count: {
     events: number;
     rsvps: number;
@@ -70,6 +76,21 @@ interface BackupConfig {
   last_backup_time: string;
 }
 
+interface AdminThemePreset {
+  id: string;
+  name: string;
+  emoji: string;
+  base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal: boolean;
+  active: boolean;
+  sortOrder: number;
+  month?: number | null;
+  createdAt: Date;
+}
+
 interface AdminClientProps {
   initialStats: {
     totalUsers: number;
@@ -84,6 +105,7 @@ interface AdminClientProps {
   initialConfig: Record<string, string>;
   initialBackupConfig: BackupConfig;
   initialBackups: BackupFile[];
+  initialThemePresets: AdminThemePreset[];
   sessionUser: {
     name: string | null;
     email: string | null;
@@ -91,6 +113,19 @@ interface AdminClientProps {
     avatarUrl: string | null;
   } | null;
 }
+
+const VALID_TABS = ["overview", "users", "events", "invites", "settings", "email", "sms", "backups", "themes"] as const;
+type TabId = typeof VALID_TABS[number];
+
+const BACKUP_PRESETS = [
+  { label: "Disabled",                     value: "disabled"    },
+  { label: "Every hour",                   value: "0 * * * *"   },
+  { label: "Every 6 hours",               value: "0 */6 * * *" },
+  { label: "Daily at midnight",            value: "0 0 * * *"   },
+  { label: "Every 3 days",                value: "0 0 */3 * *" },
+  { label: "Weekly (Sundays at midnight)", value: "0 0 * * 0"   },
+  { label: "Custom",                       value: "custom"      },
+] as const;
 
 export default function AdminClient({
   initialStats,
@@ -100,9 +135,12 @@ export default function AdminClient({
   initialConfig,
   initialBackupConfig,
   initialBackups,
+  initialThemePresets,
   sessionUser,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "events" | "invites" | "settings" | "email" | "sms" | "backups">("overview");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [copied, setCopied] = useState(false);
 
   const [users, setUsers] = useState(initialUsers);
@@ -117,6 +155,22 @@ export default function AdminClient({
   const [lastBackupTime, setLastBackupTime] = useState(initialBackupConfig.last_backup_time);
   const [isBackupRunning, setIsBackupRunning] = useState(false);
   const [isSavingBackupConfig, setIsSavingBackupConfig] = useState(false);
+
+  // Theme presets state
+  const [themePresets, setThemePresets] = useState<AdminThemePreset[]>(initialThemePresets);
+  const [themePresetForm, setThemePresetForm] = useState<{
+    id?: string;
+    name: string;
+    emoji: string;
+    base: "DARK" | "SOFT" | "BOLD";
+    gradientFrom: string;
+    gradientTo: string;
+    accentColor: string;
+    seasonal: boolean;
+    month?: number | null;
+  } | null>(null);
+  const [themePresetOriginal, setThemePresetOriginal] = useState<typeof themePresetForm>(null);
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   const [userSearch, setUserSearch] = useState("");
   const [eventSearch, setEventSearch] = useState("");
@@ -135,6 +189,21 @@ export default function AdminClient({
       return () => clearTimeout(timer);
     }
   }, [feedback]);
+
+  // Sync active tab from URL query param (?tab=backups)
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const tab = searchParams.get("tab") as TabId | null;
+    if (tab && VALID_TABS.includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  function handleTabChange(id: TabId) {
+    setActiveTab(id);
+    router.replace(`/admin?tab=${id}`, { scroll: false });
+  }
 
   const [emailProvider, setEmailProvider] = useState(config.email_provider || "console");
   const [emailFrom, setEmailFrom] = useState(config.email_from || "");
@@ -491,19 +560,44 @@ function extractRawEmail(fromStr) {
   };
 
   const handleUserDelete = (userId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${name}'s account? This will permanently delete all events hosted by them and cannot be undone.`)) {
+    if (!confirm(`Schedule ${name}'s account for deletion? They will be signed out immediately and their data anonymized after a 30-day grace period. You can restore the account before that window closes.`)) {
       return;
     }
     setFeedback(null);
     startTransition(async () => {
       try {
         const res = await deleteUserAccount(userId);
+        if ("blocked" in res && res.blocked) {
+          const titles = res.events.map((e) => `"${e.title}"`).join(", ");
+          setFeedback({ type: "error", message: `Cannot schedule deletion — ${name} has upcoming published events: ${titles}. Delete those events first.` });
+          return;
+        }
         if (res.success) {
-          setUsers((prev) => prev.filter((u) => u.id !== userId));
-          setFeedback({ type: "success", message: "User account deleted successfully." });
+          const scheduledAt = new Date(res.scheduledAt);
+          setUsers((prev) => prev.map((u) => u.id === userId
+            ? { ...u, deletionRequestedAt: new Date(), deletionScheduledAt: scheduledAt }
+            : u
+          ));
+          setFeedback({ type: "success", message: `${name}'s account scheduled for deletion on ${scheduledAt.toLocaleDateString()}.` });
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to delete account.";
+        const message = err instanceof Error ? err.message : "Failed to schedule deletion.";
+        setFeedback({ type: "error", message });
+      }
+    });
+  };
+
+  const handleCancelDeletion = (userId: string, name: string) => {
+    setFeedback(null);
+    startTransition(async () => {
+      try {
+        const res = await cancelAccountDeletion(userId);
+        if (res.success) {
+          setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, deletionRequestedAt: null, deletionScheduledAt: null } : u));
+          setFeedback({ type: "success", message: `${name}'s account has been restored.` });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to cancel deletion.";
         setFeedback({ type: "error", message });
       }
     });
@@ -584,6 +678,70 @@ function extractRawEmail(fromStr) {
         setFeedback({ type: "error", message });
       }
     });
+  };
+
+  const handleSaveThemePreset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!themePresetForm) return;
+    setIsSavingPreset(true);
+    try {
+      if (themePresetForm.id) {
+        await updateThemePreset(themePresetForm.id, {
+          name: themePresetForm.name,
+          emoji: themePresetForm.emoji,
+          base: themePresetForm.base,
+          gradientFrom: themePresetForm.gradientFrom,
+          gradientTo: themePresetForm.gradientTo,
+          accentColor: themePresetForm.accentColor,
+          seasonal: themePresetForm.seasonal,
+          month: themePresetForm.month ?? null,
+        });
+        setThemePresets((prev) =>
+          prev.map((p) =>
+            p.id === themePresetForm.id ? { ...p, ...themePresetForm } : p
+          )
+        );
+        setFeedback({ type: "success", message: "Preset updated." });
+      } else {
+        const created = await createThemePreset({
+          name: themePresetForm.name,
+          emoji: themePresetForm.emoji,
+          base: themePresetForm.base,
+          gradientFrom: themePresetForm.gradientFrom,
+          gradientTo: themePresetForm.gradientTo,
+          accentColor: themePresetForm.accentColor,
+          seasonal: themePresetForm.seasonal,
+          month: themePresetForm.month ?? null,
+        });
+        setThemePresets((prev) => [...prev, created as AdminThemePreset]);
+        setFeedback({ type: "success", message: "Preset created." });
+      }
+      setThemePresetForm(null);
+    } catch (err) {
+      setFeedback({ type: "error", message: err instanceof Error ? err.message : "Failed to save preset." });
+    } finally {
+      setIsSavingPreset(false);
+    }
+  };
+
+  const handleDeleteThemePreset = async (id: string) => {
+    if (!confirm("Delete this theme preset? Events using it will keep their current colors.")) return;
+    try {
+      await deleteThemePreset(id);
+      setThemePresets((prev) => prev.filter((p) => p.id !== id));
+      setFeedback({ type: "success", message: "Preset deleted." });
+    } catch (err) {
+      setFeedback({ type: "error", message: err instanceof Error ? err.message : "Failed to delete preset." });
+    }
+  };
+
+  const handleTogglePresetActive = async (preset: AdminThemePreset) => {
+    try {
+      await updateThemePreset(preset.id, { active: !preset.active });
+      setThemePresets((prev) => prev.map((p) => p.id === preset.id ? { ...p, active: !p.active } : p));
+    } catch (err) {
+      setFeedback({ type: "error", message: err instanceof Error ? err.message : "Failed to update preset." });
+    }
   };
 
   return (
@@ -686,13 +844,14 @@ function extractRawEmail(fromStr) {
                 { id: "settings", label: "⚙️ Global Config" },
                 { id: "email", label: "📧 Email Settings" },
                 { id: "sms", label: "💬 SMS Settings" },
+                { id: "themes", label: "🎨 Theme Presets" },
                 { id: "backups", label: "💾 Database Backups" },
               ] as const
             ).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveTab(tab.id);
+                  handleTabChange(tab.id);
                   setFeedback(null);
                 }}
                 style={{
@@ -817,6 +976,11 @@ function extractRawEmail(fromStr) {
                               <td style={{ padding: "16px" }}>
                                 <div style={{ fontWeight: 700, color: APP_SHELL.textPrimary }}>{u.name || "Unnamed User"}</div>
                                 <div style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>Registered {new Date(u.createdAt).toLocaleDateString()}</div>
+                                {u.deletionScheduledAt && (
+                                  <div style={{ fontSize: "11px", color: "#ef4444", fontWeight: 600, marginTop: "4px" }}>
+                                    Deletion pending — {new Date(u.deletionScheduledAt).toLocaleString()}
+                                  </div>
+                                )}
                               </td>
                               <td style={{ padding: "16px" }}>
                                 <div style={{ color: APP_SHELL.textPrimary }}>{u.email || "-"}</div>
@@ -843,19 +1007,37 @@ function extractRawEmail(fromStr) {
                                 </select>
                               </td>
                               <td style={{ padding: "16px", textAlign: "right" }}>
-                                <button
-                                  onClick={() => handleUserDelete(u.id, u.name || u.email || "Unknown User")}
-                                  style={{
-                                    backgroundColor: "transparent",
-                                    border: "none",
-                                    color: "#ef4444",
-                                    cursor: "pointer",
-                                    fontWeight: 600,
-                                    fontSize: "13px",
-                                  }}
-                                >
-                                  Delete
-                                </button>
+                                {u.deletionScheduledAt ? (
+                                  <button
+                                    onClick={() => handleCancelDeletion(u.id, u.name || u.email || "Unknown User")}
+                                    style={{
+                                      backgroundColor: "transparent",
+                                      border: "1px solid #ef4444",
+                                      color: "#ef4444",
+                                      cursor: "pointer",
+                                      fontWeight: 600,
+                                      fontSize: "12px",
+                                      borderRadius: "6px",
+                                      padding: "4px 10px",
+                                    }}
+                                  >
+                                    Restore Account
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUserDelete(u.id, u.name || u.email || "Unknown User")}
+                                    style={{
+                                      backgroundColor: "transparent",
+                                      border: "none",
+                                      color: "#ef4444",
+                                      cursor: "pointer",
+                                      fontWeight: 600,
+                                      fontSize: "13px",
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))
@@ -2172,27 +2354,58 @@ function extractRawEmail(fromStr) {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>
-                          BACKUP CRON SCHEDULE
+                          BACKUP SCHEDULE
                         </label>
-                        <input
-                          type="text"
-                          value={backupSchedule}
-                          onChange={(e) => setBackupSchedule(e.target.value)}
-                          placeholder="e.g. 0 0 * * * (or 'disabled')"
-                          required
-                          style={{
-                            backgroundColor: APP_SHELL.inputBg,
-                            border: `1px solid ${APP_SHELL.inputBorder}`,
-                            borderRadius: "10px",
-                            padding: "10px 14px",
-                            fontSize: "14px",
-                            color: APP_SHELL.textPrimary,
-                            outline: "none",
-                          }}
-                        />
-                        <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
-                          Standard 5-field cron syntax (Minute Hour Day-of-Month Month Day-of-Week). Set to <strong>disabled</strong> to turn off automated backups.
-                        </span>
+                        {(() => {
+                          const isCustom = !BACKUP_PRESETS.some(p => p.value !== "custom" && p.value === backupSchedule);
+                          return (
+                            <>
+                              <select
+                                value={isCustom ? "custom" : backupSchedule}
+                                onChange={(e) => {
+                                  if (e.target.value !== "custom") setBackupSchedule(e.target.value);
+                                }}
+                                style={{
+                                  backgroundColor: APP_SHELL.inputBg,
+                                  border: `1px solid ${APP_SHELL.inputBorder}`,
+                                  borderRadius: "10px",
+                                  padding: "10px 14px",
+                                  fontSize: "14px",
+                                  color: APP_SHELL.textPrimary,
+                                  outline: "none",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {BACKUP_PRESETS.map(p => (
+                                  <option key={p.value} value={p.value}>{p.label}</option>
+                                ))}
+                              </select>
+                              {isCustom && (
+                                <input
+                                  type="text"
+                                  value={backupSchedule}
+                                  onChange={(e) => setBackupSchedule(e.target.value)}
+                                  placeholder="e.g. 0 0 * * * (or 'disabled')"
+                                  required
+                                  style={{
+                                    backgroundColor: APP_SHELL.inputBg,
+                                    border: `1px solid ${APP_SHELL.inputBorder}`,
+                                    borderRadius: "10px",
+                                    padding: "10px 14px",
+                                    fontSize: "14px",
+                                    color: APP_SHELL.textPrimary,
+                                    outline: "none",
+                                  }}
+                                />
+                              )}
+                              <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
+                                {isCustom
+                                  ? "Standard 5-field cron syntax (Minute Hour Day-of-Month Month Day-of-Week)."
+                                  : backupSchedule === "disabled" ? "Automated backups are off." : `Cron: ${backupSchedule}`}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
 
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -2384,6 +2597,398 @@ function extractRawEmail(fromStr) {
                 </div>
               </div>
             )}
+
+            {/* PANEL: THEME PRESETS */}
+            {activeTab === "themes" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Header card */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                    <div>
+                      <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>Theme Presets</h3>
+                      <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px", marginBottom: 0 }}>
+                        Manage the preset themes hosts can pick from in the event settings. Inactive presets are hidden from hosts.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        setThemePresetForm({
+                          name: "",
+                          emoji: "🎨",
+                          base: "DARK",
+                          gradientFrom: "#1a1a2e",
+                          gradientTo: "#16213e",
+                          accentColor: "#a855f7",
+                          seasonal: false,
+                          month: null,
+                        })
+                      }
+                      style={{
+                        backgroundColor: APP_SHELL.accent,
+                        border: "none",
+                        color: "#fff",
+                        borderRadius: "10px",
+                        padding: "10px 18px",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      + New Preset
+                    </button>
+                  </div>
+
+                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder, marginBottom: "20px" }} />
+
+                  {/* Preset grid */}
+                  {themePresets.length === 0 ? (
+                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", textAlign: "center", padding: "40px 0" }}>
+                      No theme presets yet. Click &quot;+ New Preset&quot; to add one.
+                    </p>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
+                      {themePresets.map((preset) => (
+                        <div
+                          key={preset.id}
+                          style={{
+                            border: `1px solid ${preset.active ? APP_SHELL.cardBorder : "rgba(255,255,255,0.05)"}`,
+                            borderRadius: "14px",
+                            overflow: "hidden",
+                            opacity: preset.active ? 1 : 0.5,
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          {/* Gradient preview */}
+                          <div
+                            style={{
+                              height: "60px",
+                              background: `linear-gradient(135deg, ${preset.gradientFrom}, ${preset.gradientTo})`,
+                              position: "relative",
+                            }}
+                          >
+                            <div style={{ position: "absolute", top: "6px", right: "6px", background: preset.accentColor, width: "14px", height: "14px", borderRadius: "50%", border: "2px solid rgba(255,255,255,0.5)" }} />
+                            <div style={{ position: "absolute", top: "6px", left: "8px", fontSize: "16px" }}>{preset.emoji}</div>
+                          </div>
+                          {/* Info row */}
+                          <div style={{ padding: "10px 12px", backgroundColor: APP_SHELL.inputBg, flex: 1 }}>
+                            <div style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, marginBottom: "2px" }}>{preset.name}</div>
+                            <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary, marginBottom: "8px" }}>
+                              {preset.base}{preset.seasonal ? " · Seasonal" : ""}
+                            </div>
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              <button
+                                onClick={() => {
+                                  const vals = {
+                                    id: preset.id,
+                                    name: preset.name,
+                                    emoji: preset.emoji,
+                                    base: preset.base,
+                                    gradientFrom: preset.gradientFrom,
+                                    gradientTo: preset.gradientTo,
+                                    accentColor: preset.accentColor,
+                                    seasonal: preset.seasonal,
+                                    month: preset.month ?? null,
+                                  };
+                                  setThemePresetForm(vals);
+                                  setThemePresetOriginal(vals);
+                                }}
+                                style={{
+                                  flex: 1,
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  padding: "5px 0",
+                                  borderRadius: "7px",
+                                  border: `1px solid ${APP_SHELL.cardBorder}`,
+                                  backgroundColor: "transparent",
+                                  color: APP_SHELL.textSecondary,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleTogglePresetActive(preset)}
+                                style={{
+                                  flex: 1,
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  padding: "5px 0",
+                                  borderRadius: "7px",
+                                  border: `1px solid ${preset.active ? "#22c55e44" : APP_SHELL.cardBorder}`,
+                                  backgroundColor: preset.active ? "rgba(34,197,94,0.1)" : "transparent",
+                                  color: preset.active ? "#22c55e" : APP_SHELL.textSecondary,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {preset.active ? "Active" : "Inactive"}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteThemePreset(preset.id)}
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  padding: "5px 8px",
+                                  borderRadius: "7px",
+                                  border: "1px solid rgba(239,68,68,0.3)",
+                                  backgroundColor: "transparent",
+                                  color: "#ef4444",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* MODAL: Create / Edit Theme Preset */}
+            {themePresetForm && (
+              <>
+                <div
+                  onClick={() => setThemePresetForm(null)}
+                  style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1000 }}
+                />
+                <div
+                  style={{
+                    position: "fixed",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%,-50%)",
+                    zIndex: 1001,
+                    width: "min(500px, 92vw)",
+                    maxHeight: "90vh",
+                    overflowY: "auto",
+                    backgroundColor: "#16161e",
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: "20px",
+                    padding: "28px 24px 24px",
+                    color: APP_SHELL.textPrimary,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                    <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700 }}>
+                      {themePresetForm.id ? "Edit Preset" : "New Preset"}
+                    </h3>
+                    <button
+                      onClick={() => setThemePresetForm(null)}
+                      style={{ background: "none", border: "none", color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "20px", padding: "2px 6px" }}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveThemePreset} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {/* Name + emoji row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "60px 1fr", gap: "10px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>EMOJI</label>
+                        <input
+                          type="text"
+                          value={themePresetForm.emoji}
+                          onChange={(e) => setThemePresetForm((f) => f && { ...f, emoji: e.target.value })}
+                          maxLength={2}
+                          style={{
+                            backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "8px", padding: "9px", fontSize: "18px", textAlign: "center",
+                            color: APP_SHELL.textPrimary, outline: "none",
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>NAME</label>
+                        <input
+                          type="text"
+                          value={themePresetForm.name}
+                          onChange={(e) => setThemePresetForm((f) => f && { ...f, name: e.target.value })}
+                          required
+                          placeholder="e.g. Midnight Purple"
+                          style={{
+                            backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "8px", padding: "9px 12px", fontSize: "14px",
+                            color: APP_SHELL.textPrimary, outline: "none",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Base style */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>BASE STYLE</label>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        {BASE_THEMES.map((bt) => (
+                          <button
+                            key={bt.id}
+                            type="button"
+                            onClick={() => setThemePresetForm((f) => f && { ...f, base: bt.id })}
+                            style={{
+                              flex: 1, padding: "0", overflow: "hidden", cursor: "pointer",
+                              border: `2px solid ${themePresetForm.base === bt.id ? APP_SHELL.accent : APP_SHELL.cardBorder}`,
+                              borderRadius: "10px", background: "none",
+                            }}
+                          >
+                            <div style={{ height: "36px", background: bt.preview }} />
+                            <div style={{ padding: "5px 4px", color: APP_SHELL.textPrimary, fontSize: "11px", fontWeight: 600, backgroundColor: APP_SHELL.inputBg }}>
+                              {bt.label}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Gradient colors */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>BACKGROUND GRADIENT</label>
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <label style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: "8px", cursor: "pointer" }}>
+                          <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: themePresetForm.gradientFrom, flexShrink: 0 }} />
+                          <span style={{ fontSize: "11px", color: APP_SHELL.textSecondary, fontFamily: "monospace" }}>{themePresetForm.gradientFrom}</span>
+                          <input type="color" value={themePresetForm.gradientFrom} onChange={(e) => setThemePresetForm((f) => f && { ...f, gradientFrom: e.target.value })} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        </label>
+                        <label style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: "8px", cursor: "pointer" }}>
+                          <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: themePresetForm.gradientTo, flexShrink: 0 }} />
+                          <span style={{ fontSize: "11px", color: APP_SHELL.textSecondary, fontFamily: "monospace" }}>{themePresetForm.gradientTo}</span>
+                          <input type="color" value={themePresetForm.gradientTo} onChange={(e) => setThemePresetForm((f) => f && { ...f, gradientTo: e.target.value })} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        </label>
+                      </div>
+                      <div style={{ height: "28px", borderRadius: "6px", background: `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})`, border: `1px solid ${APP_SHELL.cardBorder}` }} />
+                    </div>
+
+                    {/* Accent color */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>ACCENT COLOR</label>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginBottom: "4px" }}>
+                        {ACCENT_PRESETS.map((p) => (
+                          <button
+                            key={p.value}
+                            type="button"
+                            onClick={() => setThemePresetForm((f) => f && { ...f, accentColor: p.value })}
+                            title={p.name}
+                            style={{
+                              width: "28px", height: "28px", borderRadius: "50%", background: p.value,
+                              border: `2px solid ${themePresetForm.accentColor === p.value ? "#fff" : "transparent"}`,
+                              cursor: "pointer",
+                            }}
+                          />
+                        ))}
+                        <label title="Custom" style={{ width: "28px", height: "28px", borderRadius: "50%", background: themePresetForm.accentColor, border: "2px solid rgba(255,255,255,0.3)", cursor: "pointer", overflow: "hidden", position: "relative" }}>
+                          <input type="color" value={themePresetForm.accentColor} onChange={(e) => setThemePresetForm((f) => f && { ...f, accentColor: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Seasonal toggle + month */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px", color: APP_SHELL.textPrimary }}>
+                        <input
+                          type="checkbox"
+                          checked={themePresetForm.seasonal}
+                          onChange={(e) => setThemePresetForm((f) => f && { ...f, seasonal: e.target.checked, month: e.target.checked ? f.month : null })}
+                          style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                        />
+                        Seasonal preset
+                      </label>
+                      {themePresetForm.seasonal && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>MONTH (1–12)</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={12}
+                            value={themePresetForm.month ?? ""}
+                            onChange={(e) => setThemePresetForm((f) => f && { ...f, month: e.target.value ? parseInt(e.target.value, 10) : null })}
+                            placeholder="e.g. 10"
+                            style={{
+                              width: "72px", backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: "8px", padding: "7px 10px", fontSize: "14px",
+                              color: APP_SHELL.textPrimary, outline: "none",
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Live theme preview */}
+                    {(() => {
+                      const pv = resolveTheme(themePresetForm.base, themePresetForm.gradientFrom, themePresetForm.gradientTo, themePresetForm.accentColor);
+                      return (
+                        <div style={{ borderRadius: "12px", overflow: "hidden", border: `1px solid ${APP_SHELL.cardBorder}` }}>
+                          {/* Page background zone */}
+                          <div style={{ position: "relative", height: "72px", background: pv.pageDecoration === "bold-hero" ? pv.pageDecorationBg1 : `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})` }}>
+                            <span style={{ position: "absolute", top: "8px", left: "10px", fontSize: "13px", fontWeight: 700, color: pv.textPrimary, fontFamily: pv.headingFont }}>
+                              {themePresetForm.emoji} {themePresetForm.name || "Untitled"}
+                            </span>
+                          </div>
+                          {/* Card zone */}
+                          <div style={{ background: pv.pageBg, padding: "10px 12px" }}>
+                            <div style={{ background: pv.cardBg, border: `1px solid ${pv.cardBorder}`, borderRadius: pv.cardRadius, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: pv.cardShadow }}>
+                              <div>
+                                <div style={{ fontSize: "12px", fontWeight: 700, color: pv.textPrimary, marginBottom: "2px", fontFamily: pv.headingFont }}>Event details</div>
+                                <div style={{ fontSize: "11px", color: pv.textMuted }}>Saturday · 7:00 PM</div>
+                              </div>
+                              <button style={{ background: pv.accent, color: pv.accentFg, border: "none", borderRadius: pv.btnRadius, padding: "5px 12px", fontSize: "11px", fontWeight: 700, cursor: "default" }}>RSVP</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setThemePresetForm(null)}
+                        style={{ flex: 1, padding: "12px", background: "transparent", border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: "10px", color: APP_SHELL.textSecondary, fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                      >
+                        Cancel
+                      </button>
+                      {themePresetForm.id && themePresetOriginal && (
+                        (() => {
+                          const isDirty =
+                            themePresetForm.name !== themePresetOriginal.name ||
+                            themePresetForm.emoji !== themePresetOriginal.emoji ||
+                            themePresetForm.base !== themePresetOriginal.base ||
+                            themePresetForm.gradientFrom !== themePresetOriginal.gradientFrom ||
+                            themePresetForm.gradientTo !== themePresetOriginal.gradientTo ||
+                            themePresetForm.accentColor !== themePresetOriginal.accentColor ||
+                            themePresetForm.seasonal !== themePresetOriginal.seasonal ||
+                            themePresetForm.month !== themePresetOriginal.month;
+                          return isDirty ? (
+                            <button
+                              type="button"
+                              onClick={() => setThemePresetForm(themePresetOriginal)}
+                              style={{ flex: 1, padding: "12px", background: "transparent", border: `1px solid rgba(239,68,68,0.4)`, borderRadius: "10px", color: "#ef4444", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                            >
+                              ↺ Reset
+                            </button>
+                          ) : null;
+                        })()
+                      )}
+                      <button
+                        type="submit"
+                        disabled={isSavingPreset}
+                        style={{ flex: 2, padding: "12px", background: APP_SHELL.accent, border: "none", borderRadius: "10px", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: "pointer", opacity: isSavingPreset ? 0.7 : 1 }}
+                      >
+                        {isSavingPreset ? "Saving…" : themePresetForm.id ? "Save Changes" : "Create Preset"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </>
+            )}
           </div>
           {/* Sliding Drawer for Mobile/Tablet */}
           {isDrawerOpen && (
@@ -2458,13 +3063,14 @@ function extractRawEmail(fromStr) {
                       { id: "settings", label: "⚙️ Global Config" },
                       { id: "email", label: "📧 Email Settings" },
                       { id: "sms", label: "💬 SMS Settings" },
+                      { id: "themes", label: "🎨 Theme Presets" },
                       { id: "backups", label: "💾 Database Backups" },
                     ] as const
                   ).map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => {
-                        setActiveTab(tab.id);
+                        handleTabChange(tab.id);
                         setFeedback(null);
                         setIsDrawerOpen(false);
                       }}

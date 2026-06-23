@@ -28,7 +28,7 @@ function AvatarBubble({ name, avatarUrl, accentColor }: { name: string; avatarUr
     if (accentColor.startsWith("#") && accentColor.length === 7) {
       rgb = `${parseInt(accentColor.slice(1,3), 16)},${parseInt(accentColor.slice(3,5), 16)},${parseInt(accentColor.slice(5,7), 16)}`;
     }
-  } catch {}
+  } catch (e) {}
 
   return (
     <div 
@@ -72,7 +72,7 @@ export default async function Home() {
   const events = await db.event.findMany({
     where: {
       visibility: "PUBLIC",
-      status: { not: "CANCELLED" }
+      status: { notIn: ["CANCELLED", "DELETED"] }
     },
     orderBy: {
       startAt: "asc"
@@ -171,9 +171,9 @@ export default async function Home() {
               {events.map((event) => {
                 const resolved = resolveTheme(
                   event.theme?.baseTheme ?? "DARK",
-                  event.theme?.accentColor ?? "#a855f7",
-                  event.theme?.secondaryColor,
-                  event.theme?.themePresetId
+                  event.theme?.gradientFrom ?? "#7c3aed",
+                  event.theme?.gradientTo ?? "#1e40af",
+                  event.theme?.accentColor ?? "#a855f7"
                 );
                 const accent = resolved.accent;
                 const coverUrl = event.theme?.coverImageUrl;

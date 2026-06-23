@@ -4,6 +4,7 @@ const {
   mockUserFindUnique,
   mockUserUpdate,
   mockMagicTokenCreate,
+  mockMagicTokenUpdateMany,
   mockGetSession,
   mockSendMagicLinkEmail,
   mockSendMagicLinkSms,
@@ -12,6 +13,7 @@ const {
   mockUserFindUnique: vi.fn(),
   mockUserUpdate: vi.fn(),
   mockMagicTokenCreate: vi.fn(),
+  mockMagicTokenUpdateMany: vi.fn(),
   mockGetSession: vi.fn(),
   mockSendMagicLinkEmail: vi.fn(),
   mockSendMagicLinkSms: vi.fn(),
@@ -27,6 +29,7 @@ vi.mock("@/lib/db", () => ({
     },
     magicToken: {
       create: mockMagicTokenCreate,
+      updateMany: mockMagicTokenUpdateMany,
     },
   },
 }));

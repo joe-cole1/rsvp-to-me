@@ -68,7 +68,7 @@ type EventData = {
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   host: { id: string; name: string | null; email: string; avatarUrl?: string | null };
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string; coverImageUrl: string | null } | null;
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
   infoSections: { id: string; type: string; title: string | null; content: string; url: string | null; order: number }[];
   rsvps: { id: string; guestName: string; status: "GOING" | "MAYBE" | "NO"; plusOneCount: number; note: string | null; createdAt: Date; user?: { avatarUrl: string | null } | null }[];
   comments: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date; replies: { id: string; guestName: string; body: string; rsvpId?: string | null; createdAt: Date }[] }[];
@@ -1035,45 +1035,21 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   const t = theme;
 
-  const getChipStyle = (isCustom: boolean): React.CSSProperties => {
-    const baseTheme = event.theme?.baseTheme ?? "DARK";
-    const baseStyle: React.CSSProperties = {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "6px",
-      padding: "6px 14px",
-      borderRadius: "100px",
-      fontSize: "13px",
-      fontWeight: 600,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      transition: "all 0.2s ease",
-    };
-
-    if (baseTheme === "SOFT") {
-      return {
-        ...baseStyle,
-        background: t.accentBg,
-        border: isCustom ? `1px dashed ${t.accentBorder}` : "none",
-        color: t.accent,
-      };
-    } else if (baseTheme === "BOLD") {
-      return {
-        ...baseStyle,
-        background: `rgba(${t.accentRgb}, 0.08)`,
-        border: isCustom ? `1px dashed rgba(${t.accentRgb}, 0.3)` : `1px solid rgba(${t.accentRgb}, 0.2)`,
-        color: t.accent,
-      };
-    } else {
-      // DARK
-      return {
-        ...baseStyle,
-        background: `rgba(${t.accentRgb}, 0.15)`,
-        border: isCustom ? `1px dashed rgba(${t.accentRgb}, 0.35)` : `1px solid rgba(${t.accentRgb}, 0.25)`,
-        color: t.accent,
-      };
-    }
-  };
+  const getChipStyle = (isCustom: boolean): React.CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 14px",
+    borderRadius: "100px",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "all 0.2s ease",
+    background: "rgba(255,255,255,0.88)",
+    border: isCustom ? `1.5px dashed ${t.accent}` : `1.5px solid ${t.accent}`,
+    color: t.accent,
+  });
 
   // Derived
   const going = event.rsvps.filter((r) => r.status === "GOING");
@@ -1107,7 +1083,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       await saveCoverImage(event.id, url);
       setEvent((ev) => ({
         ...ev,
-        theme: { ...(ev.theme ?? { baseTheme: "DARK" as const, accentColor: "#a855f7" }), coverImageUrl: url },
+        theme: { ...(ev.theme ?? { baseTheme: "DARK" as const, gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#a855f7" }), coverImageUrl: url },
       }));
     } catch (err) {
       console.error("Cover upload failed:", err);
@@ -2263,7 +2239,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
             {/* Compose area — top of card */}
             {isHost && (
-              <div style={{ background: t.accentBg, border: `1px solid ${t.accentBorder}`, borderRadius: "12px", padding: "12px", marginBottom: "12px" }}>
+              <div style={{ background: `rgba(${t.accentRgb}, 0.07)`, border: `1px solid rgba(${t.accentRgb}, 0.18)`, borderRadius: "12px", padding: "12px", marginBottom: "12px" }}>
                 <div style={{ fontWeight: 700, fontSize: "12px", color: t.accent, textTransform: "none" as const, letterSpacing: "0.02em", marginBottom: "8px" }}>Post an Update</div>
                 <textarea
                   style={{ ...S.inp, resize: "none", marginBottom: "8px" } as React.CSSProperties}
@@ -2374,7 +2350,12 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div>
-                                  <span style={{ fontSize: "13px", color: t.textSecondary }}>{mainDetail}</span>
+                                  <span style={{ fontSize: "13px", color: t.textSecondary }}>
+                                    {item.actorName && (
+                                      <strong style={{ fontWeight: 700, color: t.textPrimary }}>{item.actorName} </strong>
+                                    )}
+                                    {mainDetail}
+                                  </span>
                                   {event.showTimestamps && (
                                     <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>
                                   )}

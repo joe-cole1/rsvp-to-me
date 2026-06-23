@@ -32,13 +32,13 @@ Before you begin, you need:
 
 ## What You Are Installing
 
-rsvp-to-me runs as a Docker container:
+rsvp-to-me runs as a set of Docker containers defined in `docker-compose.yml`:
 
 | Container | Purpose |
 |-----------|---------|
 | `app` | The main web server. It handles webpage rendering, guest RSVPs, comment boards, and admin actions. It also runs the in-process cron scheduler for reminders and backups. Runs on port `3000`. |
-
-The service is defined in a single `docker-compose.yml` file, using a persistent volume for the SQLite database and image upload folder.
+| `postgres` | PostgreSQL 18 database — stores all users, events, RSVPs, and application data. |
+| `redis` | Redis — session caching, rate limiting, and distributed cron locking. |
 
 ---
 
@@ -113,15 +113,17 @@ Copy the example configuration:
 Open the `.env` file in a text editor.
 
 ### Minimum Required Variables
-You must set at least these four configuration variables before launching:
+You must set at least these variables before launching:
 
-1. **`SESSION_SECRET`**: A secure, random string (at least 32 characters) used to encrypt user session cookies.
+1. **`POSTGRES_PASSWORD`**: A secure password for the PostgreSQL database container.
+2. **`REDIS_PASSWORD`**: A secure password for the Redis container.
+3. **`SESSION_SECRET`**: A secure, random string (at least 32 characters) used to encrypt user session cookies.
    - *CLI (Linux/Mac):* Run `openssl rand -base64 32` to generate a key.
    - *CLI (Windows PowerShell):* Run `[Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Max 256) }))`.
    - *Web:* Generate it via [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32).
-2. **`NEXT_PUBLIC_APP_URL`**: The public URL that users and guests will visit (e.g. `https://rsvp.yourdomain.com`). No trailing slash.
-3. **`INITIAL_ADMIN_EMAIL`**: Your email address. Logging in with this email for the first time automatically promotes your account to Administrator.
-4. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). Change it from the default `letmein`!
+4. **`NEXT_PUBLIC_APP_URL`**: The public URL that users and guests will visit (e.g. `https://rsvp.yourdomain.com`). No trailing slash.
+5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Logging in with this email for the first time automatically promotes your account to Administrator.
+6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). Change it from the default `letmein`!
 
 > **Warning:** Your `.env` file contains sensitive passwords and secrets. Never commit it to a public repository. Ensure it is added to your `.gitignore` file.
 
@@ -134,9 +136,9 @@ From inside your `rsvp-to-me` directory, start the containers:
 docker compose up -d
 ```
 *What this command does:*
-- Downloads the web server Docker image.
-- Creates the local database file and runs database migrations.
-- Launches the `app` container in the background.
+- Downloads and starts the PostgreSQL 18, Redis, and web server containers.
+- Runs database migrations automatically on first startup.
+- Launches all containers in the background.
 
 Verify the container status:
 ```bash
@@ -157,32 +159,25 @@ It should return: `{"status":"ok"}`.
 
 ---
 
-## Deploying with PostgreSQL and Redis (Optional)
+## Deploying from GitHub (No Local Clone Required)
 
-If you prefer to run **rsvp-to-me** on a PostgreSQL database and use Redis for caching and rate-limiting, you can use the multi-container configuration defined in `docker-compose.postgres.yml`.
+If you want to run the latest code directly from GitHub without cloning the repository locally, use `docker-compose.dev.yml`. This is useful for running rsvp-to-me on any server with just Docker installed.
 
-### Step A: Configure PostgreSQL & Redis in `.env`
-Set the database password, connection URL, and Redis URL in your `.env` file:
-```env
-# Database password and PostgreSQL URL
-POSTGRES_PASSWORD="your_secure_password_here"
-DATABASE_URL="postgresql://postgres:your_secure_password_here@postgres:5432/rsvp_db?schema=public"
-
-# Redis connection URL
-REDIS_URL="redis://redis:6379"
-```
-
-### Step B: Start the Services
-Launch the services using the PostgreSQL compose file:
+### Usage
 ```bash
-docker compose -f docker-compose.postgres.yml up -d
-```
-This command starts:
-- The `app` service.
-- The `postgres` container (with database data mapped to `./pg_data`).
-- The `redis` container (with cache data mapped to `./redis_data`).
+# Download just the two files you need
+mkdir rsvp-to-me && cd rsvp-to-me
+curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/docker-compose.dev.yml
+curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/.env.example
+cp .env.example .env   # fill in your secrets
 
-The system will automatically initialize the database schema in PostgreSQL on startup.
+docker compose -f docker-compose.dev.yml up --build -d
+```
+
+To update to the latest code:
+```bash
+docker compose -f docker-compose.dev.yml up --build -d
+```
 
 ---
 
@@ -204,9 +199,9 @@ The system will automatically initialize the database schema in PostgreSQL on st
 By default, the application mounts a local directory named `./data` on your host machine to `/app/data` inside the containers.
 
 Your data is stored in these paths:
-- **`./data/prod.db`**: The SQLite database file containing all users, events, RSVPs, comments, polls, and potlucks (if running default SQLite).
+- **`./pg_data/`**: PostgreSQL data directory containing all users, events, RSVPs, comments, polls, and potlucks.
 - **`./data/uploads/`**: Uploaded cover images and profile avatars.
-- **`./data/backups/`**: Database backup files (`.sqlite` for SQLite or `.sql` for PostgreSQL).
+- **`./data/backups/`**: Database backup files (`.sql` dumps from `pg_dump`).
 
 ### Built-in Backups Manager (Recommended)
 **rsvp-to-me** features a database backup manager located in the **Backups** tab in the **Admin Panel**.
@@ -214,32 +209,15 @@ Your data is stored in these paths:
 With this panel, you can:
 *   **Configure automated backups:** Input a cron schedule (e.g. `0 0 * * *` for daily backups at midnight) to run backups automatically.
 *   **Adjust rotation limits:** Configure how many backups to keep (e.g. 7) before older files are deleted.
-*   **Trigger manual backups:** Immediately create a copy of the SQLite database or execute `pg_dump` on PostgreSQL.
+*   **Trigger manual backups:** Immediately execute `pg_dump` to create a backup.
 *   **Download & Delete backups:** View all archives, download them directly, or delete them from the server.
 
 ### Manual Backups
-Because files live in your `./data` directory on the host, you can also copy them directly.
-If taking manual backups of SQLite, stop the application first to prevent database corruption.
+Use `pg_dump` via the postgres container to create a backup at any time:
 
-**Backup Commands (Linux/Mac):**
+**Backup Command (Linux/Mac/Windows):**
 ```bash
-# Stop the app to secure the database file
-docker compose stop app
-
-# Copy the database and uploads directory
-cp ./data/prod.db ./prod-backup-$(date +%Y%m%d).db
-cp -r ./data/uploads ./uploads-backup-$(date +%Y%m%d)
-
-# Restart the application
-docker compose start app
-```
-
-**Backup Commands (Windows PowerShell):**
-```powershell
-docker compose stop app
-Copy-Item ./data/prod.db ./prod-backup-$(Get-Date -Format "yyyyMMdd").db
-Copy-Item -Recurse ./data/uploads ./uploads-backup-$(Get-Date -Format "yyyyMMdd")
-docker compose start app
+docker compose exec postgres pg_dump -U postgres rsvp_db > ./data/backups/manual-backup-$(date +%Y%m%d).sql
 ```
 
 > **Caution:** Running `docker compose down -v` deletes all Docker volumes. While rsvp-to-me uses a local directory bind mount, running this with custom setups might lead to permanent data loss. Always omit the `-v` flag to protect your data.
@@ -275,6 +253,8 @@ Recommended reverse proxies:
 ### The app won't start
 Run `docker compose logs app` to inspect the logs.
 - If you see `SESSION_SECRET must be at least 32 characters`, make sure you generated a long random string.
+- If you see `DATABASE_URL is required` or `REDIS_URL is required`, ensure both are set in your `.env` file.
+- If you see connection errors to Postgres or Redis, ensure both containers are healthy: `docker compose ps`.
 - If port `3000` is already in use by another app, open `docker-compose.yml` and change `"3000:3000"` to `"3001:3000"` (or another available port).
 
 ### I didn't receive a magic link email

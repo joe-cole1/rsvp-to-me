@@ -25,6 +25,11 @@ const {
   mockDeleteBackup,
   mockGetBackupKeepCount,
   mockTransaction,
+  mockThemePresetFindMany,
+  mockThemePresetAggregate,
+  mockThemePresetCreate,
+  mockThemePresetUpdate,
+  mockThemePresetDelete,
 } = vi.hoisted(() => ({
   mockUserCount: vi.fn(),
   mockEventCount: vi.fn(),
@@ -50,6 +55,11 @@ const {
   mockDeleteBackup: vi.fn(),
   mockGetBackupKeepCount: vi.fn(),
   mockTransaction: vi.fn((ops) => Promise.all(ops)),
+  mockThemePresetFindMany: vi.fn(),
+  mockThemePresetAggregate: vi.fn(),
+  mockThemePresetCreate: vi.fn(),
+  mockThemePresetUpdate: vi.fn(),
+  mockThemePresetDelete: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -85,6 +95,13 @@ vi.mock("@/lib/db", () => ({
       findMany: mockSystemConfigFindMany,
       upsert: mockSystemConfigUpsert,
       findUnique: vi.fn(),
+    },
+    themePreset: {
+      findMany: mockThemePresetFindMany,
+      aggregate: mockThemePresetAggregate,
+      create: mockThemePresetCreate,
+      update: mockThemePresetUpdate,
+      delete: mockThemePresetDelete,
     },
     $transaction: mockTransaction,
   },
@@ -128,6 +145,10 @@ import {
   deleteBackupAction,
   getBackupConfig,
   updateBackupConfigAction,
+  getThemePresets,
+  createThemePreset,
+  updateThemePreset,
+  deleteThemePreset,
 } from "@/app/actions/admin";
 
 describe("app/actions/admin.ts", () => {
@@ -190,13 +211,25 @@ describe("app/actions/admin.ts", () => {
       await expect(updateUserRole(ADMIN_ID, "HOST")).rejects.toThrow("You cannot change your own admin role.");
     });
 
-    it("deletes user account", async () => {
+    it("schedules user account for deletion", async () => {
       mockEventFindMany.mockResolvedValue([]);
-      mockUserDelete.mockResolvedValue({ id: "u-1" });
+      mockUserUpdate.mockResolvedValue({ id: "u-1" });
 
       const res = await deleteUserAccount("u-1");
       expect(res.success).toBe(true);
-      expect(mockUserDelete).toHaveBeenCalledWith({ where: { id: "u-1" } });
+      expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: "u-1" },
+        data: expect.objectContaining({ deletionRequestedAt: expect.any(Date), deletionScheduledAt: expect.any(Date) }),
+      }));
+      expect(mockUserDelete).not.toHaveBeenCalled();
+    });
+
+    it("blocks deletion when user has upcoming published events", async () => {
+      mockEventFindMany.mockResolvedValue([{ id: "e-1", title: "Big Party", slug: "big-party" }]);
+
+      const res = await deleteUserAccount("u-1");
+      expect("blocked" in res && res.blocked).toBe(true);
+      expect(mockUserUpdate).not.toHaveBeenCalled();
     });
 
     it("lists events", async () => {
@@ -393,6 +426,84 @@ describe("app/actions/admin.ts", () => {
       const res = await updateBackupConfigAction("*/5 * * * *", 10);
       expect(res.success).toBe(true);
       expect(mockTransaction).toHaveBeenCalled();
+    });
+
+    describe("Theme Presets", () => {
+      const PRESET = {
+        id: "dark-night",
+        name: "Dark Night",
+        emoji: "🌙",
+        base: "DARK" as const,
+        gradientFrom: "#7c3aed",
+        gradientTo: "#1e40af",
+        accentColor: "#a855f7",
+        seasonal: false,
+        month: null,
+      };
+
+      it("getThemePresets returns presets ordered by sortOrder then createdAt", async () => {
+        mockThemePresetFindMany.mockResolvedValue([PRESET]);
+        const res = await getThemePresets();
+        expect(res).toEqual([PRESET]);
+        expect(mockThemePresetFindMany).toHaveBeenCalledWith({
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        });
+      });
+
+      it("createThemePreset appends at end of sort order", async () => {
+        mockThemePresetAggregate.mockResolvedValue({ _max: { sortOrder: 4 } });
+        mockThemePresetCreate.mockResolvedValue({ ...PRESET, id: "new-preset", sortOrder: 5 });
+        const res = await createThemePreset(PRESET);
+        expect(mockThemePresetCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ sortOrder: 5, active: true }),
+          })
+        );
+        expect(res).toHaveProperty("id");
+      });
+
+      it("createThemePreset sets sortOrder 0 when table is empty", async () => {
+        mockThemePresetAggregate.mockResolvedValue({ _max: { sortOrder: null } });
+        mockThemePresetCreate.mockResolvedValue({ ...PRESET, id: "first", sortOrder: 0 });
+        await createThemePreset(PRESET);
+        expect(mockThemePresetCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ sortOrder: 0 }) })
+        );
+      });
+
+      it("updateThemePreset calls update with correct where and data", async () => {
+        mockThemePresetUpdate.mockResolvedValue({});
+        const res = await updateThemePreset("dark-night", { name: "Dark Night v2", active: false });
+        expect(res).toEqual({ success: true });
+        expect(mockThemePresetUpdate).toHaveBeenCalledWith({
+          where: { id: "dark-night" },
+          data: { name: "Dark Night v2", active: false },
+        });
+      });
+
+      it("deleteThemePreset calls delete with correct id", async () => {
+        mockThemePresetDelete.mockResolvedValue({});
+        const res = await deleteThemePreset("dark-night");
+        expect(res).toEqual({ success: true });
+        expect(mockThemePresetDelete).toHaveBeenCalledWith({ where: { id: "dark-night" } });
+      });
+    });
+  });
+
+  describe("Non-admin access", () => {
+    it("createThemePreset throws Forbidden for non-admin", async () => {
+      mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
+      await expect(createThemePreset({ name: "x", emoji: "x", base: "DARK", gradientFrom: "#000", gradientTo: "#000", accentColor: "#000", seasonal: false, month: null })).rejects.toThrow("Forbidden");
+    });
+
+    it("updateThemePreset throws Forbidden for non-admin", async () => {
+      mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
+      await expect(updateThemePreset("dark-night", { active: false })).rejects.toThrow("Forbidden");
+    });
+
+    it("deleteThemePreset throws Forbidden for non-admin", async () => {
+      mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
+      await expect(deleteThemePreset("dark-night")).rejects.toThrow("Forbidden");
     });
   });
 });

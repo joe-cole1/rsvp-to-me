@@ -30,20 +30,17 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     },
   });
 
-  if (!event || event.status === "CANCELLED") notFound();
+  if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
 
   const theme = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
-    event.theme?.accentColor ?? "#a855f7",
-    event.theme?.secondaryColor,
-    event.theme?.themePresetId
+    event.theme?.gradientFrom ?? "#7c3aed",
+    event.theme?.gradientTo ?? "#1e40af",
+    event.theme?.accentColor ?? "#a855f7"
   );
 
   // Edit flow — token provided
   if (token) {
-    if (token.length > 128) {
-      notFound();
-    }
     const rsvp = await db.rSVP.findUnique({
       where: { editToken: token },
       include: {

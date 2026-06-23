@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, destroySession } from "@/lib/session";
+import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
@@ -42,6 +43,12 @@ export async function updateProfileSettings(data: {
         throw new Error("An account with this email already exists.");
       }
 
+      // Invalidate any previous pending email-change tokens
+      await db.magicToken.updateMany({
+        where: { userId: user.id, type: "EMAIL_CHANGE", used: false },
+        data: { used: true },
+      });
+
       // Generate verification token
       const token = randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
@@ -71,6 +78,12 @@ export async function updateProfileSettings(data: {
       if (existing) {
         throw new Error("An account with this phone number already exists.");
       }
+
+      // Invalidate any previous pending phone-change tokens
+      await db.magicToken.updateMany({
+        where: { userId: user.id, type: "PHONE_CHANGE", used: false },
+        data: { used: true },
+      });
 
       // Generate verification token
       const token = randomBytes(32).toString("hex");
@@ -131,19 +144,36 @@ export async function getUserProfile() {
       role: true,
       emailNotifications: true,
       smsNotifications: true,
+      deletionRequestedAt: true,
+      deletionScheduledAt: true,
     },
   });
 
   if (user) {
     const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
     if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
-      await db.user.update({
-        where: { id: user.id },
-        data: { role: "ADMIN" },
-      });
-      user.role = "ADMIN";
+      const adminCount = await db.user.count({ where: { role: "ADMIN" } });
+      if (adminCount === 0) {
+        await db.user.update({
+          where: { id: user.id },
+          data: { role: "ADMIN" },
+        });
+        user.role = "ADMIN";
+      }
     }
   }
 
   return user;
+}
+
+export async function requestAccountDeletion() {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+
+  const result = await scheduleUserDeletion(session.userId);
+
+  if ("blocked" in result) return result;
+
+  await destroySession();
+  return result;
 }

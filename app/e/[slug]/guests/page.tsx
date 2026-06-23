@@ -27,7 +27,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     },
   });
 
-  if (!event || event.status === "CANCELLED") notFound();
+  if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
 
   const session = await getSession();
   const isHostOwner = session?.userId === event.hostId;
@@ -47,9 +47,9 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
 
   const t = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
-    event.theme?.accentColor ?? "#a855f7",
-    event.theme?.secondaryColor,
-    event.theme?.themePresetId
+    event.theme?.gradientFrom ?? "#7c3aed",
+    event.theme?.gradientTo ?? "#1e40af",
+    event.theme?.accentColor ?? "#a855f7"
   );
 
   const approvedRsvps = event.rsvps.filter((r) => r.approved);

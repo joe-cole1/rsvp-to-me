@@ -3,6 +3,57 @@ import { processReminders } from "./reminders";
 import { runBackup } from "./backup";
 import { db } from "./db";
 
+async function processExpiredDeletions() {
+  const now = new Date();
+  const pending = await db.user.findMany({
+    where: { deletionScheduledAt: { lte: now, not: null } },
+    select: { id: true, name: true, email: true },
+  });
+
+  if (pending.length === 0) return;
+  console.log(`[cron-scheduler] Processing ${pending.length} expired account deletion(s)...`);
+
+  for (const user of pending) {
+    const upcomingEvents = await db.event.count({
+      where: { hostId: user.id, status: "PUBLISHED", startAt: { gt: now } },
+    });
+
+    if (upcomingEvents > 0) {
+      console.warn(`[cron-scheduler] Skipping deletion for user ${user.id} — still has ${upcomingEvents} upcoming published event(s).`);
+      continue;
+    }
+
+    // Delete user's guest RSVPs on other events (cascades: RSVPAnswers, PlusOneGuests, CheckIns)
+    await db.rSVP.deleteMany({ where: { userId: user.id } });
+
+    // Remove co-host slots on other events
+    await db.eventCoHost.deleteMany({ where: { userId: user.id } });
+
+    // Clean up auth tokens and sessions
+    await db.magicToken.deleteMany({ where: { userId: user.id } });
+    await db.session.deleteMany({ where: { userId: user.id } });
+
+    // Reassign hosted events to the SYSTEM tombstone user
+    await db.event.updateMany({ where: { hostId: user.id }, data: { hostId: "system" } });
+
+    // Anonymize PII
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        email: null,
+        phone: null,
+        name: "Deleted User",
+        avatarUrl: null,
+        role: "GUEST",
+        deletionRequestedAt: null,
+        deletionScheduledAt: null,
+      },
+    });
+
+    console.log(`[cron-scheduler] Anonymized account for user ${user.id} (was: ${user.email ?? user.name}).`);
+  }
+}
+
 console.log("[cron-scheduler] Module loaded");
 
 let currentBackupSchedule = "";
@@ -60,6 +111,12 @@ export async function startInProcessCron() {
   // Schedule reminders check every 15 minutes
   cron.schedule("*/15 * * * *", () => {
     processReminders().catch((err) => console.error("[cron-scheduler] Reminders check failed:", err));
+  });
+
+  // Run account deletion processing on startup and once daily
+  processExpiredDeletions().catch((err) => console.error("[cron-scheduler] Startup account deletion check failed:", err));
+  cron.schedule("0 0 * * *", () => {
+    processExpiredDeletions().catch((err) => console.error("[cron-scheduler] Account deletion processing failed:", err));
   });
 
   // Initial backup schedule sync

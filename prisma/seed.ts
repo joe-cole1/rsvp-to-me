@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
-import { PrismaClient } from "../app/generated/prisma/client";
+import { db } from "../lib/db";
 import { UserModel, EventModel, RSVPFieldModel, RSVPModel } from "../app/generated/prisma/models";
+import { THEME_PRESETS } from "../lib/theme";
 
 interface EventTemplate {
   title: string;
@@ -14,7 +14,7 @@ interface EventTemplate {
   capacity?: number;
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "CANCELLED";
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; accentColor: string };
+  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string };
   plusOneAllowed: boolean;
   plusOneMax?: number;
   plusOneNamesRequired?: boolean;
@@ -25,11 +25,6 @@ interface EventTemplate {
   infoSections?: { type: string; content: string; order: number }[];
   potluck?: { label: string; quantity: number }[];
 }
-
-const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-const libsqlUrl = url.replace(/^file:\/\//, "file:").replace(/^(?!file:|libsql:|https?:)/, "file:");
-const adapter = new PrismaLibSql({ url: libsqlUrl });
-const db = new PrismaClient({ adapter });
 
 function slugify(title: string): string {
   return title
@@ -49,6 +44,25 @@ async function main() {
     update: {},
     create: { code, note: "Default invite code from seed" },
   });
+
+  // Upsert theme presets so seed stays in sync with THEME_PRESETS (migration already inserted defaults)
+  for (let i = 0; i < THEME_PRESETS.length; i++) {
+    const p = THEME_PRESETS[i];
+    await db.themePreset.upsert({
+      where: { id: p.id },
+      update: { name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, month: p.month ?? null, sortOrder: i },
+      create: { id: p.id, name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, month: p.month ?? null, active: true, sortOrder: i },
+    });
+  }
+  console.log(`Upserted ${THEME_PRESETS.length} theme presets.`);
+
+  // Upsert the SYSTEM tombstone user used when anonymizing deleted host accounts
+  await db.user.upsert({
+    where: { id: "system" },
+    create: { id: "system", role: "ADMIN", name: "System", email: null, phone: null },
+    update: {},
+  });
+  console.log("Upserted SYSTEM tombstone user.");
 
   console.log(`Seed complete. Default invite code: "${code}"`);
 
@@ -150,7 +164,7 @@ async function main() {
       locationAddress: "123 Vineyard Lane, Napa Valley, CA",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#d946ef" }, // magenta
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#fda4af", gradientTo: "#f0abfc", accentColor: "#d946ef" }, // magenta
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -169,7 +183,7 @@ async function main() {
       virtualUrl: "https://zoom.us/j/123456789",
       visibility: "UNLISTED" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, accentColor: "#06b6d4" }, // cyan
+      theme: { baseTheme: "DARK" as const, gradientFrom: "#164e63", gradientTo: "#1e3a5f", accentColor: "#06b6d4" }, // cyan
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: false,
@@ -182,7 +196,7 @@ async function main() {
       locationType: "TBD" as const,
       visibility: "PRIVATE" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, accentColor: "#f97316" }, // orange
+      theme: { baseTheme: "BOLD" as const, gradientFrom: "#f97316", gradientTo: "#ec4899", accentColor: "#f97316" }, // orange
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: false,
@@ -199,7 +213,7 @@ async function main() {
       locationAddress: "456 Sunny Meadow Lane, Austin, TX",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#10b981" }, // emerald
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#bbf7d0", gradientTo: "#a5f3fc", accentColor: "#10b981" }, // emerald
       plusOneAllowed: true,
       plusOneMax: 2,
       plusOneNamesRequired: true,
@@ -231,7 +245,7 @@ async function main() {
       capacity: 50,
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, accentColor: "#8b5cf6" }, // violet
+      theme: { baseTheme: "BOLD" as const, gradientFrom: "#7c3aed", gradientTo: "#ec4899", accentColor: "#8b5cf6" }, // violet
       plusOneAllowed: true,
       plusOneMax: 1,
       plusOneNamesRequired: false,
@@ -247,7 +261,7 @@ async function main() {
       virtualUrl: "https://meet.google.com/abc-defg-hij",
       visibility: "UNLISTED" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, accentColor: "#64748b" }, // slate
+      theme: { baseTheme: "DARK" as const, gradientFrom: "#334155", gradientTo: "#0f172a", accentColor: "#64748b" }, // slate
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: true,
@@ -262,7 +276,7 @@ async function main() {
       locationAddress: "101 Crust St, Chicago, IL",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#f43f5e" }, // rose
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#fecdd3", gradientTo: "#fda4af", accentColor: "#f43f5e" }, // rose
       plusOneAllowed: true,
       plusOneMax: 3,
       commentsEnabled: true,
@@ -279,7 +293,7 @@ async function main() {
       locationAddress: "666 Cobweb Lane, Salem, MA",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, accentColor: "#ea580c" }, // orange
+      theme: { baseTheme: "DARK" as const, gradientFrom: "#9a3412", gradientTo: "#1c1917", accentColor: "#ea580c" }, // orange
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -301,7 +315,7 @@ async function main() {
       capacity: 100,
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, accentColor: "#eab308" }, // yellow/gold
+      theme: { baseTheme: "BOLD" as const, gradientFrom: "#eab308", gradientTo: "#f97316", accentColor: "#eab308" }, // yellow/gold
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: true,
@@ -315,7 +329,7 @@ async function main() {
       locationType: "TBD" as const,
       visibility: "PUBLIC" as const,
       status: "DRAFT" as const,
-      theme: { baseTheme: "SOFT" as const, accentColor: "#14b8a6" }, // teal
+      theme: { baseTheme: "SOFT" as const, gradientFrom: "#ccfbf1", gradientTo: "#a5f3fc", accentColor: "#14b8a6" }, // teal
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -355,6 +369,8 @@ async function main() {
       data: {
         eventId: event.id,
         baseTheme: temp.theme.baseTheme,
+        gradientFrom: temp.theme.gradientFrom,
+        gradientTo: temp.theme.gradientTo,
         accentColor: temp.theme.accentColor,
       }
     });
