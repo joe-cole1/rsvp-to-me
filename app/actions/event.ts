@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendMagicLinkSms, sendEventInviteSms } from "@/lib/sms";
+import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendEventInviteSms } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
