@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Eye, EyeOff, Menu, X } from "lucide-react";
-import { APP_SHELL } from "@/lib/theme";
-import { AppShell } from "@/components/ui/AppShell";
+import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
 import {
@@ -25,7 +24,6 @@ import {
   updateThemePreset,
   deleteThemePreset,
 } from "@/app/actions/admin";
-import { BASE_THEMES, ACCENT_PRESETS } from "@/lib/theme";
 
 interface AdminUser {
   id: string;
@@ -786,8 +784,8 @@ function extractRawEmail(fromStr) {
                 { id: "settings", label: "⚙️ Global Config" },
                 { id: "email", label: "📧 Email Settings" },
                 { id: "sms", label: "💬 SMS Settings" },
-                { id: "backups", label: "💾 Database Backups" },
                 { id: "themes", label: "🎨 Theme Presets" },
+                { id: "backups", label: "💾 Database Backups" },
               ] as const
             ).map((tab) => (
               <button
@@ -2659,7 +2657,7 @@ function extractRawEmail(fromStr) {
                     width: "min(500px, 92vw)",
                     maxHeight: "90vh",
                     overflowY: "auto",
-                    backgroundColor: APP_SHELL.cardBg,
+                    backgroundColor: "#16161e",
                     border: `1px solid ${APP_SHELL.cardBorder}`,
                     borderRadius: "20px",
                     padding: "28px 24px 24px",
@@ -2808,15 +2806,30 @@ function extractRawEmail(fromStr) {
                       )}
                     </div>
 
-                    {/* Preview strip */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", backgroundColor: APP_SHELL.inputBg, borderRadius: "10px" }}>
-                      <div style={{ width: "48px", height: "48px", borderRadius: "10px", background: `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})`, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textPrimary }}>{themePresetForm.emoji} {themePresetForm.name || "Untitled"}</div>
-                        <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>{themePresetForm.base}</div>
-                      </div>
-                      <div style={{ marginLeft: "auto", background: themePresetForm.accentColor, color: "#fff", padding: "5px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 700 }}>Button</div>
-                    </div>
+                    {/* Live theme preview */}
+                    {(() => {
+                      const pv = resolveTheme(themePresetForm.base, themePresetForm.gradientFrom, themePresetForm.gradientTo, themePresetForm.accentColor);
+                      return (
+                        <div style={{ borderRadius: "12px", overflow: "hidden", border: `1px solid ${APP_SHELL.cardBorder}` }}>
+                          {/* Page background zone */}
+                          <div style={{ position: "relative", height: "72px", background: pv.pageDecoration === "bold-hero" ? pv.pageDecorationBg1 : `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})` }}>
+                            <span style={{ position: "absolute", top: "8px", left: "10px", fontSize: "13px", fontWeight: 700, color: pv.textPrimary, fontFamily: pv.headingFont }}>
+                              {themePresetForm.emoji} {themePresetForm.name || "Untitled"}
+                            </span>
+                          </div>
+                          {/* Card zone */}
+                          <div style={{ background: pv.pageBg, padding: "10px 12px" }}>
+                            <div style={{ background: pv.cardBg, border: `1px solid ${pv.cardBorder}`, borderRadius: pv.cardRadius, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: pv.cardShadow }}>
+                              <div>
+                                <div style={{ fontSize: "12px", fontWeight: 700, color: pv.textPrimary, marginBottom: "2px", fontFamily: pv.headingFont }}>Event details</div>
+                                <div style={{ fontSize: "11px", color: pv.textMuted }}>Saturday · 7:00 PM</div>
+                              </div>
+                              <button style={{ background: pv.accent, color: pv.accentFg, border: "none", borderRadius: pv.btnRadius, padding: "5px 12px", fontSize: "11px", fontWeight: 700, cursor: "default" }}>RSVP</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
                       <button
