@@ -103,9 +103,9 @@ export async function startInProcessCron() {
     processReminders().catch((err) => console.error("[cron-scheduler] Reminders check failed:", err));
   });
 
-  // Run account deletion processing on startup and every hour
+  // Run account deletion processing on startup and once daily
   processExpiredDeletions().catch((err) => console.error("[cron-scheduler] Startup account deletion check failed:", err));
-  cron.schedule("0 * * * *", () => {
+  cron.schedule("0 0 * * *", () => {
     processExpiredDeletions().catch((err) => console.error("[cron-scheduler] Account deletion processing failed:", err));
   });
 

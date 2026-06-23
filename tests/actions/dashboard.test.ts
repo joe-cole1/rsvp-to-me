@@ -82,6 +82,7 @@ describe("getDashboardEvents", () => {
     await getDashboardEvents();
     expect(mockEventFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
+        status: { not: "DELETED" },
         OR: [
           { hostId: USER_ID },
           { coHosts: { some: { userId: USER_ID } } },

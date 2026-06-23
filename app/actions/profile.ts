@@ -183,8 +183,8 @@ export async function requestAccountDeletion() {
     return { blocked: true, events: upcomingEvents };
   }
 
-  // Schedule anonymization 24 hours from now
-  const scheduledAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  // Schedule anonymization 30 days from now (grace window for admin reversal)
+  const scheduledAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   await db.user.update({
     where: { id: session.userId },
     data: { deletionRequestedAt: now, deletionScheduledAt: scheduledAt },

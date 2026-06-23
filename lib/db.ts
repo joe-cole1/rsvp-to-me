@@ -3,10 +3,6 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "@/app/generated/prisma/client";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import { PrismaClient as PostgresPrismaClient } from "@/app/generated/prisma-postgres/client";
-
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrisma(): PrismaClient {
@@ -19,6 +15,9 @@ function createPrisma(): PrismaClient {
     process.env.DATABASE_URL = url;
     const pool = new Pool({ connectionString: url });
     const adapter = new PrismaPg(pool);
+    // Lazy-load the Postgres client so SQLite-only environments don't fail on missing generated output
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaClient: PostgresPrismaClient } = require("@/app/generated/prisma-postgres/client");
     return new (PostgresPrismaClient as unknown as new (options: { adapter: PrismaPg }) => PrismaClient)({ adapter });
   }
 

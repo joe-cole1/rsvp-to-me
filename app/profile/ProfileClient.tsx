@@ -691,11 +691,11 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             ) : (
               <>
                 <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "8px" }}>
-                  Your profile info will be anonymized within 24 hours. Past event history is preserved for guests.
+                  Your profile info will be anonymized within 30 days. Past event history is preserved for guests.
                   You will be signed out immediately.
                 </p>
                 <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", marginBottom: "16px" }}>
-                  An admin can reverse this within 24 hours if you change your mind.
+                  An admin can reverse this within 30 days if you change your mind.
                 </p>
                 <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginBottom: "8px", fontWeight: 600 }}>
                   Type DELETE to confirm:
