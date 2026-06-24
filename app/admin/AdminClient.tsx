@@ -3023,29 +3023,33 @@ function extractRawEmail(fromStr) {
                       )}
                     </div>
 
-                    {/* Card opacity — only for SOFT and BOLD */}
-                    {(themePresetForm.base === "SOFT" || themePresetForm.base === "BOLD") && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>CARD OPACITY</label>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <input
-                            type="range"
-                            min={0.5}
-                            max={1}
-                            step={0.05}
-                            value={themePresetForm.cardOpacity ?? (themePresetForm.base === "SOFT" ? 0.85 : 0.80)}
-                            onChange={(e) => setThemePresetForm((f) => f && { ...f, cardOpacity: parseFloat(e.target.value) })}
-                            style={{ flex: 1, accentColor: APP_SHELL.accent }}
-                          />
-                          <span style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, minWidth: "40px", textAlign: "right" }}>
-                            {Math.round((themePresetForm.cardOpacity ?? (themePresetForm.base === "SOFT" ? 0.85 : 0.80)) * 100)}%
-                          </span>
+                    {/* Card opacity */}
+                    {(() => {
+                      const defaultOp = themePresetForm.base === "DARK" ? 0.5 : themePresetForm.base === "SOFT" ? 0.85 : 0.80;
+                      const currentOp = themePresetForm.cardOpacity ?? defaultOp;
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>CARD OPACITY</label>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <input
+                              type="range"
+                              min={0.4}
+                              max={1}
+                              step={0.05}
+                              value={currentOp}
+                              onChange={(e) => setThemePresetForm((f) => f && { ...f, cardOpacity: parseFloat(e.target.value) })}
+                              style={{ flex: 1, accentColor: APP_SHELL.accent }}
+                            />
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, minWidth: "40px", textAlign: "right" }}>
+                              {Math.round(currentOp * 100)}%
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary }}>
+                            Controls card transparency. Default for {themePresetForm.base}: {Math.round(defaultOp * 100)}%
+                          </div>
                         </div>
-                        <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary }}>
-                          Controls frosted-glass card transparency. Default: {themePresetForm.base === "SOFT" ? "85%" : "80%"}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Live theme preview */}
                     {(() => {
