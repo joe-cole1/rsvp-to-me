@@ -341,6 +341,25 @@ export async function addRSVP(rawInput: unknown) {
 // ── Comments ──────────────────────────────────────────────────────────────────
 export async function addComment(rawInput: unknown) {
   const data = AddCommentSchema.parse(rawInput);
+
+  // SEC-3: require a session OR a verified approved RSVP for this event
+  const session = await getSession();
+  if (!session) {
+    if (!data.rsvpId) {
+      return { success: false, error: "An RSVP is required to comment." };
+    }
+    const rsvp = await db.rSVP.findFirst({
+      where: { id: data.rsvpId, eventId: data.eventId, approved: true },
+      select: { guestName: true },
+    });
+    if (!rsvp) {
+      return { success: false, error: "A valid approved RSVP is required to comment." };
+    }
+    if (rsvp.guestName !== data.guestName) {
+      return { success: false, error: "Guest name does not match RSVP." };
+    }
+  }
+
   const event = await db.event.findUnique({
     where: { id: data.eventId },
     select: { slug: true, commentsEnabled: true },
@@ -797,16 +816,36 @@ export async function removePotluckItem(itemId: string) {
   revalidatePath(`/e/${item.event.slug}`);
 }
 
-export async function claimPotluckItem(itemId: string, guestName: string, claimedQty: number = 1) {
+export async function claimPotluckItem(itemId: string, guestName: string, claimedQty: number = 1, guestRsvpId?: string) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
     include: {
       claims: true,
-      event: { select: { slug: true } },
+      event: { select: { slug: true, hostId: true, coHosts: { select: { userId: true } } } },
     },
   });
   if (!item) return { success: false, error: "Item not found" };
-  
+
+  // SEC-4: require host/cohost session OR a verified approved RSVP
+  const session = await getSession();
+  const isHost = item.event.hostId === session?.userId || session?.role === "ADMIN";
+  const isCohost = item.event.coHosts.some((ch) => ch.userId === session?.userId);
+  if (!isHost && !isCohost) {
+    if (!guestRsvpId) {
+      return { success: false, error: "A valid RSVP is required to claim items." };
+    }
+    const rsvp = await db.rSVP.findFirst({
+      where: { id: guestRsvpId, eventId: item.eventId, approved: true },
+      select: { guestName: true },
+    });
+    if (!rsvp) {
+      return { success: false, error: "A valid approved RSVP is required to claim items." };
+    }
+    if (rsvp.guestName !== guestName) {
+      return { success: false, error: "Guest name does not match RSVP." };
+    }
+  }
+
   const totalClaimed = item.claims.reduce((sum, c) => sum + c.quantity, 0);
   const remaining = item.quantity - totalClaimed;
   if (claimedQty > remaining) {
@@ -827,7 +866,7 @@ export async function claimPotluckItem(itemId: string, guestName: string, claime
   return { success: true, activityEvent, claim };
 }
 
-export async function unclaimPotluckItem(itemId: string, guestName: string) {
+export async function unclaimPotluckItem(itemId: string, guestName: string, guestRsvpId?: string) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
     include: {
@@ -841,13 +880,23 @@ export async function unclaimPotluckItem(itemId: string, guestName: string) {
   const isHost = item.event.hostId === session?.userId || session?.role === "ADMIN";
   const isCohost = item.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
 
-  const claim = item.claims.find(c => c.guestName === guestName);
-  if (!claim) {
-    return { success: false, error: "Claim not found" };
+  // SEC-4: guests must supply a verified RSVP; hosts/cohosts/admins may unclaim freely
+  if (!isHost && !isCohost) {
+    if (!guestRsvpId) {
+      return { success: false, error: "A valid RSVP is required to unclaim items." };
+    }
+    const rsvp = await db.rSVP.findFirst({
+      where: { id: guestRsvpId, eventId: item.eventId, approved: true },
+      select: { guestName: true },
+    });
+    if (!rsvp || rsvp.guestName !== guestName) {
+      return { success: false, error: "Guest name does not match RSVP." };
+    }
   }
 
-  if (!isHost && !isCohost && claim.guestName !== guestName) {
-    return { success: false, error: "Not your claim" };
+  const claim = item.claims.find((c) => c.guestName === guestName);
+  if (!claim) {
+    return { success: false, error: "Claim not found" };
   }
 
   await db.potluckClaim.delete({
@@ -947,6 +996,19 @@ export async function deleteRsvpField(fieldId: string) {
 
 export async function reorderRsvpFields(eventId: string, orderedIds: string[]) {
   const event = await assertHostOrCohost(eventId);
+
+  // SEC-2: verify every supplied ID belongs to this event before touching the DB
+  if (orderedIds.length > 0) {
+    const ownedFields = await db.rSVPField.findMany({
+      where: { eventId },
+      select: { id: true },
+    });
+    const ownedSet = new Set(ownedFields.map((f) => f.id));
+    if (!orderedIds.every((id) => ownedSet.has(id))) {
+      throw new Error("Forbidden: one or more field IDs do not belong to this event");
+    }
+  }
+
   await Promise.all(
     orderedIds.map((id, index) => db.rSVPField.update({ where: { id }, data: { order: index } }))
   );
@@ -1156,9 +1218,25 @@ export async function getDashboardActivity(eventIds: string[]): Promise<Dashboar
   const session = await getSession();
   if (!session || eventIds.length === 0) return [];
 
+  // SEC-1: restrict to events the caller is actually authorised to see
+  const authorised = await db.event.findMany({
+    where: {
+      id: { in: eventIds },
+      OR: [
+        { hostId: session.userId },
+        { coHosts: { some: { userId: session.userId } } },
+        { rsvps:   { some: { userId: session.userId } } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  const authorisedIds = authorised.map((e) => e.id);
+  if (authorisedIds.length === 0) return [];
+
   return db.activityEvent.findMany({
     where: {
-      eventId: { in: eventIds },
+      eventId: { in: authorisedIds },
     },
     include: {
       event: {

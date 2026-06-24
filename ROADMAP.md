@@ -8,7 +8,11 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *Immediate attention items. High impact bugs, UX papercuts, and essential routing/data integrity fixes.*
 
 ### 🛠️ Bugs & Blockers
-*   *(No pending bugs or blockers — all items resolved as of [dbffce])*
+*   **Failing Test Suite**: Unit tests in `tests/actions/event.test.ts` (potluck item claims) and `tests/actions/rsvpfields.test.ts` (`reorderRsvpFields`) are failing:
+    *   `claimPotluckItem` / `unclaimPotluckItem` fail due to `item.event.coHosts` being undefined (`Cannot read properties of undefined (reading 'some')`).
+    *   `reorderRsvpFields` fails because of a Prisma model casing mismatch or mock error (`TypeError: db.rSVPField.findMany is not a function`).
+    *   Left out of scope since the current session is dedicated to documenting and verifying the Docker/AI collaboration workflow.
+
 
 ### 🔒 Routing & System Safety
 *   **[SEC-1] `getDashboardActivity` IDOR — `app/actions/event.ts:1155`**: Any authenticated user can pass arbitrary `eventIds[]` to `getDashboardActivity`. The action verifies a session exists but never checks the user has access to those events. A logged-in guest can enumerate activity feeds from events they don't belong to. Fix: filter `eventIds` to only those where `hostId = session.userId` OR co-host/RSVP membership exists before querying.
