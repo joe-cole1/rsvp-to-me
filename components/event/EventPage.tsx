@@ -423,44 +423,7 @@ function DateEdit({
   const icalDataUri = "data:text/calendar;charset=utf-8," + encodeURIComponent(icalContent);
 
   return (
-    <div ref={wrapRef} style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "20px" }}>
-      {/* Calendar icon button */}
-      <div style={{ position: "relative" }}>
-        <button
-          onClick={() => setCalOpen(!calOpen)}
-          style={{
-            background: t.heroText ? "rgba(255,255,255,0.2)" : t.cardBg,
-            border: `1px solid ${t.heroText ? "rgba(255,255,255,0.3)" : t.cardBorder}`,
-            borderRadius: "12px",
-            color: t.heroText ?? t.textSecondary,
-            backdropFilter: t.heroText ? "blur(8px)" : undefined,
-            WebkitBackdropFilter: t.heroText ? "blur(8px)" : undefined,
-            cursor: "pointer", width: "48px", height: "48px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxSizing: "border-box", transition: "all 0.2s ease"
-          }}
-          title="Add to Calendar"
-        >
-          <CalendarPlus size={22} />
-        </button>
-        {calOpen && (
-          <div style={{
-            position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 200,
-            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px",
-            padding: "6px", minWidth: "180px", boxShadow: t.cardShadow || "0 10px 30px rgba(0,0,0,0.15)",
-            backdropFilter: "blur(20px)",
-            display: "flex", flexDirection: "column", gap: "2px"
-          }}>
-            <CalendarMenuItem href={gcalUrl} target="_blank" rel="noopener noreferrer" onClick={() => setCalOpen(false)} theme={t}>
-              Google Calendar
-            </CalendarMenuItem>
-            <CalendarMenuItem href={icalDataUri} download={`${eventTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.ics`} onClick={() => setCalOpen(false)} theme={t}>
-              iCal / Outlook (.ics)
-            </CalendarMenuItem>
-          </div>
-        )}
-      </div>
-
+    <div ref={wrapRef} style={{ position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginBottom: "20px" }}>
       <div>
         <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
           <div
@@ -547,6 +510,43 @@ function DateEdit({
                 Cancel
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Calendar icon button */}
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <button
+          onClick={() => setCalOpen(!calOpen)}
+          style={{
+            background: t.heroText ? "rgba(255,255,255,0.2)" : t.cardBg,
+            border: `1px solid ${t.heroText ? "rgba(255,255,255,0.3)" : t.cardBorder}`,
+            borderRadius: "12px",
+            color: t.heroText ?? t.textSecondary,
+            backdropFilter: t.heroText ? "blur(8px)" : undefined,
+            WebkitBackdropFilter: t.heroText ? "blur(8px)" : undefined,
+            cursor: "pointer", width: "48px", height: "48px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxSizing: "border-box", transition: "all 0.2s ease"
+          }}
+          title="Add to Calendar"
+        >
+          <CalendarPlus size={22} />
+        </button>
+        {calOpen && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 200,
+            background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: "12px",
+            padding: "6px", minWidth: "180px", boxShadow: t.cardShadow || "0 10px 30px rgba(0,0,0,0.15)",
+            backdropFilter: "blur(20px)",
+            display: "flex", flexDirection: "column", gap: "2px"
+          }}>
+            <CalendarMenuItem href={gcalUrl} target="_blank" rel="noopener noreferrer" onClick={() => setCalOpen(false)} theme={t}>
+              Google Calendar
+            </CalendarMenuItem>
+            <CalendarMenuItem href={icalDataUri} download={`${eventTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.ics`} onClick={() => setCalOpen(false)} theme={t}>
+              iCal / Outlook (.ics)
+            </CalendarMenuItem>
           </div>
         )}
       </div>
@@ -1494,7 +1494,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         </div>
 
         {/* ── Host byline ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.heroText ? "rgba(255,255,255,0.85)" : t.textSecondary, fontSize: "14px", textShadow: t.heroTextShadow }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "24px", color: t.heroText ? "rgba(255,255,255,0.85)" : t.textSecondary, fontSize: "14px", textShadow: t.heroTextShadow }}>
           {renderAvatar(event.host.name ?? event.host.email, null, { width: "48px", height: "48px", minWidth: "48px", fontSize: "18px" })}
           Hosted by {event.host.name ?? event.host.email}
           {isHost && (
