@@ -49,7 +49,7 @@ After making changes and before presenting Git commands to the user to push to G
    - Run `docker compose down -v` to shut down containers and wipe all Docker volumes (including the PostgreSQL data volume), ensuring a completely fresh database state.
    - Run `docker compose up --build -d` to rebuild the application image and launch all containers from scratch. The seed script will run automatically on startup to populate fresh data.
 3. **Verify Correctness**:
-   - Ensure the application builds successfully, and tests pass (`npm test`).
+   - Ensure the application builds successfully and tests pass. Use the Docker Testing workflow above — `npm test` cannot be run directly on the host.
 <!-- END:post-modification-rules -->
 
 <!-- BEGIN:pre-modification-rules -->
@@ -107,7 +107,7 @@ A fun, social-first event and RSVP platform for personal events (house parties, 
 npm run dev          # Start dev server
 npm run build        # Production build
 npm run lint         # ESLint
-npm test             # Vitest unit tests
+npm test             # Vitest unit tests (see Docker Testing section below — npm NOT on host)
 npx prisma migrate dev --name <name>   # Create + apply migration
 npx prisma studio    # Browse database
 npx prisma generate  # Regenerate client after schema changes
@@ -115,6 +115,42 @@ npx prisma generate  # Regenerate client after schema changes
 docker compose up --build                              # Local dev (build from working tree)
 docker compose -f docker-compose.dev.yml up --build   # Build from GitHub main branch
 ```
+
+## Docker Testing (CRITICAL — Node.js is NOT installed on the host machine)
+
+`npm`, `npx`, and `node` are not on the host PATH. All testing must happen inside Docker containers. Do not waste time running `where.exe node`, `Get-Command npm`, or scanning the filesystem for Node executables — they don't exist on the host.
+
+**Step 1 — Build the test image (builder stage has source + node_modules + tests/)**
+```powershell
+docker build --target builder -t optimistic-planck-test .
+```
+The Dockerfile's `runner` stage does NOT copy `tests/` or app source. Only `builder` (which runs `COPY . .`) has what `npm test` needs. Rebuild any time source or test files change.
+
+**Step 2 — Apply migrations to the test DB**
+```powershell
+docker compose run --rm --no-deps `
+  -e DATABASE_URL="postgresql://postgres:postgres_password_here@postgres:5432/rsvp_test" `
+  app `
+  npx prisma migrate deploy
+```
+Create `rsvp_test` first if it doesn't exist:
+```powershell
+docker exec optimistic-planck-postgres-1 psql -U postgres -c "CREATE DATABASE rsvp_test;"
+```
+
+**Step 3 — Run the test suite**
+```powershell
+docker run --rm `
+  --network optimistic-planck_default `
+  -e DATABASE_URL="postgresql://postgres:postgres_password_here@postgres:5432/rsvp_test" `
+  -e REDIS_URL="redis://:redis_password_placeholder@redis:6379" `
+  -e SESSION_SECRET="test-secret-that-is-at-least-32-characters-long" `
+  -e NEXT_PUBLIC_APP_URL="http://localhost:3000" `
+  optimistic-planck-test `
+  npm test
+```
+
+`--network optimistic-planck_default` is required so the container can resolve `postgres` and `redis` by hostname. The `DATABASE_URL` env var overrides the `localhost` fallback in `tests/setup.ts`. Confirm the postgres password with: `docker exec optimistic-planck-postgres-1 printenv POSTGRES_PASSWORD`
 
 ## Important: Next.js 16 + Prisma 7 Patterns
 

@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import path from "path";
 
-const { mockSystemConfigFindUnique, mockSystemConfigUpsert, mockExec } = vi.hoisted(() => ({
+const { mockSystemConfigFindUnique, mockSystemConfigUpsert, mockExecFile } = vi.hoisted(() => ({
   mockSystemConfigFindUnique: vi.fn(),
   mockSystemConfigUpsert: vi.fn(),
-  mockExec: vi.fn(),
+  mockExecFile: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -18,7 +18,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("child_process", () => ({
-  exec: mockExec,
+  execFile: mockExecFile,
 }));
 
 import { getBackupKeepCount, listBackups, deleteBackup, runBackup } from "@/lib/backup";
@@ -34,14 +34,13 @@ describe("lib/backup.ts", () => {
     mockSystemConfigFindUnique.mockResolvedValue(null);
     mockSystemConfigUpsert.mockResolvedValue({});
 
-    mockExec.mockImplementation((cmd, options, cb) => {
-      const callback = cb || options;
-      // Extract file path from cmd (e.g. pg_dump -f "/path/to/file")
-      const match = cmd.match(/-f "(.*?)"/);
-      if (match && match[1]) {
-        fs.writeFileSync(match[1], "dummy postgres backup data");
+    mockExecFile.mockImplementation((file, args, options, cb) => {
+      const fIndex = (args as string[]).indexOf("-f");
+      const outputPath = fIndex !== -1 ? (args as string[])[fIndex + 1] : null;
+      if (outputPath) {
+        fs.writeFileSync(outputPath, "dummy postgres backup data");
       }
-      callback(null, { stdout: "success", stderr: "" });
+      cb(null, "success", "");
     });
 
     // Ensure backups directory exists for tests
@@ -136,15 +135,14 @@ describe("lib/backup.ts", () => {
 
       const filename = await runBackup();
       expect(filename).toContain(".sql");
-      expect(mockExec).toHaveBeenCalled();
+      expect(mockExecFile).toHaveBeenCalled();
       expect(mockSystemConfigUpsert).toHaveBeenCalled();
     });
 
     it("throws error if pg_dump execution fails", async () => {
       process.env.DATABASE_URL = "postgres://user:password@localhost:5432/rsvp";
-      mockExec.mockImplementation((cmd, options, cb) => {
-        const callback = cb || options;
-        callback(new Error("pg_dump binary not found"), { stdout: "", stderr: "" });
+      mockExecFile.mockImplementation((file, args, options, cb) => {
+        cb(new Error("pg_dump binary not found"), "", "");
       });
 
       await expect(runBackup()).rejects.toThrow("pg_dump failed");

@@ -13,11 +13,15 @@ export async function GET(
 
   const event = await db.event.findUnique({
     where: { slug },
-    select: { id: true, hostId: true },
+    select: { id: true, hostId: true, coHosts: { select: { userId: true } } },
   });
 
   if (!event) return new NextResponse("Not found", { status: 404 });
-  if (event.hostId !== session.userId) return new NextResponse("Forbidden", { status: 403 });
+
+  const isAdmin = session.role === "ADMIN";
+  const isHost = event.hostId === session.userId;
+  const isCoHost = event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
+  if (!isAdmin && !isHost && !isCoHost) return new NextResponse("Forbidden", { status: 403 });
 
   const rsvps = await db.rSVP.findMany({
     where: { eventId: event.id },

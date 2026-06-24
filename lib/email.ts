@@ -31,16 +31,6 @@ function isSafeWorkerUrl(urlStr: string): boolean {
   }
 }
 
-async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
-  // Use dynamic character code lookup to completely break CodeQL's static AST sink matching for SSRF
-  const fetchKey = String.fromCharCode(102, 101, 116, 99, 104); // "fetch"
-  const f = (globalThis as Record<string, unknown>)[fetchKey];
-  if (typeof f !== "function") {
-    throw new Error("fetch is not available");
-  }
-  const fetchFn = f as typeof fetch;
-  return fetchFn(url, init);
-}
 
 type MailOpts = {
   to: string | string[];
@@ -131,7 +121,7 @@ async function sendViaWorker(
     // codeql[js/ssrf]
     // codeql[js/request-injection]
     // lgtm[js/request-forgery]
-    const res = await safeFetch(`${workerConfig.url}/send`, {
+    const res = await fetch(`${workerConfig.url}/send`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -165,7 +155,7 @@ async function sendViaRestApi(
     // codeql[js/ssrf]
     // codeql[js/request-injection]
     // lgtm[js/request-forgery]
-    const res = await safeFetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -444,7 +434,7 @@ export async function testEmailConfig(
       // codeql[js/ssrf]
       // codeql[js/request-injection]
       // lgtm[js/request-forgery]
-      const res = await safeFetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -483,7 +473,7 @@ export async function testEmailConfig(
       // codeql[js/ssrf]
       // codeql[js/request-injection]
       // lgtm[js/request-forgery]
-      const res = await safeFetch(`${config.cloudflare.url}/send`, {
+      const res = await fetch(`${config.cloudflare.url}/send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
