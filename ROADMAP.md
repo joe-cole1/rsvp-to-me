@@ -8,6 +8,11 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *Immediate attention items. High impact bugs, UX papercuts, and essential routing/data integrity fixes.*
 
 ### 🛠️ Bugs & Blockers
+*   **[CRIT-1] `migrate-db.js` crashes container on any migration failure — `scripts/migrate-db.js:16`**: `process.exit(1)` is called on any `prisma migrate deploy` error — including transient network errors, a previously-failed migration stuck in `_prisma_migrations` (P3009), or a real schema conflict. In production this causes an immediate restart loop and full outage with no recovery path. In dev, the only escape is manually wiping `pg_data/`. Fix has two parts:
+    *   **Short-term**: Add retry logic for transient errors (up to 3 attempts with backoff). On a P3009 stuck-migration error specifically, log a clear actionable message (`prisma migrate resolve --rolled-back <name>`) and exit with a non-zero code that prevents the app from starting but does NOT cause Docker to restart loop indefinitely (set `restart: on-failure:3` in compose rather than `unless-stopped` for the app service).
+    *   **Long-term**: G-3 (Separate Database Migration Stage) — run migrations as a CI/CD step or init container, not inside the app startup path. A migration failure then fails the *deployment*, not the *running app*.
+*   **[CRIT-2] No pre-migration database snapshot — `scripts/migrate-db.js`**: `prisma migrate deploy` runs with no prior backup. A destructive migration (accidental `DROP COLUMN`, bad data transform, wrong default value) has no automated recovery path. Fix: run a `pg_dump` into a timestamped file in `data/backups/pre-migration/` immediately before `prisma migrate deploy`. G-5 (Automated Backups) covers scheduled snapshots but not this deployment-time safety net.
+*   **[CRIT-3] Health endpoint does not verify migration state — `app/api/health/route.ts`**: `/api/health` returns 200 regardless of whether all Prisma migrations have been applied. If the app starts despite a migration failure (or if G-3 decouples migration from startup), schema mismatches cause silent runtime errors while the container appears healthy to the load balancer or orchestrator. Fix: query `SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL` and return 503 if any pending or failed migrations exist.
 *   **Failing Test Suite**: Unit tests in `tests/actions/event.test.ts` (potluck item claims) and `tests/actions/rsvpfields.test.ts` (`reorderRsvpFields`) are failing:
     *   `claimPotluckItem` / `unclaimPotluckItem` fail due to `item.event.coHosts` being undefined (`Cannot read properties of undefined (reading 'some')`).
     *   `reorderRsvpFields` fails because of a Prisma model casing mismatch or mock error (`TypeError: db.rSVPField.findMany is not a function`).
@@ -15,10 +20,10 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 
 ### 🔒 Routing & System Safety
-*   **[SEC-1] `getDashboardActivity` IDOR — `app/actions/event.ts:1155`**: Any authenticated user can pass arbitrary `eventIds[]` to `getDashboardActivity`. The action verifies a session exists but never checks the user has access to those events. A logged-in guest can enumerate activity feeds from events they don't belong to. Fix: filter `eventIds` to only those where `hostId = session.userId` OR co-host/RSVP membership exists before querying.
-*   **[SEC-2] `reorderRsvpFields` IDOR — `app/actions/event.ts:948`**: `assertHostOrCohost(eventId)` is called for one event, but the field IDs passed in `orderedIds[]` are updated without verifying each field belongs to that `eventId`. A host of Event A can reorder questionnaire fields belonging to Event B. Fix: add a `where: { id: { in: orderedIds }, eventId }` guard or fetch-and-verify before bulk update.
-*   **[SEC-3] `addComment` — no RSVP or identity check — `app/actions/event.ts:342`**: Any unauthenticated request that knows an `eventId` can post a comment as any guest name. The `rsvpId` field is optional and unverified. Enables spam and impersonation on all events with `commentsEnabled`. Fix: require either a valid session or a verified `editToken`/`rsvpId` that matches the submitting guest name before inserting a comment.
-*   **[SEC-4] `claimPotluckItem` / `unclaimPotluckItem` — no auth — `app/actions/event.ts:800`**: Neither function performs any session or RSVP check. Any unauthenticated visitor can create or remove potluck claims with any guest name, polluting the host's potluck view with fake data. Fix: require a valid `editToken` (RSVP-linked) or host session to create/remove a claim.
+*   ~~**[SEC-1] `getDashboardActivity` IDOR — `app/actions/event.ts:1155`**: Any authenticated user can pass arbitrary `eventIds[]` to `getDashboardActivity`. The action verifies a session exists but never checks the user has access to those events. A logged-in guest can enumerate activity feeds from events they don't belong to. Fix: filter `eventIds` to only those where `hostId = session.userId` OR co-host/RSVP membership exists before querying.~~ ✅ Fixed [PR #161]
+*   ~~**[SEC-2] `reorderRsvpFields` IDOR — `app/actions/event.ts:948`**: `assertHostOrCohost(eventId)` is called for one event, but the field IDs passed in `orderedIds[]` are updated without verifying each field belongs to that `eventId`. A host of Event A can reorder questionnaire fields belonging to Event B. Fix: add a `where: { id: { in: orderedIds }, eventId }` guard or fetch-and-verify before bulk update.~~ ✅ Fixed [PR #161]
+*   ~~**[SEC-3] `addComment` — no RSVP or identity check — `app/actions/event.ts:342`**: Any unauthenticated request that knows an `eventId` can post a comment as any guest name. The `rsvpId` field is optional and unverified. Enables spam and impersonation on all events with `commentsEnabled`. Fix: require either a valid session or a verified `editToken`/`rsvpId` that matches the submitting guest name before inserting a comment.~~ ✅ Fixed [PR #161]
+*   ~~**[SEC-4] `claimPotluckItem` / `unclaimPotluckItem` — no auth — `app/actions/event.ts:800`**: Neither function performs any session or RSVP check. Any unauthenticated visitor can create or remove potluck claims with any guest name, polluting the host's potluck view with fake data. Fix: require a valid `editToken` (RSVP-linked) or host session to create/remove a claim.~~ ✅ Fixed [PR #161]
 
 ### 👥 Guest List & RSVP Enhancements
 *   *(No pending priority 1 guest list enhancements)*
@@ -35,18 +40,8 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   *(No pending priority 2 privacy controls)*
 
 ### ⚙️ Administration & Settings
-*   **Draft & Visibility Controls**: Add the ability to save events as drafts (unpublished) in "Display & Privacy" under Event Visibility settings.
 *   **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
-*   **Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.
-
-### 📊 Guest List Exporters
-*   [ ] Implement a robust CSV export action for guest details (names, statuses, responses).
-*   [ ] Create a print-friendly view of the guest list optimized for physical check-ins.
-
-### 🎟️ Check-in Flow
-*   [ ] Add QR code generation for guest tickets/invitations.
-*   [ ] Design a mobile-friendly host scanner view to scan QR codes and check guests in.
-*   [ ] Provide a manual toggle check-in flow on the guest list.
+*   ~~**Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.~~ ✅ Completed
 
 ### 📖 Interactive Documentation Dashboard
 *   [ ] Build an in-app documentation portal accessible via the host dashboard.
@@ -81,11 +76,11 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **[SEC-9] CSP allows `'unsafe-eval'` + `'unsafe-inline'` in `script-src` — `next.config.ts`** *(partial fix [ed8436])*: `'unsafe-eval'` removed from production CSP; retained only in `NODE_ENV=development` for HMR. `'unsafe-inline'` remains — full removal requires nonce-based middleware injection (deferred).
 *   ~~**[SEC-10] Co-hosts excluded from guest CSV download — `app/e/[slug]/guests.csv/route.ts:20`**: The CSV endpoint only permits the primary host (`event.hostId === session.userId`) and blocks co-hosts, who are otherwise authorized to manage the guest list. Fix: mirror the `assertHostOrCohost` pattern used elsewhere to also allow co-host and admin access.~~ ✅ Fixed [1e65a8]
 *   **ESLint 10 Upgrade (blocked)**: `eslint` is held at `^9` because `eslint-plugin-react` v7 (bundled in `eslint-config-next@16.2.9`) calls `context.getFilename()` which was removed in ESLint 10. Unblock by upgrading to a `next` / `eslint-config-next` version whose bundled plugins declare ESLint ≥10 peer deps. Tracked as of 2026-06-23.
-*   **GitHub Release Workflow**: Setup a GitHub Actions workflow to automate release tagging, version increments, and changelog generation.
+*   ~~**GitHub Release Workflow**: Setup a GitHub Actions workflow to automate release tagging, version increments, and changelog generation.~~ ✅ Completed [PR #153]
 *   **Phone Number Encryption at Rest (M-2)**: Encrypt phone numbers deterministically at-rest using HMAC hashes for index lookups and AES-256-GCM for display.
 *   **HTTP Request Logging & Distributed Tracing (G-1)**: Track request duration, method, and statuses using request IDs mapped to Pino structured logs.
 *   **Graceful Shutdown Signal Handling (G-2)**: Handle SIGTERM signals in Next.js/Docker setup to allow in-flight requests to complete before exiting.
-*   **Separate Database Migration Stage (G-3)**: Extract Prisma migrations (`prisma migrate deploy`) out of application container startup to a separate init container or CI/CD deployment pipeline step.
+*   **Separate Database Migration Stage (G-3)**: Extract Prisma migrations (`prisma migrate deploy`) out of application container startup to a separate init container or CI/CD deployment pipeline step. This is the long-term fix for CRIT-1 — a migration failure fails the *deployment* rather than crash-looping the running app container.
 *   **React Error Boundaries (G-4)**: Wrap core page components in error boundaries to prevent rendering crashes from taking down entire routes.
 *   **Automated Database Backups (G-5)**: Implement cron backup service in `docker-compose.yml` to dump `prod.db` to S3 or secure local backups daily.
 *   **Bot Protection / CAPTCHA (G-6)**: Add Cloudflare Turnstile bot checks to authentication magic link requests and guest registration forms.
@@ -99,6 +94,18 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ## ✅ Completed Milestones
 *A log of completed capabilities.*
+
+### Security Fixes — IDOR & Auth Gaps [PR #161]
+*   [x] **[SEC-1] `getDashboardActivity` IDOR**: Scoped `eventIds` to only events the caller owns or is a co-host/RSVP member of (`app/actions/event.ts`).
+*   [x] **[SEC-2] `reorderRsvpFields` IDOR**: Added `eventId` guard to prevent hosts from reordering fields belonging to other events.
+*   [x] **[SEC-3] `addComment` unauthenticated**: Enforced valid session or verified `editToken`/`rsvpId` check before inserting comments.
+*   [x] **[SEC-4] `claimPotluckItem` / `unclaimPotluckItem` unauthenticated**: Gated potluck claim creation and removal behind a valid `editToken` or host session.
+
+### GitHub Release Workflow [PR #153]
+*   [x] **GitHub Actions release automation**: Automated release tagging, version increments, and changelog generation on merge to main.
+
+### Admin Theme Manager
+*   [x] **Admin Theme Manager**: Admin settings page for dynamic theme creation — create/edit/delete themes, configure base style, accents, gradients, decorations, visibility, titles, and descriptions.
 
 ### Admin UX & Host Account Deletion [7nce6r]
 *   [x] **Admin Settings History & Refresh**: Active admin tab is synced to the URL (`/admin?tab=backups`) via `useSearchParams` + `router.replace`. Browser back/forward and page refresh all preserve the selected tab.
