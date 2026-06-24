@@ -13,7 +13,7 @@ services:
       CLOUDFLARE_WORKER_API_SECRET: ""
     volumes:
       - ./data:/app/data
-    restart: unless-stopped
+    restart: on-failure:3
     depends_on:
       postgres:
         condition: service_healthy
