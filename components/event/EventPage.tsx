@@ -2322,7 +2322,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
               const feed: FeedItem[] = [
                 ...event.updates.map((u) => ({ kind: "update" as const, id: u.id, body: u.body, createdAt: new Date(u.createdAt) })),
                 ...(event.commentsEnabled ? event.comments.map((c) => ({ kind: "comment" as const, id: c.id, guestName: c.guestName, body: c.body, rsvpId: c.rsvpId, createdAt: new Date(c.createdAt), replies: c.replies.map((r) => ({ id: r.id, guestName: r.guestName, body: r.body, rsvpId: r.rsvpId, createdAt: new Date(r.createdAt) })) })) : []),
-                ...event.activityEvents.map((a) => ({ kind: "activity" as const, id: a.id, type: a.type, actorName: a.actorName, detail: a.detail, createdAt: new Date(a.createdAt) })),
+                ...event.activityEvents.filter((a) => a.type !== "comment_new").map((a) => ({ kind: "activity" as const, id: a.id, type: a.type, actorName: a.actorName, detail: a.detail, createdAt: new Date(a.createdAt) })),
               ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
               const PAGE_SIZE = 10;
