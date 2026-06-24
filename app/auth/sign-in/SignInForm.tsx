@@ -32,7 +32,7 @@ function TokenError() {
   );
 }
 
-export default function SignInForm({ openRegistration }: { openRegistration: boolean }) {
+export default function SignInForm({ openRegistration, redirect }: { openRegistration: boolean; redirect?: string }) {
   const [identifier, setIdentifier] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export default function SignInForm({ openRegistration }: { openRegistration: boo
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const result = await sendMagicLinkAction(identifier);
+    const result = await sendMagicLinkAction(identifier, redirect);
     setLoading(false);
     if (result.success) {
       setSubmitted(true);

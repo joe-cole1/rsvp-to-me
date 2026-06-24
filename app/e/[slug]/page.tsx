@@ -123,7 +123,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
             To attend, contact the host to receive an invitation.
           </p>
           <a
-            href={`/sign-in?redirect=/e/${slug}`}
+            href={`/auth/sign-in?redirect=/e/${slug}`}
             style={{
               display: "inline-block",
               marginTop: "20px",

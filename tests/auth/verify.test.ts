@@ -41,10 +41,11 @@ vi.mock("@/lib/redis", () => ({
 
 import { GET } from "@/app/auth/verify/route";
 
-function makeRequest(token?: string): NextRequest {
-  const url = token
+function makeRequest(token?: string, redirect?: string): NextRequest {
+  let url = token
     ? `http://localhost:3000/auth/verify?token=${token}`
     : "http://localhost:3000/auth/verify";
+  if (redirect) url += `&redirect=${encodeURIComponent(redirect)}`;
   return new NextRequest(url);
 }
 
@@ -149,6 +150,63 @@ describe("GET /auth/verify", () => {
     mockFindUniqueMagicToken.mockResolvedValue(null);
     const res = await GET(makeRequest("any-token"));
     expect(res.headers.get("location")).toContain("https://rsvp.thecolefam.com");
+  });
+
+  describe("post-login redirect", () => {
+    const validRecord = {
+      id: "tok-id",
+      token: "valid-token",
+      used: false,
+      expiresAt: futureDate,
+      userId: "user1",
+      type: "LOGIN",
+    };
+
+    it("redirects to ?redirect= path when it is a safe relative path", async () => {
+      mockFindUniqueMagicToken.mockResolvedValue(validRecord);
+      mockUpdateMagicToken.mockResolvedValue({});
+      mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
+
+      const res = await GET(makeRequest("valid-token", "/e/panton-wine-night"));
+      expect(res.status).toBe(307);
+      expect(res.headers.get("location")).toBe("http://localhost:3000/e/panton-wine-night");
+    });
+
+    it("falls back to /dashboard when redirect is a protocol-relative URL (open redirect attempt)", async () => {
+      mockFindUniqueMagicToken.mockResolvedValue(validRecord);
+      mockUpdateMagicToken.mockResolvedValue({});
+      mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
+
+      const res = await GET(makeRequest("valid-token", "//evil.com"));
+      expect(res.headers.get("location")).toBe("http://localhost:3000/dashboard");
+    });
+
+    it("falls back to /dashboard when redirect is an absolute URL", async () => {
+      mockFindUniqueMagicToken.mockResolvedValue(validRecord);
+      mockUpdateMagicToken.mockResolvedValue({});
+      mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
+
+      const res = await GET(makeRequest("valid-token", "https://evil.com/steal"));
+      expect(res.headers.get("location")).toBe("http://localhost:3000/dashboard");
+    });
+
+    it("falls back to /dashboard when redirect is a javascript: URI", async () => {
+      mockFindUniqueMagicToken.mockResolvedValue(validRecord);
+      mockUpdateMagicToken.mockResolvedValue({});
+      mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
+
+      const res = await GET(makeRequest("valid-token", "javascript:alert(1)"));
+      expect(res.headers.get("location")).toBe("http://localhost:3000/dashboard");
+    });
+
+    it("falls back to /dashboard when no redirect param is provided", async () => {
+      mockFindUniqueMagicToken.mockResolvedValue(validRecord);
+      mockUpdateMagicToken.mockResolvedValue({});
+      mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
+
+      const res = await GET(makeRequest("valid-token"));
+      expect(res.headers.get("location")).toBe("http://localhost:3000/dashboard");
+    });
   });
 
   describe("extended cases", () => {

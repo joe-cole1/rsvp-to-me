@@ -41,7 +41,8 @@ async function getClientIp(): Promise<string> {
 }
 
 export async function sendMagicLinkAction(
-  rawIdentifier: string
+  rawIdentifier: string,
+  redirect?: string
 ): Promise<{ success: boolean; error?: string }> {
   // Validate input
   const parseResult = SendMagicLinkSchema.safeParse({ identifier: rawIdentifier });
@@ -64,7 +65,7 @@ export async function sendMagicLinkAction(
   }
 
   const isPhone = looksLikePhone(identifier);
-  const link = await createMagicLink(identifier);
+  const link = await createMagicLink(identifier, redirect);
 
   // Return success even if user not found to prevent user enumeration (M-1)
   if (link) {

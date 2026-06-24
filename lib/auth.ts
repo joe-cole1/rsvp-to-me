@@ -15,7 +15,19 @@ function normalizePhone(s: string): string {
   return s.trim().replace(/[\s\-().]/g, "");
 }
 
-export async function createMagicLink(identifier: string): Promise<string | null> {
+// Only allow relative paths. Blocks protocol-relative (//), absolute URLs (contain :),
+// and backslash tricks (/\ normalised to // by some browsers).
+export function isSafeRedirect(path: string): boolean {
+  return (
+    typeof path === "string" &&
+    path.startsWith("/") &&
+    !path.startsWith("//") &&
+    !path.startsWith("/\\") &&
+    !path.includes(":")
+  );
+}
+
+export async function createMagicLink(identifier: string, redirect?: string): Promise<string | null> {
   let user;
 
   if (looksLikePhone(identifier)) {
@@ -43,7 +55,10 @@ export async function createMagicLink(identifier: string): Promise<string | null
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  return `${appUrl}/auth/verify?token=${token}`;
+  const redirectSuffix = redirect && isSafeRedirect(redirect)
+    ? `&redirect=${encodeURIComponent(redirect)}`
+    : "";
+  return `${appUrl}/auth/verify?token=${token}${redirectSuffix}`;
 }
 
 export async function isOpenRegistrationActive(): Promise<boolean> {
