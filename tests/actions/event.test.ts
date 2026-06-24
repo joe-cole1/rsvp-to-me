@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 // ── Hoist all mock functions so vi.mock factories can reference them ──────────
@@ -1290,8 +1291,10 @@ describe("inviteGuest", () => {
 });
 
 describe("verifyEventPassword", () => {
+  const TEST_PASSWORD_HASH = bcrypt.hashSync("password123", 10);
+
   beforeEach(() => {
-    mockEventFindUnique.mockResolvedValue({ slug: EVENT_SLUG, password: "password123" });
+    mockEventFindUnique.mockResolvedValue({ slug: EVENT_SLUG, passwordHash: TEST_PASSWORD_HASH });
   });
 
   it("returns error when event not found", async () => {
