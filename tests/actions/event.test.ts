@@ -1083,12 +1083,13 @@ describe("claimPotluckItem", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    asHost();
     mockPotluckItemFindUnique.mockResolvedValue({
       id: ITEM_ID,
       label: "Soda",
       quantity: 10,
       claims: [],
-      event: { slug: EVENT_SLUG },
+      event: { slug: EVENT_SLUG, hostId: HOST_ID, coHosts: [] },
     });
     mockPotluckClaimCreate.mockResolvedValue({
       id: "claim-1",
@@ -1128,7 +1129,7 @@ describe("claimPotluckItem", () => {
       label: "Soda",
       quantity: 5,
       claims: [{ id: "claim-1", quantity: 5, guestName: "Bob" }],
-      event: { slug: EVENT_SLUG },
+      event: { slug: EVENT_SLUG, hostId: HOST_ID, coHosts: [] },
     });
     const result = await claimPotluckItem(ITEM_ID, "Alice", 1);
     expect(result).toEqual({ success: false, error: "Only 0 remaining" });
@@ -1148,7 +1149,7 @@ describe("unclaimPotluckItem", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    asHost();
     mockPotluckItemFindUnique.mockResolvedValue({
       id: ITEM_ID,
       label: "Soda",

@@ -5,6 +5,7 @@ const {
   mockEventFindUnique,
   mockRsvpFieldCreate,
   mockRsvpFieldFindUnique,
+  mockRsvpFieldFindMany,
   mockRsvpFieldUpdate,
   mockRsvpFieldDelete,
   mockGetSession,
@@ -12,6 +13,7 @@ const {
   mockEventFindUnique: vi.fn(),
   mockRsvpFieldCreate: vi.fn(),
   mockRsvpFieldFindUnique: vi.fn(),
+  mockRsvpFieldFindMany: vi.fn(),
   mockRsvpFieldUpdate: vi.fn(),
   mockRsvpFieldDelete: vi.fn(),
   mockGetSession: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock("@/lib/db", () => ({
     rSVPField: {
       create: mockRsvpFieldCreate,
       findUnique: mockRsvpFieldFindUnique,
+      findMany: mockRsvpFieldFindMany,
       update: mockRsvpFieldUpdate,
       delete: mockRsvpFieldDelete,
     },
@@ -183,6 +186,7 @@ describe("reorderRsvpFields", () => {
   beforeEach(() => {
     asHost();
     mockEventFindUnique.mockResolvedValue(hostEventWithCohosts());
+    mockRsvpFieldFindMany.mockResolvedValue([{ id: "field-a" }, { id: "field-b" }]);
     mockRsvpFieldUpdate.mockResolvedValue({});
   });
 

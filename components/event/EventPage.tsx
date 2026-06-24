@@ -1246,7 +1246,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   };
 
   const claimItem = async (itemId: string, name: string) => {
-    const result = await claimPotluckItem(itemId, name, claimQty);
+    const result = await claimPotluckItem(itemId, name, claimQty, guestRsvpId ?? undefined);
     if (result.success && result.claim) {
       // Cast the claim to match the type expected in claims array (Date for createdAt)
       const newClaim = {
@@ -1265,7 +1265,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
   };
 
   const unclaimItem = async (itemId: string, name: string) => {
-    const result = await unclaimPotluckItem(itemId, name);
+    const result = await unclaimPotluckItem(itemId, name, guestRsvpId ?? undefined);
     if (result.success) {
       setEvent((e) => ({
         ...e,
