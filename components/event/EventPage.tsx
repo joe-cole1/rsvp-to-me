@@ -567,7 +567,6 @@ function LocationEdit({
   isHost,
   theme: t,
   onSave,
-  baseTheme = "DARK",
 }: {
   eventId: string;
   locationType: LocationType;
@@ -577,7 +576,6 @@ function LocationEdit({
   isHost: boolean;
   theme: ResolvedTheme;
   onSave: (data: { locationType: LocationType; locationName: string | null; locationAddress: string | null; virtualUrl: string | null }) => void;
-  baseTheme?: "DARK" | "SOFT" | "BOLD";
 }) {
   const getChipStyle = (): React.CSSProperties => ({
     display: "inline-flex",
@@ -1540,7 +1538,6 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
           isHost={isHost}
           theme={t}
           onSave={(data) => setEvent((e) => ({ ...e, ...data }))}
-          baseTheme={event.theme?.baseTheme ?? "DARK"}
         />
 
         {/* ── Description ── */}
