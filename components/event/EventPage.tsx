@@ -579,45 +579,22 @@ function LocationEdit({
   onSave: (data: { locationType: LocationType; locationName: string | null; locationAddress: string | null; virtualUrl: string | null }) => void;
   baseTheme?: "DARK" | "SOFT" | "BOLD";
 }) {
-  const getChipStyle = (): React.CSSProperties => {
-    const baseStyle: React.CSSProperties = {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "6px",
-      padding: "6px 14px",
-      borderRadius: "100px",
-      fontSize: "13px",
-      fontWeight: 600,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      marginBottom: "24px",
-      transition: "all 0.2s ease",
-    };
-
-    if (baseTheme === "SOFT") {
-      return {
-        ...baseStyle,
-        background: t.accentBg,
-        border: `1px dashed ${t.accentBorder}`,
-        color: t.accent,
-      };
-    } else if (baseTheme === "BOLD") {
-      return {
-        ...baseStyle,
-        background: `rgba(${t.accentRgb}, 0.08)`,
-        border: `1px dashed rgba(${t.accentRgb}, 0.3)`,
-        color: t.accent,
-      };
-    } else {
-      // DARK
-      return {
-        ...baseStyle,
-        background: `rgba(${t.accentRgb}, 0.15)`,
-        border: `1px dashed rgba(${t.accentRgb}, 0.35)`,
-        color: t.accent,
-      };
-    }
-  };
+  const getChipStyle = (): React.CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 14px",
+    borderRadius: "100px",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    marginBottom: "24px",
+    transition: "all 0.2s ease",
+    background: t.cardBg,
+    border: `1px dashed ${t.accentBorder}`,
+    color: t.accent,
+  });
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1057,7 +1034,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
     cursor: "pointer",
     fontFamily: "inherit",
     transition: "all 0.2s ease",
-    background: "rgba(255,255,255,0.88)",
+    background: t.cardBg,
     border: isCustom ? `1.5px dashed ${t.accent}` : `1.5px solid ${t.accent}`,
     color: t.accent,
   });
