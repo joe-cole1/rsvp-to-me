@@ -108,8 +108,24 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       }))
     : false;
 
+  // Fetch the logged-in user's RSVP by userId (used for gate bypass and guest RSVP display)
+  const loggedInUserRsvp = !isHost && !token && session?.userId
+    ? await db.rSVP.findFirst({
+        where: { userId: session.userId, eventId: event.id },
+        select: {
+          id: true,
+          guestName: true,
+          editToken: true,
+          status: true,
+          responded: true,
+          _count: { select: { answers: true } },
+        },
+      })
+    : null;
+  const isLoggedInGuest = !!loggedInUserRsvp;
+
   // Block / gate access to PRIVATE events
-  if (event.visibility === "PRIVATE" && !isHost && !isUnlocked && !hasValidToken) {
+  if (event.visibility === "PRIVATE" && !isHost && !isUnlocked && !hasValidToken && !isLoggedInGuest) {
     if (event.passwordHash) {
       // Password is a valid access path — show the entry form
       return <PasswordGate slug={slug} />;
@@ -161,7 +177,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
           _count: { select: { answers: true } },
         },
       })
-    : null;
+    : loggedInUserRsvp;
   const guestRsvp = _guestRsvpRaw
     ? {
         id: _guestRsvpRaw.id,
