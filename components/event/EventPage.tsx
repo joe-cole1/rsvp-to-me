@@ -1486,16 +1486,16 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       <div style={S.container}>
 
         {/* ── Title ── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-          <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont, color: t.heroText ?? t.textPrimary, textShadow: t.heroTextShadow, margin: 0 }}>
-            <InlineEdit outerRef={titleRef} value={event.title} onSave={(v) => save("title", v)} placeholder="Event title" style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont }} isHost={isHost} />
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", marginBottom: "8px", position: "relative" }}>
+          <h1 style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont, color: t.heroText ?? t.textPrimary, textShadow: t.heroTextShadow, margin: 0, textAlign: "center" }}>
+            <InlineEdit outerRef={titleRef} value={event.title} onSave={(v) => save("title", v)} placeholder="Event title" style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: t.headingFont, textAlign: "center" }} isHost={isHost} />
           </h1>
-          {isHost && <Pencil size={12} style={{ color: t.heroText ? "rgba(255,255,255,0.45)" : t.textMuted, cursor: "pointer", marginTop: "10px", flexShrink: 0 }} onClick={() => titleRef.current?.click()} />}
+          {isHost && <Pencil size={12} style={{ color: t.heroText ? "rgba(255,255,255,0.45)" : t.textMuted, cursor: "pointer", marginTop: "10px", flexShrink: 0, position: "absolute", right: 0 }} onClick={() => titleRef.current?.click()} />}
         </div>
 
         {/* ── Host byline ── */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", color: t.heroText ? "rgba(255,255,255,0.85)" : t.textSecondary, fontSize: "14px", textShadow: t.heroTextShadow }}>
-          {renderAvatar(event.host.name ?? event.host.email, null, { width: "28px", height: "28px" })}
+          {renderAvatar(event.host.name ?? event.host.email, null, { width: "48px", height: "48px", minWidth: "48px", fontSize: "18px" })}
           Hosted by {event.host.name ?? event.host.email}
           {isHost && (
             <a href={`/e/${event.slug}/settings?section=hosts`} style={{ marginLeft: "2px", color: t.heroText ? "rgba(255,255,255,0.5)" : t.textMuted, display: "flex", alignItems: "center" }} title="Host settings">
