@@ -502,6 +502,7 @@ export async function createThemePreset(data: {
   accentColor: string;
   seasonal: boolean;
   month?: number | null;
+  cardOpacity?: number | null;
 }) {
   await assertAdmin();
   const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
@@ -509,6 +510,7 @@ export async function createThemePreset(data: {
     name: data.name, emoji: data.emoji, base: data.base,
     gradientFrom: data.gradientFrom, gradientTo: data.gradientTo,
     accentColor: data.accentColor, seasonal: data.seasonal, month: data.month ?? null,
+    cardOpacity: data.cardOpacity ?? null,
   };
   const preset = await db.themePreset.create({
     data: { ...data, active: true, sortOrder: (maxOrder._max.sortOrder ?? -1) + 1, originalSnapshot: snapshot, defaultSnapshot: snapshot },
@@ -524,6 +526,7 @@ export async function saveThemePresetDefault(id: string) {
     name: preset.name, emoji: preset.emoji, base: preset.base,
     gradientFrom: preset.gradientFrom, gradientTo: preset.gradientTo,
     accentColor: preset.accentColor, seasonal: preset.seasonal, month: preset.month ?? null,
+    cardOpacity: preset.cardOpacity ?? null,
   };
   await db.themePreset.update({ where: { id }, data: { defaultSnapshot: snapshot } });
   revalidatePath("/admin");
@@ -542,6 +545,7 @@ export async function updateThemePreset(
     active: boolean;
     sortOrder: number;
     month: number | null;
+    cardOpacity: number | null;
   }>
 ) {
   await assertAdmin();

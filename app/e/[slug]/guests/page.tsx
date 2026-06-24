@@ -49,7 +49,8 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     event.theme?.baseTheme ?? "DARK",
     event.theme?.gradientFrom ?? "#7c3aed",
     event.theme?.gradientTo ?? "#1e40af",
-    event.theme?.accentColor ?? "#a855f7"
+    event.theme?.accentColor ?? "#a855f7",
+    event.theme?.cardOpacity
   );
 
   const approvedRsvps = event.rsvps.filter((r) => r.approved && r.status !== "INVITED");

@@ -133,13 +133,18 @@ export async function saveEventTheme(
   gradientFrom: string,
   gradientTo: string,
   accentColor: string,
-  presetId?: string | null
+  presetId?: string | null,
+  cardOpacity?: number | null
 ) {
   const event = await assertHost(eventId);
   await db.eventTheme.upsert({
     where: { eventId },
-    update: { baseTheme, gradientFrom, gradientTo, accentColor, ...(presetId !== undefined ? { appliedPresetId: presetId } : {}) },
-    create: { eventId, baseTheme, gradientFrom, gradientTo, accentColor, appliedPresetId: presetId ?? null },
+    update: {
+      baseTheme, gradientFrom, gradientTo, accentColor,
+      ...(presetId !== undefined ? { appliedPresetId: presetId } : {}),
+      ...(cardOpacity !== undefined ? { cardOpacity } : {}),
+    },
+    create: { eventId, baseTheme, gradientFrom, gradientTo, accentColor, appliedPresetId: presetId ?? null, cardOpacity: cardOpacity ?? null },
   });
   revalidatePath(`/e/${event.slug}`);
 }

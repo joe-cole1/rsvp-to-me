@@ -36,7 +36,8 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     event.theme?.baseTheme ?? "DARK",
     event.theme?.gradientFrom ?? "#7c3aed",
     event.theme?.gradientTo ?? "#1e40af",
-    event.theme?.accentColor ?? "#a855f7"
+    event.theme?.accentColor ?? "#a855f7",
+    event.theme?.cardOpacity
   );
 
   // Edit flow — token provided
