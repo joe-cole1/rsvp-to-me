@@ -375,7 +375,7 @@ export function resolveTheme(
     pageDecorationBg2: "none",
     textPrimary: "#0a0a0a",
     textSecondary: "#52525b",
-    textMuted: "#a1a1aa",
+    textMuted: "#333333",
     headingFont: "inherit",
     heroText: "#ffffff",
     heroTextShadow: "0 1px 4px rgba(0,0,0,0.3)",
