@@ -72,6 +72,7 @@ vi.mock("@/lib/session", () => ({
 
 import {
   createMagicLink,
+  isSafeRedirect,
   linkRsvpsToUser,
   verifyMagicToken,
   verifyChangeToken,
@@ -82,6 +83,44 @@ import {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.INITIAL_ADMIN_EMAIL = "admin@example.com";
+});
+
+describe("isSafeRedirect", () => {
+  it("accepts a normal relative path", () => {
+    expect(isSafeRedirect("/e/panton-wine-night")).toBe(true);
+  });
+
+  it("accepts a relative path with query string", () => {
+    expect(isSafeRedirect("/e/slug?foo=bar")).toBe(true);
+  });
+
+  it("rejects a protocol-relative URL", () => {
+    expect(isSafeRedirect("//evil.com")).toBe(false);
+  });
+
+  it("rejects a backslash-prefixed path (browser normalises to //)", () => {
+    expect(isSafeRedirect("/\\evil.com")).toBe(false);
+  });
+
+  it("rejects an absolute http URL", () => {
+    expect(isSafeRedirect("http://evil.com")).toBe(false);
+  });
+
+  it("rejects an absolute https URL", () => {
+    expect(isSafeRedirect("https://evil.com")).toBe(false);
+  });
+
+  it("rejects a javascript: URI", () => {
+    expect(isSafeRedirect("javascript:alert(1)")).toBe(false);
+  });
+
+  it("rejects an empty string", () => {
+    expect(isSafeRedirect("")).toBe(false);
+  });
+
+  it("rejects a bare domain with no leading slash", () => {
+    expect(isSafeRedirect("evil.com")).toBe(false);
+  });
 });
 
 describe("createMagicLink", () => {
@@ -174,6 +213,33 @@ describe("createMagicLink", () => {
         expiresAt: expect.any(Date),
       }),
     });
+  });
+
+  it("appends encoded redirect param to the link when redirect is a safe relative path", async () => {
+    mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "user@example.com" });
+    mockMagicTokenUpdateMany.mockResolvedValue({ count: 0 });
+    mockMagicTokenCreate.mockResolvedValue({});
+
+    const result = await createMagicLink("user@example.com", "/e/panton-wine-night");
+    expect(result).toContain("&redirect=%2Fe%2Fpanton-wine-night");
+  });
+
+  it("omits redirect param from the link when redirect is unsafe (open redirect attempt)", async () => {
+    mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "user@example.com" });
+    mockMagicTokenUpdateMany.mockResolvedValue({ count: 0 });
+    mockMagicTokenCreate.mockResolvedValue({});
+
+    const result = await createMagicLink("user@example.com", "//evil.com");
+    expect(result).not.toContain("redirect");
+  });
+
+  it("omits redirect param from the link when redirect is not provided", async () => {
+    mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "user@example.com" });
+    mockMagicTokenUpdateMany.mockResolvedValue({ count: 0 });
+    mockMagicTokenCreate.mockResolvedValue({});
+
+    const result = await createMagicLink("user@example.com");
+    expect(result).not.toContain("redirect");
   });
 });
 

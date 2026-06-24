@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
-import { ArrowLeft, Check, Plus, X } from "lucide-react";
+import { ArrowLeft, Check, Eye, EyeOff, Plus, X } from "lucide-react";
 import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme, getSortedPresets } from "@/lib/theme";
 import {
   saveEventSettings,
@@ -211,6 +211,11 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
   const [visibility, setVisibility] = useState(event.visibility);
   const [password, setPassword] = useState("");
   const [passwordDirty, setPasswordDirty] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  // Tracks when the host explicitly saved a password removal this session,
+  // so the "SET" badge and placeholder update without a full page reload.
+  const [passwordSavedAsNull, setPasswordSavedAsNull] = useState(false);
+  const effectivePasswordHash = passwordSavedAsNull ? null : event.passwordHash;
 
   // ── Reminders State ──
   const rs = event.reminderSettings;
@@ -1454,30 +1459,84 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
             )}
             {visibility === "PRIVATE" && (
               <div>
-                <Label t={t}>Event password (optional)</Label>
-                <input
-                  type="text"
-                  placeholder="Leave blank for no password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setPasswordDirty(true); }}
-                  onBlur={() => {
-                    triggerSaveSettings({ password: password.trim() || null });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      triggerSaveSettings({ password: password.trim() || null });
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  style={S.inp}
-                  autoComplete="off"
-                />
-                {event.passwordHash && !passwordDirty
-                  ? <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Password is set. Enter a new value to change it, or clear to remove.</div>
-                  : password
-                    ? <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>
-                    : null
-                }
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.02em", color: t.textMuted }}>Event password (optional)</span>
+                  {effectivePasswordHash && !passwordDirty && (
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#22c55e", background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "6px", padding: "2px 7px", lineHeight: 1.4 }}>SET</span>
+                  )}
+                </div>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder={effectivePasswordHash && !passwordDirty ? "••••••••" : "Leave blank for no password"}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setPasswordDirty(true); }}
+                    onBlur={() => {
+                      // Only auto-save when there is no existing password (first-time set).
+                      // When overwriting/clearing an existing password, the host must confirm.
+                      if (passwordDirty && !effectivePasswordHash) {
+                        triggerSaveSettings({ password: password.trim() || null });
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !effectivePasswordHash) {
+                        triggerSaveSettings({ password: password.trim() || null });
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    style={{ ...S.inp, paddingRight: "40px" }}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: t.textMuted, padding: "4px", display: "flex", alignItems: "center" }}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+
+                {/* Overwrite / removal confirmation */}
+                {effectivePasswordHash && passwordDirty && (
+                  <div style={{ marginTop: "8px", background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.35)", borderRadius: "8px", padding: "10px 12px" }}>
+                    <div style={{ fontSize: "12px", color: "#fbbf24", fontWeight: 600, marginBottom: "8px" }}>
+                      {password.trim()
+                        ? "⚠️ This will replace the current password."
+                        : "⚠️ Saving will remove the password requirement."}
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerSaveSettings({ password: password.trim() || null });
+                          if (!password.trim()) setPasswordSavedAsNull(true);
+                          setPassword("");
+                          setPasswordDirty(false);
+                        }}
+                        style={{ flex: 1, padding: "6px 10px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        {password.trim() ? "Save new password" : "Remove password"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setPassword(""); setPasswordDirty(false); }}
+                        style={{ flex: 1, padding: "6px 10px", background: "transparent", color: t.textSecondary, border: `1px solid ${t.inputBorder}`, borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hint text when no pending change */}
+                {!passwordDirty && (
+                  effectivePasswordHash
+                    ? <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Type a new password to change it, or clear the field and save to remove it.</div>
+                    : password
+                      ? <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>
+                      : null
+                )}
               </div>
             )}
           </Section>

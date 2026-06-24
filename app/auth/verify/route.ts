@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
-import { linkRsvpsToUser } from "@/lib/auth";
+import { linkRsvpsToUser, isSafeRedirect } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { isRedisEnabled, redisSet } from "@/lib/redis";
 import { hashToken } from "@/lib/hash";
@@ -10,6 +10,7 @@ const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
+  const rawRedirect = request.nextUrl.searchParams.get("redirect");
 
   const redirectWithNoReferrer = (url: string) => {
     const res = NextResponse.redirect(url);
@@ -74,7 +75,13 @@ export async function GET(request: NextRequest) {
     sessionId, // Crucial: Include sessionId so getSession() validates it successfully
   });
 
-  const response = redirectWithNoReferrer(`${APP_URL()}/dashboard`);
+  // Validate redirect at the point of use — defence in depth against encoded payloads
+  // that bypassed the check in createMagicLink (e.g. %2F-encoded slashes).
+  const destination = rawRedirect && isSafeRedirect(rawRedirect)
+    ? `${APP_URL()}${rawRedirect}`
+    : `${APP_URL()}/dashboard`;
+
+  const response = redirectWithNoReferrer(destination);
   response.cookies.set(COOKIE_NAME, sealed, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
