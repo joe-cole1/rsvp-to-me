@@ -232,7 +232,8 @@ export function resolveTheme(
   base: BaseTheme,
   gradientFrom: string,
   gradientTo: string,
-  accentColor: string
+  accentColor: string,
+  cardOpacity?: number | null
 ): ResolvedTheme {
   const hex2rgb = (hex: string) => {
     const h = hex.replace("#", "");
@@ -301,7 +302,8 @@ export function resolveTheme(
       accentBg: `rgba(${accentRgb},0.15)`,
       accentBorder: `rgba(${accentRgb},0.3)`,
       accentShadow: `0 0 24px rgba(${accentRgb},0.35)`,
-      cardBg: `hsla(${h1},${Math.min(s1,15)}%,10%,0.5)`,
+      cardBg: `hsla(${h1},${Math.min(s1,15)}%,10%,${cardOpacity ?? 0.5})`,
+      cardBgAlpha: cardOpacity ?? 0.5,
       cardBorder: `hsla(${h1},${Math.min(s1,20)}%,20%,0.4)`,
       cardRadius: "20px",
       cardShadow: "none",
@@ -342,8 +344,8 @@ export function resolveTheme(
       accentBg: `rgba(${accentRgb},0.18)`,
       accentBorder: `rgba(${accentRgb},0.35)`,
       accentShadow: `0 4px 20px rgba(${accentRgb},0.3)`,
-      cardBg: "rgba(255,255,255,0.85)",
-      cardBgAlpha: 0.85,
+      cardBg: `rgba(255,255,255,${cardOpacity ?? 0.85})`,
+      cardBgAlpha: cardOpacity ?? 0.85,
       cardBorder: `hsla(${h1},${Math.min(s1,15)}%,85%,0.5)`,
       cardRadius: "24px",
       cardShadow: "0 4px 24px rgba(0,0,0,0.06)",
@@ -383,8 +385,8 @@ export function resolveTheme(
     accentBg: `rgba(${accentRgb},0.12)`,
     accentBorder: `rgba(${accentRgb},0.25)`,
     accentShadow: "none",
-    cardBg: "rgba(255,255,255,0.80)",
-    cardBgAlpha: 0.80,
+    cardBg: `rgba(255,255,255,${cardOpacity ?? 0.80})`,
+    cardBgAlpha: cardOpacity ?? 0.80,
     cardBorder: "rgba(255,255,255,0.55)",
     cardRadius: "24px",
     cardShadow: "0 8px 40px rgba(0,0,0,0.18)",

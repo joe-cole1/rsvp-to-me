@@ -80,7 +80,7 @@ interface BackupConfig {
 type ThemeSnapObj = {
   name: string; emoji: string; base: "DARK" | "SOFT" | "BOLD";
   gradientFrom: string; gradientTo: string; accentColor: string;
-  seasonal: boolean; month?: number | null;
+  seasonal: boolean; month?: number | null; cardOpacity?: number | null;
 };
 
 interface AdminThemePreset {
@@ -95,6 +95,7 @@ interface AdminThemePreset {
   active: boolean;
   sortOrder: number;
   month?: number | null;
+  cardOpacity?: number | null;
   createdAt: Date;
   originalSnapshot: unknown;
   defaultSnapshot: unknown;
@@ -177,6 +178,7 @@ export default function AdminClient({
     accentColor: string;
     seasonal: boolean;
     month?: number | null;
+    cardOpacity?: number | null;
   } | null>(null);
   const [themePresetOriginal, setThemePresetOriginal] = useState<typeof themePresetForm>(null);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
@@ -702,6 +704,7 @@ function extractRawEmail(fromStr) {
           accentColor: themePresetForm.accentColor,
           seasonal: themePresetForm.seasonal,
           month: themePresetForm.month ?? null,
+          cardOpacity: themePresetForm.cardOpacity ?? null,
         });
         setThemePresets((prev) =>
           prev.map((p) =>
@@ -719,6 +722,7 @@ function extractRawEmail(fromStr) {
           accentColor: themePresetForm.accentColor,
           seasonal: themePresetForm.seasonal,
           month: themePresetForm.month ?? null,
+          cardOpacity: themePresetForm.cardOpacity ?? null,
         });
         setThemePresets((prev) => [...prev, created as AdminThemePreset]);
         setFeedback({ type: "success", message: "Preset created." });
@@ -748,7 +752,7 @@ function extractRawEmail(fromStr) {
         name: themePresetForm.name, emoji: themePresetForm.emoji, base: themePresetForm.base,
         gradientFrom: themePresetForm.gradientFrom, gradientTo: themePresetForm.gradientTo,
         accentColor: themePresetForm.accentColor, seasonal: themePresetForm.seasonal,
-        month: themePresetForm.month ?? null,
+        month: themePresetForm.month ?? null, cardOpacity: themePresetForm.cardOpacity ?? null,
       };
       setThemePresets((prev) =>
         prev.map((p) => p.id === themePresetForm.id ? { ...p, defaultSnapshot: snap } : p)
@@ -2663,6 +2667,7 @@ function extractRawEmail(fromStr) {
                           accentColor: "#a855f7",
                           seasonal: false,
                           month: null,
+                          cardOpacity: null,
                         })
                       }
                       style={{
@@ -2732,6 +2737,7 @@ function extractRawEmail(fromStr) {
                                     accentColor: preset.accentColor,
                                     seasonal: preset.seasonal,
                                     month: preset.month ?? null,
+                                    cardOpacity: preset.cardOpacity ?? null,
                                   };
                                   setThemePresetForm(vals);
                                   setThemePresetOriginal(vals);
@@ -2828,7 +2834,8 @@ function extractRawEmail(fromStr) {
                       themePresetForm.gradientTo !== defSnap.gradientTo ||
                       themePresetForm.accentColor !== defSnap.accentColor ||
                       themePresetForm.seasonal !== defSnap.seasonal ||
-                      themePresetForm.month !== (defSnap.month ?? null)
+                      themePresetForm.month !== (defSnap.month ?? null) ||
+                      (themePresetForm.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null)
                     );
                     const origDiffersFromDefault = origSnap && defSnap && (
                       origSnap.name !== defSnap.name ||
@@ -2838,7 +2845,8 @@ function extractRawEmail(fromStr) {
                       origSnap.gradientTo !== defSnap.gradientTo ||
                       origSnap.accentColor !== defSnap.accentColor ||
                       origSnap.seasonal !== defSnap.seasonal ||
-                      (origSnap.month ?? null) !== (defSnap.month ?? null)
+                      (origSnap.month ?? null) !== (defSnap.month ?? null) ||
+                      (origSnap.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null)
                     );
                     const formDiffersFromOriginal = origSnap && (
                       themePresetForm.name !== origSnap.name ||
@@ -2848,7 +2856,8 @@ function extractRawEmail(fromStr) {
                       themePresetForm.gradientTo !== origSnap.gradientTo ||
                       themePresetForm.accentColor !== origSnap.accentColor ||
                       themePresetForm.seasonal !== origSnap.seasonal ||
-                      themePresetForm.month !== (origSnap.month ?? null)
+                      themePresetForm.month !== (origSnap.month ?? null) ||
+                      (themePresetForm.cardOpacity ?? null) !== (origSnap.cardOpacity ?? null)
                     );
                     return (
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
@@ -3014,9 +3023,37 @@ function extractRawEmail(fromStr) {
                       )}
                     </div>
 
+                    {/* Card opacity */}
+                    {(() => {
+                      const defaultOp = themePresetForm.base === "DARK" ? 0.5 : themePresetForm.base === "SOFT" ? 0.85 : 0.80;
+                      const currentOp = themePresetForm.cardOpacity ?? defaultOp;
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>CARD OPACITY</label>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <input
+                              type="range"
+                              min={0.4}
+                              max={1}
+                              step={0.05}
+                              value={currentOp}
+                              onChange={(e) => setThemePresetForm((f) => f && { ...f, cardOpacity: parseFloat(e.target.value) })}
+                              style={{ flex: 1, accentColor: APP_SHELL.accent }}
+                            />
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, minWidth: "40px", textAlign: "right" }}>
+                              {Math.round(currentOp * 100)}%
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary }}>
+                            Controls card transparency. Default for {themePresetForm.base}: {Math.round(defaultOp * 100)}%
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Live theme preview */}
                     {(() => {
-                      const pv = resolveTheme(themePresetForm.base, themePresetForm.gradientFrom, themePresetForm.gradientTo, themePresetForm.accentColor);
+                      const pv = resolveTheme(themePresetForm.base, themePresetForm.gradientFrom, themePresetForm.gradientTo, themePresetForm.accentColor, themePresetForm.cardOpacity ?? undefined);
                       return (
                         <div style={{ borderRadius: "12px", overflow: "hidden", border: `1px solid ${APP_SHELL.cardBorder}` }}>
                           {/* Page background zone */}
@@ -3057,7 +3094,8 @@ function extractRawEmail(fromStr) {
                             themePresetForm.gradientTo !== themePresetOriginal.gradientTo ||
                             themePresetForm.accentColor !== themePresetOriginal.accentColor ||
                             themePresetForm.seasonal !== themePresetOriginal.seasonal ||
-                            themePresetForm.month !== themePresetOriginal.month;
+                            themePresetForm.month !== themePresetOriginal.month ||
+                            themePresetForm.cardOpacity !== themePresetOriginal.cardOpacity;
                           return isDirty ? (
                             <button
                               type="button"

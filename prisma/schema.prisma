@@ -186,6 +186,7 @@ model EventTheme {
   accentColor     String    @default("#a855f7")
   coverImageUrl   String?
   appliedPresetId String?
+  cardOpacity     Float?
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
@@ -208,6 +209,7 @@ model ThemePreset {
   active           Boolean   @default(true)
   sortOrder        Int       @default(0)
   month            Int?
+  cardOpacity      Float?
   createdAt        DateTime  @default(now())
   originalSnapshot Json?
   defaultSnapshot  Json?

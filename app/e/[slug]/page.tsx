@@ -185,7 +185,8 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     event.theme?.baseTheme ?? "DARK",
     event.theme?.gradientFrom ?? "#7c3aed",
     event.theme?.gradientTo ?? "#1e40af",
-    event.theme?.accentColor ?? "#a855f7"
+    event.theme?.accentColor ?? "#a855f7",
+    event.theme?.cardOpacity
   );
 
   let sessionUser = null;

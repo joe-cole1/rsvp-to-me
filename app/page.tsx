@@ -173,7 +173,8 @@ export default async function Home() {
                   event.theme?.baseTheme ?? "DARK",
                   event.theme?.gradientFrom ?? "#7c3aed",
                   event.theme?.gradientTo ?? "#1e40af",
-                  event.theme?.accentColor ?? "#a855f7"
+                  event.theme?.accentColor ?? "#a855f7",
+                  event.theme?.cardOpacity
                 );
                 const accent = resolved.accent;
                 const coverUrl = event.theme?.coverImageUrl;

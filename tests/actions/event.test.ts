@@ -1328,7 +1328,7 @@ describe("saveEventTheme", () => {
     expect(mockEventThemeUpsert).toHaveBeenCalledWith({
       where: { eventId: EVENT_ID },
       update: { baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000" },
-      create: { eventId: EVENT_ID, baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000", appliedPresetId: null },
+      create: { eventId: EVENT_ID, baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000", appliedPresetId: null, cardOpacity: null },
     });
   });
 });
