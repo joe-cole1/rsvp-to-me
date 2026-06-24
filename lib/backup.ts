@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import { db } from "./db";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const BACKUPS_DIR = path.join(process.cwd(), "data", "backups");
 
 export interface BackupFile {
@@ -81,10 +81,12 @@ export async function runBackup(): Promise<string> {
   const password = decodeURIComponent(dbUrl.password || "");
   const database = dbUrl.pathname.slice(1) || "rsvp-to-me";
 
-  const cmd = `pg_dump -h "${host}" -p "${port}" -U "${username}" -f "${outputPath}" "${database}"`;
-
   try {
-    await execAsync(cmd, { env: { ...process.env, PGPASSWORD: password } });
+    await execFileAsync(
+      "pg_dump",
+      ["-h", host, "-p", port, "-U", username, "-f", outputPath, database],
+      { env: { ...process.env, PGPASSWORD: password } }
+    );
     console.log(`[backup] PostgreSQL backup successful: ${filename}`);
   } catch (err) {
     console.error("[backup] pg_dump execution failed:", err);
