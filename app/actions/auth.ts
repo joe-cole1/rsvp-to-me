@@ -67,14 +67,15 @@ export async function sendMagicLinkAction(
   const isPhone = looksLikePhone(identifier);
   const link = await createMagicLink(identifier, redirect);
 
-  // Return success even if user not found to prevent user enumeration (M-1)
-  if (link) {
-    if (isPhone) {
-      const phone = identifier.trim().replace(/[\s\-().]/g, "");
-      await sendMagicLinkSms(phone, link);
-    } else {
-      await sendMagicLinkEmail(identifier.toLowerCase().trim(), link);
-    }
+  if (!link) {
+    return { success: false, error: "email_not_found" };
+  }
+
+  if (isPhone) {
+    const phone = identifier.trim().replace(/[\s\-().]/g, "");
+    await sendMagicLinkSms(phone, link);
+  } else {
+    await sendMagicLinkEmail(identifier.toLowerCase().trim(), link);
   }
 
   return { success: true };

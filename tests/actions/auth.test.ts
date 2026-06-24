@@ -66,12 +66,22 @@ describe("sendMagicLinkAction", () => {
     expect(result.error).toContain("Too many sign-in requests for this email/phone");
   });
 
-  it("returns success:true when user not found (createMagicLink returns null) — anti-enumeration", async () => {
+  it("returns email_not_found and sends no email when user is not found", async () => {
     mocks.mockCreateMagicLink.mockResolvedValue(null);
 
     const result = await sendMagicLinkAction("notfound@example.com");
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("email_not_found");
     expect(mocks.mockSendMagicLinkEmail).not.toHaveBeenCalled();
+  });
+
+  it("sends email and returns success:true when user is found regardless of redirect", async () => {
+    const link = "http://localhost:3000/auth/verify?token=abc&redirect=%2Fe%2Fpanton-wine-night";
+    mocks.mockCreateMagicLink.mockResolvedValue(link);
+
+    const result = await sendMagicLinkAction("host@example.com", "/e/panton-wine-night");
+    expect(result.success).toBe(true);
+    expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith("host@example.com", link);
   });
 
   it("calls sendMagicLinkEmail when input is an email and user exists", async () => {
