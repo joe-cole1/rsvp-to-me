@@ -669,6 +669,15 @@ export async function saveCoverImage(eventId: string, url: string) {
   revalidatePath(`/e/${event.slug}`);
 }
 
+export async function removeCoverImage(eventId: string) {
+  const event = await assertHost(eventId);
+  await db.eventTheme.update({
+    where: { eventId },
+    data: { coverImageUrl: null },
+  });
+  revalidatePath(`/e/${event.slug}`);
+}
+
 // ── RSVP approval ─────────────────────────────────────────────────────────────
 
 export async function approveRsvp(rsvpId: string, message?: string) {

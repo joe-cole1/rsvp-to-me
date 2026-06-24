@@ -33,7 +33,7 @@ function compressImage(file: File, maxW = 1600, maxH = 900, quality = 0.85): Pro
 }
 import { Plus, MapPin, Video, Users, MessageSquare, Send, X, Check, ExternalLink, Shirt, UtensilsCrossed, ParkingCircle, Link2, FileText, Pencil, Info, Music, Gift, Bed, Calendar, CalendarPlus, Sparkles, Camera, Phone, DollarSign, Wallet, Settings } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, castVote, addPollOption, inviteFriendAsGuest } from "@/app/actions/event";
+import { saveEventField, saveEventDates, saveEventLocation, saveCoverImage, removeCoverImage, addComment, addInfoSection, updateInfoSection, removeInfoSection, approveRsvp, declineRsvp, addEventUpdate, deleteEventUpdate, claimPotluckItem, unclaimPotluckItem, deleteActivityEvent, castVote, addPollOption, inviteFriendAsGuest } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import QRCode from "qrcode";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
@@ -1053,6 +1053,16 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
 
   const [uploadStatus, setUploadStatus] = useState<"idle" | "compressing" | "uploading">("idle");
 
+  const handleCoverRemove = async () => {
+    startTransition(async () => {
+      await removeCoverImage(event.id);
+      setEvent((ev) => ({
+        ...ev,
+        theme: ev.theme ? { ...ev.theme, coverImageUrl: null } : ev.theme,
+      }));
+    });
+  };
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1495,23 +1505,34 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
         </div>
 
         {/* ── Cover image ── */}
-        <div
-          style={{ ...coverStyle, width: "100%", height: "260px", borderRadius: "20px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", boxShadow: t.pageDecoration === "dark-orbs" ? `0 0 60px ${t.accentBg}` : t.pageDecoration === "soft-blobs" ? "0 20px 60px rgba(0,0,0,0.08)" : "none" }}
-        >
-          {!event.theme?.coverImageUrl && <span style={{ fontSize: "72px" }}>🎉</span>}
-          {isHost && coverUploadEnabled && (
-            <div style={{ position: "absolute", top: "12px", right: "12px", display: "flex", gap: "6px" }}>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
-              >
-                {uploadStatus === "compressing" ? "Compressing…" : uploadStatus === "uploading" ? "Uploading…" : "📷 Cover"}
-              </button>
-            </div>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCoverUpload} />
-        </div>
+        {(event.theme?.coverImageUrl || isHost) && (
+          <div
+            style={{ ...coverStyle, width: "100%", height: "260px", borderRadius: "20px", marginBottom: "32px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", boxShadow: t.pageDecoration === "dark-orbs" ? `0 0 60px ${t.accentBg}` : t.pageDecoration === "soft-blobs" ? "0 20px 60px rgba(0,0,0,0.08)" : "none" }}
+          >
+            {!event.theme?.coverImageUrl && <span style={{ fontSize: "72px" }}>🎉</span>}
+            {isHost && coverUploadEnabled && (
+              <div style={{ position: "absolute", top: "12px", right: "12px", display: "flex", gap: "6px" }}>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isUploading ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isUploading ? 0.7 : 1 }}
+                >
+                  {uploadStatus === "compressing" ? "Compressing…" : uploadStatus === "uploading" ? "Uploading…" : "📷 Cover"}
+                </button>
+                {event.theme?.coverImageUrl && (
+                  <button
+                    onClick={handleCoverRemove}
+                    disabled={isPending}
+                    style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: isPending ? "not-allowed" : "pointer", color: "#fff", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", opacity: isPending ? 0.7 : 1 }}
+                  >
+                    🗑 Remove
+                  </button>
+                )}
+              </div>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCoverUpload} />
+          </div>
+        )}
 
         {/* ── Date badges (inline editable for host) ── */}
         <DateEdit
