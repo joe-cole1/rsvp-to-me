@@ -35,6 +35,7 @@ function TokenError() {
 export default function SignInForm({ openRegistration, redirect }: { openRegistration: boolean; redirect?: string }) {
   const [identifier, setIdentifier] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -43,10 +44,13 @@ export default function SignInForm({ openRegistration, redirect }: { openRegistr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotFound(false);
     setLoading(true);
     const result = await sendMagicLinkAction(identifier, redirect);
     setLoading(false);
-    if (result.success) {
+    if (result.error === "email_not_found") {
+      setNotFound(true);
+    } else if (result.success) {
       setSubmitted(true);
     } else {
       setError(result.error ?? "Something went wrong.");
@@ -74,6 +78,23 @@ export default function SignInForm({ openRegistration, redirect }: { openRegistr
                 We sent a magic link to <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong>.
                 Click it to sign in — it expires in 15 minutes.
               </p>
+            </div>
+          ) : notFound ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
+              <h2 style={{ color: APP_SHELL.textPrimary, fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
+                Email not found
+              </h2>
+              <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", lineHeight: 1.6, marginBottom: "20px" }}>
+                <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong> isn&apos;t linked to an account.
+                If you expect to have access, contact the host to request an invitation.
+              </p>
+              <button
+                onClick={() => { setNotFound(false); setIdentifier(""); }}
+                style={{ background: "transparent", border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: APP_SHELL.btnRadius, color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "14px", fontWeight: 600, padding: "10px 20px", fontFamily: "inherit" }}
+              >
+                Try a different email
+              </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
