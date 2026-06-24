@@ -28,6 +28,7 @@ type InvitedGuest = {
   channel: "EMAIL" | "SMS";
   sentAt: string;
   guestName?: string;
+  editToken?: string;
 };
 
 type Filter = "ALL" | "GOING" | "MAYBE" | "NO" | "INVITED" | "PENDING";
@@ -37,7 +38,7 @@ export function GuestListFilter({
   maybe: initialMaybe,
   no: initialNo,
   pending: initialPending = [],
-  invited,
+  invited: initialInvited,
   isHost,
   slug,
   t,
@@ -56,6 +57,7 @@ export function GuestListFilter({
   const [maybe, setMaybe] = useState(initialMaybe);
   const [no, setNo] = useState(initialNo);
   const [pending, setPending] = useState(initialPending);
+  const [invited, setInvited] = useState(initialInvited);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -74,11 +76,11 @@ export function GuestListFilter({
     [];
   
   const chips: { key: Filter; label: string; count: number }[] = [
-    { key: "ALL",     label: "All",           count: allRsvps.length + (isHost ? invited.length : 0) },
-    { key: "GOING",   label: "Going",         count: going.length },
-    { key: "MAYBE",   label: "Maybe",         count: maybe.length },
-    { key: "NO",      label: "Can't make it", count: no.length },
-    ...(isHost ? [{ key: "PENDING" as Filter, label: "Pending", count: pending.length }] : []),
+    { key: "ALL",     label: "All",             count: allRsvps.length + (isHost ? invited.length : 0) },
+    ...(isHost ? [{ key: "PENDING" as Filter, label: "Pending Approval", count: pending.length }] : []),
+    { key: "GOING",   label: "Going",           count: going.length },
+    { key: "MAYBE",   label: "Maybe",           count: maybe.length },
+    { key: "NO",      label: "Can't make it",   count: no.length },
     ...(isHost ? [{ key: "INVITED" as Filter, label: "Invited", count: invited.length }] : []),
   ];
 
@@ -139,6 +141,16 @@ export function GuestListFilter({
           }
           // INVITED: remove from pending only; page revalidates to show in Invited tab
         }
+      }
+    });
+  };
+
+  const handleDeleteInvited = (id: string) => {
+    if (!confirm("Remove this guest? This cannot be undone.")) return;
+    startTransition(async () => {
+      const result = await deleteRsvpAsHost(id);
+      if (result.success) {
+        setInvited((prev) => prev.filter((inv) => inv.id !== id));
       }
     });
   };
@@ -308,7 +320,7 @@ export function GuestListFilter({
           ))}
 
           {filter === "INVITED" && invited.map((inv) => (
-            <div key={inv.id} style={{ ...cardStyle, alignItems: "center", opacity: 0.75 }}>
+            <div key={inv.id} style={{ ...cardStyle, alignItems: "flex-start" }}>
               <div style={{
                 width: "38px", height: "38px", borderRadius: "50%",
                 background: t.pillBg, border: `1px solid ${t.cardBorder}`,
@@ -318,15 +330,21 @@ export function GuestListFilter({
                 ✉
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                {inv.guestName && (
-                  <div style={{ fontWeight: 700, fontSize: "14px", marginBottom: "2px" }}>
-                    {inv.guestName}
-                  </div>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  {inv.guestName && (
+                    <span style={{ fontWeight: 700, fontSize: "15px" }}>{inv.guestName}</span>
+                  )}
+                  <span style={{
+                    fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "99px",
+                    background: t.pillBg, color: t.textMuted, whiteSpace: "nowrap", flexShrink: 0,
+                  }}>
+                    No reply
+                  </span>
+                </div>
                 <div style={{
-                  fontWeight: inv.guestName ? 400 : 600, fontSize: "14px",
+                  fontSize: "14px", marginTop: "2px",
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  color: inv.guestName ? t.textMuted : "inherit",
+                  color: t.textMuted,
                 }}>
                   {inv.sentTo}
                 </div>
@@ -335,12 +353,32 @@ export function GuestListFilter({
                   {new Date(inv.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </div>
               </div>
-              <span style={{
-                fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "99px",
-                background: t.pillBg, color: t.textMuted, whiteSpace: "nowrap", flexShrink: 0,
-              }}>
-                No reply
-              </span>
+              {isHost && inv.editToken && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                  <a
+                    href={`/e/${slug}/rsvp?token=${inv.editToken}&return=guests`}
+                    style={{
+                      fontSize: "11px", fontWeight: 600, padding: "4px 10px",
+                      background: t.inputBg, border: `1px solid ${t.cardBorder}`,
+                      borderRadius: "8px", color: t.textSecondary, textDecoration: "none",
+                      display: "block", textAlign: "center",
+                    }}
+                  >
+                    Edit
+                  </a>
+                  <button
+                    onClick={() => handleDeleteInvited(inv.id)}
+                    style={{
+                      fontSize: "11px", fontWeight: 600, padding: "4px 10px",
+                      background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
+                      borderRadius: "8px", color: "#f87171", cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
