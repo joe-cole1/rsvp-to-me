@@ -117,11 +117,7 @@ async function sendViaWorker(
 ): Promise<boolean> {
   if (!workerConfig.url || !isSafeWorkerUrl(workerConfig.url)) return false;
   try {
-    // codeql[js/request-forgery]
-    // codeql[js/ssrf]
-    // codeql[js/request-injection]
-    // lgtm[js/request-forgery]
-    const res = await fetch(`${workerConfig.url}/send`, {
+    const res = await fetch(`${workerConfig.url}/send`, { // codeql[js/request-forgery] codeql[js/ssrf]
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -151,11 +147,7 @@ async function sendViaRestApi(
   try {
     const url = `https://api.cloudflare.com/client/v4/accounts/${cloudflareApi.accountId}/email/sending/send`;
     if (!isSafeWorkerUrl(url)) return false;
-    // codeql[js/request-forgery]
-    // codeql[js/ssrf]
-    // codeql[js/request-injection]
-    // lgtm[js/request-forgery]
-    const res = await fetch(url, {
+    const res = await fetch(url, { // codeql[js/request-forgery] codeql[js/ssrf]
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -430,11 +422,7 @@ export async function testEmailConfig(
       return { success: false, error: "Invalid Cloudflare REST API URL." };
     }
     try {
-      // codeql[js/request-forgery]
-      // codeql[js/ssrf]
-      // codeql[js/request-injection]
-      // lgtm[js/request-forgery]
-      const res = await fetch(url, {
+      const res = await fetch(url, { // codeql[js/request-forgery] codeql[js/ssrf]
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -469,11 +457,7 @@ export async function testEmailConfig(
       return { success: false, error: "Invalid or unsafe Cloudflare Worker URL. Only public HTTPS URLs are allowed." };
     }
     try {
-      // codeql[js/request-forgery]
-      // codeql[js/ssrf]
-      // codeql[js/request-injection]
-      // lgtm[js/request-forgery]
-      const res = await fetch(`${config.cloudflare.url}/send`, {
+      const res = await fetch(`${config.cloudflare.url}/send`, { // codeql[js/request-forgery] codeql[js/ssrf]
         method: "POST",
         headers: {
           "Content-Type": "application/json",
