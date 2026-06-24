@@ -1,9 +1,0 @@
-name: "RSVP to Me CodeQL Config"
-
-# js/request-forgery (SSRF) is excluded because all outbound HTTP calls in this
-# codebase go through isSafeWorkerUrl(), which blocks localhost, private ranges,
-# and non-HTTPS URLs. CodeQL does not recognise isSafeWorkerUrl as a sanitizer,
-# producing false positives in lib/email.ts. Real SSRF risk does not exist here.
-query-filters:
-  - exclude:
-      id: js/request-forgery
