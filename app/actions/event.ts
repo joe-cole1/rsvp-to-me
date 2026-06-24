@@ -11,19 +11,20 @@ import { tzLocalToUtc } from "@/lib/utils";
 import { AddRsvpSchema, UpdateRsvpSchema, AddCommentSchema } from "@/lib/schemas";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
+import bcrypt from "bcryptjs";
 
 export async function verifyEventPassword(slug: string, rawPassword: string): Promise<{ success: boolean; error?: string }> {
   const event = await db.event.findUnique({
     where: { slug },
-    select: { password: true }
+    select: { passwordHash: true }
   });
-  
+
   if (!event) {
     return { success: false, error: "Event not found." };
   }
-  
+
   const password = rawPassword.trim();
-  if (event.password !== password) {
+  if (!event.passwordHash || !await bcrypt.compare(password, event.passwordHash)) {
     return { success: false, error: "Incorrect password." };
   }
   
@@ -412,10 +413,16 @@ export async function saveEventSettings(
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHost(eventId);
+  const { password, ...rest } = settings;
+  const passwordHash =
+    password === undefined ? undefined :
+    password === null || password === "" ? null :
+    await bcrypt.hash(password, 10);
   await db.event.update({
     where: { id: eventId },
     data: {
-      ...settings,
+      ...rest,
+      ...(passwordHash !== undefined ? { passwordHash } : {}),
       rsvpDeadline: settings.rsvpDeadline ? new Date(settings.rsvpDeadline) : settings.rsvpDeadline === null ? null : undefined,
     },
   });

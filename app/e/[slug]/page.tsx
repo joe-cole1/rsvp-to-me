@@ -110,7 +110,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   // Block / gate access to PRIVATE events
   if (event.visibility === "PRIVATE" && !isHost && !isUnlocked && !hasValidToken) {
-    if (event.password) {
+    if (event.passwordHash) {
       // Password is a valid access path — show the entry form
       return <PasswordGate slug={slug} />;
     }
@@ -145,7 +145,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   }
 
   // Password gate for non-private events with a password — hosts bypass it
-  if (event.password && !isHost && !isUnlocked) {
+  if (event.passwordHash && !isHost && !isUnlocked) {
     return <PasswordGate slug={slug} />;
   }
 

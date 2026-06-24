@@ -89,7 +89,7 @@ type EventInput = {
   maybeEnabled: boolean;
   questionnaireEnabled: boolean;
   showTimestamps: boolean;
-  password: string | null;
+  passwordHash: string | null;
   theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null; appliedPresetId?: string | null; cardOpacity?: number | null } | null;
   reminderSettings: {
     emailWeekBefore: boolean; emailDayBefore: boolean; emailHoursBefore: number;
@@ -209,7 +209,8 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
   const [guestListVis, setGuestListVis] = useState(event.guestListVis);
   const [showTimestamps, setShowTimestamps] = useState(event.showTimestamps);
   const [visibility, setVisibility] = useState(event.visibility);
-  const [password, setPassword] = useState(event.password ?? "");
+  const [password, setPassword] = useState("");
+  const [passwordDirty, setPasswordDirty] = useState(false);
 
   // ── Reminders State ──
   const rs = event.reminderSettings;
@@ -357,7 +358,11 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
       guestListVis: overrides.guestListVis !== undefined ? overrides.guestListVis : guestListVis,
       showTimestamps: overrides.showTimestamps !== undefined ? overrides.showTimestamps : showTimestamps,
       visibility: overrides.visibility !== undefined ? overrides.visibility : visibility,
-      password: overrides.password !== undefined ? overrides.password : (password.trim() || null),
+      ...(overrides.password !== undefined
+        ? { password: overrides.password }
+        : passwordDirty
+          ? { password: password.trim() || null }
+          : {}),
       questionnaireEnabled: overrides.questionnaireEnabled !== undefined ? overrides.questionnaireEnabled : questionnaireEnabled,
     };
     startTransition(async () => {
@@ -1454,7 +1459,7 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
                   type="text"
                   placeholder="Leave blank for no password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setPasswordDirty(true); }}
                   onBlur={() => {
                     triggerSaveSettings({ password: password.trim() || null });
                   }}
@@ -1467,7 +1472,12 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
                   style={S.inp}
                   autoComplete="off"
                 />
-                {password && <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>}
+                {event.passwordHash && !passwordDirty
+                  ? <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Password is set. Enter a new value to change it, or clear to remove.</div>
+                  : password
+                    ? <div style={{ fontSize: "12px", color: t.textMuted, marginTop: "6px" }}>Guests must enter this password to view the event.</div>
+                    : null
+                }
               </div>
             )}
           </Section>
