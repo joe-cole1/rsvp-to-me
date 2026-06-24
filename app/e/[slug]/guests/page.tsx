@@ -130,6 +130,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
                 channel: (r.guestEmail ? "EMAIL" : "SMS") as "EMAIL" | "SMS",
                 sentAt: r.createdAt.toISOString(),
                 guestName: r.guestName,
+                editToken: r.editToken,
               })),
               // Invitation records with no linked RSVP (blast tracking)
               ...pendingInvitations.map((inv) => ({

@@ -208,63 +208,79 @@ export function HostBar({
         <SlideUp
           onClose={() => { setActivePanel(null); setInviteInput(""); setInviteStatus(null); }}
           title="Invite Guests"
-          onOpen={async () => {
+          onOpen={visibility !== "PRIVATE" ? async () => {
             if (typeof window !== "undefined") {
               try {
                 const url = await QRCode.toDataURL(window.location.href, { width: 220, margin: 1, color: { dark: "#000", light: "#fff" } });
                 setQrDataUrl(url);
               } catch { /* no-op */ }
             }
-          }}
+          } : undefined}
         >
-          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
-            Share the event link or send invites directly.
-          </p>
-          <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", marginBottom: "12px", wordBreak: "break-all", color: "rgba(255,255,255,0.9)" }}>
-            {typeof window !== "undefined" ? window.location.href : ""}
-          </div>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-            <button
-              onClick={() => {
-                if (typeof navigator !== "undefined") {
-                  navigator.clipboard.writeText(window.location.href);
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2000);
-                }
-              }}
-              style={{
-                flex: 1, padding: "12px",
-                background: copiedLink ? "#22c55e" : t.accent,
-                color: "#ffffff",
-                border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                transition: "all 0.15s ease-in-out"
-              }}
-            >
-              {copiedLink ? <Check size={16} /> : null}
-              {copiedLink ? "Copied!" : "Copy Link"}
-            </button>
-            {qrDataUrl && (
+          {visibility === "PRIVATE" ? (
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "10px", lineHeight: 1.6 }}>
+                This is a private event. Guests must be invited directly via email or SMS.
+              </p>
               <a
-                href={qrDataUrl}
-                download="event-qr.png"
-                style={{ padding: "12px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "rgba(255,255,255,0.8)", fontSize: "13px", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", whiteSpace: "nowrap" }}
+                href={`/e/${eventSlug}/settings?section=privacy`}
+                style={{ color: t.accent, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
               >
-                ↓ QR
+                Change in Display Options →
               </a>
-            )}
-          </div>
-          {qrDataUrl && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-              <Image 
-                src={qrDataUrl} 
-                alt="Event QR code" 
-                width={160} 
-                height={160} 
-                unoptimized
-                style={{ borderRadius: "12px" }} 
-              />
             </div>
+          ) : (
+            <>
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
+                Share the event link or send invites directly.
+              </p>
+              <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", marginBottom: "12px", wordBreak: "break-all", color: "rgba(255,255,255,0.9)" }}>
+                {typeof window !== "undefined" ? window.location.href : ""}
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+                <button
+                  onClick={() => {
+                    if (typeof navigator !== "undefined") {
+                      navigator.clipboard.writeText(window.location.href);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: "12px",
+                    background: copiedLink ? "#22c55e" : t.accent,
+                    color: "#ffffff",
+                    border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                    transition: "all 0.15s ease-in-out"
+                  }}
+                >
+                  {copiedLink ? <Check size={16} /> : null}
+                  {copiedLink ? "Copied!" : "Copy Link"}
+                </button>
+                {qrDataUrl && (
+                  <a
+                    href={qrDataUrl}
+                    download="event-qr.png"
+                    style={{ padding: "12px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "rgba(255,255,255,0.8)", fontSize: "13px", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", whiteSpace: "nowrap" }}
+                  >
+                    ↓ QR
+                  </a>
+                )}
+              </div>
+              {qrDataUrl && (
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+                  <Image
+                    src={qrDataUrl}
+                    alt="Event QR code"
+                    width={160}
+                    height={160}
+                    unoptimized
+                    style={{ borderRadius: "12px" }}
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {/* Direct Invite Form */}
@@ -447,6 +463,14 @@ export function HostBar({
               );
             })}
           </div>
+          <a
+            href={`/e/${eventSlug}/settings?section=privacy`}
+            style={{ display: "block", textAlign: "center", marginTop: "16px", color: "rgba(255,255,255,0.35)", fontSize: "13px", textDecoration: "none" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.65)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.35)"; }}
+          >
+            More options in settings →
+          </a>
         </SlideUp>
       )}
 
