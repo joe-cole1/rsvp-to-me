@@ -212,6 +212,28 @@ export function RsvpFlow({
     return null;
   };
 
+  const renderNav = () => (
+    <AppNavLogo
+      href="/dashboard"
+      leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
+      trailing={sessionUser ? (
+        <ProfileDropdown user={sessionUser} />
+      ) : undefined}
+      style={{
+        position: "fixed",
+        top: 0, left: 0, right: 0,
+        zIndex: 200,
+        background: "rgba(15,15,20,0.9)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        color: "#ffffff",
+        padding: "0 16px",
+        height: "53px",
+      }}
+    />
+  );
+
   // ── Done screen ────────────────────────────────────────────────────────
   if (done) {
     return (
@@ -326,28 +348,6 @@ export function RsvpFlow({
       </div>
     );
   }
-
-  const renderNav = () => (
-    <AppNavLogo
-      href="/dashboard"
-      leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
-      trailing={sessionUser ? (
-        <ProfileDropdown user={sessionUser} />
-      ) : undefined}
-      style={{
-        position: "fixed",
-        top: 0, left: 0, right: 0,
-        zIndex: 200,
-        background: "rgba(15,15,20,0.9)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        color: "#ffffff",
-        padding: "0 16px",
-        height: "53px",
-      }}
-    />
-  );
 
   // ── Shared layout wrapper ─────────────────────────────────────────────────────
   const S = {
