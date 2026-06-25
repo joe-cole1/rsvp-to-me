@@ -9,6 +9,7 @@ import { isOpenRegistrationActive } from "@/lib/auth";
 import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import AdminHamburger from "@/components/ui/AdminHamburger";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
@@ -42,6 +43,7 @@ export default async function DashboardPage() {
     <AppShell>
       <AppNavLogo
         href="/dashboard"
+        leading={userExists.role === "ADMIN" ? <AdminHamburger /> : undefined}
         trailing={
           <ProfileDropdown
             user={{

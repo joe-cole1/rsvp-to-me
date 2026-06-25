@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
+import { AppNavLogo } from "@/components/ui/AppNav";
+import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import AdminHamburger from "@/components/ui/AdminHamburger";
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const { slug } = await props.params;
@@ -33,6 +36,16 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
   const isHostOwner = session?.userId === event.hostId;
   const isCohost = event.coHosts.some((ch) => ch.userId === session?.userId);
   const isHost = isHostOwner || isCohost;
+
+  const dbUser = session
+    ? await db.user.findUnique({
+        where: { id: session.userId },
+        select: { email: true, name: true, avatarUrl: true, role: true },
+      })
+    : null;
+  const sessionUser = dbUser
+    ? { email: dbUser.email ?? session!.email, name: dbUser.name, avatarUrl: dbUser.avatarUrl, role: dbUser.role as "GUEST" | "HOST" | "ADMIN" }
+    : null;
 
   if (event.guestListVis === "HOST_ONLY" && !isHost) redirect(`/e/${slug}`);
 
@@ -74,6 +87,23 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
 
   return (
     <div style={{ minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", position: "relative", overflowX: "hidden" }}>
+      <AppNavLogo
+        href="/dashboard"
+        leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
+        trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
+        style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0,
+          zIndex: 200,
+          background: "rgba(15,15,20,0.9)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          color: "#ffffff",
+          padding: "0 16px",
+          height: "53px",
+        }}
+      />
       {/* Background decorations */}
       {t.pageDecoration === "dark-orbs" && (
         <>
@@ -91,7 +121,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: t.pageDecorationBg1, zIndex: 0 }} />
       )}
 
-      <div style={{ maxWidth: "600px", margin: "0 auto", padding: "32px 16px 80px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: "600px", margin: "0 auto", padding: "85px 16px 80px", position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div style={{ marginBottom: "28px" }}>
           <Link href={`/e/${slug}`} style={{

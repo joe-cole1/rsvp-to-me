@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Menu, X } from "lucide-react";
-import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";import { AppShell } from "@/components/ui/AppShell";
+import { Eye, EyeOff, X } from "lucide-react";
+import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";
+import { AppShell } from "@/components/ui/AppShell";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import AdminHamburger from "@/components/ui/AdminHamburger";
 import {
   updateUserRole,
   deleteUserAccount,
@@ -787,32 +789,8 @@ function extractRawEmail(fromStr) {
     <AppShell>
       <AppNavLogo
         href="/dashboard"
-        trailing={
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {sessionUser && <ProfileDropdown user={sessionUser} />}
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(true)}
-              className="lg:hidden"
-              style={{
-                background: "rgba(255, 255, 255, 0.08)",
-                border: `1px solid ${APP_SHELL.inputBorder}`,
-                borderRadius: "8px",
-                color: APP_SHELL.textPrimary,
-                padding: "8px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background-color 0.2s",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)"}
-            >
-              <Menu size={20} />
-            </button>
-          </div>
-        }
+        leading={<AdminHamburger />}
+        trailing={sessionUser && <ProfileDropdown user={sessionUser} />}
       />
 
       <div

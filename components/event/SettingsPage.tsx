@@ -2,6 +2,11 @@
 
 import { useState, useTransition, useEffect, useMemo } from "react";
 import { ArrowLeft, Check, Eye, EyeOff, Plus, X } from "lucide-react";
+import { AppNavLogo } from "@/components/ui/AppNav";
+import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import AdminHamburger from "@/components/ui/AdminHamburger";
+
+export type SessionUser = { email: string; name: string | null; avatarUrl: string | null; role: "GUEST" | "HOST" | "ADMIN" };
 import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, resolveTheme, type ResolvedTheme, getSortedPresets } from "@/lib/theme";
 import {
   saveEventSettings,
@@ -174,7 +179,7 @@ type DbThemePreset = {
   defaultSnapshot?: unknown;
 };
 
-export function SettingsPage({ event, isOwner, themePresets = [] }: { event: EventInput; isOwner: boolean; themePresets?: DbThemePreset[] }) {
+export function SettingsPage({ event, isOwner, themePresets = [], sessionUser = null }: { event: EventInput; isOwner: boolean; themePresets?: DbThemePreset[]; sessionUser?: SessionUser | null }) {
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED" | "ERROR">("IDLE");
   const [err, setErr] = useState<string | null>(null);
@@ -772,8 +777,8 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
 
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "120px", position: "relative" as const, overflowX: "hidden" as const },
-    container: { maxWidth: "480px", margin: "0 auto", padding: "24px 16px 80px", position: "relative" as const, zIndex: 1 },
-    header: { position: "sticky" as const, top: 0, background: t.cardBg, borderBottom: `1px solid ${t.cardBorder}`, padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", zIndex: 10, backdropFilter: "blur(14px)" },
+    container: { maxWidth: "480px", margin: "0 auto", padding: "110px 16px 80px", position: "relative" as const, zIndex: 1 },
+    header: { position: "sticky" as const, top: "53px", background: t.cardBg, borderBottom: `1px solid ${t.cardBorder}`, padding: "12px 20px", display: "flex", alignItems: "center", gap: "12px", zIndex: 10, backdropFilter: "blur(14px)" },
     inp: { width: "100%", padding: "10px 14px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", color: t.textPrimary, fontFamily: "inherit", fontSize: "14px", outline: "none", boxSizing: "border-box", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" } as React.CSSProperties,
     smallBtn: { padding: "8px 16px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, whiteSpace: "nowrap" } as React.CSSProperties,
     av: { width: "32px", height: "32px", borderRadius: "50%", background: t.avatarGradient, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, fontSize: "13px", fontWeight: 700, color: t.accentFg, flexShrink: 0 },
@@ -810,7 +815,27 @@ export function SettingsPage({ event, isOwner, themePresets = [] }: { event: Eve
         }
       `}</style>
       {renderDecorations()}
-      
+
+      {/* ── Global nav ── */}
+      <AppNavLogo
+        href="/dashboard"
+        leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
+        trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
+        style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0,
+          zIndex: 200,
+          background: "rgba(15,15,20,0.9)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          color: "#ffffff",
+          padding: "0 16px",
+          height: "53px",
+        }}
+      />
+
+      {/* ── Settings sub-nav ── */}
       <div style={S.header}>
         <button
           onClick={() => {

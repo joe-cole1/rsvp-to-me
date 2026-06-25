@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { SettingsPage } from "@/components/event/SettingsPage";
 import { getActiveThemePresets } from "@/app/actions/event";
+import type { SessionUser } from "@/components/event/SettingsPage";
 
 export async function generateMetadata(props: PageProps<"/e/[slug]/settings">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -63,5 +64,13 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
 
   const themePresets = await getActiveThemePresets();
 
-  return <SettingsPage event={event as Parameters<typeof SettingsPage>[0]["event"]} isOwner={isOwner} themePresets={themePresets} />;
+  const dbUser = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { email: true, name: true, avatarUrl: true, role: true },
+  });
+  const sessionUser: SessionUser | null = dbUser
+    ? { email: dbUser.email ?? session.email, name: dbUser.name, avatarUrl: dbUser.avatarUrl, role: dbUser.role as "GUEST" | "HOST" | "ADMIN" }
+    : null;
+
+  return <SettingsPage event={event as Parameters<typeof SettingsPage>[0]["event"]} isOwner={isOwner} themePresets={themePresets} sessionUser={sessionUser} />;
 }
