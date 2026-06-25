@@ -5,9 +5,12 @@ import path from "path";
 const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
 
 const MIME: Record<string, string> = {
-  ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-  ".png": "image/png", ".gif": "image/gif",
-  ".webp": "image/webp", ".avif": "image/avif",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".avif": "image/avif",
 };
 
 export async function GET(

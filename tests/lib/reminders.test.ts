@@ -320,7 +320,10 @@ describe("processReminders — nudge", () => {
       where: { eventId: "event-1", channel: "EMAIL" },
       select: { sentTo: true },
     });
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(["alice@example.com"], expect.any(Object));
+    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(
+      ["alice@example.com"],
+      expect.any(Object)
+    );
   });
 
   it("nudge_email: skips when no uninvited emails", async () => {
@@ -332,9 +335,7 @@ describe("processReminders — nudge", () => {
       rsvps: [{ guestEmail: "bob@example.com", approved: true }],
     });
     mocks.mockEventFindMany.mockResolvedValue([event]);
-    mocks.mockInvitationFindMany.mockResolvedValue([
-      { sentTo: "bob@example.com" },
-    ]);
+    mocks.mockInvitationFindMany.mockResolvedValue([{ sentTo: "bob@example.com" }]);
 
     await processReminders();
     expect(mocks.mockSendBlastEmail).not.toHaveBeenCalled();

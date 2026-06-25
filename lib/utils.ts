@@ -11,8 +11,14 @@ export function tzLocalToUtc(localStr: string, tz: string): Date {
   const asIfUtc = new Date(localStr + ":00Z");
   const parts: Record<string, string> = {};
   for (const p of new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   }).formatToParts(asIfUtc)) {
     parts[p.type] = p.value;
   }

@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { getSession, destroySession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
@@ -15,10 +16,10 @@ export async function updateProfileSettings(data: {
   email?: string;
   phone?: string;
 }) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) throw new Error("Unauthorized");
 
-  const user = await db.user.findUnique({ where: { id: session.userId } });
+  const user = await db.user.findUnique({ where: { id: sessionUser.id } });
   if (!user) throw new Error("User not found");
 
   // Update name and avatar immediately
@@ -66,7 +67,9 @@ export async function updateProfileSettings(data: {
 
       const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
       await sendMagicLinkEmail(newEmail, verifyUrl);
-      messages.push("A verification link has been sent to your new email address. Please click it to confirm the change.");
+      messages.push(
+        "A verification link has been sent to your new email address. Please click it to confirm the change."
+      );
     }
   }
 
@@ -102,7 +105,9 @@ export async function updateProfileSettings(data: {
 
       const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
       await sendMagicLinkSms(newPhone, verifyUrl);
-      messages.push("A verification link has been sent to your new phone number. Please click it to confirm the change.");
+      messages.push(
+        "A verification link has been sent to your new phone number. Please click it to confirm the change."
+      );
     }
   }
 
@@ -130,11 +135,11 @@ export async function updateNotificationSettings(data: {
 }
 
 export async function getUserProfile() {
-  const session = await getSession();
-  if (!session) return null;
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) return null;
 
   const user = await db.user.findUnique({
-    where: { id: session.userId },
+    where: { id: sessionUser.id },
     select: {
       id: true,
       name: true,
@@ -151,7 +156,11 @@ export async function getUserProfile() {
 
   if (user) {
     const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-    if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
+    if (
+      initialAdminEmail &&
+      user.email?.toLowerCase().trim() === initialAdminEmail &&
+      user.role !== "ADMIN"
+    ) {
       const adminCount = await db.user.count({ where: { role: "ADMIN" } });
       if (adminCount === 0) {
         await db.user.update({

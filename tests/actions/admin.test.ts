@@ -125,7 +125,6 @@ vi.mock("@/lib/backup", () => ({
   getBackupKeepCount: mockGetBackupKeepCount,
 }));
 
-
 import {
   getAdminStats,
   getAdminUsers,
@@ -167,7 +166,11 @@ describe("app/actions/admin.ts", () => {
 
   describe("Admin operations (Authorized)", () => {
     beforeEach(() => {
-      mockGetSession.mockResolvedValue({ userId: ADMIN_ID, email: "admin@example.com", role: "ADMIN" });
+      mockGetSession.mockResolvedValue({
+        userId: ADMIN_ID,
+        email: "admin@example.com",
+        role: "ADMIN",
+      });
     });
 
     it("fetches system statistics", async () => {
@@ -208,7 +211,9 @@ describe("app/actions/admin.ts", () => {
     });
 
     it("prevents changing own admin role", async () => {
-      await expect(updateUserRole(ADMIN_ID, "HOST")).rejects.toThrow("You cannot change your own admin role.");
+      await expect(updateUserRole(ADMIN_ID, "HOST")).rejects.toThrow(
+        "You cannot change your own admin role."
+      );
     });
 
     it("schedules user account for deletion", async () => {
@@ -217,10 +222,15 @@ describe("app/actions/admin.ts", () => {
 
       const res = await deleteUserAccount("u-1");
       expect(res.success).toBe(true);
-      expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
-        where: { id: "u-1" },
-        data: expect.objectContaining({ deletionRequestedAt: expect.any(Date), deletionScheduledAt: expect.any(Date) }),
-      }));
+      expect(mockUserUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "u-1" },
+          data: expect.objectContaining({
+            deletionRequestedAt: expect.any(Date),
+            deletionScheduledAt: expect.any(Date),
+          }),
+        })
+      );
       expect(mockUserDelete).not.toHaveBeenCalled();
     });
 
@@ -259,7 +269,13 @@ describe("app/actions/admin.ts", () => {
     });
 
     it("manages invite codes", async () => {
-      const mockCode = { id: "c-1", code: "TEST_CODE", maxUses: null, expiresAt: null, note: "Note" };
+      const mockCode = {
+        id: "c-1",
+        code: "TEST_CODE",
+        maxUses: null,
+        expiresAt: null,
+        note: "Note",
+      };
       mockHostInviteCodeCreate.mockResolvedValue(mockCode);
 
       // Stub findUnique to ensure code doesn't exist yet
@@ -309,8 +325,10 @@ describe("app/actions/admin.ts", () => {
       // Stub db.systemConfig.findUnique for SMTP password, Cloudflare secret, and Cloudflare API token
       const mockFindUnique = vi.fn().mockImplementation(({ where }) => {
         if (where.key === "smtp_pass") return Promise.resolve({ value: "actual-smtp-password" });
-        if (where.key === "cloudflare_worker_api_secret") return Promise.resolve({ value: "actual-worker-secret" });
-        if (where.key === "cloudflare_api_token") return Promise.resolve({ value: "actual-cf-api-token" });
+        if (where.key === "cloudflare_worker_api_secret")
+          return Promise.resolve({ value: "actual-worker-secret" });
+        if (where.key === "cloudflare_api_token")
+          return Promise.resolve({ value: "actual-cf-api-token" });
         return Promise.resolve(null);
       });
       // Add mock to db
@@ -391,7 +409,12 @@ describe("app/actions/admin.ts", () => {
 
     it("tests SMS configuration", async () => {
       mockTestSmsConfig.mockResolvedValue({ success: true });
-      const res = await testSmsConfigAction({ sid: "sid", token: "token", phone: "phone", testTo: "to" });
+      const res = await testSmsConfigAction({
+        sid: "sid",
+        token: "token",
+        phone: "phone",
+        testTo: "to",
+      });
       expect(res).toEqual({ success: true });
     });
 
@@ -493,7 +516,18 @@ describe("app/actions/admin.ts", () => {
   describe("Non-admin access", () => {
     it("createThemePreset throws Forbidden for non-admin", async () => {
       mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
-      await expect(createThemePreset({ name: "x", emoji: "x", base: "DARK", gradientFrom: "#000", gradientTo: "#000", accentColor: "#000", seasonal: false, month: null })).rejects.toThrow("Forbidden");
+      await expect(
+        createThemePreset({
+          name: "x",
+          emoji: "x",
+          base: "DARK",
+          gradientFrom: "#000",
+          gradientTo: "#000",
+          accentColor: "#000",
+          seasonal: false,
+          month: null,
+        })
+      ).rejects.toThrow("Forbidden");
     });
 
     it("updateThemePreset throws Forbidden for non-admin", async () => {
@@ -507,4 +541,3 @@ describe("app/actions/admin.ts", () => {
     });
   });
 });
-

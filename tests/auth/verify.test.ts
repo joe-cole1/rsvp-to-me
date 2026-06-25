@@ -1,17 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const {
-  mockFindUniqueMagicToken,
-  mockUpdateMagicToken,
-  mockFindUniqueUser,
-  mockCreateSession,
-} = vi.hoisted(() => ({
-  mockFindUniqueMagicToken: vi.fn(),
-  mockUpdateMagicToken: vi.fn(),
-  mockFindUniqueUser: vi.fn(),
-  mockCreateSession: vi.fn(),
-}));
+const { mockFindUniqueMagicToken, mockUpdateMagicToken, mockFindUniqueUser, mockCreateSession } =
+  vi.hoisted(() => ({
+    mockFindUniqueMagicToken: vi.fn(),
+    mockUpdateMagicToken: vi.fn(),
+    mockFindUniqueUser: vi.fn(),
+    mockCreateSession: vi.fn(),
+  }));
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -220,7 +216,11 @@ describe("GET /auth/verify", () => {
         type: "LOGIN",
       });
       mockUpdateMagicToken.mockResolvedValue({});
-      mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "admin@example.com", role: "HOST" });
+      mockFindUniqueUser.mockResolvedValue({
+        id: "user1",
+        email: "admin@example.com",
+        role: "HOST",
+      });
 
       const res = await GET(makeRequest("valid-token"));
       expect(res.status).toBe(307);

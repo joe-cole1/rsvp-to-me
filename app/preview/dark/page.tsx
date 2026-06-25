@@ -79,7 +79,10 @@ export default function DarkPreview() {
         </div>
 
         {/* Title */}
-        <h1 className="text-4xl font-bold mb-2" style={{ letterSpacing: "-0.02em", fontFamily: t.headingFont }}>
+        <h1
+          className="text-4xl font-bold mb-2"
+          style={{ letterSpacing: "-0.02em", fontFamily: t.headingFont }}
+        >
           Wine Night ✨
         </h1>
 
@@ -108,8 +111,8 @@ export default function DarkPreview() {
 
         {/* Description */}
         <p className="mb-8 leading-relaxed" style={{ color: t.textSecondary }}>
-          Monthly wine night at my place! Bring a bottle you love and be ready to share what
-          you enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
+          Monthly wine night at my place! Bring a bottle you love and be ready to share what you
+          enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
           anything from Burgundy. 🍇
         </p>
 
@@ -231,7 +234,11 @@ export default function DarkPreview() {
           <h3 className="font-semibold mb-4">Vibes 💬</h3>
           <div className="space-y-3 mb-4">
             {[
-              { name: "Sarah", msg: "Cannot wait!! Bringing a Pinot I've been saving 🍷", time: "2h ago" },
+              {
+                name: "Sarah",
+                msg: "Cannot wait!! Bringing a Pinot I've been saving 🍷",
+                time: "2h ago",
+              },
               { name: "Mike", msg: "YES. Bringing something from Burgundy!", time: "1h ago" },
             ].map((c) => (
               <div key={c.name} className="flex gap-3">
@@ -246,7 +253,9 @@ export default function DarkPreview() {
                   style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
                 >
                   <span className="font-medium">{c.name}</span>
-                  <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{c.time}</span>
+                  <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>
+                    {c.time}
+                  </span>
                   <p style={{ color: t.textSecondary, marginTop: "2px" }}>{c.msg}</p>
                 </div>
               </div>
@@ -264,7 +273,11 @@ export default function DarkPreview() {
             />
             <button
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: t.accentBg, color: t.accent, border: `1px solid ${t.accentBorder}` }}
+              style={{
+                background: t.accentBg,
+                color: t.accent,
+                border: `1px solid ${t.accentBorder}`,
+              }}
             >
               Post
             </button>

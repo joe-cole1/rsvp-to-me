@@ -27,7 +27,10 @@ export function isSafeRedirect(path: string): boolean {
   );
 }
 
-export async function createMagicLink(identifier: string, redirect?: string): Promise<string | null> {
+export async function createMagicLink(
+  identifier: string,
+  redirect?: string
+): Promise<string | null> {
   let user;
 
   if (looksLikePhone(identifier)) {
@@ -55,9 +58,8 @@ export async function createMagicLink(identifier: string, redirect?: string): Pr
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const redirectSuffix = redirect && isSafeRedirect(redirect)
-    ? `&redirect=${encodeURIComponent(redirect)}`
-    : "";
+  const redirectSuffix =
+    redirect && isSafeRedirect(redirect) ? `&redirect=${encodeURIComponent(redirect)}` : "";
   return `${appUrl}/auth/verify?token=${token}${redirectSuffix}`;
 }
 
@@ -76,7 +78,7 @@ export async function isOpenRegistrationActive(): Promise<boolean> {
 export async function linkRsvpsToUser(userId: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { email: true, phone: true }
+    select: { email: true, phone: true },
   });
   if (!user) return;
 
@@ -101,16 +103,13 @@ export async function linkRsvpsToUser(userId: string) {
       AND: [
         { OR: conditions },
         {
-          OR: [
-            { userId: { not: userId } },
-            { userId: null }
-          ]
-        }
-      ]
+          OR: [{ userId: { not: userId } }, { userId: null }],
+        },
+      ],
     },
     data: {
-      userId: userId
-    }
+      userId: userId,
+    },
   });
 }
 
@@ -132,7 +131,11 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
 
   let role = user.role;
   const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-  if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
+  if (
+    initialAdminEmail &&
+    user.email?.toLowerCase().trim() === initialAdminEmail &&
+    user.role !== "ADMIN"
+  ) {
     const adminCount = await db.user.count({ where: { role: "ADMIN" } });
     if (adminCount === 0) {
       await db.user.update({
@@ -240,7 +243,10 @@ export async function registerHost(
   const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
     if (existing.role === "HOST" || existing.role === "ADMIN") {
-      return { success: false, error: "An account with this email already exists. Sign in with a magic link instead." };
+      return {
+        success: false,
+        error: "An account with this email already exists. Sign in with a magic link instead.",
+      };
     }
 
     // Upgrade guest to host
@@ -258,9 +264,7 @@ export async function registerHost(
       where: {
         code: inviteCode,
         active: true,
-        AND: [
-          { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
-        ],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
       },
     });
 
@@ -294,9 +298,7 @@ export async function registerHost(
     where: {
       code: inviteCode,
       active: true,
-      AND: [
-        { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
-      ],
+      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
     },
   });
 
@@ -315,4 +317,3 @@ export async function registerHost(
   await linkRsvpsToUser(newUser.id);
   return { success: true };
 }
-

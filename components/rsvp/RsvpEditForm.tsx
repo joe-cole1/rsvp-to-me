@@ -94,12 +94,17 @@ export function RsvpEditForm({
             {status === "GOING"
               ? "See you there!"
               : status === "MAYBE"
-              ? "We hope you can make it."
-              : "Sorry you can't make it."}
+                ? "We hope you can make it."
+                : "Sorry you can't make it."}
           </p>
           <a
             href={`/e/${event.slug}?token=${rsvp.editToken}`}
-            style={{ ...S.btn, display: "block", textDecoration: "none", textAlign: "center" as const }}
+            style={{
+              ...S.btn,
+              display: "block",
+              textDecoration: "none",
+              textAlign: "center" as const,
+            }}
           >
             View Event
           </a>
@@ -111,7 +116,9 @@ export function RsvpEditForm({
   return (
     <div style={S.page}>
       <div style={S.card}>
-        <p style={{ color: t.textMuted, fontSize: "13px", marginBottom: "4px" }}>Update your RSVP</p>
+        <p style={{ color: t.textMuted, fontSize: "13px", marginBottom: "4px" }}>
+          Update your RSVP
+        </p>
         <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "4px" }}>{event.title}</h1>
         <p style={{ color: t.textSecondary, fontSize: "14px", marginBottom: "24px" }}>
           {dateStr}
@@ -177,11 +184,18 @@ export function RsvpEditForm({
           </div>
         )}
 
-        <button onClick={save} disabled={isPending} style={{ ...S.btn, opacity: isPending ? 0.7 : 1 }}>
+        <button
+          onClick={save}
+          disabled={isPending}
+          style={{ ...S.btn, opacity: isPending ? 0.7 : 1 }}
+        >
           {isPending ? "Saving…" : "Save RSVP"}
         </button>
         <p style={{ textAlign: "center", marginTop: "12px" }}>
-          <a href={`/e/${event.slug}?token=${rsvp.editToken}`} style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none" }}>
+          <a
+            href={`/e/${event.slug}?token=${rsvp.editToken}`}
+            style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none" }}
+          >
             Back to event →
           </a>
         </p>

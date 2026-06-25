@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { resolveTheme } from "@/lib/theme";
 import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
 
@@ -13,16 +13,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { token, status, return: returnTo } = await searchParams;
 
-  const session = await getSession();
-  const dbUser = session
-    ? await db.user.findUnique({
-        where: { id: session.userId },
-        select: { email: true, name: true, avatarUrl: true, role: true },
-      })
-    : null;
-  const sessionUser = dbUser
-    ? { email: dbUser.email ?? session!.email, name: dbUser.name, avatarUrl: dbUser.avatarUrl, role: dbUser.role as "GUEST" | "HOST" | "ADMIN" }
-    : null;
+  const sessionUser = await getSessionUser();
 
   const validStatuses = ["GOING", "MAYBE", "NO"] as const;
   const initialStatus = validStatuses.find((s) => s === status?.toUpperCase());

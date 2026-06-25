@@ -2,7 +2,10 @@ import Link from "next/link";
 
 export default function PreviewIndex() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#fafafa" }}>
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{ background: "#fafafa" }}
+    >
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-2">Style Previews</h1>
         <p className="text-sm mb-8" style={{ color: "#71717a" }}>
@@ -11,8 +14,16 @@ export default function PreviewIndex() {
         <div className="flex gap-4 justify-center flex-wrap">
           {[
             { href: "/preview/dark", label: "🌑 Dark & Moody", desc: "Deep dark, glowing purples" },
-            { href: "/preview/soft", label: "🌸 Soft & Dreamy", desc: "Pastels, blurred gradients" },
-            { href: "/preview/bold", label: "⚡ Bold & Colorful", desc: "High-contrast, clean card" },
+            {
+              href: "/preview/soft",
+              label: "🌸 Soft & Dreamy",
+              desc: "Pastels, blurred gradients",
+            },
+            {
+              href: "/preview/bold",
+              label: "⚡ Bold & Colorful",
+              desc: "High-contrast, clean card",
+            },
           ].map((s) => (
             <Link
               key={s.href}
@@ -21,7 +32,9 @@ export default function PreviewIndex() {
               style={{ background: "#fff", border: "1px solid #e4e4e7" }}
             >
               <div className="text-lg mb-1">{s.label}</div>
-              <div className="text-sm" style={{ color: "#71717a" }}>{s.desc}</div>
+              <div className="text-sm" style={{ color: "#71717a" }}>
+                {s.desc}
+              </div>
             </Link>
           ))}
         </div>

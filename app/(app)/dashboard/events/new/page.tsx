@@ -24,7 +24,17 @@ const inputStyle: React.CSSProperties = {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: "14px" }}>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: APP_SHELL.textMuted, marginBottom: "6px" }}>
+      <label
+        style={{
+          display: "block",
+          fontSize: "12px",
+          fontWeight: 700,
+          textTransform: "none",
+          letterSpacing: "0.02em",
+          color: APP_SHELL.textMuted,
+          marginBottom: "6px",
+        }}
+      >
         {label}
       </label>
       {children}
@@ -34,8 +44,27 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: APP_SHELL.cardBg, border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: APP_SHELL.cardRadius, padding: "20px", marginBottom: "14px" }}>
-      <h2 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textMuted, textTransform: "none", letterSpacing: "0.02em", marginBottom: "16px" }}>{title}</h2>
+    <div
+      style={{
+        background: APP_SHELL.cardBg,
+        border: `1px solid ${APP_SHELL.cardBorder}`,
+        borderRadius: APP_SHELL.cardRadius,
+        padding: "20px",
+        marginBottom: "14px",
+      }}
+    >
+      <h2
+        style={{
+          fontSize: "14px",
+          fontWeight: 700,
+          color: APP_SHELL.textMuted,
+          textTransform: "none",
+          letterSpacing: "0.02em",
+          marginBottom: "16px",
+        }}
+      >
+        {title}
+      </h2>
       {children}
     </div>
   );
@@ -53,7 +82,12 @@ export default async function NewEventPage() {
             <input name="title" required placeholder="Wine Night at Jane's" style={inputStyle} />
           </Field>
           <Field label="Description">
-            <textarea name="description" placeholder="Come hang out! Bring a bottle to share." rows={3} style={{ ...inputStyle, resize: "vertical" }} />
+            <textarea
+              name="description"
+              placeholder="Come hang out! Bring a bottle to share."
+              rows={3}
+              style={{ ...inputStyle, resize: "vertical" }}
+            />
           </Field>
         </Card>
 
@@ -88,16 +122,40 @@ export default async function NewEventPage() {
 
         <Card title="Visibility">
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {([
-              ["UNLISTED", "Unlisted", "Only people with the link can see this"],
-              ["PUBLIC", "Public", "Anyone can find and view this event"],
-              ["PRIVATE", "Private", "Invite only — host must approve each RSVP"],
-            ] as const).map(([val, label, desc]) => (
-              <label key={val} style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "12px", background: APP_SHELL.cardBg, border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: "12px", cursor: "pointer" }}>
-                <input type="radio" name="visibility" value={val} defaultChecked={val === "UNLISTED"} style={{ marginTop: "2px", accentColor: APP_SHELL.accent }} />
+            {(
+              [
+                ["UNLISTED", "Unlisted", "Only people with the link can see this"],
+                ["PUBLIC", "Public", "Anyone can find and view this event"],
+                ["PRIVATE", "Private", "Invite only — host must approve each RSVP"],
+              ] as const
+            ).map(([val, label, desc]) => (
+              <label
+                key={val}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                  padding: "12px",
+                  background: APP_SHELL.cardBg,
+                  border: `1px solid ${APP_SHELL.cardBorder}`,
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="visibility"
+                  value={val}
+                  defaultChecked={val === "UNLISTED"}
+                  style={{ marginTop: "2px", accentColor: APP_SHELL.accent }}
+                />
                 <div>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: APP_SHELL.textPrimary }}>{label}</div>
-                  <div style={{ fontSize: "12px", color: APP_SHELL.textMuted, marginTop: "2px" }}>{desc}</div>
+                  <div style={{ fontSize: "14px", fontWeight: 600, color: APP_SHELL.textPrimary }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: "12px", color: APP_SHELL.textMuted, marginTop: "2px" }}>
+                    {desc}
+                  </div>
                 </div>
               </label>
             ))}
@@ -106,7 +164,18 @@ export default async function NewEventPage() {
 
         <button
           type="submit"
-          style={{ width: "100%", padding: "15px", background: APP_SHELL.accent, color: APP_SHELL.textPrimary, border: "none", borderRadius: APP_SHELL.btnRadius, fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+          style={{
+            width: "100%",
+            padding: "15px",
+            background: APP_SHELL.accent,
+            color: APP_SHELL.textPrimary,
+            border: "none",
+            borderRadius: APP_SHELL.btnRadius,
+            fontSize: "16px",
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
         >
           Create Event →
         </button>

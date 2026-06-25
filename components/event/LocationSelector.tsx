@@ -20,7 +20,17 @@ const inputStyle: React.CSSProperties = {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: "14px" }}>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: APP_SHELL.textMuted, marginBottom: "6px" }}>
+      <label
+        style={{
+          display: "block",
+          fontSize: "12px",
+          fontWeight: 700,
+          textTransform: "none",
+          letterSpacing: "0.02em",
+          color: APP_SHELL.textMuted,
+          marginBottom: "6px",
+        }}
+      >
         {label}
       </label>
       {children}
@@ -71,11 +81,7 @@ export default function LocationSelector() {
           >
             💻 Virtual
           </button>
-          <button
-            type="button"
-            style={tabStyle(type === "TBD")}
-            onClick={() => setType("TBD")}
-          >
+          <button type="button" style={tabStyle(type === "TBD")} onClick={() => setType("TBD")}>
             📌 TBD
           </button>
         </div>
@@ -87,19 +93,36 @@ export default function LocationSelector() {
             <input name="locationName" placeholder="Casa de Jane" style={inputStyle} />
           </Field>
           <Field label="Address">
-            <input name="locationAddress" placeholder="123 Main St, Brooklyn, NY" style={inputStyle} />
+            <input
+              name="locationAddress"
+              placeholder="123 Main St, Brooklyn, NY"
+              style={inputStyle}
+            />
           </Field>
         </>
       )}
 
       {type === "VIRTUAL" && (
         <Field label="Virtual link">
-          <input name="virtualUrl" type="url" placeholder="https://zoom.us/j/..." style={inputStyle} />
+          <input
+            name="virtualUrl"
+            type="url"
+            placeholder="https://zoom.us/j/..."
+            style={inputStyle}
+          />
         </Field>
       )}
 
       {type === "TBD" && (
-        <p style={{ fontSize: "13px", color: APP_SHELL.textMuted, marginTop: "6px", marginBottom: "14px", lineHeight: 1.4 }}>
+        <p
+          style={{
+            fontSize: "13px",
+            color: APP_SHELL.textMuted,
+            marginTop: "6px",
+            marginBottom: "14px",
+            lineHeight: 1.4,
+          }}
+        >
           We&apos;ll show &quot;To Be Determined (TBD)&quot; to guests until details are added.
         </p>
       )}

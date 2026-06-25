@@ -139,7 +139,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
     if (goingCount >= p.capacity) {
-      return twiml(`Sorry, ${p.eventTitle} is full. You can still reply MAYBE if you'd like to be waitlisted.`);
+      return twiml(
+        `Sorry, ${p.eventTitle} is full. You can still reply MAYBE if you'd like to be waitlisted.`
+      );
     }
   }
 
@@ -148,7 +150,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     data: { status: newStatus, responded: true },
   });
 
-  const statusLabel = newStatus === "GOING" ? "going" : newStatus === "MAYBE" ? "maybe" : "not going";
+  const statusLabel =
+    newStatus === "GOING" ? "going" : newStatus === "MAYBE" ? "maybe" : "not going";
   const editUrl = `${APP_URL}/e/${p.eventSlug}/rsvp?token=${p.editToken}`;
   return twiml(`Got it! You're ${statusLabel} for ${p.eventTitle}. Update anytime: ${editUrl}`);
 }

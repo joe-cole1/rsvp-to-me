@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession, destroySession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { generateUniqueSlug } from "@/lib/slug";
 import { tzLocalToUtc } from "@/lib/utils";
 import { CreateEventSchema } from "@/lib/schemas";
@@ -11,8 +12,8 @@ export async function createEvent(formData: FormData) {
   const session = await getSession();
   if (!session || session.role === "GUEST") throw new Error("Unauthorized");
 
-  const userExists = await db.user.findUnique({ where: { id: session.userId } });
-  if (!userExists) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
     await destroySession();
     redirect("/auth/sign-in");
   }
@@ -23,12 +24,12 @@ export async function createEvent(formData: FormData) {
     description: formData.get("description") as string | null,
     startDate: formData.get("startDate") as string,
     startTime: formData.get("startTime") as string,
-    timezone: formData.get("timezone") as string || "America/New_York",
-    locationType: formData.get("locationType") as string || "PHYSICAL",
+    timezone: (formData.get("timezone") as string) || "America/New_York",
+    locationType: (formData.get("locationType") as string) || "PHYSICAL",
     locationName: formData.get("locationName") as string | null,
     locationAddress: formData.get("locationAddress") as string | null,
     virtualUrl: formData.get("virtualUrl") as string | null,
-    visibility: formData.get("visibility") as string || "UNLISTED",
+    visibility: (formData.get("visibility") as string) || "UNLISTED",
   };
 
   const parsed = CreateEventSchema.parse(rawInput);
@@ -48,7 +49,7 @@ export async function createEvent(formData: FormData) {
       locationAddress: parsed.locationAddress,
       virtualUrl: parsed.virtualUrl,
       visibility: parsed.visibility,
-      hostId: session.userId,
+      hostId: sessionUser.id,
       status: "PUBLISHED",
     },
   });

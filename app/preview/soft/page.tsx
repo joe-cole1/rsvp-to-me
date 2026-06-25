@@ -50,7 +50,9 @@ export default function SoftPreview() {
             boxShadow: t.cardShadow,
           }}
         >
-          <span style={{ fontSize: "80px", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))" }}>🍷</span>
+          <span style={{ fontSize: "80px", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))" }}>
+            🍷
+          </span>
         </div>
 
         {/* Date */}
@@ -105,8 +107,8 @@ export default function SoftPreview() {
 
         {/* Description */}
         <p className="mb-8 leading-relaxed" style={{ color: t.textSecondary }}>
-          Monthly wine night at my place! Bring a bottle you love and be ready to share what
-          you enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
+          Monthly wine night at my place! Bring a bottle you love and be ready to share what you
+          enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
           anything from Burgundy. 🍇
         </p>
 
@@ -119,7 +121,9 @@ export default function SoftPreview() {
             boxShadow: t.cardShadow,
           }}
         >
-          <h2 className="text-lg font-semibold mb-4" style={{ fontFamily: t.headingFont }}>Are you coming?</h2>
+          <h2 className="text-lg font-semibold mb-4" style={{ fontFamily: t.headingFont }}>
+            Are you coming?
+          </h2>
           <div className="flex gap-3 mb-5">
             {[
               { label: "Going", emoji: "🎉", active: true },
@@ -227,7 +231,11 @@ export default function SoftPreview() {
           <h3 className="font-semibold mb-4">Vibes 💬</h3>
           <div className="space-y-3 mb-4">
             {[
-              { name: "Sarah", msg: "Cannot wait!! Bringing a Pinot I've been saving 🍷", time: "2h ago" },
+              {
+                name: "Sarah",
+                msg: "Cannot wait!! Bringing a Pinot I've been saving 🍷",
+                time: "2h ago",
+              },
               { name: "Mike", msg: "YES. Bringing something from Burgundy!", time: "1h ago" },
             ].map((c) => (
               <div key={c.name} className="flex gap-3">
@@ -242,7 +250,9 @@ export default function SoftPreview() {
                   style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
                 >
                   <span className="font-medium">{c.name}</span>
-                  <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{c.time}</span>
+                  <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>
+                    {c.time}
+                  </span>
                   <p style={{ color: t.textSecondary, marginTop: "2px" }}>{c.msg}</p>
                 </div>
               </div>
@@ -260,7 +270,11 @@ export default function SoftPreview() {
             />
             <button
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: t.accentBg, color: t.accent, border: `1px solid ${t.accentBorder}` }}
+              style={{
+                background: t.accentBg,
+                color: t.accent,
+                border: `1px solid ${t.accentBorder}`,
+              }}
             >
               Post
             </button>

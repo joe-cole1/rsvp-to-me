@@ -13,8 +13,18 @@ function maskPII(obj: unknown): unknown {
   if (!obj || typeof obj !== "object") return obj;
 
   const masked = { ...(obj as Record<string, unknown>) };
-  const keysToMask = ["email", "phone", "token", "password", "smtpPass", "cfWorkerSecret", "cfApiToken", "to", "body"];
-  
+  const keysToMask = [
+    "email",
+    "phone",
+    "token",
+    "password",
+    "smtpPass",
+    "cfWorkerSecret",
+    "cfApiToken",
+    "to",
+    "body",
+  ];
+
   for (const key of Object.keys(masked)) {
     const val = masked[key];
     if (keysToMask.includes(key)) {

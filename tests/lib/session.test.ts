@@ -53,7 +53,13 @@ vi.mock("@/lib/redis", () => ({
   redisDel: mocks.mockRedisDel,
 }));
 
-import { createSession, getSession, destroySession, invalidateUserSessions, sealSession } from "@/lib/session";
+import {
+  createSession,
+  getSession,
+  destroySession,
+  invalidateUserSessions,
+  sealSession,
+} from "@/lib/session";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -74,7 +80,11 @@ describe("createSession", () => {
         expiresAt: expect.any(Date),
       },
     });
-    expect(mocks.mockCookiesSet).toHaveBeenCalledWith("rsvp-session", "sealed-cookie-value", expect.any(Object));
+    expect(mocks.mockCookiesSet).toHaveBeenCalledWith(
+      "rsvp-session",
+      "sealed-cookie-value",
+      expect.any(Object)
+    );
   });
 });
 
@@ -245,7 +255,9 @@ describe("sealSession", () => {
     process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
     process.env.HOST_INVITE_CODE = "letmein"; // weak
 
-    await expect(import("@/lib/session")).rejects.toThrow("HOST_INVITE_CODE must be set to a strong random value");
+    await expect(import("@/lib/session")).rejects.toThrow(
+      "HOST_INVITE_CODE must be set to a strong random value"
+    );
     (process.env as { NODE_ENV: string }).NODE_ENV = "test";
   });
 

@@ -21,8 +21,14 @@ export const AddCommentSchema = z.object({
 export const CreateEventSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(10000).optional().nullable(),
-  startDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startTime: z.string().trim().regex(/^\d{2}:\d{2}$/),
+  startDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/),
+  startTime: z
+    .string()
+    .trim()
+    .regex(/^\d{2}:\d{2}$/),
   timezone: z.string().trim().max(100).default("America/New_York"),
   locationType: z.enum(["PHYSICAL", "VIRTUAL", "TBD"]).default("PHYSICAL"),
   locationName: z.string().trim().max(200).optional().nullable(),

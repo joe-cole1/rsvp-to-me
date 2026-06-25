@@ -21,17 +21,25 @@ const formatPartifulDate = (dateVal: Date | string) => {
   return `${weekday} ${dateStr} at ${formattedHour}${formattedMin}${ampm}`;
 };
 
-function AvatarBubble({ name, avatarUrl, accentColor }: { name: string; avatarUrl: string | null | undefined; accentColor: string }) {
+function AvatarBubble({
+  name,
+  avatarUrl,
+  accentColor,
+}: {
+  name: string;
+  avatarUrl: string | null | undefined;
+  accentColor: string;
+}) {
   const initial = name ? name.charAt(0).toUpperCase() : "?";
   let rgb = "168,85,247"; // fallback purple
   try {
     if (accentColor.startsWith("#") && accentColor.length === 7) {
-      rgb = `${parseInt(accentColor.slice(1,3), 16)},${parseInt(accentColor.slice(3,5), 16)},${parseInt(accentColor.slice(5,7), 16)}`;
+      rgb = `${parseInt(accentColor.slice(1, 3), 16)},${parseInt(accentColor.slice(3, 5), 16)},${parseInt(accentColor.slice(5, 7), 16)}`;
     }
   } catch {}
 
   return (
-    <div 
+    <div
       title={name}
       style={{
         width: "18px",
@@ -47,17 +55,11 @@ function AvatarBubble({ name, avatarUrl, accentColor }: { name: string; avatarUr
         color: "#fff",
         overflow: "hidden",
         position: "relative",
-        flexShrink: 0
+        flexShrink: 0,
       }}
     >
       {avatarUrl ? (
-        <Image 
-          src={avatarUrl} 
-          alt={name} 
-          unoptimized
-          fill
-          style={{ objectFit: "cover" }} 
-        />
+        <Image src={avatarUrl} alt={name} unoptimized fill style={{ objectFit: "cover" }} />
       ) : (
         initial
       )}
@@ -72,10 +74,10 @@ export default async function Home() {
   const events = await db.event.findMany({
     where: {
       visibility: "PUBLIC",
-      status: { notIn: ["CANCELLED", "DELETED"] }
+      status: { notIn: ["CANCELLED", "DELETED"] },
     },
     orderBy: {
-      startAt: "asc"
+      startAt: "asc",
     },
     take: 20,
     include: {
@@ -84,25 +86,33 @@ export default async function Home() {
           name: true,
           email: true,
           avatarUrl: true,
-        }
+        },
       },
       theme: true,
       rsvps: {
         select: {
           status: true,
-        }
+        },
       },
       comments: {
         select: {
           id: true,
-        }
-      }
-    }
+        },
+      },
+    },
   });
 
   return (
     <AppShell>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", padding: "60px 24px 100px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          padding: "60px 24px 100px",
+        }}
+      >
         {/* Marketing Hero CTA */}
         <div style={{ textAlign: "center", maxWidth: "480px", marginBottom: "64px" }}>
           <div style={{ fontSize: "64px", marginBottom: "24px" }}>🎉</div>
@@ -118,8 +128,16 @@ export default async function Home() {
           >
             RSVP to Me
           </h1>
-          <p style={{ fontSize: "18px", color: APP_SHELL.textSecondary, marginBottom: "40px", lineHeight: 1.6 }}>
-            Beautiful, personal event pages for wine nights, dinner parties, and everything in between.
+          <p
+            style={{
+              fontSize: "18px",
+              color: APP_SHELL.textSecondary,
+              marginBottom: "40px",
+              lineHeight: 1.6,
+            }}
+          >
+            Beautiful, personal event pages for wine nights, dinner parties, and everything in
+            between.
           </p>
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
             <a
@@ -157,7 +175,16 @@ export default async function Home() {
         {/* Public Feed Section */}
         {events.length > 0 && (
           <div style={{ width: "100%", maxWidth: "1000px" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "24px", color: "#fff", borderBottom: `1px solid ${APP_SHELL.cardBorder}`, paddingBottom: "12px" }}>
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: 800,
+                marginBottom: "24px",
+                color: "#fff",
+                borderBottom: `1px solid ${APP_SHELL.cardBorder}`,
+                paddingBottom: "12px",
+              }}
+            >
               Upcoming Public Events
             </h2>
             <div
@@ -165,7 +192,7 @@ export default async function Home() {
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
                 gap: "24px",
-                width: "100%"
+                width: "100%",
               }}
             >
               {events.map((event) => {
@@ -183,20 +210,25 @@ export default async function Home() {
                 const commentCount = event.comments.length;
 
                 return (
-                  <div key={event.id} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                  <div
+                    key={event.id}
+                    style={{ display: "flex", flexDirection: "column", width: "100%" }}
+                  >
                     {/* Cover Image Container */}
-                    <div 
+                    <div
                       style={{
                         position: "relative",
                         width: "100%",
                         paddingBottom: "75%", // 4:3 Aspect ratio
                         borderRadius: "16px",
                         overflow: "hidden",
-                        background: coverUrl ? "transparent" : `linear-gradient(135deg, #18181b 0%, ${accent}aa 100%)`,
+                        background: coverUrl
+                          ? "transparent"
+                          : `linear-gradient(135deg, #18181b 0%, ${accent}aa 100%)`,
                         boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
                       }}
                     >
-                      <Link 
+                      <Link
                         href={`/e/${event.slug}`}
                         style={{
                           position: "absolute",
@@ -205,56 +237,60 @@ export default async function Home() {
                           width: "100%",
                           height: "100%",
                           zIndex: 1,
-                          display: "block"
+                          display: "block",
                         }}
                       >
                         {coverUrl && (
-                          <Image 
-                            src={coverUrl} 
-                            alt={event.title} 
+                          <Image
+                            src={coverUrl}
+                            alt={event.title}
                             unoptimized
                             fill
                             style={{ objectFit: "cover" }}
                           />
                         )}
                         {!coverUrl && (
-                          <div style={{
-                            width: "100%",
-                            height: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "48px",
-                            opacity: 0.85
-                          }}>
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "48px",
+                              opacity: 0.85,
+                            }}
+                          >
                             🎉
                           </div>
                         )}
                       </Link>
 
                       {/* Date Overlay (Top-Left) */}
-                      <div style={{
-                        position: "absolute",
-                        top: "12px",
-                        left: "12px",
-                        background: "rgba(255, 255, 255, 0.95)",
-                        color: "#000",
-                        fontSize: "11px",
-                        fontWeight: 800,
-                        padding: "5px 10px",
-                        borderRadius: "99px",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                        letterSpacing: "-0.01em",
-                        zIndex: 2,
-                        pointerEvents: "none"
-                      }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "12px",
+                          left: "12px",
+                          background: "rgba(255, 255, 255, 0.95)",
+                          color: "#000",
+                          fontSize: "11px",
+                          fontWeight: 800,
+                          padding: "5px 10px",
+                          borderRadius: "99px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                          letterSpacing: "-0.01em",
+                          zIndex: 2,
+                          pointerEvents: "none",
+                        }}
+                      >
                         {formatPartifulDate(event.startAt)}
                       </div>
                     </div>
 
                     {/* Text Details */}
                     <div style={{ marginTop: "12px", padding: "0 2px" }}>
-                      <Link 
+                      <Link
                         href={`/e/${event.slug}`}
                         style={{
                           fontSize: "15px",
@@ -271,17 +307,37 @@ export default async function Home() {
                       </Link>
 
                       {/* Host */}
-                      <div style={{ display: "flex", alignItems: "center", marginTop: "4px", gap: "6px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          marginTop: "4px",
+                          gap: "6px",
+                        }}
+                      >
                         <span style={{ color: APP_SHELL.textSecondary, fontSize: "11px" }}>
                           Hosted by
                         </span>
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          <AvatarBubble name={hostName} avatarUrl={event.host?.avatarUrl} accentColor={accent} />
+                          <AvatarBubble
+                            name={hostName}
+                            avatarUrl={event.host?.avatarUrl}
+                            accentColor={accent}
+                          />
                         </div>
                       </div>
 
                       {/* Stats */}
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px", color: APP_SHELL.textTertiary, fontSize: "11px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          marginTop: "6px",
+                          color: APP_SHELL.textTertiary,
+                          fontSize: "11px",
+                        }}
+                      >
                         <span>{goingCount} going</span>
                         {commentCount > 0 && (
                           <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>

@@ -301,12 +301,23 @@ export async function getSystemConfig() {
 export async function updateSystemConfig(key: string, value: string) {
   await assertAdmin();
 
-  if ((key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token" || key === "twilio_auth_token") && value === "••••••••") {
+  if (
+    (key === "cloudflare_worker_api_secret" ||
+      key === "smtp_pass" ||
+      key === "cloudflare_api_token" ||
+      key === "twilio_auth_token") &&
+    value === "••••••••"
+  ) {
     return { success: true };
   }
 
   let finalValue = value;
-  if (key === "cloudflare_worker_api_secret" || key === "smtp_pass" || key === "cloudflare_api_token" || key === "twilio_auth_token") {
+  if (
+    key === "cloudflare_worker_api_secret" ||
+    key === "smtp_pass" ||
+    key === "cloudflare_api_token" ||
+    key === "twilio_auth_token"
+  ) {
     finalValue = encryptConfig(value);
   }
 
@@ -346,7 +357,9 @@ export async function testEmailConfigAction(data: {
 
   let finalCfWorkerSecret = data.cfWorkerSecret || "";
   if (finalCfWorkerSecret === "••••••••") {
-    const existing = await db.systemConfig.findUnique({ where: { key: "cloudflare_worker_api_secret" } });
+    const existing = await db.systemConfig.findUnique({
+      where: { key: "cloudflare_worker_api_secret" },
+    });
     finalCfWorkerSecret = existing ? decryptConfig(existing.value) : "";
   }
 
@@ -440,7 +453,7 @@ export async function deleteBackupAction(filename: string) {
 
 export async function getBackupConfig() {
   await assertAdmin();
-  
+
   const configs = await db.systemConfig.findMany({
     where: {
       key: {
@@ -456,14 +469,15 @@ export async function getBackupConfig() {
 
   return {
     backup_schedule: configMap["backup_schedule"] ?? process.env.BACKUP_SCHEDULE ?? "disabled",
-    backup_keep_count: parseInt(configMap["backup_keep_count"] ?? "", 10) || await getBackupKeepCount(),
+    backup_keep_count:
+      parseInt(configMap["backup_keep_count"] ?? "", 10) || (await getBackupKeepCount()),
     last_backup_time: configMap["last_backup_time"] ?? "",
   };
 }
 
 export async function updateBackupConfigAction(schedule: string, keepCount: number) {
   await assertAdmin();
-  
+
   if (keepCount <= 0) {
     throw new Error("Backup retention count must be at least 1.");
   }
@@ -485,8 +499,6 @@ export async function updateBackupConfigAction(schedule: string, keepCount: numb
   return { success: true };
 }
 
-
-
 // ── Theme Presets (admin CRUD) ────────────────────────────────────────────────
 
 export async function getThemePresets() {
@@ -507,13 +519,24 @@ export async function createThemePreset(data: {
   await assertAdmin();
   const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
   const snapshot = {
-    name: data.name, emoji: data.emoji, base: data.base,
-    gradientFrom: data.gradientFrom, gradientTo: data.gradientTo,
-    accentColor: data.accentColor, seasonal: data.seasonal, month: data.month ?? null,
+    name: data.name,
+    emoji: data.emoji,
+    base: data.base,
+    gradientFrom: data.gradientFrom,
+    gradientTo: data.gradientTo,
+    accentColor: data.accentColor,
+    seasonal: data.seasonal,
+    month: data.month ?? null,
     cardOpacity: data.cardOpacity ?? null,
   };
   const preset = await db.themePreset.create({
-    data: { ...data, active: true, sortOrder: (maxOrder._max.sortOrder ?? -1) + 1, originalSnapshot: snapshot, defaultSnapshot: snapshot },
+    data: {
+      ...data,
+      active: true,
+      sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+      originalSnapshot: snapshot,
+      defaultSnapshot: snapshot,
+    },
   });
   revalidatePath("/admin");
   return preset;
@@ -523,9 +546,14 @@ export async function saveThemePresetDefault(id: string) {
   await assertAdmin();
   const preset = await db.themePreset.findUniqueOrThrow({ where: { id } });
   const snapshot = {
-    name: preset.name, emoji: preset.emoji, base: preset.base,
-    gradientFrom: preset.gradientFrom, gradientTo: preset.gradientTo,
-    accentColor: preset.accentColor, seasonal: preset.seasonal, month: preset.month ?? null,
+    name: preset.name,
+    emoji: preset.emoji,
+    base: preset.base,
+    gradientFrom: preset.gradientFrom,
+    gradientTo: preset.gradientTo,
+    accentColor: preset.accentColor,
+    seasonal: preset.seasonal,
+    month: preset.month ?? null,
     cardOpacity: preset.cardOpacity ?? null,
   };
   await db.themePreset.update({ where: { id }, data: { defaultSnapshot: snapshot } });

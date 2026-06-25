@@ -51,7 +51,7 @@ function detectImageBuffer(buffer: Buffer): { ext: string; mime: string } | null
     buffer[8] === 0x57 && // W
     buffer[9] === 0x45 && // E
     buffer[10] === 0x42 && // B
-    buffer[11] === 0x50    // P
+    buffer[11] === 0x50 // P
   ) {
     return { ext: ".webp", mime: "image/webp" };
   }
@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
   const file = formData.get("file") as File | null;
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  if (file.size > MAX_SIZE) return NextResponse.json({ error: "File too large (max 8MB)" }, { status: 400 });
+  if (file.size > MAX_SIZE)
+    return NextResponse.json({ error: "File too large (max 8MB)" }, { status: 400 });
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const detected = detectImageBuffer(buffer);

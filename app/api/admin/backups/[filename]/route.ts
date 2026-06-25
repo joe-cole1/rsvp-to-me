@@ -3,10 +3,7 @@ import path from "path";
 import { getSession } from "@/lib/session";
 import { NextResponse } from "next/server";
 
-export async function GET(
-  request: Request,
-  props: { params: Promise<{ filename: string }> }
-) {
+export async function GET(request: Request, props: { params: Promise<{ filename: string }> }) {
   const session = await getSession();
   if (!session || session.role !== "ADMIN") {
     return new NextResponse("Forbidden: Administrator access required", {

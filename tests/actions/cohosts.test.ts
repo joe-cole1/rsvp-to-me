@@ -49,7 +49,9 @@ function hostEventRow(overrides = {}) {
   return { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [], ...overrides };
 }
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 // ── addCoHost ─────────────────────────────────────────────────────────────────
 
@@ -72,9 +74,11 @@ describe("addCoHost", () => {
 
   it("creates an EventCoHost row", async () => {
     await addCoHost(EVENT_ID, COHOST_EMAIL);
-    expect(mockEventCoHostCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ eventId: EVENT_ID, userId: COHOST_USER.id }),
-    }));
+    expect(mockEventCoHostCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ eventId: EVENT_ID, userId: COHOST_USER.id }),
+      })
+    );
   });
 
   it("returns error when email has no account", async () => {

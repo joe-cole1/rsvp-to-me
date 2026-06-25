@@ -11,17 +11,11 @@ export async function GET() {
     `;
 
     if (Number(pending[0]?.count ?? 0) > 0) {
-      return NextResponse.json(
-        { status: "degraded", migrations: "pending" },
-        { status: 503 }
-      );
+      return NextResponse.json({ status: "degraded", migrations: "pending" }, { status: 503 });
     }
   } catch {
     // If the migrations table itself is unreachable we cannot assert health.
-    return NextResponse.json(
-      { status: "degraded", migrations: "unreachable" },
-      { status: 503 }
-    );
+    return NextResponse.json({ status: "degraded", migrations: "unreachable" }, { status: 503 });
   }
 
   return NextResponse.json({

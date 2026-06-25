@@ -31,7 +31,6 @@ function isSafeWorkerUrl(urlStr: string): boolean {
   }
 }
 
-
 type MailOpts = {
   to: string | string[];
   bcc?: string | string[];
@@ -76,9 +75,12 @@ async function resolveEmailConfig() {
   const smtpPass = decryptConfig(configMap.smtp_pass) || process.env.SMTP_PASS;
 
   const cfUrl = configMap.cloudflare_worker_email_url || process.env.CLOUDFLARE_WORKER_EMAIL_URL;
-  const cfSecret = decryptConfig(configMap.cloudflare_worker_api_secret) || process.env.CLOUDFLARE_WORKER_API_SECRET;
+  const cfSecret =
+    decryptConfig(configMap.cloudflare_worker_api_secret) ||
+    process.env.CLOUDFLARE_WORKER_API_SECRET;
   const cfAccountId = configMap.cloudflare_account_id || process.env.CLOUDFLARE_ACCOUNT_ID;
-  const cfApiToken = decryptConfig(configMap.cloudflare_api_token) || process.env.CLOUDFLARE_API_TOKEN;
+  const cfApiToken =
+    decryptConfig(configMap.cloudflare_api_token) || process.env.CLOUDFLARE_API_TOKEN;
 
   return {
     provider,
@@ -99,15 +101,19 @@ async function resolveEmailConfig() {
   };
 }
 
-function getSmtpTransport(smtpConfig: { host?: string; port: number; secure: boolean; user?: string; pass?: string }) {
+function getSmtpTransport(smtpConfig: {
+  host?: string;
+  port: number;
+  secure: boolean;
+  user?: string;
+  pass?: string;
+}) {
   if (!smtpConfig.host) return null;
   return nodemailer.createTransport({
     host: smtpConfig.host,
     port: smtpConfig.port,
     secure: smtpConfig.secure,
-    auth: smtpConfig.user
-      ? { user: smtpConfig.user, pass: smtpConfig.pass }
-      : undefined,
+    auth: smtpConfig.user ? { user: smtpConfig.user, pass: smtpConfig.pass } : undefined,
   });
 }
 
@@ -192,7 +198,11 @@ async function send(opts: MailOpts) {
     if (success) return;
   }
 
-  if (config.provider === "cloudflare_api" && config.cloudflare.accountId && config.cloudflare.apiToken) {
+  if (
+    config.provider === "cloudflare_api" &&
+    config.cloudflare.accountId &&
+    config.cloudflare.apiToken
+  ) {
     const success = await sendViaRestApi(
       {
         from: config.from,
@@ -258,7 +268,12 @@ export async function sendEventInviteEmail(
   }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  const dateStr = opts.startAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const dateStr = opts.startAt.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
   const maybeBtn = opts.maybeEnabled
     ? `<a href="${opts.rsvpBaseUrl}&status=MAYBE" style="display:inline-block;background:#f59e0b;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px">Maybe</a>`
     : "";
@@ -285,10 +300,19 @@ export async function sendEventInviteEmail(
 
 export async function sendApprovalEmail(
   to: string,
-  opts: { guestName: string; eventTitle: string; eventSlug: string; approved: boolean; message?: string; replyTo?: string }
+  opts: {
+    guestName: string;
+    eventTitle: string;
+    eventSlug: string;
+    approved: boolean;
+    message?: string;
+    replyTo?: string;
+  }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  const subject = opts.approved ? `RSVP Approved: ${opts.eventTitle}` : `RSVP Declined: ${opts.eventTitle}`;
+  const subject = opts.approved
+    ? `RSVP Approved: ${opts.eventTitle}`
+    : `RSVP Declined: ${opts.eventTitle}`;
   const statusHtml = opts.approved
     ? `<h3>Your RSVP is approved!</h3><p>You are officially on the guest list for <strong>${opts.eventTitle}</strong>.</p>`
     : `<h3>RSVP Declined</h3><p>We're sorry, but the host has declined your RSVP for <strong>${opts.eventTitle}</strong>.</p>`;
@@ -311,7 +335,13 @@ export async function sendApprovalEmail(
 
 export async function sendBlastEmail(
   to: string[],
-  opts: { eventTitle: string; eventSlug: string; message: string; hostName: string; replyTo?: string }
+  opts: {
+    eventTitle: string;
+    eventSlug: string;
+    message: string;
+    hostName: string;
+    replyTo?: string;
+  }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   return send({
@@ -331,12 +361,29 @@ export async function sendBlastEmail(
 
 export async function sendRsvpConfirmationEmail(
   to: string,
-  opts: { guestName: string; eventTitle: string; eventSlug: string; status: "GOING" | "MAYBE" | "NO"; editToken: string; startAt: Date; locationName?: string | null; replyTo?: string }
+  opts: {
+    guestName: string;
+    eventTitle: string;
+    eventSlug: string;
+    status: "GOING" | "MAYBE" | "NO";
+    editToken: string;
+    startAt: Date;
+    locationName?: string | null;
+    replyTo?: string;
+  }
 ) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
-  const dateStr = opts.startAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-  const statusLabel = opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
+  const dateStr = opts.startAt.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const statusLabel =
+    opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
   return send({
     to,
     subject: `RSVP confirmed: ${opts.eventTitle}`,
@@ -371,7 +418,8 @@ export async function sendHostRsvpAlertEmail(
   }
 ) {
   const guestListUrl = `${APP_URL}/e/${opts.eventSlug}#guests`;
-  const statusLabel = opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
+  const statusLabel =
+    opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
   const plusStr = opts.plusOneCount > 0 ? ` +${opts.plusOneCount}` : "";
   const noteHtml = opts.note?.trim()
     ? `<p style="margin:12px 0;padding:10px 14px;background:#f5f5f5;border-left:3px solid #a855f7;border-radius:4px;font-size:14px;color:#555">"${opts.note.trim()}"</p>`
@@ -454,7 +502,10 @@ export async function testEmailConfig(
 
   if (config.provider === "cloudflare") {
     if (!config.cloudflare.url || !isSafeWorkerUrl(config.cloudflare.url)) {
-      return { success: false, error: "Invalid or unsafe Cloudflare Worker URL. Only public HTTPS URLs are allowed." };
+      return {
+        success: false,
+        error: "Invalid or unsafe Cloudflare Worker URL. Only public HTTPS URLs are allowed.",
+      };
     }
     try {
       const res = await fetch(`${config.cloudflare.url}/send`, {
@@ -496,9 +547,7 @@ export async function testEmailConfig(
         host: config.smtp.host,
         port: config.smtp.port,
         secure: config.smtp.secure,
-        auth: config.smtp.user
-          ? { user: config.smtp.user, pass: config.smtp.pass }
-          : undefined,
+        auth: config.smtp.user ? { user: config.smtp.user, pass: config.smtp.pass } : undefined,
       });
 
       // 1. Verify connection/handshake
@@ -526,4 +575,3 @@ export async function testEmailConfig(
   console.log("[email:dev-test]", { to: testTo, subject: "Test Email from RSVP to Me" });
   return { success: true };
 }
-

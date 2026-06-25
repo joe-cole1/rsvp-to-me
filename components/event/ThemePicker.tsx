@@ -37,7 +37,13 @@ export function ThemePicker({
   onSave,
 }: {
   eventId: string;
-  current: { base: BaseTheme; gradientFrom: string; gradientTo: string; accentColor: string; appliedPresetId?: string | null };
+  current: {
+    base: BaseTheme;
+    gradientFrom: string;
+    gradientTo: string;
+    accentColor: string;
+    appliedPresetId?: string | null;
+  };
   presets?: DbThemePreset[];
   onClose: () => void;
   onSave: (base: BaseTheme, gradientFrom: string, gradientTo: string, accentColor: string) => void;
@@ -46,7 +52,9 @@ export function ThemePicker({
   const [gradientFrom, setGradientFrom] = useState(current.gradientFrom);
   const [gradientTo, setGradientTo] = useState(current.gradientTo);
   const [accent, setAccent] = useState(current.accentColor);
-  const [appliedPresetId, setAppliedPresetId] = useState<string | null>(current.appliedPresetId ?? null);
+  const [appliedPresetId, setAppliedPresetId] = useState<string | null>(
+    current.appliedPresetId ?? null
+  );
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">("all");
@@ -99,22 +107,30 @@ export function ThemePicker({
 
   const appliedPreset = appliedPresetId ? presets.find((p) => p.id === appliedPresetId) : null;
   const presetDefault = (appliedPreset?.defaultSnapshot as ThemeSnapObj | null) ?? null;
-  const divergedFromPreset = presetDefault && (
-    base !== presetDefault.base ||
-    gradientFrom !== presetDefault.gradientFrom ||
-    gradientTo !== presetDefault.gradientTo ||
-    accent !== presetDefault.accentColor
-  );
+  const divergedFromPreset =
+    presetDefault &&
+    (base !== presetDefault.base ||
+      gradientFrom !== presetDefault.gradientFrom ||
+      gradientTo !== presetDefault.gradientTo ||
+      accent !== presetDefault.accentColor);
 
   return (
     <>
       {/* Backdrop */}
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200 }} />
+      <div
+        onClick={onClose}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200 }}
+      />
 
       {/* Modal */}
       <div
         style={{
-          position: "fixed", inset: 0, zIndex: 201, display: "flex", alignItems: "flex-end", justifyContent: "center",
+          position: "fixed",
+          inset: 0,
+          zIndex: 201,
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "center",
           pointerEvents: "none",
         }}
       >
@@ -133,9 +149,28 @@ export function ThemePicker({
             color: "#fff",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "16px",
+            }}
+          >
             <h3 style={{ color: "#fff", fontWeight: 700, fontSize: "17px" }}>Event Theme</h3>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: "22px", padding: "2px 6px" }}>×</button>
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.5)",
+                cursor: "pointer",
+                fontSize: "22px",
+                padding: "2px 6px",
+              }}
+            >
+              ×
+            </button>
           </div>
 
           {/* Search */}
@@ -146,9 +181,15 @@ export function ThemePicker({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search themes…"
               style={{
-                width: "100%", boxSizing: "border-box", padding: "9px 14px",
-                background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "12px", color: "#fff", fontSize: "14px", outline: "none",
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "9px 14px",
+                background: "rgba(255,255,255,0.07)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "12px",
+                color: "#fff",
+                fontSize: "14px",
+                outline: "none",
               }}
             />
           </div>
@@ -156,8 +197,20 @@ export function ThemePicker({
           {/* Filter pills */}
           <div style={{ display: "flex", gap: "7px", marginBottom: "14px", overflowX: "auto" }}>
             {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
-              <button key={f} style={{ ...filterPillStyle(filter === f), whiteSpace: "nowrap", flexShrink: 0 }} onClick={() => setFilter(f)}>
-                {f === "all" ? "All" : f === "seasonal" ? "🎉 Seasonal" : f === "general" ? "🎨 General" : f === "light" ? "☀️ Light" : "🌙 Dark"}
+              <button
+                key={f}
+                style={{ ...filterPillStyle(filter === f), whiteSpace: "nowrap", flexShrink: 0 }}
+                onClick={() => setFilter(f)}
+              >
+                {f === "all"
+                  ? "All"
+                  : f === "seasonal"
+                    ? "🎉 Seasonal"
+                    : f === "general"
+                      ? "🎨 General"
+                      : f === "light"
+                        ? "☀️ Light"
+                        : "🌙 Dark"}
               </button>
             ))}
           </div>
@@ -174,7 +227,11 @@ export function ThemePicker({
             }}
           >
             {visiblePresets.map((p) => {
-              const isActive = base === p.base && gradientFrom === p.gradientFrom && gradientTo === p.gradientTo && accent === p.accentColor;
+              const isActive =
+                base === p.base &&
+                gradientFrom === p.gradientFrom &&
+                gradientTo === p.gradientTo &&
+                accent === p.accentColor;
               return (
                 <button
                   key={p.id}
@@ -191,18 +248,58 @@ export function ThemePicker({
                     flexDirection: "column",
                   }}
                 >
-                  <div style={{ position: "relative", height: "40px", background: `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})` }}>
-                    <span style={{ position: "absolute", top: "4px", left: "5px", fontSize: "11px" }}>{p.emoji}</span>
-                    <div style={{ position: "absolute", bottom: "4px", right: "5px", width: "8px", height: "8px", borderRadius: "50%", background: p.accentColor, border: "1px solid rgba(255,255,255,0.3)" }} />
+                  <div
+                    style={{
+                      position: "relative",
+                      height: "40px",
+                      background: `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})`,
+                    }}
+                  >
+                    <span
+                      style={{ position: "absolute", top: "4px", left: "5px", fontSize: "11px" }}
+                    >
+                      {p.emoji}
+                    </span>
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "4px",
+                        right: "5px",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: p.accentColor,
+                        border: "1px solid rgba(255,255,255,0.3)",
+                      }}
+                    />
                   </div>
-                  <div style={{ padding: "5px 6px", fontSize: "10px", fontWeight: 600, color: "rgba(255,255,255,0.7)", textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div
+                    style={{
+                      padding: "5px 6px",
+                      fontSize: "10px",
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.7)",
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {p.name}
                   </div>
                 </button>
               );
             })}
             {visiblePresets.length === 0 && (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "24px", color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  textAlign: "center",
+                  padding: "24px",
+                  color: "rgba(255,255,255,0.3)",
+                  fontSize: "13px",
+                }}
+              >
                 No themes match your search
               </div>
             )}
@@ -219,10 +316,17 @@ export function ThemePicker({
                 setAccent(presetDefault.accentColor);
               }}
               style={{
-                width: "100%", marginBottom: "12px", padding: "10px 14px",
-                background: "transparent", border: "1px solid rgba(167,139,250,0.4)",
-                borderRadius: "12px", color: "#a78bfa", fontSize: "13px",
-                fontWeight: 600, cursor: "pointer", textAlign: "center",
+                width: "100%",
+                marginBottom: "12px",
+                padding: "10px 14px",
+                background: "transparent",
+                border: "1px solid rgba(167,139,250,0.4)",
+                borderRadius: "12px",
+                color: "#a78bfa",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                textAlign: "center",
               }}
             >
               ↺ Restore to &ldquo;{appliedPreset.name}&rdquo; defaults
@@ -230,24 +334,59 @@ export function ThemePicker({
           )}
 
           {/* Customize accordion */}
-          <div style={{ marginBottom: "20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", overflow: "hidden" }}>
+          <div
+            style={{
+              marginBottom: "20px",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "14px",
+              overflow: "hidden",
+            }}
+          >
             <button
               onClick={() => setCustomizeOpen((o) => !o)}
               style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "12px 16px", background: "rgba(255,255,255,0.05)", border: "none",
-                cursor: "pointer", color: "#fff", fontSize: "13px", fontWeight: 600,
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 16px",
+                background: "rgba(255,255,255,0.05)",
+                border: "none",
+                cursor: "pointer",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: 600,
               }}
             >
               <span>Customize colors</span>
-              <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", transform: customizeOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "rgba(255,255,255,0.4)",
+                  transform: customizeOpen ? "rotate(180deg)" : "none",
+                  transition: "transform 0.2s",
+                }}
+              >
+                ▼
+              </span>
             </button>
 
             {customizeOpen && (
               <div style={{ padding: "16px" }}>
                 {/* Style selector */}
                 <div style={{ marginBottom: "16px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "8px" }}>Style</div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: "rgba(255,255,255,0.4)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Style
+                  </div>
                   <div style={{ display: "flex", gap: "8px" }}>
                     {BASE_THEMES.map((bt) => (
                       <button
@@ -259,12 +398,28 @@ export function ThemePicker({
                           setAccent(bt.defaultAccent);
                         }}
                         style={{
-                          flex: 1, padding: "0", border: `2px solid ${base === bt.id ? "#fff" : "rgba(255,255,255,0.1)"}`,
-                          borderRadius: "10px", cursor: "pointer", overflow: "hidden", background: "none", transition: "border-color 0.15s",
+                          flex: 1,
+                          padding: "0",
+                          border: `2px solid ${base === bt.id ? "#fff" : "rgba(255,255,255,0.1)"}`,
+                          borderRadius: "10px",
+                          cursor: "pointer",
+                          overflow: "hidden",
+                          background: "none",
+                          transition: "border-color 0.15s",
                         }}
                       >
                         <div style={{ height: "36px", background: bt.preview }} />
-                        <div style={{ padding: "5px 4px", color: "#fff", fontSize: "10px", fontWeight: 600, background: "rgba(255,255,255,0.05)" }}>{bt.label}</div>
+                        <div
+                          style={{
+                            padding: "5px 4px",
+                            color: "#fff",
+                            fontSize: "10px",
+                            fontWeight: 600,
+                            background: "rgba(255,255,255,0.05)",
+                          }}
+                        >
+                          {bt.label}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -272,31 +427,140 @@ export function ThemePicker({
 
                 {/* Background colors */}
                 <div style={{ marginBottom: "14px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "8px" }}>Background</div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: "rgba(255,255,255,0.4)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Background
+                  </div>
                   <div style={{ display: "flex", gap: "10px", marginBottom: "8px" }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "4px" }}>Start</div>
-                      <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", cursor: "pointer" }}>
-                        <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: gradientFrom, flexShrink: 0 }} />
-                        <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{gradientFrom}</span>
-                        <input type="color" value={gradientFrom} onChange={(e) => setGradientFrom(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "rgba(255,255,255,0.4)",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Start
+                      </div>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "7px 10px",
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            borderRadius: "4px",
+                            background: gradientFrom,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            color: "rgba(255,255,255,0.5)",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {gradientFrom}
+                        </span>
+                        <input
+                          type="color"
+                          value={gradientFrom}
+                          onChange={(e) => setGradientFrom(e.target.value)}
+                          style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                        />
                       </label>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "4px" }}>End</div>
-                      <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", cursor: "pointer" }}>
-                        <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: gradientTo, flexShrink: 0 }} />
-                        <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{gradientTo}</span>
-                        <input type="color" value={gradientTo} onChange={(e) => setGradientTo(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "rgba(255,255,255,0.4)",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        End
+                      </div>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "7px 10px",
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            borderRadius: "4px",
+                            background: gradientTo,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            color: "rgba(255,255,255,0.5)",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {gradientTo}
+                        </span>
+                        <input
+                          type="color"
+                          value={gradientTo}
+                          onChange={(e) => setGradientTo(e.target.value)}
+                          style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                        />
                       </label>
                     </div>
                   </div>
-                  <div style={{ height: "28px", borderRadius: "6px", background: previewBg, border: "1px solid rgba(255,255,255,0.1)" }} />
+                  <div
+                    style={{
+                      height: "28px",
+                      borderRadius: "6px",
+                      background: previewBg,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  />
                 </div>
 
                 {/* Accent color */}
                 <div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.4)", marginBottom: "8px" }}>Accent Color</div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: "rgba(255,255,255,0.4)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Accent Color
+                  </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
                     {ACCENT_PRESETS.map((p) => (
                       <button
@@ -304,9 +568,15 @@ export function ThemePicker({
                         onClick={() => setAccent(p.value)}
                         title={p.name}
                         style={{
-                          width: "32px", height: "32px", borderRadius: "50%", background: p.value,
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          background: p.value,
                           border: `3px solid ${accent === p.value ? "#fff" : "transparent"}`,
-                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
                         {accent === p.value && <Check size={12} color="#fff" strokeWidth={3} />}
@@ -315,9 +585,16 @@ export function ThemePicker({
                     <label
                       title="Custom color"
                       style={{
-                        width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer",
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        cursor: "pointer",
                         border: `3px solid ${!isPreset ? "#fff" : "transparent"}`,
-                        overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
+                        overflow: "hidden",
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         background: isPreset ? "rgba(255,255,255,0.1)" : accent,
                       }}
                     >
@@ -326,7 +603,14 @@ export function ThemePicker({
                         type="color"
                         value={accent}
                         onChange={(e) => setAccent(e.target.value)}
-                        style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%" }}
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          opacity: 0,
+                          cursor: "pointer",
+                          width: "100%",
+                          height: "100%",
+                        }}
                       />
                     </label>
                   </div>
@@ -339,7 +623,19 @@ export function ThemePicker({
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{ width: "100%", padding: "14px", background: accent, color: "#fff", border: "none", borderRadius: "14px", fontFamily: "inherit", fontSize: "15px", fontWeight: 700, cursor: "pointer", opacity: saving ? 0.7 : 1 }}
+            style={{
+              width: "100%",
+              padding: "14px",
+              background: accent,
+              color: "#fff",
+              border: "none",
+              borderRadius: "14px",
+              fontFamily: "inherit",
+              fontSize: "15px",
+              fontWeight: 700,
+              cursor: "pointer",
+              opacity: saving ? 0.7 : 1,
+            }}
           >
             {saving ? "Saving…" : "Apply Theme"}
           </button>

@@ -16,12 +16,12 @@ export function encryptConfig(text: string): string {
   const iv = randomBytes(IV_LENGTH);
   const key = getEncryptionKey();
   const cipher = createCipheriv(ALGORITHM, key, iv);
-  
+
   let encrypted = cipher.update(text, "utf8", "hex");
   encrypted += cipher.final("hex");
-  
+
   const authTag = cipher.getAuthTag();
-  
+
   return `${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
 }
 
@@ -30,19 +30,19 @@ export function decryptConfig(encryptedData: string): string {
   if (!encryptedData.includes(":")) {
     return encryptedData;
   }
-  
+
   try {
     const [ivHex, tagHex, encryptedText] = encryptedData.split(":");
     if (!ivHex || !tagHex || !encryptedText) {
       return encryptedData;
     }
-    
+
     const key = getEncryptionKey();
     const iv = Buffer.from(ivHex, "hex");
     const tag = Buffer.from(tagHex, "hex");
     const decipher = createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(tag);
-    
+
     let decrypted = decipher.update(encryptedText, "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
@@ -59,4 +59,3 @@ export function getUnlockSignature(slug: string): string {
   }
   return createHmac("sha256", secret).update(slug).digest("hex");
 }
-

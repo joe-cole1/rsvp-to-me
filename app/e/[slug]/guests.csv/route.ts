@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   const session = await getSession();
@@ -38,16 +35,18 @@ export async function GET(
 
   const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
   const header = "Name,Email,Status,Plus Ones,Approved,RSVP Date\n";
-  const rows = rsvps.map((r) =>
-    [
-      esc(r.guestName),
-      esc(r.guestEmail ?? ""),
-      r.status,
-      r.plusOneCount.toString(),
-      r.approved ? "Yes" : "No",
-      r.createdAt.toISOString(),
-    ].join(",")
-  ).join("\n");
+  const rows = rsvps
+    .map((r) =>
+      [
+        esc(r.guestName),
+        esc(r.guestEmail ?? ""),
+        r.status,
+        r.plusOneCount.toString(),
+        r.approved ? "Yes" : "No",
+        r.createdAt.toISOString(),
+      ].join(",")
+    )
+    .join("\n");
 
   return new NextResponse(header + rows, {
     headers: {

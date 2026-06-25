@@ -289,7 +289,11 @@ describe("linkRsvpsToUser", () => {
   });
 
   it("builds an OR condition when user has both email and phone", async () => {
-    mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "user@example.com", phone: "+15551234567" });
+    mockUserFindUnique.mockResolvedValue({
+      id: "user-1",
+      email: "user@example.com",
+      phone: "+15551234567",
+    });
     mockRsvpUpdateMany.mockResolvedValue({ count: 2 });
 
     await linkRsvpsToUser("user-1");
@@ -329,7 +333,12 @@ describe("verifyMagicToken", () => {
   });
 
   it("returns false when user is not found after token lookup", async () => {
-    mockMagicTokenFindUnique.mockResolvedValue({ id: "1", used: false, expiresAt: future, userId: "user-1" });
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "1",
+      used: false,
+      expiresAt: future,
+      userId: "user-1",
+    });
     mockMagicTokenUpdate.mockResolvedValue({});
     mockUserFindUnique.mockResolvedValue(null);
 
@@ -338,7 +347,12 @@ describe("verifyMagicToken", () => {
   });
 
   it("marks token as used, calls linkRsvpsToUser, createSession, and returns true on success", async () => {
-    mockMagicTokenFindUnique.mockResolvedValue({ id: "tok-id", used: false, expiresAt: future, userId: "user-1" });
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "tok-id",
+      used: false,
+      expiresAt: future,
+      userId: "user-1",
+    });
     mockMagicTokenUpdate.mockResolvedValue({});
     mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "user@example.com", role: "HOST" });
     mockUserCount.mockResolvedValue(1);
@@ -357,9 +371,18 @@ describe("verifyMagicToken", () => {
   });
 
   it("promotes user to ADMIN when email matches INITIAL_ADMIN_EMAIL and no admins exist", async () => {
-    mockMagicTokenFindUnique.mockResolvedValue({ id: "tok-id", used: false, expiresAt: future, userId: "user-1" });
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "tok-id",
+      used: false,
+      expiresAt: future,
+      userId: "user-1",
+    });
     mockMagicTokenUpdate.mockResolvedValue({});
-    mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "admin@example.com", role: "HOST" });
+    mockUserFindUnique.mockResolvedValue({
+      id: "user-1",
+      email: "admin@example.com",
+      role: "HOST",
+    });
     mockUserCount.mockResolvedValue(0);
     mockUserUpdate.mockResolvedValue({});
 
@@ -377,9 +400,18 @@ describe("verifyMagicToken", () => {
   });
 
   it("does NOT promote when admins already exist", async () => {
-    mockMagicTokenFindUnique.mockResolvedValue({ id: "tok-id", used: false, expiresAt: future, userId: "user-1" });
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "tok-id",
+      used: false,
+      expiresAt: future,
+      userId: "user-1",
+    });
     mockMagicTokenUpdate.mockResolvedValue({});
-    mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "admin@example.com", role: "HOST" });
+    mockUserFindUnique.mockResolvedValue({
+      id: "user-1",
+      email: "admin@example.com",
+      role: "HOST",
+    });
     mockUserCount.mockResolvedValue(1);
 
     const result = await verifyMagicToken(token);
@@ -405,7 +437,12 @@ describe("verifyChangeToken", () => {
   });
 
   it("returns error when token type is LOGIN", async () => {
-    mockMagicTokenFindUnique.mockResolvedValue({ id: "1", used: false, expiresAt: future, type: "LOGIN" });
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "1",
+      used: false,
+      expiresAt: future,
+      type: "LOGIN",
+    });
     const result = await verifyChangeToken(token);
     expect(result.success).toBe(false);
     expect(result.error).toContain("profile updates");

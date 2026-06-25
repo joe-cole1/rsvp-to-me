@@ -65,7 +65,11 @@ describe("rateLimit — database path (Redis disabled)", () => {
 
   it("creates a new record when existing record is expired, returns success:true", async () => {
     // expired
-    mockFindUnique.mockResolvedValue({ key: "k-1", points: 5, expireAt: new Date(Date.now() - 1000) });
+    mockFindUnique.mockResolvedValue({
+      key: "k-1",
+      points: 5,
+      expireAt: new Date(Date.now() - 1000),
+    });
     const newExpireAt = new Date(Date.now() + 60 * 1000);
     mockUpsert.mockResolvedValue({ key: "k-1", points: 1, expireAt: newExpireAt });
 

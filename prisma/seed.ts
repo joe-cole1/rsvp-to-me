@@ -14,7 +14,12 @@ interface EventTemplate {
   capacity?: number;
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "CANCELLED";
-  theme: { baseTheme: "DARK" | "SOFT" | "BOLD"; gradientFrom: string; gradientTo: string; accentColor: string };
+  theme: {
+    baseTheme: "DARK" | "SOFT" | "BOLD";
+    gradientFrom: string;
+    gradientTo: string;
+    accentColor: string;
+  };
   plusOneAllowed: boolean;
   plusOneMax?: number;
   plusOneNamesRequired?: boolean;
@@ -50,18 +55,49 @@ async function main() {
     const p = THEME_PRESETS[i];
     await db.themePreset.upsert({
       where: { id: p.id },
-      update: { name: p.name, emoji: p.emoji, base: p.base, gradientFrom: p.gradientFrom, gradientTo: p.gradientTo, accentColor: p.accentColor, seasonal: p.seasonal ?? false, month: p.month ?? null, sortOrder: i },
+      update: {
+        name: p.name,
+        emoji: p.emoji,
+        base: p.base,
+        gradientFrom: p.gradientFrom,
+        gradientTo: p.gradientTo,
+        accentColor: p.accentColor,
+        seasonal: p.seasonal ?? false,
+        month: p.month ?? null,
+        sortOrder: i,
+      },
       create: {
-        id: p.id, name: p.name, emoji: p.emoji, base: p.base,
-        gradientFrom: p.gradientFrom, gradientTo: p.gradientTo,
-        accentColor: p.accentColor, seasonal: p.seasonal ?? false,
-        month: p.month ?? null, active: true, sortOrder: i,
-        originalSnapshot: { name: p.name, emoji: p.emoji, base: p.base,
-          gradientFrom: p.gradientFrom, gradientTo: p.gradientTo,
-          accentColor: p.accentColor, seasonal: p.seasonal ?? false, month: p.month ?? null },
-        defaultSnapshot: { name: p.name, emoji: p.emoji, base: p.base,
-          gradientFrom: p.gradientFrom, gradientTo: p.gradientTo,
-          accentColor: p.accentColor, seasonal: p.seasonal ?? false, month: p.month ?? null },
+        id: p.id,
+        name: p.name,
+        emoji: p.emoji,
+        base: p.base,
+        gradientFrom: p.gradientFrom,
+        gradientTo: p.gradientTo,
+        accentColor: p.accentColor,
+        seasonal: p.seasonal ?? false,
+        month: p.month ?? null,
+        active: true,
+        sortOrder: i,
+        originalSnapshot: {
+          name: p.name,
+          emoji: p.emoji,
+          base: p.base,
+          gradientFrom: p.gradientFrom,
+          gradientTo: p.gradientTo,
+          accentColor: p.accentColor,
+          seasonal: p.seasonal ?? false,
+          month: p.month ?? null,
+        },
+        defaultSnapshot: {
+          name: p.name,
+          emoji: p.emoji,
+          base: p.base,
+          gradientFrom: p.gradientFrom,
+          gradientTo: p.gradientTo,
+          accentColor: p.accentColor,
+          seasonal: p.seasonal ?? false,
+          month: p.month ?? null,
+        },
       },
     });
   }
@@ -86,7 +122,9 @@ async function main() {
 
   const eventCount = await db.event.count();
   if (eventCount > 0) {
-    console.log("Database already contains events. Skipping heavy test data seeding to prevent duplication.");
+    console.log(
+      "Database already contains events. Skipping heavy test data seeding to prevent duplication."
+    );
     return;
   }
 
@@ -168,14 +206,20 @@ async function main() {
     // PAST EVENTS
     {
       title: "Wine Tasting & Cheese Night",
-      description: "A cozy evening tasting local wines paired with artisanal cheeses. Dress code is smart casual.",
+      description:
+        "A cozy evening tasting local wines paired with artisanal cheeses. Dress code is smart casual.",
       startAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
       locationType: "PHYSICAL" as const,
       locationName: "Primary Host's Dining Room",
       locationAddress: "123 Vineyard Lane, Napa Valley, CA",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, gradientFrom: "#fda4af", gradientTo: "#f0abfc", accentColor: "#d946ef" }, // magenta
+      theme: {
+        baseTheme: "SOFT" as const,
+        gradientFrom: "#fda4af",
+        gradientTo: "#f0abfc",
+        accentColor: "#d946ef",
+      }, // magenta
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -183,18 +227,28 @@ async function main() {
       questionnaireEnabled: false,
       infoSections: [
         { type: "shirt", content: "Smart casual / cozy attire", order: 1 },
-        { type: "utensils", content: "Artisanal cheeses provided, feel free to bring a bottle of your favorite wine!", order: 2 },
+        {
+          type: "utensils",
+          content: "Artisanal cheeses provided, feel free to bring a bottle of your favorite wine!",
+          order: 2,
+        },
       ],
     },
     {
       title: "Virtual Board Games Night",
-      description: "Join us online for some Codenames, Gartic Phone, and Jackbox games! Grab your favorite drinks and snacks.",
+      description:
+        "Join us online for some Codenames, Gartic Phone, and Jackbox games! Grab your favorite drinks and snacks.",
       startAt: new Date(now.getTime() - 18 * 24 * 60 * 60 * 1000), // 18 days ago
       locationType: "VIRTUAL" as const,
       virtualUrl: "https://zoom.us/j/123456789",
       visibility: "UNLISTED" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, gradientFrom: "#164e63", gradientTo: "#1e3a5f", accentColor: "#06b6d4" }, // cyan
+      theme: {
+        baseTheme: "DARK" as const,
+        gradientFrom: "#164e63",
+        gradientTo: "#1e3a5f",
+        accentColor: "#06b6d4",
+      }, // cyan
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: false,
@@ -207,7 +261,12 @@ async function main() {
       locationType: "TBD" as const,
       visibility: "PRIVATE" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, gradientFrom: "#f97316", gradientTo: "#ec4899", accentColor: "#f97316" }, // orange
+      theme: {
+        baseTheme: "BOLD" as const,
+        gradientFrom: "#f97316",
+        gradientTo: "#ec4899",
+        accentColor: "#f97316",
+      }, // orange
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: false,
@@ -217,14 +276,20 @@ async function main() {
     // PRESENT/UPCOMING EVENTS
     {
       title: "Summer Backyard BBQ",
-      description: "Burgers, hot dogs, cold drinks, and lawn games! We've got a pool, so bring your swimsuits and towels.",
+      description:
+        "Burgers, hot dogs, cold drinks, and lawn games! We've got a pool, so bring your swimsuits and towels.",
       startAt: new Date(now.getTime() + 2 * 60 * 60 * 1000), // today in 2 hours
       locationType: "PHYSICAL" as const,
       locationName: "Host's Backyard Oasis",
       locationAddress: "456 Sunny Meadow Lane, Austin, TX",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, gradientFrom: "#bbf7d0", gradientTo: "#a5f3fc", accentColor: "#10b981" }, // emerald
+      theme: {
+        baseTheme: "SOFT" as const,
+        gradientFrom: "#bbf7d0",
+        gradientTo: "#a5f3fc",
+        accentColor: "#10b981",
+      }, // emerald
       plusOneAllowed: true,
       plusOneMax: 2,
       plusOneNamesRequired: true,
@@ -234,7 +299,11 @@ async function main() {
       cohost: true, // cohost cohost@test.com
       infoSections: [
         { type: "shirt", content: "Swimwear, sunglasses, sunscreen!", order: 1 },
-        { type: "parking", content: "Please park on the street, don't block the driveway.", order: 2 },
+        {
+          type: "parking",
+          content: "Please park on the street, don't block the driveway.",
+          order: 2,
+        },
         { type: "utensils", content: "Potluck structure! Claim an item below.", order: 3 },
       ],
       potluck: [
@@ -248,7 +317,8 @@ async function main() {
     },
     {
       title: "Launch Party Celebration",
-      description: "Celebrating our product release! Champagne toast, hors d'oeuvres, and live music.",
+      description:
+        "Celebrating our product release! Champagne toast, hors d'oeuvres, and live music.",
       startAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), // tomorrow
       locationType: "PHYSICAL" as const,
       locationName: "The Penthouse Loft",
@@ -256,7 +326,12 @@ async function main() {
       capacity: 50,
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, gradientFrom: "#7c3aed", gradientTo: "#ec4899", accentColor: "#8b5cf6" }, // violet
+      theme: {
+        baseTheme: "BOLD" as const,
+        gradientFrom: "#7c3aed",
+        gradientTo: "#ec4899",
+        accentColor: "#8b5cf6",
+      }, // violet
       plusOneAllowed: true,
       plusOneMax: 1,
       plusOneNamesRequired: false,
@@ -266,13 +341,19 @@ async function main() {
     },
     {
       title: "Weekly Team Sync",
-      description: "Weekly sync meeting for the engineering and design teams. Reviewing roadmaps and feedback.",
+      description:
+        "Weekly sync meeting for the engineering and design teams. Reviewing roadmaps and feedback.",
       startAt: new Date(now.getTime() + 4 * 60 * 60 * 1000), // today in 4 hours
       locationType: "VIRTUAL" as const,
       virtualUrl: "https://meet.google.com/abc-defg-hij",
       visibility: "UNLISTED" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, gradientFrom: "#334155", gradientTo: "#0f172a", accentColor: "#64748b" }, // slate
+      theme: {
+        baseTheme: "DARK" as const,
+        gradientFrom: "#334155",
+        gradientTo: "#0f172a",
+        accentColor: "#64748b",
+      }, // slate
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: true,
@@ -287,7 +368,12 @@ async function main() {
       locationAddress: "101 Crust St, Chicago, IL",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "SOFT" as const, gradientFrom: "#fecdd3", gradientTo: "#fda4af", accentColor: "#f43f5e" }, // rose
+      theme: {
+        baseTheme: "SOFT" as const,
+        gradientFrom: "#fecdd3",
+        gradientTo: "#fda4af",
+        accentColor: "#f43f5e",
+      }, // rose
       plusOneAllowed: true,
       plusOneMax: 3,
       commentsEnabled: true,
@@ -297,14 +383,20 @@ async function main() {
     // FUTURE EVENTS
     {
       title: "Halloween Costume Bash",
-      description: "Spooky season is here! Costume contest, pumpkin carving, and spooky punch. Best costume wins a prize!",
+      description:
+        "Spooky season is here! Costume contest, pumpkin carving, and spooky punch. Best costume wins a prize!",
       startAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), // in 30 days
       locationType: "PHYSICAL" as const,
       locationName: "The Haunted Mansion",
       locationAddress: "666 Cobweb Lane, Salem, MA",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "DARK" as const, gradientFrom: "#9a3412", gradientTo: "#1c1917", accentColor: "#ea580c" }, // orange
+      theme: {
+        baseTheme: "DARK" as const,
+        gradientFrom: "#9a3412",
+        gradientTo: "#1c1917",
+        accentColor: "#ea580c",
+      }, // orange
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -312,13 +404,18 @@ async function main() {
       questionnaireEnabled: false,
       cohost: true, // cohost cohost@test.com
       infoSections: [
-        { type: "shirt", content: "MANDATORY: You must wear a costume! Dress to impress.", order: 1 },
+        {
+          type: "shirt",
+          content: "MANDATORY: You must wear a costume! Dress to impress.",
+          order: 1,
+        },
         { type: "info", content: "Best costume prize details announced at 10 PM.", order: 2 },
       ],
     },
     {
       title: "New Year's Eve Gala",
-      description: "Welcome the new year in style! Elegant dinner, ballroom dancing, and balloon drop at midnight.",
+      description:
+        "Welcome the new year in style! Elegant dinner, ballroom dancing, and balloon drop at midnight.",
       startAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000), // in 60 days
       locationType: "PHYSICAL" as const,
       locationName: "Grand Plaza Ballroom",
@@ -326,7 +423,12 @@ async function main() {
       capacity: 100,
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
-      theme: { baseTheme: "BOLD" as const, gradientFrom: "#eab308", gradientTo: "#f97316", accentColor: "#eab308" }, // yellow/gold
+      theme: {
+        baseTheme: "BOLD" as const,
+        gradientFrom: "#eab308",
+        gradientTo: "#f97316",
+        accentColor: "#eab308",
+      }, // yellow/gold
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: true,
@@ -335,12 +437,18 @@ async function main() {
     },
     {
       title: "Spring Picnic",
-      description: "Soaking up the sun and enjoying the blooming flowers. Bringing frisbees, blankets, and light snacks.",
+      description:
+        "Soaking up the sun and enjoying the blooming flowers. Bringing frisbees, blankets, and light snacks.",
       startAt: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000), // in 90 days
       locationType: "TBD" as const,
       visibility: "PUBLIC" as const,
       status: "DRAFT" as const,
-      theme: { baseTheme: "SOFT" as const, gradientFrom: "#ccfbf1", gradientTo: "#a5f3fc", accentColor: "#14b8a6" }, // teal
+      theme: {
+        baseTheme: "SOFT" as const,
+        gradientFrom: "#ccfbf1",
+        gradientTo: "#a5f3fc",
+        accentColor: "#14b8a6",
+      }, // teal
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
@@ -372,7 +480,7 @@ async function main() {
         maybeEnabled: temp.maybeEnabled,
         questionnaireEnabled: temp.questionnaireEnabled,
         createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // Created 30 days ago
-      }
+      },
     });
 
     // Create theme
@@ -383,7 +491,7 @@ async function main() {
         gradientFrom: temp.theme.gradientFrom,
         gradientTo: temp.theme.gradientTo,
         accentColor: temp.theme.accentColor,
-      }
+      },
     });
 
     // Create reminder settings
@@ -397,7 +505,7 @@ async function main() {
         smsDayBefore: false,
         smsHoursBefore: 0,
         nudgeUnresponded: true,
-      }
+      },
     });
 
     // Co-host
@@ -406,7 +514,7 @@ async function main() {
         data: {
           eventId: event.id,
           userId: cohost.id,
-        }
+        },
       });
     }
 
@@ -419,7 +527,7 @@ async function main() {
             type: info.type,
             content: info.content,
             order: info.order,
-          }
+          },
         });
       }
     }
@@ -432,7 +540,7 @@ async function main() {
             eventId: event.id,
             label: p.label,
             quantity: p.quantity,
-          }
+          },
         });
       }
     }
@@ -444,7 +552,11 @@ async function main() {
   console.log("Rich test data seeding complete!");
 }
 
-async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTemplate, guests: UserModel[]) {
+async function seedRsvpsAndRelatedData(
+  event: EventModel,
+  eventTemp: EventTemplate,
+  guests: UserModel[]
+) {
   const now = new Date();
   let numGuests = 8;
   if (eventTemp.title.includes("BBQ")) numGuests = 16;
@@ -470,7 +582,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
         required: true,
         options: JSON.stringify(["Vegetarian", "Vegan", "Gluten-Free", "No preference"]),
         order: 1,
-      }
+      },
     });
     const field2 = await db.rSVPField.create({
       data: {
@@ -479,14 +591,14 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
         fieldType: "TEXT",
         required: false,
         order: 2,
-      }
+      },
     });
     rsvpFields = [field1, field2];
   }
 
   // Get existing potluck items for claiming
   const potluckItems = await db.potluckItem.findMany({
-    where: { eventId: event.id }
+    where: { eventId: event.id },
   });
   let potluckItemIdx = 0;
 
@@ -495,7 +607,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
 
   for (let i = 0; i < eventGuests.length; i++) {
     const guestUser = eventGuests[i];
-    
+
     // Deterministic status mapping
     let status: "GOING" | "MAYBE" | "NO" = "GOING";
     if (i % 5 === 4) {
@@ -546,7 +658,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
         note,
         userId: guestUser.id,
         createdAt: new Date(event.createdAt.getTime() + (i + 1) * 60 * 60 * 1000), // Seeded over a timeline
-      }
+      },
     });
     rsvps.push(rsvp);
 
@@ -558,7 +670,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
             rsvpId: rsvp.id,
             name: `${guestUser.name ?? "Guest"}'s Guest ${pIdx + 1}`,
             order: pIdx,
-          }
+          },
         });
       }
     }
@@ -571,7 +683,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
           rsvpId: rsvp.id,
           rsvpFieldId: rsvpFields[0].id,
           value: foodPrefPool[i % foodPrefPool.length],
-        }
+        },
       });
 
       const songPool = ["Dancing Queen", "September", "Blinding Lights", "Bohemian Rhapsody"];
@@ -581,13 +693,18 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
             rsvpId: rsvp.id,
             rsvpFieldId: rsvpFields[1].id,
             value: songPool[i % songPool.length],
-          }
+          },
         });
       }
     }
 
     // Potluck Item claim
-    if (status === "GOING" && potluckItems.length > 0 && i % 2 === 0 && potluckItemIdx < potluckItems.length) {
+    if (
+      status === "GOING" &&
+      potluckItems.length > 0 &&
+      i % 2 === 0 &&
+      potluckItemIdx < potluckItems.length
+    ) {
       const item = potluckItems[potluckItemIdx];
       await db.potluckClaim.create({
         data: {
@@ -595,7 +712,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
           guestName: guestUser.name || "Guest",
           quantity: 1,
           createdAt: new Date(rsvp.createdAt.getTime() + 5 * 60 * 1000), // claimed 5 mins after RSVPing
-        }
+        },
       });
       potluckItemIdx++;
     }
@@ -625,7 +742,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
           rsvpId: rsvp.id,
           checkedInAt: new Date(event.startAt.getTime() + (i * 3 - 5) * 60 * 1000),
           checkedInBy: i % 2 === 0 ? "host@test.com" : "cohost@test.com",
-        }
+        },
       });
     }
   }
@@ -640,7 +757,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
         rsvpId: gc.rsvpId,
         body: gc.body,
         createdAt: new Date(event.createdAt.getTime() + (cIdx + 1) * 3 * 60 * 60 * 1000),
-      }
+      },
     });
 
     // Threaded Host reply
@@ -652,7 +769,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
           body: `Thanks for the comment, ${gc.name}! Can't wait to see you there!`,
           parentId: parentComment.id,
           createdAt: new Date(parentComment.createdAt.getTime() + 30 * 60 * 1000),
-        }
+        },
       });
     } else if (eventTemp.cohost && cIdx % 3 === 1) {
       // Threaded Co-Host reply
@@ -663,7 +780,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
           body: `Hey ${gc.name}! Yes, street parking is available. See you soon!`,
           parentId: parentComment.id,
           createdAt: new Date(parentComment.createdAt.getTime() + 45 * 60 * 1000),
-        }
+        },
       });
     }
   }
@@ -676,7 +793,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
       actorName: "Primary Host",
       detail: `created the event: "${event.title}"`,
       createdAt: new Date(event.createdAt.getTime() + 1000),
-    }
+    },
   });
 
   if (eventTemp.infoSections && eventTemp.infoSections.length > 0) {
@@ -687,7 +804,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
         actorName: "Primary Host",
         detail: `added info section details`,
         createdAt: new Date(event.createdAt.getTime() + 10 * 60 * 1000),
-      }
+      },
     });
   }
 
@@ -701,7 +818,7 @@ async function seedRsvpsAndRelatedData(event: EventModel, eventTemp: EventTempla
         actorName: r.guestName,
         detail: `RSVPed ${r.status}${r.plusOneCount > 0 ? ` (+${r.plusOneCount})` : ""}`,
         createdAt: new Date(r.createdAt.getTime() + 2000),
-      }
+      },
     });
   }
 }

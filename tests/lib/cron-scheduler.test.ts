@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockCronSchedule, mockCronValidate, mockProcessReminders, mockRunBackup, mockSystemConfigFindUnique } = vi.hoisted(() => ({
+const {
+  mockCronSchedule,
+  mockCronValidate,
+  mockProcessReminders,
+  mockRunBackup,
+  mockSystemConfigFindUnique,
+} = vi.hoisted(() => ({
   mockCronSchedule: vi.fn(),
   mockCronValidate: vi.fn().mockReturnValue(true),
   mockProcessReminders: vi.fn().mockResolvedValue(undefined),
@@ -123,7 +129,7 @@ describe("lib/cron-scheduler.ts", () => {
   it("logs error and does not schedule if cron validation fails", async () => {
     mockCronValidate.mockReturnValue(false);
     process.env.BACKUP_SCHEDULE = "invalid pattern";
-    
+
     await startInProcessCron();
     expect(mockCronSchedule).toHaveBeenCalledTimes(3); // 15m reminders, 5m backup sync, daily deletion
   });
@@ -160,7 +166,7 @@ describe("lib/cron-scheduler.ts", () => {
     mockRunBackup.mockRejectedValue(new Error("Backup exec failed"));
 
     await startInProcessCron();
-    
+
     // Trigger backup callback
     callbacks.backup?.();
     await new Promise((resolve) => setTimeout(resolve, 0));

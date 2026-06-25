@@ -114,7 +114,12 @@ vi.mock("@/lib/db", () => ({
       delete: mockInfoSectionDelete,
       update: mockInfoSectionUpdate,
     },
-    eventTheme: { upsert: mockEventThemeUpsert, findUnique: mockEventThemeFindUnique, create: mockEventThemeCreate, update: mockEventThemeUpdate },
+    eventTheme: {
+      upsert: mockEventThemeUpsert,
+      findUnique: mockEventThemeFindUnique,
+      create: mockEventThemeCreate,
+      update: mockEventThemeUpdate,
+    },
     eventReminderSettings: { upsert: mockReminderSettingsUpsert },
     eventUpdate: {
       create: mockEventUpdateCreate,
@@ -131,10 +136,17 @@ vi.mock("@/lib/db", () => ({
       create: mockPotluckClaimCreate,
       delete: mockPotluckClaimDelete,
     },
-    invitation: { createMany: mockInvitationCreateMany, create: mockInvitationCreate, findFirst: mockInvitationFindFirst },
+    invitation: {
+      createMany: mockInvitationCreateMany,
+      create: mockInvitationCreate,
+      findFirst: mockInvitationFindFirst,
+    },
     activityEvent: { create: vi.fn().mockResolvedValue({}) },
     rSVPAnswer: { createMany: mockRsvpAnswerCreateMany, upsert: mockRsvpAnswerUpsert },
-    plusOneGuest: { createMany: mockPlusOneGuestCreateMany, deleteMany: mockPlusOneGuestDeleteMany },
+    plusOneGuest: {
+      createMany: mockPlusOneGuestCreateMany,
+      deleteMany: mockPlusOneGuestDeleteMany,
+    },
     themePreset: { findMany: mockThemePresetFindMany },
   },
 }));
@@ -161,7 +173,6 @@ vi.mock("next/headers", () => ({
     delete: vi.fn(),
   }),
 }));
-
 
 import {
   saveEventField,
@@ -299,9 +310,11 @@ describe("saveEventLocation", () => {
       locationAddress: "123 Main St",
       virtualUrl: null,
     });
-    expect(mockEventUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ locationType: "PHYSICAL", locationName: "The Backyard" }),
-    }));
+    expect(mockEventUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ locationType: "PHYSICAL", locationName: "The Backyard" }),
+      })
+    );
   });
 
   it("coerces empty strings to null", async () => {
@@ -327,54 +340,91 @@ describe("addRSVP", () => {
   });
 
   it("creates an RSVP and returns success with the editToken", async () => {
-    const result = await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
+    const result = await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+    });
     expect(result).toEqual({ success: true, id: "rsvp-1", editToken: "tok-abc" });
   });
 
   it("sets approved: true when approval is not required", async () => {
     await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
-    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ approved: true }),
-    }));
+    expect(mockRsvpCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ approved: true }),
+      })
+    );
   });
 
   it("sets approved: false when approval is required", async () => {
     mockEventFindUnique.mockResolvedValue({ ...BASE_EVENT, approvalRequired: true });
     await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
-    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ approved: false }),
-    }));
+    expect(mockRsvpCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ approved: false }),
+      })
+    );
   });
 
   it("returns error when event does not exist", async () => {
     mockEventFindUnique.mockResolvedValue(null);
-    const result = await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
+    const result = await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+    });
     expect(result).toEqual({ success: false, error: "Event not found" });
   });
 
   it("returns error when RSVP deadline has passed", async () => {
     mockEventFindUnique.mockResolvedValue({ ...BASE_EVENT, rsvpDeadline: new Date("2020-01-01") });
-    const result = await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
+    const result = await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+    });
     expect(result).toEqual({ success: false, error: "RSVP deadline has passed" });
   });
 
   it("allows RSVP when deadline is in the future", async () => {
-    mockEventFindUnique.mockResolvedValue({ ...BASE_EVENT, rsvpDeadline: new Date(Date.now() + 86400_000) });
-    const result = await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
+    mockEventFindUnique.mockResolvedValue({
+      ...BASE_EVENT,
+      rsvpDeadline: new Date(Date.now() + 86400_000),
+    });
+    const result = await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+    });
     expect(result.success).toBe(true);
   });
 
   it("returns error when event is at capacity for GOING", async () => {
     mockEventFindUnique.mockResolvedValue({ ...BASE_EVENT, capacity: 10 });
     mockRsvpCount.mockResolvedValue(10);
-    const result = await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
+    const result = await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+    });
     expect(result).toEqual({ success: false, error: "Event is at capacity" });
   });
 
   it("allows GOING RSVP when under capacity", async () => {
     mockEventFindUnique.mockResolvedValue({ ...BASE_EVENT, capacity: 10 });
     mockRsvpCount.mockResolvedValue(9);
-    const result = await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
+    const result = await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+    });
     expect(result.success).toBe(true);
   });
 
@@ -428,7 +478,10 @@ describe("approveRsvp", () => {
 
   beforeEach(() => {
     asHost();
-    mockRsvpFindUnique.mockResolvedValue({ id: RSVP_ID, event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] } });
+    mockRsvpFindUnique.mockResolvedValue({
+      id: RSVP_ID,
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+    });
     mockRsvpUpdate.mockResolvedValue({});
   });
 
@@ -445,7 +498,7 @@ describe("approveRsvp", () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
     mockRsvpFindUnique.mockResolvedValue({
       id: RSVP_ID,
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] }
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] },
     });
     const result = await approveRsvp(RSVP_ID);
     expect(result).toEqual({ success: true });
@@ -478,7 +531,10 @@ describe("declineRsvp", () => {
 
   beforeEach(() => {
     asHost();
-    mockRsvpFindUnique.mockResolvedValue({ id: RSVP_ID, event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] } });
+    mockRsvpFindUnique.mockResolvedValue({
+      id: RSVP_ID,
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+    });
     mockRsvpDelete.mockResolvedValue({});
   });
 
@@ -492,7 +548,7 @@ describe("declineRsvp", () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
     mockRsvpFindUnique.mockResolvedValue({
       id: RSVP_ID,
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] }
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] },
     });
     const result = await declineRsvp(RSVP_ID);
     expect(result).toEqual({ success: true });
@@ -524,7 +580,11 @@ describe("addComment", () => {
   });
 
   it("creates a comment and returns success with its id", async () => {
-    const result = await addComment({ eventId: EVENT_ID, guestName: "Alice", body: "See you there!" });
+    const result = await addComment({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      body: "See you there!",
+    });
     expect(result).toEqual({ success: true, id: "comment-1" });
   });
 
@@ -543,9 +603,11 @@ describe("addComment", () => {
 
   it("passes parentId when creating a reply", async () => {
     await addComment({ eventId: EVENT_ID, guestName: "Bob", body: "Same!", parentId: "comment-1" });
-    expect(mockCommentCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ parentId: "comment-1" }),
-    }));
+    expect(mockCommentCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ parentId: "comment-1" }),
+      })
+    );
   });
 });
 
@@ -560,16 +622,20 @@ describe("saveEventSettings", () => {
 
   it("updates arbitrary settings fields", async () => {
     await saveEventSettings(EVENT_ID, { commentsEnabled: false, plusOneAllowed: true });
-    expect(mockEventUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ commentsEnabled: false, plusOneAllowed: true }),
-    }));
+    expect(mockEventUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ commentsEnabled: false, plusOneAllowed: true }),
+      })
+    );
   });
 
   it("updates visibility", async () => {
     await saveEventSettings(EVENT_ID, { visibility: "PUBLIC" });
-    expect(mockEventUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ visibility: "PUBLIC" }),
-    }));
+    expect(mockEventUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ visibility: "PUBLIC" }),
+      })
+    );
   });
 
   it("converts rsvpDeadline string to a Date", async () => {
@@ -625,46 +691,50 @@ describe("sendBlast", () => {
 
   it("passes the GOING status filter to the RSVP query", async () => {
     await sendBlast(EVENT_ID, "Hey!", ["GOING"]);
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: expect.arrayContaining([
-          expect.objectContaining({ status: "GOING", responded: true })
-        ])
-      }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ status: "GOING", responded: true }),
+          ]),
+        }),
+      })
+    );
   });
 
   it("passes the INVITED status filter to the RSVP query", async () => {
     await sendBlast(EVENT_ID, "Hey!", ["INVITED"]);
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: expect.arrayContaining([
-          expect.objectContaining({ status: "INVITED" })
-        ])
-      }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([expect.objectContaining({ status: "INVITED" })]),
+        }),
+      })
+    );
   });
 
   it("passes the MAYBE status filter to the RSVP query", async () => {
     await sendBlast(EVENT_ID, "Hey!", ["MAYBE"]);
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: expect.arrayContaining([
-          expect.objectContaining({ status: "MAYBE", responded: true })
-        ])
-      }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ status: "MAYBE", responded: true }),
+          ]),
+        }),
+      })
+    );
   });
 
   it("passes the NO status filter to the RSVP query", async () => {
     await sendBlast(EVENT_ID, "Hey!", ["NO"]);
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: expect.arrayContaining([
-          expect.objectContaining({ status: "NO", responded: true })
-        ])
-      }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([expect.objectContaining({ status: "NO", responded: true })]),
+        }),
+      })
+    );
   });
 
   it("does not filter by status when filter is ALL", async () => {
@@ -704,24 +774,26 @@ describe("sendSmsBlast", () => {
 
   it("passes the GOING status filter to the RSVP query", async () => {
     await sendSmsBlast(EVENT_ID, "Hey!", ["GOING"]);
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: expect.arrayContaining([
-          expect.objectContaining({ status: "GOING", responded: true })
-        ])
-      }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ status: "GOING", responded: true }),
+          ]),
+        }),
+      })
+    );
   });
 
   it("passes the INVITED status filter to the RSVP query", async () => {
     await sendSmsBlast(EVENT_ID, "Hey!", ["INVITED"]);
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: expect.arrayContaining([
-          expect.objectContaining({ status: "INVITED" })
-        ])
-      }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([expect.objectContaining({ status: "INVITED" })]),
+        }),
+      })
+    );
   });
 });
 
@@ -736,20 +808,30 @@ describe("addInfoSection", () => {
 
   it("creates a section and returns its id", async () => {
     const result = await addInfoSection({
-      eventId: EVENT_ID, type: "DRESS_CODE", title: "Attire",
-      content: "Smart casual", url: null, order: 0,
+      eventId: EVENT_ID,
+      type: "DRESS_CODE",
+      title: "Attire",
+      content: "Smart casual",
+      url: null,
+      order: 0,
     });
     expect(result).toMatchObject({ success: true, id: "section-1" });
   });
 
   it("passes all fields to the database", async () => {
     await addInfoSection({
-      eventId: EVENT_ID, type: "LINK", title: "Directions",
-      content: "See link", url: "https://maps.example.com", order: 1,
+      eventId: EVENT_ID,
+      type: "LINK",
+      title: "Directions",
+      content: "See link",
+      url: "https://maps.example.com",
+      order: 1,
     });
-    expect(mockInfoSectionCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ url: "https://maps.example.com", order: 1 }),
-    }));
+    expect(mockInfoSectionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ url: "https://maps.example.com", order: 1 }),
+      })
+    );
   });
 });
 
@@ -820,8 +902,12 @@ describe("saveEventDates", () => {
 
 describe("saveReminderSettings", () => {
   const SETTINGS = {
-    emailWeekBefore: true,  emailDayBefore: true,  emailHoursBefore: 2,
-    smsWeekBefore: false,   smsDayBefore: false,   smsHoursBefore: 0,
+    emailWeekBefore: true,
+    emailDayBefore: true,
+    emailHoursBefore: 2,
+    smsWeekBefore: false,
+    smsDayBefore: false,
+    smsHoursBefore: 0,
     nudgeUnresponded: false,
   };
 
@@ -855,24 +941,42 @@ describe("addRSVP — note field", () => {
   });
 
   it("stores the note when provided", async () => {
-    await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0, note: "Bringing wine!" });
-    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ note: "Bringing wine!" }),
-    }));
+    await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+      note: "Bringing wine!",
+    });
+    expect(mockRsvpCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ note: "Bringing wine!" }),
+      })
+    );
   });
 
   it("stores null when note is empty", async () => {
-    await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0, note: "" });
-    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ note: null }),
-    }));
+    await addRSVP({
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      plusOneCount: 0,
+      note: "",
+    });
+    expect(mockRsvpCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ note: null }),
+      })
+    );
   });
 
   it("stores null when note is omitted", async () => {
     await addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 });
-    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ note: null }),
-    }));
+    expect(mockRsvpCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ note: null }),
+      })
+    );
   });
 });
 
@@ -888,9 +992,11 @@ describe("updateRSVP — note field", () => {
 
   it("includes note in the update when provided", async () => {
     await updateRSVP(EDIT_TOKEN, { status: "GOING", plusOneCount: 0, note: "Can't wait!" });
-    expect(mockRsvpUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ note: "Can't wait!" }),
-    }));
+    expect(mockRsvpUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ note: "Can't wait!" }),
+      })
+    );
   });
 
   it("passes undefined for note when omitted, leaving the existing value intact", async () => {
@@ -932,9 +1038,11 @@ describe("addEventUpdate", () => {
 
   it("queries guest emails when notifyGuests is true", async () => {
     await addEventUpdate(EVENT_ID, UPDATE_BODY, true);
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ eventId: EVENT_ID, guestEmail: { not: null } }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ eventId: EVENT_ID, guestEmail: { not: null } }),
+      })
+    );
   });
 
   it("fetches event title for the email when guests exist", async () => {
@@ -1104,17 +1212,21 @@ describe("claimPotluckItem", () => {
   it("creates a new PotluckClaim and returns success", async () => {
     const result = await claimPotluckItem(ITEM_ID, "Alice");
     expect(result).toMatchObject({ success: true });
-    expect(mockPotluckClaimCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ guestName: "Alice", quantity: 1, potluckItemId: ITEM_ID }),
-    }));
+    expect(mockPotluckClaimCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ guestName: "Alice", quantity: 1, potluckItemId: ITEM_ID }),
+      })
+    );
   });
 
   it("persists custom claimedQty when provided", async () => {
     const result = await claimPotluckItem(ITEM_ID, "Alice", 3);
     expect(result).toMatchObject({ success: true });
-    expect(mockPotluckClaimCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ guestName: "Alice", quantity: 3, potluckItemId: ITEM_ID }),
-    }));
+    expect(mockPotluckClaimCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ guestName: "Alice", quantity: 3, potluckItemId: ITEM_ID }),
+      })
+    );
   });
 
   it("returns error when item is not found", async () => {
@@ -1164,9 +1276,11 @@ describe("unclaimPotluckItem", () => {
   it("deletes the PotluckClaim and returns success", async () => {
     const result = await unclaimPotluckItem(ITEM_ID, "Alice");
     expect(result).toMatchObject({ success: true });
-    expect(mockPotluckClaimDelete).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: "claim-1" },
-    }));
+    expect(mockPotluckClaimDelete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "claim-1" },
+      })
+    );
   });
 
   it("returns error when claim is not found", async () => {
@@ -1179,9 +1293,11 @@ describe("unclaimPotluckItem", () => {
     mockGetSession.mockResolvedValue({ userId: HOST_ID, email: "host@example.com" });
     const result = await unclaimPotluckItem(ITEM_ID, "Alice");
     expect(result).toMatchObject({ success: true });
-    expect(mockPotluckClaimDelete).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: "claim-1" },
-    }));
+    expect(mockPotluckClaimDelete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "claim-1" },
+      })
+    );
   });
 
   it("allows co-host to unclaim another guest's claim", async () => {
@@ -1203,7 +1319,7 @@ describe("unclaimPotluckItem", () => {
       label: "Soda",
       quantity: 10,
       claims: [],
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] }
+      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
     });
     const result = await unclaimPotluckItem(ITEM_ID, "Alice");
     expect(result).toEqual({ success: false, error: "Claim not found" });
@@ -1226,7 +1342,11 @@ describe("inviteGuest", () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockUserCreate.mockResolvedValue({ id: "user-new-id" });
     mockRsvpFindFirst.mockResolvedValue(null);
-    mockRsvpCreate.mockResolvedValue({ id: "rsvp-new-id", editToken: "token-new", guestName: "newguest" });
+    mockRsvpCreate.mockResolvedValue({
+      id: "rsvp-new-id",
+      editToken: "token-new",
+      guestName: "newguest",
+    });
     mockInvitationFindFirst.mockResolvedValue(null);
   });
 
@@ -1240,18 +1360,24 @@ describe("inviteGuest", () => {
     const result = await inviteGuest(EVENT_ID, INVITE_EMAIL);
 
     expect(result).toEqual({ success: true, emailOrPhone: INVITE_EMAIL });
-    expect(mockUserCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: { email: INVITE_EMAIL, role: "GUEST" }
-    }));
-    expect(mockRsvpCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        guestEmail: INVITE_EMAIL,
-        userId: "user-new-id"
+    expect(mockUserCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { email: INVITE_EMAIL, role: "GUEST" },
       })
-    }));
-    expect(mockInvitationCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: { eventId: EVENT_ID, sentTo: INVITE_EMAIL, channel: "EMAIL", rsvpId: "rsvp-new-id" }
-    }));
+    );
+    expect(mockRsvpCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          guestEmail: INVITE_EMAIL,
+          userId: "user-new-id",
+        }),
+      })
+    );
+    expect(mockInvitationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { eventId: EVENT_ID, sentTo: INVITE_EMAIL, channel: "EMAIL", rsvpId: "rsvp-new-id" },
+      })
+    );
     expect(sendEventInviteEmail).toHaveBeenCalled();
   });
 
@@ -1260,12 +1386,16 @@ describe("inviteGuest", () => {
     const result = await inviteGuest(EVENT_ID, INVITE_PHONE);
 
     expect(result).toEqual({ success: true, emailOrPhone: INVITE_PHONE });
-    expect(mockUserCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: { phone: INVITE_PHONE, role: "GUEST" }
-    }));
-    expect(mockInvitationCreate).toHaveBeenCalledWith(expect.objectContaining({
-      data: { eventId: EVENT_ID, sentTo: INVITE_PHONE, channel: "SMS", rsvpId: "rsvp-new-id" }
-    }));
+    expect(mockUserCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { phone: INVITE_PHONE, role: "GUEST" },
+      })
+    );
+    expect(mockInvitationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { eventId: EVENT_ID, sentTo: INVITE_PHONE, channel: "SMS", rsvpId: "rsvp-new-id" },
+      })
+    );
     expect(sendEventInviteSms).toHaveBeenCalled();
   });
 
@@ -1311,7 +1441,11 @@ describe("verifyEventPassword", () => {
   it("returns success:true and sets cookie when password matches", async () => {
     const result = await verifyEventPassword(EVENT_SLUG, "password123");
     expect(result).toEqual({ success: true });
-    expect(mockCookiesSet).toHaveBeenCalledWith(`rsvp-unlocked-${EVENT_SLUG}`, expect.any(String), expect.any(Object));
+    expect(mockCookiesSet).toHaveBeenCalledWith(
+      `rsvp-unlocked-${EVENT_SLUG}`,
+      expect.any(String),
+      expect.any(Object)
+    );
   });
 });
 
@@ -1324,15 +1458,30 @@ describe("saveEventTheme", () => {
 
   it("throws Unauthorized when no session", async () => {
     mockGetSession.mockResolvedValue(null);
-    await expect(saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000")).rejects.toThrow("Unauthorized");
+    await expect(saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000")).rejects.toThrow(
+      "Unauthorized"
+    );
   });
 
   it("calls eventTheme.upsert with baseTheme, gradients, and accentColor", async () => {
     await saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000");
     expect(mockEventThemeUpsert).toHaveBeenCalledWith({
       where: { eventId: EVENT_ID },
-      update: { baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000" },
-      create: { eventId: EVENT_ID, baseTheme: "DARK", gradientFrom: "#7c3aed", gradientTo: "#1e40af", accentColor: "#ff0000", appliedPresetId: null, cardOpacity: null },
+      update: {
+        baseTheme: "DARK",
+        gradientFrom: "#7c3aed",
+        gradientTo: "#1e40af",
+        accentColor: "#ff0000",
+      },
+      create: {
+        eventId: EVENT_ID,
+        baseTheme: "DARK",
+        gradientFrom: "#7c3aed",
+        gradientTo: "#1e40af",
+        accentColor: "#ff0000",
+        appliedPresetId: null,
+        cardOpacity: null,
+      },
     });
   });
 });
@@ -1462,7 +1611,13 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
       id: "rsvp-1",
       guestName: "Guest",
       guestEmail: "guest@example.com",
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, title: "Title", host: { email: "host@example.com" }, coHosts: [] },
+      event: {
+        hostId: HOST_ID,
+        slug: EVENT_SLUG,
+        title: "Title",
+        host: { email: "host@example.com" },
+        coHosts: [],
+      },
     });
     mockRsvpUpdate.mockResolvedValue({});
     mockRsvpDelete.mockResolvedValue({});
@@ -1470,17 +1625,23 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
 
   it("approves RSVP and passes custom message to approval email", async () => {
     await approveRsvp("rsvp-1", "Welcome to the party!");
-    expect(mockSendApprovalEmail).toHaveBeenCalledWith("guest@example.com", expect.objectContaining({
-      message: "Welcome to the party!",
-    }));
+    expect(mockSendApprovalEmail).toHaveBeenCalledWith(
+      "guest@example.com",
+      expect.objectContaining({
+        message: "Welcome to the party!",
+      })
+    );
   });
 
   it("declines RSVP and passes custom message to decline email", async () => {
     await declineRsvp("rsvp-1", "Sorry, we are full.");
-    expect(mockSendApprovalEmail).toHaveBeenCalledWith("guest@example.com", expect.objectContaining({
-      message: "Sorry, we are full.",
-      approved: false,
-    }));
+    expect(mockSendApprovalEmail).toHaveBeenCalledWith(
+      "guest@example.com",
+      expect.objectContaining({
+        message: "Sorry, we are full.",
+        approved: false,
+      })
+    );
   });
 });
 
@@ -1508,7 +1669,11 @@ describe("inviteFriendAsGuest", () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockUserCreate.mockResolvedValue({ id: "friend-user-id" });
     mockRsvpFindFirst.mockResolvedValue(null);
-    mockRsvpCreate.mockResolvedValue({ id: "friend-rsvp-id", editToken: "friend-edit-token", guestName: "bob" });
+    mockRsvpCreate.mockResolvedValue({
+      id: "friend-rsvp-id",
+      editToken: "friend-edit-token",
+      guestName: "bob",
+    });
     mockInvitationFindFirst.mockResolvedValue(null);
     mockInvitationCreate.mockResolvedValue({});
   });
@@ -1549,7 +1714,10 @@ describe("inviteFriendAsGuest", () => {
       },
     });
     const res = await inviteFriendAsGuest(EVENT_ID, "token", "bob@example.com");
-    expect(res).toEqual({ success: false, error: "Guests are not allowed to invite others to this event" });
+    expect(res).toEqual({
+      success: false,
+      error: "Guests are not allowed to invite others to this event",
+    });
   });
 
   it("succeeds, creates user and RSVP, and sends email invite", async () => {
@@ -1570,5 +1738,3 @@ describe("inviteFriendAsGuest", () => {
     expect(sendEventInviteEmail).toHaveBeenCalled();
   });
 });
-
-
