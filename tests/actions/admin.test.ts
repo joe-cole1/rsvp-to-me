@@ -7,8 +7,11 @@ const {
   mockCheckInCount,
   mockHostInviteCodeCount,
   mockUserFindMany,
+  mockUserFindUnique,
+  mockUserCreate,
   mockUserUpdate,
   mockUserDelete,
+  mockMagicTokenCreate,
   mockEventFindMany,
   mockEventDelete,
   mockHostInviteCodeFindMany,
@@ -19,6 +22,7 @@ const {
   mockSystemConfigUpsert,
   mockGetSession,
   mockTestEmailConfig,
+  mockSendWelcomeEmail,
   mockTestSmsConfig,
   mockRunBackup,
   mockListBackups,
@@ -37,8 +41,11 @@ const {
   mockCheckInCount: vi.fn(),
   mockHostInviteCodeCount: vi.fn(),
   mockUserFindMany: vi.fn(),
+  mockUserFindUnique: vi.fn(),
+  mockUserCreate: vi.fn(),
   mockUserUpdate: vi.fn(),
   mockUserDelete: vi.fn(),
+  mockMagicTokenCreate: vi.fn(),
   mockEventFindMany: vi.fn(),
   mockEventDelete: vi.fn(),
   mockHostInviteCodeFindMany: vi.fn(),
@@ -49,6 +56,7 @@ const {
   mockSystemConfigUpsert: vi.fn(),
   mockGetSession: vi.fn(),
   mockTestEmailConfig: vi.fn(),
+  mockSendWelcomeEmail: vi.fn(),
   mockTestSmsConfig: vi.fn(),
   mockRunBackup: vi.fn(),
   mockListBackups: vi.fn(),
@@ -67,8 +75,13 @@ vi.mock("@/lib/db", () => ({
     user: {
       count: mockUserCount,
       findMany: mockUserFindMany,
+      findUnique: mockUserFindUnique,
+      create: mockUserCreate,
       update: mockUserUpdate,
       delete: mockUserDelete,
+    },
+    magicToken: {
+      create: mockMagicTokenCreate,
     },
     event: {
       count: mockEventCount,
@@ -114,6 +127,7 @@ vi.mock("@/lib/session", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   testEmailConfig: mockTestEmailConfig,
+  sendWelcomeEmail: mockSendWelcomeEmail,
 }));
 vi.mock("@/lib/sms", () => ({
   testSmsConfig: mockTestSmsConfig,
@@ -130,6 +144,7 @@ import {
   getAdminUsers,
   updateUserRole,
   deleteUserAccount,
+  createAdminUser,
   getAdminEvents,
   deleteEventAdmin,
   createInviteCode,
@@ -538,6 +553,116 @@ describe("app/actions/admin.ts", () => {
     it("deleteThemePreset throws Forbidden for non-admin", async () => {
       mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
       await expect(deleteThemePreset("dark-night")).rejects.toThrow("Forbidden");
+    });
+  });
+
+  describe("createAdminUser", () => {
+    describe("non-admin access", () => {
+      it("throws Forbidden for non-admin", async () => {
+        mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
+        await expect(
+          createAdminUser({ email: "new@example.com", role: "GUEST" })
+        ).rejects.toThrow("Forbidden");
+      });
+    });
+
+    describe("authorized (admin)", () => {
+      beforeEach(() => {
+        mockGetSession.mockResolvedValue({
+          userId: "admin-1",
+          email: "admin@example.com",
+          role: "ADMIN",
+        });
+        mockSendWelcomeEmail.mockResolvedValue(undefined);
+        mockMagicTokenCreate.mockResolvedValue({});
+      });
+
+      it("returns error for missing email", async () => {
+        const res = await createAdminUser({ email: "", role: "GUEST" });
+        expect(res).toEqual({ success: false, error: "Email is required." });
+      });
+
+      it("returns error for invalid email format", async () => {
+        const res = await createAdminUser({ email: "not-an-email", role: "GUEST" });
+        expect(res).toEqual({ success: false, error: "Please enter a valid email address." });
+      });
+
+      it("returns error for invalid role", async () => {
+        const res = await createAdminUser({
+          email: "new@example.com",
+          role: "SUPERUSER" as "GUEST",
+        });
+        expect(res).toEqual({ success: false, error: "Invalid role." });
+      });
+
+      it("returns error when email already exists", async () => {
+        mockUserFindUnique.mockResolvedValue({ id: "existing-1", email: "new@example.com" });
+        const res = await createAdminUser({ email: "new@example.com", role: "GUEST" });
+        expect(res).toEqual({ success: false, error: "A user with this email already exists." });
+      });
+
+      it("returns error when phone already exists", async () => {
+        mockUserFindUnique
+          .mockResolvedValueOnce(null) // email check passes
+          .mockResolvedValueOnce({ id: "existing-2", phone: "+15550001234" }); // phone check fails
+        const res = await createAdminUser({
+          email: "new@example.com",
+          phone: "+15550001234",
+          role: "GUEST",
+        });
+        expect(res).toEqual({
+          success: false,
+          error: "A user with this phone number already exists.",
+        });
+      });
+
+      it("creates user, generates magic token, sends welcome email, and returns success", async () => {
+        const { revalidatePath } = await import("next/cache");
+        mockUserFindUnique.mockResolvedValue(null);
+        mockUserCreate.mockResolvedValue({ id: "new-user-1", email: "new@example.com" });
+
+        const res = await createAdminUser({
+          name: "Jane Smith",
+          email: "new@example.com",
+          phone: "+15550009999",
+          role: "HOST",
+        });
+
+        expect(res).toEqual({ success: true });
+        expect(mockUserCreate).toHaveBeenCalledWith({
+          data: { name: "Jane Smith", email: "new@example.com", phone: "+15550009999", role: "HOST" },
+        });
+        expect(mockMagicTokenCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ userId: "new-user-1" }),
+          })
+        );
+        expect(mockSendWelcomeEmail).toHaveBeenCalledWith(
+          "new@example.com",
+          expect.stringContaining("/auth/verify?token=")
+        );
+        expect(revalidatePath).toHaveBeenCalledWith("/admin");
+      });
+
+      it("still returns success if welcome email fails", async () => {
+        mockUserFindUnique.mockResolvedValue(null);
+        mockUserCreate.mockResolvedValue({ id: "new-user-2", email: "fail@example.com" });
+        mockSendWelcomeEmail.mockRejectedValue(new Error("SMTP down"));
+
+        const res = await createAdminUser({ email: "fail@example.com", role: "GUEST" });
+        expect(res).toEqual({ success: true });
+      });
+
+      it("trims and lowercases email before saving", async () => {
+        mockUserFindUnique.mockResolvedValue(null);
+        mockUserCreate.mockResolvedValue({ id: "new-user-3", email: "trimmed@example.com" });
+
+        await createAdminUser({ email: "  Trimmed@EXAMPLE.COM  ", role: "GUEST" });
+
+        expect(mockUserCreate).toHaveBeenCalledWith({
+          data: expect.objectContaining({ email: "trimmed@example.com" }),
+        });
+      });
     });
   });
 });

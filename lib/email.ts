@@ -253,6 +253,27 @@ export async function sendMagicLinkEmail(to: string, magicLink: string) {
   });
 }
 
+export async function sendWelcomeEmail(to: string, magicLink: string) {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[admin:welcome-email] Welcome link for ${to} is: ${magicLink}`);
+  }
+
+  return send({
+    to,
+    subject: "Your account on RSVP to Me",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="margin-bottom:8px">Welcome to RSVP to Me</h2>
+        <p style="color:#666;margin-bottom:24px">An account has been created for you. Click below to sign in — this link expires in 48 hours.</p>
+        <a href="${magicLink}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
+          Sign In
+        </a>
+        <p style="color:#999;font-size:12px;margin-top:24px">If you weren't expecting this, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendEventInviteEmail(
   to: string,
   opts: {

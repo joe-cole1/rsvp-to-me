@@ -9,6 +9,7 @@ import {
   updateUserRole,
   deleteUserAccount,
   cancelAccountDeletion,
+  createAdminUser,
   deleteEventAdmin,
   createInviteCode,
   revokeInviteCode,
@@ -201,6 +202,12 @@ export default function AdminClient({
 
   const [userSearch, setUserSearch] = useState("");
   const [eventSearch, setEventSearch] = useState("");
+
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [createUserName, setCreateUserName] = useState("");
+  const [createUserEmail, setCreateUserEmail] = useState("");
+  const [createUserPhone, setCreateUserPhone] = useState("");
+  const [createUserRole, setCreateUserRole] = useState<"GUEST" | "HOST" | "ADMIN">("GUEST");
 
   const [newCode, setNewCode] = useState("");
   const [maxUses, setMaxUses] = useState<number | "">("");
@@ -653,6 +660,30 @@ function extractRawEmail(fromStr) {
     });
   };
 
+  const handleCreateUser = () => {
+    setFeedback(null);
+    startTransition(async () => {
+      const res = await createAdminUser({
+        name: createUserName,
+        email: createUserEmail,
+        phone: createUserPhone,
+        role: createUserRole,
+      });
+      if (res.success) {
+        setFeedback({ type: "success", message: "User created and welcome email sent." });
+        setCreateUserOpen(false);
+        setCreateUserName("");
+        setCreateUserEmail("");
+        setCreateUserPhone("");
+        setCreateUserRole("GUEST");
+        const updated = await getAdminUsers(userSearch);
+        setUsers(updated);
+      } else {
+        setFeedback({ type: "error", message: res.error });
+      }
+    });
+  };
+
   const handleEventDelete = (eventId: string, title: string) => {
     if (
       !confirm(`Are you sure you want to moderate/delete the event "${title}"? This is permanent.`)
@@ -914,6 +945,237 @@ function extractRawEmail(fromStr) {
           </div>
         </div>
 
+        {/* Create User Modal */}
+        {createUserOpen && (
+          <>
+            <div
+              onClick={() => setCreateUserOpen(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.6)",
+                zIndex: 200,
+              }}
+            />
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 201,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "20px",
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "480px",
+                  backgroundColor: APP_SHELL.cardBg,
+                  border: `1px solid ${APP_SHELL.cardBorder}`,
+                  borderRadius: APP_SHELL.cardRadius,
+                  padding: "24px",
+                  boxSizing: "border-box",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <h3 style={{ margin: 0, color: APP_SHELL.textPrimary, fontSize: "18px" }}>
+                    Create User
+                  </h3>
+                  <button
+                    onClick={() => setCreateUserOpen(false)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: APP_SHELL.textSecondary,
+                      cursor: "pointer",
+                      padding: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        color: APP_SHELL.textSecondary,
+                        marginBottom: "6px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Name <span style={{ color: APP_SHELL.textMuted }}>(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createUserName}
+                      onChange={(e) => setCreateUserName(e.target.value)}
+                      placeholder="Jane Smith"
+                      style={{
+                        width: "100%",
+                        backgroundColor: APP_SHELL.inputBg,
+                        border: `1px solid ${APP_SHELL.inputBorder}`,
+                        borderRadius: APP_SHELL.inputRadius,
+                        padding: "10px 14px",
+                        color: APP_SHELL.textPrimary,
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        color: APP_SHELL.textSecondary,
+                        marginBottom: "6px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={createUserEmail}
+                      onChange={(e) => setCreateUserEmail(e.target.value)}
+                      placeholder="jane@example.com"
+                      required
+                      style={{
+                        width: "100%",
+                        backgroundColor: APP_SHELL.inputBg,
+                        border: `1px solid ${APP_SHELL.inputBorder}`,
+                        borderRadius: APP_SHELL.inputRadius,
+                        padding: "10px 14px",
+                        color: APP_SHELL.textPrimary,
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        color: APP_SHELL.textSecondary,
+                        marginBottom: "6px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Phone <span style={{ color: APP_SHELL.textMuted }}>(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={createUserPhone}
+                      onChange={(e) => setCreateUserPhone(e.target.value)}
+                      placeholder="+1 555 000 0000"
+                      style={{
+                        width: "100%",
+                        backgroundColor: APP_SHELL.inputBg,
+                        border: `1px solid ${APP_SHELL.inputBorder}`,
+                        borderRadius: APP_SHELL.inputRadius,
+                        padding: "10px 14px",
+                        color: APP_SHELL.textPrimary,
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        color: APP_SHELL.textSecondary,
+                        marginBottom: "6px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Role
+                    </label>
+                    <select
+                      value={createUserRole}
+                      onChange={(e) =>
+                        setCreateUserRole(e.target.value as "GUEST" | "HOST" | "ADMIN")
+                      }
+                      style={{
+                        width: "100%",
+                        backgroundColor: APP_SHELL.inputBg,
+                        border: `1px solid ${APP_SHELL.inputBorder}`,
+                        borderRadius: APP_SHELL.inputRadius,
+                        padding: "10px 14px",
+                        color: APP_SHELL.textPrimary,
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        colorScheme: "dark",
+                      }}
+                    >
+                      <option value="GUEST" style={{ backgroundColor: "#12091f" }}>
+                        Guest
+                      </option>
+                      <option value="HOST" style={{ backgroundColor: "#12091f" }}>
+                        Host
+                      </option>
+                      <option value="ADMIN" style={{ backgroundColor: "#12091f" }}>
+                        Admin
+                      </option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={handleCreateUser}
+                    disabled={isPending || !createUserEmail}
+                    style={{
+                      width: "100%",
+                      backgroundColor: APP_SHELL.accent,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: APP_SHELL.inputRadius,
+                      padding: "14px",
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      cursor: isPending || !createUserEmail ? "not-allowed" : "pointer",
+                      opacity: isPending || !createUserEmail ? 0.7 : 1,
+                      marginTop: "4px",
+                    }}
+                  >
+                    {isPending ? "Creating…" : "Create User"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Feedback Alerts */}
         {feedback && (
           <div
@@ -1078,23 +1340,41 @@ function extractRawEmail(fromStr) {
             {/* PANEL: USERS */}
             {activeTab === "users" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                <input
-                  type="text"
-                  placeholder="Search users by name, email, or phone..."
-                  value={userSearch}
-                  onChange={(e) => handleUserSearch(e.target.value)}
-                  style={{
-                    width: "100%",
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    borderRadius: APP_SHELL.inputRadius,
-                    padding: "12px 16px",
-                    color: APP_SHELL.textPrimary,
-                    fontSize: "14px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
+                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    placeholder="Search users by name, email, or phone..."
+                    value={userSearch}
+                    onChange={(e) => handleUserSearch(e.target.value)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: APP_SHELL.inputBg,
+                      border: `1px solid ${APP_SHELL.inputBorder}`,
+                      borderRadius: APP_SHELL.inputRadius,
+                      padding: "12px 16px",
+                      color: APP_SHELL.textPrimary,
+                      fontSize: "14px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    onClick={() => setCreateUserOpen(true)}
+                    style={{
+                      backgroundColor: APP_SHELL.accent,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: APP_SHELL.inputRadius,
+                      padding: "12px 20px",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    + Create User
+                  </button>
+                </div>
 
                 <div
                   style={{
