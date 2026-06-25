@@ -5,9 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, X } from "lucide-react";
 import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
-import { AppNavLogo } from "@/components/ui/AppNav";
-import ProfileDropdown from "@/components/ui/ProfileDropdown";
-import AdminHamburger from "@/components/ui/AdminHamburger";
 import {
   updateUserRole,
   deleteUserAccount,
@@ -787,12 +784,6 @@ function extractRawEmail(fromStr) {
 
   return (
     <AppShell>
-      <AppNavLogo
-        href="/dashboard"
-        leading={<AdminHamburger />}
-        trailing={sessionUser && <ProfileDropdown user={sessionUser} />}
-      />
-
       <div
         style={{
           maxWidth: "1200px",

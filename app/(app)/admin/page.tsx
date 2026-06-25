@@ -1,6 +1,4 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
-import { db } from "@/lib/db";
 import {
   getAdminStats,
   getAdminUsers,
@@ -12,6 +10,8 @@ import {
   getThemePresets,
 } from "@/app/actions/admin";
 import AdminClient from "./AdminClient";
+import { getSessionUser } from "@/lib/session-user";
+import { db } from "@/lib/db";
 
 export const metadata = {
   title: "Admin Panel | RSVP",
@@ -19,25 +19,14 @@ export const metadata = {
 };
 
 export default async function AdminPage() {
-  const session = await getSession();
-  if (!session || session.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || sessionUser.role !== "ADMIN") redirect("/dashboard");
 
-  const dbUser = await db.user.findUnique({
-    where: { id: session.userId },
-    select: { name: true, email: true, role: true, avatarUrl: true },
-  });
-
-  if (dbUser) {
-    const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-    if (initialAdminEmail && dbUser.email?.toLowerCase().trim() === initialAdminEmail && dbUser.role !== "ADMIN") {
-      await db.user.update({
-        where: { id: session.userId },
-        data: { role: "ADMIN" },
-      });
-      dbUser.role = "ADMIN";
-    }
+  // Auto-promote INITIAL_ADMIN_EMAIL if needed
+  const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
+  if (initialAdminEmail && sessionUser.email.toLowerCase().trim() === initialAdminEmail && sessionUser.role !== "ADMIN") {
+    await db.user.update({ where: { id: sessionUser.id }, data: { role: "ADMIN" } });
+    sessionUser.role = "ADMIN";
   }
 
   const [stats, users, events, inviteCodes, systemConfig, backupConfig, backupsList, themePresets] = await Promise.all([
@@ -61,13 +50,7 @@ export default async function AdminPage() {
       initialBackupConfig={backupConfig}
       initialBackups={backupsList}
       initialThemePresets={themePresets}
-      sessionUser={dbUser ? {
-        name: dbUser.name,
-        email: dbUser.email,
-        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
-        avatarUrl: dbUser.avatarUrl,
-      } : null}
+      sessionUser={{ name: sessionUser.name, email: sessionUser.email, role: sessionUser.role, avatarUrl: sessionUser.avatarUrl }}
     />
   );
 }
-

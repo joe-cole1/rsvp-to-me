@@ -7,9 +7,6 @@ import { updateProfileSettings, updateNotificationSettings, requestAccountDeleti
 import { deleteHostEvent } from "@/app/actions/event";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
-import { AppNavLogo } from "@/components/ui/AppNav";
-import ProfileDropdown from "@/components/ui/ProfileDropdown";
-import AdminHamburger from "@/components/ui/AdminHamburger";
 
 interface ProfileData {
   id: string;
@@ -196,21 +193,6 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
 
   return (
     <AppShell>
-      <AppNavLogo
-        href="/dashboard"
-        leading={initialProfile.role === "ADMIN" ? <AdminHamburger /> : undefined}
-        trailing={
-          <ProfileDropdown
-            user={{
-              name,
-              email: initialProfile.email,
-              role: initialProfile.role,
-              avatarUrl,
-            }}
-          />
-        }
-      />
-
       <div
         style={{
           maxWidth: "600px",
