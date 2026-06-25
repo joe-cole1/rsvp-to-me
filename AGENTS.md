@@ -286,6 +286,21 @@ TWILIO_PHONE_NUMBER=""
 
 ---
 
+<!-- BEGIN:best-practices-rules -->
+# Best Coding Practices
+
+**ALWAYS search for and use best coding practices whenever doing something new.**
+
+Before implementing any non-trivial feature, architectural pattern, or integration, search for the current best practices (via web search or official docs). Do not assume training data reflects the latest conventions — Next.js, Prisma, React, and related tools evolve quickly and have breaking changes between major versions.
+
+Specific rules:
+- **Shared layouts over per-page nav**: Use Next.js App Router route group `layout.tsx` to share common UI (navigation, shells) across pages — never duplicate nav boilerplate per-page.
+- **React `cache()` for server-side deduplication**: Wrap shared data-fetching helpers in `React.cache()` so multiple Server Components in the same request share one DB query.
+- **`const` arrow functions are not hoisted**: Arrow functions declared with `const` must be defined before they are called. Use function declarations if hoisting is needed.
+- **TypeScript strictness**: Keep `strict: true` in `tsconfig.json`. Never use `any` unless there is no viable alternative.
+- **Prettier for formatting** *(planned — see ROADMAP.md)*: Run Prettier as a CI check once the codebase has been formatted. Do not add ad-hoc style fixes in individual PRs.
+<!-- END:best-practices-rules -->
+
 <!-- BEGIN:tone-rules -->
 # Tone and Collaboration Style
 
