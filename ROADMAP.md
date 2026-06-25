@@ -35,6 +35,7 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   *(No pending priority 2 privacy controls)*
 
 ### ⚙️ Administration & Settings
+*   **Admin: Create User**: Add a "Create User" button to the User Management tab that opens a modal form (name, email, phone, role). Requires a new `createAdminUser` server action in `app/actions/admin.ts`. No existing form to reuse — this is net-new UI and server logic.
 *   **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
 *   ~~**Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.~~ ✅ Completed
 
