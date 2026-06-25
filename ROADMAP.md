@@ -41,7 +41,7 @@ _(No pending priority 2 privacy controls)_
   - **Email disabled only** (moderate): The magic-link auth flow sends login links exclusively via email — this is the hard part. If email is off, hosts have no delivery path for their login link unless we add SMS-based OTP login as an alternative. Start the audit here: `lib/auth.ts` (`sendMagicLink`), `app/(auth)/signin/page.tsx`, and `app/auth/verify/route.ts`. Beyond auth: hide email blast controls; suppress email reminder options; update RSVP/registration copy to phone-only; adjust private event invite UX (currently email-first).
   - **Both disabled** (needs deep-dive — separate ticket): No delivery path exists for magic-link login, RSVP confirmations, event invitations, or reminders. The platform still technically works as a shareable-link tool (public events, manual URL sharing, QR codes) but the auth story collapses. Before implementing the "both off" path, audit: `lib/auth.ts` for session-only or passwordless fallbacks; private event visibility rules (`Event.visibility`); reminder scheduler (`lib/scheduler.ts` or equivalent cron); and every place that calls `sendMagicLink`, `sendEmailBlast`, or `sendSmsBlast`. A dedicated discovery spike is warranted before coding anything for this case.
   - **Implementation starting point**: Add the two `SystemConfig` keys, wire up the admin toggles, then create a `isChannelEnabled(channel: 'email' | 'sms')` helper in `lib/config.ts` (reads from DB config). Gate all sends in `lib/email.ts` and `lib/sms.ts` behind this helper so enforcement is centralised. Surface-level UI changes (hiding fields, updating copy) follow after the send-path is gated.
-- **Admin: Create User**: Add a "Create User" button to the User Management tab that opens a modal form (name, email, phone, role). Requires a new `createAdminUser` server action in `app/actions/admin.ts`. No existing form to reuse — this is net-new UI and server logic.
+- ~~**Admin: Create User**~~ _(implemented — see Completed Milestones)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
 
 ### 📖 Interactive Documentation Dashboard
@@ -104,6 +104,10 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Admin: Create User
+
+- [x] **Create User modal**: Added a "Create User" button to the Admin → Users tab that opens a modal form (name, email, phone, role). Validates email format and uniqueness, checks phone uniqueness if provided. After creation, generates a 48-hour magic token and sends a welcome email (`sendWelcomeEmail` in `lib/email.ts`) so the new user can sign in immediately. Email failure is non-blocking — user creation succeeds regardless. Server action `createAdminUser` in `app/actions/admin.ts` is admin-gated via `assertAdmin()`.
 
 ### Code Quality Sweep — Prettier, Session Dedup & Profile Nav
 

@@ -1,10 +1,13 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { getSession, invalidateUserSessions } from "@/lib/session";
 import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { revalidatePath } from "next/cache";
 import { encryptConfig, decryptConfig } from "@/lib/crypto";
+import { hashToken } from "@/lib/hash";
+import { sendWelcomeEmail } from "@/lib/email";
 
 async function assertAdmin() {
   const session = await getSession();
@@ -585,6 +588,69 @@ export async function updateThemePreset(
 export async function deleteThemePreset(id: string) {
   await assertAdmin();
   await db.themePreset.delete({ where: { id } });
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function createAdminUser(data: {
+  name?: string;
+  email: string;
+  phone?: string;
+  role: "GUEST" | "HOST" | "ADMIN";
+}): Promise<{ success: true } | { success: false; error: string }> {
+  await assertAdmin();
+
+  const email = data.email.trim().toLowerCase();
+  if (!email) {
+    return { success: false, error: "Email is required." };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: "Please enter a valid email address." };
+  }
+
+  const phone = data.phone?.trim() || undefined;
+  const name = data.name?.trim() || undefined;
+  const role = data.role;
+
+  if (!["GUEST", "HOST", "ADMIN"].includes(role)) {
+    return { success: false, error: "Invalid role." };
+  }
+
+  const existingEmail = await db.user.findUnique({ where: { email } });
+  if (existingEmail) {
+    return { success: false, error: "A user with this email already exists." };
+  }
+
+  if (phone) {
+    const existingPhone = await db.user.findUnique({ where: { phone } });
+    if (existingPhone) {
+      return { success: false, error: "A user with this phone number already exists." };
+    }
+  }
+
+  const newUser = await db.user.create({
+    data: { name, email, phone, role },
+  });
+
+  const token = randomBytes(32).toString("hex");
+  const hashedToken = hashToken(token);
+  await db.magicToken.create({
+    data: {
+      userId: newUser.id,
+      token: hashedToken,
+      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+    },
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const magicLink = `${appUrl}/auth/verify?token=${token}`;
+
+  try {
+    await sendWelcomeEmail(email, magicLink);
+  } catch (err) {
+    console.error("[admin:create-user] Failed to send welcome email:", err);
+  }
+
   revalidatePath("/admin");
   return { success: true };
 }
