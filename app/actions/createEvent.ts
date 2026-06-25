@@ -2,14 +2,21 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getSession, destroySession } from "@/lib/session";
 import { getSessionUser } from "@/lib/session-user";
 import { generateUniqueSlug } from "@/lib/slug";
 import { tzLocalToUtc } from "@/lib/utils";
 import { CreateEventSchema } from "@/lib/schemas";
 
 export async function createEvent(formData: FormData) {
+  const session = await getSession();
+  if (!session || session.role === "GUEST") throw new Error("Unauthorized");
+
   const sessionUser = await getSessionUser();
-  if (!sessionUser || sessionUser.role === "GUEST") throw new Error("Unauthorized");
+  if (!sessionUser) {
+    await destroySession();
+    redirect("/auth/sign-in");
+  }
 
   // Parse using Zod
   const rawInput = {
