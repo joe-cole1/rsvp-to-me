@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Menu, X } from "lucide-react";
 import { APP_SHELL } from "@/lib/theme";
 
@@ -52,16 +53,16 @@ export default function AdminHamburger() {
         <Menu size={20} />
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
-          {/* Backdrop */}
+          {/* Backdrop — portaled to body to escape nav stacking context */}
           <div
             onClick={() => setOpen(false)}
             style={{
               position: "fixed", inset: 0,
               backgroundColor: "rgba(0,0,0,0.6)",
               backdropFilter: "blur(4px)",
-              zIndex: 998,
+              zIndex: 9998,
             }}
           />
 
@@ -84,7 +85,7 @@ export default function AdminHamburger() {
               display: "flex",
               flexDirection: "column",
               gap: "20px",
-              zIndex: 999,
+              zIndex: 9999,
               animation: "adminDrawerIn 0.25s cubic-bezier(0.16,1,0.3,1)",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -138,7 +139,8 @@ export default function AdminHamburger() {
               ))}
             </nav>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   );
