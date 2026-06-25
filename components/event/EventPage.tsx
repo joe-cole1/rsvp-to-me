@@ -2407,7 +2407,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                         }
                         return (
                           <div key={`c-${item.id}`} style={{ display: "flex", gap: "10px" }}>
-                            {renderAvatar(item.guestName, item.rsvpId, { width: "28px", height: "28px" })}
+                            {renderAvatar(item.guestName, item.rsvpId, { width: "36px", height: "36px", minWidth: "36px" })}
                             <div style={{ flex: 1, background: t.inputBg, borderRadius: "14px", padding: "10px 14px" }}>
                               <span style={{ fontWeight: 700, fontSize: "13px" }}>{item.guestName}</span>
                               {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "8px" }}>{timeAgo(item.createdAt)}</span>}
@@ -2437,7 +2437,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
                                 <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
                                   {item.replies.map((r) => (
                                     <div key={r.id} style={{ display: "flex", gap: "8px" }}>
-                                      {renderAvatar(r.guestName, r.rsvpId, { width: "20px", height: "20px", fontSize: "10px", minWidth: "20px" })}
+                                      {renderAvatar(r.guestName, r.rsvpId, { width: "26px", height: "26px", fontSize: "11px", minWidth: "26px" })}
                                       <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: "10px", padding: "6px 10px" }}>
                                         <span style={{ fontWeight: 700, fontSize: "12px" }}>{r.guestName}</span>
                                         {event.showTimestamps && <span style={{ color: t.textMuted, fontSize: "11px", marginLeft: "6px" }}>{timeAgo(r.createdAt)}</span>}
