@@ -123,7 +123,7 @@ interface AdminClientProps {
   } | null;
 }
 
-const VALID_TABS = ["overview", "users", "events", "invites", "settings", "email", "sms", "backups", "themes"] as const;
+const VALID_TABS = ["overview", "users", "events", "invites", "email", "sms", "backups", "themes"] as const;
 type TabId = typeof VALID_TABS[number];
 
 const BACKUP_PRESETS = [
@@ -782,6 +782,17 @@ function extractRawEmail(fromStr) {
     }
   };
 
+  const TAB_META: Record<TabId, { title: string; description: string }> = {
+    overview: { title: "📊 Overview",         description: "A snapshot of users, events, and RSVPs across your platform." },
+    users:    { title: "👥 User Management",  description: "View, search, and manage all registered users. Adjust roles and remove accounts." },
+    events:   { title: "🎈 Event Moderation", description: "Review and moderate active events. Delete events that violate platform rules." },
+    invites:  { title: "🔑 Host Settings",    description: "Control how new hosts access the platform — via invite codes or open registration." },
+    email:    { title: "📧 Email Settings",   description: "Choose your email provider and configure delivery settings." },
+    sms:      { title: "💬 SMS Settings",     description: "Configure Twilio for SMS notifications and alerts." },
+    themes:   { title: "🎨 Theme Presets",    description: "Manage the preset themes hosts can pick from in the event settings. Inactive presets are hidden from hosts." },
+    backups:  { title: "💾 Database Backups", description: "Schedule automated backups and manage your database snapshot history." },
+  };
+
   return (
     <AppShell>
       <div
@@ -796,10 +807,10 @@ function extractRawEmail(fromStr) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
           <div>
             <h2 style={{ fontSize: "28px", fontWeight: 800, color: APP_SHELL.textPrimary, margin: 0 }}>
-              🛡️ System Administration
+              {TAB_META[activeTab].title}
             </h2>
             <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", marginTop: "4px" }}>
-              Oversee users, moderate events, manage invite codes, and modify configuration.
+              {TAB_META[activeTab].description}
             </p>
           </div>
         </div>
@@ -848,8 +859,7 @@ function extractRawEmail(fromStr) {
                 { id: "overview", label: "📊 Overview" },
                 { id: "users", label: "👥 User Management" },
                 { id: "events", label: "🎈 Event Moderation" },
-                { id: "invites", label: "🔑 Invite Codes" },
-                { id: "settings", label: "⚙️ Global Config" },
+                { id: "invites", label: "🔑 Host Settings" },
                 { id: "email", label: "📧 Email Settings" },
                 { id: "sms", label: "💬 SMS Settings" },
                 { id: "themes", label: "🎨 Theme Presets" },
@@ -1159,9 +1169,74 @@ function extractRawEmail(fromStr) {
               </div>
             )}
 
-            {/* PANEL: INVITE CODES */}
+            {/* PANEL: HOST SETTINGS */}
             {activeTab === "invites" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+                {/* Open Host Registration */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}>Open Host Registration</div>
+                      <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "4px" }}>
+                        Allow anyone to sign up as a host without entering an invite code.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleOpenReg}
+                      style={{
+                        width: "50px",
+                        height: "26px",
+                        borderRadius: "13px",
+                        border: "none",
+                        backgroundColor: config.open_registration === "true" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
+                        cursor: "pointer",
+                        position: "relative",
+                        transition: "background-color 0.2s",
+                        padding: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          backgroundColor: "#fff",
+                          position: "absolute",
+                          top: "3px",
+                          left: config.open_registration === "true" ? "27px" : "3px",
+                          transition: "left 0.2s",
+                        }}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {config.open_registration === "true" ? (
+                  <div
+                    style={{
+                      backgroundColor: APP_SHELL.cardBg,
+                      border: `1px solid ${APP_SHELL.cardBorder}`,
+                      borderRadius: APP_SHELL.cardRadius,
+                      padding: "32px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div style={{ fontSize: "32px", marginBottom: "12px" }}>🔓</div>
+                    <div style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary, marginBottom: "6px" }}>Open Registration is Active</div>
+                    <div style={{ fontSize: "13px", color: APP_SHELL.textSecondary }}>
+                      Invite codes are not required while open registration is enabled. Disable it above to manage invite codes.
+                    </div>
+                  </div>
+                ) : (
+                <>
                 {/* Form */}
                 <form
                   onSubmit={handleCreateCode}
@@ -1361,72 +1436,8 @@ function extractRawEmail(fromStr) {
                     </table>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* PANEL: SETTINGS */}
-            {activeTab === "settings" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                {/* Section 1: Global System Configuration */}
-                <div
-                  style={{
-                    backgroundColor: APP_SHELL.cardBg,
-                    border: `1px solid ${APP_SHELL.cardBorder}`,
-                    borderRadius: APP_SHELL.cardRadius,
-                    padding: "24px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "24px",
-                  }}
-                >
-                  <div>
-                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
-                      Global System Configuration
-                    </h3>
-                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
-                      Toggles stored in database taking priority over environment variables.
-                    </p>
-                  </div>
-
-                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
-
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>Open Host Registration</div>
-                      <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
-                        Allow anyone to sign up as a host without entering an invite code.
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleToggleOpenReg}
-                      style={{
-                        width: "50px",
-                        height: "26px",
-                        borderRadius: "13px",
-                        border: "none",
-                        backgroundColor: config.open_registration === "true" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-                        cursor: "pointer",
-                        position: "relative",
-                        transition: "background-color 0.2s",
-                        padding: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          backgroundColor: "#fff",
-                          position: "absolute",
-                          top: "3px",
-                          left: config.open_registration === "true" ? "27px" : "3px",
-                          transition: "left 0.2s",
-                        }}
-                      />
-                    </button>
-                  </div>
-                </div>
+                </>
+                )}
               </div>
             )}
 
@@ -3168,8 +3179,7 @@ function extractRawEmail(fromStr) {
                       { id: "overview", label: "📊 Overview" },
                       { id: "users", label: "👥 User Management" },
                       { id: "events", label: "🎈 Event Moderation" },
-                      { id: "invites", label: "🔑 Invite Codes" },
-                      { id: "settings", label: "⚙️ Global Config" },
+                      { id: "invites", label: "🔑 Host Settings" },
                       { id: "email", label: "📧 Email Settings" },
                       { id: "sms", label: "💬 SMS Settings" },
                       { id: "themes", label: "🎨 Theme Presets" },
