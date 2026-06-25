@@ -560,9 +560,9 @@ describe("app/actions/admin.ts", () => {
     describe("non-admin access", () => {
       it("throws Forbidden for non-admin", async () => {
         mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
-        await expect(
-          createAdminUser({ email: "new@example.com", role: "GUEST" })
-        ).rejects.toThrow("Forbidden");
+        await expect(createAdminUser({ email: "new@example.com", role: "GUEST" })).rejects.toThrow(
+          "Forbidden"
+        );
       });
     });
 
@@ -630,7 +630,12 @@ describe("app/actions/admin.ts", () => {
 
         expect(res).toEqual({ success: true });
         expect(mockUserCreate).toHaveBeenCalledWith({
-          data: { name: "Jane Smith", email: "new@example.com", phone: "+15550009999", role: "HOST" },
+          data: {
+            name: "Jane Smith",
+            email: "new@example.com",
+            phone: "+15550009999",
+            role: "HOST",
+          },
         });
         expect(mockMagicTokenCreate).toHaveBeenCalledWith(
           expect.objectContaining({
