@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -32,25 +32,10 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
 
   if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
 
-  const session = await getSession();
-  const isHostOwner = session?.userId === event.hostId;
-  const isCohost = event.coHosts.some((ch) => ch.userId === session?.userId);
+  const sessionUser = await getSessionUser();
+  const isHostOwner = sessionUser?.id === event.hostId;
+  const isCohost = event.coHosts.some((ch) => ch.userId === sessionUser?.id);
   const isHost = isHostOwner || isCohost;
-
-  const dbUser = session
-    ? await db.user.findUnique({
-        where: { id: session.userId },
-        select: { email: true, name: true, avatarUrl: true, role: true },
-      })
-    : null;
-  const sessionUser = dbUser
-    ? {
-        email: dbUser.email ?? session!.email,
-        name: dbUser.name,
-        avatarUrl: dbUser.avatarUrl,
-        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
-      }
-    : null;
 
   if (event.guestListVis === "HOST_ONLY" && !isHost) redirect(`/e/${slug}`);
 

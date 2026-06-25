@@ -183,6 +183,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           } else {
             setFeedback({ type: "success", message: "Profile settings saved!" });
           }
+          router.refresh();
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to update profile.";

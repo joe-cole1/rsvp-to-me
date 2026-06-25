@@ -51,6 +51,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check formatting (Prettier)
+        run: npx prettier --check .
+
       - name: Test
         run: npm test
         env:

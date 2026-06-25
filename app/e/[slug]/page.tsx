@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { resolveTheme } from "@/lib/theme";
 import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
@@ -92,10 +92,10 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   if (event.status === "CANCELLED") notFound();
 
-  const session = await getSession();
-  const isHostOwner = session?.userId === event.hostId;
-  const isCohost = event.coHosts.some((ch) => ch.userId === session?.userId);
-  const isAdminModerating = session?.role === "ADMIN" && searchParams?.admin === "1";
+  const sessionUser = await getSessionUser();
+  const isHostOwner = sessionUser?.id === event.hostId;
+  const isCohost = event.coHosts.some((ch) => ch.userId === sessionUser?.id);
+  const isAdminModerating = sessionUser?.role === "ADMIN" && searchParams?.admin === "1";
   const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
 
   // Check if event is unlocked via signed cookie
@@ -112,9 +112,9 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   // Fetch the logged-in user's RSVP by userId (used for gate bypass and guest RSVP display)
   const loggedInUserRsvp =
-    !isHost && !token && session?.userId
+    !isHost && !token && sessionUser?.id
       ? await db.rSVP.findFirst({
-          where: { userId: session.userId, eventId: event.id },
+          where: { userId: sessionUser.id, eventId: event.id },
           select: {
             id: true,
             guestName: true,
@@ -222,22 +222,6 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     event.theme?.accentColor ?? "#a855f7",
     event.theme?.cardOpacity
   );
-
-  let sessionUser = null;
-  if (session) {
-    const dbUser = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true, name: true, avatarUrl: true, role: true },
-    });
-    if (dbUser) {
-      sessionUser = {
-        email: dbUser.email ?? session.email,
-        name: dbUser.name,
-        avatarUrl: dbUser.avatarUrl,
-        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
-      };
-    }
-  }
 
   return (
     <EventPage

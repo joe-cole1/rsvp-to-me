@@ -1,10 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { SettingsPage } from "@/components/event/SettingsPage";
 import { getActiveThemePresets } from "@/app/actions/event";
-import type { SessionUser } from "@/components/event/SettingsPage";
 
 export async function generateMetadata(props: PageProps<"/e/[slug]/settings">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -16,8 +15,8 @@ export async function generateMetadata(props: PageProps<"/e/[slug]/settings">): 
 export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/settings">) {
   const { slug } = await props.params;
 
-  const session = await getSession();
-  if (!session) redirect(`/auth/sign-in?next=/e/${slug}/settings`);
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) redirect(`/auth/sign-in?next=/e/${slug}/settings`);
 
   const event = await db.event.findUnique({
     where: { slug },
@@ -58,24 +57,11 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
   if (!event) notFound();
 
   // allow cohosts to access settings too
-  const isOwner = event.hostId === session.userId;
-  const isCohost = event.coHosts.some((ch) => ch.user.id === session.userId);
+  const isOwner = event.hostId === sessionUser.id;
+  const isCohost = event.coHosts.some((ch) => ch.user.id === sessionUser.id);
   if (!isOwner && !isCohost) redirect(`/e/${slug}`);
 
   const themePresets = await getActiveThemePresets();
-
-  const dbUser = await db.user.findUnique({
-    where: { id: session.userId },
-    select: { email: true, name: true, avatarUrl: true, role: true },
-  });
-  const sessionUser: SessionUser | null = dbUser
-    ? {
-        email: dbUser.email ?? session.email,
-        name: dbUser.name,
-        avatarUrl: dbUser.avatarUrl,
-        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
-      }
-    : null;
 
   return (
     <SettingsPage

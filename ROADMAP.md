@@ -79,9 +79,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Site-Wide Best Practices Scrub**: Audit the entire codebase against current Next.js 16 App Router, React, and TypeScript best practices. Key areas:
   - ✅ **(1) Shared App Router layout**: Dashboard, admin, and profile pages migrated to a single route-group `layout.tsx` — per-page nav boilerplate eliminated. [PR #176](https://github.com/joe-cole1/rsvp-to-me/pull/176)
   - ✅ **(2) Global nav unified**: `AppNavLogo` / `ProfileDropdown` consistent across event page, RSVP flow, guests page, and settings page — all `AppShell` outliers resolved. [PR #175](https://github.com/joe-cole1/rsvp-to-me/pull/175)
-  - **(3) `getSessionUser()` deduplication audit**: Check for any remaining per-page `getSession` + `db.user.findUnique` calls that duplicate what `getSessionUser()` already provides.
-- **Prettier Formatting CI Check**: Add Prettier to the GitHub Actions `ci.yml` workflow (`npx prettier --check .`) after running `npx prettier --write .` to format the existing codebase as a one-time prep commit. This enforces consistent style on every PR going forward.
-- **Profile Nav Reactive Update** _(minor UX)_: The shared layout nav shows the user's name and avatar from the server-rendered initial load. After a user saves new profile settings (name or avatar), the nav reflects the new values only after a page refresh/navigation — it does not update live. Consider adding a lightweight client-side state sync (e.g., revalidating the layout with `router.refresh()` after a successful profile save) so the nav avatar updates immediately.
+  - ✅ **(3) `getSessionUser()` deduplication audit**: All per-page `getSession` + `db.user.findUnique` duplicates replaced with `getSessionUser()` across 6 files.
 
 ### ⚙️ DevOps & Security (Deferred)
 
@@ -106,6 +104,12 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Code Quality Sweep — Prettier, Session Dedup & Profile Nav
+
+- [x] **Prettier Formatting**: Added Prettier v3 as a devDependency with `.prettierrc` (double quotes, semis, 100-char printWidth) and `.prettierignore`. Ran `prettier --write` across the full codebase as a one-time prep commit. `npx prettier --check .` added to `ci.yml` to enforce formatting on every PR.
+- [x] **`getSessionUser()` deduplication**: Replaced all remaining `getSession()` + `db.user.findUnique(session.userId)` duplicates with the existing `React.cache`-wrapped `getSessionUser()` helper across 6 files: `app/e/[slug]/page.tsx`, `app/e/[slug]/rsvp/page.tsx`, `app/e/[slug]/settings/page.tsx`, `app/e/[slug]/guests/page.tsx`, `app/actions/createEvent.ts`, and `app/actions/profile.ts`.
+- [x] **Profile Nav Reactive Update**: Added `router.refresh()` call in `ProfileClient.tsx` after a successful profile save, so the layout re-runs `getSessionUser()` and the `ProfileDropdown` name/avatar updates immediately without a full page reload.
 
 ### Database Migration Hardening [PR #169](https://github.com/joe-cole1/rsvp-to-me/pull/169)
 

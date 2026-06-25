@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { getSession, destroySession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
@@ -15,10 +16,10 @@ export async function updateProfileSettings(data: {
   email?: string;
   phone?: string;
 }) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) throw new Error("Unauthorized");
 
-  const user = await db.user.findUnique({ where: { id: session.userId } });
+  const user = await db.user.findUnique({ where: { id: sessionUser.id } });
   if (!user) throw new Error("User not found");
 
   // Update name and avatar immediately
@@ -134,11 +135,11 @@ export async function updateNotificationSettings(data: {
 }
 
 export async function getUserProfile() {
-  const session = await getSession();
-  if (!session) return null;
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) return null;
 
   const user = await db.user.findUnique({
-    where: { id: session.userId },
+    where: { id: sessionUser.id },
     select: {
       id: true,
       name: true,

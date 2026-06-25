@@ -2,20 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSession, destroySession } from "@/lib/session";
+import { getSessionUser } from "@/lib/session-user";
 import { generateUniqueSlug } from "@/lib/slug";
 import { tzLocalToUtc } from "@/lib/utils";
 import { CreateEventSchema } from "@/lib/schemas";
 
 export async function createEvent(formData: FormData) {
-  const session = await getSession();
-  if (!session || session.role === "GUEST") throw new Error("Unauthorized");
-
-  const userExists = await db.user.findUnique({ where: { id: session.userId } });
-  if (!userExists) {
-    await destroySession();
-    redirect("/auth/sign-in");
-  }
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || sessionUser.role === "GUEST") throw new Error("Unauthorized");
 
   // Parse using Zod
   const rawInput = {
@@ -48,7 +42,7 @@ export async function createEvent(formData: FormData) {
       locationAddress: parsed.locationAddress,
       virtualUrl: parsed.virtualUrl,
       visibility: parsed.visibility,
-      hostId: session.userId,
+      hostId: sessionUser.id,
       status: "PUBLISHED",
     },
   });
