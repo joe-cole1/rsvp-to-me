@@ -972,7 +972,7 @@ function extractRawEmail(fromStr) {
                 style={{
                   width: "100%",
                   maxWidth: "480px",
-                  backgroundColor: APP_SHELL.cardBg,
+                  backgroundColor: "rgba(15,9,31,0.98)",
                   border: `1px solid ${APP_SHELL.cardBorder}`,
                   borderRadius: APP_SHELL.cardRadius,
                   padding: "24px",
