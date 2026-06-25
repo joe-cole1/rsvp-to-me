@@ -78,8 +78,8 @@ export default function AdminHamburger() {
             style={{
               position: "fixed", top: 0, left: 0, bottom: 0,
               width: "280px",
-              backgroundColor: APP_SHELL.cardBg,
-              borderRight: `1px solid ${APP_SHELL.cardBorder}`,
+              backgroundColor: "#13091f",
+              borderRight: "1px solid rgba(255,255,255,0.10)",
               padding: "24px",
               boxSizing: "border-box",
               display: "flex",
