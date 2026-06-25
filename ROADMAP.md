@@ -88,13 +88,13 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 ## ✅ Completed Milestones
 *A log of completed capabilities.*
 
-### Database Migration Hardening [e170ee]
+### Database Migration Hardening [PR #169](https://github.com/joe-cole1/rsvp-to-me/pull/169)
 *   [x] **[CRIT-1] `migrate-db.js` crash loop**: 3-attempt retry with backoff; P3009 detected and logs actionable `prisma migrate resolve` command; `docker-compose.yml` app service changed to `restart: on-failure:3`.
 *   [x] **[CRIT-2] Pre-migration database snapshot**: `pg_dump` via `execFileSync` (no shell) to `data/backups/pre-migration/` with timestamp before every migration run. Failure warns but never blocks the deploy.
 *   [x] **[CRIT-3] Health endpoint migration state check**: Queries `_prisma_migrations` for pending/stuck rows; returns 503 + `{ status: "degraded", migrations: "pending" }` if any found. 7 new tests added to `tests/api/health.test.ts`.
 *   [x] **Failing Test Suite**: Unit tests in `tests/actions/event.test.ts` (potluck item claims) and `tests/actions/rsvpfields.test.ts` (`reorderRsvpFields`) confirmed resolved with [PR #161](https://github.com/joe-cole1/rsvp-to-me/pull/161). Full suite: 535 tests passing across 31 files.
 
-### Security Hardening — Passwords, Backup & CSV [ed8436, 1e65a8]
+### Security Hardening — Passwords, Backup & CSV [PR #164](https://github.com/joe-cole1/rsvp-to-me/pull/164) · [PR #163](https://github.com/joe-cole1/rsvp-to-me/pull/163)
 *   [x] **[SEC-5] Event passwords stored in plaintext**: `passwordHash` column added (bcryptjs, cost 10); `verifyEventPassword` uses `bcrypt.compare`; `saveEventSettings` hashes on write. Migration `20260624200000_rename_event_password_to_hash`.
 *   [x] **[SEC-6] `pg_dump` command injection**: Switched to `execFile('pg_dump', [...])` with explicit argument array in `lib/backup.ts` — no shell invocation.
 *   [x] **[SEC-7] CodeQL SSRF scanner bypass**: Removed `safeFetch` obfuscation (`String.fromCharCode` pattern) from `lib/email.ts`; GitHub Security alerts dismissed as false positives.
@@ -109,21 +109,21 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 ### GitHub Release Workflow [PR #153](https://github.com/joe-cole1/rsvp-to-me/pull/153)
 *   [x] **GitHub Actions release automation**: Automated release tagging, version increments, and changelog generation on merge to main.
 
-### Admin Theme Manager
+### Admin Theme Manager [PR #130](https://github.com/joe-cole1/rsvp-to-me/pull/130)
 *   [x] **Admin Theme Manager**: Admin settings page for dynamic theme creation — create/edit/delete themes, configure base style, accents, gradients, decorations, visibility, titles, and descriptions.
 
-### Admin UX & Host Account Deletion [7nce6r]
+### Admin UX & Host Account Deletion [PR #135](https://github.com/joe-cole1/rsvp-to-me/pull/135)
 *   [x] **Admin Settings History & Refresh**: Active admin tab is synced to the URL (`/admin?tab=backups`) via `useSearchParams` + `router.replace`. Browser back/forward and page refresh all preserve the selected tab.
 *   [x] **Backup Schedule Picker**: Replaced raw cron text input (Admin → Backups) with a preset dropdown (Disabled, Hourly, Every 6h, Daily, Every 3 days, Weekly). A "Custom" option reveals the raw input for advanced cron expressions.
 *   [x] **Host Account Deletion Flow**: Hosts can delete their account from Profile settings. Upcoming published events must be explicitly deleted first (each shows a "Delete event" button; deleted events show a tombstone page at their original URL). After clearing events, the host types "DELETE" to confirm. Account is signed out immediately and anonymized within 24 hours. Admins see a "Deletion Pending" badge in the Users tab and can cancel within the window. Past events are reassigned to a SYSTEM tombstone user; guest RSVP/comment data for past events is preserved (GDPR-defensible: it is the guests' data). Added `DELETED` EventStatus; `deleteHostEvent()` server action; `requestAccountDeletion()` and `cancelAccountDeletion()` actions; hourly cron processing in `lib/cron-scheduler.ts`; Prisma migration `add_deletion_fields`.
 
-### Favicon & Page Titles
+### Favicon & Page Titles [PR #123](https://github.com/joe-cole1/rsvp-to-me/pull/123)
 *   [x] **Root Layout Metadata**: Replaced `"Create Next App"` placeholder with branded title template (`"%s | RSVP to Me"`), real description, and Open Graph site defaults.
 *   [x] **Dynamic Event Metadata**: Added `generateMetadata` to `/e/[slug]` (title + OG cover image), `/e/[slug]/rsvp`, `/e/[slug]/settings`, and `/e/[slug]/guests`.
 *   [x] **Static Page Titles**: Added `metadata` exports to home, sign-in, register, dashboard, and new-event pages.
 *   [x] **Branded Favicon Set**: Added `app/icon.svg` (stylized "R", brand purple), `app/apple-icon.tsx` (180×180 ImageResponse PNG), and `public/site.webmanifest` for PWA/bookmark support.
 
-### Event Page Bugs & RSVP Enhancements [b06146]
+### Event Page Bugs & RSVP Enhancements [PR #105](https://github.com/joe-cole1/rsvp-to-me/pull/105)
 *   [x] **Location Selector**: Implemented a responsive `LocationSelector` client component with PHYSICAL, VIRTUAL, and TBD types for event creation.
 *   [x] **Potluck Quantity Input**: Corrected quantity input behavior to allow temporary empty values for custom typing.
 *   [x] **Deep Linking Navigation**: Implemented smooth anchor scrolling behavior for target hashes (e.g. `#polls` and `#potluck`).
@@ -132,48 +132,48 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [x] **RSVP "Next Actions"**: Added interactive "Next Steps" suggestions on the RSVP success screen to prompt voting and potluck contributions.
 *   [x] **Private Event Invitations**: Configured "guests can invite" settings and added the `inviteFriendAsGuest` server action to generate pending RSVPs.
 
-### Core Platform Setup
+### Core Platform Setup [PR #1](https://github.com/joe-cole1/rsvp-to-me/pull/1)
 *   [x] **Next.js 16 + Prisma 7 + SQLite Core**: Database schemas, seeds, and App Router structure.
 *   [x] **Magic Link Authentication**: Authentication mechanism via iron-session cookies.
 *   [x] **Seeding & Mock Data**: Automated test seeding of events, comments, and RSVPs via `SEED_TEST_DATA=true`.
 
-### Event & Guest Engagement
+### Event & Guest Engagement [PR #56](https://github.com/joe-cole1/rsvp-to-me/pull/56) · [PR #55](https://github.com/joe-cole1/rsvp-to-me/pull/55)
 *   [x] **Interactive Event Polls**: Anonymous voting, host controls, write-in suggestions, and vote audits.
 *   [x] **Comment Threading & Activity Feed**: Nested replies, activity log pagination, and user roles.
 *   [x] **WYSIWYG Host Controls**: Floating overlays and preview toggles (`?preview=1`) for event owners.
 
-### Integrations & Diagnostics
+### Integrations & Diagnostics [PR #62](https://github.com/joe-cole1/rsvp-to-me/pull/62) · [PR #72](https://github.com/joe-cole1/rsvp-to-me/pull/72)
 *   [x] **SMTP & Cloudflare Workers**: Support outbound sending via custom worker or mail server.
 *   [x] **Setup Wizards**: Generate secrets, pre-fill Cloudflare subdomains, and toggle visibility.
 *   [x] **Email Diagnostics & Safety**: Connection-testing suite in `/admin`, SSRF validation checks, and console auth lockout safety fallbacks.
 *   [x] **Cloudflare Email Service Migration**: Upgraded Cloudflare Worker integration from Email Routing (`SEND_EMAIL`) to the newer Cloudflare Email Service (`EMAIL`), enabling transactional emails to arbitrary external recipients.
 *   [x] **Cloudflare Email REST API Option**: Direct transactional email sending using the v4 Cloudflare Accounts endpoint, with visual settings guides, DMARC warnings, and secrets masking.
 
-### UI/UX Polish & Messaging Redesign
+### UI/UX Polish & Messaging Redesign [PR #77](https://github.com/joe-cole1/rsvp-to-me/pull/77)
 *   [x] **Event Settings Reorganization**: Split Polls and Potluck configurations into dedicated sub-setting sections, reordered categories (Hosts, Display, RSVP, Theme, Reminders, Polls, Questionnaire, Potluck), and added back-button state persistence.
 *   [x] **Message Guests Redesign**: Updated to support multi-select recipient filters (All, Invited, Yes, Maybe, No), checkboxes for delivery channels (Email/SMS), and a single Send button at the bottom. Toggling "All" deselects others, and selecting any other filter deselects "All".
 *   [x] **Host Control Panel & Cover Refinement**: Added hover highlight effects to all floating menu items and removed the redundant Theme picker button from the cover image.
 *   [x] **Activity Updates Labeling**: Updated "Notify guests via email" to "Notify guests of update" to support multiple notification channels.
 *   [x] **TS/ESLint Quality Sweep**: Cleared all errors and warnings across the app (including dynamic avatar img element warnings).
 
-### Unified Dashboard & Image Refactoring
+### Unified Dashboard & Image Refactoring [PR #79](https://github.com/joe-cole1/rsvp-to-me/pull/79)
 *   [x] **Unified Guest/Host Dashboard**: Opened `/dashboard` to guest users, showing active invitations, co-host overlaps, and comment activity counts.
 *   [x] **Partiful-style Grid Layout**: Implemented square cover photo layouts, overlay badges, search and pill-style filter tabs.
 *   [x] **RSVP Auto-linking Utility**: Created background process to merge/link guest RSVPs automatically during registration and login.
 *   [x] **Next.js Image Refactoring**: Replaced all raw `<img>` tags codebase-wide with Next.js `<Image>` / `<NextImage>` component, removing all `@next/next/no-img-element` overrides.
 
-### UI/UX Polish & Potluck Multi-Claim Refactor
+### UI/UX Polish & Potluck Multi-Claim Refactor [PR #82](https://github.com/joe-cole1/rsvp-to-me/pull/82)
 *   [x] **Potluck Multi-Claim Refactoring**: Shifted to a relational `PotluckClaim` schema model to support multiple claimants per item. Built backend controllers, mock data seeds, and unit tests, and designed a nested claimant visual UI with unclaiming actions.
 *   [x] **Dashboard Recent Activity Filters**: Added interactive filtering by event and action type to the dashboard activity log. Implemented day-level grouping headers and initials badge avatars.
 *   [x] **Unified Top Navigation**: Integrated `AppNavLogo` and `ProfileDropdown` menus into the event page header, unifying navigation bars codebase-wide, and removing the redundant top-nav settings button.
 *   [x] **Location Selector Layout Polish**: Prevented layout wrapping of option chips and corrected width scaling for the Physical/Virtual popover edit views to align with other card components.
 *   [x] **Questionnaire Serialization Fix**: Resolved select/checkbox option parsing bugs on RSVP forms by standardizing field config storage as JSON strings.
 
-### PostgreSQL 18 Hard Requirement & SQLite Removal
+### PostgreSQL 18 Hard Requirement & SQLite Removal [PR #143](https://github.com/joe-cole1/rsvp-to-me/pull/143) · [PR #142](https://github.com/joe-cole1/rsvp-to-me/pull/142) · [PR #139](https://github.com/joe-cole1/rsvp-to-me/pull/139)
 *   [x] **Drop SQLite / Hard-Require PostgreSQL 18**: Removed all SQLite/LibSQL dependencies (`@libsql/client`, `@prisma/adapter-libsql`). `schema.prisma` is now the single Postgres schema. `REDIS_URL` throws at startup if unset. Squashed 5 incremental Postgres migrations into a single clean `20260623000000_init` migration. Updated CI to use a `postgres:18-alpine` service. Updated all docs, `docker-compose.dev.yml`, `.env.example`, `AGENTS.md`, and `tests/setup.ts`.
 *   [x] **node-redis v4 → v5 → v6 upgrade**: Two-hop upgrade (v4→v5 in PR #139, v5→v6 in PR #142). Updated RESP3 multi-exec result handling and TypeScript types throughout `lib/redis.ts`.
 
-### PostgreSQL, Redis, In-Process Cron & UX Sweep
+### PostgreSQL, Redis, In-Process Cron & UX Sweep [PR #94](https://github.com/joe-cole1/rsvp-to-me/pull/94) · [PR #97](https://github.com/joe-cole1/rsvp-to-me/pull/97) · [PR #98](https://github.com/joe-cole1/rsvp-to-me/pull/98)
 *   [x] **PostgreSQL & Redis Integrations**: Dynamic runtime database selection (SQLite/PostgreSQL), dual Prisma schema generation, connection pooling, Redis session caching, atomic rate-limiting, and Redis-based distributed cron synchronization locks.
 *   [x] **In-Process Cron Scheduler**: Migrated background tasks (automated DB backups and event reminders) to run in-process using Next.js 16's `instrumentation.ts` bootstrap, eliminating the dedicated `cron` container.
 *   [x] **Docker Image Healthcheck**: Integrated a lightweight native HTTP healthcheck into the `Dockerfile` and cleaned up compose configs.
@@ -182,14 +182,14 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [x] **Public Event Feed & Private Gating**: Rendered top 20 upcoming public events on the home page and gated unlisted/private events appropriately.
 *   [x] **UI/UX & Form Polish**: Split date/time edit inputs, grouped RSVP options, fixed copy link buttons, and placed toast notifications fixed at the top of the viewport.
 
-### Theme Presets, Readability & Slug Collision Resolution [fa3e8d]
+### Theme Presets, Readability & Slug Collision Resolution [PR #108](https://github.com/joe-cole1/rsvp-to-me/pull/108)
 *   [x] **Theme Presets & Grids**: Implemented searchable/filterable preset grids, date-based dynamic sorting, light accent contrast improvements, and settings-preview parity.
 *   [x] **Event Slug Collision Resolution**: Verified automatic suffixing (e.g., appending `-1`, `-2`) during slug generation in `lib/slug.ts` when two events share the same name.
 
-### RSVP Notification Toggles
+### RSVP Notification Toggles [PR #114](https://github.com/joe-cole1/rsvp-to-me/pull/114)
 *   [x] **Per-Event Notification Toggles**: Added 6 per-event boolean toggles under Event Settings → RSVP Options → Notification Settings: guest confirmation email/SMS on RSVP submission, host RSVP alert email/SMS (new — hosts are notified with guest name, status, note, and headcount), and approval notification email/SMS when a host approves or declines a pending RSVP. All default to on to preserve existing behavior.
 
-### INVITED Status + Email RSVP Buttons + SMS Reply-to-RSVP
+### INVITED Status + Email RSVP Buttons + SMS Reply-to-RSVP [PR #151](https://github.com/joe-cole1/rsvp-to-me/pull/151)
 *   [x] **INVITED RSVPStatus Enum**: Added `INVITED` to `RSVPStatus` (alongside `GOING`, `MAYBE`, `NO`). Host-invited guests now carry an INVITED RSVP instead of a phantom GOING one, eliminating false "going" counts before guests respond.
 *   [x] **Email RSVP Buttons**: Replaced single "RSVP Now" button in invite emails with three colored anchor buttons — Going (green), Maybe (amber, hidden when `maybeEnabled = false`), Can't Go (red). Each links to `/e/{slug}/rsvp?token={editToken}&status=GOING|MAYBE|NO`, pre-selecting the response on the RSVP edit form. Guest still confirms name/questionnaire before submitting.
 *   [x] **SMS RSVP Reply Webhook**: Invite SMS now prompts guests to reply YES / NO / MAYBE. `POST /api/webhooks/twilio` validates the Twilio HMAC signature, looks up the pending invitation by phone number (no event code required), and updates the RSVP. Edge cases handled: past deadline, maybe-disabled events, capacity full, multiple pending invitations (disambiguation).
