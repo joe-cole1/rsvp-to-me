@@ -51,8 +51,8 @@ At the start of every new chat session or when resuming work:
 After making changes and before presenting Git commands to the user to push to GitHub:
 
 1. **Verify Linter and TypeScript Correctness**:
-   - Note: Do NOT run `npm run lint` or ESLint commands directly. The linter will run automatically on the user's command line via their Git `pre-commit` hook during the commit process.
-   - Verify that the local Git `pre-commit` hook is configured in `.git/hooks/pre-commit` to catch styling issues before committing.
+   - Note: Do NOT run `npm run lint` or ESLint commands directly. The linter runs via CI.
+   - **Prettier is enforced via husky + lint-staged** (`.husky/pre-commit`). Before committing any `.ts` or `.tsx` files in a remote/CI-only environment where the husky hook won't fire, run `npx prettier --write` on the changed files manually before staging them.
 2. **Wipe and Rebuild Local Docker Environment**:
    - Run `docker compose down -v` to shut down containers and wipe all Docker volumes (including the PostgreSQL data volume), ensuring a completely fresh database state.
    - Run `docker compose up --build -d` to rebuild the application image and launch all containers from scratch. The seed script will run automatically on startup to populate fresh data.

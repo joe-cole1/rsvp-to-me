@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "prisma migrate deploy && next start",
     "lint": "eslint",
+    "prepare": "husky",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
@@ -45,8 +46,13 @@
     "postcss": "^8.5.15",
     "@hono/node-server": "1.19.14"
   },
+  "lint-staged": {
+    "*.{ts,tsx}": "prettier --write"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "husky": "^9",
+    "lint-staged": "^15",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^26",
     "@types/nodemailer": "^8.0.1",
