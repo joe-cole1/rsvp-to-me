@@ -4,6 +4,11 @@ import { useState, useTransition } from "react";
 import { addRSVP, updateRSVP } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { Check } from "lucide-react";
+import { AppNavLogo } from "@/components/ui/AppNav";
+import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import AdminHamburger from "@/components/ui/AdminHamburger";
+
+type SessionUser = { email: string; name: string | null; avatarUrl: string | null; role: "GUEST" | "HOST" | "ADMIN" };
 
 type RsvpField = { id: string; label: string; fieldType: string; required: boolean; options: string | null };
 
@@ -76,12 +81,14 @@ export function RsvpFlow({
   initialStatus,
   existingRsvp,
   returnPath,
+  sessionUser,
 }: {
   event: EventData;
   theme: ResolvedTheme;
   initialStatus?: "GOING" | "MAYBE" | "NO";
   existingRsvp?: ExistingRsvp;
   returnPath?: string;
+  sessionUser?: SessionUser | null;
 }) {
   const t = theme;
   const isEdit = !!existingRsvp;
@@ -205,10 +212,33 @@ export function RsvpFlow({
     return null;
   };
 
+  const renderNav = () => (
+    <AppNavLogo
+      href="/dashboard"
+      leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
+      trailing={sessionUser ? (
+        <ProfileDropdown user={sessionUser} />
+      ) : undefined}
+      style={{
+        position: "fixed",
+        top: 0, left: 0, right: 0,
+        zIndex: 200,
+        background: "rgba(15,15,20,0.9)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        color: "#ffffff",
+        padding: "0 16px",
+        height: "53px",
+      }}
+    />
+  );
+
   // ── Done screen ────────────────────────────────────────────────────────
   if (done) {
     return (
-      <div style={{ minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", position: "relative", overflowX: "hidden" }}>
+      <div style={{ minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", padding: "77px 24px 24px", position: "relative", overflowX: "hidden" }}>
+        {renderNav()}
         {renderDecorations()}
         <div style={{ width: "100%", maxWidth: "400px", textAlign: "center", position: "relative", zIndex: 1 }}>
           <div style={{ fontSize: "52px", marginBottom: "16px" }}>
@@ -322,7 +352,7 @@ export function RsvpFlow({
   // ── Shared layout wrapper ─────────────────────────────────────────────────────
   const S = {
     page: { minHeight: "100vh", background: t.pageBg, color: t.textPrimary, fontFamily: "inherit", paddingBottom: "80px", position: "relative", overflowX: "hidden" } as React.CSSProperties,
-    header: { padding: "16px 20px 0", maxWidth: "540px", margin: "0 auto", position: "relative", zIndex: 1 } as React.CSSProperties,
+    header: { padding: "70px 20px 0", maxWidth: "540px", margin: "0 auto", position: "relative", zIndex: 1 } as React.CSSProperties,
     body: { maxWidth: "540px", margin: "0 auto", padding: "24px 20px 0", position: "relative", zIndex: 1 } as React.CSSProperties,
     footer: { position: "fixed", bottom: 0, left: 0, right: 0, background: t.pageBg, borderTop: `1px solid ${t.cardBorder}`, padding: "14px 20px", display: "flex", gap: "10px", justifyContent: "flex-end", zIndex: 50 } as React.CSSProperties,
     inp: { width: "100%", padding: "13px 16px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "12px", color: t.textPrimary, fontFamily: "inherit", fontSize: "15px", outline: "none", boxSizing: "border-box", colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light" } as React.CSSProperties,
@@ -336,6 +366,7 @@ export function RsvpFlow({
   if (step === 1) {
     return (
       <div style={S.page}>
+        {renderNav()}
         {renderDecorations()}
         <div style={S.header}>
           <a href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`} style={{ color: t.textMuted, fontSize: "13px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", padding: "12px 0" }}>
@@ -472,6 +503,7 @@ export function RsvpFlow({
   // ── Step 2: Questionnaire ──────────────────────────────────────────────────────────
   return (
     <div style={S.page}>
+      {renderNav()}
       {renderDecorations()}
       <div style={S.header}>
         <button

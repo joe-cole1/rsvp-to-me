@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = { title: "New Event" };
 import { createEvent } from "@/app/actions/createEvent";
 import { AppShell } from "@/components/ui/AppShell";
-import { AppNavBack } from "@/components/ui/AppNav";
+import { AppNavLogo } from "@/components/ui/AppNav";
+import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import AdminHamburger from "@/components/ui/AdminHamburger";
 import LocationSelector from "@/components/event/LocationSelector";
 import { APP_SHELL } from "@/lib/theme";
 
@@ -47,9 +50,21 @@ export default async function NewEventPage() {
   const session = await getSession();
   if (!session || session.role === "GUEST") redirect("/auth/sign-in");
 
+  const dbUser = await db.user.findUnique({
+    where: { id: session!.userId },
+    select: { email: true, name: true, avatarUrl: true, role: true },
+  });
+  const sessionUser = dbUser
+    ? { email: dbUser.email ?? session!.email, name: dbUser.name, avatarUrl: dbUser.avatarUrl, role: dbUser.role as "GUEST" | "HOST" | "ADMIN" }
+    : null;
+
   return (
     <AppShell>
-      <AppNavBack href="/dashboard" title="New Event" />
+      <AppNavLogo
+        href="/dashboard"
+        leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
+        trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
+      />
 
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "32px 16px 80px" }}>
         <form action={createEvent}>

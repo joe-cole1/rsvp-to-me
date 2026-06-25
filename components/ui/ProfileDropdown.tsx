@@ -28,7 +28,6 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
 
   const displayName = user.name || user.email?.split("@")[0] || "User";
   const initials = displayName.slice(0, 2).toUpperCase();
-  const showAdminLink = user.role === "ADMIN";
 
   return (
     <div ref={dropdownRef} style={{ position: "relative", zIndex: 100 }}>
@@ -180,29 +179,6 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
           >
             ⚙️ Profile Settings
           </a>
-
-          {showAdminLink && (
-            <a
-              href="/admin"
-              onClick={() => setIsOpen(false)}
-              style={{
-                padding: "10px 12px",
-                borderRadius: "10px",
-                color: "#f87171",
-                textDecoration: "none",
-                fontSize: "13px",
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                transition: "background 0.2s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.08)")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-            >
-              🛡️ Admin Panel
-            </a>
-          )}
 
           {/* Divider */}
           <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder, margin: "6px 0" }} />

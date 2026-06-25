@@ -38,6 +38,7 @@ import { HostBar } from "./HostBar";
 import QRCode from "qrcode";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
 import { AppNavLogo } from "@/components/ui/AppNav";
+import AdminHamburger from "@/components/ui/AdminHamburger";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -1442,6 +1443,7 @@ export function EventPage({ event: initial, isHost, theme, coverUploadEnabled = 
       {/* ── Top nav ── */}
       <AppNavLogo
         href={sessionUser ? "/dashboard" : "/"}
+        leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
         trailing={
           sessionUser ? (
             <ProfileDropdown user={sessionUser} />
