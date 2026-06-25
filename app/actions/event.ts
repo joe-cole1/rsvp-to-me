@@ -3,8 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { sendRsvpConfirmationEmail, sendBlastEmail, sendEventInviteEmail, sendApprovalEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendSmsBlast as smsSendBlast, sendApprovalSms, sendEventInviteSms } from "@/lib/sms";
+import {
+  sendRsvpConfirmationEmail,
+  sendBlastEmail,
+  sendEventInviteEmail,
+  sendApprovalEmail,
+} from "@/lib/email";
+import {
+  sendRsvpConfirmationSms,
+  sendSmsBlast as smsSendBlast,
+  sendApprovalSms,
+  sendEventInviteSms,
+} from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -13,10 +23,13 @@ import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
 import bcrypt from "bcryptjs";
 
-export async function verifyEventPassword(slug: string, rawPassword: string): Promise<{ success: boolean; error?: string }> {
+export async function verifyEventPassword(
+  slug: string,
+  rawPassword: string
+): Promise<{ success: boolean; error?: string }> {
   const event = await db.event.findUnique({
     where: { slug },
-    select: { passwordHash: true }
+    select: { passwordHash: true },
   });
 
   if (!event) {
@@ -24,13 +37,13 @@ export async function verifyEventPassword(slug: string, rawPassword: string): Pr
   }
 
   const password = rawPassword.trim();
-  if (!event.passwordHash || !await bcrypt.compare(password, event.passwordHash)) {
+  if (!event.passwordHash || !(await bcrypt.compare(password, event.passwordHash))) {
     return { success: false, error: "Incorrect password." };
   }
-  
+
   const cookieStore = await cookies();
   const signature = getUnlockSignature(slug);
-  
+
   cookieStore.set(`rsvp-unlocked-${slug}`, signature, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -38,7 +51,7 @@ export async function verifyEventPassword(slug: string, rawPassword: string): Pr
     maxAge: 60 * 60 * 24, // 24 hours
     path: "/",
   });
-  
+
   return { success: true };
 }
 
@@ -47,7 +60,10 @@ export async function verifyEventPassword(slug: string, rawPassword: string): Pr
 async function assertHost(eventId: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  const event = await db.event.findUnique({ where: { id: eventId }, select: { hostId: true, slug: true } });
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { hostId: true, slug: true },
+  });
   if (!event) throw new Error("Forbidden");
   const isOwner = event.hostId === session.userId;
   const isAdmin = session.role === "ADMIN";
@@ -72,24 +88,33 @@ async function assertHostOrCohost(eventId: string) {
 
 // ── Inline field edits ─────────────────────────────────────────────────────────
 
-const ALLOWED_FIELDS = new Set(["title", "description", "locationName", "locationAddress", "virtualUrl"]);
+const ALLOWED_FIELDS = new Set([
+  "title",
+  "description",
+  "locationName",
+  "locationAddress",
+  "virtualUrl",
+]);
 
 export async function saveEventField(eventId: string, field: string, value: string) {
   if (!ALLOWED_FIELDS.has(field)) throw new Error("Field not allowed");
   const event = await assertHost(eventId);
   await db.event.update({ where: { id: eventId }, data: { [field]: value || null } });
   const fieldTypes: Record<string, string> = {
-    title: "event_title", description: "event_description",
-    locationName: "event_location", locationAddress: "event_location", virtualUrl: "event_location",
+    title: "event_title",
+    description: "event_description",
+    locationName: "event_location",
+    locationAddress: "event_location",
+    virtualUrl: "event_location",
   };
   const actType = fieldTypes[field] ?? "event_field";
   const detail = (() => {
     const v = (value || "").trim();
-    if (field === "title")           return v ? `Title updated to "${v}"` : "Title cleared";
-    if (field === "locationName")    return v ? `Location updated to "${v}"` : "Location name cleared";
+    if (field === "title") return v ? `Title updated to "${v}"` : "Title cleared";
+    if (field === "locationName") return v ? `Location updated to "${v}"` : "Location name cleared";
     if (field === "locationAddress") return v ? `Address updated to "${v}"` : "Address cleared";
-    if (field === "description")     return "Description updated";
-    if (field === "virtualUrl")      return v ? "Virtual link updated" : "Virtual link cleared";
+    if (field === "description") return "Description updated";
+    if (field === "virtualUrl") return v ? "Virtual link updated" : "Virtual link cleared";
     return "Event updated";
   })();
   logActivity(eventId, actType, detail).catch(() => {});
@@ -141,11 +166,22 @@ export async function saveEventTheme(
   await db.eventTheme.upsert({
     where: { eventId },
     update: {
-      baseTheme, gradientFrom, gradientTo, accentColor,
+      baseTheme,
+      gradientFrom,
+      gradientTo,
+      accentColor,
       ...(presetId !== undefined ? { appliedPresetId: presetId } : {}),
       ...(cardOpacity !== undefined ? { cardOpacity } : {}),
     },
-    create: { eventId, baseTheme, gradientFrom, gradientTo, accentColor, appliedPresetId: presetId ?? null, cardOpacity: cardOpacity ?? null },
+    create: {
+      eventId,
+      baseTheme,
+      gradientFrom,
+      gradientTo,
+      accentColor,
+      appliedPresetId: presetId ?? null,
+      cardOpacity: cardOpacity ?? null,
+    },
   });
   revalidatePath(`/e/${event.slug}`);
 }
@@ -172,7 +208,11 @@ export async function addInfoSection(data: {
     },
   });
   const preview = data.content.slice(0, 60) + (data.content.length > 60 ? "…" : "");
-  const activityEvent = await logActivity(data.eventId, "info_add", `Added ${iconLabel(data.type)} section: ${preview}`).catch(() => null);
+  const activityEvent = await logActivity(
+    data.eventId,
+    "info_add",
+    `Added ${iconLabel(data.type)} section: ${preview}`
+  ).catch(() => null);
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: section.id, activityEvent };
 }
@@ -186,7 +226,8 @@ export async function updateInfoSection(
     include: { event: { select: { hostId: true, slug: true, id: true } } },
   });
   const session = await getSession();
-  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
+  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN"))
+    throw new Error("Forbidden");
   await db.eventInfoSection.update({
     where: { id: sectionId },
     data: {
@@ -197,7 +238,11 @@ export async function updateInfoSection(
     },
   });
   const editPreview = data.content.slice(0, 60) + (data.content.length > 60 ? "…" : "");
-  logActivity(section.eventId, "info_edit", `Updated ${iconLabel(data.type ?? section.type)} section: ${editPreview}`).catch(() => {});
+  logActivity(
+    section.eventId,
+    "info_edit",
+    `Updated ${iconLabel(data.type ?? section.type)} section: ${editPreview}`
+  ).catch(() => {});
   revalidatePath(`/e/${section.event.slug}`);
   return { success: true };
 }
@@ -208,9 +253,14 @@ export async function removeInfoSection(sectionId: string) {
     include: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
+  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN"))
+    throw new Error("Forbidden");
   await db.eventInfoSection.delete({ where: { id: sectionId } });
-  const activityEvent = await logActivity(section.eventId, "info_delete", `Removed ${iconLabel(section.type)} section`).catch(() => null);
+  const activityEvent = await logActivity(
+    section.eventId,
+    "info_delete",
+    `Removed ${iconLabel(section.type)} section`
+  ).catch(() => null);
   revalidatePath(`/e/${section.event.slug}`);
   return { activityEvent };
 }
@@ -221,14 +271,27 @@ export async function addRSVP(rawInput: unknown) {
   const data = AddRsvpSchema.parse(rawInput);
   const event = await db.event.findUnique({
     where: { id: data.eventId },
-    select: { id: true, slug: true, title: true, approvalRequired: true, rsvpDeadline: true, capacity: true, startAt: true, locationName: true, host: { select: { name: true, email: true } } },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      approvalRequired: true,
+      rsvpDeadline: true,
+      capacity: true,
+      startAt: true,
+      locationName: true,
+      host: { select: { name: true, email: true } },
+    },
   });
   if (!event) return { success: false, error: "Event not found" };
-  if (event.rsvpDeadline && event.rsvpDeadline < new Date()) return { success: false, error: "RSVP deadline has passed" };
+  if (event.rsvpDeadline && event.rsvpDeadline < new Date())
+    return { success: false, error: "RSVP deadline has passed" };
 
   // Check capacity
   if (event.capacity && data.status === "GOING") {
-    const goingCount = await db.rSVP.count({ where: { eventId: data.eventId, status: "GOING", approved: true } });
+    const goingCount = await db.rSVP.count({
+      where: { eventId: data.eventId, status: "GOING", approved: true },
+    });
     if (goingCount >= event.capacity) return { success: false, error: "Event is at capacity" };
   }
 
@@ -306,7 +369,8 @@ export async function addRSVP(rawInput: unknown) {
     });
   }
 
-  const statusText = data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
+  const statusText =
+    data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
   const plusStr = data.plusOneCount > 0 ? ` +${data.plusOneCount}` : "";
   const detail = data.note?.trim()
     ? `${data.guestName} is ${statusText}${plusStr}\n${data.note.trim()}`
@@ -415,15 +479,21 @@ export async function saveEventSettings(
   const event = await assertHost(eventId);
   const { password, ...rest } = settings;
   const passwordHash =
-    password === undefined ? undefined :
-    password === null || password === "" ? null :
-    await bcrypt.hash(password, 10);
+    password === undefined
+      ? undefined
+      : password === null || password === ""
+        ? null
+        : await bcrypt.hash(password, 10);
   await db.event.update({
     where: { id: eventId },
     data: {
       ...rest,
       ...(passwordHash !== undefined ? { passwordHash } : {}),
-      rsvpDeadline: settings.rsvpDeadline ? new Date(settings.rsvpDeadline) : settings.rsvpDeadline === null ? null : undefined,
+      rsvpDeadline: settings.rsvpDeadline
+        ? new Date(settings.rsvpDeadline)
+        : settings.rsvpDeadline === null
+          ? null
+          : undefined,
     },
   });
   revalidatePath(`/e/${event.slug}`);
@@ -433,10 +503,7 @@ export async function saveEventSettings(
 
 // ── RSVP edit (guest) ─────────────────────────────────────────────────────────
 
-export async function updateRSVP(
-  editToken: string,
-  rawInput: unknown
-) {
+export async function updateRSVP(editToken: string, rawInput: unknown) {
   const data = UpdateRsvpSchema.parse(rawInput);
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
@@ -479,8 +546,14 @@ export async function updateRSVP(
     );
   }
 
-  const statusText = data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
-  logActivity(rsvp.eventId, "rsvp_update", `${rsvp.guestName} updated to ${statusText}`, rsvp.guestName).catch(() => {});
+  const statusText =
+    data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
+  logActivity(
+    rsvp.eventId,
+    "rsvp_update",
+    `${rsvp.guestName} updated to ${statusText}`,
+    rsvp.guestName
+  ).catch(() => {});
 
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true, rsvpId: rsvp.id };
@@ -491,11 +564,17 @@ export async function deleteRsvpAsHost(rsvpId: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { id: true, hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+    include: {
+      event: {
+        select: { id: true, hostId: true, slug: true, coHosts: { select: { userId: true } } },
+      },
+    },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
-  const isCohost = rsvp.event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
+  const isCohost = rsvp.event.coHosts.some(
+    (ch: { userId: string }) => ch.userId === session.userId
+  );
   const isAdmin = session.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.rSVP.delete({ where: { id: rsvpId } });
@@ -514,7 +593,9 @@ export async function deleteActivityEvent(activityId: string) {
   });
   if (!activity) return { success: false };
   const isOwner = activity.event.hostId === session.userId;
-  const isCohost = activity.event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
+  const isCohost = activity.event.coHosts.some(
+    (ch: { userId: string }) => ch.userId === session.userId
+  );
   const isAdmin = session.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.activityEvent.delete({ where: { id: activityId } });
@@ -559,7 +640,9 @@ export async function sendBlast(
     select: { guestEmail: true },
   });
 
-  const emails = rsvps.flatMap((r: { guestEmail: string | null }) => r.guestEmail ? [r.guestEmail] : []);
+  const emails = rsvps.flatMap((r: { guestEmail: string | null }) =>
+    r.guestEmail ? [r.guestEmail] : []
+  );
   if (emails.length === 0) return { success: true, sent: 0 };
 
   await sendBlastEmail(emails, {
@@ -570,9 +653,11 @@ export async function sendBlast(
     replyTo: event.host.email || undefined,
   });
 
-  db.invitation.createMany({
-    data: emails.map((sentTo) => ({ eventId, sentTo, channel: "EMAIL" as const })),
-  }).catch(() => {});
+  db.invitation
+    .createMany({
+      data: emails.map((sentTo) => ({ eventId, sentTo, channel: "EMAIL" as const })),
+    })
+    .catch(() => {});
 
   return { success: true, sent: emails.length };
 }
@@ -613,7 +698,9 @@ export async function sendSmsBlast(
     select: { guestPhone: true },
   });
 
-  const phones = rsvps.flatMap((r: { guestPhone: string | null }) => r.guestPhone ? [r.guestPhone] : []);
+  const phones = rsvps.flatMap((r: { guestPhone: string | null }) =>
+    r.guestPhone ? [r.guestPhone] : []
+  );
   if (phones.length === 0) return { success: true, sent: 0 };
 
   const sent = await smsSendBlast(phones, {
@@ -623,20 +710,21 @@ export async function sendSmsBlast(
     hostName: event.host.name ?? "Your host",
   });
 
-  db.invitation.createMany({
-    data: phones.map((sentTo) => ({ eventId, sentTo, channel: "SMS" as const })),
-  }).catch(() => {});
+  db.invitation
+    .createMany({
+      data: phones.map((sentTo) => ({ eventId, sentTo, channel: "SMS" as const })),
+    })
+    .catch(() => {});
 
   return { success: true, sent };
 }
 
 // ── Date/time edit ─────────────────────────────────────────────────────────────
 
-
 export async function saveEventDates(
   eventId: string,
-  startAt: string,   // "YYYY-MM-DDTHH:MM" in the event's timezone
-  endAt: string | null,
+  startAt: string, // "YYYY-MM-DDTHH:MM" in the event's timezone
+  endAt: string | null
 ) {
   const event = await assertHost(eventId);
   const evt = await db.event.findUnique({ where: { id: eventId }, select: { timezone: true } });
@@ -650,10 +738,27 @@ export async function saveEventDates(
   });
   const [d, t] = startAt.split("T");
   const [, mo, day] = d.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const [h, min] = t.split(":").map(Number);
   const timeStr = `${h % 12 || 12}:${String(min).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
-  logActivity(eventId, "event_date", `Date updated to ${months[parseInt(mo) - 1]} ${parseInt(day)} at ${timeStr}`).catch(() => {});
+  logActivity(
+    eventId,
+    "event_date",
+    `Date updated to ${months[parseInt(mo) - 1]} ${parseInt(day)} at ${timeStr}`
+  ).catch(() => {});
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -685,14 +790,24 @@ export async function approveRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
+    include: {
+      event: {
+        select: {
+          hostId: true,
+          slug: true,
+          title: true,
+          host: { select: { email: true } },
+          coHosts: { select: { userId: true } },
+        },
+      },
+    },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
   const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
   const isAdmin = session.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
-  
+
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
 
   if (rsvp.guestEmail) {
@@ -721,7 +836,17 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { hostId: true, slug: true, title: true, host: { select: { email: true } }, coHosts: { select: { userId: true } } } } },
+    include: {
+      event: {
+        select: {
+          hostId: true,
+          slug: true,
+          title: true,
+          host: { select: { email: true } },
+          coHosts: { select: { userId: true } },
+        },
+      },
+    },
   });
   if (!rsvp) throw new Error("Not found");
   const isOwner = rsvp.event.hostId === session.userId;
@@ -782,7 +907,9 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
       where: { eventId, guestEmail: { not: null } },
       select: { guestEmail: true },
     });
-    const emails = rsvps.flatMap((r: { guestEmail: string | null }) => r.guestEmail ? [r.guestEmail] : []);
+    const emails = rsvps.flatMap((r: { guestEmail: string | null }) =>
+      r.guestEmail ? [r.guestEmail] : []
+    );
     if (emails.length > 0) {
       const fullEvent = await db.event.findUnique({
         where: { id: eventId },
@@ -807,7 +934,8 @@ export async function deleteEventUpdate(updateId: string) {
     select: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!update || (update.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
+  if (!update || (update.event.hostId !== session?.userId && session?.role !== "ADMIN"))
+    throw new Error("Forbidden");
   await db.eventUpdate.delete({ where: { id: updateId } });
   revalidatePath(`/e/${update.event.slug}`);
 }
@@ -827,12 +955,18 @@ export async function removePotluckItem(itemId: string) {
     select: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!item || (item.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
+  if (!item || (item.event.hostId !== session?.userId && session?.role !== "ADMIN"))
+    throw new Error("Forbidden");
   await db.potluckItem.delete({ where: { id: itemId } });
   revalidatePath(`/e/${item.event.slug}`);
 }
 
-export async function claimPotluckItem(itemId: string, guestName: string, claimedQty: number = 1, guestRsvpId?: string) {
+export async function claimPotluckItem(
+  itemId: string,
+  guestName: string,
+  claimedQty: number = 1,
+  guestRsvpId?: string
+) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
     include: {
@@ -877,7 +1011,12 @@ export async function claimPotluckItem(itemId: string, guestName: string, claime
   });
 
   const qtyStr = claimedQty > 1 ? ` (x${claimedQty})` : "";
-  const activityEvent = await logActivity(item.eventId, "potluck_claim", `${guestName} is bringing${qtyStr}: ${item.label}`, guestName).catch(() => null);
+  const activityEvent = await logActivity(
+    item.eventId,
+    "potluck_claim",
+    `${guestName} is bringing${qtyStr}: ${item.label}`,
+    guestName
+  ).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true, activityEvent, claim };
 }
@@ -894,7 +1033,9 @@ export async function unclaimPotluckItem(itemId: string, guestName: string, gues
 
   const session = await getSession();
   const isHost = item.event.hostId === session?.userId || session?.role === "ADMIN";
-  const isCohost = item.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+  const isCohost = item.event.coHosts.some(
+    (ch: { userId: string }) => ch.userId === session?.userId
+  );
 
   // SEC-4: guests must supply a verified RSVP; hosts/cohosts/admins may unclaim freely
   if (!isHost && !isCohost) {
@@ -919,7 +1060,12 @@ export async function unclaimPotluckItem(itemId: string, guestName: string, gues
     where: { id: claim.id },
   });
 
-  const activityEvent = await logActivity(item.eventId, "potluck_unclaim", `${guestName} won't bring: ${item.label}`, guestName).catch(() => null);
+  const activityEvent = await logActivity(
+    item.eventId,
+    "potluck_unclaim",
+    `${guestName} won't bring: ${item.label}`,
+    guestName
+  ).catch(() => null);
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true, activityEvent };
 }
@@ -930,7 +1076,8 @@ export async function addCoHost(eventId: string, email: string) {
   const event = await assertHost(eventId);
   const user = await db.user.findUnique({ where: { email } });
   if (!user) return { success: false, error: "No account found for that email" };
-  if (user.id === (await getSession())!.userId) return { success: false, error: "You are already the host" };
+  if (user.id === (await getSession())!.userId)
+    return { success: false, error: "You are already the host" };
   try {
     await db.eventCoHost.create({ data: { eventId, userId: user.id } });
   } catch {
@@ -946,7 +1093,8 @@ export async function removeCoHost(cohostId: string) {
     select: { event: { select: { hostId: true, slug: true } } },
   });
   const session = await getSession();
-  if (!cohost || (cohost.event.hostId !== session?.userId && session?.role !== "ADMIN")) throw new Error("Forbidden");
+  if (!cohost || (cohost.event.hostId !== session?.userId && session?.role !== "ADMIN"))
+    throw new Error("Forbidden");
   await db.eventCoHost.delete({ where: { id: cohostId } });
   revalidatePath(`/e/${cohost.event.slug}/settings`);
 }
@@ -955,11 +1103,24 @@ export async function removeCoHost(cohostId: string) {
 
 export async function addRsvpField(
   eventId: string,
-  data: { label: string; fieldType: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX"; required: boolean; options?: string; order: number }
+  data: {
+    label: string;
+    fieldType: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX";
+    required: boolean;
+    options?: string;
+    order: number;
+  }
 ) {
   const event = await assertHostOrCohost(eventId);
   const field = await db.rSVPField.create({
-    data: { eventId, label: data.label, fieldType: data.fieldType, required: data.required, options: data.options ?? null, order: data.order },
+    data: {
+      eventId,
+      label: data.label,
+      fieldType: data.fieldType,
+      required: data.required,
+      options: data.options ?? null,
+      order: data.order,
+    },
   });
   revalidatePath(`/e/${event.slug}/settings`);
   revalidatePath(`/e/${event.slug}`);
@@ -972,12 +1133,16 @@ export async function updateRsvpField(
 ) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
-    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+    include: {
+      event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } },
+    },
   });
   const session = await getSession();
   if (!field) throw new Error("Forbidden");
   const isOwner = field.event.hostId === session?.userId;
-  const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+  const isCohost = field.event.coHosts.some(
+    (ch: { userId: string }) => ch.userId === session?.userId
+  );
   const isAdmin = session?.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.rSVPField.update({
@@ -986,7 +1151,9 @@ export async function updateRsvpField(
       ...(data.label !== undefined && { label: data.label }),
       ...(data.required !== undefined && { required: data.required }),
       ...(data.options !== undefined && { options: data.options || null }),
-      ...(data.fieldType !== undefined && { fieldType: data.fieldType as "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX" }),
+      ...(data.fieldType !== undefined && {
+        fieldType: data.fieldType as "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX",
+      }),
     },
   });
   revalidatePath(`/e/${field.event.slug}/settings`);
@@ -997,12 +1164,16 @@ export async function updateRsvpField(
 export async function deleteRsvpField(fieldId: string) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
-    include: { event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } } },
+    include: {
+      event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } },
+    },
   });
   const session = await getSession();
   if (!field) throw new Error("Forbidden");
   const isOwner = field.event.hostId === session?.userId;
-  const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+  const isCohost = field.event.coHosts.some(
+    (ch: { userId: string }) => ch.userId === session?.userId
+  );
   const isAdmin = session?.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
   await db.rSVPField.delete({ where: { id: fieldId } });
@@ -1040,7 +1211,12 @@ export type DashboardEvent = {
   title: string;
   startAt: Date;
   status: string;
-  theme: { gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
+  theme: {
+    gradientFrom: string;
+    gradientTo: string;
+    accentColor: string;
+    coverImageUrl: string | null;
+  } | null;
   going: number;
   maybe: number;
   pending: number;
@@ -1056,7 +1232,12 @@ export type DashboardInvite = {
   title: string;
   startAt: Date;
   status: string;
-  theme: { gradientFrom: string; gradientTo: string; accentColor: string; coverImageUrl: string | null } | null;
+  theme: {
+    gradientFrom: string;
+    gradientTo: string;
+    accentColor: string;
+    coverImageUrl: string | null;
+  } | null;
   going: number;
   maybe: number;
   pending: number;
@@ -1098,13 +1279,12 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
   const events = await db.event.findMany({
     where: {
       status: { not: "DELETED" },
-      OR: [
-        { hostId: session.userId },
-        { coHosts: { some: { userId: session.userId } } },
-      ],
+      OR: [{ hostId: session.userId }, { coHosts: { some: { userId: session.userId } } }],
     },
     include: {
-      theme: { select: { gradientFrom: true, gradientTo: true, accentColor: true, coverImageUrl: true } },
+      theme: {
+        select: { gradientFrom: true, gradientTo: true, accentColor: true, coverImageUrl: true },
+      },
       rsvps: { select: { status: true, approved: true } },
       coHosts: {
         select: {
@@ -1114,22 +1294,28 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
               name: true,
               email: true,
               avatarUrl: true,
-            }
-          }
-        }
+            },
+          },
+        },
       },
       host: { select: { name: true, email: true, avatarUrl: true } },
       _count: {
-        select: { comments: true }
-      }
+        select: { comments: true },
+      },
     },
     orderBy: { startAt: "desc" },
   });
 
   return events.map((e) => {
-    const going = e.rsvps.filter((r: { status: string; approved: boolean }) => r.approved && r.status === "GOING").length;
-    const maybe = e.rsvps.filter((r: { status: string; approved: boolean }) => r.approved && r.status === "MAYBE").length;
-    const pending = e.rsvps.filter((r: { status: string; approved: boolean }) => !r.approved).length;
+    const going = e.rsvps.filter(
+      (r: { status: string; approved: boolean }) => r.approved && r.status === "GOING"
+    ).length;
+    const maybe = e.rsvps.filter(
+      (r: { status: string; approved: boolean }) => r.approved && r.status === "MAYBE"
+    ).length;
+    const pending = e.rsvps.filter(
+      (r: { status: string; approved: boolean }) => !r.approved
+    ).length;
     return {
       id: e.id,
       slug: e.slug,
@@ -1142,7 +1328,20 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       pending,
       isCohost: e.hostId !== session.userId,
       host: e.host,
-      coHosts: e.coHosts ? (e.coHosts.map((ch: CoHostQueryItem) => ch.user || (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)).filter(Boolean) as { id: string; name: string | null; email: string | null; avatarUrl: string | null }[]) : [],
+      coHosts: e.coHosts
+        ? (e.coHosts
+            .map(
+              (ch: CoHostQueryItem) =>
+                ch.user ||
+                (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)
+            )
+            .filter(Boolean) as {
+            id: string;
+            name: string | null;
+            email: string | null;
+            avatarUrl: string | null;
+          }[])
+        : [],
       commentCount: e._count?.comments ?? 0,
     };
   });
@@ -1155,7 +1354,7 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
   // Find user email/phone for matching
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { email: true, phone: true }
+    select: { email: true, phone: true },
   });
   if (!user) return [];
 
@@ -1171,13 +1370,20 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
       ],
       // Exclude events they host themselves to avoid duplicates
       event: {
-        hostId: { not: session.userId }
-      }
+        hostId: { not: session.userId },
+      },
     },
     include: {
       event: {
         include: {
-          theme: { select: { gradientFrom: true, gradientTo: true, accentColor: true, coverImageUrl: true } },
+          theme: {
+            select: {
+              gradientFrom: true,
+              gradientTo: true,
+              accentColor: true,
+              coverImageUrl: true,
+            },
+          },
           rsvps: { select: { status: true, approved: true } },
           host: { select: { name: true, email: true, avatarUrl: true } },
           coHosts: {
@@ -1188,27 +1394,37 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
                   name: true,
                   email: true,
                   avatarUrl: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
           _count: {
-            select: { comments: true }
-          }
-        }
-      }
+            select: { comments: true },
+          },
+        },
+      },
     },
-    orderBy: { event: { startAt: "desc" } }
+    orderBy: { event: { startAt: "desc" } },
   });
 
   return rsvps.map((r) => {
     const e = r.event;
-    const going = e.rsvps.filter((rv: { status: string; approved: boolean }) => rv.approved && rv.status === "GOING").length;
-    const maybe = e.rsvps.filter((rv: { status: string; approved: boolean }) => rv.approved && rv.status === "MAYBE").length;
-    const pending = e.rsvps.filter((rv: { status: string; approved: boolean }) => !rv.approved).length;
+    const going = e.rsvps.filter(
+      (rv: { status: string; approved: boolean }) => rv.approved && rv.status === "GOING"
+    ).length;
+    const maybe = e.rsvps.filter(
+      (rv: { status: string; approved: boolean }) => rv.approved && rv.status === "MAYBE"
+    ).length;
+    const pending = e.rsvps.filter(
+      (rv: { status: string; approved: boolean }) => !rv.approved
+    ).length;
 
     // Check if the current user is a co-host of this event
-    const isCohost = e.coHosts ? e.coHosts.some((ch: CoHostQueryItem) => ch.user?.id === session.userId || ch.userId === session.userId) : false;
+    const isCohost = e.coHosts
+      ? e.coHosts.some(
+          (ch: CoHostQueryItem) => ch.user?.id === session.userId || ch.userId === session.userId
+        )
+      : false;
 
     return {
       id: e.id,
@@ -1222,7 +1438,20 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
       pending,
       isCohost,
       host: e.host,
-      coHosts: e.coHosts ? (e.coHosts.map((ch: CoHostQueryItem) => ch.user || (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)).filter(Boolean) as { id: string; name: string | null; email: string | null; avatarUrl: string | null }[]) : [],
+      coHosts: e.coHosts
+        ? (e.coHosts
+            .map(
+              (ch: CoHostQueryItem) =>
+                ch.user ||
+                (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)
+            )
+            .filter(Boolean) as {
+            id: string;
+            name: string | null;
+            email: string | null;
+            avatarUrl: string | null;
+          }[])
+        : [],
       commentCount: e._count?.comments ?? 0,
       userRsvpStatus: r.status,
       userRsvpEditToken: r.editToken,
@@ -1241,7 +1470,7 @@ export async function getDashboardActivity(eventIds: string[]): Promise<Dashboar
       OR: [
         { hostId: session.userId },
         { coHosts: { some: { userId: session.userId } } },
-        { rsvps:   { some: { userId: session.userId } } },
+        { rsvps: { some: { userId: session.userId } } },
       ],
     },
     select: { id: true },
@@ -1279,10 +1508,15 @@ export async function getRsvpFieldAnswers(fieldId: string) {
   const session = await getSession();
   if (!field) throw new Error("Forbidden");
   const isOwner = field.event.hostId === session?.userId;
-  const isCohost = field.event.coHosts.some((ch: { userId: string }) => ch.userId === session?.userId);
+  const isCohost = field.event.coHosts.some(
+    (ch: { userId: string }) => ch.userId === session?.userId
+  );
   const isAdmin = session?.role === "ADMIN";
   if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
-  return field.answers.map((a: { value: string; rsvp: { guestName: string } }) => ({ guestName: a.rsvp.guestName, value: a.value }));
+  return field.answers.map((a: { value: string; rsvp: { guestName: string } }) => ({
+    guestName: a.rsvp.guestName,
+    value: a.value,
+  }));
 }
 
 export async function inviteGuest(eventId: string, emailOrPhone: string) {
@@ -1305,7 +1539,7 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
   for (const entry of entries) {
     try {
       const isEmail = entry.includes("@");
-      
+
       // Basic input validation
       if (isEmail) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry)) {
@@ -1322,9 +1556,7 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
       });
       if (!user) {
         user = await db.user.create({
-          data: isEmail
-            ? { email: entry, role: "GUEST" }
-            : { phone: entry, role: "GUEST" },
+          data: isEmail ? { email: entry, role: "GUEST" } : { phone: entry, role: "GUEST" },
         });
       }
 
@@ -1370,7 +1602,13 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
       if (isEmail) {
         const eventDetails = await db.event.findUnique({
           where: { id: eventId },
-          select: { title: true, startAt: true, locationName: true, maybeEnabled: true, host: { select: { name: true, email: true } } },
+          select: {
+            title: true,
+            startAt: true,
+            locationName: true,
+            maybeEnabled: true,
+            host: { select: { name: true, email: true } },
+          },
         });
         await sendEventInviteEmail(entry, {
           guestName: rsvp.guestName,
@@ -1459,9 +1697,7 @@ export async function inviteFriendAsGuest(
   });
   if (!user) {
     user = await db.user.create({
-      data: isEmail
-        ? { email: entry, role: "GUEST" }
-        : { phone: entry, role: "GUEST" },
+      data: isEmail ? { email: entry, role: "GUEST" } : { phone: entry, role: "GUEST" },
     });
   }
 
@@ -1522,7 +1758,9 @@ export async function inviteFriendAsGuest(
     });
   }
 
-  logActivity(eventId, "guest_invite", `${invitingRsvp.guestName} invited ${rsvp.guestName}`).catch(() => {});
+  logActivity(eventId, "guest_invite", `${invitingRsvp.guestName} invited ${rsvp.guestName}`).catch(
+    () => {}
+  );
   revalidatePath(`/e/${event.slug}`);
 
   return { success: true };
@@ -1734,7 +1972,8 @@ export async function addPollOption(
   const isHost = isOwner || isCohost;
 
   if (!isHost) {
-    if (!poll.allowGuestsToAdd) throw new Error("Guests are not allowed to add options to this poll");
+    if (!poll.allowGuestsToAdd)
+      throw new Error("Guests are not allowed to add options to this poll");
     if (!guestRsvpId) throw new Error("Unauthorized: Guest RSVP ID required");
     const rsvp = await db.rSVP.findFirst({
       where: {

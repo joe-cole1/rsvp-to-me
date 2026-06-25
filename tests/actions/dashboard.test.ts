@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoist all mock functions so vi.mock factories can reference them ──────────
 
-const { mockEventFindMany, mockActivityFindMany, mockGetSession, mockUserFindUnique, mockRsvpFindMany } = vi.hoisted(() => ({
+const {
+  mockEventFindMany,
+  mockActivityFindMany,
+  mockGetSession,
+  mockUserFindUnique,
+  mockRsvpFindMany,
+} = vi.hoisted(() => ({
   mockEventFindMany: vi.fn(),
   mockActivityFindMany: vi.fn(),
   mockGetSession: vi.fn(),
@@ -39,17 +45,19 @@ function asUser() {
   mockGetSession.mockResolvedValue({ userId: USER_ID, email: "user@example.com" });
 }
 
-function makeEvent(overrides: Partial<{
-  id: string;
-  slug: string;
-  title: string;
-  startAt: Date;
-  status: string;
-  hostId: string;
-  rsvps: { status: string; approved: boolean }[];
-  coHosts: { userId: string }[];
-  theme: { accentColor: string } | null;
-}> = {}) {
+function makeEvent(
+  overrides: Partial<{
+    id: string;
+    slug: string;
+    title: string;
+    startAt: Date;
+    status: string;
+    hostId: string;
+    rsvps: { status: string; approved: boolean }[];
+    coHosts: { userId: string }[];
+    theme: { accentColor: string } | null;
+  }> = {}
+) {
   return {
     id: "e1",
     slug: "test-event",
@@ -64,7 +72,9 @@ function makeEvent(overrides: Partial<{
   };
 }
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 // ── getDashboardEvents ─────────────────────────────────────────────────────────
 
@@ -80,24 +90,25 @@ describe("getDashboardEvents", () => {
     asUser();
     mockEventFindMany.mockResolvedValue([]);
     await getDashboardEvents();
-    expect(mockEventFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        status: { not: "DELETED" },
-        OR: [
-          { hostId: USER_ID },
-          { coHosts: { some: { userId: USER_ID } } },
-        ],
-      },
-    }));
+    expect(mockEventFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: { not: "DELETED" },
+          OR: [{ hostId: USER_ID }, { coHosts: { some: { userId: USER_ID } } }],
+        },
+      })
+    );
   });
 
   it("orders events by startAt descending", async () => {
     asUser();
     mockEventFindMany.mockResolvedValue([]);
     await getDashboardEvents();
-    expect(mockEventFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      orderBy: { startAt: "desc" },
-    }));
+    expect(mockEventFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { startAt: "desc" },
+      })
+    );
   });
 
   it("returns empty array when user has no events", async () => {
@@ -109,39 +120,45 @@ describe("getDashboardEvents", () => {
 
   it("computes going count from approved GOING rsvps", async () => {
     asUser();
-    mockEventFindMany.mockResolvedValue([makeEvent({
-      rsvps: [
-        { status: "GOING", approved: true },
-        { status: "GOING", approved: true },
-        { status: "MAYBE", approved: true },
-      ],
-    })]);
+    mockEventFindMany.mockResolvedValue([
+      makeEvent({
+        rsvps: [
+          { status: "GOING", approved: true },
+          { status: "GOING", approved: true },
+          { status: "MAYBE", approved: true },
+        ],
+      }),
+    ]);
     const [event] = await getDashboardEvents();
     expect(event.going).toBe(2);
   });
 
   it("computes maybe count from approved MAYBE rsvps", async () => {
     asUser();
-    mockEventFindMany.mockResolvedValue([makeEvent({
-      rsvps: [
-        { status: "MAYBE", approved: true },
-        { status: "MAYBE", approved: true },
-        { status: "GOING", approved: true },
-      ],
-    })]);
+    mockEventFindMany.mockResolvedValue([
+      makeEvent({
+        rsvps: [
+          { status: "MAYBE", approved: true },
+          { status: "MAYBE", approved: true },
+          { status: "GOING", approved: true },
+        ],
+      }),
+    ]);
     const [event] = await getDashboardEvents();
     expect(event.maybe).toBe(2);
   });
 
   it("computes pending count from unapproved rsvps regardless of status", async () => {
     asUser();
-    mockEventFindMany.mockResolvedValue([makeEvent({
-      rsvps: [
-        { status: "GOING", approved: false },
-        { status: "MAYBE", approved: false },
-        { status: "GOING", approved: true },
-      ],
-    })]);
+    mockEventFindMany.mockResolvedValue([
+      makeEvent({
+        rsvps: [
+          { status: "GOING", approved: false },
+          { status: "MAYBE", approved: false },
+          { status: "GOING", approved: true },
+        ],
+      }),
+    ]);
     const [event] = await getDashboardEvents();
     expect(event.pending).toBe(2);
   });
@@ -155,10 +172,12 @@ describe("getDashboardEvents", () => {
 
   it("marks event as isCohost=true when user is a co-host", async () => {
     asUser();
-    mockEventFindMany.mockResolvedValue([makeEvent({
-      hostId: OTHER_HOST_ID,
-      coHosts: [{ userId: USER_ID }],
-    })]);
+    mockEventFindMany.mockResolvedValue([
+      makeEvent({
+        hostId: OTHER_HOST_ID,
+        coHosts: [{ userId: USER_ID }],
+      }),
+    ]);
     const [event] = await getDashboardEvents();
     expect(event.isCohost).toBe(true);
   });
@@ -166,14 +185,16 @@ describe("getDashboardEvents", () => {
   it("passes through theme and basic event fields", async () => {
     asUser();
     const startAt = new Date("2026-12-25T20:00:00Z");
-    mockEventFindMany.mockResolvedValue([makeEvent({
-      id: "ev-42",
-      slug: "xmas-party",
-      title: "Xmas Party",
-      startAt,
-      status: "PUBLISHED",
-      theme: { accentColor: "#ff0000" },
-    })]);
+    mockEventFindMany.mockResolvedValue([
+      makeEvent({
+        id: "ev-42",
+        slug: "xmas-party",
+        title: "Xmas Party",
+        startAt,
+        status: "PUBLISHED",
+        theme: { accentColor: "#ff0000" },
+      }),
+    ]);
     const [event] = await getDashboardEvents();
     expect(event.id).toBe("ev-42");
     expect(event.slug).toBe("xmas-party");
@@ -226,20 +247,22 @@ describe("getDashboardActivity", () => {
     asUser();
     mockActivityFindMany.mockResolvedValue([]);
     await getDashboardActivity(["e1", "e2"]);
-    expect(mockActivityFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        eventId: { in: ["e1", "e2"] },
-      },
-      orderBy: { createdAt: "desc" },
-      include: {
-        event: {
-          select: {
-            title: true,
-            slug: true,
+    expect(mockActivityFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          eventId: { in: ["e1", "e2"] },
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          event: {
+            select: {
+              title: true,
+              slug: true,
+            },
           },
         },
-      },
-    }));
+      })
+    );
   });
 });
 
@@ -256,14 +279,12 @@ describe("getDashboardInvites", () => {
     mockRsvpFindMany.mockResolvedValue([]);
 
     await getDashboardInvites();
-    expect(mockRsvpFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: [
-          { userId: USER_ID },
-          { guestEmail: { in: ["user@example.com"] } },
-        ],
-      }),
-    }));
+    expect(mockRsvpFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ userId: USER_ID }, { guestEmail: { in: ["user@example.com"] } }],
+        }),
+      })
+    );
   });
 });
-

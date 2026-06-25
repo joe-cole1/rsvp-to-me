@@ -57,9 +57,7 @@ describe("app/actions/profile.ts", () => {
   describe("updateProfileSettings", () => {
     it("throws error if unauthorized", async () => {
       mockGetSession.mockResolvedValue(null);
-      await expect(
-        updateProfileSettings({ name: "New Name" })
-      ).rejects.toThrow("Unauthorized");
+      await expect(updateProfileSettings({ name: "New Name" })).rejects.toThrow("Unauthorized");
     });
 
     it("updates name and avatar immediately", async () => {
@@ -98,10 +96,12 @@ describe("app/actions/profile.ts", () => {
       });
 
       // Mock unique checks: no existing user with new email
-      mockUserFindUnique.mockImplementation(async (query: { where?: { email?: string; id?: string } }) => {
-        if (query?.where?.email === "new@example.com") return null;
-        return { id: USER_ID };
-      });
+      mockUserFindUnique.mockImplementation(
+        async (query: { where?: { email?: string; id?: string } }) => {
+          if (query?.where?.email === "new@example.com") return null;
+          return { id: USER_ID };
+        }
+      );
 
       const res = await updateProfileSettings({
         name: "Name",
@@ -171,17 +171,19 @@ describe("app/actions/profile.ts", () => {
     });
 
     it("creates MagicToken with type='PHONE_CHANGE' when phone changes", async () => {
-      mockUserFindUnique.mockImplementation(async (query: { where: { id?: string; email?: string; phone?: string } }) => {
-        if (query?.where?.id === USER_ID) {
-          return {
-            id: USER_ID,
-            name: "Name",
-            email: USER_EMAIL,
-            phone: USER_PHONE,
-          };
+      mockUserFindUnique.mockImplementation(
+        async (query: { where: { id?: string; email?: string; phone?: string } }) => {
+          if (query?.where?.id === USER_ID) {
+            return {
+              id: USER_ID,
+              name: "Name",
+              email: USER_EMAIL,
+              phone: USER_PHONE,
+            };
+          }
+          return null;
         }
-        return null;
-      });
+      );
       mockMagicTokenCreate.mockResolvedValue({});
 
       const res = await updateProfileSettings({
@@ -203,20 +205,22 @@ describe("app/actions/profile.ts", () => {
     });
 
     it("returns error when new email is already taken by another account", async () => {
-      mockUserFindUnique.mockImplementation(async (query: { where: { id?: string; email?: string; phone?: string } }) => {
-        if (query?.where?.id === USER_ID) {
-          return {
-            id: USER_ID,
-            name: "Name",
-            email: USER_EMAIL,
-            phone: USER_PHONE,
-          };
+      mockUserFindUnique.mockImplementation(
+        async (query: { where: { id?: string; email?: string; phone?: string } }) => {
+          if (query?.where?.id === USER_ID) {
+            return {
+              id: USER_ID,
+              name: "Name",
+              email: USER_EMAIL,
+              phone: USER_PHONE,
+            };
+          }
+          if (query?.where?.email === "taken@example.com") {
+            return { id: "another-user", email: "taken@example.com" };
+          }
+          return null;
         }
-        if (query?.where?.email === "taken@example.com") {
-          return { id: "another-user", email: "taken@example.com" };
-        }
-        return null;
-      });
+      );
 
       await expect(
         updateProfileSettings({
@@ -227,20 +231,22 @@ describe("app/actions/profile.ts", () => {
     });
 
     it("returns error when new phone is already taken by another account", async () => {
-      mockUserFindUnique.mockImplementation(async (query: { where: { id?: string; email?: string; phone?: string } }) => {
-        if (query?.where?.id === USER_ID) {
-          return {
-            id: USER_ID,
-            name: "Name",
-            email: USER_EMAIL,
-            phone: USER_PHONE,
-          };
+      mockUserFindUnique.mockImplementation(
+        async (query: { where: { id?: string; email?: string; phone?: string } }) => {
+          if (query?.where?.id === USER_ID) {
+            return {
+              id: USER_ID,
+              name: "Name",
+              email: USER_EMAIL,
+              phone: USER_PHONE,
+            };
+          }
+          if (query?.where?.phone === "+15559876543") {
+            return { id: "another-user", phone: "+15559876543" };
+          }
+          return null;
         }
-        if (query?.where?.phone === "+15559876543") {
-          return { id: "another-user", phone: "+15559876543" };
-        }
-        return null;
-      });
+      );
 
       await expect(
         updateProfileSettings({

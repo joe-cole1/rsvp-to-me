@@ -79,7 +79,9 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       <AppShell center>
         <div style={{ textAlign: "center", maxWidth: "400px", padding: "40px 24px" }}>
           <div style={{ fontSize: "48px", marginBottom: "16px" }}>🗑️</div>
-          <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>This event was deleted</h1>
+          <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>
+            This event was deleted
+          </h1>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "15px", lineHeight: 1.5 }}>
             The host has removed this event.
           </p>
@@ -109,23 +111,30 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     : false;
 
   // Fetch the logged-in user's RSVP by userId (used for gate bypass and guest RSVP display)
-  const loggedInUserRsvp = !isHost && !token && session?.userId
-    ? await db.rSVP.findFirst({
-        where: { userId: session.userId, eventId: event.id },
-        select: {
-          id: true,
-          guestName: true,
-          editToken: true,
-          status: true,
-          responded: true,
-          _count: { select: { answers: true } },
-        },
-      })
-    : null;
+  const loggedInUserRsvp =
+    !isHost && !token && session?.userId
+      ? await db.rSVP.findFirst({
+          where: { userId: session.userId, eventId: event.id },
+          select: {
+            id: true,
+            guestName: true,
+            editToken: true,
+            status: true,
+            responded: true,
+            _count: { select: { answers: true } },
+          },
+        })
+      : null;
   const isLoggedInGuest = !!loggedInUserRsvp;
 
   // Block / gate access to PRIVATE events
-  if (event.visibility === "PRIVATE" && !isHost && !isUnlocked && !hasValidToken && !isLoggedInGuest) {
+  if (
+    event.visibility === "PRIVATE" &&
+    !isHost &&
+    !isUnlocked &&
+    !hasValidToken &&
+    !isLoggedInGuest
+  ) {
     if (event.passwordHash) {
       // Password is a valid access path — show the entry form
       return <PasswordGate slug={slug} />;
@@ -134,7 +143,9 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       <AppShell center>
         <div style={{ textAlign: "center", maxWidth: "400px", padding: "40px 24px" }}>
           <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
-          <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>This is a private event</h1>
+          <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>
+            This is a private event
+          </h1>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "15px", lineHeight: 1.5 }}>
             To attend, contact the host to receive an invitation.
           </p>
@@ -192,7 +203,14 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const pendingRsvps = isHost
     ? await db.rSVP.findMany({
         where: { eventId: event.id, approved: false, status: { not: "INVITED" } },
-        select: { id: true, guestName: true, guestEmail: true, status: true, plusOneCount: true, createdAt: true },
+        select: {
+          id: true,
+          guestName: true,
+          guestEmail: true,
+          status: true,
+          plusOneCount: true,
+          createdAt: true,
+        },
         orderBy: { createdAt: "asc" },
       })
     : [];

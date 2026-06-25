@@ -45,7 +45,10 @@ export async function testSmsConfig(
   config: { sid: string; token: string; phone: string }
 ) {
   if (!config.sid || !config.token || !config.phone) {
-    return { success: false, error: "Twilio Account SID, Auth Token, and Phone Number are required." };
+    return {
+      success: false,
+      error: "Twilio Account SID, Auth Token, and Phone Number are required.",
+    };
   }
   try {
     const client = twilio(config.sid, config.token);
@@ -72,7 +75,8 @@ export async function sendRsvpConfirmationSms(
   }
 ) {
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
-  const statusLabel = opts.status === "GOING" ? "Going ✓" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
+  const statusLabel =
+    opts.status === "GOING" ? "Going ✓" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
   return send(
     to,
     `${opts.guestName}, you're ${statusLabel} for ${opts.eventTitle}! Update your RSVP: ${editUrl}`
@@ -124,9 +128,12 @@ export async function sendHostRsvpAlertSms(
     eventSlug: string;
   }
 ) {
-  const statusLabel = opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
+  const statusLabel =
+    opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
   const plusStr = opts.plusOneCount > 0 ? ` +${opts.plusOneCount}` : "";
-  const noteStr = opts.note?.trim() ? ` "${opts.note.trim().slice(0, 60)}${opts.note.trim().length > 60 ? "…" : ""}"` : "";
+  const noteStr = opts.note?.trim()
+    ? ` "${opts.note.trim().slice(0, 60)}${opts.note.trim().length > 60 ? "…" : ""}"`
+    : "";
   const guestListUrl = `${APP_URL}/e/${opts.eventSlug}#guests`;
   return send(
     to,

@@ -76,7 +76,12 @@ describe("Theme Resolution", () => {
   });
 
   describe("getSortedPresets", () => {
-    const seasonal = (id: string, name: string, month: number) => ({ id, name, seasonal: true, month });
+    const seasonal = (id: string, name: string, month: number) => ({
+      id,
+      name,
+      seasonal: true,
+      month,
+    });
     const general = (id: string, name: string) => ({ id, name, seasonal: false });
 
     it("seasonal presets float before non-seasonal", () => {
@@ -94,9 +99,9 @@ describe("Theme Resolution", () => {
         seasonal("valentines", "Valentine's Day", 2),
       ];
       const result = getSortedPresets(presets, oct);
-      expect(result[0].id).toBe("halloween");   // distance 0
+      expect(result[0].id).toBe("halloween"); // distance 0
       expect(result[1].id).toBe("thanksgiving"); // distance 1
-      expect(result[2].id).toBe("valentines");   // distance 4
+      expect(result[2].id).toBe("valentines"); // distance 4
     });
 
     it("wrap-around: November → December before February", () => {
@@ -107,7 +112,7 @@ describe("Theme Resolution", () => {
       ];
       const result = getSortedPresets(presets, nov);
       expect(result[0].id).toBe("winter-holidays"); // 1 month away
-      expect(result[1].id).toBe("valentines");       // 3 months away
+      expect(result[1].id).toBe("valentines"); // 3 months away
     });
 
     it("ties broken by name alphabetically", () => {

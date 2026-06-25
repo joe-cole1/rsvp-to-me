@@ -58,7 +58,7 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
               borderRadius: "50%",
               overflow: "hidden",
               border: `2px solid ${isOpen ? APP_SHELL.accent : APP_SHELL.cardBorder}`,
-              position: "relative"
+              position: "relative",
             }}
           >
             <Image
@@ -112,11 +112,35 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
           }}
         >
           {/* Header Info */}
-          <div style={{ padding: "8px 12px", borderBottom: `1px solid ${APP_SHELL.navBorder}`, marginBottom: "6px" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: APP_SHELL.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div
+            style={{
+              padding: "8px 12px",
+              borderBottom: `1px solid ${APP_SHELL.navBorder}`,
+              marginBottom: "6px",
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: "14px",
+                color: APP_SHELL.textPrimary,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               {displayName}
             </div>
-            <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", margin: "2px 0 6px" }}>
+            <div
+              style={{
+                fontSize: "11px",
+                color: APP_SHELL.textSecondary,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                margin: "2px 0 6px",
+              }}
+            >
               {user.email || "No email"}
             </div>
             {user.role !== "GUEST" && (
@@ -125,7 +149,8 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
                   fontSize: "9px",
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  backgroundColor: user.role === "ADMIN" ? "rgba(239, 68, 68, 0.15)" : "rgba(168, 85, 247, 0.15)",
+                  backgroundColor:
+                    user.role === "ADMIN" ? "rgba(239, 68, 68, 0.15)" : "rgba(168, 85, 247, 0.15)",
                   color: user.role === "ADMIN" ? "#f87171" : APP_SHELL.accent,
                   padding: "2px 6px",
                   borderRadius: "6px",
@@ -153,7 +178,9 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
               gap: "8px",
               transition: "background 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.05)")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.05)")
+            }
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
             🗓️ Dashboard
@@ -174,7 +201,9 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
               gap: "8px",
               transition: "background 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.05)")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.05)")
+            }
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
             ⚙️ Profile Settings

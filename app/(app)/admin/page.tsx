@@ -24,21 +24,26 @@ export default async function AdminPage() {
 
   // Auto-promote INITIAL_ADMIN_EMAIL if needed
   const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-  if (initialAdminEmail && sessionUser.email.toLowerCase().trim() === initialAdminEmail && sessionUser.role !== "ADMIN") {
+  if (
+    initialAdminEmail &&
+    sessionUser.email.toLowerCase().trim() === initialAdminEmail &&
+    sessionUser.role !== "ADMIN"
+  ) {
     await db.user.update({ where: { id: sessionUser.id }, data: { role: "ADMIN" } });
     sessionUser.role = "ADMIN";
   }
 
-  const [stats, users, events, inviteCodes, systemConfig, backupConfig, backupsList, themePresets] = await Promise.all([
-    getAdminStats(),
-    getAdminUsers(),
-    getAdminEvents(),
-    getInviteCodes(),
-    getSystemConfig(),
-    getBackupConfig(),
-    listBackupsAction(),
-    getThemePresets(),
-  ]);
+  const [stats, users, events, inviteCodes, systemConfig, backupConfig, backupsList, themePresets] =
+    await Promise.all([
+      getAdminStats(),
+      getAdminUsers(),
+      getAdminEvents(),
+      getInviteCodes(),
+      getSystemConfig(),
+      getBackupConfig(),
+      listBackupsAction(),
+      getThemePresets(),
+    ]);
 
   return (
     <AdminClient
@@ -50,7 +55,12 @@ export default async function AdminPage() {
       initialBackupConfig={backupConfig}
       initialBackups={backupsList}
       initialThemePresets={themePresets}
-      sessionUser={{ name: sessionUser.name, email: sessionUser.email, role: sessionUser.role, avatarUrl: sessionUser.avatarUrl }}
+      sessionUser={{
+        name: sessionUser.name,
+        email: sessionUser.email,
+        role: sessionUser.role,
+        avatarUrl: sessionUser.avatarUrl,
+      }}
     />
   );
 }

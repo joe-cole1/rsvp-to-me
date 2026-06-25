@@ -23,12 +23,12 @@ export async function createEvent(formData: FormData) {
     description: formData.get("description") as string | null,
     startDate: formData.get("startDate") as string,
     startTime: formData.get("startTime") as string,
-    timezone: formData.get("timezone") as string || "America/New_York",
-    locationType: formData.get("locationType") as string || "PHYSICAL",
+    timezone: (formData.get("timezone") as string) || "America/New_York",
+    locationType: (formData.get("locationType") as string) || "PHYSICAL",
     locationName: formData.get("locationName") as string | null,
     locationAddress: formData.get("locationAddress") as string | null,
     virtualUrl: formData.get("virtualUrl") as string | null,
-    visibility: formData.get("visibility") as string || "UNLISTED",
+    visibility: (formData.get("visibility") as string) || "UNLISTED",
   };
 
   const parsed = CreateEventSchema.parse(rawInput);

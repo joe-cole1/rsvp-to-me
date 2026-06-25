@@ -9,15 +9,20 @@ import QRCode from "qrcode";
 
 type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
 
-const VISIBILITY_OPTIONS: { value: Visibility; icon: React.ElementType; label: string; description: string }[] = [
-  { value: "PUBLIC",   icon: Globe, label: "Public",   description: "Anyone can find this event" },
+const VISIBILITY_OPTIONS: {
+  value: Visibility;
+  icon: React.ElementType;
+  label: string;
+  description: string;
+}[] = [
+  { value: "PUBLIC", icon: Globe, label: "Public", description: "Anyone can find this event" },
   { value: "UNLISTED", icon: Link2, label: "Unlisted", description: "Only people with the link" },
-  { value: "PRIVATE",  icon: Lock,  label: "Private",  description: "Invite only, approval required" },
+  { value: "PRIVATE", icon: Lock, label: "Private", description: "Invite only, approval required" },
 ];
 
 function visibilityIcon(v: Visibility) {
-  if (v === "PUBLIC")   return Globe;
-  if (v === "PRIVATE")  return Lock;
+  if (v === "PUBLIC") return Globe;
+  if (v === "PRIVATE") return Lock;
   return Link2;
 }
 
@@ -38,7 +43,9 @@ export function HostBar({
   const [blastResult, setBlastResult] = useState<string | null>(null);
   const [sendEmail, setSendEmail] = useState(true);
   const [sendSms, setSendSms] = useState(false);
-  const [recipientFilters, setRecipientFilters] = useState<("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]>(["ALL"]);
+  const [recipientFilters, setRecipientFilters] = useState<
+    ("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]
+  >(["ALL"]);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const toggleRecipientFilter = (filter: "ALL" | "INVITED" | "GOING" | "MAYBE" | "NO") => {
@@ -61,7 +68,9 @@ export function HostBar({
 
   const [inviteInput, setInviteInput] = useState("");
   const [invitePending, setInvitePending] = useState(false);
-  const [inviteStatus, setInviteStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [inviteStatus, setInviteStatus] = useState<{ success: boolean; message: string } | null>(
+    null
+  );
   const [copiedLink, setCopiedLink] = useState(false);
 
   const handleSendInvite = async () => {
@@ -75,7 +84,10 @@ export function HostBar({
         setInviteInput("");
       }
     } catch (err: unknown) {
-      setInviteStatus({ success: false, message: err instanceof Error ? err.message : "Failed to send invite." });
+      setInviteStatus({
+        success: false,
+        message: err instanceof Error ? err.message : "Failed to send invite.",
+      });
     } finally {
       setInvitePending(false);
     }
@@ -84,11 +96,17 @@ export function HostBar({
   const VisIcon = visibilityIcon(visibility);
 
   const actions = [
-    { id: "invite",     icon: Mail,          label: "Invite",   href: null },
-    { id: "message",    icon: MessageSquare, label: "Message",  href: null },
-    { id: "visibility", icon: VisIcon,       label: visibility === "PUBLIC" ? "Public" : visibility === "UNLISTED" ? "Unlisted" : "Private", href: null },
-    { id: "settings",   icon: Settings,      label: "Settings", href: `/e/${eventSlug}/settings` },
-    { id: "preview",    icon: Eye,           label: "Preview",  href: null },
+    { id: "invite", icon: Mail, label: "Invite", href: null },
+    { id: "message", icon: MessageSquare, label: "Message", href: null },
+    {
+      id: "visibility",
+      icon: VisIcon,
+      label:
+        visibility === "PUBLIC" ? "Public" : visibility === "UNLISTED" ? "Unlisted" : "Private",
+      href: null,
+    },
+    { id: "settings", icon: Settings, label: "Settings", href: `/e/${eventSlug}/settings` },
+    { id: "preview", icon: Eye, label: "Preview", href: null },
   ];
 
   const handleVisibilityChange = async (next: Visibility) => {
@@ -107,10 +125,16 @@ export function HostBar({
   };
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || isSending || (!sendEmail && !sendSms) || recipientFilters.length === 0) return;
+    if (
+      !messageText.trim() ||
+      isSending ||
+      (!sendEmail && !sendSms) ||
+      recipientFilters.length === 0
+    )
+      return;
     setIsSending(true);
     setBlastResult(null);
-    
+
     let emailStatus = "";
     let smsStatus = "";
     let successCount = 0;
@@ -120,14 +144,20 @@ export function HostBar({
         const r = await sendBlast(eventId, messageText.trim(), recipientFilters);
         if (r.success) {
           successCount++;
-          emailStatus = r.sent === 0 ? "No guests with email addresses found." : `Sent email to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`;
+          emailStatus =
+            r.sent === 0
+              ? "No guests with email addresses found."
+              : `Sent email to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`;
         }
       }
       if (sendSms) {
         const r = await sendSmsBlast(eventId, messageText.trim(), recipientFilters);
         if (r.success) {
           successCount++;
-          smsStatus = r.sent === 0 ? "No guests with phone numbers found." : `Sent SMS to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`;
+          smsStatus =
+            r.sent === 0
+              ? "No guests with phone numbers found."
+              : `Sent SMS to ${r.sent} guest${r.sent !== 1 ? "s" : ""}.`;
         }
       }
 
@@ -148,83 +178,146 @@ export function HostBar({
   return (
     <>
       {/* Floating bar — hidden while a panel is open */}
-      {!activePanel && <div
-        style={{
-          position: "fixed",
-          bottom: "24px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "rgba(15,15,20,0.85)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: "100px",
-          padding: "8px 16px",
-          display: "flex",
-          gap: "4px",
-          zIndex: 100,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-        }}
-      >
-        {actions.map(({ id, icon: Icon, label, href }) =>
-          href ? (
-            <a
-              key={id}
-              href={href}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: "3px",
-                padding: "8px 14px", borderRadius: "80px", textDecoration: "none",
-                color: "rgba(255,255,255,0.7)", fontSize: "11px", fontWeight: 600,
-                background: "transparent", transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-            >
-              <Icon size={18} />
-              {label}
-            </a>
-          ) : (
-            <button
-              key={id}
-              onClick={() => setActivePanel(activePanel === id ? null : id)}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: "3px",
-                padding: "8px 14px", borderRadius: "80px", border: "none", cursor: "pointer",
-                background: activePanel === id ? `rgba(${t.accent},0.2)` : "transparent",
-                color: activePanel === id ? t.accent : "rgba(255,255,255,0.7)",
-                fontSize: "11px", fontWeight: 600, fontFamily: "inherit", transition: "all 0.15s",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = activePanel === id ? `rgba(${t.accent},0.2)` : "transparent"; }}
-            >
-              <Icon size={18} />
-              {label}
-            </button>
-          )
-        )}
-      </div>}
+      {!activePanel && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(15,15,20,0.85)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "100px",
+            padding: "8px 16px",
+            display: "flex",
+            gap: "4px",
+            zIndex: 100,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          }}
+        >
+          {actions.map(({ id, icon: Icon, label, href }) =>
+            href ? (
+              <a
+                key={id}
+                href={href}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "3px",
+                  padding: "8px 14px",
+                  borderRadius: "80px",
+                  textDecoration: "none",
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  background: "transparent",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                }}
+              >
+                <Icon size={18} />
+                {label}
+              </a>
+            ) : (
+              <button
+                key={id}
+                onClick={() => setActivePanel(activePanel === id ? null : id)}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "3px",
+                  padding: "8px 14px",
+                  borderRadius: "80px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: activePanel === id ? `rgba(${t.accent},0.2)` : "transparent",
+                  color: activePanel === id ? t.accent : "rgba(255,255,255,0.7)",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  fontFamily: "inherit",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background =
+                    activePanel === id ? `rgba(${t.accent},0.2)` : "transparent";
+                }}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            )
+          )}
+        </div>
+      )}
 
       {/* Panels */}
       {activePanel === "invite" && (
         <SlideUp
-          onClose={() => { setActivePanel(null); setInviteInput(""); setInviteStatus(null); }}
+          onClose={() => {
+            setActivePanel(null);
+            setInviteInput("");
+            setInviteStatus(null);
+          }}
           title="Invite Guests"
-          onOpen={visibility !== "PRIVATE" ? async () => {
-            if (typeof window !== "undefined") {
-              try {
-                const url = await QRCode.toDataURL(window.location.href, { width: 220, margin: 1, color: { dark: "#000", light: "#fff" } });
-                setQrDataUrl(url);
-              } catch { /* no-op */ }
-            }
-          } : undefined}
+          onOpen={
+            visibility !== "PRIVATE"
+              ? async () => {
+                  if (typeof window !== "undefined") {
+                    try {
+                      const url = await QRCode.toDataURL(window.location.href, {
+                        width: 220,
+                        margin: 1,
+                        color: { dark: "#000", light: "#fff" },
+                      });
+                      setQrDataUrl(url);
+                    } catch {
+                      /* no-op */
+                    }
+                  }
+                }
+              : undefined
+          }
         >
           {visibility === "PRIVATE" ? (
-            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px", marginBottom: "16px", textAlign: "center" }}>
-              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "10px", lineHeight: 1.6 }}>
+            <div
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "12px",
+                padding: "16px",
+                marginBottom: "16px",
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.6)",
+                  fontSize: "14px",
+                  marginBottom: "10px",
+                  lineHeight: 1.6,
+                }}
+              >
                 This is a private event. Guests must be invited directly via email or SMS.
               </p>
               <a
                 href={`/e/${eventSlug}/settings?section=privacy`}
-                style={{ color: t.accent, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
+                style={{
+                  color: t.accent,
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
               >
                 Change in Display Options →
               </a>
@@ -234,7 +327,18 @@ export function HostBar({
               <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
                 Share the event link or send invites directly.
               </p>
-              <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", marginBottom: "12px", wordBreak: "break-all", color: "rgba(255,255,255,0.9)" }}>
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "12px",
+                  padding: "12px 16px",
+                  fontSize: "14px",
+                  marginBottom: "12px",
+                  wordBreak: "break-all",
+                  color: "rgba(255,255,255,0.9)",
+                }}
+              >
                 {typeof window !== "undefined" ? window.location.href : ""}
               </div>
               <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
@@ -247,12 +351,21 @@ export function HostBar({
                     }
                   }}
                   style={{
-                    flex: 1, padding: "12px",
+                    flex: 1,
+                    padding: "12px",
                     background: copiedLink ? "#22c55e" : t.accent,
                     color: "#ffffff",
-                    border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                    transition: "all 0.15s ease-in-out"
+                    border: "none",
+                    borderRadius: "12px",
+                    fontFamily: "inherit",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    transition: "all 0.15s ease-in-out",
                   }}
                 >
                   {copiedLink ? <Check size={16} /> : null}
@@ -262,7 +375,19 @@ export function HostBar({
                   <a
                     href={qrDataUrl}
                     download="event-qr.png"
-                    style={{ padding: "12px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "rgba(255,255,255,0.8)", fontSize: "13px", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", whiteSpace: "nowrap" }}
+                    style={{
+                      padding: "12px 16px",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "12px",
+                      color: "rgba(255,255,255,0.8)",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      whiteSpace: "nowrap",
+                    }}
                   >
                     ↓ QR
                   </a>
@@ -284,35 +409,64 @@ export function HostBar({
           )}
 
           {/* Direct Invite Form */}
-          <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px" }}>
-            <h4 style={{ color: "#fff", fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>Send Direct Invite</h4>
+          <div
+            style={{
+              marginTop: "16px",
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              paddingTop: "16px",
+            }}
+          >
+            <h4 style={{ color: "#fff", fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>
+              Send Direct Invite
+            </h4>
             <div style={{ display: "flex", gap: "8px" }}>
               <input
                 type="text"
                 placeholder="emails or phones (e.g. tom@mail.com, +1555123...)"
                 value={inviteInput}
                 onChange={(e) => setInviteInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleSendInvite(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendInvite();
+                }}
                 style={{
-                  flex: 1, padding: "10px 14px", background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px",
-                  color: "#fff", fontFamily: "inherit", fontSize: "13px", outline: "none"
+                  flex: 1,
+                  padding: "10px 14px",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "10px",
+                  color: "#fff",
+                  fontFamily: "inherit",
+                  fontSize: "13px",
+                  outline: "none",
                 }}
               />
               <button
                 onClick={handleSendInvite}
                 disabled={!inviteInput.trim() || invitePending}
                 style={{
-                  padding: "10px 16px", background: t.accent, color: t.accentFg,
-                  border: "none", borderRadius: "10px", fontFamily: "inherit",
-                  fontSize: "13px", fontWeight: 700, cursor: "pointer", opacity: (!inviteInput.trim() || invitePending) ? 0.5 : 1
+                  padding: "10px 16px",
+                  background: t.accent,
+                  color: t.accentFg,
+                  border: "none",
+                  borderRadius: "10px",
+                  fontFamily: "inherit",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  opacity: !inviteInput.trim() || invitePending ? 0.5 : 1,
                 }}
               >
                 {invitePending ? "Sending…" : "Send"}
               </button>
             </div>
             {inviteStatus && (
-              <div style={{ fontSize: "12px", color: inviteStatus.success ? "#22c55e" : "#f87171", marginTop: "6px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: inviteStatus.success ? "#22c55e" : "#f87171",
+                  marginTop: "6px",
+                }}
+              >
                 {inviteStatus.message}
               </div>
             )}
@@ -322,7 +476,10 @@ export function HostBar({
 
       {activePanel === "message" && (
         <SlideUp
-          onClose={() => { setActivePanel(null); setBlastResult(null); }}
+          onClose={() => {
+            setActivePanel(null);
+            setBlastResult(null);
+          }}
           title="Message Guests"
         >
           <textarea
@@ -331,25 +488,67 @@ export function HostBar({
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
             style={{
-              width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "12px", padding: "12px 16px", color: "#fff", fontFamily: "inherit",
-              fontSize: "14px", outline: "none", resize: "none", marginBottom: "12px", boxSizing: "border-box",
+              width: "100%",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "12px",
+              padding: "12px 16px",
+              color: "#fff",
+              fontFamily: "inherit",
+              fontSize: "14px",
+              outline: "none",
+              resize: "none",
+              marginBottom: "12px",
+              boxSizing: "border-box",
             }}
           />
 
           {blastResult && (
-            <p style={{ fontSize: "13px", marginBottom: "12px", padding: "8px 12px", borderRadius: "8px", background: blastResult.includes("Sent") || blastResult.includes("sent") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: blastResult.includes("Sent") || blastResult.includes("sent") ? "#4ade80" : "#f87171" }}>
+            <p
+              style={{
+                fontSize: "13px",
+                marginBottom: "12px",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                background:
+                  blastResult.includes("Sent") || blastResult.includes("sent")
+                    ? "rgba(74,222,128,0.1)"
+                    : "rgba(248,113,113,0.1)",
+                color:
+                  blastResult.includes("Sent") || blastResult.includes("sent")
+                    ? "#4ade80"
+                    : "#f87171",
+              }}
+            >
               {blastResult}
             </p>
           )}
 
           {/* Channel selection */}
           <div style={{ marginBottom: "16px" }}>
-            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+            <div
+              style={{
+                color: "rgba(255,255,255,0.4)",
+                fontSize: "11px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                marginBottom: "8px",
+              }}
+            >
               Delivery Channels
             </div>
             <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer", color: "rgba(255,255,255,0.8)" }}>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  color: "rgba(255,255,255,0.8)",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={sendEmail}
@@ -358,7 +557,16 @@ export function HostBar({
                 />
                 <span>Email</span>
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer", color: "rgba(255,255,255,0.8)" }}>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  color: "rgba(255,255,255,0.8)",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={sendSms}
@@ -372,7 +580,16 @@ export function HostBar({
 
           {/* Recipient selection */}
           <div style={{ marginBottom: "20px" }}>
-            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+            <div
+              style={{
+                color: "rgba(255,255,255,0.4)",
+                fontSize: "11px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                marginBottom: "8px",
+              }}
+            >
               Recipients
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -413,13 +630,28 @@ export function HostBar({
 
           <button
             onClick={handleSendMessage}
-            disabled={!messageText.trim() || isSending || (!sendEmail && !sendSms) || recipientFilters.length === 0}
+            disabled={
+              !messageText.trim() ||
+              isSending ||
+              (!sendEmail && !sendSms) ||
+              recipientFilters.length === 0
+            }
             style={{
-              width: "100%", padding: "12px", background: t.accent, color: t.accentFg,
-              border: "none", borderRadius: "10px", fontFamily: "inherit",
-              fontSize: "14px", fontWeight: 700, cursor: (!messageText.trim() || isSending || (!sendEmail && !sendSms)) ? "not-allowed" : "pointer",
-              opacity: (!messageText.trim() || isSending || (!sendEmail && !sendSms)) ? 0.5 : 1,
-              marginTop: "8px"
+              width: "100%",
+              padding: "12px",
+              background: t.accent,
+              color: t.accentFg,
+              border: "none",
+              borderRadius: "10px",
+              fontFamily: "inherit",
+              fontSize: "14px",
+              fontWeight: 700,
+              cursor:
+                !messageText.trim() || isSending || (!sendEmail && !sendSms)
+                  ? "not-allowed"
+                  : "pointer",
+              opacity: !messageText.trim() || isSending || (!sendEmail && !sendSms) ? 0.5 : 1,
+              marginTop: "8px",
             }}
           >
             {isSending ? "Sending…" : "Send Message"}
@@ -441,22 +673,69 @@ export function HostBar({
                   onClick={() => handleVisibilityChange(value)}
                   disabled={visibilityPending}
                   style={{
-                    display: "flex", alignItems: "center", gap: "14px",
-                    padding: "14px 16px", borderRadius: "14px", border: "none", cursor: visibilityPending ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                    padding: "14px 16px",
+                    borderRadius: "14px",
+                    border: "none",
+                    cursor: visibilityPending ? "not-allowed" : "pointer",
                     background: isActive ? t.accentBg : "rgba(255,255,255,0.05)",
                     outline: isActive ? `1.5px solid ${t.accentBorder}` : "1.5px solid transparent",
-                    textAlign: "left", fontFamily: "inherit", transition: "all 0.15s",
+                    textAlign: "left",
+                    fontFamily: "inherit",
+                    transition: "all 0.15s",
                     opacity: visibilityPending && !isActive ? 0.5 : 1,
                   }}
                 >
-                  <Icon size={20} color={isActive ? t.accent : "rgba(255,255,255,0.5)"} style={{ flexShrink: 0 }} />
+                  <Icon
+                    size={20}
+                    color={isActive ? t.accent : "rgba(255,255,255,0.5)"}
+                    style={{ flexShrink: 0 }}
+                  />
                   <div>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: isActive ? "#fff" : "rgba(255,255,255,0.75)" }}>{label}</div>
-                    <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)", marginTop: "2px" }}>{description}</div>
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: isActive ? "#fff" : "rgba(255,255,255,0.75)",
+                      }}
+                    >
+                      {label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "rgba(255,255,255,0.45)",
+                        marginTop: "2px",
+                      }}
+                    >
+                      {description}
+                    </div>
                   </div>
                   {isActive && (
-                    <div style={{ marginLeft: "auto", width: "18px", height: "18px", borderRadius: "50%", background: t.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke={t.accentFg} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <div
+                      style={{
+                        marginLeft: "auto",
+                        width: "18px",
+                        height: "18px",
+                        borderRadius: "50%",
+                        background: t.accent,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path
+                          d="M1 4l3 3 5-6"
+                          stroke={t.accentFg}
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </div>
                   )}
                 </button>
@@ -465,9 +744,20 @@ export function HostBar({
           </div>
           <a
             href={`/e/${eventSlug}/settings?section=privacy`}
-            style={{ display: "block", textAlign: "center", marginTop: "16px", color: "rgba(255,255,255,0.35)", fontSize: "13px", textDecoration: "none" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.65)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.35)"; }}
+            style={{
+              display: "block",
+              textAlign: "center",
+              marginTop: "16px",
+              color: "rgba(255,255,255,0.35)",
+              fontSize: "13px",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.65)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.35)";
+            }}
           >
             More options in settings →
           </a>
@@ -484,7 +774,18 @@ export function HostBar({
               window.open(window.location.href + "?preview=1", "_blank");
               setActivePanel(null);
             }}
-            style={{ width: "100%", padding: "12px", background: t.accent, color: t.accentFg, border: "none", borderRadius: "12px", fontFamily: "inherit", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
+            style={{
+              width: "100%",
+              padding: "12px",
+              background: t.accent,
+              color: t.accentFg,
+              border: "none",
+              borderRadius: "12px",
+              fontFamily: "inherit",
+              fontSize: "14px",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
           >
             Open Guest Preview
           </button>
@@ -494,11 +795,24 @@ export function HostBar({
   );
 }
 
-function SlideUp({ children, onClose, onOpen, title }: { children: React.ReactNode; onClose: () => void; onOpen?: () => void; title: string }) {
+function SlideUp({
+  children,
+  onClose,
+  onOpen,
+  title,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+  onOpen?: () => void;
+  title: string;
+}) {
   // Call onOpen once when mounted
   const calledRef = React.useRef(false);
   React.useEffect(() => {
-    if (!calledRef.current && onOpen) { calledRef.current = true; onOpen(); }
+    if (!calledRef.current && onOpen) {
+      calledRef.current = true;
+      onOpen();
+    }
   }, [onOpen]);
 
   return (
@@ -511,7 +825,11 @@ function SlideUp({ children, onClose, onOpen, title }: { children: React.ReactNo
       {/* Panel */}
       <div
         style={{
-          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 95,
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 95,
           background: "rgba(15,15,20,0.95)",
           backdropFilter: "blur(20px)",
           border: "1px solid rgba(255,255,255,0.1)",
@@ -522,9 +840,28 @@ function SlideUp({ children, onClose, onOpen, title }: { children: React.ReactNo
           color: "#fff",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
           <h3 style={{ color: "#fff", fontWeight: 700, fontSize: "17px" }}>{title}</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: "20px", padding: "4px" }}>×</button>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.5)",
+              cursor: "pointer",
+              fontSize: "20px",
+              padding: "4px",
+            }}
+          >
+            ×
+          </button>
         </div>
         {children}
       </div>

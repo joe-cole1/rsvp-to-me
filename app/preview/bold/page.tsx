@@ -55,20 +55,31 @@ export default function BoldPreview() {
           <div className="flex items-center gap-2 mb-3">
             <span
               className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
-              style={{ background: t.badgeBg, color: t.badgeText, border: `1px solid ${t.accentBorder}` }}
+              style={{
+                background: t.badgeBg,
+                color: t.badgeText,
+                border: `1px solid ${t.accentBorder}`,
+              }}
             >
               Friday, June 27
             </span>
             <span
               className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
-              style={{ background: t.badgeBg, color: t.badgeText, border: `1px solid ${t.accentBorder}` }}
+              style={{
+                background: t.badgeBg,
+                color: t.badgeText,
+                border: `1px solid ${t.accentBorder}`,
+              }}
             >
               8:00 PM
             </span>
           </div>
 
           {/* Title */}
-          <h1 className="text-4xl font-black mb-2" style={{ letterSpacing: "-0.03em", fontFamily: t.headingFont }}>
+          <h1
+            className="text-4xl font-black mb-2"
+            style={{ letterSpacing: "-0.03em", fontFamily: t.headingFont }}
+          >
             Wine Night ✨
           </h1>
 
@@ -97,8 +108,8 @@ export default function BoldPreview() {
 
           {/* Description */}
           <p className="mb-5 leading-relaxed text-sm" style={{ color: t.textSecondary }}>
-            Monthly wine night at my place! Bring a bottle you love and be ready to share what
-            you enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
+            Monthly wine night at my place! Bring a bottle you love and be ready to share what you
+            enjoy about it. I&apos;ll have snacks and plenty of glasses. This month&apos;s theme is
             anything from Burgundy. 🍇
           </p>
 
@@ -107,9 +118,7 @@ export default function BoldPreview() {
             className="rounded-2xl p-5 mb-5"
             style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
           >
-            <h2 className="text-base font-black mb-4 uppercase tracking-wide">
-              Are you coming?
-            </h2>
+            <h2 className="text-base font-black mb-4 uppercase tracking-wide">Are you coming?</h2>
             <div className="flex gap-2 mb-4">
               {[
                 { label: "Going", emoji: "🎉", active: true },
@@ -151,7 +160,15 @@ export default function BoldPreview() {
               />
               <button
                 className="w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wide"
-                style={{ background: t.accent, color: t.accentFg, textTransform: t.btnTransform as "none" | "capitalize" | "uppercase" | "lowercase" }}
+                style={{
+                  background: t.accent,
+                  color: t.accentFg,
+                  textTransform: t.btnTransform as
+                    | "none"
+                    | "capitalize"
+                    | "uppercase"
+                    | "lowercase",
+                }}
               >
                 Send RSVP →
               </button>
@@ -169,7 +186,11 @@ export default function BoldPreview() {
                 <div
                   key={name}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold"
-                  style={{ background: t.pillBg, color: t.accent, border: `1px solid ${t.pillBorder}` }}
+                  style={{
+                    background: t.pillBg,
+                    color: t.accent,
+                    border: `1px solid ${t.pillBorder}`,
+                  }}
                 >
                   {name}
                 </div>
@@ -210,7 +231,11 @@ export default function BoldPreview() {
               <input
                 className="flex-1 px-3 py-2 rounded-xl text-sm outline-none font-medium"
                 placeholder="Say something..."
-                style={{ background: t.inputBg, border: `2px solid ${t.inputBorder}`, color: t.inputText }}
+                style={{
+                  background: t.inputBg,
+                  border: `2px solid ${t.inputBorder}`,
+                  color: t.inputText,
+                }}
               />
               <button
                 className="px-4 py-2 rounded-xl text-sm font-black"

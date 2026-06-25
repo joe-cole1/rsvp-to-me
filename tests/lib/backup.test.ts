@@ -176,7 +176,9 @@ describe("lib/backup.ts", () => {
       // Rotation should keep 2 newest and delete the 2 oldest.
       const newBackupName = await runBackup();
 
-      const remainingFiles = fs.readdirSync(BACKUPS_DIR).filter(f => f.startsWith("backup_rotate_") || f === newBackupName);
+      const remainingFiles = fs
+        .readdirSync(BACKUPS_DIR)
+        .filter((f) => f.startsWith("backup_rotate_") || f === newBackupName);
       // We expect the new backup and backup_rotate_1 (newest of the old) to remain.
       // backup_rotate_2 and backup_rotate_3 (oldest) should be rotated (deleted).
       expect(remainingFiles.length).toBe(2);

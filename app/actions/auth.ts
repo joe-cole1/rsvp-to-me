@@ -55,13 +55,19 @@ export async function sendMagicLinkAction(
   // Rate limit by IP: max 20 per 10 minutes
   const ipLimit = await rateLimit(`ip:${ip}:magic-link`, 20, 600);
   if (!ipLimit.success) {
-    return { success: false, error: "Too many sign-in requests from this IP. Please try again later." };
+    return {
+      success: false,
+      error: "Too many sign-in requests from this IP. Please try again later.",
+    };
   }
 
   // Rate limit by identifier: max 5 per 10 minutes
   const idLimit = await rateLimit(`id:${identifier.toLowerCase()}:magic-link`, 5, 600);
   if (!idLimit.success) {
-    return { success: false, error: "Too many sign-in requests for this email/phone. Please try again later." };
+    return {
+      success: false,
+      error: "Too many sign-in requests for this email/phone. Please try again later.",
+    };
   }
 
   const isPhone = looksLikePhone(identifier);
@@ -102,7 +108,10 @@ export async function registerHostAction(
   // Rate limit registration by IP: max 3 per hour
   const ipLimit = await rateLimit(`ip:${ip}:register`, 3, 3600);
   if (!ipLimit.success) {
-    return { success: false, error: "Too many registration attempts. Please try again in an hour." };
+    return {
+      success: false,
+      error: "Too many registration attempts. Please try again in an hour.",
+    };
   }
 
   const openReg = await isOpenRegistrationActive();
@@ -121,4 +130,3 @@ export async function registerHostAction(
 
   return result;
 }
-

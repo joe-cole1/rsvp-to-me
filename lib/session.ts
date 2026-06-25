@@ -34,8 +34,15 @@ function validateInviteCode() {
     const isLocalhost = appUrl.includes("localhost") || appUrl.includes("127.0.0.1");
     if (!isLocalhost) {
       const inviteCode = process.env.HOST_INVITE_CODE;
-      if (!inviteCode || inviteCode === "letmein" || inviteCode === "CHANGE_THIS_TO_A_STRONG_RANDOM_CODE" || inviteCode.length < 10) {
-        throw new Error("HOST_INVITE_CODE must be set to a strong random value when OPEN_REGISTRATION is disabled in production.");
+      if (
+        !inviteCode ||
+        inviteCode === "letmein" ||
+        inviteCode === "CHANGE_THIS_TO_A_STRONG_RANDOM_CODE" ||
+        inviteCode.length < 10
+      ) {
+        throw new Error(
+          "HOST_INVITE_CODE must be set to a strong random value when OPEN_REGISTRATION is disabled in production."
+        );
       }
     }
   }
@@ -64,7 +71,8 @@ export async function getSession(): Promise<SessionData | null> {
     if (!session || !session.sessionId) return null;
 
     const cacheKey = `session:${session.sessionId}`;
-    let dbSession: { id: string; userId: string; expiresAt: Date; user: { role: string } } | null = null;
+    let dbSession: { id: string; userId: string; expiresAt: Date; user: { role: string } } | null =
+      null;
 
     if (isRedisEnabled()) {
       const cached = await redisGet(cacheKey);
@@ -103,7 +111,10 @@ export async function getSession(): Promise<SessionData | null> {
 
         // Cache the session in Redis if enabled
         if (isRedisEnabled()) {
-          const ttlSeconds = Math.max(0, Math.floor((dbSession.expiresAt.getTime() - Date.now()) / 1000));
+          const ttlSeconds = Math.max(
+            0,
+            Math.floor((dbSession.expiresAt.getTime() - Date.now()) / 1000)
+          );
           if (ttlSeconds > 0) {
             const cacheValue: CachedSession = {
               id: dbSession.id,
@@ -127,7 +138,11 @@ export async function getSession(): Promise<SessionData | null> {
     }
 
     const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-    if (initialAdminEmail && session.email?.toLowerCase().trim() === initialAdminEmail && session.role !== "ADMIN") {
+    if (
+      initialAdminEmail &&
+      session.email?.toLowerCase().trim() === initialAdminEmail &&
+      session.role !== "ADMIN"
+    ) {
       const adminCount = await db.user.count({ where: { role: "ADMIN" } });
       if (adminCount === 0) {
         await db.user.update({ where: { id: session.userId }, data: { role: "ADMIN" } });
@@ -174,10 +189,7 @@ export async function createSession(data: Omit<SessionData, "sessionId">): Promi
     await redisSet(cacheKey, JSON.stringify(cacheValue), SESSION_TTL);
   }
 
-  const sealed = await sealData(
-    { ...data, sessionId },
-    { password: getPassword(), ttl: TTL }
-  );
+  const sealed = await sealData({ ...data, sessionId }, { password: getPassword(), ttl: TTL });
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, sealed, {
@@ -218,7 +230,7 @@ export async function invalidateUserSessions(userId: string): Promise<void> {
       where: { userId },
       select: { id: true },
     });
-    
+
     if (isRedisEnabled()) {
       for (const s of userSessions) {
         await redisDel(`session:${s.id}`);
@@ -228,5 +240,3 @@ export async function invalidateUserSessions(userId: string): Promise<void> {
     console.error("[session] Failed to invalidate sessions for user:", err);
   }
 }
-
-

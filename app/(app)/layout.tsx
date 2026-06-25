@@ -8,7 +8,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const sessionUser = await getSessionUser();
 
   return (
-    <div style={{ minHeight: "100vh", background: APP_SHELL.pageBg, color: APP_SHELL.textPrimary, fontFamily: "inherit" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: APP_SHELL.pageBg,
+        color: APP_SHELL.textPrimary,
+        fontFamily: "inherit",
+      }}
+    >
       <AppNavLogo
         href="/dashboard"
         leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}

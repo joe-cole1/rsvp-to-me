@@ -66,11 +66,7 @@ export async function redisGet(key: string): Promise<string | null> {
   }
 }
 
-export async function redisSet(
-  key: string,
-  value: string,
-  ttlSeconds?: number
-): Promise<boolean> {
+export async function redisSet(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
   const client = await getRedisClient();
   if (!client) return false;
   try {
@@ -98,10 +94,7 @@ export async function redisDel(key: string): Promise<boolean> {
   }
 }
 
-export async function redisAcquireLock(
-  lockKey: string,
-  ttlSeconds: number
-): Promise<boolean> {
+export async function redisAcquireLock(lockKey: string, ttlSeconds: number): Promise<boolean> {
   const client = await getRedisClient();
   if (!client) return false;
   try {
@@ -128,10 +121,7 @@ export async function redisReleaseLock(lockKey: string): Promise<boolean> {
   }
 }
 
-export async function redisIncrAndExpire(
-  key: string,
-  ttlSeconds: number
-): Promise<number | null> {
+export async function redisIncrAndExpire(key: string, ttlSeconds: number): Promise<number | null> {
   const client = await getRedisClient();
   if (!client) return null;
   try {

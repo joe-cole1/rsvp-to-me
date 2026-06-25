@@ -38,7 +38,10 @@ describe("lib/sms.ts", () => {
         status: "GOING",
         editToken: "tok123",
       });
-      expect(consoleSpy).toHaveBeenCalledWith("[sms:dev]", expect.objectContaining({ to: "+15550001111" }));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "[sms:dev]",
+        expect.objectContaining({ to: "+15550001111" })
+      );
       expect(mockCreate).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
@@ -90,7 +93,9 @@ describe("lib/sms.ts", () => {
 
     it("sendSmsBlast still returns count even if some messages fail", async () => {
       const { sendSmsBlast } = await loadModule();
-      mockCreate.mockRejectedValueOnce(new Error("Twilio error")).mockResolvedValueOnce({ sid: "SM999" });
+      mockCreate
+        .mockRejectedValueOnce(new Error("Twilio error"))
+        .mockResolvedValueOnce({ sid: "SM999" });
       const count = await sendSmsBlast(["+15550001111", "+15550002222"], {
         eventTitle: "Wine Night",
         eventSlug: "wine-night",
@@ -151,14 +156,18 @@ describe("lib/sms.ts", () => {
 
     it("sendApprovalSms sends approved or declined message", async () => {
       const { sendApprovalSms } = await loadModule();
-      await sendApprovalSms("+15551112222", { eventTitle: "Wine Night", approved: true, message: "Welcome!" });
+      await sendApprovalSms("+15551112222", {
+        eventTitle: "Wine Night",
+        approved: true,
+        message: "Welcome!",
+      });
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "+15551112222",
           body: expect.stringContaining("approved"),
         })
       );
-      
+
       await sendApprovalSms("+15551112222", { eventTitle: "Wine Night", approved: false });
       expect(mockCreate).toHaveBeenLastCalledWith(
         expect.objectContaining({

@@ -24,15 +24,15 @@ SMS messaging in rsvp-to-me is powered by Twilio and is entirely optional. This 
 
 Without SMS configured, the app works entirely through email. With Twilio connected, you gain:
 
-| Feature | Description |
-|---------|-------------|
-| **Magic Link Sign-In via Text** | Users can sign in by entering their phone number instead of email. |
-| **SMS Invitations** | Send event invitations directly to guest phone numbers. |
-| **RSVP Confirmations** | Guests receive an automated text confirming their Going/Maybe status. |
-| **Host RSVP Alerts** | Hosts receive a text when a guest RSVPs, including the guest's name, status, note, and a link to the guest list. |
-| **Approval Notifications** | Guests receive updates when their RSVPs are approved/declined. |
-| **Event Update Blasts** | Send immediate text notifications to all Going/Maybe guests. |
-| **Automated Reminders** | Schedule text reminders 7 days, 1 day, or N hours before the event. |
+| Feature                         | Description                                                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Magic Link Sign-In via Text** | Users can sign in by entering their phone number instead of email.                                               |
+| **SMS Invitations**             | Send event invitations directly to guest phone numbers.                                                          |
+| **RSVP Confirmations**          | Guests receive an automated text confirming their Going/Maybe status.                                            |
+| **Host RSVP Alerts**            | Hosts receive a text when a guest RSVPs, including the guest's name, status, note, and a link to the guest list. |
+| **Approval Notifications**      | Guests receive updates when their RSVPs are approved/declined.                                                   |
+| **Event Update Blasts**         | Send immediate text notifications to all Going/Maybe guests.                                                     |
+| **Automated Reminders**         | Schedule text reminders 7 days, 1 day, or N hours before the event.                                              |
 
 Each user can control their own notification preferences (Email vs SMS) in their Profile. Hosts can also toggle each notification type individually per event under **Event Settings → RSVP Options → Notification Settings**.
 
@@ -61,6 +61,7 @@ Your new trial account starts with approximately $15.00 in free credit.
 ## Step 2 — Get a Phone Number
 
 Trial accounts include one free phone number. To purchase one:
+
 1. Go to your [Twilio Console](https://console.twilio.com).
 2. Look for the **Get a Twilio phone number** button on the home page, or navigate to **Phone Numbers** > **Manage** > **Buy a number** in the left sidebar.
 3. Choose your country.
@@ -70,13 +71,14 @@ Trial accounts include one free phone number. To purchase one:
 7. Note down the phone number in E.164 format.
 
 ### E.164 Phone Format
+
 E.164 means: `+` country code + full phone number, with no spaces, dashes, or parentheses.
 
-| Country | Display Format | E.164 Format |
-|---------|----------------|--------------|
-| USA / Canada | `(555) 867-5309` | `+15558675309` |
-| United Kingdom | `07911 123456` | `+447911123456` |
-| Australia | `0412 345 678` | `+61412345678` |
+| Country        | Display Format   | E.164 Format    |
+| -------------- | ---------------- | --------------- |
+| USA / Canada   | `(555) 867-5309` | `+15558675309`  |
+| United Kingdom | `07911 123456`   | `+447911123456` |
+| Australia      | `0412 345 678`   | `+61412345678`  |
 
 ---
 
@@ -95,6 +97,7 @@ Your account keys are displayed on your Twilio Console home page under the **Acc
 ## Step 4 — Configure rsvp-to-me
 
 Add the three Twilio configuration variables to your `.env` file:
+
 ```env
 TWILIO_ACCOUNT_SID="ACyour_account_sid_here"
 TWILIO_AUTH_TOKEN="your_auth_token_here"
@@ -102,6 +105,7 @@ TWILIO_PHONE_NUMBER="+15558675309"
 ```
 
 Restart your container to load the environment changes:
+
 ```bash
 docker compose restart app
 ```
@@ -111,13 +115,14 @@ docker compose restart app
 ## Testing SMS
 
 You can test your connection directly from the Admin Panel:
+
 1. Log in to the application as an `ADMIN` user.
 2. Navigate to `/admin` and select the **System Configuration** tab.
 3. Under the SMS settings panel, click **Send Test SMS**.
 4. Type your verified phone number (in E.164 format) and click Send.
 5. Verify that the text message arrives.
 
-*Note: If using a trial account, you can only send test messages to verified caller IDs (see below).*
+_Note: If using a trial account, you can only send test messages to verified caller IDs (see below)._
 
 ---
 
@@ -126,15 +131,19 @@ You can test your connection directly from the Admin Panel:
 Twilio trial accounts have two main restrictions:
 
 ### 1. Send Only to Verified Numbers
+
 You can only send SMS messages to phone numbers that you have explicitly verified in your Twilio Console.
+
 - To verify a number, go to **Phone Numbers** > **Verified Caller IDs** > [Add a Verified Caller ID](https://console.twilio.com/us1/account/verified-caller-ids/add).
 - Enter the phone number and input the code Twilio sends to verify it.
 
 ### 2. Trial Account Watermark
+
 All SMS messages sent from a trial account will begin with:
 `Sent from your Twilio trial account - `
 
 ### Upgrading your Account
+
 To remove both restrictions, click **Upgrade Project** at the top of the Twilio Console and add a credit card. Your remaining trial credit will carry over.
 
 ---
@@ -142,6 +151,7 @@ To remove both restrictions, click **Upgrade Project** at the top of the Twilio 
 ## Costs
 
 Twilio bills on a per-message usage model.
+
 - **US Phone Number Rent:** ~$1.15 per month.
 - **Outbound SMS (US):** ~$0.0079 per message.
 - **Outbound SMS (International):** Varies by country.
@@ -154,12 +164,15 @@ For the latest pricing, see the [Twilio SMS Pricing Page](https://www.twilio.com
 ## Disabling SMS
 
 To return to email-only mode, clear the three Twilio variables in your `.env` file:
+
 ```env
 TWILIO_ACCOUNT_SID=""
 TWILIO_AUTH_TOKEN=""
 TWILIO_PHONE_NUMBER=""
 ```
+
 Restart your container:
+
 ```bash
 docker compose restart app
 ```
@@ -169,14 +182,18 @@ docker compose restart app
 ## Troubleshooting
 
 ### "Authentication Error" / Code 20003
+
 Your `TWILIO_ACCOUNT_SID` or `TWILIO_AUTH_TOKEN` is incorrect. Recopy both values carefully from your Twilio Console.
 
 ### "Invalid From Phone Number" / Code 21606
+
 The phone number set in `TWILIO_PHONE_NUMBER` is not formatted correctly, or is not owned by your Twilio account. Make sure it uses E.164 format and appears in your Active Numbers list.
 
 ### "Unverified Number" / Code 21608
+
 You are trying to send a text to a guest's number on a trial account. You must verify their number in the Verified Caller IDs console first, or upgrade to a paid account.
 
 ### Messages are not arriving
+
 - Check the Twilio Console **Monitor** > **Logs** > **Messaging** to check for delivery errors.
 - Confirm that the recipient's phone number contains a country code in their Profile settings.

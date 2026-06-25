@@ -12,7 +12,10 @@ function sleep(ms) {
 }
 
 function parseDbUrl(rawUrl) {
-  const url = rawUrl.trim().replace(/^["']|["']$/g, "").trim();
+  const url = rawUrl
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
   try {
     const parsed = new URL(url);
     return {
@@ -73,7 +76,8 @@ async function runMigrations() {
       execSync("npx prisma migrate deploy", { stdio: "inherit" });
       return; // success
     } catch (err) {
-      const output = (err.stdout?.toString() ?? "") + (err.stderr?.toString() ?? "") + (err.message ?? "");
+      const output =
+        (err.stdout?.toString() ?? "") + (err.stderr?.toString() ?? "") + (err.message ?? "");
 
       if (isP3009Error(output)) {
         console.error("[migrate-db] A previous migration is stuck (P3009).");
@@ -103,7 +107,7 @@ async function runMigrations() {
 
 async function main() {
   const rawUrl = process.env.DATABASE_URL || "";
-  const displayUrl = rawUrl ? (rawUrl.split("@")[1] || rawUrl) : "not set";
+  const displayUrl = rawUrl ? rawUrl.split("@")[1] || rawUrl : "not set";
   console.log("[migrate-db] Active DATABASE_URL: %s", displayUrl);
 
   runPreMigrationBackup(rawUrl);

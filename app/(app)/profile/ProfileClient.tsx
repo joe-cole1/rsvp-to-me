@@ -3,7 +3,11 @@
 import { useState, useRef, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import NextImage from "next/image";
-import { updateProfileSettings, updateNotificationSettings, requestAccountDeletion } from "@/app/actions/profile";
+import {
+  updateProfileSettings,
+  updateNotificationSettings,
+  requestAccountDeletion,
+} from "@/app/actions/profile";
 import { deleteHostEvent } from "@/app/actions/event";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
@@ -64,7 +68,9 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
 
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null
+  );
   const [infoMessages, setInfoMessages] = useState<string[]>([]);
 
   // Deletion flow state
@@ -72,7 +78,9 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [blockedEvents, setBlockedEvents] = useState<{ id: string; title: string; slug: string }[] | null>(null);
+  const [blockedEvents, setBlockedEvents] = useState<
+    { id: string; title: string; slug: string }[] | null
+  >(null);
   const [isDeletingEvent, setIsDeletingEvent] = useState<string | null>(null);
 
   useEffect(() => {
@@ -91,17 +99,29 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
     const error = searchParams.get("error");
 
     if (verified === "1") {
-      setFeedback({ type: "success", message: "Contact details successfully verified and updated!" });
+      setFeedback({
+        type: "success",
+        message: "Contact details successfully verified and updated!",
+      });
       // Clean query params
       router.replace("/profile");
     } else if (error === "invalid-token") {
-      setFeedback({ type: "error", message: "The verification link was invalid, expired, or already used." });
+      setFeedback({
+        type: "error",
+        message: "The verification link was invalid, expired, or already used.",
+      });
       router.replace("/profile");
     } else if (error === "email-taken") {
-      setFeedback({ type: "error", message: "That email address is already taken by another account." });
+      setFeedback({
+        type: "error",
+        message: "That email address is already taken by another account.",
+      });
       router.replace("/profile");
     } else if (error === "phone-taken") {
-      setFeedback({ type: "error", message: "That phone number is already taken by another account." });
+      setFeedback({
+        type: "error",
+        message: "That phone number is already taken by another account.",
+      });
       router.replace("/profile");
     }
   }, [searchParams, router]);
@@ -201,7 +221,14 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           boxSizing: "border-box",
         }}
       >
-        <h2 style={{ fontSize: "28px", fontWeight: 800, color: APP_SHELL.textPrimary, marginBottom: "8px" }}>
+        <h2
+          style={{
+            fontSize: "28px",
+            fontWeight: 800,
+            color: APP_SHELL.textPrimary,
+            marginBottom: "8px",
+          }}
+        >
           Profile Settings
         </h2>
         <p style={{ color: APP_SHELL.textSecondary, marginBottom: "32px", fontSize: "14px" }}>
@@ -233,7 +260,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
               gap: "8px",
               maxWidth: "90%",
               width: "max-content",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
             }}
           >
             <span>{feedback.type === "success" ? "✓" : "⚠️"}</span>
@@ -259,7 +286,10 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           </div>
         ))}
 
-        <form onSubmit={handleProfileSubmit} style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+        <form
+          onSubmit={handleProfileSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "32px" }}
+        >
           {/* Section: Personal Info Card */}
           <div
             style={{
@@ -283,7 +313,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
                       borderRadius: "50%",
                       overflow: "hidden",
                       border: `2px solid ${APP_SHELL.cardBorder}`,
-                      position: "relative"
+                      position: "relative",
                     }}
                   >
                     <NextImage
@@ -360,8 +390,12 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
                     cursor: "pointer",
                     transition: "background 0.2s",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)")
+                  }
                 >
                   Change Photo
                 </button>
@@ -373,7 +407,15 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
 
             {/* Inputs */}
             <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, marginBottom: "8px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: APP_SHELL.textPrimary,
+                  marginBottom: "8px",
+                }}
+              >
                 Full Name
               </label>
               <input
@@ -396,7 +438,15 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, marginBottom: "8px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: APP_SHELL.textPrimary,
+                  marginBottom: "8px",
+                }}
+              >
                 Email Address
               </label>
               <input
@@ -419,7 +469,15 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, marginBottom: "8px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: APP_SHELL.textPrimary,
+                  marginBottom: "8px",
+                }}
+              >
                 Phone Number
               </label>
               <input
@@ -440,7 +498,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
                 }}
               />
             </div>
-            
+
             <button
               type="submit"
               disabled={isPending}
@@ -459,8 +517,12 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
                 justifyContent: "center",
                 opacity: isPending ? 0.6 : 1,
               }}
-              onMouseEnter={(e) => { if (!isPending) e.currentTarget.style.opacity = "0.9"; }}
-              onMouseLeave={(e) => { if (!isPending) e.currentTarget.style.opacity = "1"; }}
+              onMouseEnter={(e) => {
+                if (!isPending) e.currentTarget.style.opacity = "0.9";
+              }}
+              onMouseLeave={(e) => {
+                if (!isPending) e.currentTarget.style.opacity = "1";
+              }}
             >
               {isPending ? "Saving..." : "Save Settings"}
             </button>
@@ -478,18 +540,25 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
               gap: "20px",
             }}
           >
-            <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+            <h3
+              style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}
+            >
               Notification Opt-Outs
             </h3>
             <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", margin: "0 0 8px 0" }}>
-              Control which notifications you wish to receive. Transactional messages (like login magic links and RSVP confirmations) are always sent.
+              Control which notifications you wish to receive. Transactional messages (like login
+              magic links and RSVP confirmations) are always sent.
             </p>
 
             {/* Email Notifications Toggle */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>Email Blasts & Reminders</div>
-                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>Receive scheduled reminders and host blasts via email</div>
+                <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>
+                  Email Blasts & Reminders
+                </div>
+                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
+                  Receive scheduled reminders and host blasts via email
+                </div>
               </div>
               <button
                 type="button"
@@ -524,8 +593,12 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             {/* SMS Notifications Toggle */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>SMS Blasts & Reminders</div>
-                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>Receive scheduled reminders and host blasts via SMS</div>
+                <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>
+                  SMS Blasts & Reminders
+                </div>
+                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
+                  Receive scheduled reminders and host blasts via SMS
+                </div>
               </div>
               <button
                 type="button"
@@ -559,92 +632,151 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           </div>
         </form>
 
-      {/* Danger Zone */}
-      <div style={{
-        backgroundColor: APP_SHELL.cardBg,
-        border: "1px solid #ef444440",
-        borderRadius: "16px",
-        padding: "24px",
-        marginTop: "8px",
-      }}>
-        <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ef4444", marginBottom: "16px" }}>Danger Zone</h2>
+        {/* Danger Zone */}
+        <div
+          style={{
+            backgroundColor: APP_SHELL.cardBg,
+            border: "1px solid #ef444440",
+            borderRadius: "16px",
+            padding: "24px",
+            marginTop: "8px",
+          }}
+        >
+          <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ef4444", marginBottom: "16px" }}>
+            Danger Zone
+          </h2>
 
-        {deletionScheduledAt ? (
-          <div style={{
-            backgroundColor: "rgba(239,68,68,0.1)",
-            border: "1px solid #ef444460",
-            borderRadius: "10px",
-            padding: "16px",
-          }}>
-            <p style={{ color: "#ef4444", fontWeight: 700, margin: 0 }}>Your account is scheduled for deletion</p>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginTop: "6px", marginBottom: 0 }}>
-              Anonymization will occur on or after {new Date(deletionScheduledAt).toLocaleString()}. Contact an admin to reverse this.
-            </p>
-          </div>
-        ) : (
-          <>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
-              Permanently delete your account and all associated data. This cannot be undone.
-            </p>
-            <button
-              onClick={() => setShowDeleteModal(true)}
+          {deletionScheduledAt ? (
+            <div
               style={{
-                backgroundColor: "transparent",
-                border: "1px solid #ef4444",
-                color: "#ef4444",
+                backgroundColor: "rgba(239,68,68,0.1)",
+                border: "1px solid #ef444460",
                 borderRadius: "10px",
-                padding: "10px 20px",
-                fontSize: "14px",
-                fontWeight: 700,
-                cursor: "pointer",
+                padding: "16px",
               }}
             >
-              Delete My Account
-            </button>
-          </>
-        )}
-      </div>
+              <p style={{ color: "#ef4444", fontWeight: 700, margin: 0 }}>
+                Your account is scheduled for deletion
+              </p>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.6)",
+                  fontSize: "14px",
+                  marginTop: "6px",
+                  marginBottom: 0,
+                }}
+              >
+                Anonymization will occur on or after{" "}
+                {new Date(deletionScheduledAt).toLocaleString()}. Contact an admin to reverse this.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
+                Permanently delete your account and all associated data. This cannot be undone.
+              </p>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                style={{
+                  backgroundColor: "transparent",
+                  border: "1px solid #ef4444",
+                  color: "#ef4444",
+                  borderRadius: "10px",
+                  padding: "10px 20px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Delete My Account
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Delete Account Modal */}
       {showDeleteModal && (
-        <div style={{
-          position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px",
-        }}>
-          <div style={{
-            backgroundColor: "#1a1228",
-            border: `1px solid ${APP_SHELL.navBorder}`,
-            borderRadius: "16px",
-            padding: "28px",
-            maxWidth: "480px",
-            width: "100%",
-          }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 800, color: APP_SHELL.textPrimary, marginBottom: "12px" }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#1a1228",
+              border: `1px solid ${APP_SHELL.navBorder}`,
+              borderRadius: "16px",
+              padding: "28px",
+              maxWidth: "480px",
+              width: "100%",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: 800,
+                color: APP_SHELL.textPrimary,
+                marginBottom: "12px",
+              }}
+            >
               Delete your account?
             </h2>
 
             {blockedEvents && blockedEvents.length > 0 ? (
               <>
-                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "16px" }}>
-                  You have upcoming published events. Delete them first before deleting your account.
+                <p
+                  style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "16px" }}
+                >
+                  You have upcoming published events. Delete them first before deleting your
+                  account.
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
-                  {blockedEvents.map(ev => (
-                    <div key={ev.id} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      backgroundColor: "rgba(255,255,255,0.05)", borderRadius: "8px", padding: "10px 14px",
-                    }}>
-                      <span style={{ color: APP_SHELL.textPrimary, fontSize: "14px", fontWeight: 600 }}>{ev.title}</span>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    marginBottom: "20px",
+                  }}
+                >
+                  {blockedEvents.map((ev) => (
+                    <div
+                      key={ev.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        backgroundColor: "rgba(255,255,255,0.05)",
+                        borderRadius: "8px",
+                        padding: "10px 14px",
+                      }}
+                    >
+                      <span
+                        style={{ color: APP_SHELL.textPrimary, fontSize: "14px", fontWeight: 600 }}
+                      >
+                        {ev.title}
+                      </span>
                       <button
                         disabled={isDeletingEvent === ev.id}
                         onClick={async () => {
                           setIsDeletingEvent(ev.id);
                           try {
                             await deleteHostEvent(ev.id);
-                            setBlockedEvents(prev => prev ? prev.filter(e => e.id !== ev.id) : null);
+                            setBlockedEvents((prev) =>
+                              prev ? prev.filter((e) => e.id !== ev.id) : null
+                            );
                           } catch {
-                            setFeedback({ type: "error", message: `Failed to delete "${ev.title}".` });
+                            setFeedback({
+                              type: "error",
+                              message: `Failed to delete "${ev.title}".`,
+                            });
                           } finally {
                             setIsDeletingEvent(null);
                           }
@@ -674,14 +806,25 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
               </>
             ) : (
               <>
-                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "8px" }}>
-                  Your profile info will be anonymized within 30 days. Past event history is preserved for guests.
-                  You will be signed out immediately.
+                <p
+                  style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "8px" }}
+                >
+                  Your profile info will be anonymized within 30 days. Past event history is
+                  preserved for guests. You will be signed out immediately.
                 </p>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", marginBottom: "16px" }}>
+                <p
+                  style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", marginBottom: "16px" }}
+                >
                   An admin can reverse this within 30 days if you change your mind.
                 </p>
-                <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginBottom: "8px", fontWeight: 600 }}>
+                <p
+                  style={{
+                    color: APP_SHELL.textSecondary,
+                    fontSize: "13px",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
                   Type DELETE to confirm:
                 </p>
                 <input
@@ -707,7 +850,11 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
 
             <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
               <button
-                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); setBlockedEvents(null); }}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText("");
+                  setBlockedEvents(null);
+                }}
                 style={{
                   backgroundColor: "transparent",
                   border: `1px solid ${APP_SHELL.navBorder}`,
@@ -735,19 +882,28 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
                         router.push("/auth/sign-in");
                       }
                     } catch {
-                      setFeedback({ type: "error", message: "Failed to delete account. Please try again." });
+                      setFeedback({
+                        type: "error",
+                        message: "Failed to delete account. Please try again.",
+                      });
                       setIsDeletingAccount(false);
                     }
                   }}
                   style={{
-                    backgroundColor: deleteConfirmText === "DELETE" && !isDeletingAccount ? "#ef4444" : "rgba(239,68,68,0.3)",
+                    backgroundColor:
+                      deleteConfirmText === "DELETE" && !isDeletingAccount
+                        ? "#ef4444"
+                        : "rgba(239,68,68,0.3)",
                     border: "none",
                     color: "#fff",
                     borderRadius: "10px",
                     padding: "10px 20px",
                     fontSize: "14px",
                     fontWeight: 700,
-                    cursor: deleteConfirmText === "DELETE" && !isDeletingAccount ? "pointer" : "not-allowed",
+                    cursor:
+                      deleteConfirmText === "DELETE" && !isDeletingAccount
+                        ? "pointer"
+                        : "not-allowed",
                   }}
                 >
                   {isDeletingAccount ? "Processing…" : "Confirm Delete"}

@@ -14,7 +14,11 @@ export default async function DashboardPage() {
 
   // Auto-promote INITIAL_ADMIN_EMAIL to ADMIN role on first login
   const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-  if (initialAdminEmail && sessionUser.email.toLowerCase().trim() === initialAdminEmail && sessionUser.role !== "ADMIN") {
+  if (
+    initialAdminEmail &&
+    sessionUser.email.toLowerCase().trim() === initialAdminEmail &&
+    sessionUser.role !== "ADMIN"
+  ) {
     await db.user.update({ where: { id: sessionUser.id }, data: { role: "ADMIN" } });
     sessionUser.role = "ADMIN";
   }
@@ -22,7 +26,7 @@ export default async function DashboardPage() {
   const events = await getDashboardEvents();
   const invites = await getDashboardInvites();
   const openRegistration = await isOpenRegistrationActive();
-  const eventIds = [...events.map(e => e.id), ...invites.map(i => i.id)];
+  const eventIds = [...events.map((e) => e.id), ...invites.map((i) => i.id)];
   const recentActivities = await getDashboardActivity(eventIds);
   const userName = sessionUser.name || sessionUser.email.split("@")[0] || "User";
 

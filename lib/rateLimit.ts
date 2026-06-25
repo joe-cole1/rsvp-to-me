@@ -22,7 +22,7 @@ export async function rateLimit(
           }
         } catch {}
       }
-      
+
       const reset = new Date(Date.now() + ttl * 1000);
       return {
         success: points <= limit,
@@ -88,8 +88,9 @@ export async function rateLimit(
 
 export async function cleanupRateLimits(): Promise<void> {
   const now = new Date();
-  await db.rateLimit.deleteMany({
-    where: { expireAt: { lt: now } },
-  }).catch(() => {});
+  await db.rateLimit
+    .deleteMany({
+      where: { expireAt: { lt: now } },
+    })
+    .catch(() => {});
 }
-

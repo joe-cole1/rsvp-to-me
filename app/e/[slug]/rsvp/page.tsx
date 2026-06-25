@@ -21,7 +21,12 @@ export default async function RsvpPage({ params, searchParams }: Props) {
       })
     : null;
   const sessionUser = dbUser
-    ? { email: dbUser.email ?? session!.email, name: dbUser.name, avatarUrl: dbUser.avatarUrl, role: dbUser.role as "GUEST" | "HOST" | "ADMIN" }
+    ? {
+        email: dbUser.email ?? session!.email,
+        name: dbUser.name,
+        avatarUrl: dbUser.avatarUrl,
+        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
+      }
     : null;
 
   const validStatuses = ["GOING", "MAYBE", "NO"] as const;

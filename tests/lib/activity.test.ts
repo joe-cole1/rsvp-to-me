@@ -51,7 +51,13 @@ describe("iconLabel", () => {
 
 describe("logActivity", () => {
   it("calls db.activityEvent.create with eventId, type, detail, and actorName", async () => {
-    const mockCreated = { id: "act-1", eventId: "evt-1", type: "rsvp", detail: "Guest RSVP'd", actorName: "Alice" };
+    const mockCreated = {
+      id: "act-1",
+      eventId: "evt-1",
+      type: "rsvp",
+      detail: "Guest RSVP'd",
+      actorName: "Alice",
+    };
     mockActivityCreate.mockResolvedValue(mockCreated);
 
     const result = await logActivity("evt-1", "rsvp", "Guest RSVP'd", "Alice");

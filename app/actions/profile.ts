@@ -66,7 +66,9 @@ export async function updateProfileSettings(data: {
 
       const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
       await sendMagicLinkEmail(newEmail, verifyUrl);
-      messages.push("A verification link has been sent to your new email address. Please click it to confirm the change.");
+      messages.push(
+        "A verification link has been sent to your new email address. Please click it to confirm the change."
+      );
     }
   }
 
@@ -102,7 +104,9 @@ export async function updateProfileSettings(data: {
 
       const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
       await sendMagicLinkSms(newPhone, verifyUrl);
-      messages.push("A verification link has been sent to your new phone number. Please click it to confirm the change.");
+      messages.push(
+        "A verification link has been sent to your new phone number. Please click it to confirm the change."
+      );
     }
   }
 
@@ -151,7 +155,11 @@ export async function getUserProfile() {
 
   if (user) {
     const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-    if (initialAdminEmail && user.email?.toLowerCase().trim() === initialAdminEmail && user.role !== "ADMIN") {
+    if (
+      initialAdminEmail &&
+      user.email?.toLowerCase().trim() === initialAdminEmail &&
+      user.role !== "ADMIN"
+    ) {
       const adminCount = await db.user.count({ where: { role: "ADMIN" } });
       if (adminCount === 0) {
         await db.user.update({

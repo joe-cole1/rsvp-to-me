@@ -77,9 +77,10 @@ export async function GET(request: NextRequest) {
 
   // Validate redirect at the point of use — defence in depth against encoded payloads
   // that bypassed the check in createMagicLink (e.g. %2F-encoded slashes).
-  const destination = rawRedirect && isSafeRedirect(rawRedirect)
-    ? `${APP_URL()}${rawRedirect}`
-    : `${APP_URL()}/dashboard`;
+  const destination =
+    rawRedirect && isSafeRedirect(rawRedirect)
+      ? `${APP_URL()}${rawRedirect}`
+      : `${APP_URL()}/dashboard`;
 
   const response = redirectWithNoReferrer(destination);
   response.cookies.set(COOKIE_NAME, sealed, {

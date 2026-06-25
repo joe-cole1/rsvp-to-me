@@ -19,7 +19,9 @@ async function processExpiredDeletions() {
     });
 
     if (upcomingEvents > 0) {
-      console.warn(`[cron-scheduler] Skipping deletion for user ${user.id} — still has ${upcomingEvents} upcoming published event(s).`);
+      console.warn(
+        `[cron-scheduler] Skipping deletion for user ${user.id} — still has ${upcomingEvents} upcoming published event(s).`
+      );
       continue;
     }
 
@@ -50,7 +52,9 @@ async function processExpiredDeletions() {
       },
     });
 
-    console.log(`[cron-scheduler] Anonymized account for user ${user.id} (was: ${user.email ?? user.name}).`);
+    console.log(
+      `[cron-scheduler] Anonymized account for user ${user.id} (was: ${user.email ?? user.name}).`
+    );
   }
 }
 
@@ -61,7 +65,7 @@ let backupTask: ReturnType<typeof cron.schedule> | null = null;
 
 async function syncBackupJob() {
   let schedule = process.env.BACKUP_SCHEDULE || "";
-  
+
   try {
     const config = await db.systemConfig.findUnique({
       where: { key: "backup_schedule" },
@@ -79,19 +83,21 @@ async function syncBackupJob() {
       backupTask.stop();
       backupTask = null;
     }
-    
+
     currentBackupSchedule = schedule;
 
     if (schedule && schedule !== "disabled" && schedule !== "false") {
-      console.log("[cron-scheduler] Scheduling database backup job with pattern: \"%s\"", schedule);
+      console.log('[cron-scheduler] Scheduling database backup job with pattern: "%s"', schedule);
       try {
         if (cron.validate(schedule)) {
           backupTask = cron.schedule(schedule, () => {
             console.log("[cron-scheduler] Starting scheduled database backup...");
-            runBackup().catch((err) => console.error("[cron-scheduler] Scheduled database backup failed:", err));
+            runBackup().catch((err) =>
+              console.error("[cron-scheduler] Scheduled database backup failed:", err)
+            );
           });
         } else {
-          console.error("[cron-scheduler] Invalid database backup cron pattern: \"%s\"", schedule);
+          console.error('[cron-scheduler] Invalid database backup cron pattern: "%s"', schedule);
         }
       } catch (err) {
         console.error("[cron-scheduler] Failed to schedule database backup cron:", err);
@@ -106,21 +112,31 @@ export async function startInProcessCron() {
   console.log("[cron-scheduler] In-process reminder & backup scheduler starting...");
 
   // Run reminders immediately on startup
-  processReminders().catch((err) => console.error("[cron-scheduler] Startup reminders check failed:", err));
+  processReminders().catch((err) =>
+    console.error("[cron-scheduler] Startup reminders check failed:", err)
+  );
 
   // Schedule reminders check every 15 minutes
   cron.schedule("*/15 * * * *", () => {
-    processReminders().catch((err) => console.error("[cron-scheduler] Reminders check failed:", err));
+    processReminders().catch((err) =>
+      console.error("[cron-scheduler] Reminders check failed:", err)
+    );
   });
 
   // Run account deletion processing on startup and once daily
-  processExpiredDeletions().catch((err) => console.error("[cron-scheduler] Startup account deletion check failed:", err));
+  processExpiredDeletions().catch((err) =>
+    console.error("[cron-scheduler] Startup account deletion check failed:", err)
+  );
   cron.schedule("0 0 * * *", () => {
-    processExpiredDeletions().catch((err) => console.error("[cron-scheduler] Account deletion processing failed:", err));
+    processExpiredDeletions().catch((err) =>
+      console.error("[cron-scheduler] Account deletion processing failed:", err)
+    );
   });
 
   // Initial backup schedule sync
-  await syncBackupJob().catch((err) => console.error("[cron-scheduler] Initial backup sync failed:", err));
+  await syncBackupJob().catch((err) =>
+    console.error("[cron-scheduler] Initial backup sync failed:", err)
+  );
 
   // Sync backup schedule config every 5 minutes
   cron.schedule("*/5 * * * *", () => {

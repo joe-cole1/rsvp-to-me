@@ -9,11 +9,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      include: [
-        "app/actions/**/*.ts",
-        "lib/**/*.ts",
-        "app/api/**/*.ts",
-      ],
+      include: ["app/actions/**/*.ts", "lib/**/*.ts", "app/api/**/*.ts"],
       exclude: [
         "prisma/**",
         "scripts/**",
@@ -44,4 +40,3 @@ export default defineConfig({
     },
   },
 });
-

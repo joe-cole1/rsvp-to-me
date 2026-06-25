@@ -40,7 +40,9 @@ export default {
 
   async fetch(request: Request, env: Env): Promise<Response> {
     if (!env.WORKER_API_SECRET) {
-      return new Response("Unauthorized: WORKER_API_SECRET environment variable is not set.", { status: 401 });
+      return new Response("Unauthorized: WORKER_API_SECRET environment variable is not set.", {
+        status: 401,
+      });
     }
     if (request.headers.get("Authorization") !== `Bearer ${env.WORKER_API_SECRET}`) {
       return new Response("Unauthorized", { status: 401 });

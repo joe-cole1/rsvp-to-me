@@ -77,9 +77,15 @@ interface BackupConfig {
 }
 
 type ThemeSnapObj = {
-  name: string; emoji: string; base: "DARK" | "SOFT" | "BOLD";
-  gradientFrom: string; gradientTo: string; accentColor: string;
-  seasonal: boolean; month?: number | null; cardOpacity?: number | null;
+  name: string;
+  emoji: string;
+  base: "DARK" | "SOFT" | "BOLD";
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  seasonal: boolean;
+  month?: number | null;
+  cardOpacity?: number | null;
 };
 
 interface AdminThemePreset {
@@ -123,17 +129,26 @@ interface AdminClientProps {
   } | null;
 }
 
-const VALID_TABS = ["overview", "users", "events", "invites", "email", "sms", "backups", "themes"] as const;
-type TabId = typeof VALID_TABS[number];
+const VALID_TABS = [
+  "overview",
+  "users",
+  "events",
+  "invites",
+  "email",
+  "sms",
+  "backups",
+  "themes",
+] as const;
+type TabId = (typeof VALID_TABS)[number];
 
 const BACKUP_PRESETS = [
-  { label: "Disabled",                     value: "disabled"    },
-  { label: "Every hour",                   value: "0 * * * *"   },
-  { label: "Every 6 hours",               value: "0 */6 * * *" },
-  { label: "Daily at midnight",            value: "0 0 * * *"   },
-  { label: "Every 3 days",                value: "0 0 */3 * *" },
-  { label: "Weekly (Sundays at midnight)", value: "0 0 * * 0"   },
-  { label: "Custom",                       value: "custom"      },
+  { label: "Disabled", value: "disabled" },
+  { label: "Every hour", value: "0 * * * *" },
+  { label: "Every 6 hours", value: "0 */6 * * *" },
+  { label: "Daily at midnight", value: "0 0 * * *" },
+  { label: "Every 3 days", value: "0 0 */3 * *" },
+  { label: "Weekly (Sundays at midnight)", value: "0 0 * * 0" },
+  { label: "Custom", value: "custom" },
 ] as const;
 
 export default function AdminClient({
@@ -156,11 +171,13 @@ export default function AdminClient({
   const [events, setEvents] = useState(initialEvents);
   const [inviteCodes, setInviteCodes] = useState(initialInviteCodes);
   const [config, setConfig] = useState(initialConfig);
-  
+
   // Backup state
   const [backups, setBackups] = useState<BackupFile[]>(initialBackups);
   const [backupSchedule, setBackupSchedule] = useState(initialBackupConfig.backup_schedule);
-  const [backupKeepCount, setBackupKeepCount] = useState<number>(initialBackupConfig.backup_keep_count);
+  const [backupKeepCount, setBackupKeepCount] = useState<number>(
+    initialBackupConfig.backup_keep_count
+  );
   const [lastBackupTime, setLastBackupTime] = useState(initialBackupConfig.last_backup_time);
   const [isBackupRunning, setIsBackupRunning] = useState(false);
   const [isSavingBackupConfig, setIsSavingBackupConfig] = useState(false);
@@ -191,7 +208,9 @@ export default function AdminClient({
   const [note, setNote] = useState("");
 
   const [isPending, startTransition] = useTransition();
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (feedback) {
@@ -224,7 +243,9 @@ export default function AdminClient({
   const [smtpPass, setSmtpPass] = useState(config.smtp_pass || "");
   const [cfWorkerUrl, setCfWorkerUrl] = useState(config.cloudflare_worker_email_url || "");
   const [cfWorkerSecret, setCfWorkerSecret] = useState(config.cloudflare_worker_api_secret || "");
-  const [cfInboundForwardTo, setCfInboundForwardTo] = useState(config.cloudflare_inbound_forward_to || sessionUser?.email || "");
+  const [cfInboundForwardTo, setCfInboundForwardTo] = useState(
+    config.cloudflare_inbound_forward_to || sessionUser?.email || ""
+  );
   const [cfAccountId, setCfAccountId] = useState(config.cloudflare_account_id || "");
   const [cfApiToken, setCfApiToken] = useState(config.cloudflare_api_token || "");
   const [showCfApiToken, setShowCfApiToken] = useState(false);
@@ -398,7 +419,10 @@ export default function AdminClient({
           cloudflare_account_id: cfAccountId.trim(),
           cloudflare_api_token: cfApiToken.trim(),
         }));
-        setFeedback({ type: "success", message: "Email delivery configuration saved successfully." });
+        setFeedback({
+          type: "success",
+          message: "Email delivery configuration saved successfully.",
+        });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to save configuration.";
         setFeedback({ type: "error", message });
@@ -530,7 +554,6 @@ function extractRawEmail(fromStr) {
 `;
   };
 
-
   // Search handlers
   const handleUserSearch = async (val: string) => {
     setUserSearch(val);
@@ -570,7 +593,11 @@ function extractRawEmail(fromStr) {
   };
 
   const handleUserDelete = (userId: string, name: string) => {
-    if (!confirm(`Schedule ${name}'s account for deletion? They will be signed out immediately and their data anonymized after a 30-day grace period. You can restore the account before that window closes.`)) {
+    if (
+      !confirm(
+        `Schedule ${name}'s account for deletion? They will be signed out immediately and their data anonymized after a 30-day grace period. You can restore the account before that window closes.`
+      )
+    ) {
       return;
     }
     setFeedback(null);
@@ -579,16 +606,25 @@ function extractRawEmail(fromStr) {
         const res = await deleteUserAccount(userId);
         if ("blocked" in res && res.blocked) {
           const titles = res.events.map((e) => `"${e.title}"`).join(", ");
-          setFeedback({ type: "error", message: `Cannot schedule deletion — ${name} has upcoming published events: ${titles}. Delete those events first.` });
+          setFeedback({
+            type: "error",
+            message: `Cannot schedule deletion — ${name} has upcoming published events: ${titles}. Delete those events first.`,
+          });
           return;
         }
         if (res.success) {
           const scheduledAt = new Date(res.scheduledAt);
-          setUsers((prev) => prev.map((u) => u.id === userId
-            ? { ...u, deletionRequestedAt: new Date(), deletionScheduledAt: scheduledAt }
-            : u
-          ));
-          setFeedback({ type: "success", message: `${name}'s account scheduled for deletion on ${scheduledAt.toLocaleDateString()}.` });
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === userId
+                ? { ...u, deletionRequestedAt: new Date(), deletionScheduledAt: scheduledAt }
+                : u
+            )
+          );
+          setFeedback({
+            type: "success",
+            message: `${name}'s account scheduled for deletion on ${scheduledAt.toLocaleDateString()}.`,
+          });
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to schedule deletion.";
@@ -603,7 +639,11 @@ function extractRawEmail(fromStr) {
       try {
         const res = await cancelAccountDeletion(userId);
         if (res.success) {
-          setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, deletionRequestedAt: null, deletionScheduledAt: null } : u));
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === userId ? { ...u, deletionRequestedAt: null, deletionScheduledAt: null } : u
+            )
+          );
           setFeedback({ type: "success", message: `${name}'s account has been restored.` });
         }
       } catch (err) {
@@ -614,7 +654,9 @@ function extractRawEmail(fromStr) {
   };
 
   const handleEventDelete = (eventId: string, title: string) => {
-    if (!confirm(`Are you sure you want to moderate/delete the event "${title}"? This is permanent.`)) {
+    if (
+      !confirm(`Are you sure you want to moderate/delete the event "${title}"? This is permanent.`)
+    ) {
       return;
     }
     setFeedback(null);
@@ -681,9 +723,15 @@ function extractRawEmail(fromStr) {
     startTransition(async () => {
       try {
         await updateSystemConfig("open_registration", nextVal);
-        setFeedback({ type: "success", message: `Open registration toggled to ${nextVal === "true" ? "Active" : "Inactive"}.` });
+        setFeedback({
+          type: "success",
+          message: `Open registration toggled to ${nextVal === "true" ? "Active" : "Inactive"}.`,
+        });
       } catch (err) {
-        setConfig((prev) => ({ ...prev, open_registration: nextVal === "true" ? "false" : "true" })); // Revert
+        setConfig((prev) => ({
+          ...prev,
+          open_registration: nextVal === "true" ? "false" : "true",
+        })); // Revert
         const message = err instanceof Error ? err.message : "Failed to update configuration.";
         setFeedback({ type: "error", message });
       }
@@ -706,9 +754,7 @@ function extractRawEmail(fromStr) {
           cardOpacity: themePresetForm.cardOpacity ?? null,
         });
         setThemePresets((prev) =>
-          prev.map((p) =>
-            p.id === themePresetForm.id ? { ...p, ...themePresetForm } : p
-          )
+          prev.map((p) => (p.id === themePresetForm.id ? { ...p, ...themePresetForm } : p))
         );
         setFeedback({ type: "success", message: "Preset updated." });
       } else {
@@ -728,7 +774,10 @@ function extractRawEmail(fromStr) {
       }
       return true;
     } catch (err) {
-      setFeedback({ type: "error", message: err instanceof Error ? err.message : "Failed to save preset." });
+      setFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to save preset.",
+      });
       return false;
     }
   };
@@ -748,13 +797,18 @@ function extractRawEmail(fromStr) {
     if (ok) {
       await saveThemePresetDefault(themePresetForm.id);
       const snap: ThemeSnapObj = {
-        name: themePresetForm.name, emoji: themePresetForm.emoji, base: themePresetForm.base,
-        gradientFrom: themePresetForm.gradientFrom, gradientTo: themePresetForm.gradientTo,
-        accentColor: themePresetForm.accentColor, seasonal: themePresetForm.seasonal,
-        month: themePresetForm.month ?? null, cardOpacity: themePresetForm.cardOpacity ?? null,
+        name: themePresetForm.name,
+        emoji: themePresetForm.emoji,
+        base: themePresetForm.base,
+        gradientFrom: themePresetForm.gradientFrom,
+        gradientTo: themePresetForm.gradientTo,
+        accentColor: themePresetForm.accentColor,
+        seasonal: themePresetForm.seasonal,
+        month: themePresetForm.month ?? null,
+        cardOpacity: themePresetForm.cardOpacity ?? null,
       };
       setThemePresets((prev) =>
-        prev.map((p) => p.id === themePresetForm.id ? { ...p, defaultSnapshot: snap } : p)
+        prev.map((p) => (p.id === themePresetForm.id ? { ...p, defaultSnapshot: snap } : p))
       );
       setFeedback({ type: "success", message: "Preset saved and set as new default." });
       setThemePresetForm(null);
@@ -763,34 +817,70 @@ function extractRawEmail(fromStr) {
   };
 
   const handleDeleteThemePreset = async (id: string) => {
-    if (!confirm("Delete this theme preset? Events using it will keep their current colors.")) return;
+    if (!confirm("Delete this theme preset? Events using it will keep their current colors."))
+      return;
     try {
       await deleteThemePreset(id);
       setThemePresets((prev) => prev.filter((p) => p.id !== id));
       setFeedback({ type: "success", message: "Preset deleted." });
     } catch (err) {
-      setFeedback({ type: "error", message: err instanceof Error ? err.message : "Failed to delete preset." });
+      setFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to delete preset.",
+      });
     }
   };
 
   const handleTogglePresetActive = async (preset: AdminThemePreset) => {
     try {
       await updateThemePreset(preset.id, { active: !preset.active });
-      setThemePresets((prev) => prev.map((p) => p.id === preset.id ? { ...p, active: !p.active } : p));
+      setThemePresets((prev) =>
+        prev.map((p) => (p.id === preset.id ? { ...p, active: !p.active } : p))
+      );
     } catch (err) {
-      setFeedback({ type: "error", message: err instanceof Error ? err.message : "Failed to update preset." });
+      setFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to update preset.",
+      });
     }
   };
 
   const TAB_META: Record<TabId, { title: string; description: string }> = {
-    overview: { title: "📊 Overview",         description: "A snapshot of users, events, and RSVPs across your platform." },
-    users:    { title: "👥 User Management",  description: "View, search, and manage all registered users. Adjust roles and remove accounts." },
-    events:   { title: "🎈 Event Moderation", description: "Review and moderate active events. Delete events that violate platform rules." },
-    invites:  { title: "🔑 Host Settings",    description: "Control how new hosts access the platform — via invite codes or open registration." },
-    email:    { title: "📧 Email Settings",   description: "Choose your email provider and configure delivery settings." },
-    sms:      { title: "💬 SMS Settings",     description: "Configure Twilio for SMS notifications and alerts." },
-    themes:   { title: "🎨 Theme Presets",    description: "Manage the preset themes hosts can pick from in the event settings. Inactive presets are hidden from hosts." },
-    backups:  { title: "💾 Database Backups", description: "Schedule automated backups and manage your database snapshot history." },
+    overview: {
+      title: "📊 Overview",
+      description: "A snapshot of users, events, and RSVPs across your platform.",
+    },
+    users: {
+      title: "👥 User Management",
+      description:
+        "View, search, and manage all registered users. Adjust roles and remove accounts.",
+    },
+    events: {
+      title: "🎈 Event Moderation",
+      description: "Review and moderate active events. Delete events that violate platform rules.",
+    },
+    invites: {
+      title: "🔑 Host Settings",
+      description:
+        "Control how new hosts access the platform — via invite codes or open registration.",
+    },
+    email: {
+      title: "📧 Email Settings",
+      description: "Choose your email provider and configure delivery settings.",
+    },
+    sms: {
+      title: "💬 SMS Settings",
+      description: "Configure Twilio for SMS notifications and alerts.",
+    },
+    themes: {
+      title: "🎨 Theme Presets",
+      description:
+        "Manage the preset themes hosts can pick from in the event settings. Inactive presets are hidden from hosts.",
+    },
+    backups: {
+      title: "💾 Database Backups",
+      description: "Schedule automated backups and manage your database snapshot history.",
+    },
   };
 
   return (
@@ -804,9 +894,18 @@ function extractRawEmail(fromStr) {
         }}
       >
         {/* Banner */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "32px",
+          }}
+        >
           <div>
-            <h2 style={{ fontSize: "28px", fontWeight: 800, color: APP_SHELL.textPrimary, margin: 0 }}>
+            <h2
+              style={{ fontSize: "28px", fontWeight: 800, color: APP_SHELL.textPrimary, margin: 0 }}
+            >
               {TAB_META[activeTab].title}
             </h2>
             <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", marginTop: "4px" }}>
@@ -840,7 +939,7 @@ function extractRawEmail(fromStr) {
               gap: "8px",
               maxWidth: "90%",
               width: "max-content",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
             }}
           >
             <span>{feedback.type === "success" ? "✓" : "⚠️"}</span>
@@ -851,9 +950,7 @@ function extractRawEmail(fromStr) {
         {/* Content Layout */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
           {/* Sidebar Tabs */}
-          <div
-            className="hidden lg:flex lg:flex-col lg:w-[240px] shrink-0 lg:border-b-0 mb-4 lg:mb-0"
-          >
+          <div className="hidden lg:flex lg:flex-col lg:w-[240px] shrink-0 lg:border-b-0 mb-4 lg:mb-0">
             {(
               [
                 { id: "overview", label: "📊 Overview" },
@@ -886,7 +983,8 @@ function extractRawEmail(fromStr) {
                   whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
-                  if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+                  if (activeTab !== tab.id)
+                    e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
                 }}
                 onMouseLeave={(e) => {
                   if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "transparent";
@@ -904,10 +1002,30 @@ function extractRawEmail(fromStr) {
               <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[
-                    { label: "Total Users", val: initialStats.totalUsers, glow: "rgba(168, 85, 247, 0.4)", emoji: "👥" },
-                    { label: "Total Events", val: initialStats.totalEvents, glow: "rgba(236, 72, 153, 0.4)", emoji: "🎈" },
-                    { label: "Total RSVPs", val: initialStats.totalRsvps, glow: "rgba(16, 185, 129, 0.4)", emoji: "✓" },
-                    { label: "Guest Check-Ins", val: initialStats.totalCheckIns, glow: "rgba(14, 165, 233, 0.4)", emoji: "📍" },
+                    {
+                      label: "Total Users",
+                      val: initialStats.totalUsers,
+                      glow: "rgba(168, 85, 247, 0.4)",
+                      emoji: "👥",
+                    },
+                    {
+                      label: "Total Events",
+                      val: initialStats.totalEvents,
+                      glow: "rgba(236, 72, 153, 0.4)",
+                      emoji: "🎈",
+                    },
+                    {
+                      label: "Total RSVPs",
+                      val: initialStats.totalRsvps,
+                      glow: "rgba(16, 185, 129, 0.4)",
+                      emoji: "✓",
+                    },
+                    {
+                      label: "Guest Check-Ins",
+                      val: initialStats.totalCheckIns,
+                      glow: "rgba(14, 165, 233, 0.4)",
+                      emoji: "📍",
+                    },
                   ].map((card, idx) => (
                     <div
                       key={idx}
@@ -932,8 +1050,23 @@ function extractRawEmail(fromStr) {
                       >
                         {card.emoji}
                       </div>
-                      <div style={{ color: APP_SHELL.textSecondary, fontSize: "14px", fontWeight: 600 }}>{card.label}</div>
-                      <div style={{ color: APP_SHELL.textPrimary, fontSize: "40px", fontWeight: 800, marginTop: "12px" }}>
+                      <div
+                        style={{
+                          color: APP_SHELL.textSecondary,
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {card.label}
+                      </div>
+                      <div
+                        style={{
+                          color: APP_SHELL.textPrimary,
+                          fontSize: "40px",
+                          fontWeight: 800,
+                          marginTop: "12px",
+                        }}
+                      >
                         {card.val}
                       </div>
                     </div>
@@ -974,7 +1107,13 @@ function extractRawEmail(fromStr) {
                   <div style={{ minWidth: "700px" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
-                        <tr style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}`, color: APP_SHELL.textSecondary, textAlign: "left" }}>
+                        <tr
+                          style={{
+                            borderBottom: `1px solid ${APP_SHELL.navBorder}`,
+                            color: APP_SHELL.textSecondary,
+                            textAlign: "left",
+                          }}
+                        >
                           <th style={{ padding: "16px" }}>User</th>
                           <th style={{ padding: "16px" }}>Contact</th>
                           <th style={{ padding: "16px" }}>Role</th>
@@ -984,30 +1123,59 @@ function extractRawEmail(fromStr) {
                       <tbody>
                         {users.length === 0 ? (
                           <tr>
-                            <td colSpan={4} style={{ padding: "32px", textAlign: "center", color: APP_SHELL.textMuted }}>
+                            <td
+                              colSpan={4}
+                              style={{
+                                padding: "32px",
+                                textAlign: "center",
+                                color: APP_SHELL.textMuted,
+                              }}
+                            >
                               No users found.
                             </td>
                           </tr>
                         ) : (
                           users.map((u) => (
-                            <tr key={u.id} style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}>
+                            <tr
+                              key={u.id}
+                              style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}
+                            >
                               <td style={{ padding: "16px" }}>
-                                <div style={{ fontWeight: 700, color: APP_SHELL.textPrimary }}>{u.name || "Unnamed User"}</div>
-                                <div style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>Registered {new Date(u.createdAt).toLocaleDateString()}</div>
+                                <div style={{ fontWeight: 700, color: APP_SHELL.textPrimary }}>
+                                  {u.name || "Unnamed User"}
+                                </div>
+                                <div style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
+                                  Registered {new Date(u.createdAt).toLocaleDateString()}
+                                </div>
                                 {u.deletionScheduledAt && (
-                                  <div style={{ fontSize: "11px", color: "#ef4444", fontWeight: 600, marginTop: "4px" }}>
-                                    Deletion pending — {new Date(u.deletionScheduledAt).toLocaleString()}
+                                  <div
+                                    style={{
+                                      fontSize: "11px",
+                                      color: "#ef4444",
+                                      fontWeight: 600,
+                                      marginTop: "4px",
+                                    }}
+                                  >
+                                    Deletion pending —{" "}
+                                    {new Date(u.deletionScheduledAt).toLocaleString()}
                                   </div>
                                 )}
                               </td>
                               <td style={{ padding: "16px" }}>
                                 <div style={{ color: APP_SHELL.textPrimary }}>{u.email || "-"}</div>
-                                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>{u.phone || "-"}</div>
+                                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>
+                                  {u.phone || "-"}
+                                </div>
                               </td>
                               <td style={{ padding: "16px" }}>
                                 <select
                                   value={u.role}
-                                  onChange={(e) => handleRoleChange(u.id, e.target.value as "GUEST" | "HOST" | "ADMIN")}
+                                  onChange={(e) =>
+                                    handleRoleChange(
+                                      u.id,
+                                      e.target.value as "GUEST" | "HOST" | "ADMIN"
+                                    )
+                                  }
                                   style={{
                                     backgroundColor: APP_SHELL.inputBg,
                                     border: `1px solid ${APP_SHELL.inputBorder}`,
@@ -1019,15 +1187,35 @@ function extractRawEmail(fromStr) {
                                     colorScheme: "dark",
                                   }}
                                 >
-                                  <option value="GUEST" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>GUEST</option>
-                                  <option value="HOST" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>HOST</option>
-                                  <option value="ADMIN" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>ADMIN</option>
+                                  <option
+                                    value="GUEST"
+                                    style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                                  >
+                                    GUEST
+                                  </option>
+                                  <option
+                                    value="HOST"
+                                    style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                                  >
+                                    HOST
+                                  </option>
+                                  <option
+                                    value="ADMIN"
+                                    style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                                  >
+                                    ADMIN
+                                  </option>
                                 </select>
                               </td>
                               <td style={{ padding: "16px", textAlign: "right" }}>
                                 {u.deletionScheduledAt ? (
                                   <button
-                                    onClick={() => handleCancelDeletion(u.id, u.name || u.email || "Unknown User")}
+                                    onClick={() =>
+                                      handleCancelDeletion(
+                                        u.id,
+                                        u.name || u.email || "Unknown User"
+                                      )
+                                    }
                                     style={{
                                       backgroundColor: "transparent",
                                       border: "1px solid #ef4444",
@@ -1043,7 +1231,9 @@ function extractRawEmail(fromStr) {
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => handleUserDelete(u.id, u.name || u.email || "Unknown User")}
+                                    onClick={() =>
+                                      handleUserDelete(u.id, u.name || u.email || "Unknown User")
+                                    }
                                     style={{
                                       backgroundColor: "transparent",
                                       border: "none",
@@ -1099,7 +1289,13 @@ function extractRawEmail(fromStr) {
                   <div style={{ minWidth: "700px" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
-                        <tr style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}`, color: APP_SHELL.textSecondary, textAlign: "left" }}>
+                        <tr
+                          style={{
+                            borderBottom: `1px solid ${APP_SHELL.navBorder}`,
+                            color: APP_SHELL.textSecondary,
+                            textAlign: "left",
+                          }}
+                        >
                           <th style={{ padding: "16px" }}>Event Info</th>
                           <th style={{ padding: "16px" }}>Host</th>
                           <th style={{ padding: "16px" }}>Stats</th>
@@ -1109,26 +1305,56 @@ function extractRawEmail(fromStr) {
                       <tbody>
                         {events.length === 0 ? (
                           <tr>
-                            <td colSpan={4} style={{ padding: "32px", textAlign: "center", color: APP_SHELL.textMuted }}>
+                            <td
+                              colSpan={4}
+                              style={{
+                                padding: "32px",
+                                textAlign: "center",
+                                color: APP_SHELL.textMuted,
+                              }}
+                            >
                               No events found.
                             </td>
                           </tr>
                         ) : (
                           events.map((e) => (
-                            <tr key={e.id} style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}>
+                            <tr
+                              key={e.id}
+                              style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}
+                            >
                               <td style={{ padding: "16px" }}>
-                                <div style={{ fontWeight: 700, color: APP_SHELL.textPrimary }}>{e.title}</div>
-                                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
+                                <div style={{ fontWeight: 700, color: APP_SHELL.textPrimary }}>
+                                  {e.title}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    color: APP_SHELL.textSecondary,
+                                    marginTop: "2px",
+                                  }}
+                                >
                                   Date: {new Date(e.startAt).toLocaleString()} · status: {e.status}
                                 </div>
                               </td>
                               <td style={{ padding: "16px" }}>
                                 <div style={{ color: APP_SHELL.textPrimary }}>{e.hostName}</div>
-                                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>{e.hostEmail}</div>
+                                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>
+                                  {e.hostEmail}
+                                </div>
                               </td>
                               <td style={{ padding: "16px" }}>
-                                <div style={{ color: APP_SHELL.textPrimary }}>{e.rsvpCount} RSVPs</div>
-                                <span style={{ fontSize: "10px", color: APP_SHELL.textSecondary, textTransform: "uppercase" }}>{e.visibility}</span>
+                                <div style={{ color: APP_SHELL.textPrimary }}>
+                                  {e.rsvpCount} RSVPs
+                                </div>
+                                <span
+                                  style={{
+                                    fontSize: "10px",
+                                    color: APP_SHELL.textSecondary,
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  {e.visibility}
+                                </span>
                               </td>
                               <td style={{ padding: "16px", textAlign: "right" }}>
                                 <a
@@ -1181,10 +1407,26 @@ function extractRawEmail(fromStr) {
                     padding: "24px",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}>Open Host Registration</div>
-                      <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "4px" }}>
+                      <div
+                        style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}
+                      >
+                        Open Host Registration
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: APP_SHELL.textSecondary,
+                          marginTop: "4px",
+                        }}
+                      >
                         Allow anyone to sign up as a host without entering an invite code.
                       </div>
                     </div>
@@ -1196,7 +1438,10 @@ function extractRawEmail(fromStr) {
                         height: "26px",
                         borderRadius: "13px",
                         border: "none",
-                        backgroundColor: config.open_registration === "true" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
+                        backgroundColor:
+                          config.open_registration === "true"
+                            ? APP_SHELL.accent
+                            : "rgba(255,255,255,0.1)",
                         cursor: "pointer",
                         position: "relative",
                         transition: "background-color 0.2s",
@@ -1230,213 +1475,301 @@ function extractRawEmail(fromStr) {
                     }}
                   >
                     <div style={{ fontSize: "32px", marginBottom: "12px" }}>🔓</div>
-                    <div style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary, marginBottom: "6px" }}>Open Registration is Active</div>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: "15px",
+                        color: APP_SHELL.textPrimary,
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Open Registration is Active
+                    </div>
                     <div style={{ fontSize: "13px", color: APP_SHELL.textSecondary }}>
-                      Invite codes are not required while open registration is enabled. Disable it above to manage invite codes.
+                      Invite codes are not required while open registration is enabled. Disable it
+                      above to manage invite codes.
                     </div>
                   </div>
                 ) : (
-                <>
-                {/* Form */}
-                <form
-                  onSubmit={handleCreateCode}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-5"
-                  style={{
-                    backgroundColor: APP_SHELL.cardBg,
-                    border: `1px solid ${APP_SHELL.cardBorder}`,
-                    borderRadius: APP_SHELL.cardRadius,
-                    padding: "24px",
-                  }}
-                >
-                  <div className="col-span-1 sm:col-span-2">
-                    <h3 style={{ fontSize: "16px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
-                      Generate Host Invite Code
-                    </h3>
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                      Invite Code String
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. VIPHOST2026"
-                      value={newCode}
-                      onChange={(e) => setNewCode(e.target.value)}
+                  <>
+                    {/* Form */}
+                    <form
+                      onSubmit={handleCreateCode}
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-5"
                       style={{
-                        width: "100%",
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        padding: "10px 14px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "13px",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                      Max Uses (Optional)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Unlimited if empty"
-                      value={maxUses}
-                      onChange={(e) => setMaxUses(e.target.value === "" ? "" : Number(e.target.value))}
-                      style={{
-                        width: "100%",
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        padding: "10px 14px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "13px",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                      Expires At (Optional)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={expiresAt}
-                      onChange={(e) => setExpiresAt(e.target.value)}
-                      style={{
-                        width: "100%",
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        padding: "10px 14px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "13px",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
-                      Note / Description
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Invite code for VIP sponsors"
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      style={{
-                        width: "100%",
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        padding: "10px 14px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "13px",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-span-1 sm:col-span-2 flex justify-end mt-2">
-                    <button
-                      type="submit"
-                      disabled={isPending}
-                      style={{
-                        backgroundColor: APP_SHELL.accent,
-                        border: "none",
-                        color: "#fff",
-                        borderRadius: "10px",
-                        padding: "10px 20px",
-                        fontSize: "13px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        opacity: isPending ? 0.6 : 1,
+                        backgroundColor: APP_SHELL.cardBg,
+                        border: `1px solid ${APP_SHELL.cardBorder}`,
+                        borderRadius: APP_SHELL.cardRadius,
+                        padding: "24px",
                       }}
                     >
-                      Generate Code
-                    </button>
-                  </div>
-                </form>
+                      <div className="col-span-1 sm:col-span-2">
+                        <h3
+                          style={{
+                            fontSize: "16px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textPrimary,
+                            margin: 0,
+                          }}
+                        >
+                          Generate Host Invite Code
+                        </h3>
+                      </div>
 
-                {/* List */}
-                <div
-                  style={{
-                    backgroundColor: APP_SHELL.cardBg,
-                    border: `1px solid ${APP_SHELL.cardBorder}`,
-                    borderRadius: APP_SHELL.cardRadius,
-                    overflowX: "auto",
-                  }}
-                >
-                  <div style={{ minWidth: "700px" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-                      <thead>
-                        <tr style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}`, color: APP_SHELL.textSecondary, textAlign: "left" }}>
-                          <th style={{ padding: "16px" }}>Code</th>
-                          <th style={{ padding: "16px" }}>Usage</th>
-                          <th style={{ padding: "16px" }}>Expirations / Notes</th>
-                          <th style={{ padding: "16px", textAlign: "right" }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inviteCodes.length === 0 ? (
-                          <tr>
-                            <td colSpan={4} style={{ padding: "32px", textAlign: "center", color: APP_SHELL.textMuted }}>
-                              No active invite codes.
-                            </td>
-                          </tr>
-                        ) : (
-                          inviteCodes.map((c) => (
-                            <tr key={c.id} style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}>
-                              <td style={{ padding: "16px" }}>
-                                <span style={{ fontFamily: "monospace", fontSize: "14px", fontWeight: 700, color: APP_SHELL.accent }}>
-                                  {c.code}
-                                </span>
-                              </td>
-                              <td style={{ padding: "16px", color: APP_SHELL.textPrimary }}>
-                                {c.uses} / {c.maxUses ?? "∞"} uses
-                              </td>
-                              <td style={{ padding: "16px" }}>
-                                {c.expiresAt ? (
-                                  <div style={{ fontSize: "12px", color: "#f87171" }}>
-                                    Expires: {new Date(c.expiresAt).toLocaleDateString()}
-                                  </div>
-                                ) : (
-                                  <div style={{ fontSize: "12px", color: "#4ade80" }}>Never expires</div>
-                                )}
-                                {c.note && <div style={{ fontSize: "11px", color: APP_SHELL.textMuted, marginTop: "2px" }}>Note: {c.note}</div>}
-                              </td>
-                              <td style={{ padding: "16px", textAlign: "right" }}>
-                                <button
-                                  onClick={() => handleRevokeCode(c.id)}
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                            marginBottom: "6px",
+                          }}
+                        >
+                          Invite Code String
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. VIPHOST2026"
+                          value={newCode}
+                          onChange={(e) => setNewCode(e.target.value)}
+                          style={{
+                            width: "100%",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: APP_SHELL.inputRadius,
+                            padding: "10px 14px",
+                            color: APP_SHELL.textPrimary,
+                            fontSize: "13px",
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                            marginBottom: "6px",
+                          }}
+                        >
+                          Max Uses (Optional)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Unlimited if empty"
+                          value={maxUses}
+                          onChange={(e) =>
+                            setMaxUses(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                          style={{
+                            width: "100%",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: APP_SHELL.inputRadius,
+                            padding: "10px 14px",
+                            color: APP_SHELL.textPrimary,
+                            fontSize: "13px",
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                            marginBottom: "6px",
+                          }}
+                        >
+                          Expires At (Optional)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={expiresAt}
+                          onChange={(e) => setExpiresAt(e.target.value)}
+                          style={{
+                            width: "100%",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: APP_SHELL.inputRadius,
+                            padding: "10px 14px",
+                            color: APP_SHELL.textPrimary,
+                            fontSize: "13px",
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                            marginBottom: "6px",
+                          }}
+                        >
+                          Note / Description
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Invite code for VIP sponsors"
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          style={{
+                            width: "100%",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: APP_SHELL.inputRadius,
+                            padding: "10px 14px",
+                            color: APP_SHELL.textPrimary,
+                            fontSize: "13px",
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+
+                      <div className="col-span-1 sm:col-span-2 flex justify-end mt-2">
+                        <button
+                          type="submit"
+                          disabled={isPending}
+                          style={{
+                            backgroundColor: APP_SHELL.accent,
+                            border: "none",
+                            color: "#fff",
+                            borderRadius: "10px",
+                            padding: "10px 20px",
+                            fontSize: "13px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            opacity: isPending ? 0.6 : 1,
+                          }}
+                        >
+                          Generate Code
+                        </button>
+                      </div>
+                    </form>
+
+                    {/* List */}
+                    <div
+                      style={{
+                        backgroundColor: APP_SHELL.cardBg,
+                        border: `1px solid ${APP_SHELL.cardBorder}`,
+                        borderRadius: APP_SHELL.cardRadius,
+                        overflowX: "auto",
+                      }}
+                    >
+                      <div style={{ minWidth: "700px" }}>
+                        <table
+                          style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}
+                        >
+                          <thead>
+                            <tr
+                              style={{
+                                borderBottom: `1px solid ${APP_SHELL.navBorder}`,
+                                color: APP_SHELL.textSecondary,
+                                textAlign: "left",
+                              }}
+                            >
+                              <th style={{ padding: "16px" }}>Code</th>
+                              <th style={{ padding: "16px" }}>Usage</th>
+                              <th style={{ padding: "16px" }}>Expirations / Notes</th>
+                              <th style={{ padding: "16px", textAlign: "right" }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {inviteCodes.length === 0 ? (
+                              <tr>
+                                <td
+                                  colSpan={4}
                                   style={{
-                                    backgroundColor: "transparent",
-                                    border: "none",
-                                    color: "#ef4444",
-                                    cursor: "pointer",
-                                    fontWeight: 600,
-                                    fontSize: "13px",
+                                    padding: "32px",
+                                    textAlign: "center",
+                                    color: APP_SHELL.textMuted,
                                   }}
                                 >
-                                  Revoke
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                </>
+                                  No active invite codes.
+                                </td>
+                              </tr>
+                            ) : (
+                              inviteCodes.map((c) => (
+                                <tr
+                                  key={c.id}
+                                  style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}
+                                >
+                                  <td style={{ padding: "16px" }}>
+                                    <span
+                                      style={{
+                                        fontFamily: "monospace",
+                                        fontSize: "14px",
+                                        fontWeight: 700,
+                                        color: APP_SHELL.accent,
+                                      }}
+                                    >
+                                      {c.code}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: "16px", color: APP_SHELL.textPrimary }}>
+                                    {c.uses} / {c.maxUses ?? "∞"} uses
+                                  </td>
+                                  <td style={{ padding: "16px" }}>
+                                    {c.expiresAt ? (
+                                      <div style={{ fontSize: "12px", color: "#f87171" }}>
+                                        Expires: {new Date(c.expiresAt).toLocaleDateString()}
+                                      </div>
+                                    ) : (
+                                      <div style={{ fontSize: "12px", color: "#4ade80" }}>
+                                        Never expires
+                                      </div>
+                                    )}
+                                    {c.note && (
+                                      <div
+                                        style={{
+                                          fontSize: "11px",
+                                          color: APP_SHELL.textMuted,
+                                          marginTop: "2px",
+                                        }}
+                                      >
+                                        Note: {c.note}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: "16px", textAlign: "right" }}>
+                                    <button
+                                      onClick={() => handleRevokeCode(c.id)}
+                                      style={{
+                                        backgroundColor: "transparent",
+                                        border: "none",
+                                        color: "#ef4444",
+                                        cursor: "pointer",
+                                        fontWeight: 600,
+                                        fontSize: "13px",
+                                      }}
+                                    >
+                                      Revoke
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -1456,19 +1789,40 @@ function extractRawEmail(fromStr) {
                   }}
                 >
                   <div>
-                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                    <h3
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: 700,
+                        color: APP_SHELL.textPrimary,
+                        margin: 0,
+                      }}
+                    >
                       Server Configuration & Email Delivery
                     </h3>
-                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
-                      Choose your email provider and configure settings (database config overrides env variables).
+                    <p
+                      style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}
+                    >
+                      Choose your email provider and configure settings (database config overrides
+                      env variables).
                     </p>
                   </div>
 
                   <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
 
-                  <form onSubmit={handleSaveEmailConfig} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <form
+                    onSubmit={handleSaveEmailConfig}
+                    style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+                  >
                     <div>
-                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                          marginBottom: "6px",
+                        }}
+                      >
                         Email Provider
                       </label>
                       <select
@@ -1487,15 +1841,43 @@ function extractRawEmail(fromStr) {
                           colorScheme: "dark",
                         }}
                       >
-                        <option value="console" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Console Fallback (Local Dev / Logging)</option>
-                        <option value="smtp" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>SMTP Server</option>
-                        <option value="cloudflare" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Cloudflare Workers</option>
-                        <option value="cloudflare_api" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>Cloudflare Email REST API</option>
+                        <option
+                          value="console"
+                          style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                        >
+                          Console Fallback (Local Dev / Logging)
+                        </option>
+                        <option
+                          value="smtp"
+                          style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                        >
+                          SMTP Server
+                        </option>
+                        <option
+                          value="cloudflare"
+                          style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                        >
+                          Cloudflare Workers
+                        </option>
+                        <option
+                          value="cloudflare_api"
+                          style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                        >
+                          Cloudflare Email REST API
+                        </option>
                       </select>
                     </div>
 
                     <div>
-                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                          marginBottom: "6px",
+                        }}
+                      >
                         From Address
                       </label>
                       <input
@@ -1520,9 +1902,19 @@ function extractRawEmail(fromStr) {
 
                     {emailProvider === "smtp" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "16px" }}>
+                        <div
+                          style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "16px" }}
+                        >
                           <div>
-                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            <label
+                              style={{
+                                display: "block",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                color: APP_SHELL.textSecondary,
+                                marginBottom: "6px",
+                              }}
+                            >
                               SMTP Host
                             </label>
                             <input
@@ -1545,7 +1937,15 @@ function extractRawEmail(fromStr) {
                             />
                           </div>
                           <div>
-                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                            <label
+                              style={{
+                                display: "block",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                color: APP_SHELL.textSecondary,
+                                marginBottom: "6px",
+                              }}
+                            >
                               SMTP Port
                             </label>
                             <input
@@ -1569,10 +1969,30 @@ function extractRawEmail(fromStr) {
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: "13px", color: APP_SHELL.textPrimary }}>Use Secure Connection (SSL/TLS)</div>
-                            <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
+                            <div
+                              style={{
+                                fontWeight: 600,
+                                fontSize: "13px",
+                                color: APP_SHELL.textPrimary,
+                              }}
+                            >
+                              Use Secure Connection (SSL/TLS)
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                color: APP_SHELL.textSecondary,
+                                marginTop: "2px",
+                              }}
+                            >
                               Set true for port 465, false for 587 (STARTTLS).
                             </div>
                           </div>
@@ -1584,7 +2004,9 @@ function extractRawEmail(fromStr) {
                               height: "26px",
                               borderRadius: "13px",
                               border: "none",
-                              backgroundColor: smtpSecure ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
+                              backgroundColor: smtpSecure
+                                ? APP_SHELL.accent
+                                : "rgba(255,255,255,0.1)",
                               cursor: "pointer",
                               position: "relative",
                               transition: "background-color 0.2s",
@@ -1607,7 +2029,15 @@ function extractRawEmail(fromStr) {
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "6px",
+                            }}
+                          >
                             SMTP Username (Optional)
                           </label>
                           <input
@@ -1630,7 +2060,15 @@ function extractRawEmail(fromStr) {
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "6px",
+                            }}
+                          >
                             SMTP Password (Optional)
                           </label>
                           <input
@@ -1656,28 +2094,40 @@ function extractRawEmail(fromStr) {
 
                     {emailProvider === "cloudflare_api" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                        <div style={{
-                          padding: "12px 16px",
-                          backgroundColor: "rgba(245, 158, 11, 0.1)",
-                          border: "1px solid rgba(245, 158, 11, 0.3)",
-                          borderRadius: "8px",
-                          color: "#fbbf24",
-                          fontSize: "12px",
-                          lineHeight: "1.5",
-                          display: "flex",
-                          gap: "8px",
-                          alignItems: "flex-start"
-                        }}>
+                        <div
+                          style={{
+                            padding: "12px 16px",
+                            backgroundColor: "rgba(245, 158, 11, 0.1)",
+                            border: "1px solid rgba(245, 158, 11, 0.3)",
+                            borderRadius: "8px",
+                            color: "#fbbf24",
+                            fontSize: "12px",
+                            lineHeight: "1.5",
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "flex-start",
+                          }}
+                        >
                           <span style={{ fontSize: "16px" }}>⚠️</span>
                           <div>
-                            <strong>One-Way Outbound Only:</strong> Direct API sending does not deploy any code to Cloudflare. 
-                            As a result, guest replies to invite emails will not trigger automatic worker-based auto-responses. 
-                            Any replies will only follow standard email forwarding/routing rules configured in your Cloudflare dashboard.
+                            <strong>One-Way Outbound Only:</strong> Direct API sending does not
+                            deploy any code to Cloudflare. As a result, guest replies to invite
+                            emails will not trigger automatic worker-based auto-responses. Any
+                            replies will only follow standard email forwarding/routing rules
+                            configured in your Cloudflare dashboard.
                           </div>
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "6px",
+                            }}
+                          >
                             Cloudflare Account ID
                           </label>
                           <input
@@ -1698,13 +2148,31 @@ function extractRawEmail(fromStr) {
                               boxSizing: "border-box",
                             }}
                           />
-                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            Your unique 32-character Cloudflare Account ID. You can find this on your Cloudflare Dashboard homepage (sidebar on the right under <strong>Account ID</strong>).
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              marginTop: "4px",
+                              lineHeight: "1.4",
+                            }}
+                          >
+                            Your unique 32-character Cloudflare Account ID. You can find this on
+                            your Cloudflare Dashboard homepage (sidebar on the right under{" "}
+                            <strong>Account ID</strong>).
                           </span>
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "6px",
+                            }}
+                          >
                             Cloudflare API Token
                           </label>
                           <div style={{ position: "relative" }}>
@@ -1745,37 +2213,108 @@ function extractRawEmail(fromStr) {
                               }}
                               title={showCfApiToken ? "Hide token" : "Show token"}
                             >
-                              {showCfApiToken ? (
-                                <EyeOff size={16} />
-                              ) : (
-                                <Eye size={16} />
-                              )}
+                              {showCfApiToken ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
                           </div>
-                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            An API Token with <strong>Account &gt; Email Sending: Edit</strong> permissions.
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              marginTop: "4px",
+                              lineHeight: "1.4",
+                            }}
+                          >
+                            An API Token with <strong>Account &gt; Email Sending: Edit</strong>{" "}
+                            permissions.
                           </span>
                         </div>
 
-                        <div style={{ marginTop: "12px", padding: "16px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <h4 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: "0 0 10px 0" }}>
+                        <div
+                          style={{
+                            marginTop: "12px",
+                            padding: "16px",
+                            backgroundColor: "rgba(255,255,255,0.03)",
+                            borderRadius: "8px",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textPrimary,
+                              margin: "0 0 10px 0",
+                            }}
+                          >
                             ⚡ Quick Dashboard Setup (No CLI Required)
                           </h4>
-                          <ol style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0", lineHeight: "1.6" }}>
-                            <li style={{ marginBottom: "6px" }}>Log in to <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: APP_SHELL.accent, textDecoration: "underline" }}>dash.cloudflare.com</a>.</li>
-                            <li style={{ marginBottom: "6px" }}>In the left sidebar, click on your domain (under <strong>Websites</strong>), then navigate to <strong>Email &gt; Email Routing &gt; Destination addresses</strong> to verify your email routing is configured.</li>
-                            <li style={{ marginBottom: "6px" }}>Navigate to the <strong>Email Sending</strong> tab on the same page, click <strong>Configure</strong> or <strong>Get Started</strong>, and authorize the generated DNS records (DKIM/SPF) to allow sending. <strong>(CRITICAL: If you skip this, major providers like Gmail will reject your emails due to DMARC policies!)</strong></li>
-                            <li style={{ marginBottom: "6px" }}>Go to <strong>My Profile &gt; API Tokens</strong> (top right user icon &gt; My Profile &gt; API Tokens).</li>
-                            <li style={{ marginBottom: "6px" }}>Click <strong>Create Token</strong>. Scroll to the bottom and click <strong>Create Custom Token</strong>.</li>
-                            <li style={{ marginBottom: "6px" }}>Give your token a name (e.g., <code>RSVP to Me API Token</code>).</li>
+                          <ol
+                            style={{
+                              fontSize: "12px",
+                              color: APP_SHELL.textSecondary,
+                              paddingLeft: "16px",
+                              margin: "0",
+                              lineHeight: "1.6",
+                            }}
+                          >
+                            <li style={{ marginBottom: "6px" }}>
+                              Log in to{" "}
+                              <a
+                                href="https://dash.cloudflare.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: APP_SHELL.accent, textDecoration: "underline" }}
+                              >
+                                dash.cloudflare.com
+                              </a>
+                              .
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              In the left sidebar, click on your domain (under{" "}
+                              <strong>Websites</strong>), then navigate to{" "}
+                              <strong>Email &gt; Email Routing &gt; Destination addresses</strong>{" "}
+                              to verify your email routing is configured.
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Navigate to the <strong>Email Sending</strong> tab on the same page,
+                              click <strong>Configure</strong> or <strong>Get Started</strong>, and
+                              authorize the generated DNS records (DKIM/SPF) to allow sending.{" "}
+                              <strong>
+                                (CRITICAL: If you skip this, major providers like Gmail will reject
+                                your emails due to DMARC policies!)
+                              </strong>
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Go to <strong>My Profile &gt; API Tokens</strong> (top right user icon
+                              &gt; My Profile &gt; API Tokens).
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Click <strong>Create Token</strong>. Scroll to the bottom and click{" "}
+                              <strong>Create Custom Token</strong>.
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Give your token a name (e.g., <code>RSVP to Me API Token</code>).
+                            </li>
                             <li style={{ marginBottom: "6px" }}>
                               Under <strong>Permissions</strong>, select:
                               <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
-                                <li style={{ marginBottom: "4px" }}><strong>Account</strong> | <strong>Email Sending</strong> | <strong>Edit</strong></li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  <strong>Account</strong> | <strong>Email Sending</strong> |{" "}
+                                  <strong>Edit</strong>
+                                </li>
                               </ul>
                             </li>
-                            <li style={{ marginBottom: "6px" }}>Under <strong>Account Resources</strong>, choose <strong>Include</strong> and select your account. Under <strong>Zone Resources</strong>, choose <strong>Include</strong> &gt; <strong>Specific zone</strong> &gt; select your domain.</li>
-                            <li style={{ marginBottom: "6px" }}>Click <strong>Continue to summary</strong>, then click <strong>Create Token</strong>. Copy the token and paste it above!</li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Under <strong>Account Resources</strong>, choose{" "}
+                              <strong>Include</strong> and select your account. Under{" "}
+                              <strong>Zone Resources</strong>, choose <strong>Include</strong> &gt;{" "}
+                              <strong>Specific zone</strong> &gt; select your domain.
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Click <strong>Continue to summary</strong>, then click{" "}
+                              <strong>Create Token</strong>. Copy the token and paste it above!
+                            </li>
                           </ol>
                         </div>
                       </div>
@@ -1784,7 +2323,15 @@ function extractRawEmail(fromStr) {
                     {emailProvider === "cloudflare" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "6px",
+                            }}
+                          >
                             Cloudflare Worker URL
                           </label>
                           <input
@@ -1811,13 +2358,32 @@ function extractRawEmail(fromStr) {
                               boxSizing: "border-box",
                             }}
                           />
-                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            The public HTTP endpoint of your worker. Usually formatted as <code>https://rsvp-email-worker.{suggestedSubdomain}.workers.dev</code>. You can find this in your Cloudflare Dashboard under your worker&apos;s <strong>Triggers</strong> or <strong>Routes</strong> tab.
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              marginTop: "4px",
+                              lineHeight: "1.4",
+                            }}
+                          >
+                            The public HTTP endpoint of your worker. Usually formatted as{" "}
+                            <code>https://rsvp-email-worker.{suggestedSubdomain}.workers.dev</code>.
+                            You can find this in your Cloudflare Dashboard under your worker&apos;s{" "}
+                            <strong>Triggers</strong> or <strong>Routes</strong> tab.
                           </span>
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "6px",
+                            }}
+                          >
                             Worker API Secret (WORKER_API_SECRET)
                           </label>
                           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -1859,14 +2425,10 @@ function extractRawEmail(fromStr) {
                                 }}
                                 title={showSecret ? "Hide secret" : "Show secret"}
                               >
-                                {showSecret ? (
-                                  <EyeOff size={16} />
-                                ) : (
-                                  <Eye size={16} />
-                                )}
+                                {showSecret ? <EyeOff size={16} /> : <Eye size={16} />}
                               </button>
                             </div>
-                            
+
                             <button
                               type="button"
                               onClick={() => {
@@ -1876,7 +2438,9 @@ function extractRawEmail(fromStr) {
                               }}
                               disabled={!cfWorkerSecret}
                               style={{
-                                backgroundColor: secretCopied ? "#22c55e" : "rgba(255, 255, 255, 0.08)",
+                                backgroundColor: secretCopied
+                                  ? "#22c55e"
+                                  : "rgba(255, 255, 255, 0.08)",
                                 border: `1px solid ${secretCopied ? "#22c55e" : APP_SHELL.inputBorder}`,
                                 borderRadius: APP_SHELL.inputRadius,
                                 color: "#fff",
@@ -1893,10 +2457,14 @@ function extractRawEmail(fromStr) {
                                 gap: "4px",
                               }}
                               onMouseEnter={(e) => {
-                                if (cfWorkerSecret && !secretCopied) e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+                                if (cfWorkerSecret && !secretCopied)
+                                  e.currentTarget.style.backgroundColor =
+                                    "rgba(255, 255, 255, 0.15)";
                               }}
                               onMouseLeave={(e) => {
-                                if (cfWorkerSecret && !secretCopied) e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+                                if (cfWorkerSecret && !secretCopied)
+                                  e.currentTarget.style.backgroundColor =
+                                    "rgba(255, 255, 255, 0.08)";
                               }}
                               title="Copy secret to clipboard"
                             >
@@ -1913,7 +2481,8 @@ function extractRawEmail(fromStr) {
                                   );
                                   if (!confirmOverwrite) return;
                                 }
-                                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                                const chars =
+                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                                 const array = new Uint8Array(32);
                                 window.crypto.getRandomValues(array);
                                 let secret = "";
@@ -1934,19 +2503,42 @@ function extractRawEmail(fromStr) {
                                 cursor: "pointer",
                                 transition: "background-color 0.2s",
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)"}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)"}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "rgba(255, 255, 255, 0.15)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "rgba(255, 255, 255, 0.08)")
+                              }
                             >
                               ⚡ Generate
                             </button>
                           </div>
-                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            A secure token used to authenticate Next.js requests to your worker. Click <strong>Generate</strong> to create one, then copy it.
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              marginTop: "4px",
+                              lineHeight: "1.4",
+                            }}
+                          >
+                            A secure token used to authenticate Next.js requests to your worker.
+                            Click <strong>Generate</strong> to create one, then copy it.
                           </span>
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "6px",
+                            }}
+                          >
                             Admin Fallback Email (INBOUND_FORWARD_TO)
                           </label>
                           <input
@@ -1967,23 +2559,90 @@ function extractRawEmail(fromStr) {
                               boxSizing: "border-box",
                             }}
                           />
-                          <span style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginTop: "4px", lineHeight: "1.4" }}>
-                            By default, guest replies go dynamically to each event host&apos;s email (using the Reply-To header). This address is a catch-all fallback used only if a guest replies directly to the From address (e.g., noreply@yourdomain.com). Because Cloudflare Email Routing only forwards to verified destination addresses, this fallback email must be verified in your Cloudflare settings.
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              marginTop: "4px",
+                              lineHeight: "1.4",
+                            }}
+                          >
+                            By default, guest replies go dynamically to each event host&apos;s email
+                            (using the Reply-To header). This address is a catch-all fallback used
+                            only if a guest replies directly to the From address (e.g.,
+                            noreply@yourdomain.com). Because Cloudflare Email Routing only forwards
+                            to verified destination addresses, this fallback email must be verified
+                            in your Cloudflare settings.
                           </span>
                         </div>
 
-                        <div style={{ marginTop: "12px", padding: "16px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <h4 style={{ fontSize: "14px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: "0 0 10px 0" }}>
+                        <div
+                          style={{
+                            marginTop: "12px",
+                            padding: "16px",
+                            backgroundColor: "rgba(255,255,255,0.03)",
+                            borderRadius: "8px",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "14px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textPrimary,
+                              margin: "0 0 10px 0",
+                            }}
+                          >
                             ⚡ Quick Browser Setup (No CLI Required)
                           </h4>
-                          <ol style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0 0 16px 0", lineHeight: "1.6" }}>
-                            <li style={{ marginBottom: "6px" }}>Log in to <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: APP_SHELL.accent, textDecoration: "underline" }}>dash.cloudflare.com</a> (sign up for a free account if you haven&apos;t already).</li>
-                            <li style={{ marginBottom: "6px" }}>Go to <strong>Websites &gt; [Your Domain] &gt; Email &gt; Email Routing &gt; Email Workers</strong>.</li>
-                            <li style={{ marginBottom: "6px" }}>Click <strong>Create Email Worker</strong>, name it <code>rsvp-email-worker</code>, and select <strong>Create my own</strong> (which opens the online code editor).</li>
-                            <li style={{ marginBottom: "8px" }}>Click the button below to copy or view the worker code:</li>
+                          <ol
+                            style={{
+                              fontSize: "12px",
+                              color: APP_SHELL.textSecondary,
+                              paddingLeft: "16px",
+                              margin: "0 0 16px 0",
+                              lineHeight: "1.6",
+                            }}
+                          >
+                            <li style={{ marginBottom: "6px" }}>
+                              Log in to{" "}
+                              <a
+                                href="https://dash.cloudflare.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: APP_SHELL.accent, textDecoration: "underline" }}
+                              >
+                                dash.cloudflare.com
+                              </a>{" "}
+                              (sign up for a free account if you haven&apos;t already).
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Go to{" "}
+                              <strong>
+                                Websites &gt; [Your Domain] &gt; Email &gt; Email Routing &gt; Email
+                                Workers
+                              </strong>
+                              .
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Click <strong>Create Email Worker</strong>, name it{" "}
+                              <code>rsvp-email-worker</code>, and select{" "}
+                              <strong>Create my own</strong> (which opens the online code editor).
+                            </li>
+                            <li style={{ marginBottom: "8px" }}>
+                              Click the button below to copy or view the worker code:
+                            </li>
                           </ol>
-                          
-                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              flexWrap: "wrap",
+                              marginBottom: "12px",
+                            }}
+                          >
                             <button
                               type="button"
                               onClick={() => {
@@ -2008,7 +2667,7 @@ function extractRawEmail(fromStr) {
                             >
                               {copied ? "✓ Copied!" : "📋 Copy Worker Code"}
                             </button>
-                            
+
                             <button
                               type="button"
                               onClick={() => setShowCode(!showCode)}
@@ -2026,79 +2685,164 @@ function extractRawEmail(fromStr) {
                                 alignItems: "center",
                                 gap: "6px",
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)"}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)"}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "rgba(255, 255, 255, 0.15)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "rgba(255, 255, 255, 0.08)")
+                              }
                             >
-                              <span>&lt;/&gt;</span> {showCode ? "Hide Worker Code" : "View Worker Code"}
+                              <span>&lt;/&gt;</span>{" "}
+                              {showCode ? "Hide Worker Code" : "View Worker Code"}
                             </button>
                           </div>
 
                           {showCode && (
                             <div style={{ marginBottom: "12px" }}>
-                              <pre style={{
-                                margin: 0,
-                                padding: "12px",
-                                backgroundColor: "rgba(0,0,0,0.3)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                borderRadius: "6px",
-                                fontSize: "11px",
-                                color: "#e2e8f0",
-                                overflowX: "auto",
-                                whiteSpace: "pre-wrap",
-                                wordBreak: "break-all",
-                                fontFamily: "monospace",
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}>
+                              <pre
+                                style={{
+                                  margin: 0,
+                                  padding: "12px",
+                                  backgroundColor: "rgba(0,0,0,0.3)",
+                                  border: "1px solid rgba(255,255,255,0.1)",
+                                  borderRadius: "6px",
+                                  fontSize: "11px",
+                                  color: "#e2e8f0",
+                                  overflowX: "auto",
+                                  whiteSpace: "pre-wrap",
+                                  wordBreak: "break-all",
+                                  fontFamily: "monospace",
+                                  maxHeight: "250px",
+                                  overflowY: "auto",
+                                }}
+                              >
                                 {generateWorkerCode()}
                               </pre>
                             </div>
                           )}
-                          
-                          <ol start={4} style={{ fontSize: "12px", color: APP_SHELL.textSecondary, paddingLeft: "16px", margin: "0", lineHeight: "1.6" }}>
-                            <li style={{ marginBottom: "6px" }}>Delete everything in the Cloudflare editor, paste the copied code, and click <strong>Save and Deploy</strong>.</li>
+
+                          <ol
+                            start={4}
+                            style={{
+                              fontSize: "12px",
+                              color: APP_SHELL.textSecondary,
+                              paddingLeft: "16px",
+                              margin: "0",
+                              lineHeight: "1.6",
+                            }}
+                          >
                             <li style={{ marginBottom: "6px" }}>
-                              Copy your worker&apos;s public URL (found under your worker&apos;s <strong>Overview</strong> or <strong>Triggers</strong> tab, e.g. <code>https://rsvp-email-worker.{suggestedSubdomain}.workers.dev</code>) and paste it into the <strong>Cloudflare Worker URL</strong> input field at the top of this settings page.
+                              Delete everything in the Cloudflare editor, paste the copied code, and
+                              click <strong>Save and Deploy</strong>.
                             </li>
                             <li style={{ marginBottom: "6px" }}>
-                              Go to the Cloudflare main dashboard and click on <strong>Workers & Pages</strong> (left-hand sidebar) &gt; click your worker (<code>rsvp-email-worker</code>) &gt; select the <strong>Settings</strong> tab &gt; select <strong>Variables</strong> in the settings menu.
+                              Copy your worker&apos;s public URL (found under your worker&apos;s{" "}
+                              <strong>Overview</strong> or <strong>Triggers</strong> tab, e.g.{" "}
+                              <code>
+                                https://rsvp-email-worker.{suggestedSubdomain}.workers.dev
+                              </code>
+                              ) and paste it into the <strong>Cloudflare Worker URL</strong> input
+                              field at the top of this settings page.
+                            </li>
+                            <li style={{ marginBottom: "6px" }}>
+                              Go to the Cloudflare main dashboard and click on{" "}
+                              <strong>Workers & Pages</strong> (left-hand sidebar) &gt; click your
+                              worker (<code>rsvp-email-worker</code>) &gt; select the{" "}
+                              <strong>Settings</strong> tab &gt; select <strong>Variables</strong>{" "}
+                              in the settings menu.
                             </li>
                             <li style={{ marginBottom: "6px" }}>
                               Under the <strong>Environment Variables</strong> table:
                               <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
-                                <li style={{ marginBottom: "4px" }}>Click the <strong>Edit variables</strong> button first (required before you can add or change variables).</li>
-                                <li style={{ marginBottom: "4px" }}>Click <strong>Add variable</strong>: set Name to <code>WORKER_API_SECRET</code>, select Type as <strong>Secret</strong> (using the dropdown or padlock icon), and paste your <strong>Worker API Secret</strong> from above.</li>
-                                <li style={{ marginBottom: "4px" }}>Click <strong>Add variable</strong> again: set Name to <code>INBOUND_FORWARD_TO</code>, leave Type as <strong>Text</strong>, and paste your <strong>Admin Fallback Email</strong> (e.g. <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).</li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  Click the <strong>Edit variables</strong> button first (required
+                                  before you can add or change variables).
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  Click <strong>Add variable</strong>: set Name to{" "}
+                                  <code>WORKER_API_SECRET</code>, select Type as{" "}
+                                  <strong>Secret</strong> (using the dropdown or padlock icon), and
+                                  paste your <strong>Worker API Secret</strong> from above.
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  Click <strong>Add variable</strong> again: set Name to{" "}
+                                  <code>INBOUND_FORWARD_TO</code>, leave Type as{" "}
+                                  <strong>Text</strong>, and paste your{" "}
+                                  <strong>Admin Fallback Email</strong> (e.g.{" "}
+                                  <code>{cfInboundForwardTo || "your-email@domain.com"}</code>).
+                                </li>
                               </ul>
                             </li>
                             <li style={{ marginBottom: "6px" }}>
                               Scroll down to the <strong>Bindings</strong> section on the same page:
                               <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
-                                <li style={{ marginBottom: "4px" }}>Click <strong>Add binding</strong>.</li>
-                                <li style={{ marginBottom: "4px" }}>Select <strong>Email Service</strong> from the Type dropdown.</li>
-                                <li style={{ marginBottom: "4px" }}>Set the Name to <code>EMAIL</code> (must be all capital letters).</li>
-                                <li style={{ marginBottom: "4px" }}><em>Note: Do not enter anything for Value. Once saved, it will display as a dash (<code>—</code>), which is correct and expected.</em></li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  Click <strong>Add binding</strong>.
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  Select <strong>Email Service</strong> from the Type dropdown.
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  Set the Name to <code>EMAIL</code> (must be all capital letters).
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  <em>
+                                    Note: Do not enter anything for Value. Once saved, it will
+                                    display as a dash (<code>—</code>), which is correct and
+                                    expected.
+                                  </em>
+                                </li>
                               </ul>
                             </li>
                             <li style={{ marginBottom: "6px" }}>
-                              Click the <strong>Save and deploy</strong> button at the bottom of the page to apply all variables and bindings.
+                              Click the <strong>Save and deploy</strong> button at the bottom of the
+                              page to apply all variables and bindings.
                             </li>
                             <li style={{ marginBottom: "6px" }}>
-                              Go to your domain dashboard under <strong>Websites &gt; [Your Domain] &gt; Email &gt; Email Routing &gt; Routes</strong>, and click <strong>Add Route</strong>:
+                              Go to your domain dashboard under{" "}
+                              <strong>
+                                Websites &gt; [Your Domain] &gt; Email &gt; Email Routing &gt;
+                                Routes
+                              </strong>
+                              , and click <strong>Add Route</strong>:
                               <ul style={{ paddingLeft: "16px", marginTop: "4px" }}>
-                                <li style={{ marginBottom: "4px" }}><strong>Custom address</strong>: Enter your preferred custom sender address (e.g., <code>{emailFrom.match(/<([^>]+)>/)?.[1] || emailFrom || "rsvps@yourdomain.com"}</code>).</li>
-                                <li style={{ marginBottom: "4px" }}><strong>Action</strong>: Select <strong>Send to Worker</strong>.</li>
-                                <li style={{ marginBottom: "4px" }}><strong>Destination worker</strong>: Select <code>rsvp-email-worker</code>.</li>
-                                <li style={{ marginBottom: "4px" }}>Click <strong>Save</strong>.</li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  <strong>Custom address</strong>: Enter your preferred custom
+                                  sender address (e.g.,{" "}
+                                  <code>
+                                    {emailFrom.match(/<([^>]+)>/)?.[1] ||
+                                      emailFrom ||
+                                      "rsvps@yourdomain.com"}
+                                  </code>
+                                  ).
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  <strong>Action</strong>: Select <strong>Send to Worker</strong>.
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  <strong>Destination worker</strong>: Select{" "}
+                                  <code>rsvp-email-worker</code>.
+                                </li>
+                                <li style={{ marginBottom: "4px" }}>
+                                  Click <strong>Save</strong>.
+                                </li>
                               </ul>
                             </li>
                           </ol>
                         </div>
-
                       </div>
                     )}
 
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: "12px",
+                        marginTop: "10px",
+                      }}
+                    >
                       <button
                         type="button"
                         disabled={isPending || isTestingEmail}
@@ -2111,9 +2855,9 @@ function extractRawEmail(fromStr) {
                           padding: "10px 20px",
                           fontSize: "13px",
                           fontWeight: 700,
-                          cursor: (isPending || isTestingEmail) ? "not-allowed" : "pointer",
+                          cursor: isPending || isTestingEmail ? "not-allowed" : "pointer",
                           transition: "background-color 0.2s",
-                          opacity: (isPending || isTestingEmail) ? 0.6 : 1,
+                          opacity: isPending || isTestingEmail ? 0.6 : 1,
                         }}
                       >
                         {isTestingEmail ? "Testing..." : "Test Connection"}
@@ -2130,8 +2874,8 @@ function extractRawEmail(fromStr) {
                           padding: "10px 20px",
                           fontSize: "13px",
                           fontWeight: 700,
-                          cursor: (isPending || isTestingEmail) ? "not-allowed" : "pointer",
-                          opacity: (isPending || isTestingEmail) ? 0.6 : 1,
+                          cursor: isPending || isTestingEmail ? "not-allowed" : "pointer",
+                          opacity: isPending || isTestingEmail ? 0.6 : 1,
                         }}
                       >
                         Save Settings
@@ -2157,19 +2901,40 @@ function extractRawEmail(fromStr) {
                   }}
                 >
                   <div>
-                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                    <h3
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: 700,
+                        color: APP_SHELL.textPrimary,
+                        margin: 0,
+                      }}
+                    >
                       SMS Configuration (Twilio)
                     </h3>
-                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
-                      Configure your Twilio account to enable SMS blasts, RSVP confirmation texts, and magic links via SMS.
+                    <p
+                      style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}
+                    >
+                      Configure your Twilio account to enable SMS blasts, RSVP confirmation texts,
+                      and magic links via SMS.
                     </p>
                   </div>
 
                   <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
 
-                  <form onSubmit={handleSaveSmsConfig} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <form
+                    onSubmit={handleSaveSmsConfig}
+                    style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+                  >
                     <div>
-                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                          marginBottom: "6px",
+                        }}
+                      >
                         Twilio Account SID (TWILIO_ACCOUNT_SID)
                       </label>
                       <input
@@ -2192,7 +2957,15 @@ function extractRawEmail(fromStr) {
                     </div>
 
                     <div>
-                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                          marginBottom: "6px",
+                        }}
+                      >
                         Twilio Auth Token (TWILIO_AUTH_TOKEN)
                       </label>
                       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -2240,7 +3013,15 @@ function extractRawEmail(fromStr) {
                     </div>
 
                     <div>
-                      <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary, marginBottom: "6px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                          marginBottom: "6px",
+                        }}
+                      >
                         Twilio Phone Number (TWILIO_PHONE_NUMBER)
                       </label>
                       <input
@@ -2262,20 +3043,56 @@ function extractRawEmail(fromStr) {
                       />
                     </div>
 
-                    <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder, margin: "10px 0" }} />
+                    <div
+                      style={{
+                        height: "1px",
+                        backgroundColor: APP_SHELL.navBorder,
+                        margin: "10px 0",
+                      }}
+                    />
 
                     {/* SMS Testing Panel */}
-                    <div style={{ padding: "16px", backgroundColor: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                      <h4 style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: "0 0 6px 0" }}>
+                    <div
+                      style={{
+                        padding: "16px",
+                        backgroundColor: "rgba(255,255,255,0.02)",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <h4
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textPrimary,
+                          margin: "0 0 6px 0",
+                        }}
+                      >
                         ⚡ Test SMS Configuration
                       </h4>
-                      <p style={{ fontSize: "11px", color: APP_SHELL.textSecondary, margin: "0 0 12px 0", lineHeight: "1.4" }}>
-                        Verify your Twilio connection by sending a test SMS. Note: In development mode, if Twilio is not configured, it will log the SMS details to the console instead.
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: APP_SHELL.textSecondary,
+                          margin: "0 0 12px 0",
+                          lineHeight: "1.4",
+                        }}
+                      >
+                        Verify your Twilio connection by sending a test SMS. Note: In development
+                        mode, if Twilio is not configured, it will log the SMS details to the
+                        console instead.
                       </p>
-                      
+
                       <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
                         <div style={{ flex: 1 }}>
-                          <label style={{ display: "block", fontSize: "11px", color: APP_SHELL.textSecondary, marginBottom: "4px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              marginBottom: "4px",
+                            }}
+                          >
                             Test Recipient Phone Number
                           </label>
                           <input
@@ -2308,8 +3125,8 @@ function extractRawEmail(fromStr) {
                             padding: "8px 16px",
                             fontSize: "12px",
                             fontWeight: 700,
-                            cursor: (isPending || isTestingSms) ? "not-allowed" : "pointer",
-                            opacity: (isPending || isTestingSms) ? 0.6 : 1,
+                            cursor: isPending || isTestingSms ? "not-allowed" : "pointer",
+                            opacity: isPending || isTestingSms ? 0.6 : 1,
                             whiteSpace: "nowrap",
                             height: "33px",
                           }}
@@ -2319,7 +3136,14 @@ function extractRawEmail(fromStr) {
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: "12px",
+                        marginTop: "10px",
+                      }}
+                    >
                       <button
                         type="submit"
                         disabled={isPending || isTestingSms}
@@ -2331,8 +3155,8 @@ function extractRawEmail(fromStr) {
                           padding: "10px 20px",
                           fontSize: "13px",
                           fontWeight: 700,
-                          cursor: (isPending || isTestingSms) ? "not-allowed" : "pointer",
-                          opacity: (isPending || isTestingSms) ? 0.6 : 1,
+                          cursor: isPending || isTestingSms ? "not-allowed" : "pointer",
+                          opacity: isPending || isTestingSms ? 0.6 : 1,
                         }}
                       >
                         Save Settings
@@ -2359,30 +3183,52 @@ function extractRawEmail(fromStr) {
                   }}
                 >
                   <div>
-                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                    <h3
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: 700,
+                        color: APP_SHELL.textPrimary,
+                        margin: 0,
+                      }}
+                    >
                       Backup Configuration
                     </h3>
-                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
-                      Configure scheduled database backups. Backups are stored in the persistent application volume.
+                    <p
+                      style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}
+                    >
+                      Configure scheduled database backups. Backups are stored in the persistent
+                      application volume.
                     </p>
                   </div>
 
                   <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
 
-                  <form onSubmit={handleSaveBackupConfig} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <form
+                    onSubmit={handleSaveBackupConfig}
+                    style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+                  >
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>
+                        <label
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                          }}
+                        >
                           BACKUP SCHEDULE
                         </label>
                         {(() => {
-                          const isCustom = !BACKUP_PRESETS.some(p => p.value !== "custom" && p.value === backupSchedule);
+                          const isCustom = !BACKUP_PRESETS.some(
+                            (p) => p.value !== "custom" && p.value === backupSchedule
+                          );
                           return (
                             <>
                               <select
                                 value={isCustom ? "custom" : backupSchedule}
                                 onChange={(e) => {
-                                  if (e.target.value !== "custom") setBackupSchedule(e.target.value);
+                                  if (e.target.value !== "custom")
+                                    setBackupSchedule(e.target.value);
                                 }}
                                 style={{
                                   backgroundColor: APP_SHELL.inputBg,
@@ -2395,8 +3241,10 @@ function extractRawEmail(fromStr) {
                                   cursor: "pointer",
                                 }}
                               >
-                                {BACKUP_PRESETS.map(p => (
-                                  <option key={p.value} value={p.value}>{p.label}</option>
+                                {BACKUP_PRESETS.map((p) => (
+                                  <option key={p.value} value={p.value}>
+                                    {p.label}
+                                  </option>
                                 ))}
                               </select>
                               {isCustom && (
@@ -2420,7 +3268,9 @@ function extractRawEmail(fromStr) {
                               <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
                                 {isCustom
                                   ? "Standard 5-field cron syntax (Minute Hour Day-of-Month Month Day-of-Week)."
-                                  : backupSchedule === "disabled" ? "Automated backups are off." : `Cron: ${backupSchedule}`}
+                                  : backupSchedule === "disabled"
+                                    ? "Automated backups are off."
+                                    : `Cron: ${backupSchedule}`}
                               </span>
                             </>
                           );
@@ -2428,7 +3278,13 @@ function extractRawEmail(fromStr) {
                       </div>
 
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>
+                        <label
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                          }}
+                        >
                           BACKUPS TO RETAIN (ROTATION LIMIT)
                         </label>
                         <input
@@ -2449,12 +3305,20 @@ function extractRawEmail(fromStr) {
                           }}
                         />
                         <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
-                          Maximum number of backup files to keep. Older backups will be automatically deleted on new backup runs.
+                          Maximum number of backup files to keep. Older backups will be
+                          automatically deleted on new backup runs.
                         </span>
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginTop: "10px",
+                      }}
+                    >
                       <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>
                         <strong>Last Backup Completed:</strong>{" "}
                         {lastBackupTime ? new Date(lastBackupTime).toLocaleString() : "Never"}
@@ -2494,11 +3358,26 @@ function extractRawEmail(fromStr) {
                   }}
                 >
                   <div style={{ maxWidth: "70%" }}>
-                    <h3 style={{ fontSize: "16px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                    <h3
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: 700,
+                        color: APP_SHELL.textPrimary,
+                        margin: 0,
+                      }}
+                    >
                       Manual Database Backup
                     </h3>
-                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px", margin: 0 }}>
-                      Instantly trigger a database snapshot. SQLite creates a file copy, while PostgreSQL executes a <code>pg_dump</code> database extract.
+                    <p
+                      style={{
+                        color: APP_SHELL.textSecondary,
+                        fontSize: "13px",
+                        marginTop: "4px",
+                        margin: 0,
+                      }}
+                    >
+                      Instantly trigger a database snapshot. SQLite creates a file copy, while
+                      PostgreSQL executes a <code>pg_dump</code> database extract.
                     </p>
                   </div>
 
@@ -2536,10 +3415,19 @@ function extractRawEmail(fromStr) {
                   }}
                 >
                   <div>
-                    <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>
+                    <h3
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: 700,
+                        color: APP_SHELL.textPrimary,
+                        margin: 0,
+                      }}
+                    >
                       Backup Archives
                     </h3>
-                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
+                    <p
+                      style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}
+                    >
                       List of stored backups on this server.
                     </p>
                   </div>
@@ -2549,7 +3437,14 @@ function extractRawEmail(fromStr) {
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                       <thead>
-                        <tr style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}`, color: APP_SHELL.textSecondary, fontSize: "12px", fontWeight: 700 }}>
+                        <tr
+                          style={{
+                            borderBottom: `1px solid ${APP_SHELL.navBorder}`,
+                            color: APP_SHELL.textSecondary,
+                            fontSize: "12px",
+                            fontWeight: 700,
+                          }}
+                        >
                           <th style={{ padding: "12px" }}>FILENAME</th>
                           <th style={{ padding: "12px" }}>CREATED AT</th>
                           <th style={{ padding: "12px" }}>FILE SIZE</th>
@@ -2559,14 +3454,33 @@ function extractRawEmail(fromStr) {
                       <tbody>
                         {backups.length === 0 ? (
                           <tr>
-                            <td colSpan={4} style={{ padding: "32px", textAlign: "center", color: APP_SHELL.textMuted }}>
+                            <td
+                              colSpan={4}
+                              style={{
+                                padding: "32px",
+                                textAlign: "center",
+                                color: APP_SHELL.textMuted,
+                              }}
+                            >
                               No backup archives found. Create one manually or configure a schedule.
                             </td>
                           </tr>
                         ) : (
                           backups.map((b) => (
-                            <tr key={b.filename} style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}`, fontSize: "14px" }}>
-                              <td style={{ padding: "14px 12px", fontFamily: "monospace", color: APP_SHELL.textPrimary }}>
+                            <tr
+                              key={b.filename}
+                              style={{
+                                borderBottom: `1px solid ${APP_SHELL.navBorder}`,
+                                fontSize: "14px",
+                              }}
+                            >
+                              <td
+                                style={{
+                                  padding: "14px 12px",
+                                  fontFamily: "monospace",
+                                  color: APP_SHELL.textPrimary,
+                                }}
+                              >
                                 {b.filename}
                               </td>
                               <td style={{ padding: "14px 12px", color: APP_SHELL.textSecondary }}>
@@ -2629,11 +3543,35 @@ function extractRawEmail(fromStr) {
                     padding: "24px",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "20px",
+                    }}
+                  >
                     <div>
-                      <h3 style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}>Theme Presets</h3>
-                      <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px", marginBottom: 0 }}>
-                        Manage the preset themes hosts can pick from in the event settings. Inactive presets are hidden from hosts.
+                      <h3
+                        style={{
+                          fontSize: "18px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textPrimary,
+                          margin: 0,
+                        }}
+                      >
+                        Theme Presets
+                      </h3>
+                      <p
+                        style={{
+                          color: APP_SHELL.textSecondary,
+                          fontSize: "13px",
+                          marginTop: "4px",
+                          marginBottom: 0,
+                        }}
+                      >
+                        Manage the preset themes hosts can pick from in the event settings. Inactive
+                        presets are hidden from hosts.
                       </p>
                     </div>
                     <button
@@ -2666,15 +3604,34 @@ function extractRawEmail(fromStr) {
                     </button>
                   </div>
 
-                  <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder, marginBottom: "20px" }} />
+                  <div
+                    style={{
+                      height: "1px",
+                      backgroundColor: APP_SHELL.navBorder,
+                      marginBottom: "20px",
+                    }}
+                  />
 
                   {/* Preset grid */}
                   {themePresets.length === 0 ? (
-                    <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", textAlign: "center", padding: "40px 0" }}>
+                    <p
+                      style={{
+                        color: APP_SHELL.textSecondary,
+                        fontSize: "14px",
+                        textAlign: "center",
+                        padding: "40px 0",
+                      }}
+                    >
                       No theme presets yet. Click &quot;+ New Preset&quot; to add one.
                     </p>
                   ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                        gap: "12px",
+                      }}
+                    >
                       {themePresets.map((preset) => (
                         <div
                           key={preset.id}
@@ -2695,14 +3652,56 @@ function extractRawEmail(fromStr) {
                               position: "relative",
                             }}
                           >
-                            <div style={{ position: "absolute", top: "6px", right: "6px", background: preset.accentColor, width: "14px", height: "14px", borderRadius: "50%", border: "2px solid rgba(255,255,255,0.5)" }} />
-                            <div style={{ position: "absolute", top: "6px", left: "8px", fontSize: "16px" }}>{preset.emoji}</div>
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "6px",
+                                right: "6px",
+                                background: preset.accentColor,
+                                width: "14px",
+                                height: "14px",
+                                borderRadius: "50%",
+                                border: "2px solid rgba(255,255,255,0.5)",
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "6px",
+                                left: "8px",
+                                fontSize: "16px",
+                              }}
+                            >
+                              {preset.emoji}
+                            </div>
                           </div>
                           {/* Info row */}
-                          <div style={{ padding: "10px 12px", backgroundColor: APP_SHELL.inputBg, flex: 1 }}>
-                            <div style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, marginBottom: "2px" }}>{preset.name}</div>
-                            <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary, marginBottom: "8px" }}>
-                              {preset.base}{preset.seasonal ? " · Seasonal" : ""}
+                          <div
+                            style={{
+                              padding: "10px 12px",
+                              backgroundColor: APP_SHELL.inputBg,
+                              flex: 1,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "13px",
+                                fontWeight: 700,
+                                color: APP_SHELL.textPrimary,
+                                marginBottom: "2px",
+                              }}
+                            >
+                              {preset.name}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                color: APP_SHELL.textSecondary,
+                                marginBottom: "8px",
+                              }}
+                            >
+                              {preset.base}
+                              {preset.seasonal ? " · Seasonal" : ""}
                             </div>
                             <div style={{ display: "flex", gap: "6px" }}>
                               <button
@@ -2745,7 +3744,9 @@ function extractRawEmail(fromStr) {
                                   padding: "5px 0",
                                   borderRadius: "7px",
                                   border: `1px solid ${preset.active ? "#22c55e44" : APP_SHELL.cardBorder}`,
-                                  backgroundColor: preset.active ? "rgba(34,197,94,0.1)" : "transparent",
+                                  backgroundColor: preset.active
+                                    ? "rgba(34,197,94,0.1)"
+                                    : "transparent",
                                   color: preset.active ? "#22c55e" : APP_SHELL.textSecondary,
                                   cursor: "pointer",
                                 }}
@@ -2782,7 +3783,12 @@ function extractRawEmail(fromStr) {
               <>
                 <div
                   onClick={() => setThemePresetForm(null)}
-                  style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1000 }}
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    zIndex: 1000,
+                  }}
                 />
                 <div
                   style={{
@@ -2803,52 +3809,81 @@ function extractRawEmail(fromStr) {
                 >
                   {(() => {
                     const editingPreset = themePresetForm.id
-                      ? themePresets.find((p) => p.id === themePresetForm.id) : null;
+                      ? themePresets.find((p) => p.id === themePresetForm.id)
+                      : null;
                     const defSnap = (editingPreset?.defaultSnapshot as ThemeSnapObj | null) ?? null;
-                    const origSnap = (editingPreset?.originalSnapshot as ThemeSnapObj | null) ?? null;
-                    const formDiffersFromDefault = defSnap && (
-                      themePresetForm.name !== defSnap.name ||
-                      themePresetForm.emoji !== defSnap.emoji ||
-                      themePresetForm.base !== defSnap.base ||
-                      themePresetForm.gradientFrom !== defSnap.gradientFrom ||
-                      themePresetForm.gradientTo !== defSnap.gradientTo ||
-                      themePresetForm.accentColor !== defSnap.accentColor ||
-                      themePresetForm.seasonal !== defSnap.seasonal ||
-                      themePresetForm.month !== (defSnap.month ?? null) ||
-                      (themePresetForm.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null)
-                    );
-                    const origDiffersFromDefault = origSnap && defSnap && (
-                      origSnap.name !== defSnap.name ||
-                      origSnap.emoji !== defSnap.emoji ||
-                      origSnap.base !== defSnap.base ||
-                      origSnap.gradientFrom !== defSnap.gradientFrom ||
-                      origSnap.gradientTo !== defSnap.gradientTo ||
-                      origSnap.accentColor !== defSnap.accentColor ||
-                      origSnap.seasonal !== defSnap.seasonal ||
-                      (origSnap.month ?? null) !== (defSnap.month ?? null) ||
-                      (origSnap.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null)
-                    );
-                    const formDiffersFromOriginal = origSnap && (
-                      themePresetForm.name !== origSnap.name ||
-                      themePresetForm.emoji !== origSnap.emoji ||
-                      themePresetForm.base !== origSnap.base ||
-                      themePresetForm.gradientFrom !== origSnap.gradientFrom ||
-                      themePresetForm.gradientTo !== origSnap.gradientTo ||
-                      themePresetForm.accentColor !== origSnap.accentColor ||
-                      themePresetForm.seasonal !== origSnap.seasonal ||
-                      themePresetForm.month !== (origSnap.month ?? null) ||
-                      (themePresetForm.cardOpacity ?? null) !== (origSnap.cardOpacity ?? null)
-                    );
+                    const origSnap =
+                      (editingPreset?.originalSnapshot as ThemeSnapObj | null) ?? null;
+                    const formDiffersFromDefault =
+                      defSnap &&
+                      (themePresetForm.name !== defSnap.name ||
+                        themePresetForm.emoji !== defSnap.emoji ||
+                        themePresetForm.base !== defSnap.base ||
+                        themePresetForm.gradientFrom !== defSnap.gradientFrom ||
+                        themePresetForm.gradientTo !== defSnap.gradientTo ||
+                        themePresetForm.accentColor !== defSnap.accentColor ||
+                        themePresetForm.seasonal !== defSnap.seasonal ||
+                        themePresetForm.month !== (defSnap.month ?? null) ||
+                        (themePresetForm.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null));
+                    const origDiffersFromDefault =
+                      origSnap &&
+                      defSnap &&
+                      (origSnap.name !== defSnap.name ||
+                        origSnap.emoji !== defSnap.emoji ||
+                        origSnap.base !== defSnap.base ||
+                        origSnap.gradientFrom !== defSnap.gradientFrom ||
+                        origSnap.gradientTo !== defSnap.gradientTo ||
+                        origSnap.accentColor !== defSnap.accentColor ||
+                        origSnap.seasonal !== defSnap.seasonal ||
+                        (origSnap.month ?? null) !== (defSnap.month ?? null) ||
+                        (origSnap.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null));
+                    const formDiffersFromOriginal =
+                      origSnap &&
+                      (themePresetForm.name !== origSnap.name ||
+                        themePresetForm.emoji !== origSnap.emoji ||
+                        themePresetForm.base !== origSnap.base ||
+                        themePresetForm.gradientFrom !== origSnap.gradientFrom ||
+                        themePresetForm.gradientTo !== origSnap.gradientTo ||
+                        themePresetForm.accentColor !== origSnap.accentColor ||
+                        themePresetForm.seasonal !== origSnap.seasonal ||
+                        themePresetForm.month !== (origSnap.month ?? null) ||
+                        (themePresetForm.cardOpacity ?? null) !== (origSnap.cardOpacity ?? null));
                     return (
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
-                        <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "20px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <h3
+                          style={{
+                            margin: 0,
+                            fontSize: "17px",
+                            fontWeight: 700,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
                           {themePresetForm.id ? "Edit Preset" : "New Preset"}
                         </h3>
                         {formDiffersFromDefault && defSnap && (
                           <button
                             type="button"
                             onClick={() => setThemePresetForm((f) => f && { ...f, ...defSnap })}
-                            style={{ background: "none", border: "1px solid rgba(139,92,246,0.5)", borderRadius: "7px", color: "#a78bfa", cursor: "pointer", fontSize: "11px", fontWeight: 600, padding: "4px 8px", whiteSpace: "nowrap" }}
+                            style={{
+                              background: "none",
+                              border: "1px solid rgba(139,92,246,0.5)",
+                              borderRadius: "7px",
+                              color: "#a78bfa",
+                              cursor: "pointer",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              padding: "4px 8px",
+                              whiteSpace: "nowrap",
+                            }}
                           >
                             ↺ Reset to Default
                           </button>
@@ -2857,7 +3892,17 @@ function extractRawEmail(fromStr) {
                           <button
                             type="button"
                             onClick={() => setThemePresetForm((f) => f && { ...f, ...origSnap })}
-                            style={{ background: "none", border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: "7px", color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "11px", fontWeight: 600, padding: "4px 8px", whiteSpace: "nowrap" }}
+                            style={{
+                              background: "none",
+                              border: `1px solid ${APP_SHELL.cardBorder}`,
+                              borderRadius: "7px",
+                              color: APP_SHELL.textSecondary,
+                              cursor: "pointer",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              padding: "4px 8px",
+                              whiteSpace: "nowrap",
+                            }}
                           >
                             ↺ Reset to Original
                           </button>
@@ -2865,7 +3910,15 @@ function extractRawEmail(fromStr) {
                         <button
                           type="button"
                           onClick={() => setThemePresetForm(null)}
-                          style={{ background: "none", border: "none", color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "20px", padding: "2px 6px", lineHeight: 1 }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: APP_SHELL.textSecondary,
+                            cursor: "pointer",
+                            fontSize: "20px",
+                            padding: "2px 6px",
+                            lineHeight: 1,
+                          }}
                         >
                           ×
                         </button>
@@ -2873,35 +3926,67 @@ function extractRawEmail(fromStr) {
                     );
                   })()}
 
-                  <form onSubmit={handleSaveThemePreset} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <form
+                    onSubmit={handleSaveThemePreset}
+                    style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+                  >
                     {/* Name + emoji row */}
                     <div style={{ display: "grid", gridTemplateColumns: "60px 1fr", gap: "10px" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>EMOJI</label>
+                        <label
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                          }}
+                        >
+                          EMOJI
+                        </label>
                         <input
                           type="text"
                           value={themePresetForm.emoji}
-                          onChange={(e) => setThemePresetForm((f) => f && { ...f, emoji: e.target.value })}
+                          onChange={(e) =>
+                            setThemePresetForm((f) => f && { ...f, emoji: e.target.value })
+                          }
                           maxLength={2}
                           style={{
-                            backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`,
-                            borderRadius: "8px", padding: "9px", fontSize: "18px", textAlign: "center",
-                            color: APP_SHELL.textPrimary, outline: "none",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "8px",
+                            padding: "9px",
+                            fontSize: "18px",
+                            textAlign: "center",
+                            color: APP_SHELL.textPrimary,
+                            outline: "none",
                           }}
                         />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>NAME</label>
+                        <label
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: APP_SHELL.textSecondary,
+                          }}
+                        >
+                          NAME
+                        </label>
                         <input
                           type="text"
                           value={themePresetForm.name}
-                          onChange={(e) => setThemePresetForm((f) => f && { ...f, name: e.target.value })}
+                          onChange={(e) =>
+                            setThemePresetForm((f) => f && { ...f, name: e.target.value })
+                          }
                           required
                           placeholder="e.g. Midnight Purple"
                           style={{
-                            backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`,
-                            borderRadius: "8px", padding: "9px 12px", fontSize: "14px",
-                            color: APP_SHELL.textPrimary, outline: "none",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "8px",
+                            padding: "9px 12px",
+                            fontSize: "14px",
+                            color: APP_SHELL.textPrimary,
+                            outline: "none",
                           }}
                         />
                       </div>
@@ -2909,7 +3994,15 @@ function extractRawEmail(fromStr) {
 
                     {/* Base style */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>BASE STYLE</label>
+                      <label
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                        }}
+                      >
+                        BASE STYLE
+                      </label>
                       <div style={{ display: "flex", gap: "8px" }}>
                         {BASE_THEMES.map((bt) => (
                           <button
@@ -2917,13 +4010,25 @@ function extractRawEmail(fromStr) {
                             type="button"
                             onClick={() => setThemePresetForm((f) => f && { ...f, base: bt.id })}
                             style={{
-                              flex: 1, padding: "0", overflow: "hidden", cursor: "pointer",
+                              flex: 1,
+                              padding: "0",
+                              overflow: "hidden",
+                              cursor: "pointer",
                               border: `2px solid ${themePresetForm.base === bt.id ? APP_SHELL.accent : APP_SHELL.cardBorder}`,
-                              borderRadius: "10px", background: "none",
+                              borderRadius: "10px",
+                              background: "none",
                             }}
                           >
                             <div style={{ height: "36px", background: bt.preview }} />
-                            <div style={{ padding: "5px 4px", color: APP_SHELL.textPrimary, fontSize: "11px", fontWeight: 600, backgroundColor: APP_SHELL.inputBg }}>
+                            <div
+                              style={{
+                                padding: "5px 4px",
+                                color: APP_SHELL.textPrimary,
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                backgroundColor: APP_SHELL.inputBg,
+                              }}
+                            >
                               {bt.label}
                             </div>
                           </button>
@@ -2933,70 +4038,245 @@ function extractRawEmail(fromStr) {
 
                     {/* Gradient colors */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>BACKGROUND GRADIENT</label>
+                      <label
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                        }}
+                      >
+                        BACKGROUND GRADIENT
+                      </label>
                       <div style={{ display: "flex", gap: "10px" }}>
-                        <label style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: "8px", cursor: "pointer" }}>
-                          <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: themePresetForm.gradientFrom, flexShrink: 0 }} />
-                          <span style={{ fontSize: "11px", color: APP_SHELL.textSecondary, fontFamily: "monospace" }}>{themePresetForm.gradientFrom}</span>
-                          <input type="color" value={themePresetForm.gradientFrom} onChange={(e) => setThemePresetForm((f) => f && { ...f, gradientFrom: e.target.value })} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        <label
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "8px 12px",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "18px",
+                              height: "18px",
+                              borderRadius: "4px",
+                              background: themePresetForm.gradientFrom,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {themePresetForm.gradientFrom}
+                          </span>
+                          <input
+                            type="color"
+                            value={themePresetForm.gradientFrom}
+                            onChange={(e) =>
+                              setThemePresetForm((f) => f && { ...f, gradientFrom: e.target.value })
+                            }
+                            style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                          />
                         </label>
-                        <label style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: "8px", cursor: "pointer" }}>
-                          <div style={{ width: "18px", height: "18px", borderRadius: "4px", background: themePresetForm.gradientTo, flexShrink: 0 }} />
-                          <span style={{ fontSize: "11px", color: APP_SHELL.textSecondary, fontFamily: "monospace" }}>{themePresetForm.gradientTo}</span>
-                          <input type="color" value={themePresetForm.gradientTo} onChange={(e) => setThemePresetForm((f) => f && { ...f, gradientTo: e.target.value })} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                        <label
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "8px 12px",
+                            backgroundColor: APP_SHELL.inputBg,
+                            border: `1px solid ${APP_SHELL.inputBorder}`,
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "18px",
+                              height: "18px",
+                              borderRadius: "4px",
+                              background: themePresetForm.gradientTo,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: APP_SHELL.textSecondary,
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {themePresetForm.gradientTo}
+                          </span>
+                          <input
+                            type="color"
+                            value={themePresetForm.gradientTo}
+                            onChange={(e) =>
+                              setThemePresetForm((f) => f && { ...f, gradientTo: e.target.value })
+                            }
+                            style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                          />
                         </label>
                       </div>
-                      <div style={{ height: "28px", borderRadius: "6px", background: `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})`, border: `1px solid ${APP_SHELL.cardBorder}` }} />
+                      <div
+                        style={{
+                          height: "28px",
+                          borderRadius: "6px",
+                          background: `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})`,
+                          border: `1px solid ${APP_SHELL.cardBorder}`,
+                        }}
+                      />
                     </div>
 
                     {/* Accent color */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>ACCENT COLOR</label>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginBottom: "4px" }}>
+                      <label
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: APP_SHELL.textSecondary,
+                        }}
+                      >
+                        ACCENT COLOR
+                      </label>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "7px",
+                          marginBottom: "4px",
+                        }}
+                      >
                         {ACCENT_PRESETS.map((p) => (
                           <button
                             key={p.value}
                             type="button"
-                            onClick={() => setThemePresetForm((f) => f && { ...f, accentColor: p.value })}
+                            onClick={() =>
+                              setThemePresetForm((f) => f && { ...f, accentColor: p.value })
+                            }
                             title={p.name}
                             style={{
-                              width: "28px", height: "28px", borderRadius: "50%", background: p.value,
+                              width: "28px",
+                              height: "28px",
+                              borderRadius: "50%",
+                              background: p.value,
                               border: `2px solid ${themePresetForm.accentColor === p.value ? "#fff" : "transparent"}`,
                               cursor: "pointer",
                             }}
                           />
                         ))}
-                        <label title="Custom" style={{ width: "28px", height: "28px", borderRadius: "50%", background: themePresetForm.accentColor, border: "2px solid rgba(255,255,255,0.3)", cursor: "pointer", overflow: "hidden", position: "relative" }}>
-                          <input type="color" value={themePresetForm.accentColor} onChange={(e) => setThemePresetForm((f) => f && { ...f, accentColor: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                        <label
+                          title="Custom"
+                          style={{
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "50%",
+                            background: themePresetForm.accentColor,
+                            border: "2px solid rgba(255,255,255,0.3)",
+                            cursor: "pointer",
+                            overflow: "hidden",
+                            position: "relative",
+                          }}
+                        >
+                          <input
+                            type="color"
+                            value={themePresetForm.accentColor}
+                            onChange={(e) =>
+                              setThemePresetForm((f) => f && { ...f, accentColor: e.target.value })
+                            }
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              opacity: 0,
+                              cursor: "pointer",
+                            }}
+                          />
                         </label>
                       </div>
                     </div>
 
                     {/* Seasonal toggle + month */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px", color: APP_SHELL.textPrimary }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "16px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          color: APP_SHELL.textPrimary,
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={themePresetForm.seasonal}
-                          onChange={(e) => setThemePresetForm((f) => f && { ...f, seasonal: e.target.checked, month: e.target.checked ? f.month : null })}
+                          onChange={(e) =>
+                            setThemePresetForm(
+                              (f) =>
+                                f && {
+                                  ...f,
+                                  seasonal: e.target.checked,
+                                  month: e.target.checked ? f.month : null,
+                                }
+                            )
+                          }
                           style={{ width: "16px", height: "16px", cursor: "pointer" }}
                         />
                         Seasonal preset
                       </label>
                       {themePresetForm.seasonal && (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <label style={{ fontSize: "12px", fontWeight: 700, color: APP_SHELL.textSecondary }}>MONTH (1–12)</label>
+                          <label
+                            style={{
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                            }}
+                          >
+                            MONTH (1–12)
+                          </label>
                           <input
                             type="number"
                             min={1}
                             max={12}
                             value={themePresetForm.month ?? ""}
-                            onChange={(e) => setThemePresetForm((f) => f && { ...f, month: e.target.value ? parseInt(e.target.value, 10) : null })}
+                            onChange={(e) =>
+                              setThemePresetForm(
+                                (f) =>
+                                  f && {
+                                    ...f,
+                                    month: e.target.value ? parseInt(e.target.value, 10) : null,
+                                  }
+                              )
+                            }
                             placeholder="e.g. 10"
                             style={{
-                              width: "72px", backgroundColor: APP_SHELL.inputBg, border: `1px solid ${APP_SHELL.inputBorder}`,
-                              borderRadius: "8px", padding: "7px 10px", fontSize: "14px",
-                              color: APP_SHELL.textPrimary, outline: "none",
+                              width: "72px",
+                              backgroundColor: APP_SHELL.inputBg,
+                              border: `1px solid ${APP_SHELL.inputBorder}`,
+                              borderRadius: "8px",
+                              padding: "7px 10px",
+                              fontSize: "14px",
+                              color: APP_SHELL.textPrimary,
+                              outline: "none",
                             }}
                           />
                         </div>
@@ -3005,11 +4285,24 @@ function extractRawEmail(fromStr) {
 
                     {/* Card opacity */}
                     {(() => {
-                      const defaultOp = themePresetForm.base === "DARK" ? 0.5 : themePresetForm.base === "SOFT" ? 0.85 : 0.80;
+                      const defaultOp =
+                        themePresetForm.base === "DARK"
+                          ? 0.5
+                          : themePresetForm.base === "SOFT"
+                            ? 0.85
+                            : 0.8;
                       const currentOp = themePresetForm.cardOpacity ?? defaultOp;
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <label style={{ fontSize: "11px", fontWeight: 700, color: APP_SHELL.textSecondary }}>CARD OPACITY</label>
+                          <label
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              color: APP_SHELL.textSecondary,
+                            }}
+                          >
+                            CARD OPACITY
+                          </label>
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <input
                               type="range"
@@ -3017,15 +4310,28 @@ function extractRawEmail(fromStr) {
                               max={1}
                               step={0.05}
                               value={currentOp}
-                              onChange={(e) => setThemePresetForm((f) => f && { ...f, cardOpacity: parseFloat(e.target.value) })}
+                              onChange={(e) =>
+                                setThemePresetForm(
+                                  (f) => f && { ...f, cardOpacity: parseFloat(e.target.value) }
+                                )
+                              }
                               style={{ flex: 1, accentColor: APP_SHELL.accent }}
                             />
-                            <span style={{ fontSize: "13px", fontWeight: 700, color: APP_SHELL.textPrimary, minWidth: "40px", textAlign: "right" }}>
+                            <span
+                              style={{
+                                fontSize: "13px",
+                                fontWeight: 700,
+                                color: APP_SHELL.textPrimary,
+                                minWidth: "40px",
+                                textAlign: "right",
+                              }}
+                            >
                               {Math.round(currentOp * 100)}%
                             </span>
                           </div>
                           <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary }}>
-                            Controls card transparency. Default for {themePresetForm.base}: {Math.round(defaultOp * 100)}%
+                            Controls card transparency. Default for {themePresetForm.base}:{" "}
+                            {Math.round(defaultOp * 100)}%
                           </div>
                         </div>
                       );
@@ -3033,23 +4339,90 @@ function extractRawEmail(fromStr) {
 
                     {/* Live theme preview */}
                     {(() => {
-                      const pv = resolveTheme(themePresetForm.base, themePresetForm.gradientFrom, themePresetForm.gradientTo, themePresetForm.accentColor, themePresetForm.cardOpacity ?? undefined);
+                      const pv = resolveTheme(
+                        themePresetForm.base,
+                        themePresetForm.gradientFrom,
+                        themePresetForm.gradientTo,
+                        themePresetForm.accentColor,
+                        themePresetForm.cardOpacity ?? undefined
+                      );
                       return (
-                        <div style={{ borderRadius: "12px", overflow: "hidden", border: `1px solid ${APP_SHELL.cardBorder}` }}>
+                        <div
+                          style={{
+                            borderRadius: "12px",
+                            overflow: "hidden",
+                            border: `1px solid ${APP_SHELL.cardBorder}`,
+                          }}
+                        >
                           {/* Page background zone */}
-                          <div style={{ position: "relative", height: "72px", background: pv.pageDecoration === "bold-hero" ? pv.pageDecorationBg1 : `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})` }}>
-                            <span style={{ position: "absolute", top: "8px", left: "10px", fontSize: "13px", fontWeight: 700, color: pv.textPrimary, fontFamily: pv.headingFont }}>
+                          <div
+                            style={{
+                              position: "relative",
+                              height: "72px",
+                              background:
+                                pv.pageDecoration === "bold-hero"
+                                  ? pv.pageDecorationBg1
+                                  : `linear-gradient(135deg, ${themePresetForm.gradientFrom}, ${themePresetForm.gradientTo})`,
+                            }}
+                          >
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: "8px",
+                                left: "10px",
+                                fontSize: "13px",
+                                fontWeight: 700,
+                                color: pv.textPrimary,
+                                fontFamily: pv.headingFont,
+                              }}
+                            >
                               {themePresetForm.emoji} {themePresetForm.name || "Untitled"}
                             </span>
                           </div>
                           {/* Card zone */}
                           <div style={{ background: pv.pageBg, padding: "10px 12px" }}>
-                            <div style={{ background: pv.cardBg, border: `1px solid ${pv.cardBorder}`, borderRadius: pv.cardRadius, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: pv.cardShadow }}>
+                            <div
+                              style={{
+                                background: pv.cardBg,
+                                border: `1px solid ${pv.cardBorder}`,
+                                borderRadius: pv.cardRadius,
+                                padding: "10px 14px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                boxShadow: pv.cardShadow,
+                              }}
+                            >
                               <div>
-                                <div style={{ fontSize: "12px", fontWeight: 700, color: pv.textPrimary, marginBottom: "2px", fontFamily: pv.headingFont }}>Event details</div>
-                                <div style={{ fontSize: "11px", color: pv.textMuted }}>Saturday · 7:00 PM</div>
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    color: pv.textPrimary,
+                                    marginBottom: "2px",
+                                    fontFamily: pv.headingFont,
+                                  }}
+                                >
+                                  Event details
+                                </div>
+                                <div style={{ fontSize: "11px", color: pv.textMuted }}>
+                                  Saturday · 7:00 PM
+                                </div>
                               </div>
-                              <button style={{ background: pv.accent, color: pv.accentFg, border: "none", borderRadius: pv.btnRadius, padding: "5px 12px", fontSize: "11px", fontWeight: 700, cursor: "default" }}>RSVP</button>
+                              <button
+                                style={{
+                                  background: pv.accent,
+                                  color: pv.accentFg,
+                                  border: "none",
+                                  borderRadius: pv.btnRadius,
+                                  padding: "5px 12px",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  cursor: "default",
+                                }}
+                              >
+                                RSVP
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -3060,11 +4433,22 @@ function extractRawEmail(fromStr) {
                       <button
                         type="button"
                         onClick={() => setThemePresetForm(null)}
-                        style={{ flex: 1, padding: "12px", background: "transparent", border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: "10px", color: APP_SHELL.textSecondary, fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                        style={{
+                          flex: 1,
+                          padding: "12px",
+                          background: "transparent",
+                          border: `1px solid ${APP_SHELL.cardBorder}`,
+                          borderRadius: "10px",
+                          color: APP_SHELL.textSecondary,
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
                       >
                         Cancel
                       </button>
-                      {themePresetForm.id && themePresetOriginal && (
+                      {themePresetForm.id &&
+                        themePresetOriginal &&
                         (() => {
                           const isDirty =
                             themePresetForm.name !== themePresetOriginal.name ||
@@ -3080,26 +4464,61 @@ function extractRawEmail(fromStr) {
                             <button
                               type="button"
                               onClick={() => setThemePresetForm(themePresetOriginal)}
-                              style={{ flex: 1, padding: "12px", background: "transparent", border: `1px solid rgba(239,68,68,0.4)`, borderRadius: "10px", color: "#ef4444", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                              style={{
+                                flex: 1,
+                                padding: "12px",
+                                background: "transparent",
+                                border: `1px solid rgba(239,68,68,0.4)`,
+                                borderRadius: "10px",
+                                color: "#ef4444",
+                                fontSize: "14px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
                             >
                               ↺ Reset
                             </button>
                           ) : null;
-                        })()
-                      )}
+                        })()}
                       <button
                         type="submit"
                         disabled={isSavingPreset}
-                        style={{ flex: 2, padding: "12px", background: APP_SHELL.accent, border: "none", borderRadius: "10px", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: "pointer", opacity: isSavingPreset ? 0.7 : 1 }}
+                        style={{
+                          flex: 2,
+                          padding: "12px",
+                          background: APP_SHELL.accent,
+                          border: "none",
+                          borderRadius: "10px",
+                          color: "#fff",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          opacity: isSavingPreset ? 0.7 : 1,
+                        }}
                       >
-                        {isSavingPreset ? "Saving…" : themePresetForm.id ? "Save Changes" : "Create Preset"}
+                        {isSavingPreset
+                          ? "Saving…"
+                          : themePresetForm.id
+                            ? "Save Changes"
+                            : "Create Preset"}
                       </button>
                       {themePresetForm.id && (
                         <button
                           type="button"
                           disabled={isSavingPreset}
                           onClick={handleSaveThemePresetAsDefault}
-                          style={{ flex: 2, padding: "12px", background: "transparent", border: "1px solid rgba(139,92,246,0.5)", borderRadius: "10px", color: "#a78bfa", fontSize: "14px", fontWeight: 600, cursor: "pointer", opacity: isSavingPreset ? 0.7 : 1 }}
+                          style={{
+                            flex: 2,
+                            padding: "12px",
+                            background: "transparent",
+                            border: "1px solid rgba(139,92,246,0.5)",
+                            borderRadius: "10px",
+                            color: "#a78bfa",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            opacity: isSavingPreset ? 0.7 : 1,
+                          }}
                         >
                           Save as Default
                         </button>
@@ -3127,12 +4546,16 @@ function extractRawEmail(fromStr) {
               }}
               onClick={() => setIsDrawerOpen(false)}
             >
-              <style dangerouslySetInnerHTML={{ __html: `
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
                 @keyframes slideIn {
                   from { transform: translateX(100%); }
                   to { transform: translateX(0); }
                 }
-              ` }} />
+              `,
+                }}
+              />
               <div
                 style={{
                   width: "280px",
@@ -3149,7 +4572,9 @@ function extractRawEmail(fromStr) {
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                >
                   <h3 style={{ fontSize: "16px", fontWeight: 800, color: APP_SHELL.textPrimary }}>
                     🛠️ Admin Navigation
                   </h3>
@@ -3173,7 +4598,15 @@ function extractRawEmail(fromStr) {
 
                 <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", overflowY: "auto", flex: 1 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    overflowY: "auto",
+                    flex: 1,
+                  }}
+                >
                   {(
                     [
                       { id: "overview", label: "📊 Overview" },
@@ -3206,10 +4639,12 @@ function extractRawEmail(fromStr) {
                         transition: "background 0.2s, color 0.2s",
                       }}
                       onMouseEnter={(e) => {
-                        if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+                        if (activeTab !== tab.id)
+                          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
                       }}
                       onMouseLeave={(e) => {
-                        if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "transparent";
+                        if (activeTab !== tab.id)
+                          e.currentTarget.style.backgroundColor = "transparent";
                       }}
                     >
                       {tab.label}

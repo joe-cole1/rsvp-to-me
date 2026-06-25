@@ -85,7 +85,14 @@ vi.mock("@/lib/sms", () => ({
   sendSmsBlast: vi.fn(),
 }));
 
-import { createPoll, deletePoll, castVote, addPollOption, updatePollSettings, deletePollOption } from "@/app/actions/event";
+import {
+  createPoll,
+  deletePoll,
+  castVote,
+  addPollOption,
+  updatePollSettings,
+  deletePollOption,
+} from "@/app/actions/event";
 
 const HOST_ID = "host-1";
 const COHOST_ID = "cohost-1";
@@ -124,7 +131,13 @@ describe("createPoll", () => {
   });
 
   it("creates a poll successfully when authorized", async () => {
-    const result = await createPoll(EVENT_ID, "What should we eat?", ["Pizza", "Tacos"], false, true);
+    const result = await createPoll(
+      EVENT_ID,
+      "What should we eat?",
+      ["Pizza", "Tacos"],
+      false,
+      true
+    );
     expect(result.success).toBe(true);
     expect(result.id).toBe("poll-1");
     expect(mockPollCreate).toHaveBeenCalledWith(
@@ -153,12 +166,20 @@ describe("createPoll", () => {
   });
 
   it("throws validation error for empty question", async () => {
-    await expect(createPoll(EVENT_ID, "   ", [], false, true)).rejects.toThrow("Question cannot be empty");
+    await expect(createPoll(EVENT_ID, "   ", [], false, true)).rejects.toThrow(
+      "Question cannot be empty"
+    );
   });
 
   it("handles logActivity failure silently when creating a poll", async () => {
     mockActivityEventCreate.mockRejectedValueOnce(new Error("Activity log failed"));
-    const result = await createPoll(EVENT_ID, "What should we eat?", ["Pizza", "Tacos"], false, true);
+    const result = await createPoll(
+      EVENT_ID,
+      "What should we eat?",
+      ["Pizza", "Tacos"],
+      false,
+      true
+    );
     expect(result.success).toBe(true);
   });
 });
@@ -327,7 +348,7 @@ describe("castVote", () => {
         coHosts: [],
       },
     });
-    
+
     const result = await castVote("poll-1", "option-1", "Host Person", true);
     expect(result.success).toBe(true);
     expect(mockActivityEventCreate).not.toHaveBeenCalled();
@@ -497,7 +518,9 @@ describe("updatePollSettings", () => {
 
   it("throws Forbidden when unauthorized user tries to update settings", async () => {
     mockGetSession.mockResolvedValue({ userId: "stranger", email: "stranger@example.com" });
-    await expect(updatePollSettings("poll-1", { question: "New Question" })).rejects.toThrow("Forbidden");
+    await expect(updatePollSettings("poll-1", { question: "New Question" })).rejects.toThrow(
+      "Forbidden"
+    );
   });
 
   it("handles logActivity failure silently when updating poll settings", async () => {

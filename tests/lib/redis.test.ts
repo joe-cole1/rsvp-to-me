@@ -57,7 +57,7 @@ beforeEach(async () => {
   mockIncr.mockReturnThis();
   mockExpire.mockReturnThis();
   clientMock.isOpen = false;
-  
+
   g.redis = clientMock;
   g.redisConnected = true;
 });
@@ -196,19 +196,19 @@ describe("lib/redis.ts", () => {
 
   it("handles startup connect failure", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    
+
     vi.resetModules();
     delete g.redis;
     delete g.redisConnected;
     mockConnect.mockRejectedValueOnce(new Error("Startup connection failed"));
-    
+
     await import("@/lib/redis");
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining("[redis] Failed to connect to Redis on startup:"),
       expect.any(Error)
     );
-    
+
     errorSpy.mockRestore();
   });
 
@@ -216,7 +216,7 @@ describe("lib/redis.ts", () => {
     clientMock.isOpen = false;
     g.redisConnected = false;
     mockConnect.mockRejectedValueOnce(new Error("Reconnect failed"));
-    
+
     const client = await redisModule.getRedisClient();
     expect(client).toBeNull();
   });

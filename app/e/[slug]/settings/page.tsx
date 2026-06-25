@@ -69,8 +69,20 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
     select: { email: true, name: true, avatarUrl: true, role: true },
   });
   const sessionUser: SessionUser | null = dbUser
-    ? { email: dbUser.email ?? session.email, name: dbUser.name, avatarUrl: dbUser.avatarUrl, role: dbUser.role as "GUEST" | "HOST" | "ADMIN" }
+    ? {
+        email: dbUser.email ?? session.email,
+        name: dbUser.name,
+        avatarUrl: dbUser.avatarUrl,
+        role: dbUser.role as "GUEST" | "HOST" | "ADMIN",
+      }
     : null;
 
-  return <SettingsPage event={event as Parameters<typeof SettingsPage>[0]["event"]} isOwner={isOwner} themePresets={themePresets} sessionUser={sessionUser} />;
+  return (
+    <SettingsPage
+      event={event as Parameters<typeof SettingsPage>[0]["event"]}
+      isOwner={isOwner}
+      themePresets={themePresets}
+      sessionUser={sessionUser}
+    />
+  );
 }

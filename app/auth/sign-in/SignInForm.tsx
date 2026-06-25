@@ -26,13 +26,29 @@ function TokenError() {
   const searchParams = useSearchParams();
   if (searchParams.get("error") !== "invalid-token") return null;
   return (
-    <div style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "10px", padding: "10px 14px", marginBottom: "20px", color: "#fca5a5", fontSize: "13px" }}>
+    <div
+      style={{
+        background: "rgba(239,68,68,0.15)",
+        border: "1px solid rgba(239,68,68,0.3)",
+        borderRadius: "10px",
+        padding: "10px 14px",
+        marginBottom: "20px",
+        color: "#fca5a5",
+        fontSize: "13px",
+      }}
+    >
       That link has expired or already been used. Request a new one below.
     </div>
   );
 }
 
-export default function SignInForm({ openRegistration, redirect }: { openRegistration: boolean; redirect?: string }) {
+export default function SignInForm({
+  openRegistration,
+  redirect,
+}: {
+  openRegistration: boolean;
+  redirect?: string;
+}) {
   const [identifier, setIdentifier] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -62,36 +78,92 @@ export default function SignInForm({ openRegistration, redirect }: { openRegistr
       <div style={{ width: "100%", maxWidth: "400px" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
-          <h1 style={{ color: APP_SHELL.textPrimary, fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>RSVP</h1>
-          <p style={{ color: APP_SHELL.textSecondary, fontSize: "15px" }}>Sign in with a magic link</p>
+          <h1
+            style={{
+              color: APP_SHELL.textPrimary,
+              fontSize: "28px",
+              fontWeight: 800,
+              marginBottom: "8px",
+            }}
+          >
+            RSVP
+          </h1>
+          <p style={{ color: APP_SHELL.textSecondary, fontSize: "15px" }}>
+            Sign in with a magic link
+          </p>
         </div>
 
-        <div style={{ background: APP_SHELL.cardBg, border: `1px solid ${APP_SHELL.cardBorder}`, borderRadius: APP_SHELL.authCardRadius, padding: "32px" }}>
-          <Suspense><TokenError /></Suspense>
+        <div
+          style={{
+            background: APP_SHELL.cardBg,
+            border: `1px solid ${APP_SHELL.cardBorder}`,
+            borderRadius: APP_SHELL.authCardRadius,
+            padding: "32px",
+          }}
+        >
+          <Suspense>
+            <TokenError />
+          </Suspense>
           {submitted ? (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>{isPhone ? "📱" : "📬"}</div>
-              <h2 style={{ color: APP_SHELL.textPrimary, fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
+              <h2
+                style={{
+                  color: APP_SHELL.textPrimary,
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  marginBottom: "8px",
+                }}
+              >
                 {isPhone ? "Check your texts" : "Check your email"}
               </h2>
               <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", lineHeight: 1.6 }}>
-                We sent a magic link to <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong>.
-                Click it to sign in — it expires in 15 minutes.
+                We sent a magic link to{" "}
+                <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong>. Click it
+                to sign in — it expires in 15 minutes.
               </p>
             </div>
           ) : notFound ? (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
-              <h2 style={{ color: APP_SHELL.textPrimary, fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
+              <h2
+                style={{
+                  color: APP_SHELL.textPrimary,
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  marginBottom: "8px",
+                }}
+              >
                 Email not found
               </h2>
-              <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", lineHeight: 1.6, marginBottom: "20px" }}>
-                <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong> isn&apos;t linked to an account.
-                If you expect to have access, contact the host to request an invitation.
+              <p
+                style={{
+                  color: APP_SHELL.textSecondary,
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  marginBottom: "20px",
+                }}
+              >
+                <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong> isn&apos;t
+                linked to an account. If you expect to have access, contact the host to request an
+                invitation.
               </p>
               <button
-                onClick={() => { setNotFound(false); setIdentifier(""); }}
-                style={{ background: "transparent", border: `1px solid ${APP_SHELL.inputBorder}`, borderRadius: APP_SHELL.btnRadius, color: APP_SHELL.textSecondary, cursor: "pointer", fontSize: "14px", fontWeight: 600, padding: "10px 20px", fontFamily: "inherit" }}
+                onClick={() => {
+                  setNotFound(false);
+                  setIdentifier("");
+                }}
+                style={{
+                  background: "transparent",
+                  border: `1px solid ${APP_SHELL.inputBorder}`,
+                  borderRadius: APP_SHELL.btnRadius,
+                  color: APP_SHELL.textSecondary,
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  padding: "10px 20px",
+                  fontFamily: "inherit",
+                }}
               >
                 Try a different email
               </button>
@@ -99,7 +171,17 @@ export default function SignInForm({ openRegistration, redirect }: { openRegistr
           ) : (
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, textTransform: "none", letterSpacing: "0.02em", color: APP_SHELL.textMuted, marginBottom: "8px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    textTransform: "none",
+                    letterSpacing: "0.02em",
+                    color: APP_SHELL.textMuted,
+                    marginBottom: "8px",
+                  }}
+                >
                   Email or phone number
                 </label>
                 <input
@@ -113,7 +195,17 @@ export default function SignInForm({ openRegistration, redirect }: { openRegistr
               </div>
 
               {error && (
-                <div style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "10px", padding: "10px 14px", marginBottom: "16px", color: "#fca5a5", fontSize: "13px" }}>
+                <div
+                  style={{
+                    background: "rgba(239,68,68,0.15)",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    marginBottom: "16px",
+                    color: "#fca5a5",
+                    fontSize: "13px",
+                  }}
+                >
                   {error}
                 </div>
               )}
@@ -121,13 +213,28 @@ export default function SignInForm({ openRegistration, redirect }: { openRegistr
               <button
                 type="submit"
                 disabled={loading}
-                style={{ width: "100%", padding: "13px", background: APP_SHELL.accent, color: APP_SHELL.textPrimary, border: "none", borderRadius: APP_SHELL.btnRadius, fontSize: "15px", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, fontFamily: "inherit" }}
+                style={{
+                  width: "100%",
+                  padding: "13px",
+                  background: APP_SHELL.accent,
+                  color: APP_SHELL.textPrimary,
+                  border: "none",
+                  borderRadius: APP_SHELL.btnRadius,
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  fontFamily: "inherit",
+                }}
               >
                 {loading ? "Sending…" : "Send magic link"}
               </button>
 
               <div style={{ textAlign: "center", marginTop: "20px" }}>
-                <a href="/auth/register" style={{ color: APP_SHELL.textMuted, fontSize: "13px", textDecoration: "none" }}>
+                <a
+                  href="/auth/register"
+                  style={{ color: APP_SHELL.textMuted, fontSize: "13px", textDecoration: "none" }}
+                >
                   {openRegistration ? "No account? " : "New host? "}
                   <span style={{ color: APP_SHELL.accent }}>Create one →</span>
                 </a>
