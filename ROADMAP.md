@@ -8,20 +8,13 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *Immediate attention items. High impact bugs, UX papercuts, and essential routing/data integrity fixes.*
 
 ### 🛠️ Bugs & Blockers
-*   ~~**[CRIT-1] `migrate-db.js` crashes container on any migration failure — `scripts/migrate-db.js`**: `process.exit(1)` was called on any `prisma migrate deploy` error, causing indefinite Docker restart loops on transient failures or P3009 stuck migrations.~~ ✅ Fixed [e170ee] — 3-attempt retry with backoff; P3009 detected and logs actionable `prisma migrate resolve` command; `docker-compose.yml` app service changed to `restart: on-failure:3`.
-*   ~~**[CRIT-2] No pre-migration database snapshot — `scripts/migrate-db.js`**: `prisma migrate deploy` ran with no prior backup, leaving no automated recovery path from a destructive migration.~~ ✅ Fixed [e170ee] — `pg_dump` via `execFileSync` (no shell, SEC-6 pattern) to `data/backups/pre-migration/` with timestamp before every migration run. Failure warns but never blocks the deploy.
-*   ~~**[CRIT-3] Health endpoint does not verify migration state — `app/api/health/route.ts`**: `/api/health` returned 200 regardless of migration state, appearing healthy to load balancers while the schema was broken.~~ ✅ Fixed [e170ee] — queries `_prisma_migrations` for pending/stuck rows; returns 503 + `{ status: "degraded", migrations: "pending" }` if any found; 7 new tests added to `tests/api/health.test.ts`.
-*   ~~**Failing Test Suite**: Unit tests in `tests/actions/event.test.ts` (potluck item claims) and `tests/actions/rsvpfields.test.ts` (`reorderRsvpFields`) were failing.~~ ✅ Confirmed resolved — both test files pass (124 and 18 tests respectively); fixes landed with SEC-2/SEC-4 in PR #161. Full suite: 535 tests passing across 31 files.
-
+*(No current priority 1 bugs or blockers)*
 
 ### 🔒 Routing & System Safety
-*   ~~**[SEC-1] `getDashboardActivity` IDOR — `app/actions/event.ts:1155`**: Any authenticated user can pass arbitrary `eventIds[]` to `getDashboardActivity`. The action verifies a session exists but never checks the user has access to those events. A logged-in guest can enumerate activity feeds from events they don't belong to. Fix: filter `eventIds` to only those where `hostId = session.userId` OR co-host/RSVP membership exists before querying.~~ ✅ Fixed [PR #161]
-*   ~~**[SEC-2] `reorderRsvpFields` IDOR — `app/actions/event.ts:948`**: `assertHostOrCohost(eventId)` is called for one event, but the field IDs passed in `orderedIds[]` are updated without verifying each field belongs to that `eventId`. A host of Event A can reorder questionnaire fields belonging to Event B. Fix: add a `where: { id: { in: orderedIds }, eventId }` guard or fetch-and-verify before bulk update.~~ ✅ Fixed [PR #161]
-*   ~~**[SEC-3] `addComment` — no RSVP or identity check — `app/actions/event.ts:342`**: Any unauthenticated request that knows an `eventId` can post a comment as any guest name. The `rsvpId` field is optional and unverified. Enables spam and impersonation on all events with `commentsEnabled`. Fix: require either a valid session or a verified `editToken`/`rsvpId` that matches the submitting guest name before inserting a comment.~~ ✅ Fixed [PR #161]
-*   ~~**[SEC-4] `claimPotluckItem` / `unclaimPotluckItem` — no auth — `app/actions/event.ts:800`**: Neither function performs any session or RSVP check. Any unauthenticated visitor can create or remove potluck claims with any guest name, polluting the host's potluck view with fake data. Fix: require a valid `editToken` (RSVP-linked) or host session to create/remove a claim.~~ ✅ Fixed [PR #161]
+*(No current priority 1 routing or system safety issues)*
 
 ### 👥 Guest List & RSVP Enhancements
-*   *(No pending priority 1 guest list enhancements)*
+*(No pending priority 1 guest list enhancements)*
 
 ---
 
@@ -29,10 +22,10 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *Functional improvements, layout adjustments, and secondary features that can be batched together for UX consistency.*
 
 ### 🎨 Layout & Page Hierarchy
-*   *(No pending priority 2 layout enhancements)*
+*(No pending priority 2 layout enhancements)*
 
 ### 🔒 Privacy & Sharing Controls
-*   *(No pending priority 2 privacy controls)*
+*(No pending priority 2 privacy controls)*
 
 ### ⚙️ Administration & Settings
 *   **Configurable Email / SMS Channels**: Add `email_enabled` and `sms_enabled` toggles to the Email Settings and SMS Settings admin pages respectively (new `SystemConfig` keys). When a channel is off, all sends through that channel are silently skipped. The three cases have different blast radii:
@@ -42,7 +35,6 @@ This document outlines the short-term backlog, long-term ideas, and historical m
     *   **Implementation starting point**: Add the two `SystemConfig` keys, wire up the admin toggles, then create a `isChannelEnabled(channel: 'email' | 'sms')` helper in `lib/config.ts` (reads from DB config). Gate all sends in `lib/email.ts` and `lib/sms.ts` behind this helper so enforcement is centralised. Surface-level UI changes (hiding fields, updating copy) follow after the send-path is gated.
 *   **Admin: Create User**: Add a "Create User" button to the User Management tab that opens a modal form (name, email, phone, role). Requires a new `createAdminUser` server action in `app/actions/admin.ts`. No existing form to reuse — this is net-new UI and server logic.
 *   **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
-*   ~~**Admin Theme Manager**: Add an admin settings page that allows dynamic theme creation. Admins can create new themes, modify settings for each theme (base style, accents, gradients, decorations), delete themes, set visibility, and customize titles and descriptions.~~ ✅ Completed
 
 ### 📖 Interactive Documentation Dashboard
 *   [ ] Build an in-app documentation portal accessible via the host dashboard.
@@ -75,14 +67,9 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   **Profile Nav Reactive Update** *(minor UX)*: The shared layout nav shows the user's name and avatar from the server-rendered initial load. After a user saves new profile settings (name or avatar), the nav reflects the new values only after a page refresh/navigation — it does not update live. Consider adding a lightweight client-side state sync (e.g., revalidating the layout with `router.refresh()` after a successful profile save) so the nav avatar updates immediately.
 
 ### ⚙️ DevOps & Security (Deferred)
-*   ~~**[SEC-5] Event passwords stored and compared in plaintext — `app/actions/event.ts:15`**~~: ✅ Fixed [ed8436] — `passwordHash` column (bcryptjs, cost 10); `verifyEventPassword` uses `bcrypt.compare`; `saveEventSettings` hashes on write. Existing plaintext passwords cleared by migration `20260624200000_rename_event_password_to_hash`.
-*   ~~**[SEC-6] `pg_dump` command injection risk — `lib/backup.ts:84`**: The backup command is built via template-literal string interpolation and run through `exec` (invokes `/bin/sh`). If `DATABASE_URL` contains shell metacharacters in its hostname or database name segments, command injection is possible. Fix: switch to `execFile('pg_dump', ['-h', host, '-p', port, ...])` with an explicit argument array so no shell is involved.~~ ✅ Fixed [1e65a8]
-*   ~~**[SEC-7] Intentional CodeQL SSRF scanner bypass — `lib/email.ts:34`**: `safeFetch` obfuscates the `fetch` call using char-code lookup specifically to defeat CodeQL's static-analysis SSRF detection (`String.fromCharCode(102,101,116,99,104)`). While `isSafeWorkerUrl` does validate URLs, intentionally hiding the call from security tooling makes future audits harder. Fix: remove the obfuscation, rely on `isSafeWorkerUrl`, and suppress the CodeQL finding with a proper annotation if needed.~~ ✅ Fixed [1e65a8] — alerts dismissed as false positives in GitHub Security
 *   **[SEC-8] Hardcoded scrypt salt in `lib/crypto.ts:11`** *(deferred)*: `scryptSync(secret, "rsvp-to-me-salt", 32)` uses a static salt. Deferred: the salt is a KDF stretcher for a high-entropy `SESSION_SECRET`; AES-GCM semantic security is maintained by the per-ciphertext random IV. Changing the salt without a re-encryption migration script would silently break all existing encrypted admin configs on deploy.
 *   **[SEC-9] CSP allows `'unsafe-eval'` + `'unsafe-inline'` in `script-src` — `next.config.ts`** *(partial fix [ed8436])*: `'unsafe-eval'` removed from production CSP; retained only in `NODE_ENV=development` for HMR. `'unsafe-inline'` remains — full removal requires nonce-based middleware injection (deferred).
-*   ~~**[SEC-10] Co-hosts excluded from guest CSV download — `app/e/[slug]/guests.csv/route.ts:20`**: The CSV endpoint only permits the primary host (`event.hostId === session.userId`) and blocks co-hosts, who are otherwise authorized to manage the guest list. Fix: mirror the `assertHostOrCohost` pattern used elsewhere to also allow co-host and admin access.~~ ✅ Fixed [1e65a8]
 *   **ESLint 10 Upgrade (blocked)**: `eslint` is held at `^9` because `eslint-plugin-react` v7 (bundled in `eslint-config-next@16.2.9`) calls `context.getFilename()` which was removed in ESLint 10. Unblock by upgrading to a `next` / `eslint-config-next` version whose bundled plugins declare ESLint ≥10 peer deps. Tracked as of 2026-06-23.
-*   ~~**GitHub Release Workflow**: Setup a GitHub Actions workflow to automate release tagging, version increments, and changelog generation.~~ ✅ Completed [PR #153]
 *   **Phone Number Encryption at Rest (M-2)**: Encrypt phone numbers deterministically at-rest using HMAC hashes for index lookups and AES-256-GCM for display.
 *   **HTTP Request Logging & Distributed Tracing (G-1)**: Track request duration, method, and statuses using request IDs mapped to Pino structured logs.
 *   **Graceful Shutdown Signal Handling (G-2)**: Handle SIGTERM signals in Next.js/Docker setup to allow in-flight requests to complete before exiting.
@@ -101,13 +88,25 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 ## ✅ Completed Milestones
 *A log of completed capabilities.*
 
-### Security Fixes — IDOR & Auth Gaps [PR #161]
+### Database Migration Hardening [e170ee]
+*   [x] **[CRIT-1] `migrate-db.js` crash loop**: 3-attempt retry with backoff; P3009 detected and logs actionable `prisma migrate resolve` command; `docker-compose.yml` app service changed to `restart: on-failure:3`.
+*   [x] **[CRIT-2] Pre-migration database snapshot**: `pg_dump` via `execFileSync` (no shell) to `data/backups/pre-migration/` with timestamp before every migration run. Failure warns but never blocks the deploy.
+*   [x] **[CRIT-3] Health endpoint migration state check**: Queries `_prisma_migrations` for pending/stuck rows; returns 503 + `{ status: "degraded", migrations: "pending" }` if any found. 7 new tests added to `tests/api/health.test.ts`.
+*   [x] **Failing Test Suite**: Unit tests in `tests/actions/event.test.ts` (potluck item claims) and `tests/actions/rsvpfields.test.ts` (`reorderRsvpFields`) confirmed resolved with [PR #161](https://github.com/joe-cole1/rsvp-to-me/pull/161). Full suite: 535 tests passing across 31 files.
+
+### Security Hardening — Passwords, Backup & CSV [ed8436, 1e65a8]
+*   [x] **[SEC-5] Event passwords stored in plaintext**: `passwordHash` column added (bcryptjs, cost 10); `verifyEventPassword` uses `bcrypt.compare`; `saveEventSettings` hashes on write. Migration `20260624200000_rename_event_password_to_hash`.
+*   [x] **[SEC-6] `pg_dump` command injection**: Switched to `execFile('pg_dump', [...])` with explicit argument array in `lib/backup.ts` — no shell invocation.
+*   [x] **[SEC-7] CodeQL SSRF scanner bypass**: Removed `safeFetch` obfuscation (`String.fromCharCode` pattern) from `lib/email.ts`; GitHub Security alerts dismissed as false positives.
+*   [x] **[SEC-10] Co-hosts excluded from guest CSV**: `app/e/[slug]/guests.csv/route.ts` now mirrors the `assertHostOrCohost` pattern, granting co-hosts and admins download access.
+
+### Security Fixes — IDOR & Auth Gaps [PR #161](https://github.com/joe-cole1/rsvp-to-me/pull/161)
 *   [x] **[SEC-1] `getDashboardActivity` IDOR**: Scoped `eventIds` to only events the caller owns or is a co-host/RSVP member of (`app/actions/event.ts`).
 *   [x] **[SEC-2] `reorderRsvpFields` IDOR**: Added `eventId` guard to prevent hosts from reordering fields belonging to other events.
 *   [x] **[SEC-3] `addComment` unauthenticated**: Enforced valid session or verified `editToken`/`rsvpId` check before inserting comments.
 *   [x] **[SEC-4] `claimPotluckItem` / `unclaimPotluckItem` unauthenticated**: Gated potluck claim creation and removal behind a valid `editToken` or host session.
 
-### GitHub Release Workflow [PR #153]
+### GitHub Release Workflow [PR #153](https://github.com/joe-cole1/rsvp-to-me/pull/153)
 *   [x] **GitHub Actions release automation**: Automated release tagging, version increments, and changelog generation on merge to main.
 
 ### Admin Theme Manager
@@ -196,5 +195,3 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 *   [x] **SMS RSVP Reply Webhook**: Invite SMS now prompts guests to reply YES / NO / MAYBE. `POST /api/webhooks/twilio` validates the Twilio HMAC signature, looks up the pending invitation by phone number (no event code required), and updates the RSVP. Edge cases handled: past deadline, maybe-disabled events, capacity full, multiple pending invitations (disambiguation).
 *   [x] **Deduplication in addRSVP**: If a guest with an INVITED RSVP submits via the event page form, the existing RSVP is updated rather than a duplicate being created.
 *   [x] **Private Event Sign-in CTA**: Unauthenticated visitors to a private event now see a "Sign in to access" button linking to `/sign-in?redirect=/e/{slug}`.
-
-
