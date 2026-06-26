@@ -10,11 +10,12 @@ _Immediate attention items. High impact bugs, UX papercuts, and essential routin
 
 ### 🛠️ Bugs & Blockers
 
-_(No current priority 1 bugs or blockers)_
+- **[SEC-13] Cross-event parent comment — `app/actions/event.ts` ~line 407**: When a comment is created with a `parentId`, the code does not verify that the parent comment belongs to the same `eventId`. A guest can POST a reply to Event A that threads under a comment from Event B, silently corrupting comment trees. Fix: add `where: { id: parentId, eventId: data.eventId }` when resolving the parent before insert.
 
 ### 🔒 Routing & System Safety
 
-_(No current priority 1 routing or system safety issues)_
+- **[SEC-11] XML injection in Twilio webhook — `app/api/webhooks/twilio/route.ts` ~line 34**: The `twiml()` helper interpolates user-controlled strings (event title, guest names fetched from the database) directly into a raw XML template without escaping. An event title containing `</Message><Message>injected` would break out of the TwiML Message element and inject arbitrary XML into the Twilio response. Fix: escape `&`, `<`, `>`, `"` in any user-supplied value before interpolating into the XML template, or use a TwiML builder library.
+- **[SEC-12] Race condition in RSVP capacity check — `app/actions/event.ts` ~line 290**: Capacity enforcement uses a non-atomic check-then-create pattern: `rSVP.count()` (check) and `rSVP.create()` (act) run as separate queries with no transaction or lock between them. Two simultaneous RSVP submissions can both pass the count check before either row is written, overbooking the event. Fix: wrap the count + create in a Prisma interactive transaction with a re-check inside, or acquire a per-event Redis lock around the check-create pair.
 
 ### 👥 Guest List & RSVP Enhancements
 
@@ -93,6 +94,8 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard.
 - **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.
 - **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
+- **[SEC-14] Information disclosure in auth/admin error responses** _(deferred — low risk for personal-event scale)_: (a) `sendMagicLinkAction` in `app/actions/auth.ts` returns distinct error codes `"email_not_found"` vs. `"delivery_failed"`, allowing an attacker to enumerate which email addresses are registered. Fix: return a single generic error for both cases. (b) `testEmailConfigAction` / `testSmsConfigAction` in `app/actions/admin.ts` surface raw provider error messages; these are admin-only so blast radius is minimal, but verbose errors could leak infrastructure details.
+- **[SEC-15] Unpaginated blast queries — `app/actions/event.ts` ~lines 607–720** _(deferred — low risk at current scale)_: `sendBlast()` and `sendSmsBlast()` fetch all matching RSVPs with `db.rSVP.findMany` and no `take` limit. An event with a very large guest list could cause high memory pressure and slow database queries. Fix: paginate in chunks (e.g., `take: 500, skip: offset`) or add a reasonable hard cap.
 - ~~**Auth Fallback Alerts**~~ _(implemented — see Completed Milestones)_
 
 ---
