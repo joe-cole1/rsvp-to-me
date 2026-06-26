@@ -6,7 +6,7 @@ test.describe("Auth flow", () => {
   test("sign-in page renders and accepts email input", async ({ page }) => {
     await page.goto("/auth/sign-in");
     await expect(page.getByText(/sign in with a magic link/i)).toBeVisible();
-    await page.getByRole("textbox").fill("test@example.com");
+    await page.getByRole("textbox").fill("e2e-host@test.internal");
     await page.getByRole("button", { name: /send/i }).click();
     // Should show a "check your email/phone" confirmation state
     await expect(page.getByText(/check your/i)).toBeVisible({ timeout: 10_000 });
