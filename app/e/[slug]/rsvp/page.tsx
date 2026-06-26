@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/session-user";
 import { resolveTheme } from "@/lib/theme";
 import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
+import { getChannelConfig } from "@/lib/config";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -13,7 +14,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { token, status, return: returnTo } = await searchParams;
 
-  const sessionUser = await getSessionUser();
+  const [sessionUser, channelConfig] = await Promise.all([getSessionUser(), getChannelConfig()]);
 
   const validStatuses = ["GOING", "MAYBE", "NO"] as const;
   const initialStatus = validStatuses.find((s) => s === status?.toUpperCase());
@@ -87,6 +88,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
         initialStatus={initialStatus}
         returnPath={returnTo === "guests" ? `/e/${slug}/guests` : undefined}
         sessionUser={sessionUser}
+        channelConfig={channelConfig}
       />
     );
   }
@@ -116,6 +118,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
       theme={theme}
       initialStatus={initialStatus}
       sessionUser={sessionUser}
+      channelConfig={channelConfig}
     />
   );
 }

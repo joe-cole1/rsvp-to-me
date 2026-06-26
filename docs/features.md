@@ -207,8 +207,8 @@ Download a complete guest spreadsheet including names, emails, phone numbers, RS
 
 Send invitations directly from the Guest Management page.
 
-- **Email Invites:** Enter guest emails to send an invitation link.
-- **SMS Invites:** Enter guest phone numbers to send a text invitation (Twilio must be active).
+- **Email Invites:** Enter guest emails to send an invitation link (shown when email is enabled).
+- **SMS Invites:** Enter guest phone numbers to send a text invitation (shown when SMS is enabled and Twilio is active).
 - **History:** The table tracks when invites were sent and if the guest has responded.
 
 ---
@@ -218,8 +218,10 @@ Send invitations directly from the Guest Management page.
 Send messages to your guests:
 
 - **Recipients:** Filter by Going, Maybe, or both.
-- **Delivery Channels:** Send via Email, SMS, or both.
+- **Delivery Channels:** Send via Email, SMS, or both (only channels enabled on this server are shown).
 - **Log:** All sent blasts are archived in the event's activity log.
+
+> When both email and SMS are disabled server-wide, the blast panel is hidden and the server operates in pure RSVP collection mode — guests fill out forms and hosts see a guest list, but no outbound messages are sent to guests.
 
 ---
 

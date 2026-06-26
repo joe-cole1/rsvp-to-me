@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/session-user";
 import { SettingsPage } from "@/components/event/SettingsPage";
 import { getActiveThemePresets } from "@/app/actions/event";
+import { getChannelConfig } from "@/lib/config";
 
 export async function generateMetadata(props: PageProps<"/e/[slug]/settings">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -61,7 +62,10 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
   const isCohost = event.coHosts.some((ch) => ch.user.id === sessionUser.id);
   if (!isOwner && !isCohost) redirect(`/e/${slug}`);
 
-  const themePresets = await getActiveThemePresets();
+  const [themePresets, channelConfig] = await Promise.all([
+    getActiveThemePresets(),
+    getChannelConfig(),
+  ]);
 
   return (
     <SettingsPage
@@ -69,6 +73,7 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
       isOwner={isOwner}
       themePresets={themePresets}
       sessionUser={sessionUser}
+      channelConfig={channelConfig}
     />
   );
 }

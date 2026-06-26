@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
 import { decryptConfig } from "./crypto";
+import { isChannelEnabled } from "./config";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -288,6 +289,7 @@ export async function sendEventInviteEmail(
     replyTo?: string;
   }
 ) {
+  if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const dateStr = opts.startAt.toLocaleDateString("en-US", {
     weekday: "long",
@@ -330,6 +332,7 @@ export async function sendApprovalEmail(
     replyTo?: string;
   }
 ) {
+  if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const subject = opts.approved
     ? `RSVP Approved: ${opts.eventTitle}`
@@ -364,6 +367,7 @@ export async function sendBlastEmail(
     replyTo?: string;
   }
 ) {
+  if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   return send({
     to: "FROM",
@@ -393,6 +397,7 @@ export async function sendRsvpConfirmationEmail(
     replyTo?: string;
   }
 ) {
+  if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
   const dateStr = opts.startAt.toLocaleDateString("en-US", {

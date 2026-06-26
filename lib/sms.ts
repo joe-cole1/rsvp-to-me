@@ -1,6 +1,7 @@
 import twilio from "twilio";
 import { db } from "@/lib/db";
 import { decryptConfig } from "./crypto";
+import { isChannelEnabled } from "./config";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -74,6 +75,7 @@ export async function sendRsvpConfirmationSms(
     editToken: string;
   }
 ) {
+  if (!(await isChannelEnabled("sms"))) return;
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
   const statusLabel =
     opts.status === "GOING" ? "Going ✓" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
@@ -84,6 +86,7 @@ export async function sendRsvpConfirmationSms(
 }
 
 export async function sendMagicLinkSms(to: string, link: string) {
+  if (!(await isChannelEnabled("sms"))) return;
   return send(to, `Your sign-in link for RSVP to Me: ${link}\n(expires in 15 minutes)`);
 }
 
@@ -91,6 +94,7 @@ export async function sendEventInviteSms(
   to: string,
   opts: { hostName: string; eventTitle: string; rsvpBaseUrl: string; maybeEnabled: boolean }
 ) {
+  if (!(await isChannelEnabled("sms"))) return;
   const maybeClause = opts.maybeEnabled ? ", MAYBE to say maybe" : "";
   return send(
     to,
@@ -102,6 +106,7 @@ export async function sendSmsBlast(
   phones: string[],
   opts: { eventTitle: string; eventSlug: string; message: string; hostName: string }
 ) {
+  if (!(await isChannelEnabled("sms"))) return 0;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const body = `${opts.hostName} (${opts.eventTitle}): ${opts.message} ${eventUrl}`;
   await Promise.allSettled(phones.map((p) => send(p, body)));
@@ -112,6 +117,7 @@ export async function sendApprovalSms(
   to: string,
   opts: { eventTitle: string; approved: boolean; message?: string }
 ) {
+  if (!(await isChannelEnabled("sms"))) return;
   const statusStr = opts.approved ? "approved ✓" : "declined";
   const msgStr = opts.message ? ` Message from host: "${opts.message}"` : "";
   return send(to, `Your RSVP for ${opts.eventTitle} was ${statusStr}.${msgStr}`);
@@ -128,6 +134,7 @@ export async function sendHostRsvpAlertSms(
     eventSlug: string;
   }
 ) {
+  if (!(await isChannelEnabled("sms"))) return;
   const statusLabel =
     opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
   const plusStr = opts.plusOneCount > 0 ? ` +${opts.plusOneCount}` : "";

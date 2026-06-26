@@ -112,6 +112,7 @@ export function RsvpFlow({
   existingRsvp,
   returnPath,
   sessionUser,
+  channelConfig = { email: true, sms: true },
 }: {
   event: EventData;
   theme: ResolvedTheme;
@@ -119,6 +120,7 @@ export function RsvpFlow({
   existingRsvp?: ExistingRsvp;
   returnPath?: string;
   sessionUser?: SessionUser | null;
+  channelConfig?: { email: boolean; sms: boolean };
 }) {
   const t = theme;
   const isEdit = !!existingRsvp;
@@ -738,20 +740,24 @@ export function RsvpFlow({
               )}
               {!isEdit && (
                 <>
-                  <input
-                    style={S.inp}
-                    type="email"
-                    placeholder="Email (optional — for updates)"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <input
-                    style={S.inp}
-                    type="tel"
-                    placeholder="Phone (optional — for SMS updates)"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
+                  {channelConfig.email && (
+                    <input
+                      style={S.inp}
+                      type="email"
+                      placeholder="Email (optional — for updates)"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  )}
+                  {channelConfig.sms && (
+                    <input
+                      style={S.inp}
+                      type="tel"
+                      placeholder="Phone (optional — for SMS updates)"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  )}
                 </>
               )}
             </div>

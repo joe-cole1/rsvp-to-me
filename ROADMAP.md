@@ -36,11 +36,7 @@ _(No pending priority 2 privacy controls)_
 
 ### ⚙️ Administration & Settings
 
-- **Configurable Email / SMS Channels**: Add `email_enabled` and `sms_enabled` toggles to the Email Settings and SMS Settings admin pages respectively (new `SystemConfig` keys). When a channel is off, all sends through that channel are silently skipped. The three cases have different blast radii:
-  - **SMS disabled only** (simpler): SMS is already optional today (Twilio vars absent = console fallback), so this is largely formalizing that. Audit: (1) hide the phone field on the RSVP form and host registration if phone-only users can no longer receive anything; (2) hide SMS blast controls in event dashboards; (3) suppress SMS reminder options in event settings. Text copy changes: anywhere that says "email or phone" becomes just "email."
-  - **Email disabled only** (moderate): The magic-link auth flow sends login links exclusively via email — this is the hard part. If email is off, hosts have no delivery path for their login link unless we add SMS-based OTP login as an alternative. Start the audit here: `lib/auth.ts` (`sendMagicLink`), `app/(auth)/signin/page.tsx`, and `app/auth/verify/route.ts`. Beyond auth: hide email blast controls; suppress email reminder options; update RSVP/registration copy to phone-only; adjust private event invite UX (currently email-first).
-  - **Both disabled** (needs deep-dive — separate ticket): No delivery path exists for magic-link login, RSVP confirmations, event invitations, or reminders. The platform still technically works as a shareable-link tool (public events, manual URL sharing, QR codes) but the auth story collapses. Before implementing the "both off" path, audit: `lib/auth.ts` for session-only or passwordless fallbacks; private event visibility rules (`Event.visibility`); reminder scheduler (`lib/scheduler.ts` or equivalent cron); and every place that calls `sendMagicLink`, `sendEmailBlast`, or `sendSmsBlast`. A dedicated discovery spike is warranted before coding anything for this case.
-  - **Implementation starting point**: Add the two `SystemConfig` keys, wire up the admin toggles, then create a `isChannelEnabled(channel: 'email' | 'sms')` helper in `lib/config.ts` (reads from DB config). Gate all sends in `lib/email.ts` and `lib/sms.ts` behind this helper so enforcement is centralised. Surface-level UI changes (hiding fields, updating copy) follow after the send-path is gated.
+- ~~**Configurable Email / SMS Channels**~~ _(implemented — see Completed Milestones)_
 - ~~**Admin: Create User**~~ _(implemented — see Completed Milestones)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
 
@@ -71,7 +67,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ### 💬 Advanced Messaging Integrations
 
 - **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
-- **Notification Preferences**: Rename "Notification Opt-Outs" to "Notification Preferences", allowing guests to prioritize either Email or SMS notifications.
+- **Notification Preferences (PR 2)**: Rename "Notification Opt-Outs" to "Notification Preferences", add a `notificationChannel` enum (`EMAIL | SMS | BOTH`) to the `User` model, and surface a preferred channel selector in ProfileClient (shown only when both channels are enabled). Depends on the `email_enabled`/`sms_enabled` channel toggles (now shipped). Blast UI (HostBar) is host-controlled and unaffected.
 - **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
 
 ### 🧹 Code Quality & Best Practices Scrub
@@ -104,6 +100,20 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Guest Messaging Channel Toggles (`email_enabled` / `sms_enabled`)
+
+- [x] **`lib/config.ts`**: New `getChannelConfig()` (`React.cache`-wrapped) and `isChannelEnabled()` helpers. Reads `email_enabled`, `sms_enabled`, and `twilio_account_sid` from `SystemConfig` in a single DB query per request. `sms_enabled` auto-defaults to `true` when Twilio credentials are present, `false` otherwise. `email_enabled` defaults to `true`.
+- [x] **Send-path gating**: Guest-facing email functions (`sendRsvpConfirmationEmail`, `sendEventInviteEmail`, `sendBlastEmail`, `sendApprovalEmail`) gated by `email_enabled`. All SMS functions gated by `sms_enabled`. Host auth (`sendMagicLinkEmail`), host alerts (`sendHostRsvpAlertEmail`), and admin emails (`sendWelcomeEmail`) are immune to both toggles.
+- [x] **`getSystemConfig()` defaults**: Two new keys added in `app/actions/admin.ts` with Twilio auto-detection for `sms_enabled`.
+- [x] **Admin UI** (`AdminClient.tsx`): Toggle cards at the top of the Email and SMS tabs. Labels: "Guest Email Notifications" and "SMS Notifications". Helper text clarifies that host functions are unaffected.
+- [x] **RSVP form** (`RsvpFlow.tsx`): Phone field hidden when SMS is disabled.
+- [x] **Event page / HostBar**: Invite form placeholder adapts to enabled channels. Invite form and Message Guests blast panel hidden when both channels are off. Individual Email/SMS delivery-channel checkboxes hidden when their respective channel is disabled.
+- [x] **Event settings** (`SettingsPage.tsx`): Reminder toggles (email and SMS independently) hidden when the corresponding channel is disabled. Reminders section hidden entirely when both are off.
+- [x] **Profile** (`ProfileClient.tsx`): Phone number field hidden when SMS is disabled. Notification Opt-Outs section hidden when both channels are off; individual email/SMS opt-out toggles hidden per channel.
+- [x] **Both disabled = pure RSVP mode**: Guests fill out forms and hosts see a guest list — no outbound messaging of any kind. All host auth and admin functions continue to work normally.
+- [x] **Unit tests** (`tests/lib/config.test.ts`): 10 tests covering default behavior, Twilio auto-detection, explicit overrides, and `isChannelEnabled` for both channels.
+- [x] **Docs updated**: `docs/admin.md`, `docs/features.md`.
 
 ### Defensive Infra — Graceful Shutdown, Error Boundaries & Auth Fallback Alerts
 

@@ -216,6 +216,15 @@ export async function getSystemConfig() {
     configMap["open_registration"] = process.env.OPEN_REGISTRATION ?? "false";
   }
 
+  // Guest messaging channel toggles
+  if (!configMap.hasOwnProperty("email_enabled")) {
+    configMap["email_enabled"] = "true";
+  }
+  if (!configMap.hasOwnProperty("sms_enabled")) {
+    const hasTwilio = !!(configMap["twilio_account_sid"] || process.env.TWILIO_ACCOUNT_SID);
+    configMap["sms_enabled"] = hasTwilio ? "true" : "false";
+  }
+
   // Ensure defaults for email server configuration
   if (!configMap.hasOwnProperty("email_provider")) {
     let defaultProvider = "console";

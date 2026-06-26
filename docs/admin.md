@@ -130,8 +130,7 @@ Go to `/admin` > **System Configuration** to manage credentials. Settings saved 
 
 ### Email Settings
 
-You can configure and switch email delivery options in the UI.
-
+- **Guest Email Notifications Toggle:** When off, no emails are sent to guests (RSVP confirmations, blast updates, reminders, invites). Host login links and admin emails are always sent regardless of this setting.
 - **Email Provider:** Dropdown to select SMTP, Cloudflare Workers, or Cloudflare REST API.
 - **SMTP Fields:** Enter Host, Port, secure settings, SMTP username, SMTP password, and the From Address.
 - **Test Email:** Input an email address and click **Send Test Email** to verify settings.
@@ -140,8 +139,8 @@ You can configure and switch email delivery options in the UI.
 
 ### SMS Settings
 
-Enter your Twilio Account SID, Auth Token, and phone number.
-
+- **SMS Notifications Toggle:** When on, guests receive SMS confirmations, blast updates, reminders, and invites. Automatically defaults to on when Twilio credentials are configured. Requires Twilio credentials to function.
+- Enter your Twilio Account SID, Auth Token, and phone number.
 - Click **Send Test SMS** to send a test message to a phone number.
 
 ---

@@ -769,6 +769,50 @@ function extractRawEmail(fromStr) {
     });
   };
 
+  const handleToggleEmailEnabled = () => {
+    setFeedback(null);
+    const nextVal = config.email_enabled === "false" ? "true" : "false";
+    setConfig((prev) => ({ ...prev, email_enabled: nextVal }));
+    startTransition(async () => {
+      try {
+        await updateSystemConfig("email_enabled", nextVal);
+        setFeedback({
+          type: "success",
+          message: `Guest email notifications ${nextVal === "true" ? "enabled" : "disabled"}.`,
+        });
+      } catch (err) {
+        setConfig((prev) => ({
+          ...prev,
+          email_enabled: nextVal === "true" ? "false" : "true",
+        }));
+        const message = err instanceof Error ? err.message : "Failed to update configuration.";
+        setFeedback({ type: "error", message });
+      }
+    });
+  };
+
+  const handleToggleSmsEnabled = () => {
+    setFeedback(null);
+    const nextVal = config.sms_enabled === "true" ? "false" : "true";
+    setConfig((prev) => ({ ...prev, sms_enabled: nextVal }));
+    startTransition(async () => {
+      try {
+        await updateSystemConfig("sms_enabled", nextVal);
+        setFeedback({
+          type: "success",
+          message: `SMS notifications ${nextVal === "true" ? "enabled" : "disabled"}.`,
+        });
+      } catch (err) {
+        setConfig((prev) => ({
+          ...prev,
+          sms_enabled: nextVal === "true" ? "false" : "true",
+        }));
+        const message = err instanceof Error ? err.message : "Failed to update configuration.";
+        setFeedback({ type: "error", message });
+      }
+    });
+  };
+
   const doSaveThemePreset = async (): Promise<boolean> => {
     if (!themePresetForm) return false;
     try {
@@ -2056,6 +2100,75 @@ function extractRawEmail(fromStr) {
 
             {activeTab === "email" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Guest Email Channel Toggle */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}
+                      >
+                        Guest Email Notifications
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: APP_SHELL.textSecondary,
+                          marginTop: "4px",
+                          maxWidth: "420px",
+                        }}
+                      >
+                        When off, no emails are sent to guests (RSVP confirmations, blasts,
+                        reminders, invites). Host login links and admin emails are unaffected.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleEmailEnabled}
+                      style={{
+                        width: "50px",
+                        height: "26px",
+                        borderRadius: "13px",
+                        border: "none",
+                        backgroundColor:
+                          config.email_enabled !== "false"
+                            ? APP_SHELL.accent
+                            : "rgba(255,255,255,0.1)",
+                        cursor: "pointer",
+                        position: "relative",
+                        transition: "background-color 0.2s",
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          backgroundColor: "#fff",
+                          position: "absolute",
+                          top: "3px",
+                          left: config.email_enabled !== "false" ? "27px" : "3px",
+                          transition: "left 0.2s",
+                        }}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Section 2: Server Configuration & Email Delivery */}
                 <div
                   style={{
@@ -3169,6 +3282,75 @@ function extractRawEmail(fromStr) {
             {/* PANEL: SMS */}
             {activeTab === "sms" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Guest SMS Channel Toggle */}
+                <div
+                  style={{
+                    backgroundColor: APP_SHELL.cardBg,
+                    border: `1px solid ${APP_SHELL.cardBorder}`,
+                    borderRadius: APP_SHELL.cardRadius,
+                    padding: "24px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}
+                      >
+                        SMS Notifications
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: APP_SHELL.textSecondary,
+                          marginTop: "4px",
+                          maxWidth: "420px",
+                        }}
+                      >
+                        When on, guests receive SMS confirmations, blasts, reminders, and invites.
+                        Requires Twilio credentials configured below.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleSmsEnabled}
+                      style={{
+                        width: "50px",
+                        height: "26px",
+                        borderRadius: "13px",
+                        border: "none",
+                        backgroundColor:
+                          config.sms_enabled === "true"
+                            ? APP_SHELL.accent
+                            : "rgba(255,255,255,0.1)",
+                        cursor: "pointer",
+                        position: "relative",
+                        transition: "background-color 0.2s",
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          backgroundColor: "#fff",
+                          position: "absolute",
+                          top: "3px",
+                          left: config.sms_enabled === "true" ? "27px" : "3px",
+                          transition: "left 0.2s",
+                        }}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 <div
                   style={{
                     backgroundColor: APP_SHELL.cardBg,

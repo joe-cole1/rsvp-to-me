@@ -1446,6 +1446,7 @@ export function EventPage({
   coverUploadEnabled = false,
   guestRsvp = null,
   sessionUser = null,
+  channelConfig = { email: true, sms: true },
 }: {
   event: EventData;
   isHost: boolean;
@@ -1458,6 +1459,7 @@ export function EventPage({
     avatarUrl?: string | null;
     role: "GUEST" | "HOST" | "ADMIN";
   } | null;
+  channelConfig?: { email: boolean; sms: boolean };
 }) {
   const [event, setEvent] = useState(initial);
   const [prevInitial, setPrevInitial] = useState(initial);
@@ -4361,6 +4363,7 @@ export function EventPage({
           eventSlug={event.slug}
           theme={t}
           visibility={event.visibility}
+          channelConfig={channelConfig}
         />
       )}
 

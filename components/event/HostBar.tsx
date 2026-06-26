@@ -31,11 +31,13 @@ export function HostBar({
   eventSlug,
   theme: t,
   visibility: initialVisibility,
+  channelConfig = { email: true, sms: true },
 }: {
   eventId: string;
   eventSlug: string;
   theme: ResolvedTheme;
   visibility: Visibility;
+  channelConfig?: { email: boolean; sms: boolean };
 }) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
@@ -409,68 +411,90 @@ export function HostBar({
           )}
 
           {/* Direct Invite Form */}
-          <div
-            style={{
-              marginTop: "16px",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
-              paddingTop: "16px",
-            }}
-          >
-            <h4 style={{ color: "#fff", fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>
-              Send Direct Invite
-            </h4>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                type="text"
-                placeholder="emails or phones (e.g. tom@mail.com, +1555123...)"
-                value={inviteInput}
-                onChange={(e) => setInviteInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSendInvite();
-                }}
-                style={{
-                  flex: 1,
-                  padding: "10px 14px",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "10px",
-                  color: "#fff",
-                  fontFamily: "inherit",
-                  fontSize: "13px",
-                  outline: "none",
-                }}
-              />
-              <button
-                onClick={handleSendInvite}
-                disabled={!inviteInput.trim() || invitePending}
-                style={{
-                  padding: "10px 16px",
-                  background: t.accent,
-                  color: t.accentFg,
-                  border: "none",
-                  borderRadius: "10px",
-                  fontFamily: "inherit",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  opacity: !inviteInput.trim() || invitePending ? 0.5 : 1,
-                }}
-              >
-                {invitePending ? "Sending…" : "Send"}
-              </button>
+          {!channelConfig.email && !channelConfig.sms ? (
+            <div
+              style={{
+                marginTop: "16px",
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                paddingTop: "16px",
+                fontSize: "13px",
+                color: "rgba(255,255,255,0.4)",
+                textAlign: "center",
+              }}
+            >
+              Messaging is not configured on this server. Share the event link above to invite
+              guests.
             </div>
-            {inviteStatus && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: inviteStatus.success ? "#22c55e" : "#f87171",
-                  marginTop: "6px",
-                }}
-              >
-                {inviteStatus.message}
+          ) : (
+            <div
+              style={{
+                marginTop: "16px",
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                paddingTop: "16px",
+              }}
+            >
+              <h4 style={{ color: "#fff", fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>
+                Send Direct Invite
+              </h4>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="text"
+                  placeholder={
+                    channelConfig.email && channelConfig.sms
+                      ? "emails or phones (e.g. tom@mail.com, +1555123...)"
+                      : channelConfig.sms
+                        ? "phone numbers (e.g. +1555123...)"
+                        : "email addresses (e.g. tom@mail.com)"
+                  }
+                  value={inviteInput}
+                  onChange={(e) => setInviteInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSendInvite();
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "10px 14px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "10px",
+                    color: "#fff",
+                    fontFamily: "inherit",
+                    fontSize: "13px",
+                    outline: "none",
+                  }}
+                />
+                <button
+                  onClick={handleSendInvite}
+                  disabled={!inviteInput.trim() || invitePending}
+                  style={{
+                    padding: "10px 16px",
+                    background: t.accent,
+                    color: t.accentFg,
+                    border: "none",
+                    borderRadius: "10px",
+                    fontFamily: "inherit",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    opacity: !inviteInput.trim() || invitePending ? 0.5 : 1,
+                  }}
+                >
+                  {invitePending ? "Sending…" : "Send"}
+                </button>
               </div>
-            )}
-          </div>
+              {inviteStatus && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: inviteStatus.success ? "#22c55e" : "#f87171",
+                    marginTop: "6px",
+                  }}
+                >
+                  {inviteStatus.message}
+                </div>
+              )}
+            </div>
+          )}
         </SlideUp>
       )}
 
@@ -482,180 +506,206 @@ export function HostBar({
           }}
           title="Message Guests"
         >
-          <textarea
-            rows={4}
-            placeholder="Type your message…"
-            value={messageText}
-            onChange={(e) => setMessageText(e.target.value)}
-            style={{
-              width: "100%",
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "12px",
-              padding: "12px 16px",
-              color: "#fff",
-              fontFamily: "inherit",
-              fontSize: "14px",
-              outline: "none",
-              resize: "none",
-              marginBottom: "12px",
-              boxSizing: "border-box",
-            }}
-          />
-
-          {blastResult && (
-            <p
-              style={{
-                fontSize: "13px",
-                marginBottom: "12px",
-                padding: "8px 12px",
-                borderRadius: "8px",
-                background:
-                  blastResult.includes("Sent") || blastResult.includes("sent")
-                    ? "rgba(74,222,128,0.1)"
-                    : "rgba(248,113,113,0.1)",
-                color:
-                  blastResult.includes("Sent") || blastResult.includes("sent")
-                    ? "#4ade80"
-                    : "#f87171",
-              }}
-            >
-              {blastResult}
-            </p>
-          )}
-
-          {/* Channel selection */}
-          <div style={{ marginBottom: "16px" }}>
+          {!channelConfig.email && !channelConfig.sms ? (
             <div
               style={{
+                padding: "24px 0",
+                textAlign: "center",
+                fontSize: "14px",
                 color: "rgba(255,255,255,0.4)",
-                fontSize: "11px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "8px",
               }}
             >
-              Delivery Channels
+              Messaging is not configured on this server. Enable email or SMS in admin settings to
+              send blasts to guests.
             </div>
-            <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-              <label
+          ) : (
+            <>
+              <textarea
+                rows={4}
+                placeholder="Type your message…"
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
+                  width: "100%",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "12px",
+                  padding: "12px 16px",
+                  color: "#fff",
+                  fontFamily: "inherit",
                   fontSize: "14px",
-                  cursor: "pointer",
-                  color: "rgba(255,255,255,0.8)",
+                  outline: "none",
+                  resize: "none",
+                  marginBottom: "12px",
+                  boxSizing: "border-box",
                 }}
-              >
-                <input
-                  type="checkbox"
-                  checked={sendEmail}
-                  onChange={(e) => setSendEmail(e.target.checked)}
-                  style={{ accentColor: t.accent }}
-                />
-                <span>Email</span>
-              </label>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  fontSize: "14px",
-                  cursor: "pointer",
-                  color: "rgba(255,255,255,0.8)",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={sendSms}
-                  onChange={(e) => setSendSms(e.target.checked)}
-                  style={{ accentColor: t.accent }}
-                />
-                <span>SMS</span>
-              </label>
-            </div>
-          </div>
+              />
 
-          {/* Recipient selection */}
-          <div style={{ marginBottom: "20px" }}>
-            <div
-              style={{
-                color: "rgba(255,255,255,0.4)",
-                fontSize: "11px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "8px",
-              }}
-            >
-              Recipients
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-              {(
-                [
-                  { key: "ALL", label: "All" },
-                  { key: "INVITED", label: "Invited" },
-                  { key: "GOING", label: "Yes" },
-                  { key: "MAYBE", label: "Maybe" },
-                  { key: "NO", label: "No" },
-                ] as const
-              ).map(({ key, label }) => {
-                const active = recipientFilters.includes(key);
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleRecipientFilter(key)}
+              {blastResult && (
+                <p
+                  style={{
+                    fontSize: "13px",
+                    marginBottom: "12px",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    background:
+                      blastResult.includes("Sent") || blastResult.includes("sent")
+                        ? "rgba(74,222,128,0.1)"
+                        : "rgba(248,113,113,0.1)",
+                    color:
+                      blastResult.includes("Sent") || blastResult.includes("sent")
+                        ? "#4ade80"
+                        : "#f87171",
+                  }}
+                >
+                  {blastResult}
+                </p>
+              )}
+
+              {/* Channel selection */}
+              {(channelConfig.email || channelConfig.sms) && (
+                <div style={{ marginBottom: "16px" }}>
+                  <div
                     style={{
-                      padding: "6px 12px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      border: active ? `1px solid ${t.accent}` : "1px solid rgba(255,255,255,0.1)",
-                      background: active ? `rgba(${t.accentRgb}, 0.15)` : "rgba(255,255,255,0.03)",
-                      color: active ? t.accent : "rgba(255,255,255,0.7)",
-                      fontFamily: "inherit",
-                      transition: "all 0.15s",
+                      color: "rgba(255,255,255,0.4)",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: "8px",
                     }}
                   >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    Delivery Channels
+                  </div>
+                  <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+                    {channelConfig.email && (
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                          color: "rgba(255,255,255,0.8)",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={sendEmail}
+                          onChange={(e) => setSendEmail(e.target.checked)}
+                          style={{ accentColor: t.accent }}
+                        />
+                        <span>Email</span>
+                      </label>
+                    )}
+                    {channelConfig.sms && (
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                          color: "rgba(255,255,255,0.8)",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={sendSms}
+                          onChange={(e) => setSendSms(e.target.checked)}
+                          style={{ accentColor: t.accent }}
+                        />
+                        <span>SMS</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
 
-          <button
-            onClick={handleSendMessage}
-            disabled={
-              !messageText.trim() ||
-              isSending ||
-              (!sendEmail && !sendSms) ||
-              recipientFilters.length === 0
-            }
-            style={{
-              width: "100%",
-              padding: "12px",
-              background: t.accent,
-              color: t.accentFg,
-              border: "none",
-              borderRadius: "10px",
-              fontFamily: "inherit",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor:
-                !messageText.trim() || isSending || (!sendEmail && !sendSms)
-                  ? "not-allowed"
-                  : "pointer",
-              opacity: !messageText.trim() || isSending || (!sendEmail && !sendSms) ? 0.5 : 1,
-              marginTop: "8px",
-            }}
-          >
-            {isSending ? "Sending…" : "Send Message"}
-          </button>
+              {/* Recipient selection */}
+              <div style={{ marginBottom: "20px" }}>
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.4)",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Recipients
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {(
+                    [
+                      { key: "ALL", label: "All" },
+                      { key: "INVITED", label: "Invited" },
+                      { key: "GOING", label: "Yes" },
+                      { key: "MAYBE", label: "Maybe" },
+                      { key: "NO", label: "No" },
+                    ] as const
+                  ).map(({ key, label }) => {
+                    const active = recipientFilters.includes(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleRecipientFilter(key)}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          border: active
+                            ? `1px solid ${t.accent}`
+                            : "1px solid rgba(255,255,255,0.1)",
+                          background: active
+                            ? `rgba(${t.accentRgb}, 0.15)`
+                            : "rgba(255,255,255,0.03)",
+                          color: active ? t.accent : "rgba(255,255,255,0.7)",
+                          fontFamily: "inherit",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                onClick={handleSendMessage}
+                disabled={
+                  !messageText.trim() ||
+                  isSending ||
+                  (!sendEmail && !sendSms) ||
+                  recipientFilters.length === 0
+                }
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: t.accent,
+                  color: t.accentFg,
+                  border: "none",
+                  borderRadius: "10px",
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  cursor:
+                    !messageText.trim() || isSending || (!sendEmail && !sendSms)
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity: !messageText.trim() || isSending || (!sendEmail && !sendSms) ? 0.5 : 1,
+                  marginTop: "8px",
+                }}
+              >
+                {isSending ? "Sending…" : "Send Message"}
+              </button>
+            </>
+          )}
         </SlideUp>
       )}
 
