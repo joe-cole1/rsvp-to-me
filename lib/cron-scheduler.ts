@@ -60,8 +60,21 @@ async function processExpiredDeletions() {
 
 console.log("[cron-scheduler] Module loaded");
 
+const activeTasks: ReturnType<typeof cron.schedule>[] = [];
 let currentBackupSchedule = "";
 let backupTask: ReturnType<typeof cron.schedule> | null = null;
+
+export function stopInProcessCron() {
+  for (const task of activeTasks) {
+    task.stop();
+  }
+  activeTasks.length = 0;
+  if (backupTask) {
+    backupTask.stop();
+    backupTask = null;
+  }
+  console.log("[cron-scheduler] All scheduled tasks stopped.");
+}
 
 async function syncBackupJob() {
   let schedule = process.env.BACKUP_SCHEDULE || "";
@@ -117,21 +130,25 @@ export async function startInProcessCron() {
   );
 
   // Schedule reminders check every 15 minutes
-  cron.schedule("*/15 * * * *", () => {
-    processReminders().catch((err) =>
-      console.error("[cron-scheduler] Reminders check failed:", err)
-    );
-  });
+  activeTasks.push(
+    cron.schedule("*/15 * * * *", () => {
+      processReminders().catch((err) =>
+        console.error("[cron-scheduler] Reminders check failed:", err)
+      );
+    })
+  );
 
   // Run account deletion processing on startup and once daily
   processExpiredDeletions().catch((err) =>
     console.error("[cron-scheduler] Startup account deletion check failed:", err)
   );
-  cron.schedule("0 0 * * *", () => {
-    processExpiredDeletions().catch((err) =>
-      console.error("[cron-scheduler] Account deletion processing failed:", err)
-    );
-  });
+  activeTasks.push(
+    cron.schedule("0 0 * * *", () => {
+      processExpiredDeletions().catch((err) =>
+        console.error("[cron-scheduler] Account deletion processing failed:", err)
+      );
+    })
+  );
 
   // Initial backup schedule sync
   await syncBackupJob().catch((err) =>
@@ -139,7 +156,11 @@ export async function startInProcessCron() {
   );
 
   // Sync backup schedule config every 5 minutes
-  cron.schedule("*/5 * * * *", () => {
-    syncBackupJob().catch((err) => console.error("[cron-scheduler] Sync backup job failed:", err));
-  });
+  activeTasks.push(
+    cron.schedule("*/5 * * * *", () => {
+      syncBackupJob().catch((err) =>
+        console.error("[cron-scheduler] Sync backup job failed:", err)
+      );
+    })
+  );
 }
