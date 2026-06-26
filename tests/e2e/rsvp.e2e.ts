@@ -5,7 +5,7 @@ const EVENT_SLUG = "e2e-test-event";
 test.describe("Guest RSVP flow", () => {
   test("guest can RSVP to a public event without logging in", async ({ page }) => {
     await page.goto(`/e/${EVENT_SLUG}`);
-    await expect(page).toHaveTitle(/E2E Test Event/);
+    await expect(page.getByRole("heading", { name: /E2E Test Event/i })).toBeVisible({ timeout: 10_000 });
 
     // Click the Going button to enter RSVP flow
     await page.getByText("Going").first().click();
@@ -35,11 +35,11 @@ test.describe("Guest RSVP flow", () => {
 
     // Navigate back to edit the RSVP
     await page.goto(`/e/${EVENT_SLUG}/rsvp?token=${token}`);
-    await expect(page.getByText("Update RSVP")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Update RSVP" })).toBeVisible();
 
     // Change status to Maybe
     await page.getByText("Maybe").click();
-    await page.getByText("Update RSVP").click();
+    await page.getByRole("button", { name: "Update RSVP" }).click();
     await expect(page.getByText("RSVP updated!")).toBeVisible({ timeout: 10_000 });
   });
 });

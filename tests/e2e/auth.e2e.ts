@@ -5,7 +5,7 @@ import fs from "fs";
 test.describe("Auth flow", () => {
   test("sign-in page renders and accepts email input", async ({ page }) => {
     await page.goto("/auth/sign-in");
-    await expect(page.getByRole("heading", { name: /sign in/i })).toBeVisible();
+    await expect(page.getByText(/sign in with a magic link/i)).toBeVisible();
     await page.getByRole("textbox").fill("test@example.com");
     await page.getByRole("button", { name: /send/i }).click();
     // Should show a "check your email/phone" confirmation state
