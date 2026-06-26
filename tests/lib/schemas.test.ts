@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import * as fc from "fast-check";
 import {
   SendMagicLinkSchema,
   RegisterHostSchema,
@@ -191,5 +192,58 @@ describe("UpdateRsvpSchema", () => {
       plusOneCount: 2,
     });
     expect(res.success).toBe(true);
+  });
+});
+
+describe("Zod schemas — property tests", () => {
+  it("safeParse never throws for any input shape", () => {
+    const schemas = [
+      SendMagicLinkSchema,
+      RegisterHostSchema,
+      AddCommentSchema,
+      CreateEventSchema,
+      AddRsvpSchema,
+      UpdateRsvpSchema,
+    ];
+    fc.assert(
+      fc.property(fc.anything(), (input) => {
+        for (const schema of schemas) {
+          // Must return a result object, never throw
+          const result = schema.safeParse(input);
+          expect(typeof result.success).toBe("boolean");
+        }
+      })
+    );
+  });
+
+  it("AddRsvpSchema accepts any valid status enum value", () => {
+    const validStatuses = ["GOING", "MAYBE", "NO"] as const;
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...validStatuses),
+        fc.string({ minLength: 1, maxLength: 100 }),
+        fc.string({ minLength: 1 }),
+        (status, guestName, eventId) => {
+          const res = AddRsvpSchema.safeParse({ eventId, guestName, status });
+          expect(res.success).toBe(true);
+        }
+      )
+    );
+  });
+
+  it("CreateEventSchema rejects arbitrary strings for startDate", () => {
+    fc.assert(
+      fc.property(
+        fc.string().filter((s) => !/^\d{4}-\d{2}-\d{2}$/.test(s)),
+        (badDate) => {
+          const res = CreateEventSchema.safeParse({
+            title: "Test",
+            startDate: badDate,
+            startTime: "10:00",
+          });
+          expect(res.success).toBe(false);
+        }
+      )
+    );
   });
 });

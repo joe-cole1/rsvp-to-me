@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
+import * as fc from "fast-check";
 import { encryptConfig, decryptConfig, getUnlockSignature } from "@/lib/crypto";
 
 describe("encryptConfig", () => {
@@ -78,5 +79,37 @@ describe("getUnlockSignature", () => {
   it("throws when SESSION_SECRET is not set", () => {
     delete process.env.SESSION_SECRET;
     expect(() => getUnlockSignature("my-slug")).toThrow(/SESSION_SECRET/);
+  });
+});
+
+describe("encryptConfig / decryptConfig — property tests", () => {
+  it("round-trips arbitrary non-empty strings", () => {
+    fc.assert(
+      fc.property(fc.string({ minLength: 1 }), (text) => {
+        expect(decryptConfig(encryptConfig(text))).toBe(text);
+      }),
+      { numRuns: 20 }
+    );
+  });
+
+  it("encrypted output always has three colon-separated parts", () => {
+    fc.assert(
+      fc.property(fc.string({ minLength: 1 }), (text) => {
+        const parts = encryptConfig(text).split(":");
+        expect(parts.length).toBe(3);
+        expect(parts[0].length).toBeGreaterThan(0);
+        expect(parts[1].length).toBeGreaterThan(0);
+        expect(parts[2].length).toBeGreaterThan(0);
+      })
+    );
+  });
+
+  it("two encryptions of the same string differ (random IV)", () => {
+    fc.assert(
+      fc.property(fc.string({ minLength: 1 }), (text) => {
+        expect(encryptConfig(text)).not.toBe(encryptConfig(text));
+      }),
+      { numRuns: 20 }
+    );
   });
 });

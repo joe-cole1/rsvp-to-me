@@ -1,0 +1,37 @@
+config:
+  target: "{{ $processEnvironment.PERF_TARGET_URL || 'http://localhost:3000' }}"
+  phases:
+    - name: "Warm-up"
+      duration: 30
+      arrivalRate: 5
+    - name: "Ramp"
+      duration: 60
+      arrivalRate: 5
+      rampTo: 50
+    - name: "Sustained"
+      duration: 120
+      arrivalRate: 50
+  defaults:
+    headers:
+      Accept: "text/html,application/xhtml+xml"
+      User-Agent: "Artillery/LoadTest"
+  ensure:
+    p95: 500
+    p99: 2000
+
+scenarios:
+  - name: "View public event page"
+    weight: 80
+    flow:
+      - get:
+          url: "/e/{{ $processEnvironment.PERF_EVENT_SLUG || 'e2e-test-event' }}"
+          expect:
+            - statusCode: 200
+
+  - name: "View health endpoint"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/health"
+          expect:
+            - statusCode: 200
