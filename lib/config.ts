@@ -11,7 +11,7 @@ export const getChannelConfig = cache(async (): Promise<ChannelConfig> => {
 
   const emailEnabled = map["email_enabled"] !== "false";
 
-  const twilioConfigured = !!map["twilio_account_sid"];
+  const twilioConfigured = !!(map["twilio_account_sid"] || process.env.TWILIO_ACCOUNT_SID);
   const smsEnabled =
     map["sms_enabled"] !== undefined ? map["sms_enabled"] === "true" : twilioConfigured;
 

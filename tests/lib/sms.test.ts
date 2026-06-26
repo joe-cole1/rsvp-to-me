@@ -7,10 +7,11 @@ const mockTwilio = vi.fn().mockReturnValue({
 
 vi.mock("twilio", () => ({ default: mockTwilio }));
 
+const mockFindMany = vi.fn();
 vi.mock("@/lib/db", () => ({
   db: {
     systemConfig: {
-      findMany: vi.fn().mockResolvedValue([]),
+      findMany: () => mockFindMany(),
     },
   },
 }));
@@ -22,6 +23,8 @@ describe("lib/sms.ts", () => {
     vi.resetModules();
     mockCreate.mockClear();
     mockTwilio.mockClear();
+    // Default: SMS channel enabled so tests exercise SMS logic, not the gate
+    mockFindMany.mockResolvedValue([{ key: "sms_enabled", value: "true" }]);
     delete process.env.TWILIO_ACCOUNT_SID;
     delete process.env.TWILIO_AUTH_TOKEN;
     delete process.env.TWILIO_PHONE_NUMBER;
