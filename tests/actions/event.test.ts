@@ -1040,7 +1040,13 @@ describe("addEventUpdate", () => {
     await addEventUpdate(EVENT_ID, UPDATE_BODY, true);
     expect(mockRsvpFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ eventId: EVENT_ID, guestEmail: { not: null } }),
+        where: expect.objectContaining({
+          eventId: EVENT_ID,
+          OR: expect.arrayContaining([
+            { guestEmail: { not: null } },
+            { guestPhone: { not: null } },
+          ]),
+        }),
       })
     );
   });

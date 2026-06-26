@@ -67,7 +67,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ### 💬 Advanced Messaging Integrations
 
 - **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
-- **Notification Preferences (PR 2)**: Rename "Notification Opt-Outs" to "Notification Preferences", add a `notificationChannel` enum (`EMAIL | SMS | BOTH`) to the `User` model, and surface a preferred channel selector in ProfileClient (shown only when both channels are enabled). Depends on the `email_enabled`/`sms_enabled` channel toggles (now shipped). Blast UI (HostBar) is host-controlled and unaffected.
+- ~~**Notification Preferences**~~ _(implemented — see Completed Milestones)_
 - **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
 
 ### 🧹 Code Quality & Best Practices Scrub
@@ -100,6 +100,14 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Notification Preferences (`notificationChannel`)
+
+- [x] **`prisma/schema.prisma`**: Added `NotificationChannel` enum (`EMAIL | SMS | BOTH`, default `BOTH`) and `notificationChannel` field on `User`.
+- [x] **Migration** (`20260626000000_add_notification_channel`): `CREATE TYPE "NotificationChannel"` and `ALTER TABLE "User" ADD COLUMN "notificationChannel"`.
+- [x] **`app/actions/profile.ts`**: Extended `updateNotificationSettings()` to accept and persist optional `notificationChannel`. Added `notificationChannel` to `getUserProfile()` select.
+- [x] **`app/actions/event.ts`**: `addEventUpdate()` now queries guest `notificationChannel` and routes each notification — `SMS` → phone/SMS, `EMAIL`/`BOTH`/anonymous → email.
+- [x] **`app/(app)/profile/ProfileClient.tsx`**: Renamed "Notification Opt-Outs" → "Notification Preferences". Added pill-button channel selector (Email / SMS / Both) shown only when both `channelConfig.email` and `channelConfig.sms` are enabled. Saves immediately on click via `handleChannelChange`.
 
 ### Guest Messaging Channel Toggles (`email_enabled` / `sms_enabled`)
 
