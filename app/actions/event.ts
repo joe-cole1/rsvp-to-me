@@ -904,24 +904,51 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
   const update = await db.eventUpdate.create({ data: { eventId, body, notifyGuests } });
   if (notifyGuests) {
     const rsvps = await db.rSVP.findMany({
-      where: { eventId, guestEmail: { not: null } },
-      select: { guestEmail: true },
+      where: {
+        eventId,
+        OR: [{ guestEmail: { not: null } }, { guestPhone: { not: null } }],
+      },
+      select: {
+        guestEmail: true,
+        guestPhone: true,
+        user: { select: { notificationChannel: true } },
+      },
     });
-    const emails = rsvps.flatMap((r: { guestEmail: string | null }) =>
-      r.guestEmail ? [r.guestEmail] : []
-    );
-    if (emails.length > 0) {
-      const fullEvent = await db.event.findUnique({
-        where: { id: eventId },
-        select: { title: true, host: { select: { name: true, email: true } } },
-      });
-      sendBlastEmail(emails, {
-        eventTitle: fullEvent?.title ?? event.slug,
+
+    const fullEvent = await db.event.findUnique({
+      where: { id: eventId },
+      select: { title: true, host: { select: { name: true, email: true } } },
+    });
+    const eventTitle = fullEvent?.title ?? event.slug;
+    const hostName = fullEvent?.host.name ?? "Your host";
+    const replyTo = fullEvent?.host.email || undefined;
+
+    const emailGuests: string[] = [];
+    const smsGuests: string[] = [];
+
+    for (const r of rsvps) {
+      // Guests without a linked user account default to email
+      const channel = r.user?.notificationChannel ?? "EMAIL";
+      if (channel === "SMS" && r.guestPhone) {
+        smsGuests.push(r.guestPhone);
+      } else if (r.guestEmail) {
+        emailGuests.push(r.guestEmail);
+      }
+    }
+
+    if (emailGuests.length > 0) {
+      sendBlastEmail(emailGuests, {
+        eventTitle,
         eventSlug: event.slug,
         message: body,
-        hostName: fullEvent?.host.name ?? "Your host",
-        replyTo: fullEvent?.host.email || undefined,
+        hostName,
+        replyTo,
       }).catch(() => {});
+    }
+    if (smsGuests.length > 0) {
+      smsSendBlast(smsGuests, { eventTitle, eventSlug: event.slug, message: body, hostName }).catch(
+        () => {}
+      );
     }
   }
   revalidatePath(`/e/${event.slug}`);

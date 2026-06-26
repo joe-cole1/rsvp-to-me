@@ -18,8 +18,9 @@ model User {
   name                String?
   avatarUrl           String?
   role                Role      @default(GUEST)
-  emailNotifications  Boolean   @default(true)
-  smsNotifications    Boolean   @default(true)
+  emailNotifications  Boolean             @default(true)
+  smsNotifications    Boolean             @default(true)
+  notificationChannel NotificationChannel @default(BOTH)
   createdAt           DateTime  @default(now())
   deletionRequestedAt DateTime?
   deletionScheduledAt DateTime?
@@ -35,6 +36,12 @@ enum Role {
   GUEST
   HOST
   ADMIN
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  BOTH
 }
 
 enum MagicTokenType {

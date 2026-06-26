@@ -118,6 +118,7 @@ export async function updateProfileSettings(data: {
 export async function updateNotificationSettings(data: {
   emailNotifications: boolean;
   smsNotifications: boolean;
+  notificationChannel?: "EMAIL" | "SMS" | "BOTH";
 }) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
@@ -127,6 +128,9 @@ export async function updateNotificationSettings(data: {
     data: {
       emailNotifications: data.emailNotifications,
       smsNotifications: data.smsNotifications,
+      ...(data.notificationChannel !== undefined && {
+        notificationChannel: data.notificationChannel,
+      }),
     },
   });
 
@@ -149,6 +153,7 @@ export async function getUserProfile() {
       role: true,
       emailNotifications: true,
       smsNotifications: true,
+      notificationChannel: true,
       deletionRequestedAt: true,
       deletionScheduledAt: true,
     },

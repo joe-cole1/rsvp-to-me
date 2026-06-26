@@ -21,6 +21,7 @@ interface ProfileData {
   role: "GUEST" | "HOST" | "ADMIN";
   emailNotifications: boolean;
   smsNotifications: boolean;
+  notificationChannel: "EMAIL" | "SMS" | "BOTH";
   deletionRequestedAt: Date | null;
   deletionScheduledAt: Date | null;
 }
@@ -71,6 +72,9 @@ export default function ProfileClient({
   const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatarUrl || "");
   const [emailNotifications, setEmailNotifications] = useState(initialProfile.emailNotifications);
   const [smsNotifications, setSmsNotifications] = useState(initialProfile.smsNotifications);
+  const [notificationChannel, setNotificationChannel] = useState<"EMAIL" | "SMS" | "BOTH">(
+    initialProfile.notificationChannel
+  );
 
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
@@ -209,9 +213,23 @@ export default function ProfileClient({
       await updateNotificationSettings({
         emailNotifications: nextEmail,
         smsNotifications: nextSms,
+        notificationChannel,
       });
     } catch (err) {
       console.error("Failed to update notification toggles", err);
+    }
+  };
+
+  const handleChannelChange = async (channel: "EMAIL" | "SMS" | "BOTH") => {
+    setNotificationChannel(channel);
+    try {
+      await updateNotificationSettings({
+        emailNotifications,
+        smsNotifications,
+        notificationChannel: channel,
+      });
+    } catch (err) {
+      console.error("Failed to update notification channel", err);
     }
   };
 
@@ -558,12 +576,75 @@ export default function ProfileClient({
                   margin: 0,
                 }}
               >
-                Notification Opt-Outs
+                Notification Preferences
               </h3>
               <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", margin: "0 0 8px 0" }}>
                 Control which notifications you wish to receive. Transactional messages (like login
                 magic links and RSVP confirmations) are always sent.
               </p>
+
+              {/* Preferred Channel (shown only when both email and SMS are enabled) */}
+              {channelConfig.email && channelConfig.sms && (
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: "14px",
+                      color: APP_SHELL.textPrimary,
+                      marginBottom: "10px",
+                    }}
+                  >
+                    Preferred Channel for Event Updates
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {(
+                      [
+                        { value: "EMAIL", label: "Email" },
+                        { value: "SMS", label: "SMS" },
+                        { value: "BOTH", label: "Both" },
+                      ] as const
+                    ).map(({ value, label }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => handleChannelChange(value)}
+                        style={{
+                          padding: "7px 18px",
+                          borderRadius: "20px",
+                          border:
+                            notificationChannel === value
+                              ? `1.5px solid ${APP_SHELL.accent}`
+                              : "1.5px solid rgba(255,255,255,0.12)",
+                          background:
+                            notificationChannel === value
+                              ? `${APP_SHELL.accent}22`
+                              : "rgba(255,255,255,0.04)",
+                          color:
+                            notificationChannel === value
+                              ? APP_SHELL.accent
+                              : APP_SHELL.textSecondary,
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: APP_SHELL.textSecondary,
+                      margin: "8px 0 0 0",
+                    }}
+                  >
+                    Hosts use this channel when sending event update notifications to guests.
+                  </p>
+                </div>
+              )}
 
               {/* Email Notifications Toggle */}
               {channelConfig.email && (
