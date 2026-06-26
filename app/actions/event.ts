@@ -915,19 +915,10 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
       },
     });
 
-    const fullEvent = await db.event.findUnique({
-      where: { id: eventId },
-      select: { title: true, host: { select: { name: true, email: true } } },
-    });
-    const eventTitle = fullEvent?.title ?? event.slug;
-    const hostName = fullEvent?.host.name ?? "Your host";
-    const replyTo = fullEvent?.host.email || undefined;
-
     const emailGuests: string[] = [];
     const smsGuests: string[] = [];
 
     for (const r of rsvps) {
-      // Guests without a linked user account default to email
       const channel = r.user?.notificationChannel ?? "EMAIL";
       if (channel === "SMS" && r.guestPhone) {
         smsGuests.push(r.guestPhone);
@@ -936,19 +927,32 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
       }
     }
 
-    if (emailGuests.length > 0) {
-      sendBlastEmail(emailGuests, {
-        eventTitle,
-        eventSlug: event.slug,
-        message: body,
-        hostName,
-        replyTo,
-      }).catch(() => {});
-    }
-    if (smsGuests.length > 0) {
-      smsSendBlast(smsGuests, { eventTitle, eventSlug: event.slug, message: body, hostName }).catch(
-        () => {}
-      );
+    if (emailGuests.length > 0 || smsGuests.length > 0) {
+      const fullEvent = await db.event.findUnique({
+        where: { id: eventId },
+        select: { title: true, host: { select: { name: true, email: true } } },
+      });
+      const eventTitle = fullEvent?.title ?? event.slug;
+      const hostName = fullEvent?.host?.name ?? "Your host";
+      const replyTo = fullEvent?.host?.email || undefined;
+
+      if (emailGuests.length > 0) {
+        sendBlastEmail(emailGuests, {
+          eventTitle,
+          eventSlug: event.slug,
+          message: body,
+          hostName,
+          replyTo,
+        }).catch(() => {});
+      }
+      if (smsGuests.length > 0) {
+        smsSendBlast(smsGuests, {
+          eventTitle,
+          eventSlug: event.slug,
+          message: body,
+          hostName,
+        }).catch(() => {});
+      }
     }
   }
   revalidatePath(`/e/${event.slug}`);
