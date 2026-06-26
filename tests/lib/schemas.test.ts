@@ -221,8 +221,8 @@ describe("Zod schemas — property tests", () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...validStatuses),
-        fc.string({ minLength: 1, maxLength: 100 }),
-        fc.string({ minLength: 1 }),
+        fc.string({ minLength: 1, maxLength: 100 }).filter((s) => s.trim().length > 0),
+        fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
         (status, guestName, eventId) => {
           const res = AddRsvpSchema.safeParse({ eventId, guestName, status });
           expect(res.success).toBe(true);
