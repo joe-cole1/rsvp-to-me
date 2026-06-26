@@ -16,7 +16,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ci": "vitest run --reporter=verbose"
+    "test:ci": "vitest run --reporter=verbose",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:watch": "vitest --config vitest.integration.config.ts",
+    "test:components": "vitest run --config vitest.components.config.ts",
+    "test:components:watch": "vitest --config vitest.components.config.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:perf": "artillery run perf/event-page.yml"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -50,9 +58,11 @@
     "*.{ts,tsx}": "prettier --write"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
-    "husky": "^9",
-    "lint-staged": "^15",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^26",
     "@types/nodemailer": "^8.0.1",
@@ -60,12 +70,18 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.9",
+    "artillery": "^2.0.33",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "fast-check": "^3.23.2",
+    "husky": "^9",
+    "jsdom": "^26.1.0",
+    "lint-staged": "^15",
     "prettier": "^3.8.4",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^6",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "wait-on": "^8.0.5"
   }
 }

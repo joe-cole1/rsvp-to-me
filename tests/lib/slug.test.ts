@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import * as fc from "fast-check";
 
 const { mockEventFindUnique } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
@@ -97,5 +98,44 @@ describe("generateUniqueSlug", () => {
     mockEventFindUnique.mockResolvedValue(null);
     const result = await generateUniqueSlug("!!!");
     expect(result).toBe("event");
+  });
+});
+
+describe("slugify — property tests", () => {
+  it("always produces URL-safe characters only", () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => {
+        const slug = slugify(s);
+        expect(slug).toMatch(/^[a-z0-9-]*$/);
+      })
+    );
+  });
+
+  it("never exceeds 50 characters", () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => {
+        expect(slugify(s).length).toBeLessThanOrEqual(50);
+      })
+    );
+  });
+
+  it("is idempotent", () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => {
+        expect(slugify(slugify(s))).toBe(slugify(s));
+      })
+    );
+  });
+
+  it("never starts or ends with a hyphen", () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => {
+        const slug = slugify(s);
+        if (slug.length > 0) {
+          expect(slug[0]).not.toBe("-");
+          expect(slug[slug.length - 1]).not.toBe("-");
+        }
+      })
+    );
   });
 });

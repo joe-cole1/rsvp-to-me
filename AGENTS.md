@@ -364,3 +364,17 @@ Every chat session is associated with a unique conversation hash (the first 6 ch
 5. **PR Titles**: The `gh pr create` command must prefix the PR title with `[hash]` (e.g., `[db8e2d] Security & Best Practices Review`).
 6. **Git Command Formatting**: Always break git and gh commands into individual fenced code blocks — one command per block — so the user can copy and execute them one at a time. Never bundle multiple commands into a single block.
 <!-- END:chat-tagging-rules -->
+
+<!-- BEGIN:regression-test-rules -->
+
+# Regression Test Convention
+
+For every bug fix, add a test to `tests/regression/` that would have caught it:
+
+1. Create a test file named descriptively: `tests/regression/<short-description>.test.ts`
+2. The test must **fail** before the fix is applied and **pass** after
+3. Add a comment at the top explaining the bug, when it was found, and the root cause
+4. Update the index table in `tests/regression/README.md`
+5. Tests use the same Vitest unit setup as `tests/lib/` and `tests/actions/` — mock Prisma as needed
+
+<!-- END:regression-test-rules -->
