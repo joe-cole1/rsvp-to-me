@@ -3,11 +3,9 @@ import { randomUUID, createHash } from "crypto";
 import fs from "fs";
 import path from "path";
 import { sealData } from "iron-session";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
-import { PrismaClient } from "../../app/generated/prisma/client";
 
-// Inline constants from lib/session.ts to avoid importing next/headers
+// Inline constants to avoid importing lib/session.ts (which imports next/headers)
 const COOKIE_NAME = "rsvp-session";
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
@@ -28,54 +26,48 @@ function getPassword(): string {
 }
 
 export default async function globalSetup() {
-  // Apply migrations
   execSync("npx prisma migrate deploy", {
     stdio: "inherit",
     env: { ...process.env },
   });
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = new PrismaClient({ adapter: new PrismaPg(pool) });
 
   try {
-    // Seed host user + test event
-    const host = await db.user.upsert({
-      where: { email: E2E_HOST_EMAIL },
-      update: {},
-      create: { email: E2E_HOST_EMAIL, name: "E2E Test Host", role: "HOST" },
-    });
+    // Upsert host user
+    const userRes = await pool.query<{ id: string }>(
+      `INSERT INTO "User" (id, email, name, role, "createdAt")
+       VALUES ($1, $2, 'E2E Test Host', 'HOST'::"Role", now())
+       ON CONFLICT (email) DO UPDATE SET role = 'HOST'::"Role"
+       RETURNING id`,
+      [randomUUID(), E2E_HOST_EMAIL]
+    );
+    const hostId = userRes.rows[0].id;
 
-    await db.event.upsert({
-      where: { slug: E2E_EVENT_SLUG },
-      update: { title: "E2E Test Event", status: "PUBLISHED", visibility: "PUBLIC" },
-      create: {
-        title: "E2E Test Event",
-        slug: E2E_EVENT_SLUG,
-        status: "PUBLISHED",
-        visibility: "PUBLIC",
-        startAt: new Date("2030-12-01T20:00:00Z"),
-        timezone: "America/New_York",
-        locationType: "PHYSICAL",
-        hostId: host.id,
-      },
-    });
+    // Upsert test event
+    const eventId = randomUUID();
+    await pool.query(
+      `INSERT INTO "Event" (id, slug, title, status, visibility, "startAt", timezone, "locationType", "hostId", "createdAt", "updatedAt")
+       VALUES ($1, $2, 'E2E Test Event', 'PUBLISHED'::"EventStatus", 'PUBLIC'::"Visibility", '2030-12-01T20:00:00Z', 'America/New_York', 'PHYSICAL'::"LocationType", $3, now(), now())
+       ON CONFLICT (slug) DO UPDATE SET title = 'E2E Test Event', status = 'PUBLISHED'::"EventStatus", visibility = 'PUBLIC'::"Visibility"`,
+      [eventId, E2E_EVENT_SLUG, hostId]
+    );
 
-    // Create a DB session for the host and seal it into a cookie
+    // Create a DB session and seal it into a cookie
     const sessionId = randomUUID();
     const expiresAt = new Date(Date.now() + SESSION_TTL * 1000);
-
-    await db.session.upsert({
-      where: { id: sessionId },
-      update: {},
-      create: { id: sessionId, token: sessionId, userId: host.id, expiresAt },
-    });
+    await pool.query(
+      `INSERT INTO "Session" (id, token, "userId", "expiresAt", "createdAt")
+       VALUES ($1, $1, $2, $3, now())
+       ON CONFLICT (id) DO NOTHING`,
+      [sessionId, hostId, expiresAt]
+    );
 
     const sealed = await sealData(
-      { userId: host.id, email: host.email!, role: "HOST", sessionId },
+      { userId: hostId, email: E2E_HOST_EMAIL, role: "HOST", sessionId },
       { password: getPassword(), ttl: SESSION_TTL }
     );
 
-    // Write auth state for Playwright to consume
     fs.mkdirSync(path.dirname(AUTH_STATE_PATH), { recursive: true });
     fs.writeFileSync(
       AUTH_STATE_PATH,
@@ -93,27 +85,25 @@ export default async function globalSetup() {
           },
         ],
         origins: [],
-        _e2e: { hostId: host.id, hostEmail: E2E_HOST_EMAIL, eventSlug: E2E_EVENT_SLUG },
+        _e2e: { hostId, hostEmail: E2E_HOST_EMAIL, eventSlug: E2E_EVENT_SLUG },
       })
     );
 
     // Seed a magic token for the auth flow test
     const rawToken = randomUUID();
     const hashed = hashToken(rawToken);
-    await db.magicToken.deleteMany({ where: { userId: host.id, type: "LOGIN", used: false } });
-    await db.magicToken.create({
-      data: {
-        userId: host.id,
-        token: hashed,
-        type: "LOGIN",
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-      },
-    });
+    await pool.query(
+      `DELETE FROM "MagicToken" WHERE "userId" = $1 AND type = 'LOGIN'::"MagicTokenType" AND used = false`,
+      [hostId]
+    );
+    await pool.query(
+      `INSERT INTO "MagicToken" (id, "userId", token, "expiresAt", "createdAt", used, type)
+       VALUES ($1, $2, $3, $4, now(), false, 'LOGIN'::"MagicTokenType")`,
+      [randomUUID(), hostId, hashed, new Date(Date.now() + 15 * 60 * 1000)]
+    );
 
-    // Write the raw token so the auth flow test can construct the verify URL
     fs.writeFileSync(path.join(__dirname, "fixtures", "magic-token.txt"), rawToken);
   } finally {
-    await db.$disconnect();
     await pool.end();
   }
 }
