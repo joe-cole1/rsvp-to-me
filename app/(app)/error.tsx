@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function AppError({
   reset,
 }: {
@@ -65,7 +67,7 @@ export default function AppError({
           >
             Try again
           </button>
-          <a
+          <Link
             href="/dashboard"
             style={{
               background: "transparent",
@@ -80,7 +82,7 @@ export default function AppError({
             }}
           >
             Go to dashboard
-          </a>
+          </Link>
         </div>
       </div>
     </div>
