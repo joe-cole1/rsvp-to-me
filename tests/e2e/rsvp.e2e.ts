@@ -5,7 +5,9 @@ const EVENT_SLUG = "e2e-test-event";
 test.describe("Guest RSVP flow", () => {
   test("guest can RSVP to a public event without logging in", async ({ page }) => {
     await page.goto(`/e/${EVENT_SLUG}`);
-    await expect(page.getByRole("heading", { name: /E2E Test Event/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /E2E Test Event/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Click the Going button to enter RSVP flow
     await page.getByText("Going").first().click();
