@@ -23,8 +23,7 @@
     "test:components:watch": "vitest --config vitest.components.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "test:perf": "artillery run perf/event-page.yml"
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -71,7 +70,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.9",
-    "artillery": "^2.0.33",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "fast-check": "^3.23.2",
