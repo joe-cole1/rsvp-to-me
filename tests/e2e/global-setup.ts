@@ -15,9 +15,9 @@ export default async function globalSetup() {
   });
 
   // Import after migrations so the Prisma client uses the correct schema
-  const { db } = await import("@/lib/db");
-  const { sealSession, COOKIE_NAME, SESSION_TTL } = await import("@/lib/session");
-  const { hashToken } = await import("@/lib/hash");
+  const { db } = await import("../../lib/db");
+  const { sealSession, COOKIE_NAME, SESSION_TTL } = await import("../../lib/session");
+  const { hashToken } = await import("../../lib/hash");
 
   // Seed host user + test event
   const host = await db.user.upsert({
