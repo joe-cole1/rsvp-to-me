@@ -20,6 +20,7 @@ PERF_TARGET_URL=https://staging.example.com PERF_EVENT_SLUG=my-event npm run tes
 ## Scenarios
 
 ### `event-page.yml`
+
 Tests the public event page under load (the most traffic-heavy endpoint).
 
 - Ramps from 5 → 50 virtual users over 60 seconds

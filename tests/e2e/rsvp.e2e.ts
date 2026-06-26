@@ -1,6 +1,4 @@
 import { test, expect } from "@playwright/test";
-import path from "path";
-import fs from "fs";
 
 const EVENT_SLUG = "e2e-test-event";
 

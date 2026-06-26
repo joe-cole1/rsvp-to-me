@@ -14,6 +14,6 @@ For every bug fix merged to main:
 
 ## Index
 
-| File | Bug description | Fixed in |
-|------|----------------|----------|
-| (none yet) | | |
+| File       | Bug description | Fixed in |
+| ---------- | --------------- | -------- |
+| (none yet) |                 |          |

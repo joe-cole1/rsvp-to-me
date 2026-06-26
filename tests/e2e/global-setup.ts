@@ -95,8 +95,5 @@ export default async function globalSetup() {
   });
 
   // Write the raw token so the auth flow test can construct the verify URL
-  fs.writeFileSync(
-    path.join(__dirname, "fixtures", "magic-token.txt"),
-    rawToken
-  );
+  fs.writeFileSync(path.join(__dirname, "fixtures", "magic-token.txt"), rawToken);
 }
