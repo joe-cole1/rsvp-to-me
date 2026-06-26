@@ -55,7 +55,13 @@ function compressAvatar(file: File, maxW = 400, maxH = 400, quality = 0.85): Pro
   });
 }
 
-export default function ProfileClient({ initialProfile }: { initialProfile: ProfileData }) {
+export default function ProfileClient({
+  initialProfile,
+  channelConfig = { email: true, sms: true },
+}: {
+  initialProfile: ProfileData;
+  channelConfig?: { email: boolean; sms: boolean };
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -469,36 +475,38 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
               />
             </div>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textPrimary,
-                  marginBottom: "8px",
-                }}
-              >
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+15555555555"
-                style={{
-                  width: "100%",
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.inputRadius,
-                  padding: "12px 16px",
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "14px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
+            {channelConfig.sms && (
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color: APP_SHELL.textPrimary,
+                    marginBottom: "8px",
+                  }}
+                >
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+15555555555"
+                  style={{
+                    width: "100%",
+                    backgroundColor: APP_SHELL.inputBg,
+                    border: `1px solid ${APP_SHELL.inputBorder}`,
+                    borderRadius: APP_SHELL.inputRadius,
+                    padding: "12px 16px",
+                    color: APP_SHELL.textPrimary,
+                    fontSize: "14px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            )}
 
             <button
               type="submit"
@@ -530,107 +538,134 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           </div>
 
           {/* Section: Notification Preferences */}
-          <div
-            style={{
-              backgroundColor: APP_SHELL.cardBg,
-              border: `1px solid ${APP_SHELL.cardBorder}`,
-              borderRadius: APP_SHELL.cardRadius,
-              padding: "24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-            }}
-          >
-            <h3
-              style={{ fontSize: "18px", fontWeight: 700, color: APP_SHELL.textPrimary, margin: 0 }}
+          {(channelConfig.email || channelConfig.sms) && (
+            <div
+              style={{
+                backgroundColor: APP_SHELL.cardBg,
+                border: `1px solid ${APP_SHELL.cardBorder}`,
+                borderRadius: APP_SHELL.cardRadius,
+                padding: "24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "20px",
+              }}
             >
-              Notification Opt-Outs
-            </h3>
-            <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", margin: "0 0 8px 0" }}>
-              Control which notifications you wish to receive. Transactional messages (like login
-              magic links and RSVP confirmations) are always sent.
-            </p>
-
-            {/* Email Notifications Toggle */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>
-                  Email Blasts & Reminders
-                </div>
-                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
-                  Receive scheduled reminders and host blasts via email
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggleNotifications("email")}
+              <h3
                 style={{
-                  width: "50px",
-                  height: "26px",
-                  borderRadius: "13px",
-                  border: "none",
-                  backgroundColor: emailNotifications ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-                  cursor: "pointer",
-                  position: "relative",
-                  transition: "background-color 0.2s",
-                  padding: 0,
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  color: APP_SHELL.textPrimary,
+                  margin: 0,
                 }}
               >
-                <div
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    borderRadius: "50%",
-                    backgroundColor: "#fff",
-                    position: "absolute",
-                    top: "3px",
-                    left: emailNotifications ? "27px" : "3px",
-                    transition: "left 0.2s",
-                  }}
-                />
-              </button>
-            </div>
+                Notification Opt-Outs
+              </h3>
+              <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", margin: "0 0 8px 0" }}>
+                Control which notifications you wish to receive. Transactional messages (like login
+                magic links and RSVP confirmations) are always sent.
+              </p>
 
-            {/* SMS Notifications Toggle */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}>
-                  SMS Blasts & Reminders
-                </div>
-                <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}>
-                  Receive scheduled reminders and host blasts via SMS
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggleNotifications("sms")}
-                style={{
-                  width: "50px",
-                  height: "26px",
-                  borderRadius: "13px",
-                  border: "none",
-                  backgroundColor: smsNotifications ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-                  cursor: "pointer",
-                  position: "relative",
-                  transition: "background-color 0.2s",
-                  padding: 0,
-                }}
-              >
+              {/* Email Notifications Toggle */}
+              {channelConfig.email && (
                 <div
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    borderRadius: "50%",
-                    backgroundColor: "#fff",
-                    position: "absolute",
-                    top: "3px",
-                    left: smsNotifications ? "27px" : "3px",
-                    transition: "left 0.2s",
-                  }}
-                />
-              </button>
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                >
+                  <div>
+                    <div
+                      style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}
+                    >
+                      Email Blasts & Reminders
+                    </div>
+                    <div
+                      style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}
+                    >
+                      Receive scheduled reminders and host blasts via email
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleNotifications("email")}
+                    style={{
+                      width: "50px",
+                      height: "26px",
+                      borderRadius: "13px",
+                      border: "none",
+                      backgroundColor: emailNotifications
+                        ? APP_SHELL.accent
+                        : "rgba(255,255,255,0.1)",
+                      cursor: "pointer",
+                      position: "relative",
+                      transition: "background-color 0.2s",
+                      padding: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        backgroundColor: "#fff",
+                        position: "absolute",
+                        top: "3px",
+                        left: emailNotifications ? "27px" : "3px",
+                        transition: "left 0.2s",
+                      }}
+                    />
+                  </button>
+                </div>
+              )}
+
+              {/* SMS Notifications Toggle */}
+              {channelConfig.sms && (
+                <div
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                >
+                  <div>
+                    <div
+                      style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}
+                    >
+                      SMS Blasts & Reminders
+                    </div>
+                    <div
+                      style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}
+                    >
+                      Receive scheduled reminders and host blasts via SMS
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleNotifications("sms")}
+                    style={{
+                      width: "50px",
+                      height: "26px",
+                      borderRadius: "13px",
+                      border: "none",
+                      backgroundColor: smsNotifications
+                        ? APP_SHELL.accent
+                        : "rgba(255,255,255,0.1)",
+                      cursor: "pointer",
+                      position: "relative",
+                      transition: "background-color 0.2s",
+                      padding: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        backgroundColor: "#fff",
+                        position: "absolute",
+                        top: "3px",
+                        left: smsNotifications ? "27px" : "3px",
+                        transition: "left 0.2s",
+                      }}
+                    />
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </form>
 
         {/* Danger Zone */}

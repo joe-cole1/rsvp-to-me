@@ -7,6 +7,7 @@ import { PasswordGate } from "@/components/event/PasswordGate";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
 import { AppShell } from "@/components/ui/AppShell";
+import { getChannelConfig } from "@/lib/config";
 
 export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;
@@ -223,6 +224,8 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     event.theme?.cardOpacity
   );
 
+  const channelConfig = await getChannelConfig();
+
   return (
     <EventPage
       event={{ ...event, pendingRsvps } as Parameters<typeof EventPage>[0]["event"]}
@@ -231,6 +234,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       coverUploadEnabled={true}
       guestRsvp={guestRsvp ?? null}
       sessionUser={sessionUser}
+      channelConfig={channelConfig}
     />
   );
 }

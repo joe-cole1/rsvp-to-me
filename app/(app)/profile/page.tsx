@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUserProfile } from "@/app/actions/profile";
 import ProfileClient from "./ProfileClient";
+import { getChannelConfig } from "@/lib/config";
 
 export const metadata = {
   title: "Profile Settings | RSVP",
@@ -8,11 +9,11 @@ export const metadata = {
 };
 
 export default async function ProfilePage() {
-  const profile = await getUserProfile();
+  const [profile, channelConfig] = await Promise.all([getUserProfile(), getChannelConfig()]);
 
   if (!profile) {
     redirect("/auth/sign-in");
   }
 
-  return <ProfileClient initialProfile={profile} />;
+  return <ProfileClient initialProfile={profile} channelConfig={channelConfig} />;
 }
