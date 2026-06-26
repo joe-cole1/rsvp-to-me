@@ -88,22 +88,28 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **ESLint 10 Upgrade (blocked)**: `eslint` is held at `^9` because `eslint-plugin-react` v7 (bundled in `eslint-config-next@16.2.9`) calls `context.getFilename()` which was removed in ESLint 10. Unblock by upgrading to a `next` / `eslint-config-next` version whose bundled plugins declare ESLint ≥10 peer deps. Tracked as of 2026-06-23.
 - **Phone Number Encryption at Rest (M-2)**: Encrypt phone numbers deterministically at-rest using HMAC hashes for index lookups and AES-256-GCM for display.
 - **HTTP Request Logging & Distributed Tracing (G-1)**: Track request duration, method, and statuses using request IDs mapped to Pino structured logs.
-- **Graceful Shutdown Signal Handling (G-2)**: Handle SIGTERM signals in Next.js/Docker setup to allow in-flight requests to complete before exiting.
+- ~~**Graceful Shutdown Signal Handling (G-2)**~~ _(implemented — see Completed Milestones)_
 - **Separate Database Migration Stage (G-3)**: Extract Prisma migrations (`prisma migrate deploy`) out of application container startup to a separate init container or CI/CD deployment pipeline step. This is the long-term fix for CRIT-1 — a migration failure fails the _deployment_ rather than crash-looping the running app container.
-- **React Error Boundaries (G-4)**: Wrap core page components in error boundaries to prevent rendering crashes from taking down entire routes.
+- ~~**React Error Boundaries (G-4)**~~ _(implemented — see Completed Milestones)_
 - **Automated Database Backups (G-5)**: Implement cron backup service in `docker-compose.yml` to dump `prod.db` to S3 or secure local backups daily.
 - **Bot Protection / CAPTCHA (G-6)**: Add Cloudflare Turnstile bot checks to authentication magic link requests and guest registration forms.
 - **GDPR Compliance APIs (G-7)**: Implement export-data and account-deletion API actions for hosts and guests.
 - **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard.
 - **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.
 - **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
-- **Auth Fallback Alerts**: Alert users during login errors to reference the container console rescue log fallback.
+- ~~**Auth Fallback Alerts**~~ _(implemented — see Completed Milestones)_
 
 ---
 
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Defensive Infra — Graceful Shutdown, Error Boundaries & Auth Fallback Alerts
+
+- [x] **[G-2] Graceful Shutdown Signal Handling**: `lib/cron-scheduler.ts` now captures all `cron.schedule()` task references and exports `stopInProcessCron()`. `instrumentation.ts` registers `SIGTERM`/`SIGINT` handlers that call `stopInProcessCron()` and exit cleanly. Dockerfile CMD updated to `exec ./node_modules/.bin/next start` so SIGTERM lands on Node.js (not the shell). `docker-compose.yml` adds `stop_grace_period: 30s` to allow in-flight requests to drain before SIGKILL.
+- [x] **[G-4] React Error Boundaries**: Added `app/global-error.tsx` (catches root layout failures — renders own `<html>/<body>`), `app/error.tsx` (root-level route catch-all), and `app/(app)/error.tsx` (scoped boundary for authenticated app routes). All styled to match the dark APP_SHELL theme with a retry button and a home/dashboard link.
+- [x] **Auth Fallback Alerts**: `sendMagicLinkAction` in `app/actions/auth.ts` now wraps email/SMS delivery in try/catch and returns `{ error: "delivery_failed" }` on failure. `SignInForm.tsx` handles this with a dedicated UI state pointing self-hosters to `[auth:magic-link-fallback]` in the container logs.
 
 ### Admin: Create User
 

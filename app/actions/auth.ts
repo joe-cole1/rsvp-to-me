@@ -77,11 +77,16 @@ export async function sendMagicLinkAction(
     return { success: false, error: "email_not_found" };
   }
 
-  if (isPhone) {
-    const phone = identifier.trim().replace(/[\s\-().]/g, "");
-    await sendMagicLinkSms(phone, link);
-  } else {
-    await sendMagicLinkEmail(identifier.toLowerCase().trim(), link);
+  try {
+    if (isPhone) {
+      const phone = identifier.trim().replace(/[\s\-().]/g, "");
+      await sendMagicLinkSms(phone, link);
+    } else {
+      await sendMagicLinkEmail(identifier.toLowerCase().trim(), link);
+    }
+  } catch (err) {
+    console.error("[auth] Magic link delivery failed:", err);
+    return { success: false, error: "delivery_failed" };
   }
 
   return { success: true };

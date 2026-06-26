@@ -52,6 +52,7 @@ export default function SignInForm({
   const [identifier, setIdentifier] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [deliveryFailed, setDeliveryFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -61,11 +62,14 @@ export default function SignInForm({
     e.preventDefault();
     setError(null);
     setNotFound(false);
+    setDeliveryFailed(false);
     setLoading(true);
     const result = await sendMagicLinkAction(identifier, redirect);
     setLoading(false);
     if (result.error === "email_not_found") {
       setNotFound(true);
+    } else if (result.error === "delivery_failed") {
+      setDeliveryFailed(true);
     } else if (result.success) {
       setSubmitted(true);
     } else {
@@ -122,6 +126,62 @@ export default function SignInForm({
                 <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong>. Click it
                 to sign in — it expires in 15 minutes.
               </p>
+            </div>
+          ) : deliveryFailed ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
+              <h2
+                style={{
+                  color: APP_SHELL.textPrimary,
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  marginBottom: "8px",
+                }}
+              >
+                Delivery failed
+              </h2>
+              <p
+                style={{
+                  color: APP_SHELL.textSecondary,
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  marginBottom: "20px",
+                }}
+              >
+                We couldn&apos;t send your sign-in link. If you&apos;re self-hosting, check the
+                container logs — the link may be printed there as a fallback (look for{" "}
+                <code
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    borderRadius: "4px",
+                    padding: "1px 5px",
+                    fontSize: "12px",
+                    color: "rgba(255,255,255,0.7)",
+                  }}
+                >
+                  [auth:magic-link-fallback]
+                </code>
+                ).
+              </p>
+              <button
+                onClick={() => {
+                  setDeliveryFailed(false);
+                  setIdentifier("");
+                }}
+                style={{
+                  background: "transparent",
+                  border: `1px solid ${APP_SHELL.inputBorder}`,
+                  borderRadius: APP_SHELL.btnRadius,
+                  color: APP_SHELL.textSecondary,
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  padding: "10px 20px",
+                  fontFamily: "inherit",
+                }}
+              >
+                Try again
+              </button>
             </div>
           ) : notFound ? (
             <div style={{ textAlign: "center" }}>
