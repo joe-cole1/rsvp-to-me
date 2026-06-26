@@ -180,4 +180,3 @@ jobs:
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           PLAYWRIGHT_BASE_URL: http://localhost:3000
-
