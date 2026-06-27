@@ -31,6 +31,9 @@ COPY --from=builder /app/app/generated ./app/generated
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
+# Markdown sources rendered by the in-app Documentation portal (/docs).
+COPY --from=builder /app/docs ./docs
+COPY --from=builder /app/README.md ./README.md
 
 RUN mkdir -p /app/data
 
