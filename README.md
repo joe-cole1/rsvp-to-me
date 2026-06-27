@@ -6,23 +6,23 @@ A beautiful, self-hosted, social-first event and RSVP platform for personal even
 
 - **Beautiful Themes**: Dark, Soft, and Bold templates with custom accent colors and cover image uploads.
 - **Passwordless Authentication**: Login securely via email or SMS magic links — no passwords to remember.
-- **Guest Coordination**: Threaded comment sections, interactive polls, check-in options, co-hosts, and potluck claimed items tracking.
+- **Guest Coordination**: Threaded comment sections, interactive polls, co-hosts, and potluck claim tracking.
 - **Custom Questionnaires**: Add custom text, select, or checkbox questions directly to the RSVP form.
 - **Automated Reminders**: Schedule email or text reminders for guests 7 days, 1 day, or N hours before the event.
 - **Admin Control Panel**: Manage all users, events, custom invite codes, and system configurations easily.
 
 ---
 
-# Quick Start
+## Quick Start
 
-This section gets your **rsvp-to-me** installation up and running in under 10 steps. For the full guide, see [docs/installation.md](docs/installation.md).
+This section gets your **RSVP to Me** installation up and running in a few steps. For the full guide, see [docs/installation.md](docs/installation.md).
 
-## Prerequisites
+### Prerequisites
 
 - [Docker and Docker Compose](https://docs.docker.com/compose/install/) installed on your machine.
 - A stable URL or IP address (e.g., `http://localhost:3000` or `https://rsvp.yourdomain.com`) where you and your guests can reach the application.
 
-## Step-by-Step Setup
+### Step-by-Step Setup
 
 1. **Get the files**
    Open a terminal and run the following command to download the required deployment files:
@@ -45,7 +45,8 @@ This section gets your **rsvp-to-me** installation up and running in under 10 st
      ```
 
 3. **Configure the minimum required values**
-   Open the `.env` file in your preferred text editor (like Notepad on Windows or Nano on Linux/Mac) and configure these four variables:
+   Open the `.env` file in your preferred text editor (like Notepad on Windows or Nano on Linux/Mac) and configure these variables:
+   - `POSTGRES_PASSWORD` and `REDIS_PASSWORD`: Strong passwords for the bundled database and cache containers. Docker Compose uses these to run PostgreSQL/Redis and to build the app's connection URLs.
    - `SESSION_SECRET`: A secure, random string (at least 32 characters) used to encrypt cookies. You can generate one with the command `openssl rand -base64 32` or via [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32).
    - `NEXT_PUBLIC_APP_URL`: The URL where guests will visit your app (e.g. `http://localhost:3000` or `https://rsvp.yourdomain.com`). No trailing slash.
    - `INITIAL_ADMIN_EMAIL`: Your email address. When you log in with this email, your account is promoted to Administrator.
@@ -79,12 +80,12 @@ This section gets your **rsvp-to-me** installation up and running in under 10 st
 
 For in-depth explanations of specific features, configurations, and operations, refer to the guides below:
 
-| Guide                                            | Description                                                                                  |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| [Installation Guide](docs/installation.md)       | Full setup walkthrough, Docker setup, data backups, and HTTPS reverse proxies.               |
-| [Configuration Reference](docs/configuration.md) | Comprehensive list and explanation of every environment variable.                            |
-| [Email Setup Guide](docs/email.md)               | Setting up SMTP (Gmail, Outlook, SES, etc.) or Cloudflare Email Routing.                     |
-| [SMS Setup Guide](docs/sms.md)                   | Connecting Twilio to enable text message logins, invitations, and blasts.                    |
-| [Admin Panel Guide](docs/admin.md)               | Managing user accounts, event moderation, custom invite codes, and system configurations.    |
-| [Feature Reference](docs/features.md)            | Detailed walkthrough of RSVP custom fields, potlucks, polls, co-hosts, check-in, and themes. |
-| [Safe Upgrading Guide](docs/upgrading.md)        | Instructions on updating to new versions safely without losing any database data.            |
+| Guide                                            | Description                                                                               |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| [Installation Guide](docs/installation.md)       | Full setup walkthrough, Docker setup, data backups, and HTTPS reverse proxies.            |
+| [Configuration Reference](docs/configuration.md) | Comprehensive list and explanation of every environment variable.                         |
+| [Email Setup Guide](docs/email.md)               | Setting up SMTP (Gmail, Outlook, SES, etc.) or Cloudflare Email Routing.                  |
+| [SMS Setup Guide](docs/sms.md)                   | Connecting Twilio to enable text message logins, invitations, and blasts.                 |
+| [Admin Panel Guide](docs/admin.md)               | Managing user accounts, event moderation, custom invite codes, and system configurations. |
+| [Feature Reference](docs/features.md)            | Detailed walkthrough of RSVP custom fields, potlucks, polls, co-hosts, and themes.        |
+| [Safe Upgrading Guide](docs/upgrading.md)        | Instructions on updating to new versions safely without losing any database data.         |

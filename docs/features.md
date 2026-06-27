@@ -1,27 +1,27 @@
 # Feature Reference
 
-This document describes every user-facing feature of **rsvp-to-me** from the perspective of an event host.
+This guide walks through every feature of **RSVP to Me** from a host's point of view — in plain language, no technical background needed.
 
 ---
 
 ## Table of Contents
 
-1. [Authentication and Accounts](#authentication-and-accounts)
-2. [Dashboard](#dashboard)
-3. [Creating an Event](#creating-an-event)
-4. [Event Page & Inline Editing](#event-page--inline-editing)
-5. [Themes and Cover Images](#themes-and-cover-images)
-6. [Event Info Sections](#event-info-sections)
-7. [RSVP Management](#rsvp-management)
-8. [Custom Questionnaires](#custom-questionnaires)
-9. [Guest List Administration](#guest-list-administration)
-10. [Invitations](#invitations)
-11. [Event Updates & Guest Blasts](#event-updates--guest-blasts)
-12. [Automated Reminders](#automated-reminders)
-13. [Comments Board](#comments-board)
-14. [Polls](#polls)
-15. [Potluck Coordination](#potluck-coordination)
-16. [Guest Check-In](#guest-check-in)
+1. [New Host Quickstart](#new-host-quickstart)
+2. [Authentication and Accounts](#authentication-and-accounts)
+3. [Dashboard](#dashboard)
+4. [Creating an Event](#creating-an-event)
+5. [Event Page & Inline Editing](#event-page--inline-editing)
+6. [Themes and Cover Images](#themes-and-cover-images)
+7. [Event Info Sections](#event-info-sections)
+8. [RSVP Management](#rsvp-management)
+9. [Custom Questionnaires](#custom-questionnaires)
+10. [Guest List](#guest-list)
+11. [Invitations](#invitations)
+12. [Event Updates & Guest Blasts](#event-updates--guest-blasts)
+13. [Automated Reminders](#automated-reminders)
+14. [Comments Board](#comments-board)
+15. [Polls](#polls)
+16. [Potluck Coordination](#potluck-coordination)
 17. [Co-Hosting](#co-hosting)
 18. [Event Settings and Visibility](#event-settings-and-visibility)
 19. [Activity Log](#activity-log)
@@ -30,76 +30,94 @@ This document describes every user-facing feature of **rsvp-to-me** from the per
 
 ---
 
+## New Host Quickstart
+
+Here's the typical flow from start to finish:
+
+1. **Sign in.** Enter your email on the Sign In page and click the magic link that arrives in your inbox — no password needed.
+2. **Create your event.** From the Dashboard, click **New Event** and fill in the title, date, time, and location. Your event goes live immediately at its own web address.
+3. **Make it yours.** Open the event page, click directly on the title, description, or location to edit them in place, pick a theme, and upload a cover photo.
+4. **Invite guests.** From the guest management area, send email or text invitations, or just share the event link.
+5. **Manage RSVPs.** Watch responses roll in on the guest list. Approve guests if you've turned on approval, and answer comments or polls.
+6. **Send reminders and updates.** RSVP to Me can automatically remind guests as the date approaches, and you can send your own update blasts any time.
+
+The rest of this guide explains each of these in detail.
+
+---
+
 ## Authentication and Accounts
 
 ### Magic Link Login
 
-rsvp-to-me uses passwordless **magic links** for logins.
+RSVP to Me uses passwordless **magic links** to sign in.
 
-1. Enter your email address or phone number (if SMS is active) on the Sign In page.
-2. The server generates a unique one-time token and emails or texts it to you.
-3. Click the link to log in.
+1. Enter your email address (or phone number, if SMS is enabled) on the Sign In page.
+2. The server generates a unique one-time link and emails or texts it to you.
+3. Click the link to sign in.
 
-_Expirations:_ Magic links expire after 15 minutes. Once clicked, they are marked as used and cannot be reused.
+Magic links expire after **15 minutes**, and each one can only be used once.
 
-### Session Lifespans
+### Session Length
 
-Active login sessions last for **7 days**. After 7 days, your session cookie expires and you will need to request a new magic link.
+Once you're signed in, your session lasts **7 days**. After that, you'll request a new magic link to sign in again.
 
 ### Signing Out
 
-Click your profile avatar in the navigation bar and select **Sign Out**. This deletes your browser cookie and invalidates the session in the database immediately.
+Click your profile avatar in the navigation bar and choose **Sign Out**. This clears your browser cookie and ends the session immediately.
 
 ### User Roles
 
-- `GUEST`: Standard account. Created automatically when a guest RSVPs. Can comment, claim potlucks, and vote. Cannot host events.
-- `HOST`: Event organizer. Can create and manage events, view visitor activity, and invite co-hosts.
-- `ADMIN`: Global moderator. Can access `/admin`, manage all users, and modify system settings.
+- **Guest**: a standard account, created automatically the first time someone RSVPs. Guests can RSVP, comment, claim potluck items, and vote in polls, but can't host events.
+- **Host**: an event organizer. Hosts create and manage events, see guest activity, and invite co-hosts.
+- **Admin**: a system administrator. Admins can open the Admin Panel, manage all users, and change system settings. See the [Admin Panel Guide](admin.md).
 
 ---
 
 ## Dashboard
 
-After signing in, your Dashboard page (`/dashboard`) highlights:
+After signing in, your Dashboard (`/dashboard`) shows:
 
-- **Upcoming events you're hosting**: Active events that haven't occurred yet.
-- **Past events you hosted**: Archived events for record reference.
-- **Events you're attending**: Public or unlisted events where you have submitted a "Going" or "Maybe" RSVP.
-- **Pending RSVP Queue**: Highlight alerts showing guests awaiting approval.
+- **Upcoming events you're hosting** — events that haven't happened yet.
+- **Past events you hosted** — for reference.
+- **Events you're attending** — events where you've RSVP'd "Going" or "Maybe".
+- **Pending approvals** — alerts when guests are waiting for you to approve their RSVP.
 
 ---
 
 ## Creating an Event
 
-Click **New Event** on the Dashboard.
+Click **New Event** on the Dashboard, then fill in:
 
-### Core Fields
-
-- **Event Title**: Required.
-- **Description**: Freeform text for your event details.
-- **Start Date & Time**: Required.
-- **End Date & Time**: Optional.
-- **Timezone**: Defaults to `America/New_York`. Guests will see the event times adjusted for this timezone.
+- **Event Title** (required)
+- **Description** — freeform details about your event.
+- **Start Date & Time** (required)
+- **End Date & Time** (optional)
+- **Timezone** — defaults to `America/New_York`; guests see times in this timezone.
 - **Location Type**:
-  - `PHYSICAL`: Street address.
-  - `VIRTUAL`: Link to Google Meet, Zoom, etc.
-  - `TBD`: Displays "Location TBD".
-- **Status**:
-  - `DRAFT`: Visible only to the host and co-hosts.
-  - `PUBLISHED`: Open for RSVPs.
-  - `CANCELLED`: RSVPs closed; event marked as cancelled.
+  - **Physical** — a street address.
+  - **Virtual** — a link to Google Meet, Zoom, etc.
+  - **TBD** — displays "Location TBD".
+
+When you create an event, it is **published right away** and open for RSVPs at its own web address. You can later cancel an event from its settings, which closes RSVPs and marks it cancelled.
 
 ---
 
 ## Event Page & Inline Editing
 
-Once published, your event page is accessible at `/e/[slug]` (e.g. `/e/housewarming-party`).
+Your event lives at `/e/[slug]` (for example, `/e/housewarming-party`).
 
-### Inline Editor (WYSIWYG)
+### Inline Editor
 
-If you view your own event page while logged in, you can click directly on details (title, description, location) to edit them in-place. Changes are auto-saved.
+When you view your own event while signed in, you can click directly on certain details to edit them in place — changes save automatically. The fields you can edit inline are:
 
-- To view the page exactly as a guest sees it, add `?preview=1` to the end of the URL.
+- **Title**
+- **Description**
+- **Location name** and **address**
+- **Virtual event link**
+
+Everything else (date and time, theme, RSVP rules, visibility, polls, potluck, and so on) is changed from the event's **Settings** page.
+
+To preview the page exactly as a guest sees it, add `?preview=1` to the end of the URL.
 
 ---
 
@@ -107,30 +125,34 @@ If you view your own event page while logged in, you can click directly on detai
 
 ### Base Themes
 
-- **Dark**: Deep background with high-contrast text.
-- **Soft**: Pastel tones and low contrast.
-- **Bold**: High contrast, vivid layouts.
+Choose a base look for your page:
+
+- **Dark & Moody** — deep background with high-contrast text.
+- **Soft & Dreamy** — pastel tones and gentle contrast.
+- **Bold & Colorful** — vivid, high-contrast layouts.
+
+Your admin can also publish additional **theme presets** that appear in the theme picker.
 
 ### Accent Color
 
-A color picker allows you to set the color of buttons, links, and active elements.
+A color picker sets the color of buttons, links, and highlighted elements.
 
 ### Cover Image
 
 Upload a cover photo:
 
 - Supported formats: JPEG, PNG, GIF, WebP.
-- File size limit: 8MB.
-- **Client-Side Compression:** To speed up uploads, your browser automatically compresses and resizes images to a maximum of 1600×900 pixels at JPEG 85% quality before sending them to the server.
+- Maximum file size: 8 MB.
+- To keep uploads fast, your browser automatically resizes large images (to a maximum of 1600×900) before sending them.
 
 ---
 
 ## Event Info Sections
 
-Info sections display details (parking, dress code, links) as chips or tags on the event page.
+Info sections show short details (parking, dress code, links) as chips on the event page.
 
-- **Icons:** Choose from a set of icons (e.g. shirt, utensils, parking, link, phone).
-- **Ordering:** Drag and drop chips to reorder them.
+- **Icons:** pick from a set (shirt, utensils, parking, link, phone, and more).
+- **Ordering:** drag and drop chips to reorder them.
 
 ---
 
@@ -138,79 +160,79 @@ Info sections display details (parking, dress code, links) as chips or tags on t
 
 ### RSVP Statuses
 
-Guests can choose **Going**, **Maybe**, or **No**.
+Guests can respond **Going**, **Maybe**, or **No**. The "Maybe" option can be turned off per event in settings.
 
-- The "Maybe" option can be disabled per-event in settings.
+### RSVP Approval
 
-### RSVP Approval Workflow
+When **Approval Required** is on, new guest RSVPs wait in a pending state until you **Approve** or **Decline** them from the guest list. (Internally, a pending guest simply hasn't been approved yet — their response is still recorded.) The guest is notified of your decision.
 
-When **Approval Required** is toggled on, guest RSVPs are placed in a "Pending" queue. Hosts must click **Approve** or **Decline** in the Guest List. The guest is then notified of the decision.
+### Capacity Limits
 
-### Capacity Limits & Waitlists
-
-Set a maximum capacity for "Going" guests. Once reached, new guests are placed on a waitlist. If a spot opens up, waitlisted guests can be approved manually.
+Set a maximum number of "Going" guests. Once that limit is reached, additional guests can no longer mark themselves "Going" — they'll see the event is at capacity. (Guests can still respond "Maybe" or "No".) To make room, raise the capacity in settings.
 
 ### Plus-Ones
 
 - Allow or disallow plus-ones.
 - Set a maximum plus-one count per guest.
-- Optionally require names for all plus-ones.
+- Optionally require names for plus-ones.
 
-### Guest Edit Tokens
+Plus-ones are recorded as a count attached to the main guest's RSVP (and share that guest's status) — they aren't separate accounts and don't have their own contact details.
 
-Guests do not need to log in to change their RSVP. Every RSVP confirmation email contains a unique link containing an `editToken`. Clicking this allows guests to update their status or answers at any time.
+### Guest Edit Links
 
-### Password Protection
+Guests don't need to sign in to change their RSVP. Every confirmation email includes a private link unique to that guest; clicking it lets them update their status or answers at any time.
 
-You can assign a password to an event. Guests must enter it to view the page details.
+### Password Protection (Private events)
 
-- **How it works:** Once a guest enters the correct password, the application stores a signed cryptographic cookie in their browser (`rsvp-unlocked-[slug]`). The password is not exposed in the URL query string.
+For a **Private** event, you can set a password that guests must enter to view the page. Once a guest enters the correct password, the event stays unlocked in their browser for a while, and the password never appears in the web address.
 
 ---
 
 ## Custom Questionnaires
 
-Add custom questions to your RSVP form.
+Add your own questions to the RSVP form.
 
-- **Field Types:** Text (single-line), Textarea (multi-line), Select (dropdown list), and Checkbox.
-- **Validation:** Mark questions as required or optional.
-- **Reordering:** Drag questions to change their order on the RSVP form.
+- **Field types:** single-line text, multi-line text, dropdown, and checkbox.
+- **Required or optional:** mark each question as needed.
+- **Reordering:** drag questions to change their order on the form.
 
 ---
 
-## Guest List Administration
+## Guest List
 
-The Guest List page (`/e/[slug]/guests`) allows you to manage attendees.
+The Guest List page (`/e/[slug]/guests`) is where you manage attendees.
 
 ### Filters
 
 Filter guests by status: Going, Maybe, No, Invited, or Awaiting Approval.
 
-### Visibility Settings
+### Who Can See the Guest List
 
-Control who can see the Guest List:
+Control guest-list visibility in settings:
 
-- **All guests**: Anyone can see the list.
-- **Going guests only**: Only guests marked "Going" see the list.
-- **Host only**: Hidden from guests; visible only to the host and co-hosts.
+- **Everyone can see** — any visitor can view the list.
+- **Going guests only** — only guests marked "Going" see the list.
+- **Host only** — hidden from guests; visible to you and your co-hosts.
 
-### Guest Sharing
+### Showing Guest Names
 
-Toggle whether guests' names are shown on the event page. When disabled, guests only see their own RSVP.
+A separate toggle controls whether guests' names appear on the event page itself. When off, each guest only sees their own RSVP.
 
 ### CSV Export
 
-Download a complete guest spreadsheet including names, emails, phone numbers, RSVP status, check-in time, and questionnaire answers (written to separate columns).
+Download a guest spreadsheet. The export includes these columns: **Name, Email, RSVP Status, Plus-Ones, Approved, and RSVP Date**.
 
 ---
 
 ## Invitations
 
-Send invitations directly from the Guest Management page.
+Invite guests directly from the guest management area:
 
-- **Email Invites:** Enter guest emails to send an invitation link (shown when email is enabled).
-- **SMS Invites:** Enter guest phone numbers to send a text invitation (shown when SMS is enabled and Twilio is active).
-- **History:** The table tracks when invites were sent and if the guest has responded.
+- **Email invites:** enter guest emails to send invitation links (shown when email is enabled).
+- **SMS invites:** enter guest phone numbers to send text invitations (shown when SMS is enabled).
+- **History:** the table tracks when invites were sent and whether the guest has responded.
+
+> **Let guests invite friends:** For **Private** events, you can turn on an option that lets your invited guests bring others by sending their own invitations. This option is only available on private events.
 
 ---
 
@@ -218,96 +240,86 @@ Send invitations directly from the Guest Management page.
 
 Send messages to your guests:
 
-- **Recipients:** Filter by Going, Maybe, or both.
-- **Delivery Channels:** Send via Email, SMS, or both (only channels enabled on this server are shown).
-- **Log:** All sent blasts are archived in the event's activity log.
+- **Recipients:** filter by Going, Maybe, or both.
+- **Delivery channels:** send via Email, SMS, or both (only the channels enabled on this server are shown).
+- **Log:** every blast is recorded in the event's activity log.
 
-> When both email and SMS are disabled server-wide, the blast panel is hidden and the server operates in pure RSVP collection mode — guests fill out forms and hosts see a guest list, but no outbound messages are sent to guests.
+> If both email and SMS are turned off server-wide, the blast panel is hidden and the app runs in pure RSVP-collection mode — guests fill out forms and hosts see a guest list, but no messages are sent.
 
 ---
 
 ## Automated Reminders
 
-The in-process cron scheduler automatically triggers reminders.
+RSVP to Me automatically sends reminders as your event approaches.
 
-### Reminder Types
+- **Email reminders:** one week before, one day before, and a number of hours before that you choose.
+- **SMS reminders:** one week before, one day before, and your chosen hours before (requires Twilio).
+- **Unresponded nudge:** a few days before the event, a gentle nudge to guests who were invited but haven't responded yet.
 
-- **Email:** 7 days before, 1 day before, and N hours before (you set N).
-- **SMS:** 7 days before, 1 day before, and N hours before (requires Twilio).
-- **Unresponded Nudge:** Send an email nudge to guests who have not responded.
-
-_Note:_ User profile settings (e.g. toggling off SMS alerts) will override event-level reminder settings.
+Each reminder type can be toggled on or off in the event's settings. A guest's own notification preferences (for example, turning off SMS) take precedence over event reminders.
 
 ---
 
 ## Comments Board
 
-A nested, threaded comment section at the bottom of the event page.
+A threaded comment section sits at the bottom of the event page.
 
+- Guests and hosts can post and reply.
 - Hosts can delete any comment or reply.
-- Toggles let you hide or show comment timestamps.
+- A setting lets you show or hide comment timestamps.
 
 ---
 
 ## Polls
 
-Gather feedback from guests (e.g., voting on dates or food).
+Gather input from guests (for example, voting on a date or the menu):
 
-- **Types:** Single-choice vs Multi-choice.
-- **Write-ins:** Allow guests to add their own voting options.
-- **Anonymity:** Hide or show voter names.
-- **Locking:** Lock the poll to freeze voting.
+- **Types:** single-choice or multi-choice.
+- **Write-ins:** optionally let guests add their own options.
+- **Anonymity:** show or hide voter names.
+- **Locking:** lock a poll to freeze voting.
 
 ---
 
 ## Potluck Coordination
 
-Coordinate what guests are bringing:
+Coordinate what guests bring:
 
-- **Quantity:** Set a required quantity (e.g., 3 bottles of wine).
-- **Multi-Claim:** Multiple guests can claim a portion of a required item until the total quantity is met.
-- **Claims:** Guests claim or unclaim items directly on the event page.
-
----
-
-## Guest Check-In
-
-Mark guests as they arrive on event day:
-
-- **Check-in Button:** Click **Check In** next to a guest's name on the mobile-friendly guest list.
-- **Stats:** Displays real-time check-in counts (e.g., "12 / 30 checked in").
-- **Uncheck:** Click the button again to undo a check-in.
+- **Quantity:** set a required amount (e.g., 3 bottles of wine).
+- **Multi-claim:** several guests can each claim part of an item until the total is met.
+- **Claims:** guests claim or release items right on the event page.
 
 ---
 
 ## Co-Hosting
 
-Share event management duties:
+Share the work of running an event:
 
-- **Adding Co-Hosts:** Search for any registered user by name/email to add them.
-- **Permissions:** Co-hosts can manage guests, approve RSVPs, send blasts, edit settings, and check in guests.
-- **Restrictions:** Co-hosts cannot delete the event or remove other co-hosts.
+- **Adding co-hosts:** search for any registered user by name or email to add them.
+- **Permissions:** co-hosts can manage guests, approve RSVPs, send blasts, and edit settings.
+- **Restrictions:** co-hosts cannot delete the event or remove other co-hosts.
 
 ---
 
 ## Event Settings and Visibility
 
-### Visibility Modes
+Choose who can find your event:
 
-- **Public**: Anyone can view the event.
-- **Unlisted**: The event page is accessible only via its direct URL link.
-- **Private**: Accessible only to hosts and guests who have been explicitly invited or added.
+- **Public** — anyone can view it, and it can appear on the public event feed.
+- **Unlisted** — viewable only by people with the direct link.
+- **Private** — viewable only by hosts and invited guests; supports an optional password and the "let guests invite friends" option.
 
 ---
 
 ## Activity Log
 
-The Activity Log is a host-only timeline displayed on the event management page. It tracks:
+The Activity Log is a host-only timeline on the event management page. It records things like:
 
-- New RSVPs and status updates.
-- Edits made to event details.
-- Sent invitations and guest updates.
-- Guest check-in times.
+- New RSVPs and status changes.
+- New comments and replies.
+- Poll activity (votes, new options, locking).
+- Potluck claims and releases.
+- Invitations and update blasts you've sent.
 
 ---
 
@@ -315,27 +327,17 @@ The Activity Log is a host-only timeline displayed on the event management page.
 
 Manage your profile at `/profile`:
 
-- **Details:** Edit display name and upload a profile picture.
-- **Contact Info Updates:**
-  - Changing email sends a verification link to the **new** address.
-  - Changing phone number sends a verification code to the **new** number.
-- **Notification Toggles:** Globally enable or disable Email or SMS alerts.
+- **Details:** edit your display name and upload a profile picture.
+- **Contact info:** changing your email sends a verification link to the new address; changing your phone sends a verification code to the new number.
+- **Notification preferences:** turn email or SMS notifications on or off, and (when both channels are available) choose whether you'd like to be reached by **Email**, **SMS**, or **Both**.
 
 ---
 
 ## In-App Documentation
 
-The project's guides are available directly inside the app at `/docs` — open the
-profile menu (top-right avatar) and choose **📚 Documentation**. The portal renders
-this documentation suite live from the running deployment, so it always matches your
-installed version.
+These guides are available directly inside the app at `/docs` — open the profile menu (top-right avatar) and choose **📚 Documentation**. The portal renders this documentation live from the running deployment, so it always matches your installed version.
 
-- **Category navigation:** Guides are grouped into _Getting Started_, _Configuration_,
-  _Usage_, and _Maintenance_ in a sidebar (a slide-in drawer on mobile).
-- **Search:** Filter guides by title or full text from the search box.
-- **Access:** The portal is available to hosts and admins. Hosts see the user-facing
-  guides (this Feature Reference and the project overview); operator/infrastructure
-  guides (installation, configuration, email, SMS, admin, upgrading) are visible to
-  **admins only**. Guest accounts do not see the portal.
-- Code blocks are syntax-highlighted, tables render, and cross-links between guides
-  navigate within the portal.
+- **Category navigation:** guides are grouped into _Getting Started_, _Configuration_, _Usage_, and _Maintenance_ in a sidebar (a slide-in drawer on mobile).
+- **Search:** filter guides by title or full text.
+- **Access:** the portal is open to hosts and admins. Hosts see the user-facing guides (this Feature Reference and the project overview); operator guides (installation, configuration, email, SMS, admin, upgrading) are admin-only. Guest accounts don't see the portal.
+- Code blocks are syntax-highlighted, tables render, and cross-links between guides open within the portal.

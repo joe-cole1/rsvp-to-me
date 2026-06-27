@@ -1,6 +1,6 @@
 # Configuration Reference
 
-All configurable settings for **rsvp-to-me** live in a single `.env` file in the same directory as your `docker-compose.yml`. This guide explains every variable, what it controls, and how to configure it.
+All configurable settings for **RSVP to Me** live in a single `.env` file in the same directory as your `docker-compose.yml`. This guide explains every variable, what it controls, and how to configure it.
 
 ---
 
@@ -214,14 +214,14 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 
 ## Email Configuration
 
-rsvp-to-me uses email for magic link logins, notifications, and guest invites. If no email is configured, magic links will be printed to container logs (useful for local development).
+RSVP to Me uses email for magic link logins, notifications, and guest invites. If no email is configured, magic links will be printed to container logs (useful for local development).
 
-You must configure **exactly one** email provider. If multiple options are defined, priority goes to the Admin Panel database values, followed by Cloudflare Workers, then Cloudflare REST API, and finally SMTP.
+You configure your email provider either in the **Admin Panel** (recommended) or with environment variables. If the Admin Panel has an email provider set, that choice always wins. Otherwise the app auto-detects a provider from your environment variables in this order: **Cloudflare Worker** (when `CLOUDFLARE_WORKER_EMAIL_URL` is set) → **SMTP** (when `SMTP_HOST` is set) → **console logging**. The **Cloudflare REST API** provider is available only by selecting it in the Admin Panel (it is not auto-detected from environment variables).
 
 ### EMAIL_FROM
 
 - **Required**: No
-- **Default**: `"RSVP to Me <noreply@yourdomain.com>"`
+- **Default**: `"RSVP to Me <noreply@example.com>"` (set your own address — the default is a placeholder)
 - **Type**: Address string
 
 **What it does:** The address shown in the "From" header of sent emails.

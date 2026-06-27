@@ -3838,8 +3838,8 @@ function extractRawEmail(fromStr) {
                         margin: 0,
                       }}
                     >
-                      Instantly trigger a database snapshot. SQLite creates a file copy, while
-                      PostgreSQL executes a <code>pg_dump</code> database extract.
+                      Instantly trigger a database snapshot using <code>pg_dump</code>, saved to the
+                      backups volume.
                     </p>
                   </div>
 
