@@ -14,6 +14,8 @@ const {
   mockRsvpUpdate,
   mockRsvpDelete,
   mockCommentCreate,
+  mockCommentFindFirst,
+  mockUserFindUnique,
   mockInfoSectionCreate,
   mockInfoSectionFindUnique,
   mockInfoSectionDelete,
@@ -58,6 +60,8 @@ const {
   mockRsvpUpdate: vi.fn(),
   mockRsvpDelete: vi.fn(),
   mockCommentCreate: vi.fn(),
+  mockCommentFindFirst: vi.fn(),
+  mockUserFindUnique: vi.fn(),
   mockInfoSectionCreate: vi.fn(),
   mockInfoSectionFindUnique: vi.fn(),
   mockInfoSectionDelete: vi.fn(),
@@ -97,7 +101,7 @@ const {
 vi.mock("@/lib/db", () => ({
   db: {
     event: { findUnique: mockEventFindUnique, update: mockEventUpdate },
-    user: { findFirst: mockUserFindFirst, create: mockUserCreate },
+    user: { findFirst: mockUserFindFirst, create: mockUserCreate, findUnique: mockUserFindUnique },
     rSVP: {
       create: mockRsvpCreate,
       count: mockRsvpCount,
@@ -107,7 +111,7 @@ vi.mock("@/lib/db", () => ({
       update: mockRsvpUpdate,
       delete: mockRsvpDelete,
     },
-    comment: { create: mockCommentCreate },
+    comment: { create: mockCommentCreate, findFirst: mockCommentFindFirst },
     eventInfoSection: {
       create: mockInfoSectionCreate,
       findUnique: mockInfoSectionFindUnique,
@@ -580,22 +584,44 @@ describe("declineRsvp", () => {
 // ── addComment ────────────────────────────────────────────────────────────────
 
 describe("addComment", () => {
+  // SEC-17: addComment now authorizes the author and derives the stored name
+  // server-side, so every case needs an explicit session + event relationship.
+  const HOST_SESSION = { userId: HOST_ID, email: "host@example.com", role: "HOST" };
+
   beforeEach(() => {
-    mockEventFindUnique.mockResolvedValue({ slug: EVENT_SLUG, commentsEnabled: true });
+    mockGetSession.mockResolvedValue(HOST_SESSION);
+    mockEventFindUnique.mockResolvedValue({
+      slug: EVENT_SLUG,
+      commentsEnabled: true,
+      hostId: HOST_ID,
+      coHosts: [],
+    });
+    mockUserFindUnique.mockResolvedValue({ name: "Joe Host", email: "host@example.com" });
+    mockCommentFindFirst.mockResolvedValue({ id: "parent-1" });
     mockCommentCreate.mockResolvedValue({ id: "comment-1" });
   });
 
-  it("creates a comment and returns success with its id", async () => {
+  it("lets the host comment, deriving the stored name from the user record", async () => {
     const result = await addComment({
       eventId: EVENT_ID,
-      guestName: "Alice",
+      guestName: "spoofed name",
       body: "See you there!",
     });
     expect(result).toEqual({ success: true, id: "comment-1" });
+    expect(mockCommentCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ guestName: "Joe Host", rsvpId: null }),
+      })
+    );
   });
 
   it("returns error when comments are disabled", async () => {
-    mockEventFindUnique.mockResolvedValue({ slug: EVENT_SLUG, commentsEnabled: false });
+    mockEventFindUnique.mockResolvedValue({
+      slug: EVENT_SLUG,
+      commentsEnabled: false,
+      hostId: HOST_ID,
+      coHosts: [],
+    });
     const result = await addComment({ eventId: EVENT_ID, guestName: "Alice", body: "Hi" });
     expect(result).toEqual({ success: false, error: "Comments disabled" });
     expect(mockCommentCreate).not.toHaveBeenCalled();
@@ -607,11 +633,14 @@ describe("addComment", () => {
     expect(result).toEqual({ success: false, error: "Comments disabled" });
   });
 
-  it("passes parentId when creating a reply", async () => {
-    await addComment({ eventId: EVENT_ID, guestName: "Bob", body: "Same!", parentId: "comment-1" });
+  it("passes parentId after verifying the parent belongs to this event", async () => {
+    await addComment({ eventId: EVENT_ID, guestName: "Bob", body: "Same!", parentId: "parent-1" });
+    expect(mockCommentFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "parent-1", eventId: EVENT_ID } })
+    );
     expect(mockCommentCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ parentId: "comment-1" }),
+        data: expect.objectContaining({ parentId: "parent-1" }),
       })
     );
   });

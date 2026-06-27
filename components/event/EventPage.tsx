@@ -62,6 +62,7 @@ import {
   DollarSign,
   Wallet,
   Settings,
+  ShieldAlert,
 } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import {
@@ -1437,6 +1438,7 @@ type GuestRsvp = {
   status: "GOING" | "MAYBE" | "NO" | "INVITED";
   hasAnswers: boolean;
   responded: boolean;
+  approved: boolean;
 };
 
 export function EventPage({
@@ -1542,6 +1544,39 @@ export function EventPage({
   const [guestEditToken] = useState<string | null>(guestRsvp?.editToken ?? null);
   const rsvpStatus = guestRsvp?.status ?? null;
   const rsvpDone = !!guestRsvp?.id && guestRsvp.responded;
+  // SEC-17 / participation gating, mirroring the server rules.
+  // Polls & potluck need an APPROVED RSVP (host/co-host/admin excepted).
+  // Comments are looser: a pending RSVP still can't comment, but a logged-in
+  // user with NO RSVP may comment on a PUBLIC/UNLISTED event (it's publicly
+  // viewable) — only PRIVATE events require a host/guest relationship.
+  const isAdmin = sessionUser?.role === "ADMIN";
+  const isApprovedGuest = !!guestRsvpId && (guestRsvp?.approved ?? false);
+  const isPendingGuest = !!guestRsvpId && !(guestRsvp?.approved ?? false);
+  // An admin browsing an event they have no relationship to may still act, but
+  // is shown a notice that they are doing so without an RSVP.
+  const isAdminBypass = isAdmin && !isHost && !guestRsvpId;
+  // A logged-in viewer with no RSVP may comment on public/unlisted events
+  // (admins anywhere); blocked on private events.
+  const isLoggedInViewer = !!sessionUser && !guestRsvpId && !isHost;
+  const canViewerComment = isLoggedInViewer && (isAdmin || event.visibility !== "PRIVATE");
+  // Display name the current user authors content under, matching the value the
+  // server derives (RSVP name for approved guests, user record otherwise).
+  const selfAuthorName =
+    isApprovedGuest && !isHost && !isAdmin
+      ? guestName || "Guest"
+      : sessionUser?.name || sessionUser?.email || guestName || "Guest";
+  // Shared notice shown to pending guests on the comment, poll, and potluck
+  // sections — they may view the event but cannot act until the host approves.
+  const pendingNoticeStyle: React.CSSProperties = {
+    marginBottom: "16px",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    background: "rgba(148,163,184,0.1)",
+    border: "1px solid rgba(148,163,184,0.25)",
+    fontSize: "12.5px",
+    color: t.textMuted,
+    lineHeight: 1.5,
+  };
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
     section: EventData["infoSections"][number];
@@ -1703,7 +1738,7 @@ export function EventPage({
     startTransition(async () => {
       const result = await addComment({
         eventId: event.id,
-        guestName: guestName || "Guest",
+        guestName: selfAuthorName,
         body: commentText.trim(),
         rsvpId: guestRsvpId ?? undefined,
       });
@@ -1714,7 +1749,7 @@ export function EventPage({
           comments: [
             {
               id: result.id!,
-              guestName: guestName || "Guest",
+              guestName: selfAuthorName,
               body: commentText.trim(),
               createdAt: new Date(),
               replies: [],
@@ -1729,7 +1764,7 @@ export function EventPage({
 
   const submitReply = async (parentId: string) => {
     if (!replyText.trim()) return;
-    const name = isHost ? `${event.host.name || event.host.email} (Host)` : guestName || "Guest";
+    const name = selfAuthorName;
 
     startTransition(async () => {
       const result = await addComment({
@@ -3095,13 +3130,22 @@ export function EventPage({
               )}
             </div>
 
+            {isPendingGuest && (
+              <div style={pendingNoticeStyle}>
+                You must be an approved guest to vote. Your RSVP is awaiting host approval.
+              </div>
+            )}
+
             {/* Polls List */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {event.polls?.map((poll) => {
                 const totalVotes = poll.options.reduce((sum, o) => sum + o.votes.length, 0);
                 const voter = isHost ? "Host" : guestName;
                 const isEligibleToVote =
-                  isHost || (rsvpDone && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
+                  isHost ||
+                  (rsvpDone &&
+                    !isPendingGuest &&
+                    (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
                 const canVote = isEligibleToVote && !poll.locked && !isPending;
                 const shouldShowVoters = !poll.hideVoters || isHost;
 
@@ -3402,6 +3446,11 @@ export function EventPage({
                   </a>
                 )}
               </div>
+              {isPendingGuest && (
+                <div style={pendingNoticeStyle}>
+                  You must be an approved guest to claim items. Your RSVP is awaiting host approval.
+                </div>
+              )}
               <div
                 style={{
                   display: "flex",
@@ -3439,26 +3488,29 @@ export function EventPage({
                             {totalClaimed > 0 && `, ${remaining} remaining`})
                           </span>
                         </div>
-                        {remaining > 0 && !isHost && claimingItemId !== item.id && (
-                          <button
-                            onClick={() => {
-                              setClaimingItemId(item.id);
-                              setClaimName(guestName);
-                              setClaimQty(1);
-                            }}
-                            style={{
-                              ...S.mutedBtn,
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              flexShrink: 0,
-                              background: `rgba(${t.accentRgb}, 0.12)`,
-                              border: `1px solid rgba(${t.accentRgb}, 0.25)`,
-                              color: t.accent,
-                            }}
-                          >
-                            I&apos;ll bring it
-                          </button>
-                        )}
+                        {remaining > 0 &&
+                          !isHost &&
+                          !isPendingGuest &&
+                          claimingItemId !== item.id && (
+                            <button
+                              onClick={() => {
+                                setClaimingItemId(item.id);
+                                setClaimName(guestName);
+                                setClaimQty(1);
+                              }}
+                              style={{
+                                ...S.mutedBtn,
+                                padding: "6px 12px",
+                                fontSize: "12px",
+                                flexShrink: 0,
+                                background: `rgba(${t.accentRgb}, 0.12)`,
+                                border: `1px solid rgba(${t.accentRgb}, 0.25)`,
+                                color: t.accent,
+                              }}
+                            >
+                              I&apos;ll bring it
+                            </button>
+                          )}
                       </div>
 
                       {/* Claims list */}
@@ -3825,11 +3877,28 @@ export function EventPage({
                 </div>
               </div>
             )}
-            {event.commentsEnabled && guestRsvpId && !isHost && (
+            {event.commentsEnabled && !isHost && (isApprovedGuest || canViewerComment) && (
               <div style={{ marginBottom: "16px" }}>
-                <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "6px" }}>
-                  Commenting as <strong style={{ color: t.textSecondary }}>{guestName}</strong>
-                </div>
+                {isAdminBypass ? (
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#fbbf24",
+                      marginBottom: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <ShieldAlert size={13} />
+                    Commenting as admin — you are not RSVP&apos;d to this event.
+                  </div>
+                ) : (
+                  <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "6px" }}>
+                    Commenting as{" "}
+                    <strong style={{ color: t.textSecondary }}>{selfAuthorName}</strong>
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input
                     style={{ ...S.inp, flex: 1 }}
@@ -3859,6 +3928,11 @@ export function EventPage({
                     <Send size={16} />
                   </button>
                 </div>
+              </div>
+            )}
+            {event.commentsEnabled && !isHost && isPendingGuest && (
+              <div style={pendingNoticeStyle}>
+                You must be an approved guest to comment. Your RSVP is awaiting host approval.
               </div>
             )}
 
