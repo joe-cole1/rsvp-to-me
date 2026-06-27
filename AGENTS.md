@@ -333,6 +333,8 @@ TWILIO_PHONE_NUMBER=""
 
 Before implementing any non-trivial feature, architectural pattern, or integration, search for the current best practices (via web search or official docs). Do not assume training data reflects the latest conventions — Next.js, Prisma, React, and related tools evolve quickly and have breaking changes between major versions.
 
+**Reuse before reinventing — match the existing codebase.** Every implementation must follow best coding practices AND stay consistent with how the rest of the codebase already solves similar problems. Before writing new code, look at how analogous situations are handled elsewhere (e.g. rate limiting via `lib/rateLimit.ts` + `lib/clientIp.ts`, DB access via the `lib/db.ts` singleton, auth guards like `assertHost`/`assertHostOrCohost`, Redis via `lib/redis.ts`) and use the same helpers, patterns, and conventions wherever applicable. Do not re-implement functionality that already exists or invent a parallel pattern when an established one is available — extend or reuse the shared utility instead of remaking the wheel each time.
+
 Specific rules:
 
 - **Shared layouts over per-page nav**: Use Next.js App Router route group `layout.tsx` to share common UI (navigation, shells) across pages — never duplicate nav boilerplate per-page.
