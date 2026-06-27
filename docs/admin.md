@@ -30,6 +30,8 @@ Navigate to `/admin` on your installation in your browser:
 
 The Admin Panel is strictly gated to users with the `ADMIN` role. If you attempt to access `/admin` with a lower-privilege account, the app will redirect you to the main dashboard.
 
+> **Tip:** All of these guides — including this one and the installation, configuration, email, SMS, and upgrading guides — are also readable inside the app at `/docs` (profile menu → **📚 Documentation**). Admins see the full set; hosts see only the user-facing guides.
+
 ---
 
 ## Getting Admin Access

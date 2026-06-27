@@ -42,9 +42,7 @@ _(No pending priority 2 privacy controls)_
 
 ### 📖 Interactive Documentation Dashboard
 
-- [ ] Build an in-app documentation portal accessible via the host dashboard.
-- - [ ] Render local markdown files (e.g., GitHub README, setup guides, and `docs/cloudflare_workers.md`) dynamically.
-- - [ ] Implement search, category navigation, and responsive layout styling.
+- ~~**Interactive Documentation Dashboard**~~ _(implemented — see Completed Milestones)_
 
 ---
 
@@ -106,6 +104,13 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Interactive Documentation Dashboard
+
+- [x] **In-app documentation portal (`/docs`)**: A documentation portal accessible from the host dashboard (profile menu → 📚 Documentation), gated to HOST + ADMIN. Renders the project's own markdown guides dynamically from disk at request time.
+- [x] **Dynamic markdown rendering**: `app/(app)/docs/page.tsx` reads the guides via a server-side loader (`lib/docs.ts`) and hydrates a client portal (`DocsClient.tsx`) that renders markdown with `react-markdown` + `remark-gfm` (tables), `rehype-slug` (heading anchors), and `rehype-highlight` (syntax-highlighted code). Relative cross-links between guides navigate in-app; external links open in a new tab. The Dockerfile runner stage now copies `docs/` + `README.md` so the markdown ships in the production image.
+- [x] **Search, category navigation & responsive layout**: Sidebar groups guides into Getting Started / Configuration / Usage / Maintenance (a slide-in drawer on mobile), with client-side title + full-text search. Active doc is synced to `?doc=` (back/forward + refresh safe), mirroring the admin tab pattern.
+- [x] **Access model**: `lib/docs-registry.ts` is the single source of truth for portal nav and per-doc access — user-facing guides (`features`, `README`) are visible to hosts; operator/infra guides (`installation`, `configuration`, `email`, `sms`, `admin`, `upgrading`) are ADMIN-only; guests see nothing. Sync guard + role-gating covered by `tests/lib/docs-registry.test.ts`. New AGENTS.md "In-App Documentation Portal Sync Rule" keeps the registry current.
 
 ### Security Hardening — Atomic RSVP Capacity Enforcement (SEC-12, SEC-21b)
 

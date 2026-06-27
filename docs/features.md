@@ -26,6 +26,7 @@ This document describes every user-facing feature of **rsvp-to-me** from the per
 18. [Event Settings and Visibility](#event-settings-and-visibility)
 19. [Activity Log](#activity-log)
 20. [User Profiles](#user-profiles)
+21. [In-App Documentation](#in-app-documentation)
 
 ---
 
@@ -319,3 +320,22 @@ Manage your profile at `/profile`:
   - Changing email sends a verification link to the **new** address.
   - Changing phone number sends a verification code to the **new** number.
 - **Notification Toggles:** Globally enable or disable Email or SMS alerts.
+
+---
+
+## In-App Documentation
+
+The project's guides are available directly inside the app at `/docs` — open the
+profile menu (top-right avatar) and choose **📚 Documentation**. The portal renders
+this documentation suite live from the running deployment, so it always matches your
+installed version.
+
+- **Category navigation:** Guides are grouped into _Getting Started_, _Configuration_,
+  _Usage_, and _Maintenance_ in a sidebar (a slide-in drawer on mobile).
+- **Search:** Filter guides by title or full text from the search box.
+- **Access:** The portal is available to hosts and admins. Hosts see the user-facing
+  guides (this Feature Reference and the project overview); operator/infrastructure
+  guides (installation, configuration, email, SMS, admin, upgrading) are visible to
+  **admins only**. Guest accounts do not see the portal.
+- Code blocks are syntax-highlighted, tables render, and cross-links between guides
+  navigate within the portal.
