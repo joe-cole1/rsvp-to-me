@@ -20,5 +20,5 @@ For every bug fix merged to main:
 | `sec-16-csv-formula-injection.test.ts`               | CSV formula injection via attacker-controlled guest name/email in export    | SEC-16   |
 | `sec-19-event-password-rate-limit.test.ts`           | Unbounded brute-force of password-gated events (no attempt cap)             | SEC-19   |
 | `sec-20-save-event-settings-mass-assignment.test.ts` | Mass assignment of arbitrary Event columns via `saveEventSettings`          | SEC-20   |
-| `sec-13-cross-event-parent-comment.test.ts`          | Reply threaded under a parent comment from a different event                 | SEC-13   |
-| `sec-17-comment-authz-spoofing.test.ts`              | Authenticated comment authZ bypass + free-form `guestName` impersonation     | SEC-17   |
+| `sec-13-cross-event-parent-comment.test.ts`          | Reply threaded under a parent comment from a different event                | SEC-13   |
+| `sec-17-comment-authz-spoofing.test.ts`              | Authenticated comment authZ bypass + free-form `guestName` impersonation    | SEC-17   |
