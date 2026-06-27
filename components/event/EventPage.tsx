@@ -1565,18 +1565,6 @@ export function EventPage({
     isApprovedGuest && !isHost && !isAdmin
       ? guestName || "Guest"
       : sessionUser?.name || sessionUser?.email || guestName || "Guest";
-  // Shared notice shown to pending guests on the comment, poll, and potluck
-  // sections — they may view the event but cannot act until the host approves.
-  const pendingNoticeStyle: React.CSSProperties = {
-    marginBottom: "16px",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    background: "rgba(148,163,184,0.1)",
-    border: "1px solid rgba(148,163,184,0.25)",
-    fontSize: "12.5px",
-    color: t.textMuted,
-    lineHeight: 1.5,
-  };
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
     section: EventData["infoSections"][number];
@@ -1655,6 +1643,19 @@ export function EventPage({
   }, [event]);
 
   const t = theme;
+
+  // Shared notice shown to pending guests on the comment, poll, and potluck
+  // sections — they may view the event but cannot act until the host approves.
+  const pendingNoticeStyle: React.CSSProperties = {
+    marginBottom: "16px",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    background: "rgba(148,163,184,0.1)",
+    border: "1px solid rgba(148,163,184,0.25)",
+    fontSize: "12.5px",
+    color: t.textMuted,
+    lineHeight: 1.5,
+  };
 
   const getChipStyle = (isCustom: boolean): React.CSSProperties => ({
     display: "inline-flex",
