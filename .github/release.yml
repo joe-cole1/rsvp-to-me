@@ -12,6 +12,7 @@ changelog:
     - title: 🐛 Bug Fixes
       labels:
         - bug
+        - security
     - title: 🔧 Refactors & Code Quality
       labels:
         - refactor
