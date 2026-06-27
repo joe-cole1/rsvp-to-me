@@ -14,7 +14,7 @@ _(No pending priority 1 bugs)_
 
 ### 🔒 Routing & System Safety
 
-- **[SEC-18] Uncapped outbound email/SMS via guest invite — `app/actions/event.ts` ~line 1686 (`inviteFriendAsGuest`)**: Authorized solely by a guest `editToken`, with no rate limit or per-event cap. A guest holding a valid token (private event + `guestsCanInvite`) can drive unlimited emails/SMS to arbitrary recipients through the platform's SMTP/Twilio infra — spam/phishing under the app's sending reputation plus real Twilio cost; the caller controls both the recipient and the `hostName` shown. Distinct from SEC-15 (blast query memory, not abuse/cost). Fix: rate-limit per token/IP and cap invites per RSVP.
+- ~~**[SEC-18] Uncapped outbound email/SMS via guest invite**~~ _(fixed — see Completed Milestones)_
 
 ### 👥 Guest List & RSVP Enhancements
 
@@ -124,6 +124,7 @@ _A log of completed capabilities._
 - [x] **[SEC-16] CSV formula injection in guest export**: Hardened the `esc()` helper in `app/e/[slug]/guests.csv/route.ts` to prefix any cell beginning with `= + - @`, tab, or CR with a single quote before quoting, neutralizing spreadsheet formula evaluation of attacker-controlled `guestName`/`guestEmail`. Regression test: `tests/regression/sec-16-csv-formula-injection.test.ts`.
 - [x] **[SEC-19] Rate limiting on event-password verification**: `verifyEventPassword` in `app/actions/event.ts` is now gated by `rateLimit("event-pw:<slug>:<ip>", 10, 600)`, short-circuiting brute-force attempts before any DB lookup or bcrypt compare. The private `getClientIp()` helper was extracted from `app/actions/auth.ts` into the shared `lib/clientIp.ts` and reused by both call sites. Regression test: `tests/regression/sec-19-event-password-rate-limit.test.ts`.
 - [x] **[SEC-20] Mass assignment in `saveEventSettings`**: Added `SaveEventSettingsSchema` (explicit Zod allow-list) in `lib/schemas.ts`; `saveEventSettings` now parses `settings` through it before the `db.event.update`, stripping non-allow-listed columns (`status`, `slug`, `hostId`, …) so they can't be smuggled into the write. Regression test: `tests/regression/sec-20-save-event-settings-mass-assignment.test.ts`.
+- [x] **[SEC-18] Uncapped outbound email/SMS via guest invite**: `inviteFriendAsGuest` (`app/actions/event.ts`) was authorized solely by a guest `editToken` and fanned out to SMTP/Twilio with no throttling, so a single token could drive unlimited email/SMS to arbitrary recipients (spam/phishing + Twilio cost). Now gated by the shared `rateLimit()`/`getClientIp()` helpers (same pattern as SEC-19/auth) with three layers: per-IP burst (`guest-invite:ip:<ip>`, 30/hr — checked before any DB lookup so it also throttles invalid-token enumeration), per-token burst (`guest-invite:token:<editToken>`, 10/10min), and a per-RSVP daily cap (`guest-invite:rsvp:<rsvpId>`, 20/24h). The token/RSVP limits are consumed only after the token is validated, authorized, and the target address is well-formed, so legitimate rejections don't burn the cap. Regression test: `tests/regression/sec-18-guest-invite-rate-limit.test.ts`.
 
 ### Notification Preferences (`notificationChannel`)
 

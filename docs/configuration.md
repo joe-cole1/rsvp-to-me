@@ -109,7 +109,7 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 - `X-Real-IP` (Nginx, Vercel)
 - `X-Forwarded-For` (Fallback default, checks the first client IP in the chain)
 
-**Rate-limited surfaces:** magic-link sign-in, host registration, and password-gated event unlock (10 attempts per event + client IP per 10 minutes). Setting this header correctly behind a proxy ensures these limits track the real client rather than the proxy IP.
+**Rate-limited surfaces:** magic-link sign-in, host registration, password-gated event unlock (10 attempts per event + client IP per 10 minutes), and guest-to-guest invites on private events (per client IP: 30/hour; per inviting guest: 10 per 10 minutes burst and 20 per day). Setting this header correctly behind a proxy ensures these limits track the real client rather than the proxy IP.
 
 ---
 
