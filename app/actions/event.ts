@@ -21,12 +21,23 @@ import { tzLocalToUtc } from "@/lib/utils";
 import { AddRsvpSchema, UpdateRsvpSchema, AddCommentSchema } from "@/lib/schemas";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
+import { rateLimit } from "@/lib/rateLimit";
+import { getClientIp } from "@/lib/clientIp";
 import bcrypt from "bcryptjs";
 
 export async function verifyEventPassword(
   slug: string,
   rawPassword: string
 ): Promise<{ success: boolean; error?: string }> {
+  // SEC-19: throttle online brute-force of password-gated events. bcrypt slows
+  // each guess but without an attempt cap an attacker can still grind a weak
+  // password. Limit to 10 attempts per slug+IP per 10 minutes.
+  const ip = await getClientIp();
+  const limit = await rateLimit(`event-pw:${slug}:${ip}`, 10, 600);
+  if (!limit.success) {
+    return { success: false, error: "Too many attempts. Please try again later." };
+  }
+
   const event = await db.event.findUnique({
     where: { slug },
     select: { passwordHash: true },
