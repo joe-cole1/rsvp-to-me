@@ -14,6 +14,7 @@ For every bug fix merged to main:
 
 ## Index
 
-| File       | Bug description | Fixed in |
-| ---------- | --------------- | -------- |
-| (none yet) |                 |          |
+| File                                   | Bug description                                                              | Fixed in |
+| -------------------------------------- | --------------------------------------------------------------------------- | -------- |
+| `sec-11-twilio-xml-injection.test.ts`  | XML injection via unescaped event title/guest name in Twilio TwiML response | SEC-11   |
+| `sec-16-csv-formula-injection.test.ts` | CSV formula injection via attacker-controlled guest name/email in export    | SEC-16   |

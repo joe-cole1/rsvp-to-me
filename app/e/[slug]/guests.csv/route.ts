@@ -33,7 +33,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     orderBy: { createdAt: "asc" },
   });
 
-  const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+  // SEC-16: neutralize CSV formula injection. Spreadsheet apps evaluate any
+  // cell beginning with = + - @ (or a leading tab/CR) as a formula, even when
+  // the value is quoted. guestName/guestEmail are attacker-controlled (anyone
+  // who can RSVP), so prefix those cells with a single quote before quoting.
+  const esc = (s: string) => {
+    const neutralized = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    return `"${neutralized.replace(/"/g, '""')}"`;
+  };
   const header = "Name,Email,Status,Plus Ones,Approved,RSVP Date\n";
   const rows = rsvps
     .map((r) =>

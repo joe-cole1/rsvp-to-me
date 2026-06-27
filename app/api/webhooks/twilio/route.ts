@@ -31,9 +31,21 @@ function validateTwilioSignature(req: NextRequest, body: string): boolean {
   }
 }
 
+// SEC-11: neutralize XML metacharacters so user-controlled strings (event
+// titles, guest names) cannot break out of the <Message> element and inject
+// arbitrary TwiML into the response.
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 function twiml(message: string): NextResponse {
   return new NextResponse(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${message}</Message></Response>`,
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(message)}</Message></Response>`,
     { status: 200, headers: { "Content-Type": "text/xml" } }
   );
 }
