@@ -28,6 +28,7 @@ import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/clientIp";
+import { withEventCapacityLock } from "@/lib/capacityLock";
 import bcrypt from "bcryptjs";
 
 export async function verifyEventPassword(
@@ -303,14 +304,6 @@ export async function addRSVP(rawInput: unknown) {
   if (event.rsvpDeadline && event.rsvpDeadline < new Date())
     return { success: false, error: "RSVP deadline has passed" };
 
-  // Check capacity
-  if (event.capacity && data.status === "GOING") {
-    const goingCount = await db.rSVP.count({
-      where: { eventId: data.eventId, status: "GOING", approved: true },
-    });
-    if (goingCount >= event.capacity) return { success: false, error: "Event is at capacity" };
-  }
-
   let userId: string | undefined;
   if (data.guestEmail) {
     const normalizedEmail = data.guestEmail.toLowerCase().trim();
@@ -339,35 +332,52 @@ export async function addRSVP(rawInput: unknown) {
       })
     : null;
 
-  let rsvp;
-  if (existingInvited) {
-    rsvp = await db.rSVP.update({
-      where: { id: existingInvited.id },
-      data: {
-        guestName: data.guestName,
-        status: data.status,
-        plusOneCount: data.plusOneCount,
-        note: data.note || null,
-        approved: !event.approvalRequired,
-        responded: true,
-      },
-    });
-  } else {
-    rsvp = await db.rSVP.create({
-      data: {
-        eventId: data.eventId,
-        guestName: data.guestName,
-        guestEmail: data.guestEmail,
-        guestPhone: data.guestPhone,
-        status: data.status,
-        plusOneCount: data.plusOneCount,
-        note: data.note || null,
-        approved: !event.approvalRequired,
-        responded: true,
-        userId,
-      },
-    });
-  }
+  // SEC-12: the capacity check and the RSVP write run under a per-event lock so
+  // two concurrent GOING submissions can't both pass a stale `count()` before
+  // either row is committed (which would overbook the event). The re-count must
+  // happen *inside* the lock, immediately before the write.
+  const locked = await withEventCapacityLock(data.eventId, async () => {
+    if (event.capacity && data.status === "GOING") {
+      const goingCount = await db.rSVP.count({
+        where: { eventId: data.eventId, status: "GOING", approved: true },
+      });
+      if (goingCount >= event.capacity) return { atCapacity: true as const };
+    }
+
+    let rsvp;
+    if (existingInvited) {
+      rsvp = await db.rSVP.update({
+        where: { id: existingInvited.id },
+        data: {
+          guestName: data.guestName,
+          status: data.status,
+          plusOneCount: data.plusOneCount,
+          note: data.note || null,
+          approved: !event.approvalRequired,
+          responded: true,
+        },
+      });
+    } else {
+      rsvp = await db.rSVP.create({
+        data: {
+          eventId: data.eventId,
+          guestName: data.guestName,
+          guestEmail: data.guestEmail,
+          guestPhone: data.guestPhone,
+          status: data.status,
+          plusOneCount: data.plusOneCount,
+          note: data.note || null,
+          approved: !event.approvalRequired,
+          responded: true,
+          userId,
+        },
+      });
+    }
+    return { atCapacity: false as const, rsvp };
+  });
+
+  if (locked.atCapacity) return { success: false, error: "Event is at capacity" };
+  const rsvp = locked.rsvp;
 
   if (data.answers && Object.keys(data.answers).length > 0) {
     await db.rSVPAnswer.createMany({
@@ -600,19 +610,42 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
   const data = UpdateRsvpSchema.parse(rawInput);
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
-    include: { event: { select: { slug: true } } },
+    include: { event: { select: { slug: true, capacity: true, rsvpDeadline: true } } },
   });
   if (!rsvp) return { success: false, error: "RSVP not found" };
 
-  await db.rSVP.update({
-    where: { editToken },
-    data: {
-      status: data.status,
-      plusOneCount: data.plusOneCount,
-      responded: true,
-      ...(data.note !== undefined && { note: data.note || null }),
-    },
+  // SEC-21(b): a token-holding guest could previously flip to GOING after the
+  // deadline or past capacity — a capacity-bypass cousin of SEC-12. Re-validate
+  // both here. Declining (NO) is always allowed so guests can cancel late.
+  if (rsvp.event.rsvpDeadline && rsvp.event.rsvpDeadline < new Date() && data.status !== "NO") {
+    return { success: false, error: "RSVP deadline has passed" };
+  }
+
+  // Only a transition *into* GOING consumes a new seat; note edits or downgrades
+  // on an already-GOING RSVP must not be blocked by the capacity gate.
+  const transitioningToGoing = data.status === "GOING" && rsvp.status !== "GOING";
+
+  const locked = await withEventCapacityLock(rsvp.eventId, async () => {
+    if (rsvp.event.capacity && transitioningToGoing) {
+      const goingCount = await db.rSVP.count({
+        where: { eventId: rsvp.eventId, status: "GOING", approved: true },
+      });
+      if (goingCount >= rsvp.event.capacity) return { atCapacity: true as const };
+    }
+
+    await db.rSVP.update({
+      where: { editToken },
+      data: {
+        status: data.status,
+        plusOneCount: data.plusOneCount,
+        responded: true,
+        ...(data.note !== undefined && { note: data.note || null }),
+      },
+    });
+    return { atCapacity: false as const };
   });
+
+  if (locked.atCapacity) return { success: false, error: "Event is at capacity" };
 
   if (data.plusOneGuestNames !== undefined) {
     await db.plusOneGuest.deleteMany({ where: { rsvpId: rsvp.id } });
