@@ -1814,6 +1814,19 @@ export async function inviteFriendAsGuest(
   editToken: string,
   emailOrPhone: string
 ): Promise<{ success: boolean; error?: string }> {
+  // SEC-18: this action is authorized only by a guest editToken yet fans out to
+  // SMTP/Twilio, so with no throttling a single token can drive unlimited
+  // email/SMS to arbitrary recipients (spam/phishing under our sending
+  // reputation + real Twilio cost). Reuse the shared rateLimit()/getClientIp()
+  // helpers (same pattern as verifyEventPassword and auth) to bound it. The
+  // per-IP burst limit is checked first so it also throttles invalid-token
+  // enumeration before any DB lookup.
+  const ip = await getClientIp();
+  const ipLimit = await rateLimit(`guest-invite:ip:${ip}`, 30, 3600);
+  if (!ipLimit.success) {
+    return { success: false, error: "Too many invites sent. Please try again later." };
+  }
+
   const invitingRsvp = await db.rSVP.findUnique({
     where: { editToken },
     include: { event: true },
@@ -1847,6 +1860,24 @@ export async function inviteFriendAsGuest(
     if (!/^\+?[0-9\s\-()]{7,}$/.test(entry)) {
       return { success: false, error: `Invalid phone: ${entry}` };
     }
+  }
+
+  // SEC-18: per-token burst limit + per-RSVP daily cap. Checked only after the
+  // token is validated/authorized and the target is well-formed, so legitimate
+  // rejections (bad token, typo'd address) don't burn the inviting guest's cap.
+  const tokenLimit = await rateLimit(`guest-invite:token:${editToken}`, 10, 600);
+  if (!tokenLimit.success) {
+    return {
+      success: false,
+      error: "Too many invites sent. Please slow down and try again later.",
+    };
+  }
+  const rsvpCap = await rateLimit(`guest-invite:rsvp:${invitingRsvp.id}`, 20, 86400);
+  if (!rsvpCap.success) {
+    return {
+      success: false,
+      error: "You've reached the maximum number of invites you can send for this event.",
+    };
   }
 
   let user = await db.user.findFirst({
