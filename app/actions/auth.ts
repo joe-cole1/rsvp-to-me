@@ -5,39 +5,10 @@ import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
 import { SendMagicLinkSchema, RegisterHostSchema } from "@/lib/schemas";
 import { rateLimit } from "@/lib/rateLimit";
-import { headers } from "next/headers";
+import { getClientIp } from "@/lib/clientIp";
 
 function looksLikePhone(s: string): boolean {
   return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
-}
-
-async function getClientIp(): Promise<string> {
-  const headersList = await headers();
-
-  const trustedHeader = process.env.TRUSTED_IP_HEADER;
-  if (trustedHeader) {
-    const ip = headersList.get(trustedHeader);
-    if (ip) {
-      return ip.split(",")[0].trim();
-    }
-  }
-
-  const cfConnectingIp = headersList.get("cf-connecting-ip");
-  if (cfConnectingIp) {
-    return cfConnectingIp.trim();
-  }
-
-  const xRealIp = headersList.get("x-real-ip");
-  if (xRealIp) {
-    return xRealIp.trim();
-  }
-
-  const xForwardedFor = headersList.get("x-forwarded-for");
-  if (xForwardedFor) {
-    return xForwardedFor.split(",")[0].trim();
-  }
-
-  return "127.0.0.1";
 }
 
 export async function sendMagicLinkAction(

@@ -14,6 +14,9 @@ For every bug fix merged to main:
 
 ## Index
 
-| File       | Bug description | Fixed in |
-| ---------- | --------------- | -------- |
-| (none yet) |                 |          |
+| File                                                 | Bug description                                                             | Fixed in |
+| ---------------------------------------------------- | --------------------------------------------------------------------------- | -------- |
+| `sec-11-twilio-xml-injection.test.ts`                | XML injection via unescaped event title/guest name in Twilio TwiML response | SEC-11   |
+| `sec-16-csv-formula-injection.test.ts`               | CSV formula injection via attacker-controlled guest name/email in export    | SEC-16   |
+| `sec-19-event-password-rate-limit.test.ts`           | Unbounded brute-force of password-gated events (no attempt cap)             | SEC-19   |
+| `sec-20-save-event-settings-mass-assignment.test.ts` | Mass assignment of arbitrary Event columns via `saveEventSettings`          | SEC-20   |
