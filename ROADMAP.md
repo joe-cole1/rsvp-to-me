@@ -14,7 +14,6 @@ _(No pending priority 1 bugs)_
 
 ### 🔒 Routing & System Safety
 
-- **[SEC-12] Race condition in RSVP capacity check — `app/actions/event.ts` ~line 290**: Capacity enforcement uses a non-atomic check-then-create pattern: `rSVP.count()` (check) and `rSVP.create()` (act) run as separate queries with no transaction or lock between them. Two simultaneous RSVP submissions can both pass the count check before either row is written, overbooking the event. Fix: wrap the count + create in a Prisma interactive transaction with a re-check inside, or acquire a per-event Redis lock around the check-create pair.
 - **[SEC-18] Uncapped outbound email/SMS via guest invite — `app/actions/event.ts` ~line 1686 (`inviteFriendAsGuest`)**: Authorized solely by a guest `editToken`, with no rate limit or per-event cap. A guest holding a valid token (private event + `guestsCanInvite`) can drive unlimited emails/SMS to arbitrary recipients through the platform's SMTP/Twilio infra — spam/phishing under the app's sending reputation plus real Twilio cost; the caller controls both the recipient and the `hostName` shown. Distinct from SEC-15 (blast query memory, not abuse/cost). Fix: rate-limit per token/IP and cap invites per RSVP.
 
 ### 👥 Guest List & RSVP Enhancements
@@ -98,7 +97,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **[SEC-15] Unpaginated blast queries — `app/actions/event.ts` ~lines 607–720** _(deferred — low risk at current scale)_: `sendBlast()` and `sendSmsBlast()` fetch all matching RSVPs with `db.rSVP.findMany` and no `take` limit. An event with a very large guest list could cause high memory pressure and slow database queries. Fix: paginate in chunks (e.g., `take: 500, skip: offset`) or add a reasonable hard cap.
 - **[SEC-21] Defense-in-depth hardening (minor, low risk)** _(deferred)_:
   - (a) **Magic-token scope not enforced** — `verifyMagicToken` in `lib/auth.ts` ~line 116 never checks `record.type === "LOGIN"`, so an `EMAIL_CHANGE`/`PHONE_CHANGE` token can be redeemed at `/auth/verify`. Same-user only, so impact is low, but tokens should be scope-locked to their purpose.
-  - (b) **`updateRSVP` skips deadline/capacity re-check** — `app/actions/event.ts` ~line 506: a token-holding guest can flip their status to `GOING` after `rsvpDeadline` has passed or past `capacity` (a capacity-bypass cousin of SEC-12). Fix: re-validate deadline + capacity inside `updateRSVP`.
+  - ~~(b) **`updateRSVP` skips deadline/capacity re-check**~~ _(fixed — see Completed Milestones, with SEC-12)_
   - (c) **Uploads open to any session incl. auto-created `GUEST` accounts** — `app/api/upload/route.ts` ~line 62 checks only `getSession()`, with no role check and no per-user/rate cap, allowing storage abuse. Magic-byte sniffing and SVG exclusion are already correct. Fix: gate to HOST/ADMIN (or rate-limit + per-user quota).
 - ~~**Auth Fallback Alerts**~~ _(implemented — see Completed Milestones)_
 
@@ -107,6 +106,11 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Security Hardening — Atomic RSVP Capacity Enforcement (SEC-12, SEC-21b)
+
+- [x] **[SEC-12] Race condition in RSVP capacity check**: `addRSVP` (`app/actions/event.ts`) previously ran `rSVP.count()` (check) and `rSVP.create()` (act) as separate queries with nothing between them, so two simultaneous GOING submissions could both pass a stale count and overbook the event. The re-count and the RSVP write now run inside a per-event Redis lock (`withEventCapacityLock` in `lib/capacityLock.ts`, mirroring the cron sync-lock pattern), so the count immediately precedes the write within one critical section. Lock acquisition retries with a short backoff so concurrent legitimate RSVPs serialize rather than being rejected; if Redis is unavailable it falls back to running without the lock. Regression test: `tests/regression/sec-12-rsvp-capacity-race.test.ts`.
+- [x] **[SEC-21b] `updateRSVP` skipped deadline/capacity re-check**: a token-holding guest could flip their status to `GOING` after `rsvpDeadline` had passed or past `capacity` (a capacity-bypass cousin of SEC-12). `updateRSVP` now re-validates the deadline (declining to `NO` is still always allowed so guests can cancel late) and enforces capacity under the same per-event lock — but only when the RSVP is actually transitioning _into_ a GOING seat, so note edits and downgrades on an already-GOING RSVP are never blocked. Regression test: `tests/regression/sec-21b-updaterspv-capacity-deadline.test.ts`.
 
 ### Security Hardening — Comment AuthZ & Cross-Event Threading (SEC-17, SEC-13)
 
