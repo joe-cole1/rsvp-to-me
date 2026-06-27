@@ -122,6 +122,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
             editToken: true,
             status: true,
             responded: true,
+            approved: true,
             _count: { select: { answers: true } },
           },
         })
@@ -186,6 +187,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
           editToken: true,
           status: true,
           responded: true,
+          approved: true,
           _count: { select: { answers: true } },
         },
       })
@@ -198,6 +200,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         status: _guestRsvpRaw.status as "GOING" | "MAYBE" | "NO" | "INVITED",
         hasAnswers: _guestRsvpRaw._count.answers > 0,
         responded: _guestRsvpRaw.responded,
+        approved: _guestRsvpRaw.approved,
       }
     : null;
 

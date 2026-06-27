@@ -10,12 +10,11 @@ _Immediate attention items. High impact bugs, UX papercuts, and essential routin
 
 ### 🛠️ Bugs & Blockers
 
-- **[SEC-13] Cross-event parent comment — `app/actions/event.ts` ~line 407**: When a comment is created with a `parentId`, the code does not verify that the parent comment belongs to the same `eventId`. A guest can POST a reply to Event A that threads under a comment from Event B, silently corrupting comment trees. Fix: add `where: { id: parentId, eventId: data.eventId }` when resolving the parent before insert.
+_(No pending priority 1 bugs)_
 
 ### 🔒 Routing & System Safety
 
 - **[SEC-12] Race condition in RSVP capacity check — `app/actions/event.ts` ~line 290**: Capacity enforcement uses a non-atomic check-then-create pattern: `rSVP.count()` (check) and `rSVP.create()` (act) run as separate queries with no transaction or lock between them. Two simultaneous RSVP submissions can both pass the count check before either row is written, overbooking the event. Fix: wrap the count + create in a Prisma interactive transaction with a re-check inside, or acquire a per-event Redis lock around the check-create pair.
-- **[SEC-17] Comment authZ bypass + identity spoofing for authenticated users — `app/actions/event.ts` ~line 407 (`addComment`)**: The SEC-3 fix only hardened the unauthenticated path. When a session exists, the action skips all checks and inserts the comment using the client-supplied `data.guestName`. Two consequences: (a) no verification the session user is a host/co-host/guest of `data.eventId`, so any logged-in user who knows an `eventId` can comment on events they cannot access (including PRIVATE — the `page.tsx` visibility gate is bypassed since the action enforces nothing); (b) `guestName` is free-form, so a logged-in guest can post under any name and impersonate the host or another attendee on any event. Fix: when authenticated, derive the display name from the user record and confirm an approved RSVP / host relationship to the event.
 - **[SEC-18] Uncapped outbound email/SMS via guest invite — `app/actions/event.ts` ~line 1686 (`inviteFriendAsGuest`)**: Authorized solely by a guest `editToken`, with no rate limit or per-event cap. A guest holding a valid token (private event + `guestsCanInvite`) can drive unlimited emails/SMS to arbitrary recipients through the platform's SMTP/Twilio infra — spam/phishing under the app's sending reputation plus real Twilio cost; the caller controls both the recipient and the `hostName` shown. Distinct from SEC-15 (blast query memory, not abuse/cost). Fix: rate-limit per token/IP and cap invites per RSVP.
 
 ### 👥 Guest List & RSVP Enhancements
@@ -108,6 +107,12 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Security Hardening — Comment AuthZ & Cross-Event Threading (SEC-17, SEC-13)
+
+- [x] **[SEC-17] Comment authZ bypass + identity spoofing**: `addComment` (`app/actions/event.ts`) now authorizes the author and derives the stored display name server-side. Host/co-host/admin may comment freely; a guest with a **pending** (unapproved) RSVP is blocked; a logged-in user with no RSVP may comment on **PUBLIC/UNLISTED** events (they are publicly viewable) but is blocked on **PRIVATE** events — closing the PRIVATE-event authZ bypass. The stored name comes from the user record or the matched approved RSVP row — never the client `guestName` — closing the impersonation vector. Regression test: `tests/regression/sec-17-comment-authz-spoofing.test.ts`.
+- [x] **[SEC-13] Cross-event parent comment**: replies now resolve the parent with `where: { id: parentId, eventId: data.eventId }` and reject if it isn't found, so a reply can't thread under a comment from a different event. Regression test: `tests/regression/sec-13-cross-event-parent-comment.test.ts`.
+- [x] **Approved-guest participation UI**: the event page now reflects the server rule across comments, polls, and potluck — pending (unapproved) guests see an "awaiting host approval" notice instead of dead controls, and an admin commenting on an event they aren't RSVP'd to sees a notice. `approved` is threaded from `app/e/[slug]/page.tsx` through to `EventPage`.
 
 ### Security Hardening — Injection Escaping (SEC-11, SEC-16)
 
