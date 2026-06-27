@@ -49,6 +49,28 @@ export const AddRsvpSchema = z.object({
   answers: z.record(z.string(), z.string()).optional(),
 });
 
+// SEC-20: explicit allow-list for `saveEventSettings`. Server actions do not
+// enforce their TS parameter types at runtime, so without this schema a crafted
+// call could spread arbitrary Event scalar columns (status, slug, hostId, …)
+// into the update. Unknown keys are stripped (Zod's default) before the write.
+export const SaveEventSettingsSchema = z.object({
+  commentsEnabled: z.boolean().optional(),
+  plusOneAllowed: z.boolean().optional(),
+  plusOneMax: z.number().int().min(0).max(100).optional(),
+  plusOneNamesRequired: z.boolean().optional(),
+  approvalRequired: z.boolean().optional(),
+  rsvpDeadline: z.string().trim().nullable().optional(),
+  capacity: z.number().int().min(0).nullable().optional(),
+  guestListVis: z.enum(["ALL", "GUESTS_ONLY", "HOST_ONLY"]).optional(),
+  visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).optional(),
+  maybeEnabled: z.boolean().optional(),
+  questionnaireEnabled: z.boolean().optional(),
+  showTimestamps: z.boolean().optional(),
+  password: z.string().nullable().optional(),
+  guestSharingEnabled: z.boolean().optional(),
+  guestsCanInvite: z.boolean().optional(),
+});
+
 export const UpdateRsvpSchema = z.object({
   status: z.enum(["GOING", "MAYBE", "NO"]),
   plusOneCount: z.number().int().min(0).max(10).default(0),

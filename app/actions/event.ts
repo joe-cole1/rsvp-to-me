@@ -18,7 +18,12 @@ import {
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { tzLocalToUtc } from "@/lib/utils";
-import { AddRsvpSchema, UpdateRsvpSchema, AddCommentSchema } from "@/lib/schemas";
+import {
+  AddRsvpSchema,
+  UpdateRsvpSchema,
+  AddCommentSchema,
+  SaveEventSettingsSchema,
+} from "@/lib/schemas";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
 import { rateLimit } from "@/lib/rateLimit";
@@ -488,7 +493,9 @@ export async function saveEventSettings(
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHost(eventId);
-  const { password, ...rest } = settings;
+  // SEC-20: validate against an explicit allow-list before spreading into the
+  // update, so unknown keys (status, slug, hostId, …) can't be mass-assigned.
+  const { password, rsvpDeadline, ...rest } = SaveEventSettingsSchema.parse(settings);
   const passwordHash =
     password === undefined
       ? undefined
@@ -500,9 +507,9 @@ export async function saveEventSettings(
     data: {
       ...rest,
       ...(passwordHash !== undefined ? { passwordHash } : {}),
-      rsvpDeadline: settings.rsvpDeadline
-        ? new Date(settings.rsvpDeadline)
-        : settings.rsvpDeadline === null
+      rsvpDeadline: rsvpDeadline
+        ? new Date(rsvpDeadline)
+        : rsvpDeadline === null
           ? null
           : undefined,
     },
