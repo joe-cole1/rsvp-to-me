@@ -87,5 +87,5 @@ For in-depth explanations of specific features, configurations, and operations, 
 | [Email Setup Guide](docs/admin/email.md)               | Setting up SMTP (Gmail, Outlook, SES, etc.) or Cloudflare Email Routing.                  |
 | [SMS Setup Guide](docs/admin/sms.md)                   | Connecting Twilio to enable text message logins, invitations, and blasts.                 |
 | [Admin Panel Guide](docs/admin/admin.md)               | Managing user accounts, event moderation, custom invite codes, and system configurations. |
-| [Feature Reference](docs/host/features.md)             | Detailed walkthrough of RSVP custom fields, potlucks, polls, co-hosts, and themes.        |
+| [Host Guides](docs/host/)                              | Step-by-step guides for event hosts: creating events, RSVPs, invitations, and more.       |
 | [Safe Upgrading Guide](docs/admin/upgrading.md)        | Instructions on updating to new versions safely without losing any database data.         |
