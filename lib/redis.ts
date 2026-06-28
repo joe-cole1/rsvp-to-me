@@ -61,7 +61,7 @@ export async function redisGet(key: string): Promise<string | null> {
   try {
     return await client.get(key);
   } catch (err) {
-    console.error(`[redis] Error getting key ${key}:`, err);
+    console.error("[redis] Error getting key %s:", key, err);
     return null;
   }
 }
@@ -77,7 +77,7 @@ export async function redisSet(key: string, value: string, ttlSeconds?: number):
     }
     return true;
   } catch (err) {
-    console.error(`[redis] Error setting key ${key}:`, err);
+    console.error("[redis] Error setting key %s:", key, err);
     return false;
   }
 }
@@ -89,7 +89,7 @@ export async function redisDel(key: string): Promise<boolean> {
     await client.del(key);
     return true;
   } catch (err) {
-    console.error(`[redis] Error deleting key ${key}:`, err);
+    console.error("[redis] Error deleting key %s:", key, err);
     return false;
   }
 }
@@ -104,7 +104,7 @@ export async function redisAcquireLock(lockKey: string, ttlSeconds: number): Pro
     });
     return result === "OK";
   } catch (err) {
-    console.error(`[redis] Error acquiring lock ${lockKey}:`, err);
+    console.error("[redis] Error acquiring lock %s:", lockKey, err);
     return false;
   }
 }
@@ -116,7 +116,7 @@ export async function redisReleaseLock(lockKey: string): Promise<boolean> {
     await client.del(lockKey);
     return true;
   } catch (err) {
-    console.error(`[redis] Error releasing lock ${lockKey}:`, err);
+    console.error("[redis] Error releasing lock %s:", lockKey, err);
     return false;
   }
 }
@@ -129,7 +129,7 @@ export async function redisIncrAndExpire(key: string, ttlSeconds: number): Promi
     if (!results || results.length === 0) return null;
     return results[0] as unknown as number;
   } catch (err) {
-    console.error(`[redis] Error incrementing rate limit key ${key}:`, err);
+    console.error("[redis] Error incrementing rate limit key %s:", key, err);
     return null;
   }
 }
