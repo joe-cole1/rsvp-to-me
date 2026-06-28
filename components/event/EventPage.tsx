@@ -601,7 +601,7 @@ function DateEdit({
       style={{
         position: "relative",
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "space-between",
         gap: "16px",
         marginBottom: "20px",
