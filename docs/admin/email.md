@@ -1,6 +1,14 @@
+---
+title: Email Setup
+description: SMTP and Cloudflare email provider configuration.
+category: Configuration
+audience: admin
+order: 30
+---
+
 # Email Setup Guide
 
-rsvp-to-me sends email notifications for passwordless logins (magic links), guest invitations, RSVP confirmations, event updates, and automated reminders. This guide explains how to configure each supported email provider.
+RSVP to Me sends email notifications for passwordless logins (magic links), guest invitations, RSVP confirmations, event updates, and automated reminders. This guide explains how to configure each supported email provider.
 
 ---
 
@@ -283,13 +291,14 @@ If you do not need inbound guest replies forwarded to you, you can call Cloudfla
    - Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens).
    - Click **Create Token** > select the **Send Email** template (or create a custom token granting **Account** | **Email Sending** | **Edit**).
    - Scope it to your account and copy the generated token.
-4. **Configure your `.env`:**
+4. **Provide your credentials.** Set both the Account ID and API token — either in the Admin Panel (**Admin → Email**) or in your `.env`:
    ```env
    CLOUDFLARE_ACCOUNT_ID="your-cloudflare-account-id"
    CLOUDFLARE_API_TOKEN="your-api-token"
    EMAIL_FROM="RSVP to Me <rsvps@yourdomain.com>"
    ```
    Leave all `SMTP_*` and `CLOUDFLARE_WORKER_*` fields blank.
+5. **Select the provider.** In **Admin → Email**, set the Email Provider to **Cloudflare REST API**. This is required — unlike SMTP and the Cloudflare Worker, the REST API provider is never auto-detected from environment variables alone, so without this selection the app falls back to console logging.
 
 ---
 

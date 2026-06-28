@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, X } from "lucide-react";
+import DocsPanel, { type PanelDoc } from "@/components/admin/DocsPanel";
 import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 import {
@@ -122,6 +123,7 @@ interface AdminClientProps {
   initialBackupConfig: BackupConfig;
   initialBackups: BackupFile[];
   initialThemePresets: AdminThemePreset[];
+  initialDocs: PanelDoc[];
   sessionUser: {
     name: string | null;
     email: string | null;
@@ -139,6 +141,7 @@ const VALID_TABS = [
   "sms",
   "backups",
   "themes",
+  "docs",
 ] as const;
 type TabId = (typeof VALID_TABS)[number];
 
@@ -161,6 +164,7 @@ export default function AdminClient({
   initialBackupConfig,
   initialBackups,
   initialThemePresets,
+  initialDocs,
   sessionUser,
 }: AdminClientProps) {
   const router = useRouter();
@@ -956,6 +960,10 @@ function extractRawEmail(fromStr) {
       title: "💾 Database Backups",
       description: "Schedule automated backups and manage your database snapshot history.",
     },
+    docs: {
+      title: "📚 Documentation",
+      description: "Setup, configuration, and operations guides for self-hosting RSVP to Me.",
+    },
   };
 
   return (
@@ -1267,6 +1275,7 @@ function extractRawEmail(fromStr) {
                 { id: "sms", label: "💬 SMS Settings" },
                 { id: "themes", label: "🎨 Theme Presets" },
                 { id: "backups", label: "💾 Database Backups" },
+                { id: "docs", label: "📚 Documentation" },
               ] as const
             ).map((tab) => (
               <button
@@ -3838,8 +3847,8 @@ function extractRawEmail(fromStr) {
                         margin: 0,
                       }}
                     >
-                      Instantly trigger a database snapshot. SQLite creates a file copy, while
-                      PostgreSQL executes a <code>pg_dump</code> database extract.
+                      Instantly trigger a database snapshot using <code>pg_dump</code>, saved to the
+                      backups volume.
                     </p>
                   </div>
 
@@ -4990,6 +4999,9 @@ function extractRawEmail(fromStr) {
                 </div>
               </>
             )}
+
+            {/* PANEL: DOCUMENTATION */}
+            {activeTab === "docs" && <DocsPanel docs={initialDocs} />}
           </div>
           {/* Sliding Drawer for Mobile/Tablet */}
           {isDrawerOpen && (
@@ -5079,6 +5091,7 @@ function extractRawEmail(fromStr) {
                       { id: "sms", label: "💬 SMS Settings" },
                       { id: "themes", label: "🎨 Theme Presets" },
                       { id: "backups", label: "💾 Database Backups" },
+                      { id: "docs", label: "📚 Documentation" },
                     ] as const
                   ).map((tab) => (
                     <button

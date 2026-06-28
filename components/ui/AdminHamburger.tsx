@@ -14,6 +14,7 @@ const ADMIN_TABS = [
   { id: "sms", label: "💬 SMS Settings" },
   { id: "themes", label: "🎨 Theme Presets" },
   { id: "backups", label: "💾 Database Backups" },
+  { id: "docs", label: "📚 Documentation" },
 ] as const;
 
 export default function AdminHamburger() {

@@ -34,6 +34,11 @@ _(No pending priority 2 layout enhancements)_
 
 _(No pending priority 2 privacy controls)_
 
+### 👥 Guest List & RSVP Enhancements
+
+- **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Documented as a feature previously; the feature docs were corrected to match reality (the check-in section was removed from `docs/features.md`). Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
+- **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Earlier docs promised phone numbers, check-in times, and questionnaire answers (now corrected in `docs/features.md`). Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
+
 ### ⚙️ Administration & Settings
 
 - ~~**Configurable Email / SMS Channels**~~ _(implemented — see Completed Milestones)_
@@ -42,7 +47,8 @@ _(No pending priority 2 privacy controls)_
 
 ### 📖 Interactive Documentation Dashboard
 
-- ~~**Interactive Documentation Dashboard**~~ _(implemented — see Completed Milestones)_
+- ~~**Interactive Documentation Dashboard (admin)**~~ _(implemented — see Completed Milestones)_
+- **Host-facing documentation portal**: A reader for host/guest-oriented guides (the `docs/host/` folder already exists, seeded with `features.md`). Surface it to hosts (e.g. from the dashboard or profile menu) using the same frontmatter-driven `loadDocs("host")` path that powers the admin tab. Deferred until there is enough host-facing content to warrant it.
 
 ---
 
@@ -107,10 +113,8 @@ _A log of completed capabilities._
 
 ### Interactive Documentation Dashboard
 
-- [x] **In-app documentation portal (`/docs`)**: A documentation portal accessible from the host dashboard (profile menu → 📚 Documentation), gated to HOST + ADMIN. Renders the project's own markdown guides dynamically from disk at request time.
-- [x] **Dynamic markdown rendering**: `app/(app)/docs/page.tsx` reads the guides via a server-side loader (`lib/docs.ts`) and hydrates a client portal (`DocsClient.tsx`) that renders markdown with `react-markdown` + `remark-gfm` (tables), `rehype-slug` (heading anchors), and `rehype-highlight` (syntax-highlighted code). Relative cross-links between guides navigate in-app; external links open in a new tab. The Dockerfile runner stage now copies `docs/` + `README.md` so the markdown ships in the production image.
-- [x] **Search, category navigation & responsive layout**: Sidebar groups guides into Getting Started / Configuration / Usage / Maintenance (a slide-in drawer on mobile), with client-side title + full-text search. Active doc is synced to `?doc=` (back/forward + refresh safe), mirroring the admin tab pattern.
-- [x] **Access model**: `lib/docs-registry.ts` is the single source of truth for portal nav and per-doc access — user-facing guides (`features`, `README`) are visible to hosts; operator/infra guides (`installation`, `configuration`, `email`, `sms`, `admin`, `upgrading`) are ADMIN-only; guests see nothing. Sync guard + role-gating covered by `tests/lib/docs-registry.test.ts`. New AGENTS.md "In-App Documentation Portal Sync Rule" keeps the registry current.
+- [x] **Admin Documentation tab**: The operator guides are readable inside the app as the last tab of the **Admin Panel** (`/admin?tab=docs`), gated to ADMIN only (the panel itself is admin-gated). Rendered by `components/admin/DocsPanel.tsx` with `react-markdown` + `remark-gfm` (tables), `rehype-slug` (anchors), and `rehype-highlight` (syntax-highlighted code); category sidebar + full-text search; relative cross-links resolve within the panel.
+- [x] **Frontmatter-driven, folder-based structure**: Guides live under `docs/<audience>/` (`docs/admin/` for operator guides, `docs/host/` reserved for a future host portal). Each `.md` carries YAML frontmatter (`title`, `description`, `category`, `audience`, `order`); `lib/docs.ts` scans the folder and reads frontmatter — there is **no central registry** to maintain. Adding a guide = drop a `.md` with frontmatter. The Dockerfile copies the whole `docs/` tree so guides ship in the image. Covered by `tests/lib/docs.test.ts`; convention documented in AGENTS.md "In-App Documentation Sync Rule".
 
 ### Security Hardening — Atomic RSVP Capacity Enforcement (SEC-12, SEC-21b)
 

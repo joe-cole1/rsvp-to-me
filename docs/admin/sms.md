@@ -1,6 +1,14 @@
+---
+title: SMS Setup
+description: Twilio integration, account setup, limits, and costs.
+category: Configuration
+audience: admin
+order: 40
+---
+
 # SMS Setup Guide (Twilio)
 
-SMS messaging in rsvp-to-me is powered by Twilio and is entirely optional. This guide walks you through creating a Twilio account, acquiring a phone number, and connecting it to your installation.
+SMS messaging in RSVP to Me is powered by Twilio and is entirely optional. This guide walks you through creating a Twilio account, acquiring a phone number, and connecting it to your installation.
 
 ---
 
@@ -11,7 +19,7 @@ SMS messaging in rsvp-to-me is powered by Twilio and is entirely optional. This 
 3. [Step 1 — Create a Twilio Account](#step-1--create-a-twilio-account)
 4. [Step 2 — Get a Phone Number](#step-2--get-a-phone-number)
 5. [Step 3 — Find Your Credentials](#step-3--find-your-credentials)
-6. [Step 4 — Configure rsvp-to-me](#step-4--configure-rsvp-to-me)
+6. [Step 4 — Configure RSVP to Me](#step-4--configure-rsvp-to-me)
 7. [Testing SMS](#testing-sms)
 8. [Trial Account Limitations](#trial-account-limitations)
 9. [Costs](#costs)
@@ -94,7 +102,7 @@ Your account keys are displayed on your Twilio Console home page under the **Acc
 
 ---
 
-## Step 4 — Configure rsvp-to-me
+## Step 4 — Configure RSVP to Me
 
 Add the three Twilio configuration variables to your `.env` file:
 
@@ -110,6 +118,24 @@ Restart your container to load the environment changes:
 docker compose restart app
 ```
 
+> You can also enter these credentials in the Admin Panel under **Admin → SMS** instead of (or in addition to) the `.env` file. Admin Panel values take precedence and apply without a restart.
+
+---
+
+## Enabling Reply-to-RSVP (Inbound SMS)
+
+Guests who receive an invitation by text can reply **YES**, **NO**, or **MAYBE** to set their RSVP — no link required. For this to work, point your Twilio number's incoming-message webhook at your installation:
+
+1. In the Twilio Console, go to **Phone Numbers → Manage → Active Numbers** and open your number.
+2. Under **Messaging**, set **A message comes in** to **Webhook**, with the URL:
+   ```
+   https://yourdomain.com/api/webhooks/twilio
+   ```
+   Use the `HTTP POST` method.
+3. Save. Incoming replies are validated against your Twilio Auth Token, matched to the guest's pending invitation by phone number, and applied to their RSVP.
+
+> This step is only needed if you want guests to RSVP by replying to texts. Outbound SMS (confirmations, reminders, blasts) works without it.
+
 ---
 
 ## Testing SMS
@@ -117,8 +143,8 @@ docker compose restart app
 You can test your connection directly from the Admin Panel:
 
 1. Log in to the application as an `ADMIN` user.
-2. Navigate to `/admin` and select the **System Configuration** tab.
-3. Under the SMS settings panel, click **Send Test SMS**.
+2. Navigate to `/admin` and select the **SMS** tab.
+3. Click **Send Test SMS**.
 4. Type your verified phone number (in E.164 format) and click Send.
 5. Verify that the text message arrives.
 

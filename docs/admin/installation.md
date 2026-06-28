@@ -1,6 +1,14 @@
+---
+title: Installation
+description: Docker setup, deployment, HTTPS, and troubleshooting.
+category: Getting Started
+audience: admin
+order: 10
+---
+
 # Installation Guide
 
-This guide walks you through deploying **rsvp-to-me** on any machine that can run Docker. You do not need to know how to program, compile code, or manage a database beyond the steps described here.
+This guide walks you through deploying **RSVP to Me** on any machine that can run Docker. You do not need to know how to program, compile code, or manage a database beyond the steps described here.
 
 ---
 
@@ -33,7 +41,7 @@ Before you begin, you need:
 
 ## What You Are Installing
 
-rsvp-to-me runs as a set of Docker containers defined in `docker-compose.yml`:
+RSVP to Me runs as a set of Docker containers defined in `docker-compose.yml`:
 
 | Container  | Purpose                                                                                                                                                                                       |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,6 +168,8 @@ _What this command does:_
 - Runs database migrations automatically on first startup.
 - Launches all containers in the background.
 
+> **Heads up — sample data:** The default `docker-compose.yml` sets `SEED_TEST_DATA: "true"`, so on a **fresh, empty database** the first startup seeds example data (sample users and events) to help you explore the app. If you want a clean production install with no sample data, set `SEED_TEST_DATA` to `"false"` in your `docker-compose.yml` (the included `docker-compose.dev.yml` already uses `"false"`). Seeding is skipped automatically once the database already contains events, so it won't duplicate data on later restarts.
+
 Verify the container status:
 
 ```bash
@@ -186,7 +196,7 @@ It should return: `{"status":"ok"}`.
 
 ## Deploying from GitHub (No Local Clone Required)
 
-If you want to run the latest code directly from GitHub without cloning the repository locally, use `docker-compose.dev.yml`. This is useful for running rsvp-to-me on any server with just Docker installed.
+If you want to run the latest code directly from GitHub without cloning the repository locally, use `docker-compose.dev.yml`. This is useful for running RSVP to Me on any server with just Docker installed.
 
 ### Usage
 
@@ -223,7 +233,7 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 ## Understanding Your Data & Backups
 
-By default, the application mounts a local directory named `./data` on your host machine to `/app/data` inside the containers.
+By default, the application uses a **bind mount** — a Docker feature that links a folder on your host machine to a folder inside the container so the data survives restarts and upgrades. Here, the local `./data` directory is linked to `/app/data` inside the containers.
 
 Your data is stored in these paths:
 
@@ -233,7 +243,7 @@ Your data is stored in these paths:
 
 ### Built-in Backups Manager (Recommended)
 
-**rsvp-to-me** features a database backup manager located in the **Backups** tab in the **Admin Panel**.
+**RSVP to Me** features a database backup manager located in the **Backups** tab in the **Admin Panel**.
 
 With this panel, you can:
 
@@ -252,7 +262,7 @@ Use `pg_dump` via the postgres container to create a backup at any time:
 docker compose exec postgres pg_dump -U postgres rsvp_db > ./data/backups/manual-backup-$(date +%Y%m%d).sql
 ```
 
-> **Caution:** Running `docker compose down -v` deletes all Docker volumes. While rsvp-to-me uses a local directory bind mount, running this with custom setups might lead to permanent data loss. Always omit the `-v` flag to protect your data.
+> **Caution:** Running `docker compose down -v` deletes all Docker volumes. While RSVP to Me uses a local directory bind mount, running this with custom setups might lead to permanent data loss. Always omit the `-v` flag to protect your data.
 
 ---
 
@@ -271,7 +281,7 @@ Manage your containers using these CLI commands:
 
 Next.js session cookies rely on secure contexts. Browsers will block authentication cookies over unencrypted HTTP on public domains. **HTTPS is required for internet-facing installations.**
 
-You do not configure HTTPS inside rsvp-to-me. Instead, run a **reverse proxy** in front of port `3000` to handle SSL certificates (like Let's Encrypt) and forward traffic.
+You do not configure HTTPS inside RSVP to Me. Instead, run a **reverse proxy** in front of port `3000` to handle SSL certificates (like Let's Encrypt) and forward traffic.
 
 Recommended reverse proxies:
 

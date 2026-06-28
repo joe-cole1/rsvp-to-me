@@ -1,58 +1,93 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
-import { DOCS, docsForRole, getDocBySlug, type DocEntry, type DocRole } from "@/lib/docs-registry";
 
 /**
- * Server-side markdown loader for the in-app Documentation portal.
+ * Frontmatter-driven documentation loader for the in-app Documentation portal.
  *
- * Markdown lives in the repo (`docs/*.md`, `README.md`) and is shipped into the
- * production container by the Dockerfile runner stage, so it can be read from
- * disk at request time. This module imports `node:fs` and is therefore only
- * usable from Server Components / server actions.
+ * Markdown guides live under `docs/<audience>/*.md` (e.g. `docs/admin/`,
+ * `docs/host/`) and ship in the production image via the Dockerfile. Each file
+ * carries a small YAML frontmatter block:
+ *
+ *   ---
+ *   title: Installation
+ *   description: Docker setup, deployment, HTTPS, and troubleshooting.
+ *   category: Getting Started
+ *   audience: admin
+ *   order: 10
+ *   ---
+ *
+ * The sidebar/registry is derived by scanning the folder and reading that
+ * frontmatter — there is no hand-maintained list to keep in sync. This module
+ * imports `node:fs` and is therefore only usable from Server Components /
+ * server actions.
  */
+
+export type DocAudience = "admin" | "host";
 
 export interface LoadedDoc {
   slug: string;
   title: string;
   description: string;
   category: string;
+  audience: DocAudience;
+  order: number;
+  /** Markdown body, with the frontmatter block stripped. */
   content: string;
 }
 
-function resolveDocPath(entry: DocEntry): string {
-  return path.join(process.cwd(), entry.file);
-}
+const DOCS_ROOT = path.join(process.cwd(), "docs");
 
-async function readDoc(entry: DocEntry): Promise<LoadedDoc> {
-  const content = await readFile(resolveDocPath(entry), "utf8");
-  return {
-    slug: entry.slug,
-    title: entry.title,
-    description: entry.description,
-    category: entry.category,
-    content,
-  };
+/** Minimal YAML frontmatter parser for flat `key: value` blocks (no deps). */
+function parseFrontmatter(raw: string): { data: Record<string, string>; body: string } {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(raw);
+  if (!match) return { data: {}, body: raw };
+  const data: Record<string, string> = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    let value = line.slice(idx + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (key) data[key] = value;
+  }
+  return { data, body: raw.slice(match[0].length) };
 }
 
 /**
- * Load a single doc by slug, authorized against the caller's role. Returns null
- * if the slug is unknown or the role may not read it.
+ * Load every doc for an audience, sorted by `order` then title. Returns an empty
+ * array if the audience folder does not exist yet (e.g. `docs/host/`).
  */
-export const loadDoc = cache(async (slug: string, role: DocRole): Promise<LoadedDoc | null> => {
-  const entry = getDocBySlug(slug);
-  if (!entry) return null;
-  if (!docsForRole(role).some((d) => d.slug === slug)) return null;
-  return readDoc(entry);
-});
+export const loadDocs = cache(async (audience: DocAudience): Promise<LoadedDoc[]> => {
+  const dir = path.join(DOCS_ROOT, audience);
+  let files: string[];
+  try {
+    files = (await readdir(dir)).filter((f) => f.endsWith(".md"));
+  } catch {
+    return [];
+  }
 
-/**
- * Load every doc the role may read, in registry order. Used to hydrate the
- * portal client so doc switching and search happen instantly without round-trips.
- */
-export const loadVisibleDocs = cache(async (role: DocRole): Promise<LoadedDoc[]> => {
-  const entries = docsForRole(role);
-  return Promise.all(entries.map(readDoc));
-});
+  const docs = await Promise.all(
+    files.map(async (file) => {
+      const raw = await readFile(path.join(dir, file), "utf8");
+      const { data, body } = parseFrontmatter(raw);
+      return {
+        slug: file.replace(/\.md$/, ""),
+        title: data.title || file.replace(/\.md$/, ""),
+        description: data.description || "",
+        category: data.category || "General",
+        audience: (data.audience as DocAudience) || audience,
+        order: data.order ? Number(data.order) : 999,
+        content: body,
+      } satisfies LoadedDoc;
+    })
+  );
 
-export { DOCS };
+  docs.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+  return docs;
+});

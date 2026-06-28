@@ -1,6 +1,4 @@
-/* Scoped styling for rendered markdown in the Documentation portal.
-   Generated markdown elements can't be inline-styled per-element, so this
-   stylesheet (imported alongside the highlight.js theme) handles them.
+/* Scoped styling for rendered markdown in the Admin Documentation tab.
    Colors mirror APP_SHELL in lib/theme.ts. */
 
 .md-body {
@@ -138,4 +136,31 @@
 
 .md-body :first-child {
   margin-top: 0;
+}
+
+/* Panel layout */
+.docs-panel {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+.docs-panel-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 16px;
+}
+.docs-panel-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .docs-panel {
+    flex-direction: column;
+  }
+  .docs-panel-sidebar {
+    width: 100%;
+    position: static;
+  }
 }

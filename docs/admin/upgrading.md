@@ -1,6 +1,14 @@
+---
+title: Upgrading
+description: Safe upgrade procedures, backups, migrations, and rollback.
+category: Maintenance
+audience: admin
+order: 60
+---
+
 # Safe Upgrading Guide
 
-This guide explains how to safely pull new versions of **rsvp-to-me**, perform database backups, run migrations, and verify your upgrade.
+This guide explains how to safely pull new versions of **RSVP to Me**, perform database backups, run migrations, and verify your upgrade.
 
 ---
 
@@ -19,7 +27,7 @@ This guide explains how to safely pull new versions of **rsvp-to-me**, perform d
 
 ## How Updates Work
 
-rsvp-to-me is distributed as a pre-built Docker image. When a new version is released:
+RSVP to Me is distributed as a pre-built Docker image. When a new version is released:
 
 - A new Docker image is pushed to our container registry.
 - The image is tagged with the release version and also updates the `latest` tag.
@@ -34,6 +42,8 @@ Your `docker-compose.yml` uses the `latest` tag by default. Running `docker comp
 ## Before You Upgrade — Back Up Your Data
 
 Always perform a backup before upgrading.
+
+> **Also back up your `.env` file.** Your secrets (`SESSION_SECRET`, `ENCRYPTION_KEY`, provider credentials) live only in `.env`. If you ever need to roll back or rebuild, you'll need the original values — losing `ENCRYPTION_KEY` in particular means stored credentials can no longer be decrypted. Copy it somewhere safe: `cp .env ./env-backup-$(date +%Y%m%d)`.
 
 ### Method 1: pg_dump via the Postgres Container (recommended)
 
@@ -133,7 +143,7 @@ _What this does:_
 
 ## Database Migrations
 
-rsvp-to-me handles database migrations automatically when the container starts. On boot, the `app` container executes `npx prisma migrate deploy` to check and apply any new schema updates.
+RSVP to Me handles database migrations automatically when the container starts. On boot, the `app` container runs a migration script (`scripts/migrate-db.js`) that first takes an automatic pre-migration database snapshot, then applies any new schema updates with `prisma migrate deploy`. If a migration step errors transiently, the script retries a few times with a short backoff before giving up, and surfaces an actionable hint (e.g. a `prisma migrate resolve` command) in the logs for a stuck migration.
 
 ### If a Migration Fails
 
@@ -190,7 +200,7 @@ To restore a PostgreSQL `.sql` backup, feed it into `psql` via the Postgres cont
 # Drop and recreate the database to get a clean slate, then restore
 docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS rsvp_db;"
 docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE rsvp_db;"
-docker compose exec -T postgres psql -U postgres -d rsvp_db < ./data/backups/pre-upgrade-20260623.sql
+docker compose exec -T postgres psql -U postgres -d rsvp_db < ./data/backups/pre-upgrade-YYYYMMDD.sql
 ```
 
 ### Step 2: Pin the Previous Image Version
@@ -258,7 +268,7 @@ For an extra layer of offsite protection, you can run a host cron job alongside 
 
 ## Upgrading the PostgreSQL Major Version
 
-rsvp-to-me uses PostgreSQL 18. When a new major PostgreSQL version is released and you want to upgrade, use the dump-and-restore method (not `pg_upgrade`, which requires native binary installations).
+RSVP to Me uses PostgreSQL 18. When a new major PostgreSQL version is released and you want to upgrade, use the dump-and-restore method (not `pg_upgrade`, which requires native binary installations).
 
 **This procedure requires a brief maintenance window.**
 
