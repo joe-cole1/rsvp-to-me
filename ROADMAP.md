@@ -36,8 +36,8 @@ _(No pending priority 2 privacy controls)_
 
 ### 👥 Guest List & RSVP Enhancements
 
-- **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Documented as a feature previously; the feature docs were corrected to match reality (the check-in section was removed from `docs/features.md`). Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
-- **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Earlier docs promised phone numbers, check-in times, and questionnaire answers (now corrected in `docs/features.md`). Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
+- **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Documented as a feature previously; the host feature docs were corrected to match reality (no check-in section in `docs/host/`). Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
+- **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Earlier docs promised phone numbers, check-in times, and questionnaire answers (now corrected in `docs/host/guest-list.md`). Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
 
 ### ⚙️ Administration & Settings
 
@@ -48,7 +48,7 @@ _(No pending priority 2 privacy controls)_
 ### 📖 Interactive Documentation Dashboard
 
 - ~~**Interactive Documentation Dashboard (admin)**~~ _(implemented — see Completed Milestones)_
-- **Host-facing documentation portal**: A reader for host/guest-oriented guides (the `docs/host/` folder already exists, seeded with `features.md`). Surface it to hosts (e.g. from the dashboard or profile menu) using the same frontmatter-driven `loadDocs("host")` path that powers the admin tab. Deferred until there is enough host-facing content to warrant it.
+- **Host-facing documentation portal**: A reader to surface the host guides in `docs/host/` (a full set of frontmatter guides already exists — getting started, creating events, customizing, visibility, invitations, RSVPs, guest list, messaging, polls/potluck/comments, co-hosting, and an FAQ). Build a host-facing portal (e.g. from the dashboard or profile menu) using the same `loadDocs("host")` path that powers the admin tab. Only the reader UI remains.
 
 ---
 

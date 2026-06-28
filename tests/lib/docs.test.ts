@@ -35,8 +35,15 @@ describe("lib/docs.ts", () => {
 
   it("loads host docs from docs/host", async () => {
     const docs = await loadDocs("host");
-    expect(docs.map((d) => d.slug)).toContain("features");
+    expect(docs.length).toBeGreaterThan(0);
+    expect(docs.map((d) => d.slug)).toContain("getting-started");
     expect(docs.every((d) => d.audience === "host")).toBe(true);
+    // Host docs carry the required frontmatter just like admin docs.
+    for (const doc of docs) {
+      expect(doc.title.length).toBeGreaterThan(0);
+      expect(doc.category.length).toBeGreaterThan(0);
+      expect(doc.content.startsWith("---")).toBe(false);
+    }
   });
 
   it("has unique slugs per audience", async () => {
