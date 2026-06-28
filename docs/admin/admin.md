@@ -1,3 +1,11 @@
+---
+title: Admin Panel
+description: Admin walkthrough: users, system config, backups, themes.
+category: Usage
+audience: admin
+order: 50
+---
+
 # Admin Panel Guide
 
 The Admin Panel gives you a complete view of your RSVP to Me installation: every user account, every event page, system configuration, invite codes, themes, and backups. This guide explains what each section does and how to use it.
@@ -29,9 +37,9 @@ Navigate to `/admin` on your installation in your browser:
 
 The Admin Panel is strictly gated to users with the `ADMIN` role. If you attempt to access `/admin` with a lower-privilege account, the app redirects you to the main dashboard.
 
-The panel is organized into a sidebar of tabs (a slide-in drawer on mobile): **Overview**, **Users**, **Events**, **Host Settings**, **Email**, **SMS**, **Backups**, and **Themes**. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
+The panel is organized into a sidebar of tabs (a slide-in drawer on mobile): **Overview**, **Users**, **Events**, **Host Settings**, **Email**, **SMS**, **Backups**, **Themes**, and **Documentation**. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
 
-> **Tip:** All of these guides — including this one and the installation, configuration, email, SMS, and upgrading guides — are also readable inside the app at `/docs` (profile menu → **📚 Documentation**). Admins see the full set; hosts see only the user-facing guides.
+> **Tip:** All of these admin guides — this one plus installation, configuration, email, SMS, and upgrading — are also readable inside the app in the **Documentation** tab at the bottom of the Admin Panel menu.
 
 ---
 

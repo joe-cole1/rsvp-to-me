@@ -1,3 +1,11 @@
+---
+title: SMS Setup
+description: Twilio integration, account setup, limits, and costs.
+category: Configuration
+audience: admin
+order: 40
+---
+
 # SMS Setup Guide (Twilio)
 
 SMS messaging in RSVP to Me is powered by Twilio and is entirely optional. This guide walks you through creating a Twilio account, acquiring a phone number, and connecting it to your installation.

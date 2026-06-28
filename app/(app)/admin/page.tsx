@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/admin";
 import AdminClient from "./AdminClient";
 import { getSessionUser } from "@/lib/session-user";
+import { loadDocs } from "@/lib/docs";
 import { db } from "@/lib/db";
 
 export const metadata = {
@@ -33,17 +34,27 @@ export default async function AdminPage() {
     sessionUser.role = "ADMIN";
   }
 
-  const [stats, users, events, inviteCodes, systemConfig, backupConfig, backupsList, themePresets] =
-    await Promise.all([
-      getAdminStats(),
-      getAdminUsers(),
-      getAdminEvents(),
-      getInviteCodes(),
-      getSystemConfig(),
-      getBackupConfig(),
-      listBackupsAction(),
-      getThemePresets(),
-    ]);
+  const [
+    stats,
+    users,
+    events,
+    inviteCodes,
+    systemConfig,
+    backupConfig,
+    backupsList,
+    themePresets,
+    docs,
+  ] = await Promise.all([
+    getAdminStats(),
+    getAdminUsers(),
+    getAdminEvents(),
+    getInviteCodes(),
+    getSystemConfig(),
+    getBackupConfig(),
+    listBackupsAction(),
+    getThemePresets(),
+    loadDocs("admin"),
+  ]);
 
   return (
     <AdminClient
@@ -55,6 +66,7 @@ export default async function AdminPage() {
       initialBackupConfig={backupConfig}
       initialBackups={backupsList}
       initialThemePresets={themePresets}
+      initialDocs={docs}
       sessionUser={{
         name: sessionUser.name,
         email: sessionUser.email,

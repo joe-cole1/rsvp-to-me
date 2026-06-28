@@ -1,3 +1,11 @@
+---
+title: Upgrading
+description: Safe upgrade procedures, backups, migrations, and rollback.
+category: Maintenance
+audience: admin
+order: 60
+---
+
 # Safe Upgrading Guide
 
 This guide explains how to safely pull new versions of **RSVP to Me**, perform database backups, run migrations, and verify your upgrade.

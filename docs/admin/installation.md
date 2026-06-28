@@ -1,3 +1,11 @@
+---
+title: Installation
+description: Docker setup, deployment, HTTPS, and troubleshooting.
+category: Getting Started
+audience: admin
+order: 10
+---
+
 # Installation Guide
 
 This guide walks you through deploying **RSVP to Me** on any machine that can run Docker. You do not need to know how to program, compile code, or manage a database beyond the steps described here.

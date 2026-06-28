@@ -1,3 +1,11 @@
+---
+title: Email Setup
+description: SMTP and Cloudflare email provider configuration.
+category: Configuration
+audience: admin
+order: 30
+---
+
 # Email Setup Guide
 
 RSVP to Me sends email notifications for passwordless logins (magic links), guest invitations, RSVP confirmations, event updates, and automated reminders. This guide explains how to configure each supported email provider.

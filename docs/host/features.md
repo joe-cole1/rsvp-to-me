@@ -1,3 +1,11 @@
+---
+title: Features
+description: Themes, RSVP, polls, potlucks, and co-hosting for hosts.
+category: Usage
+audience: host
+order: 10
+---
+
 # Feature Reference
 
 This guide walks through every feature of **RSVP to Me** from a host's point of view — in plain language, no technical background needed.
@@ -26,7 +34,6 @@ This guide walks through every feature of **RSVP to Me** from a host's point of 
 18. [Event Settings and Visibility](#event-settings-and-visibility)
 19. [Activity Log](#activity-log)
 20. [User Profiles](#user-profiles)
-21. [In-App Documentation](#in-app-documentation)
 
 ---
 
@@ -69,7 +76,7 @@ Click your profile avatar in the navigation bar and choose **Sign Out**. This cl
 
 - **Guest**: a standard account, created automatically the first time someone RSVPs. Guests can RSVP, comment, claim potluck items, and vote in polls, but can't host events.
 - **Host**: an event organizer. Hosts create and manage events, see guest activity, and invite co-hosts.
-- **Admin**: a system administrator. Admins can open the Admin Panel, manage all users, and change system settings. See the [Admin Panel Guide](admin.md).
+- **Admin**: a system administrator. Admins can open the Admin Panel, manage all users, and change system settings. See the [Admin Panel Guide](../admin/admin.md).
 
 ---
 
@@ -330,14 +337,3 @@ Manage your profile at `/profile`:
 - **Details:** edit your display name and upload a profile picture.
 - **Contact info:** changing your email sends a verification link to the new address; changing your phone sends a verification code to the new number.
 - **Notification preferences:** turn email or SMS notifications on or off, and (when both channels are available) choose whether you'd like to be reached by **Email**, **SMS**, or **Both**.
-
----
-
-## In-App Documentation
-
-These guides are available directly inside the app at `/docs` — open the profile menu (top-right avatar) and choose **📚 Documentation**. The portal renders this documentation live from the running deployment, so it always matches your installed version.
-
-- **Category navigation:** guides are grouped into _Getting Started_, _Configuration_, _Usage_, and _Maintenance_ in a sidebar (a slide-in drawer on mobile).
-- **Search:** filter guides by title or full text.
-- **Access:** the portal is open to hosts and admins. Hosts see the user-facing guides (this Feature Reference and the project overview); operator guides (installation, configuration, email, SMS, admin, upgrading) are admin-only. Guest accounts don't see the portal.
-- Code blocks are syntax-highlighted, tables render, and cross-links between guides open within the portal.

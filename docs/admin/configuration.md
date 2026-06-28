@@ -1,3 +1,11 @@
+---
+title: Configuration
+description: Environment variable reference for every subsystem.
+category: Configuration
+audience: admin
+order: 20
+---
+
 # Configuration Reference
 
 All configurable settings for **RSVP to Me** live in a single `.env` file in the same directory as your `docker-compose.yml`. This guide explains every variable, what it controls, and how to configure it.

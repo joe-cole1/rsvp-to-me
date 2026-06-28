@@ -15,7 +15,7 @@ A beautiful, self-hosted, social-first event and RSVP platform for personal even
 
 ## Quick Start
 
-This section gets your **RSVP to Me** installation up and running in a few steps. For the full guide, see [docs/installation.md](docs/installation.md).
+This section gets your **RSVP to Me** installation up and running in a few steps. For the full guide, see [docs/admin/installation.md](docs/admin/installation.md).
 
 ### Prerequisites
 
@@ -80,12 +80,12 @@ This section gets your **RSVP to Me** installation up and running in a few steps
 
 For in-depth explanations of specific features, configurations, and operations, refer to the guides below:
 
-| Guide                                            | Description                                                                               |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| [Installation Guide](docs/installation.md)       | Full setup walkthrough, Docker setup, data backups, and HTTPS reverse proxies.            |
-| [Configuration Reference](docs/configuration.md) | Comprehensive list and explanation of every environment variable.                         |
-| [Email Setup Guide](docs/email.md)               | Setting up SMTP (Gmail, Outlook, SES, etc.) or Cloudflare Email Routing.                  |
-| [SMS Setup Guide](docs/sms.md)                   | Connecting Twilio to enable text message logins, invitations, and blasts.                 |
-| [Admin Panel Guide](docs/admin.md)               | Managing user accounts, event moderation, custom invite codes, and system configurations. |
-| [Feature Reference](docs/features.md)            | Detailed walkthrough of RSVP custom fields, potlucks, polls, co-hosts, and themes.        |
-| [Safe Upgrading Guide](docs/upgrading.md)        | Instructions on updating to new versions safely without losing any database data.         |
+| Guide                                                  | Description                                                                               |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| [Installation Guide](docs/admin/installation.md)       | Full setup walkthrough, Docker setup, data backups, and HTTPS reverse proxies.            |
+| [Configuration Reference](docs/admin/configuration.md) | Comprehensive list and explanation of every environment variable.                         |
+| [Email Setup Guide](docs/admin/email.md)               | Setting up SMTP (Gmail, Outlook, SES, etc.) or Cloudflare Email Routing.                  |
+| [SMS Setup Guide](docs/admin/sms.md)                   | Connecting Twilio to enable text message logins, invitations, and blasts.                 |
+| [Admin Panel Guide](docs/admin/admin.md)               | Managing user accounts, event moderation, custom invite codes, and system configurations. |
+| [Feature Reference](docs/host/features.md)             | Detailed walkthrough of RSVP custom fields, potlucks, polls, co-hosts, and themes.        |
+| [Safe Upgrading Guide](docs/admin/upgrading.md)        | Instructions on updating to new versions safely without losing any database data.         |
