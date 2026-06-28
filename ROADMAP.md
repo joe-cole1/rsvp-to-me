@@ -48,7 +48,7 @@ _(No pending priority 2 privacy controls)_
 ### 📖 Interactive Documentation Dashboard
 
 - ~~**Interactive Documentation Dashboard (admin)**~~ _(implemented — see Completed Milestones)_
-- **Host-facing documentation portal**: A reader to surface the host guides in `docs/host/` (a full set of frontmatter guides already exists — getting started, creating events, customizing, visibility, invitations, RSVPs, guest list, messaging, polls/potluck/comments, co-hosting, and an FAQ). Build a host-facing portal (e.g. from the dashboard or profile menu) using the same `loadDocs("host")` path that powers the admin tab. Only the reader UI remains.
+- ~~**Host-facing documentation portal**~~ _(implemented — see Completed Milestones)_
 
 ---
 
@@ -114,7 +114,8 @@ _A log of completed capabilities._
 ### Interactive Documentation Dashboard
 
 - [x] **Admin Documentation tab**: The operator guides are readable inside the app as the last tab of the **Admin Panel** (`/admin?tab=docs`), gated to ADMIN only (the panel itself is admin-gated). Rendered by `components/admin/DocsPanel.tsx` with `react-markdown` + `remark-gfm` (tables), `rehype-slug` (anchors), and `rehype-highlight` (syntax-highlighted code); category sidebar + full-text search; relative cross-links resolve within the panel.
-- [x] **Frontmatter-driven, folder-based structure**: Guides live under `docs/<audience>/` (`docs/admin/` for operator guides, `docs/host/` reserved for a future host portal). Each `.md` carries YAML frontmatter (`title`, `description`, `category`, `audience`, `order`); `lib/docs.ts` scans the folder and reads frontmatter — there is **no central registry** to maintain. Adding a guide = drop a `.md` with frontmatter. The Dockerfile copies the whole `docs/` tree so guides ship in the image. Covered by `tests/lib/docs.test.ts`; convention documented in AGENTS.md "In-App Documentation Sync Rule".
+- [x] **Frontmatter-driven, folder-based structure**: Guides live under `docs/<audience>/` (`docs/admin/` for operator guides, `docs/host/` for host guides). Each `.md` carries YAML frontmatter (`title`, `description`, `category`, `audience`, `order`); `lib/docs.ts` scans the folder and reads frontmatter — there is **no central registry** to maintain. Adding a guide = drop a `.md` with frontmatter. The Dockerfile copies the whole `docs/` tree so guides ship in the image. Covered by `tests/lib/docs.test.ts`; convention documented in AGENTS.md "In-App Documentation Sync Rule".
+- [x] **Host-facing Help & Guides portal**: A reader at `/help` (linked from the profile dropdown, shown to HOST + ADMIN, guests redirected) renders the `docs/host/` guide set via `loadDocs("host")` and the shared `components/docs/DocsPanel.tsx`. The 11 host guides cover getting started, creating/customizing events, visibility, invitations, RSVPs, the guest list, messaging/reminders, polls/potluck/comments, co-hosting, and an FAQ.
 
 ### Security Hardening — Atomic RSVP Capacity Enforcement (SEC-12, SEC-21b)
 

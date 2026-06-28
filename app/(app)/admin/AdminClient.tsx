@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, X } from "lucide-react";
-import DocsPanel, { type PanelDoc } from "@/components/admin/DocsPanel";
+import DocsPanel, { type PanelDoc } from "@/components/docs/DocsPanel";
 import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 import {
