@@ -266,6 +266,14 @@ For an extra layer of offsite protection, you can run a host cron job alongside 
 
 ---
 
+## Node.js Runtime Version
+
+The Node.js runtime is bundled inside the pre-built Docker image, so **self-hosters running via Docker do not need to install or manage Node directly** — a `docker compose pull` always brings the correct runtime.
+
+As of this release, the bundled runtime is **Node.js 22 (active LTS)**, upgraded from Node.js 20 (which reached end-of-life in April 2026). No action is required for Docker-based deployments. If you build the image or run the app from source instead of using the published image, ensure your environment provides **Node.js 22.13 or newer**.
+
+---
+
 ## Upgrading the PostgreSQL Major Version
 
 RSVP to Me uses PostgreSQL 18. When a new major PostgreSQL version is released and you want to upgrade, use the dump-and-restore method (not `pg_upgrade`, which requires native binary installations).
