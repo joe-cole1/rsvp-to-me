@@ -379,14 +379,7 @@ export function SettingsPage({
 
   const openSection = (
     section:
-      | "theme"
-      | "hosts"
-      | "rsvp"
-      | "questionnaire"
-      | "privacy"
-      | "reminders"
-      | "polls"
-      | "potluck"
+      "theme" | "hosts" | "rsvp" | "questionnaire" | "privacy" | "reminders" | "polls" | "potluck"
   ) => {
     const url = new URL(window.location.href);
     url.searchParams.set("section", section);
