@@ -13,6 +13,7 @@ Follow this workflow:
    - **Skip Lint Check for Non-Substantive Changes:** If the changes do NOT affect application source code (e.g., only modifying `AGENTS.md`, `ROADMAP.md`, or markdown files in `docs/`), append the `--no-verify` flag to the `git commit` command to bypass lint/compile hooks. If there are any functional code modifications, do NOT include this flag.
 3. Open Pull Requests from the feature branch to `main` only — never push directly to `main`. Use `gh pr create`.
 4. Before committing, verify the local diff matches the intended changes. Run `git fetch` and confirm whether the local branch is in sync with remote.
+
 <!-- END:git-mcp-rules -->
 
 <!-- BEGIN:nextjs-agent-rules -->
@@ -79,6 +80,7 @@ After making changes and before presenting Git commands to the user to push to G
 - Add failing tests under **🔴 Priority 1 — Bugs & Blockers** with a note that tests are failing.
 - Be specific: include the file path, the nature of the problem, and why it was left out of scope.
 - Do NOT fix out-of-scope issues in the current branch — log them and continue. Fixing unrelated things in the same PR creates noise and risk.
+
 <!-- END:out-of-scope-issues-rules -->
 
 ---
@@ -348,6 +350,7 @@ Specific rules:
 - **`const` arrow functions are not hoisted**: Arrow functions declared with `const` must be defined before they are called. Use function declarations if hoisting is needed.
 - **TypeScript strictness**: Keep `strict: true` in `tsconfig.json`. Never use `any` unless there is no viable alternative.
 - **Prettier for formatting** _(planned — see ROADMAP.md)_: Run Prettier as a CI check once the codebase has been formatted. Do not add ad-hoc style fixes in individual PRs.
+
 <!-- END:best-practices-rules -->
 
 <!-- BEGIN:tone-rules -->
@@ -358,6 +361,7 @@ Specific rules:
 - **Let the user drive decisions.** Present options and trade-offs clearly; do not make architectural choices unilaterally.
 - **Flag unexpected discoveries immediately.** If something in the codebase contradicts the plan or introduces risk, stop and surface it before continuing.
 - **Never guess at Next.js 16 or Prisma 7 patterns.** If uncertain, read `node_modules/next/dist/docs/` or `schema.prisma` before writing code.
+
 <!-- END:tone-rules -->
 
 <!-- BEGIN:chat-tagging-rules -->
@@ -372,6 +376,7 @@ Every chat session is associated with a unique conversation hash (the first 6 ch
 4. **Commit Messages**: All commit messages must begin with the hash prefix (e.g., `[db8e2d] feat: add rate limiter`).
 5. **PR Titles**: The `gh pr create` command must prefix the PR title with `[hash]` (e.g., `[db8e2d] Security & Best Practices Review`).
 6. **Git Command Formatting**: Always break git and gh commands into individual fenced code blocks — one command per block — so the user can copy and execute them one at a time. Never bundle multiple commands into a single block.
+
 <!-- END:chat-tagging-rules -->
 
 <!-- BEGIN:regression-test-rules -->

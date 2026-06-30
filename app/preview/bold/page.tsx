@@ -164,10 +164,7 @@ export default function BoldPreview() {
                   background: t.accent,
                   color: t.accentFg,
                   textTransform: t.btnTransform as
-                    | "none"
-                    | "capitalize"
-                    | "uppercase"
-                    | "lowercase",
+                    "none" | "capitalize" | "uppercase" | "lowercase",
                 }}
               >
                 Send RSVP →
