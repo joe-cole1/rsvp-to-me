@@ -77,7 +77,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
-    "fast-check": "^3.23.2",
+    "fast-check": "^4.8.0",
     "husky": "^9",
     "jsdom": "^26.1.0",
     "lint-staged": "^15",
