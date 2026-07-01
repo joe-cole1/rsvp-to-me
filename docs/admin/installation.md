@@ -46,8 +46,8 @@ RSVP to Me runs as a set of Docker containers defined in `docker-compose.yml`:
 | Container  | Purpose                                                                                                                                                                                       |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app`      | The main web server. It handles webpage rendering, guest RSVPs, comment boards, and admin actions. It also runs the in-process cron scheduler for reminders and backups. Runs on port `3000`. |
-| `postgres` | PostgreSQL 18 database — stores all users, events, RSVPs, and application data.                                                                                                               |
-| `redis`    | Redis — session caching, rate limiting, and distributed cron locking.                                                                                                                         |
+| `postgres` | PostgreSQL 18 database — stores all users, events, RSVPs, and application data. Reachable only by the other containers on the internal Docker network — it is **not** exposed on a host port. |
+| `redis`    | Redis — session caching, rate limiting, and distributed cron locking. Internal-only, like `postgres` — no host port is exposed.                                                               |
 
 ---
 
@@ -142,6 +142,7 @@ You must set at least these variables before launching:
 
 1. **`POSTGRES_PASSWORD`**: A secure password for the PostgreSQL database container.
 2. **`REDIS_PASSWORD`**: A secure password for the Redis container.
+   > **These two are enforced.** The compose files ship **no default passwords** — if either variable is missing or empty, `docker compose up` refuses to start and prints an error naming the variable (e.g. `POSTGRES_PASSWORD is required - set a strong value in .env`). The database and cache are also not published on host ports, so they are only reachable by the app container on the internal Docker network.
 3. **`SESSION_SECRET`**: A secure, random string (at least 32 characters) used to encrypt user session cookies.
    - _CLI (Linux/Mac):_ Run `openssl rand -base64 32` to generate a key.
    - _CLI (Windows PowerShell):_ Run `[Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Max 256) }))`.
