@@ -1707,6 +1707,25 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
     throw new Error("No valid emails or phone numbers provided.");
   }
 
+  // SEC-29: inviteGuest fans out email/SMS per recipient with no bound. Even
+  // though it is host-authorized, an abusive or hijacked host session could
+  // drive large spam blasts and Twilio cost. Cap the batch size and throttle
+  // per host+event and per IP, mirroring inviteFriendAsGuest (SEC-18). The
+  // per-recipient duplicate-invitation guard below further limits repeats.
+  const MAX_INVITE_BATCH = 200;
+  if (entries.length > MAX_INVITE_BATCH) {
+    throw new Error(`Too many recipients in one request (max ${MAX_INVITE_BATCH}).`);
+  }
+  const ip = await getClientIp();
+  const ipLimit = await rateLimit(`host-invite:ip:${ip}`, 15, 3600);
+  if (!ipLimit.success) {
+    throw new Error("Too many invites sent. Please try again later.");
+  }
+  const eventLimit = await rateLimit(`host-invite:${session.userId}:${eventId}`, 10, 3600);
+  if (!eventLimit.success) {
+    throw new Error("Too many invites sent for this event. Please try again later.");
+  }
+
   const invited: string[] = [];
   const errors: string[] = [];
 
