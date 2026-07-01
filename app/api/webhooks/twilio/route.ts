@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { resolveTwilioAuthToken } from "@/lib/sms";
 import crypto from "crypto";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -11,8 +12,12 @@ function normalizePhone(raw: string): string {
   return raw;
 }
 
-function validateTwilioSignature(req: NextRequest, body: string): boolean {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
+// SEC-27: resolve the auth token from admin-panel config first, then env, via
+// the shared helper in lib/sms. Previously this used process.env.TWILIO_AUTH_TOKEN
+// only, so an admin-panel-only Twilio setup (no env var) rejected every inbound
+// reply — silently breaking reply-to-RSVP even though outbound SMS worked.
+async function validateTwilioSignature(req: NextRequest, body: string): Promise<boolean> {
+  const authToken = await resolveTwilioAuthToken();
   if (!authToken) return false;
 
   const url = `${APP_URL}/api/webhooks/twilio`;
@@ -69,7 +74,7 @@ type PendingInvitation = {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = await req.text();
 
-  if (!validateTwilioSignature(req, body)) {
+  if (!(await validateTwilioSignature(req, body))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 

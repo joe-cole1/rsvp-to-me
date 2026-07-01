@@ -27,3 +27,5 @@ For every bug fix merged to main:
 | `sec-18-guest-invite-rate-limit.test.ts`             | Uncapped outbound email/SMS via guest invite (no rate limit / per-RSVP cap) | SEC-18   |
 | `sec-22-client-ip-spoofing.test.ts`                  | Spoofable `X-Forwarded-For` defeated every IP-keyed rate limiter            | SEC-22   |
 | `sec-23-addrsvp-rate-limit.test.ts`                  | Unauthenticated `addRSVP` fan-out to arbitrary email/SMS with no rate limit | SEC-23   |
+| `sec-26-sms-token-decrypt.test.ts`                   | DB-configured Twilio auth token never decrypted (broken `enc:` check)       | SEC-26   |
+| `sec-27-twilio-webhook-db-token.test.ts`             | Twilio inbound webhook validated only against the env token, not DB config  | SEC-27   |

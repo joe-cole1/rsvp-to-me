@@ -47,8 +47,13 @@ export function decryptConfig(encryptedData: string): string {
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch (err) {
-    console.error("[crypto] Decryption failed, returning raw string:", err);
-    return encryptedData;
+    // SEC-26 / M-5b: fail closed. Returning the raw ciphertext here previously
+    // let an undecryptable value (wrong ENCRYPTION_KEY, corruption, tampering)
+    // flow onward as if it were a real credential — e.g. the ciphertext being
+    // handed to Twilio as a live auth token. Callers treat "" as "not
+    // configured" (and fall back to env / console mode) instead.
+    console.error("[crypto] Decryption failed, treating as unconfigured:", err);
+    return "";
   }
 }
 

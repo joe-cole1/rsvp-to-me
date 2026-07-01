@@ -136,6 +136,8 @@ Guests who receive an invitation by text can reply **YES**, **NO**, or **MAYBE**
 
 > This step is only needed if you want guests to RSVP by replying to texts. Outbound SMS (confirmations, reminders, blasts) works without it.
 
+> **Note:** The inbound webhook validates the signature against the **same** Twilio Auth Token used for outbound SMS — whether you set it in the Admin Panel (stored encrypted at rest) or in `.env`, with the Admin Panel value taking precedence. If you configured Twilio only in the Admin Panel, reply-to-RSVP works with no `TWILIO_AUTH_TOKEN` env var. If every inbound reply returns a signature error, confirm the token in **Admin → SMS** matches the one in your Twilio Console.
+
 ---
 
 ## Testing SMS

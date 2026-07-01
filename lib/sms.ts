@@ -5,6 +5,37 @@ import { isChannelEnabled } from "./config";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+/**
+ * Resolve the Twilio auth token from admin-panel config (encrypted at rest)
+ * first, then the `TWILIO_AUTH_TOKEN` env var. Single source of truth shared by
+ * the SMS sender (`resolveSmsConfig`) and the inbound webhook signature check
+ * (SEC-26 / SEC-27).
+ *
+ * SEC-26: the previous inline check only decrypted values prefixed with
+ * `"enc:"`, but `encryptConfig` emits `iv:tag:cipher` with no such prefix — so a
+ * DB-stored (encrypted) token was passed to Twilio as raw ciphertext and every
+ * admin-panel-configured SMS failed auth. `decryptConfig` no-ops on plaintext
+ * and fails closed (returns "") on an undecryptable value.
+ *
+ * Pass the already-fetched `configMap` (from `resolveSmsConfig`'s `findMany`) to
+ * avoid a second DB read; the webhook calls it with no argument and does a
+ * single `findUnique`.
+ */
+export async function resolveTwilioAuthToken(configMap?: Record<string, string>): Promise<string> {
+  if (configMap) {
+    const stored = configMap.twilio_auth_token;
+    if (stored) return decryptConfig(stored);
+    return process.env.TWILIO_AUTH_TOKEN || "";
+  }
+  try {
+    const config = await db.systemConfig.findUnique({ where: { key: "twilio_auth_token" } });
+    if (config?.value) return decryptConfig(config.value);
+  } catch (err) {
+    console.error("[sms] Failed to read Twilio auth token from DB, falling back to env:", err);
+  }
+  return process.env.TWILIO_AUTH_TOKEN || "";
+}
+
 async function resolveSmsConfig() {
   try {
     const configs = await db.systemConfig.findMany();
@@ -13,8 +44,7 @@ async function resolveSmsConfig() {
       configMap[c.key] = c.value;
     }
     const sid = configMap.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID || "";
-    const tokenEnc = configMap.twilio_auth_token || process.env.TWILIO_AUTH_TOKEN || "";
-    const token = tokenEnc.startsWith("enc:") ? decryptConfig(tokenEnc) : tokenEnc;
+    const token = await resolveTwilioAuthToken(configMap);
     const phone = configMap.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER || "";
     return { sid, token, phone };
   } catch (err) {
