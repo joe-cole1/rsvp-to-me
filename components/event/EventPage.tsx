@@ -1741,7 +1741,7 @@ export function EventPage({
         eventId: event.id,
         guestName: selfAuthorName,
         body: commentText.trim(),
-        rsvpId: guestRsvpId ?? undefined,
+        guestEditToken: guestEditToken ?? undefined,
       });
       if (result.success) {
         setCommentText("");
@@ -1772,7 +1772,7 @@ export function EventPage({
         eventId: event.id,
         guestName: name,
         body: replyText.trim(),
-        rsvpId: guestRsvpId ?? undefined,
+        guestEditToken: guestEditToken ?? undefined,
         parentId,
       });
 
@@ -1943,7 +1943,7 @@ export function EventPage({
   };
 
   const claimItem = async (itemId: string, name: string) => {
-    const result = await claimPotluckItem(itemId, name, claimQty, guestRsvpId ?? undefined);
+    const result = await claimPotluckItem(itemId, name, claimQty, guestEditToken ?? undefined);
     if (result.success && result.claim) {
       // Cast the claim to match the type expected in claims array (Date for createdAt)
       const newClaim = {
@@ -1966,7 +1966,7 @@ export function EventPage({
   };
 
   const unclaimItem = async (itemId: string, name: string) => {
-    const result = await unclaimPotluckItem(itemId, name, guestRsvpId ?? undefined);
+    const result = await unclaimPotluckItem(itemId, name, guestEditToken ?? undefined);
     if (result.success) {
       setEvent((e) => ({
         ...e,
@@ -2027,7 +2027,7 @@ export function EventPage({
     });
 
     try {
-      await castVote(pollId, pollOptionId, voter, isVoted, guestRsvpId ?? undefined);
+      await castVote(pollId, pollOptionId, voter, isVoted, guestEditToken ?? undefined);
     } catch (err) {
       console.error("Failed to cast vote", err);
     }
@@ -2042,7 +2042,7 @@ export function EventPage({
 
     startTransition(async () => {
       try {
-        const result = await addPollOption(pollId, optionText, voter, guestRsvpId ?? undefined);
+        const result = await addPollOption(pollId, optionText, voter, guestEditToken ?? undefined);
         if (result.success) {
           setEvent((e) => {
             const updatedPolls = e.polls.map((p) => {

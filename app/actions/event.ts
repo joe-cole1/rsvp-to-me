@@ -103,6 +103,20 @@ async function assertHostOrCohost(eventId: string) {
   return event;
 }
 
+// SEC-24: authorize an unauthenticated guest action by the secret per-RSVP
+// editToken (which only the guest holds), not a public rsvpId + client-supplied
+// name. Both the RSVP id and guestName are shipped to every viewer of the event
+// page, so matching them proved nothing — anyone could act as any approved
+// guest. Returns the approved RSVP (id + authoritative guestName) or null; the
+// caller uses rsvp.guestName as the identity and never trusts a client name.
+async function findApprovedGuestByToken(editToken: string | undefined | null, eventId: string) {
+  if (!editToken) return null;
+  return db.rSVP.findFirst({
+    where: { editToken, eventId, approved: true },
+    select: { id: true, guestName: true },
+  });
+}
+
 // ── Inline field edits ─────────────────────────────────────────────────────────
 
 const ALLOWED_FIELDS = new Set([
@@ -515,20 +529,12 @@ export async function addComment(rawInput: unknown) {
       guestName = user?.name?.trim() || user?.email || "Guest";
     }
   } else {
-    // Unauthenticated guest (SEC-3): require an approved RSVP for this event
-    // whose name matches the token-backed identity the client supplied.
-    if (!data.rsvpId) {
-      return { success: false, error: "An RSVP is required to comment." };
-    }
-    const rsvp = await db.rSVP.findFirst({
-      where: { id: data.rsvpId, eventId: data.eventId, approved: true },
-      select: { id: true, guestName: true },
-    });
+    // Unauthenticated guest (SEC-3 / SEC-24): authorize with the secret
+    // per-RSVP editToken, not the public rsvpId. The stored display name is
+    // taken from the matched approved RSVP row, never the client `guestName`.
+    const rsvp = await findApprovedGuestByToken(data.guestEditToken, data.eventId);
     if (!rsvp) {
       return { success: false, error: "A valid approved RSVP is required to comment." };
-    }
-    if (rsvp.guestName !== data.guestName) {
-      return { success: false, error: "Guest name does not match RSVP." };
     }
     guestName = rsvp.guestName;
     rsvpId = rsvp.id;
@@ -1138,7 +1144,7 @@ export async function claimPotluckItem(
   itemId: string,
   guestName: string,
   claimedQty: number = 1,
-  guestRsvpId?: string
+  guestEditToken?: string
 ) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
@@ -1149,24 +1155,18 @@ export async function claimPotluckItem(
   });
   if (!item) return { success: false, error: "Item not found" };
 
-  // SEC-4: require host/cohost session OR a verified approved RSVP
+  // SEC-4 / SEC-24: host/cohost session, OR an approved RSVP proven by its
+  // secret editToken. The claimant name is taken from that RSVP, never the
+  // client, so a caller can't claim under someone else's identity.
   const session = await getSession();
   const isHost = item.event.hostId === session?.userId || session?.role === "ADMIN";
   const isCohost = item.event.coHosts.some((ch) => ch.userId === session?.userId);
   if (!isHost && !isCohost) {
-    if (!guestRsvpId) {
-      return { success: false, error: "A valid RSVP is required to claim items." };
-    }
-    const rsvp = await db.rSVP.findFirst({
-      where: { id: guestRsvpId, eventId: item.eventId, approved: true },
-      select: { guestName: true },
-    });
+    const rsvp = await findApprovedGuestByToken(guestEditToken, item.eventId);
     if (!rsvp) {
       return { success: false, error: "A valid approved RSVP is required to claim items." };
     }
-    if (rsvp.guestName !== guestName) {
-      return { success: false, error: "Guest name does not match RSVP." };
-    }
+    guestName = rsvp.guestName;
   }
 
   const totalClaimed = item.claims.reduce((sum, c) => sum + c.quantity, 0);
@@ -1194,7 +1194,11 @@ export async function claimPotluckItem(
   return { success: true, activityEvent, claim };
 }
 
-export async function unclaimPotluckItem(itemId: string, guestName: string, guestRsvpId?: string) {
+export async function unclaimPotluckItem(
+  itemId: string,
+  guestName: string,
+  guestEditToken?: string
+) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
     include: {
@@ -1210,18 +1214,15 @@ export async function unclaimPotluckItem(itemId: string, guestName: string, gues
     (ch: { userId: string }) => ch.userId === session?.userId
   );
 
-  // SEC-4: guests must supply a verified RSVP; hosts/cohosts/admins may unclaim freely
+  // SEC-4 / SEC-24: hosts/cohosts/admins may unclaim freely (and pass the target
+  // claimant's name). A guest must prove an approved RSVP by its secret
+  // editToken; the name is then taken from that RSVP, never the client.
   if (!isHost && !isCohost) {
-    if (!guestRsvpId) {
-      return { success: false, error: "A valid RSVP is required to unclaim items." };
+    const rsvp = await findApprovedGuestByToken(guestEditToken, item.eventId);
+    if (!rsvp) {
+      return { success: false, error: "A valid approved RSVP is required to unclaim items." };
     }
-    const rsvp = await db.rSVP.findFirst({
-      where: { id: guestRsvpId, eventId: item.eventId, approved: true },
-      select: { guestName: true },
-    });
-    if (!rsvp || rsvp.guestName !== guestName) {
-      return { success: false, error: "Guest name does not match RSVP." };
-    }
+    guestName = rsvp.guestName;
   }
 
   const claim = item.claims.find((c) => c.guestName === guestName);
@@ -2051,7 +2052,7 @@ export async function castVote(
   pollOptionId: string,
   voterName: string,
   isVoted: boolean,
-  guestRsvpId?: string
+  guestEditToken?: string
 ) {
   const poll = await db.poll.findUnique({
     where: { id: pollId },
@@ -2075,18 +2076,11 @@ export async function castVote(
   const isHost = isOwner || isCohost;
 
   if (!isHost) {
-    if (!guestRsvpId) throw new Error("Unauthorized: Guest RSVP ID required to vote");
-    const rsvp = await db.rSVP.findFirst({
-      where: {
-        id: guestRsvpId,
-        eventId: poll.eventId,
-        approved: true,
-      },
-    });
-    if (!rsvp) throw new Error("Unauthorized: RSVP not found or not approved");
-    if (rsvp.guestName !== voterName) {
-      throw new Error("Unauthorized: Voter name does not match guest name");
-    }
+    // SEC-24: authorize by secret editToken; the voter name is the RSVP's,
+    // never the client-supplied one (both rsvpId and guestName are public).
+    const rsvp = await findApprovedGuestByToken(guestEditToken, poll.eventId);
+    if (!rsvp) throw new Error("Unauthorized: a valid approved RSVP is required to vote");
+    voterName = rsvp.guestName;
   }
 
   const option = await db.pollOption.findUnique({
@@ -2151,7 +2145,7 @@ export async function addPollOption(
   pollId: string,
   text: string,
   creatorName: string,
-  guestRsvpId?: string
+  guestEditToken?: string
 ) {
   if (!text.trim()) throw new Error("Option text cannot be empty");
 
@@ -2178,18 +2172,10 @@ export async function addPollOption(
   if (!isHost) {
     if (!poll.allowGuestsToAdd)
       throw new Error("Guests are not allowed to add options to this poll");
-    if (!guestRsvpId) throw new Error("Unauthorized: Guest RSVP ID required");
-    const rsvp = await db.rSVP.findFirst({
-      where: {
-        id: guestRsvpId,
-        eventId: poll.eventId,
-        approved: true,
-      },
-    });
-    if (!rsvp) throw new Error("Unauthorized: RSVP not found or not approved");
-    if (rsvp.guestName !== creatorName) {
-      throw new Error("Unauthorized: Creator name does not match guest name");
-    }
+    // SEC-24: authorize by secret editToken; the creator name is the RSVP's.
+    const rsvp = await findApprovedGuestByToken(guestEditToken, poll.eventId);
+    if (!rsvp) throw new Error("Unauthorized: a valid approved RSVP is required");
+    creatorName = rsvp.guestName;
   }
 
   // Check if option already exists
