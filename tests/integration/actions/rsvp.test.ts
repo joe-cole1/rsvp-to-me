@@ -6,6 +6,16 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ get: vi.fn(), set: vi.fn(), delete: vi.fn() }),
 }));
+// addRSVP throttles via getClientIp()/rateLimit() (SEC-23). getClientIp calls
+// next/headers `headers()`, which has no request scope here, and rate limiting
+// is exercised by its own unit tests — stub both so this suite stays focused on
+// addRSVP's real DB behavior.
+vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("127.0.0.1") }));
+vi.mock("@/lib/rateLimit", () => ({
+  rateLimit: vi
+    .fn()
+    .mockResolvedValue({ success: true, limit: 15, remaining: 14, reset: new Date() }),
+}));
 // Email/SMS are fire-and-forget (.catch(() => {})), but mock to avoid SMTP/Twilio errors
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn().mockResolvedValue(undefined),

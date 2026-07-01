@@ -42,8 +42,14 @@ vi.mock("@/lib/activity", () => ({
 }));
 vi.mock("@/lib/utils", () => ({ tzLocalToUtc: vi.fn() }));
 vi.mock("@/lib/crypto", () => ({ getUnlockSignature: vi.fn() }));
-vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn() }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn() }));
+// addRSVP throttles via rateLimit()/getClientIp() (SEC-23) before the capacity
+// path this test exercises — stub them to always pass.
+vi.mock("@/lib/rateLimit", () => ({
+  rateLimit: vi
+    .fn()
+    .mockResolvedValue({ success: true, limit: 15, remaining: 14, reset: new Date() }),
+}));
+vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("127.0.0.1") }));
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn(),
   sendBlastEmail: vi.fn(),
