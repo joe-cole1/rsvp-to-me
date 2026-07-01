@@ -109,13 +109,15 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 - **Default**: _(none)_
 - **Type**: String (Header Name)
 
-**What it does:** Specifies the trusted request header to use when extracting client IP addresses for rate limiting. When running behind reverse proxies (like Cloudflare, Nginx, or AWS ALBs), this ensures rate-limit tracking resolves the actual client IP instead of proxy IPs.
+**What it does:** Names the request header the application should trust when extracting client IP addresses for rate limiting. When running behind a reverse proxy (Cloudflare, Nginx, AWS ALB, etc.), set this to the header your proxy adds so rate-limit tracking resolves the real client IP instead of the proxy IP.
 
 **Common values:**
 
 - `CF-Connecting-IP` (Cloudflare)
 - `X-Real-IP` (Nginx, Vercel)
-- `X-Forwarded-For` (Fallback default, checks the first client IP in the chain)
+- `X-Forwarded-For` (Nginx `proxy_add_x_forwarded_for`, AWS ALB — the app uses the **last** hop, i.e. the address your trusted proxy appended)
+
+> **Security (default is deny):** Forwarding headers are attacker-controlled unless a trusted proxy overwrites them. If this variable is **unset**, the app does **not** trust `X-Forwarded-For` / `X-Real-IP` / `CF-Connecting-IP` at all — otherwise a client could rotate `X-Forwarded-For` on every request to evade IP-based limits. With no trusted header configured, IP-keyed limits become coarse (effectively per-proxy), while the identifier-keyed limits (per email/phone and per event slug) that protect the sensitive flows still apply. **If you run behind a proxy, set this variable** to restore per-client IP granularity. For `X-Forwarded-For` the app reads the last entry in the chain (the hop your proxy appended), so a client-prepended fake IP is ignored — this only holds when the header is genuinely set by a trusted proxy in front of the app.
 
 **Rate-limited surfaces:** magic-link sign-in, host registration, password-gated event unlock (10 attempts per event + client IP per 10 minutes), and guest-to-guest invites on private events (per client IP: 30/hour; per inviting guest: 10 per 10 minutes burst and 20 per day). Setting this header correctly behind a proxy ensures these limits track the real client rather than the proxy IP.
 
@@ -412,32 +414,32 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 
 ## Quick Reference Table
 
-| Variable                       | Required        | Default             | Description                                                                    |
-| ------------------------------ | --------------- | ------------------- | ------------------------------------------------------------------------------ |
-| `DATABASE_URL`                 | Yes             | _(none)_            | PostgreSQL 18 connection URL (e.g. `postgresql://user:pass@host:5432/db`).     |
-| `REDIS_URL`                    | Yes             | _(none)_            | Redis connection URL for caching, rate limits, and distributed locks.          |
-| `BACKUP_SCHEDULE`              | No              | `disabled`          | Cron expression (e.g. `0 0 * * *`) to schedule automated database backups.     |
-| `BACKUP_KEEP_COUNT`            | No              | `7`                 | Maximum number of backup files to retain before rotating.                      |
-| `SESSION_SECRET`               | Yes             | _(none)_            | Random string (32+ chars) for signing session cookies.                         |
-| `TRUSTED_IP_HEADER`            | No              | _(none)_            | Optional header to extract client IP for proxy setups (e.g. CF-Connecting-IP). |
-| `ENCRYPTION_KEY`               | No              | _(falls back)_      | Encryption key for database-stored credentials.                                |
-| `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                        |
-| `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email address promoted to Admin on first login.                                |
-| `OPEN_REGISTRATION`            | No              | `"false"`           | If `"true"`, allows host signups without invite codes.                         |
-| `HOST_INVITE_CODE`             | Yes (if closed) | `"letmein"`         | Code required by new hosts to register.                                        |
-| `SEED_TEST_DATA`               | No              | `"false"`           | If `"true"`, seeds mock test events on first run.                              |
-| `LOG_LEVEL`                    | No              | `"info"`            | Logging verbosity (`debug`, `info`, `warn`, `error`).                          |
-| `EMAIL_FROM`                   | No              | _(noreply address)_ | From header display name and email address.                                    |
-| `SMTP_HOST`                    | Yes (if SMTP)   | _(none)_            | Outgoing SMTP mail server hostname.                                            |
-| `SMTP_PORT`                    | No              | `"587"`             | Outgoing SMTP mail server port.                                                |
-| `SMTP_SECURE`                  | No              | `"false"`           | Set `"true"` for port 465, `"false"` for port 587.                             |
-| `SMTP_USER`                    | Yes (if SMTP)   | _(none)_            | Outgoing SMTP username.                                                        |
-| `SMTP_PASS`                    | Yes (if SMTP)   | _(none)_            | Outgoing SMTP password or App Password.                                        |
-| `CLOUDFLARE_WORKER_EMAIL_URL`  | Yes (if Worker) | _(none)_            | HTTPS URL of your deployed Cloudflare Worker.                                  |
-| `CLOUDFLARE_WORKER_API_SECRET` | Yes (if Worker) | _(none)_            | Shared secret token to authorize Worker requests.                              |
-| `CLOUDFLARE_ACCOUNT_ID`        | Yes (if CF API) | _(none)_            | Cloudflare Account ID.                                                         |
-| `CLOUDFLARE_API_TOKEN`         | Yes (if CF API) | _(none)_            | Cloudflare API Token with Email Sending permissions.                           |
-| `INBOUND_FORWARD_TO`           | No              | _(none)_            | Fallback catch-all email address for direct replies.                           |
-| `TWILIO_ACCOUNT_SID`           | Yes (if SMS)    | _(none)_            | Twilio Account identifier.                                                     |
-| `TWILIO_AUTH_TOKEN`            | Yes (if SMS)    | _(none)_            | Twilio API authentication token.                                               |
-| `TWILIO_PHONE_NUMBER`          | Yes (if SMS)    | _(none)_            | Twilio phone number in E.164 format.                                           |
+| Variable                       | Required        | Default             | Description                                                                                                     |
+| ------------------------------ | --------------- | ------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                 | Yes             | _(none)_            | PostgreSQL 18 connection URL (e.g. `postgresql://user:pass@host:5432/db`).                                      |
+| `REDIS_URL`                    | Yes             | _(none)_            | Redis connection URL for caching, rate limits, and distributed locks.                                           |
+| `BACKUP_SCHEDULE`              | No              | `disabled`          | Cron expression (e.g. `0 0 * * *`) to schedule automated database backups.                                      |
+| `BACKUP_KEEP_COUNT`            | No              | `7`                 | Maximum number of backup files to retain before rotating.                                                       |
+| `SESSION_SECRET`               | Yes             | _(none)_            | Random string (32+ chars) for signing session cookies.                                                          |
+| `TRUSTED_IP_HEADER`            | No              | _(none)_            | Trusted proxy header for client IP (e.g. CF-Connecting-IP). Unset = headers not trusted; set it behind a proxy. |
+| `ENCRYPTION_KEY`               | No              | _(falls back)_      | Encryption key for database-stored credentials.                                                                 |
+| `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                                                         |
+| `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email address promoted to Admin on first login.                                                                 |
+| `OPEN_REGISTRATION`            | No              | `"false"`           | If `"true"`, allows host signups without invite codes.                                                          |
+| `HOST_INVITE_CODE`             | Yes (if closed) | `"letmein"`         | Code required by new hosts to register.                                                                         |
+| `SEED_TEST_DATA`               | No              | `"false"`           | If `"true"`, seeds mock test events on first run.                                                               |
+| `LOG_LEVEL`                    | No              | `"info"`            | Logging verbosity (`debug`, `info`, `warn`, `error`).                                                           |
+| `EMAIL_FROM`                   | No              | _(noreply address)_ | From header display name and email address.                                                                     |
+| `SMTP_HOST`                    | Yes (if SMTP)   | _(none)_            | Outgoing SMTP mail server hostname.                                                                             |
+| `SMTP_PORT`                    | No              | `"587"`             | Outgoing SMTP mail server port.                                                                                 |
+| `SMTP_SECURE`                  | No              | `"false"`           | Set `"true"` for port 465, `"false"` for port 587.                                                              |
+| `SMTP_USER`                    | Yes (if SMTP)   | _(none)_            | Outgoing SMTP username.                                                                                         |
+| `SMTP_PASS`                    | Yes (if SMTP)   | _(none)_            | Outgoing SMTP password or App Password.                                                                         |
+| `CLOUDFLARE_WORKER_EMAIL_URL`  | Yes (if Worker) | _(none)_            | HTTPS URL of your deployed Cloudflare Worker.                                                                   |
+| `CLOUDFLARE_WORKER_API_SECRET` | Yes (if Worker) | _(none)_            | Shared secret token to authorize Worker requests.                                                               |
+| `CLOUDFLARE_ACCOUNT_ID`        | Yes (if CF API) | _(none)_            | Cloudflare Account ID.                                                                                          |
+| `CLOUDFLARE_API_TOKEN`         | Yes (if CF API) | _(none)_            | Cloudflare API Token with Email Sending permissions.                                                            |
+| `INBOUND_FORWARD_TO`           | No              | _(none)_            | Fallback catch-all email address for direct replies.                                                            |
+| `TWILIO_ACCOUNT_SID`           | Yes (if SMS)    | _(none)_            | Twilio Account identifier.                                                                                      |
+| `TWILIO_AUTH_TOKEN`            | Yes (if SMS)    | _(none)_            | Twilio API authentication token.                                                                                |
+| `TWILIO_PHONE_NUMBER`          | Yes (if SMS)    | _(none)_            | Twilio phone number in E.164 format.                                                                            |
