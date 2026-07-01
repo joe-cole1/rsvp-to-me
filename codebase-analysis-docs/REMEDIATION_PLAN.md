@@ -12,7 +12,7 @@ The remaining risk is concentrated in a few areas:
 
 1. **Trust-boundary weaknesses in rate limiting** — IP is derived from spoofable client headers by default, so every IP-keyed limiter (magic link, registration, event-password brute force, guest invites) is bypassable.
 2. **Unauthenticated fan-out to email/SMS** — `addRSVP` sends a confirmation message to any attacker-supplied address with no throttle, and public events accept RSVPs from anyone; this is a spam/cost amplification vector under the app's own sending reputation and Twilio billing.
-3. **Weak guest-identity model** — guest write actions authorise by matching a *publicly visible* `rsvpId` + `guestName`, and guest edit authority rests on a `cuid()` token that is not a cryptographic secret.
+3. **Weak guest-identity model** — guest write actions authorise by matching a _publicly visible_ `rsvpId` + `guestName`, and guest edit authority rests on a `cuid()` token that is not a cryptographic secret.
 4. **Two confirmed functional bugs in the SMS/Twilio credential path** that also have a security dimension (a broken decrypt check and a webhook validator that ignores DB-configured credentials).
 5. **Deployment hardening gaps** — default weak DB/Redis passwords and host-exposed database ports in `docker-compose.yml`, plus a `script-src 'unsafe-inline'` CSP that undercuts XSS defence.
 6. **Maintainability debt** — three "god files" (2.3k–5.1k lines) and ~15 copies of the co-host authorization check that should call the existing helper.
@@ -45,7 +45,7 @@ None identified.
   - **event-password brute force** (SEC-19's 10/10min cap becomes unlimited),
   - guest-invite spam cap (SEC-18).
 - **Failure scenario:** Attacker scripts `POST verifyEventPassword` for a password-gated event, rotating `X-Forwarded-For` each request → bcrypt is the only slowdown, cap never trips → offline-speed online brute force.
-- **Fix:** Only trust forwarding headers when an operator explicitly opts in, and take the *last* untrusted hop, not the first. Also key sensitive limiters on a stable identifier (target email/slug) in addition to IP — several already do; ensure event-password also keys on something the attacker can't rotate freely.
+- **Fix:** Only trust forwarding headers when an operator explicitly opts in, and take the _last_ untrusted hop, not the first. Also key sensitive limiters on a stable identifier (target email/slug) in addition to IP — several already do; ensure event-password also keys on something the attacker can't rotate freely.
 
 ```ts
 // lib/clientIp.ts
@@ -59,7 +59,10 @@ export async function getClientIp(): Promise<string> {
   if (trustedHeader) {
     const raw = headersList.get(trustedHeader);
     if (raw) {
-      const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
+      const parts = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       // With a single trusted proxy, the client IP is the LAST entry it appended.
       if (parts.length > 0) return parts[parts.length - 1];
     }
@@ -82,7 +85,7 @@ export async function getClientIp(): Promise<string> {
 ```ts
 // top of addRSVP, after parsing
 const ip = await getClientIp();
-const burst = await rateLimit(`rsvp:ip:${ip}`, 15, 600);       // 15 / 10 min / IP
+const burst = await rateLimit(`rsvp:ip:${ip}`, 15, 600); // 15 / 10 min / IP
 if (!burst.success) return { success: false, error: "Too many RSVPs. Try again later." };
 const perEvent = await rateLimit(`rsvp:evt:${data.eventId}:${ip}`, 8, 600);
 if (!perEvent.success) return { success: false, error: "Too many RSVPs for this event." };
@@ -123,12 +126,12 @@ const guestName = rsvp.guestName; // never trust client-supplied name
   2. Drop the host `ports:` mappings for postgres/redis in the production compose (services reach each other over the compose network); keep host exposure only in `docker-compose.dev.yml` if needed.
 
 ```yaml
-  postgres:
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-    # no host ports in production
-  redis:
-    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+postgres:
+  environment:
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+  # no host ports in production
+redis:
+  command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
 ```
 
 - **Docs:** `docs/admin/installation.md` — require strong secrets before first boot; note ports are no longer host-exposed.
@@ -142,7 +145,7 @@ const guestName = rsvp.guestName; // never trust client-supplied name
 #### M-1 — SMS Twilio token never decrypted (broken `enc:` check) — functional + credential bug
 
 - **File / function:** `lib/sms.ts` → `resolveSmsConfig()` line 17.
-- **Problem:** `const token = tokenEnc.startsWith("enc:") ? decryptConfig(tokenEnc) : tokenEnc;`. But `encryptConfig()` (`lib/crypto.ts` L14–26) produces `"<ivHex>:<tagHex>:<cipherHex>"` with **no `enc:` prefix**. So a DB-configured (encrypted) Twilio token is *never* decrypted — the raw ciphertext is passed to `twilio(sid, token)`, so all SMS via admin-panel-configured Twilio fail auth. `lib/email.ts` (L76, L80–84) does this correctly by calling `decryptConfig(...)` unconditionally.
+- **Problem:** `const token = tokenEnc.startsWith("enc:") ? decryptConfig(tokenEnc) : tokenEnc;`. But `encryptConfig()` (`lib/crypto.ts` L14–26) produces `"<ivHex>:<tagHex>:<cipherHex>"` with **no `enc:` prefix**. So a DB-configured (encrypted) Twilio token is _never_ decrypted — the raw ciphertext is passed to `twilio(sid, token)`, so all SMS via admin-panel-configured Twilio fail auth. `lib/email.ts` (L76, L80–84) does this correctly by calling `decryptConfig(...)` unconditionally.
 - **Fix:** Mirror email.ts — call `decryptConfig` directly (it already no-ops on non-encrypted values via the `includes(":")` check):
 
 ```ts
@@ -157,7 +160,7 @@ const token = decryptConfig(tokenEnc) || tokenEnc;
 #### M-2 — Twilio inbound webhook validates signature only against env token, ignoring DB config
 
 - **File / function:** `app/api/webhooks/twilio/route.ts` → `validateTwilioSignature()` line 15.
-- **Problem:** Uses `process.env.TWILIO_AUTH_TOKEN` exclusively. The admin panel stores Twilio credentials in `SystemConfig` (encrypted). An operator who configures Twilio *only* via the admin UI has no `TWILIO_AUTH_TOKEN` env var, so `validateTwilioSignature` returns `false` for every request → all inbound SMS RSVP replies get `403`. Fails closed (safe) but silently breaks a documented feature, and splits the credential source of truth.
+- **Problem:** Uses `process.env.TWILIO_AUTH_TOKEN` exclusively. The admin panel stores Twilio credentials in `SystemConfig` (encrypted). An operator who configures Twilio _only_ via the admin UI has no `TWILIO_AUTH_TOKEN` env var, so `validateTwilioSignature` returns `false` for every request → all inbound SMS RSVP replies get `403`. Fails closed (safe) but silently breaks a documented feature, and splits the credential source of truth.
 - **Fix:** Resolve the auth token the same way `lib/sms.ts` does (DB config first, then env), then validate. Reuse a shared `resolveSmsConfig()`-style helper so there is one source of truth.
 - **Docs:** `docs/admin/sms.md` — inbound webhook uses the same configured credentials as outbound.
 
@@ -184,7 +187,7 @@ const token = decryptConfig(tokenEnc) || tokenEnc;
 #### M-5 — Encryption uses a hard-coded static salt and silent decrypt-failure fallback
 
 - **File / function:** `lib/crypto.ts` → `getEncryptionKey()` L6–12 (static salt `"rsvp-to-me-salt"`), `decryptConfig()` L49–52 (returns raw ciphertext on failure).
-- **Problem:** (a) A fixed salt means the KDF output is fully determined by the secret alone — acceptable for a single app but removes defence against precomputation and cross-instance key reuse. (b) On any decrypt error `decryptConfig` returns the *encrypted* string verbatim, which can then be silently used as a live credential (see M-1 interaction) or written back, masking corruption/misconfiguration.
+- **Problem:** (a) A fixed salt means the KDF output is fully determined by the secret alone — acceptable for a single app but removes defence against precomputation and cross-instance key reuse. (b) On any decrypt error `decryptConfig` returns the _encrypted_ string verbatim, which can then be silently used as a live credential (see M-1 interaction) or written back, masking corruption/misconfiguration.
 - **Fix:** Derive the key with a per-deployment random salt stored alongside ciphertext (or at least document that rotating `ENCRYPTION_KEY` invalidates stored secrets). Make `decryptConfig` throw/return `""` on failure rather than echoing ciphertext, and have callers treat that as "not configured".
 - **Docs:** `docs/admin/configuration.md` — key rotation and encryption behaviour.
 
@@ -202,7 +205,7 @@ const token = decryptConfig(tokenEnc) || tokenEnc;
 #### M-7 — `saveEventField` / inline edits gated to host-only, but other edits allow co-hosts (inconsistent authz)
 
 - **File / function:** `app/actions/event.ts` → `saveEventField` (L116–139), `saveEventLocation` (L143–169), `saveEventTheme` (L173–204), `addInfoSection` (L208–235), `saveCoverImage`/`removeCoverImage` (L893–910) all call `assertHost` (owner/admin only), whereas `addRsvpField`/`reorderRsvpFields`/poll actions call `assertHostOrCohost`.
-- **Problem:** Not a vulnerability per se, but the inconsistent trust model is easy to get wrong on the next change and contradicts the documented co-host capability. `updateInfoSection` (L237–265) and several delete actions also hand-roll the owner/admin check inline (missing co-host), so co-hosts can *add* an info section but not *edit/delete* it.
+- **Problem:** Not a vulnerability per se, but the inconsistent trust model is easy to get wrong on the next change and contradicts the documented co-host capability. `updateInfoSection` (L237–265) and several delete actions also hand-roll the owner/admin check inline (missing co-host), so co-hosts can _add_ an info section but not _edit/delete_ it.
 - **Fix:** Decide the intended co-host capability set, then route every event-scoped mutation through `assertHost` or `assertHostOrCohost` consistently. Replace the ~15 inline `hostId === session.userId || role === ADMIN` checks with the helper.
 
 ---
@@ -352,4 +355,7 @@ flowchart TB
 - **Authorization (M-7):** collapse the ~15 inline host/co-host checks into `assertHost` / `assertHostOrCohost`.
 - **Deployment (H-4, M-3):** remove default secrets and host-exposed DB ports; tighten CSP to nonce-based.
 - **Modularity (L-3):** break the god-files into feature modules to shrink the audit/blast surface of every future change.
+
+```
+
 ```
