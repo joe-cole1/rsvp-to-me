@@ -286,6 +286,22 @@ export async function removeInfoSection(sectionId: string) {
 
 export async function addRSVP(rawInput: unknown) {
   const data = AddRsvpSchema.parse(rawInput);
+
+  // SEC-23: addRSVP is callable by anyone on PUBLIC/UNLISTED events, upserts a
+  // User from the supplied address, and fans out a confirmation email/SMS to
+  // it. Without a cap that is an email/SMS bomb + Twilio-cost vector and lets an
+  // attacker pre-create arbitrary User rows. Throttle before any DB write or
+  // send, mirroring verifyEventPassword / inviteFriendAsGuest (SEC-18/SEC-19).
+  const ip = await getClientIp();
+  const ipLimit = await rateLimit(`rsvp:ip:${ip}`, 15, 600);
+  if (!ipLimit.success) {
+    return { success: false, error: "Too many RSVPs. Please try again later." };
+  }
+  const eventLimit = await rateLimit(`rsvp:evt:${data.eventId}:${ip}`, 8, 600);
+  if (!eventLimit.success) {
+    return { success: false, error: "Too many RSVPs for this event. Please try again later." };
+  }
+
   const event = await db.event.findUnique({
     where: { id: data.eventId },
     select: {

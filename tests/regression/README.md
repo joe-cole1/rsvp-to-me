@@ -26,3 +26,4 @@ For every bug fix merged to main:
 | `sec-21b-updaterspv-capacity-deadline.test.ts`       | `updateRSVP` skipped deadline/capacity re-check (capacity-bypass via token) | SEC-21b  |
 | `sec-18-guest-invite-rate-limit.test.ts`             | Uncapped outbound email/SMS via guest invite (no rate limit / per-RSVP cap) | SEC-18   |
 | `sec-22-client-ip-spoofing.test.ts`                  | Spoofable `X-Forwarded-For` defeated every IP-keyed rate limiter            | SEC-22   |
+| `sec-23-addrsvp-rate-limit.test.ts`                  | Unauthenticated `addRSVP` fan-out to arbitrary email/SMS with no rate limit | SEC-23   |

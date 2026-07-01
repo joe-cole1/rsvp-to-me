@@ -59,3 +59,9 @@ Answers appear with each guest and are included in the [CSV export](guest-list.m
 ## Guest Edit Links
 
 Guests don't need an account to change their RSVP. Every confirmation email includes a private link unique to that guest; clicking it lets them update their status or answers at any time. If a guest loses their link, see the [FAQ](faq.md).
+
+---
+
+## Anti-Abuse
+
+To prevent spam and runaway messaging costs, RSVP submissions are rate-limited per client IP (both overall and per event). Real guests won't notice — the limits are far above normal use — but automated bursts of fake RSVPs are throttled before any confirmation email or text is sent.
