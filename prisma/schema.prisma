@@ -281,7 +281,13 @@ model RSVP {
   guestPhone   String?
   status       RSVPStatus
   plusOneCount Int        @default(0)
-  editToken    String     @unique @default(cuid())
+  // SEC-28: unguessable random token (v4 UUID, CSPRNG-backed). editToken is the
+  // sole guest edit credential AND a PRIVATE-event gate bypass, and it travels in
+  // URLs / SMS / Referer — so it must not be a cuid(), whose embedded timestamp +
+  // monotonic counter make it partially predictable rather than a secret. This is
+  // a Prisma client-side default (not a DB DEFAULT), so no migration is required;
+  // existing rows keep their tokens, every new RSVP gets a random UUID.
+  editToken    String     @unique @default(uuid(4))
   approved     Boolean    @default(true) // false when approvalRequired is on
   responded    Boolean    @default(true)
   note         String?
