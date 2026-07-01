@@ -16,6 +16,39 @@ _(No pending priority 1 bugs)_
 
 - ~~**[SEC-18] Uncapped outbound email/SMS via guest invite**~~ _(fixed — see Completed Milestones)_
 
+#### 🛡️ Security Audit 2026-07 — Remediation Plan
+
+_Full write-up with file:line references, fix snippets, and an architecture diagram lives in [`codebase-analysis-docs/REMEDIATION_PLAN.md`](./codebase-analysis-docs/REMEDIATION_PLAN.md). `STATE_BLOCK.md` (repo root) captures the architecture/data-flow context. Items are worked through one PR-checkpoint at a time; check off here as each lands with its regression test. Overlaps with already-deferred SEC-8 (static scrypt salt) and SEC-9 (CSP `'unsafe-inline'`) are cross-referenced, not duplicated._
+
+**High**
+
+- ~~**[SEC-22 / H-1] Spoofable IP for rate limiting**~~ _(fixed)_ — `lib/clientIp.ts` `getClientIp()` trusted `cf-connecting-ip` / `x-real-ip` / `x-forwarded-for` even when `TRUSTED_IP_HEADER` was unset, letting a client rotate `X-Forwarded-For` to mint fresh rate-limit keys and defeat the magic-link, registration, event-password (SEC-19), and guest-invite (SEC-18) limiters. Now default-deny: forwarding headers are consulted only when the operator names one via `TRUSTED_IP_HEADER`, and the **last** hop is used (not the client-controlled first entry); otherwise it falls back to loopback and identifier-keyed limits do the work. Regression test `tests/regression/sec-22-client-ip-spoofing.test.ts`; `docs/admin/configuration.md` updated (default-deny + set the header behind a proxy).
+- ~~**[SEC-23 / H-2] Unauthenticated `addRSVP` fan-out with no throttle**~~ _(fixed)_ — `app/actions/event.ts` `addRSVP` (callable by anyone on PUBLIC/UNLISTED events) upserted a `User` from the supplied address and emailed/SMS-ed it with no `rateLimit()` — an email/SMS bomb + Twilio-cost vector. Now throttled before any DB write or send: per IP (`rsvp:ip:<ip>`, 15/10min) and per event+IP (`rsvp:evt:<id>:<ip>`, 8/10min), mirroring SEC-18/SEC-19. Regression test `tests/regression/sec-23-addrsvp-rate-limit.test.ts`; docs updated (`docs/admin/configuration.md` rate-limited surfaces, `docs/host/managing-rsvps.md` anti-abuse note).
+- ~~**[SEC-24 / H-3] Guest identity spoofable via public `rsvpId` + `guestName`**~~ _(fixed)_ — unauthenticated branches of `addComment`, `castVote`, `addPollOption`, `claimPotluckItem`, `unclaimPotluckItem` authorized by matching a supplied `rsvpId` + `guestName`, both shipped to every viewer in `app/e/[slug]/page.tsx` — so the check compared two public values and anyone could act as any approved guest (residual of SEC-3/4/17). Now a shared `findApprovedGuestByToken(editToken, eventId)` authorizes by the secret per-RSVP `editToken` and the stored name is derived from that row, never the client. Client call sites in `EventPage.tsx` pass `guestEditToken`; `AddCommentSchema` swaps `rsvpId` → `guestEditToken`. Regression test `tests/regression/sec-24-guest-identity-token.test.ts` (+ updated `tests/actions/polls.test.ts`). No docs/config/UX change (internal authz hardening; guests act exactly as before), so exempt from the docs-update rule per AGENTS.md.
+- **[SEC-25 / H-4] Docker default creds + host-exposed DB/Redis ports** — `docker-compose.yml` falls back to literal `postgres_password_here` / `redis_password_placeholder` and maps 5432/6379 to the host. Fix: `${VAR:?required}` (fail fast) and drop production host port mappings. Admin-docs update.
+
+**Medium**
+
+- ~~**[SEC-26 / M-1] SMS Twilio token never decrypted**~~ _(fixed)_ — `lib/sms.ts` gated decryption on a `"enc:"` prefix that `encryptConfig` never emits, so a DB-configured (encrypted) Twilio token was passed as ciphertext and all admin-panel-configured SMS failed auth. Now a shared `resolveTwilioAuthToken()` decrypts via `decryptConfig()` (DB config first, then env), and `decryptConfig` fails closed — returns `""` instead of raw ciphertext on an undecryptable value (**M-5b**). Regression test `tests/regression/sec-26-sms-token-decrypt.test.ts` (+ updated `tests/lib/crypto.test.ts`).
+- ~~**[SEC-27 / M-2] Twilio webhook validates only the env token**~~ _(fixed)_ — `app/api/webhooks/twilio/route.ts` `validateTwilioSignature` used `process.env.TWILIO_AUTH_TOKEN` only, so admin-panel-only Twilio setups rejected every inbound reply (fail-closed but silently broke reply-to-RSVP). Now resolves the token via the shared `resolveTwilioAuthToken()` (DB config → env). Regression test `tests/regression/sec-27-twilio-webhook-db-token.test.ts`; `docs/admin/sms.md` clarifies the inbound webhook uses the same (Admin-Panel or env) token.
+- ~~**[SEC-28 / M-4] `editToken` uses `cuid()`, not a CSPRNG**~~ _(fixed)_ — `prisma/schema.prisma` RSVP.editToken defaulted to `cuid()` (timestamp + monotonic counter → partially predictable), yet it is the sole guest edit credential and a PRIVATE-event gate bypass and travels in URLs/SMS. Changed the default to `uuid(4)` — a CSPRNG-backed v4 UUID — which covers every create path (addRSVP, inviteGuest, inviteFriendAsGuest, seed) uniformly. It is a Prisma client-side default (not a DB DEFAULT), so **no migration is required**; existing rows keep their tokens. Regression test `tests/integration/actions/rsvp.test.ts` (real DB — the token is engine-generated) asserts new tokens are v4 UUIDs, not cuids. No docs/config/UX change (internal token-format hardening), exempt per AGENTS.md.
+- ~~**[SEC-29 / M-6] Host `inviteGuest` has no rate limit or batch cap**~~ _(fixed)_ — `app/actions/event.ts` `inviteGuest` fanned out email/SMS per comma-separated entry with no bound and no `rateLimit()`, so an abusive/hijacked host session could drive spam blasts + Twilio cost. Now capped at 200 recipients per request and throttled per IP (`host-invite:ip:<ip>`, 15/hr) and per host+event (`host-invite:<userId>:<eventId>`, 10/hr), mirroring `inviteFriendAsGuest` (SEC-18). Regression test `tests/regression/sec-29-invite-guest-rate-limit.test.ts`; docs updated (`docs/admin/configuration.md`, `docs/host/inviting-guests.md`).
+- **[SEC-30 / M-7] Inconsistent host/co-host authorization** — inline `hostId === session.userId || role === ADMIN` checks are re-implemented ~15×; some event-scoped mutations are host-only where co-hosts are intended (`saveEventField`, `updateInfoSection`, cover image, …). Fix: route every mutation through `assertHost`/`assertHostOrCohost`.
+- **[SEC-31 / M-8] Health endpoint leaks migration/DB state** — `app/api/health/route.ts` returns `{migrations: "pending"|"unreachable"}` unauthenticated. Fix: minimal 200/503 for anonymous callers; detailed body behind an internal token.
+- **[M-3] CSP `script-src 'unsafe-inline'`** — already tracked as **SEC-9** (deferred, needs nonce middleware). No new entry.
+- **[M-5a] Static scrypt salt** — already tracked as **SEC-8** (deferred; re-encryption migration required). No new entry.
+
+**Low** (batch as a cleanup PR)
+
+- **[L-1]** `updateInfoSection` force-nulls `title` on every edit and skips co-host access (folds into SEC-30).
+- **[L-2]** Duplicated blast-filter builder in `sendBlast` / `sendSmsBlast` → extract shared helper.
+- **[L-3]** God-files (`app/actions/event.ts` ~2349, `components/event/EventPage.tsx` ~4747, `app/(app)/admin/AdminClient.tsx` ~5136) → split by feature.
+- **[L-4]** `.catch(() => {})` swallowing (25+ sites) → funnel through a `logSafe()` at debug level.
+- **[L-5]** Verify the masked Twilio token is never returned decrypted to the admin client; keep the field write-only.
+- **[L-6]** `.env.example` ships `HOST_INVITE_CODE="letmein"` → change to an obvious placeholder.
+- **[L-7]** `generateUniqueSlug` unbounded sequential retry loop → add a random suffix after N collisions.
+- _(Related, already tracked: SEC-21(c) upload gating, SEC-14 auth error enumeration, SEC-15 unpaginated blasts.)_
+
 ### 👥 Guest List & RSVP Enhancements
 
 _(No pending priority 1 guest list enhancements)_

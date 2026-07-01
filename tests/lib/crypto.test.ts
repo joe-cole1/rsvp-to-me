@@ -49,10 +49,12 @@ describe("decryptConfig", () => {
     expect(decryptConfig(plain)).toBe(plain);
   });
 
-  it("returns input string on corrupt data (does not throw)", () => {
+  it("fails closed (returns empty string) on corrupt data, without throwing", () => {
+    // SEC-26 / M-5b: an undecryptable value must NOT be echoed back as if it
+    // were a usable credential — callers treat "" as "not configured".
     const corrupt = "abcdef:abcdef:abcdef";
     const result = decryptConfig(corrupt);
-    expect(result).toBe(corrupt);
+    expect(result).toBe("");
   });
 });
 

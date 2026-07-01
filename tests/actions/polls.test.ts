@@ -247,39 +247,47 @@ describe("castVote", () => {
     );
   });
 
-  it("allows an approved guest to vote with a matching RSVP name", async () => {
+  it("allows an approved guest to vote using their editToken (SEC-24)", async () => {
     mockGetSession.mockResolvedValue(null); // Guest is not logged in as host
     mockRsvpFindFirst.mockResolvedValue({ id: "rsvp-1", guestName: "Alice", approved: true });
 
-    const result = await castVote("poll-1", "option-1", "Alice", true, "rsvp-1");
+    const result = await castVote("poll-1", "option-1", "Alice", true, "tok-alice");
     expect(result.success).toBe(true);
+    // Authorized by the SECRET editToken, not the public rsvpId.
     expect(mockRsvpFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "rsvp-1", eventId: EVENT_ID, approved: true },
+        where: { editToken: "tok-alice", eventId: EVENT_ID, approved: true },
       })
     );
   });
 
-  it("throws Unauthorized for guest if guestRsvpId is missing", async () => {
+  it("throws Unauthorized for a guest with no editToken", async () => {
     mockGetSession.mockResolvedValue(null);
     await expect(castVote("poll-1", "option-1", "Alice", true)).rejects.toThrow(
-      "Unauthorized: Guest RSVP ID required to vote"
+      "Unauthorized: a valid approved RSVP is required to vote"
     );
   });
 
-  it("throws Unauthorized if guestRsvpId doesn't exist or is not approved", async () => {
+  it("throws Unauthorized if the editToken doesn't map to an approved RSVP", async () => {
     mockGetSession.mockResolvedValue(null);
     mockRsvpFindFirst.mockResolvedValue(null);
-    await expect(castVote("poll-1", "option-1", "Alice", true, "rsvp-1")).rejects.toThrow(
-      "Unauthorized: RSVP not found or not approved"
+    await expect(castVote("poll-1", "option-1", "Alice", true, "tok-bad")).rejects.toThrow(
+      "Unauthorized: a valid approved RSVP is required to vote"
     );
   });
 
-  it("throws Unauthorized if voterName does not match RSVP guestName", async () => {
+  it("records the vote under the RSVP-derived name, ignoring the client-supplied name (SEC-24)", async () => {
+    // The token belongs to Alice's RSVP; the client claims to be "Bob". The
+    // vote must be recorded as Alice — the client name is never trusted.
     mockGetSession.mockResolvedValue(null);
     mockRsvpFindFirst.mockResolvedValue({ id: "rsvp-1", guestName: "Alice", approved: true });
-    await expect(castVote("poll-1", "option-1", "Bob", true, "rsvp-1")).rejects.toThrow(
-      "Unauthorized: Voter name does not match guest name"
+
+    const result = await castVote("poll-1", "option-1", "Bob", true, "tok-alice");
+    expect(result.success).toBe(true);
+    expect(mockPollVoteUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { pollOptionId_voterName: { pollOptionId: "option-1", voterName: "Alice" } },
+      })
     );
   });
 
@@ -396,12 +404,17 @@ describe("addPollOption", () => {
     );
   });
 
-  it("allows an approved guest to suggest an option when allowGuestsToAdd is true", async () => {
+  it("allows an approved guest to suggest an option using their editToken (SEC-24)", async () => {
     mockGetSession.mockResolvedValue(null);
     mockRsvpFindFirst.mockResolvedValue({ id: "rsvp-1", guestName: "Alice", approved: true });
 
-    const result = await addPollOption("poll-1", "Gin & Tonic", "Alice", "rsvp-1");
+    const result = await addPollOption("poll-1", "Gin & Tonic", "Alice", "tok-alice");
     expect(result.success).toBe(true);
+    expect(mockRsvpFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { editToken: "tok-alice", eventId: EVENT_ID, approved: true },
+      })
+    );
     expect(mockPollOptionCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -413,11 +426,16 @@ describe("addPollOption", () => {
     );
   });
 
-  it("throws error if guest suggests an option but creatorName does not match RSVP guestName", async () => {
+  it("records the option under the RSVP-derived creator name, ignoring the client name (SEC-24)", async () => {
     mockGetSession.mockResolvedValue(null);
     mockRsvpFindFirst.mockResolvedValue({ id: "rsvp-1", guestName: "Alice", approved: true });
-    await expect(addPollOption("poll-1", "Gin & Tonic", "Bob", "rsvp-1")).rejects.toThrow(
-      "Unauthorized: Creator name does not match guest name"
+    // Client claims to be "Bob" but presents Alice's token → stored as Alice.
+    const result = await addPollOption("poll-1", "Gin & Tonic", "Bob", "tok-alice");
+    expect(result.success).toBe(true);
+    expect(mockPollOptionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ creatorName: "Alice" }),
+      })
     );
   });
 
@@ -434,7 +452,7 @@ describe("addPollOption", () => {
     });
 
     mockGetSession.mockResolvedValue(null);
-    await expect(addPollOption("poll-1", "Gin & Tonic", "Alice", "rsvp-1")).rejects.toThrow(
+    await expect(addPollOption("poll-1", "Gin & Tonic", "Alice", "tok-alice")).rejects.toThrow(
       "Guests are not allowed to add options to this poll"
     );
   });

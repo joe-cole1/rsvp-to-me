@@ -165,35 +165,29 @@ describe("registerHostAction", () => {
       expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:9.9.9.9:magic-link", 20, 600);
     });
 
-    it("uses cf-connecting-ip if no TRUSTED_IP_HEADER is set", async () => {
+    it("ignores cf-connecting-ip / x-real-ip / x-forwarded-for without TRUSTED_IP_HEADER (SEC-22)", async () => {
+      // Spoofable forwarding headers must NOT be trusted by default — otherwise a
+      // client rotating them defeats the per-IP limiter. IP collapses to loopback.
       mocks.mockHeadersGet.mockImplementation((h: string) => {
         if (h === "cf-connecting-ip") return "8.8.8.8";
         if (h === "x-real-ip") return "7.7.7.7";
-        return "127.0.0.1";
-      });
-      await sendMagicLinkAction("test@example.com");
-      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:8.8.8.8:magic-link", 20, 600);
-    });
-
-    it("uses x-real-ip if no cf-connecting-ip is set", async () => {
-      mocks.mockHeadersGet.mockImplementation((h: string) => {
-        if (h === "cf-connecting-ip") return null;
-        if (h === "x-real-ip") return "7.7.7.7";
-        if (h === "x-forwarded-for") return "6.6.6.6";
-        return "127.0.0.1";
-      });
-      await sendMagicLinkAction("test@example.com");
-      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:7.7.7.7:magic-link", 20, 600);
-    });
-
-    it("uses first IP from x-forwarded-for if no other proxy headers set", async () => {
-      mocks.mockHeadersGet.mockImplementation((h: string) => {
-        if (h === "cf-connecting-ip" || h === "x-real-ip") return null;
         if (h === "x-forwarded-for") return "5.5.5.5, 4.4.4.4";
-        return "127.0.0.1";
+        return null;
       });
       await sendMagicLinkAction("test@example.com");
-      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:5.5.5.5:magic-link", 20, 600);
+      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:127.0.0.1:magic-link", 20, 600);
+    });
+
+    it("uses the LAST hop of a trusted X-Forwarded-For chain (SEC-22)", async () => {
+      // With a trusted proxy configured, the real client IP is the entry the
+      // proxy appended (last), not the client-controlled first entry.
+      process.env.TRUSTED_IP_HEADER = "x-forwarded-for";
+      mocks.mockHeadersGet.mockImplementation((h: string) => {
+        if (h === "x-forwarded-for") return "5.5.5.5, 4.4.4.4";
+        return null;
+      });
+      await sendMagicLinkAction("test@example.com");
+      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:4.4.4.4:magic-link", 20, 600);
     });
   });
 });

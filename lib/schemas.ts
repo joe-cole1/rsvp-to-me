@@ -14,7 +14,10 @@ export const AddCommentSchema = z.object({
   eventId: z.string().trim().min(1),
   guestName: z.string().trim().min(1).max(100),
   body: z.string().trim().min(1).max(5000), // L-3 length limit
-  rsvpId: z.string().trim().optional().nullable(),
+  // SEC-24: unauthenticated guests authorize with their secret per-RSVP
+  // editToken (not the public rsvpId). guestName above is advisory only — for
+  // token/authenticated authors the stored name is derived server-side.
+  guestEditToken: z.string().trim().optional().nullable(),
   parentId: z.string().trim().optional().nullable(),
 });
 
