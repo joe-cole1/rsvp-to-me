@@ -1,0 +1,96 @@
+import type { ResolvedTheme } from "@/lib/theme";
+
+// ── Styles ──────────────────────────────────────────────────────────────────
+
+export function buildStyles(t: ResolvedTheme) {
+  return {
+    page: {
+      minHeight: "100vh",
+      background: t.pageBg,
+      color: t.textPrimary,
+      position: "relative" as const,
+      overflowX: "hidden" as const,
+      fontFamily: "inherit",
+    },
+    container: {
+      position: "relative" as const,
+      zIndex: 1,
+      maxWidth: "440px",
+      margin: "0 auto",
+      padding: "96px 16px 160px",
+    },
+    card: {
+      background: t.cardBg,
+      border: `1px solid ${t.cardBorder}`,
+      borderRadius: t.cardRadius,
+      padding: "24px",
+      marginBottom: "16px",
+      backdropFilter: "blur(12px)",
+      boxShadow: t.cardShadow,
+    },
+    badge: {
+      fontSize: "11px",
+      fontWeight: 700,
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.08em",
+      padding: "4px 12px",
+      borderRadius: "100px",
+      background: t.badgeBg,
+      color: t.badgeText,
+      border: `1px solid ${t.accentBorder}`,
+      display: "inline-block",
+    },
+    inp: {
+      width: "100%",
+      padding: "12px 16px",
+      borderRadius: t.btnRadius,
+      background: t.inputBg,
+      border: `1px solid ${t.inputBorder}`,
+      color: t.inputText,
+      fontFamily: "inherit",
+      fontSize: "14px",
+      outline: "none",
+    },
+    btn: {
+      background: t.accent,
+      color: t.accentFg,
+      fontFamily: "inherit",
+      fontSize: "14px",
+      fontWeight: t.btnFontWeight,
+      textTransform: t.btnTransform as React.CSSProperties["textTransform"],
+      padding: "14px",
+      border: "none",
+      borderRadius: t.btnRadius,
+      cursor: "pointer",
+      width: "100%",
+      boxShadow: t.accentShadow,
+    },
+    mutedBtn: {
+      background: t.inputBg,
+      color: t.textSecondary,
+      fontFamily: "inherit",
+      fontSize: "13px",
+      fontWeight: 600,
+      padding: "10px 16px",
+      border: `1px solid ${t.inputBorder}`,
+      borderRadius: t.btnRadius,
+      cursor: "pointer",
+    },
+    avatar: {
+      width: "28px",
+      height: "28px",
+      borderRadius: "50%",
+      background: t.avatarGradient,
+      display: "flex" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      fontSize: "12px",
+      fontWeight: 700,
+      color: t.accentFg,
+      flexShrink: 0,
+      minWidth: "28px",
+    },
+  };
+}
+
+export type EventPageStyles = ReturnType<typeof buildStyles>;
