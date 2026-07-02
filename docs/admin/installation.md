@@ -194,6 +194,8 @@ curl http://localhost:3000/api/health
 
 It should return: `{"status":"ok"}`.
 
+> The health endpoint is intentionally minimal for anonymous callers — `200` `{"status":"ok"}` when healthy, `503` `{"status":"unavailable"}` when not. To see the detailed body (database migration state and timestamp), set the optional `HEALTH_CHECK_TOKEN` variable in `.env` and pass it in the `x-health-token` header — see the [Configuration Reference](./configuration.md#health_check_token).
+
 ---
 
 ## Deploying from GitHub (No Local Clone Required)
