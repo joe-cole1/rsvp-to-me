@@ -141,11 +141,13 @@ describe("GET /auth/verify", () => {
     });
   });
 
-  it("uses NEXT_PUBLIC_APP_URL for redirect destination", async () => {
-    process.env.NEXT_PUBLIC_APP_URL = "https://rsvp.thecolefam.com";
+  it("uses request host header for redirect destination", async () => {
     mockFindUniqueMagicToken.mockResolvedValue(null);
-    const res = await GET(makeRequest("any-token"));
-    expect(res.headers.get("location")).toContain("https://rsvp.thecolefam.com");
+    const req = new NextRequest("http://rsvp.thecolefam.com/auth/verify?token=any-token", {
+      headers: { host: "rsvp.thecolefam.com" },
+    });
+    const res = await GET(req);
+    expect(res.headers.get("location")).toContain("http://rsvp.thecolefam.com");
   });
 
   describe("post-login redirect", () => {
