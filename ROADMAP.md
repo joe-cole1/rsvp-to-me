@@ -45,7 +45,7 @@ _Full write-up with file:line references, fix snippets, and an architecture diag
 - **[L-3]** God-files (`app/actions/event.ts` ~2349, `components/event/EventPage.tsx` ~4747, `app/(app)/admin/AdminClient.tsx` ~5136) → split by feature.
 - **[L-4]** `.catch(() => {})` swallowing (25+ sites) → funnel through a `logSafe()` at debug level.
 - **[L-5]** Verify the masked Twilio token is never returned decrypted to the admin client; keep the field write-only.
-- **[L-6]** `.env.example` ships `HOST_INVITE_CODE="letmein"` → change to an obvious placeholder.
+- ~~**[L-6]** `.env.example` ships `HOST_INVITE_CODE="letmein"` → change to an obvious placeholder~~ _(fixed with SEC-25 — example now ships `CHANGE_THIS_TO_A_STRONG_RANDOM_CODE`, which the existing `lib/session.ts` startup guard explicitly rejects in production; docs updated)_.
 - **[L-7]** `generateUniqueSlug` unbounded sequential retry loop → add a random suffix after N collisions.
 - _(Related, already tracked: SEC-21(c) upload gating, SEC-14 auth error enumeration, SEC-15 unpaginated blasts.)_
 

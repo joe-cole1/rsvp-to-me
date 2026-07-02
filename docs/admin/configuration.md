@@ -196,7 +196,7 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
   ```
 - **Web alternative:** Use [random.org](https://www.random.org/strings/?num=1&len=12&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new).
 
-> **Warning:** The default code `letmein` is weak. You must replace it with a strong custom value in production, otherwise the app will throw a startup validation error.
+> **Warning:** The built-in fallback code `letmein` (used only when the variable is unset) and the `.env.example` placeholder `CHANGE_THIS_TO_A_STRONG_RANDOM_CODE` are both rejected in production, as is any code shorter than 10 characters — the app throws a startup validation error until you set a strong custom value.
 
 ---
 

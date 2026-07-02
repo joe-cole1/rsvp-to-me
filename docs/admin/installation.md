@@ -149,7 +149,7 @@ You must set at least these variables before launching:
    - _Web:_ Generate it via [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32).
 4. **`NEXT_PUBLIC_APP_URL`**: The public URL that users and guests will visit (e.g. `https://rsvp.yourdomain.com`). No trailing slash.
 5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Logging in with this email for the first time automatically promotes your account to Administrator.
-6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). Change it from the default `letmein`!
+6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). The `.env.example` placeholder (`CHANGE_THIS_TO_A_STRONG_RANDOM_CODE`) is rejected at startup in production — replace it with a strong value (e.g. `openssl rand -hex 8`).
 
 > **Warning:** Your `.env` file contains sensitive passwords and secrets. Never commit it to a public repository. Ensure it is added to your `.gitignore` file.
 
