@@ -53,3 +53,5 @@ Manage your profile at `/profile`:
 ### Deleting your account
 
 You can request account deletion from your profile settings. You'll be asked to deal with any upcoming published events first. Past events are preserved (your guests' RSVP and comment history stays intact), and your personal details are removed.
+
+Once requested, your account is scheduled for deletion in 30 days and you will be signed out. If you log back in within this 30-day window, you can cancel the deletion request directly from your profile settings page.

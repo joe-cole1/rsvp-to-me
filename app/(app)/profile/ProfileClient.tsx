@@ -7,6 +7,7 @@ import {
   updateProfileSettings,
   updateNotificationSettings,
   requestAccountDeletion,
+  cancelMyAccountDeletion,
 } from "@/app/actions/profile";
 import { deleteHostEvent } from "@/app/actions/event";
 import { APP_SHELL } from "@/lib/theme";
@@ -84,7 +85,9 @@ export default function ProfileClient({
   const [infoMessages, setInfoMessages] = useState<string[]>([]);
 
   // Deletion flow state
-  const [deletionScheduledAt] = useState(initialProfile.deletionScheduledAt);
+  const [scheduledDeletionDate, setScheduledDeletionDate] = useState(
+    initialProfile.deletionScheduledAt
+  );
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -763,29 +766,75 @@ export default function ProfileClient({
             Danger Zone
           </h2>
 
-          {deletionScheduledAt ? (
+          {scheduledDeletionDate ? (
             <div
               style={{
                 backgroundColor: "rgba(239,68,68,0.1)",
                 border: "1px solid #ef444460",
                 borderRadius: "10px",
                 padding: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
               }}
             >
-              <p style={{ color: "#ef4444", fontWeight: 700, margin: 0 }}>
-                Your account is scheduled for deletion
-              </p>
-              <p
+              <div>
+                <p style={{ color: "#ef4444", fontWeight: 700, margin: 0 }}>
+                  Your account is scheduled for deletion
+                </p>
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.6)",
+                    fontSize: "14px",
+                    marginTop: "6px",
+                    marginBottom: 0,
+                  }}
+                >
+                  Anonymization will occur on or after{" "}
+                  {new Date(scheduledDeletionDate).toLocaleString()}. You can cancel this request at
+                  any time before then.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    try {
+                      const res = await cancelMyAccountDeletion();
+                      if (res.success) {
+                        setScheduledDeletionDate(null);
+                        setFeedback({
+                          type: "success",
+                          message: "Account deletion request successfully canceled!",
+                        });
+                        router.refresh();
+                      }
+                    } catch (err) {
+                      setFeedback({
+                        type: "error",
+                        message:
+                          err instanceof Error ? err.message : "Failed to cancel deletion request.",
+                      });
+                    }
+                  });
+                }}
                 style={{
-                  color: "rgba(255,255,255,0.6)",
-                  fontSize: "14px",
-                  marginTop: "6px",
-                  marginBottom: 0,
+                  alignSelf: "flex-start",
+                  backgroundColor: APP_SHELL.accent,
+                  border: "none",
+                  color: "#fff",
+                  borderRadius: "10px",
+                  padding: "8px 16px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: isPending ? "not-allowed" : "pointer",
+                  opacity: isPending ? 0.6 : 1,
+                  transition: "opacity 0.2s",
                 }}
               >
-                Anonymization will occur on or after{" "}
-                {new Date(deletionScheduledAt).toLocaleString()}. Contact an admin to reverse this.
-              </p>
+                Cancel Deletion Request
+              </button>
             </div>
           ) : (
             <>

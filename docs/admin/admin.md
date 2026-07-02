@@ -114,14 +114,22 @@ When you create the user, a 48-hour magic sign-in link is emailed to them so the
 
 > **Co-hosts:** a host can appoint other registered users as co-hosts of an individual event. Co-hosts are not a separate role — they get per-event management rights equivalent to the host's (edit event details, theme, cover image, settings and reminders; manage RSVPs, guest list, potluck, polls, questionnaire fields; send email/SMS blasts and updates; invite guests) with two exceptions that stay with the original host: **deleting the event** and **adding/removing co-hosts**. Server actions enforce this uniformly via a shared authorization check (SEC-30).
 
-### Deleting a User
+### Deleting and Restoring Users
 
-You can delete any user from their detail view.
+You can delete and manage users from the **Users** tab.
 
-- **What is deleted:** the user's account details (name, email, phone) and active sessions (they are logged out immediately).
-- **What is NOT deleted:** events they created (the events remain, but the host link is removed), RSVPs they submitted, and comments they wrote (these remain under their stored name).
+- **Standard Deletion (Grace Period)**: By default, deleting a user schedules their account to be permanently deleted and anonymized in 30 days. During this 30-day grace period, the user's account is suspended, but an admin can click **Restore** to cancel the deletion request and re-enable the account.
+- **Immediate Deletion Override**: Admins can bypass the 30-day grace period and immediately anonymize/delete a pending user by clicking **Delete Now** in the user's action column (requires confirmation).
+- **Self-Service Revocation**: If a host schedules their own account for deletion from their Profile settings page, they can cancel the deletion request from the same page at any time during the 30-day window.
+- **Anonymization Details**: When deletion becomes final (or is done immediately), the user's PII is permanently anonymized: their name is changed to "Deleted User", email and phone are set to `null`, and any custom avatar is removed. The role is reset to `GUEST`. Their guest RSVPs on other events, co-host slots, magic tokens, and active sessions are fully deleted.
+- **Event Reassignment**: Events created by the deleted user are not deleted. Instead, they are reassigned to the `"system"` tombstone user account so that guests can still access them and view details.
 
-> **Warning:** User deletion is permanent and takes effect immediately. Make sure you intend to delete the account first.
+### Filtering Users
+
+The **Users** list can be filtered using the dropdown selectors:
+
+- **Role Filter**: Filter users by account type (`All Roles`, `ADMIN`, `HOST`, `GUEST`).
+- **Status Filter**: Filter users by account state (`All Statuses`, `Active`, `Pending Deletion`).
 
 ---
 

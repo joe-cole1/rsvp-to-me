@@ -9,6 +9,8 @@ const {
   mockSendMagicLinkEmail,
   mockSendMagicLinkSms,
   mockUserFindFirst,
+  mockCancelUserDeletion,
+  mockScheduleUserDeletion,
 } = vi.hoisted(() => ({
   mockUserFindUnique: vi.fn(),
   mockUserUpdate: vi.fn(),
@@ -18,6 +20,8 @@ const {
   mockSendMagicLinkEmail: vi.fn(),
   mockSendMagicLinkSms: vi.fn(),
   mockUserFindFirst: vi.fn(),
+  mockCancelUserDeletion: vi.fn(),
+  mockScheduleUserDeletion: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -37,12 +41,17 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/email", () => ({ sendMagicLinkEmail: mockSendMagicLinkEmail }));
 vi.mock("@/lib/sms", () => ({ sendMagicLinkSms: mockSendMagicLinkSms }));
+vi.mock("@/lib/account-deletion", () => ({
+  scheduleUserDeletion: mockScheduleUserDeletion,
+  cancelUserDeletion: mockCancelUserDeletion,
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import {
   updateProfileSettings,
   updateNotificationSettings,
   getUserProfile,
+  cancelMyAccountDeletion,
 } from "@/app/actions/profile";
 
 describe("app/actions/profile.ts", () => {
@@ -254,6 +263,23 @@ describe("app/actions/profile.ts", () => {
           phone: "+15559876543",
         })
       ).rejects.toThrow("An account with this phone number already exists.");
+    });
+  });
+
+  describe("cancelMyAccountDeletion", () => {
+    it("throws error if unauthorized", async () => {
+      mockGetSession.mockResolvedValue(null);
+      await expect(cancelMyAccountDeletion()).rejects.toThrow("Unauthorized");
+    });
+
+    it("cancels account deletion for the current user", async () => {
+      mockGetSession.mockResolvedValue({ userId: USER_ID, email: USER_EMAIL, role: "HOST" });
+      mockCancelUserDeletion.mockResolvedValue(undefined);
+
+      const res = await cancelMyAccountDeletion();
+
+      expect(res.success).toBe(true);
+      expect(mockCancelUserDeletion).toHaveBeenCalledWith(USER_ID);
     });
   });
 });

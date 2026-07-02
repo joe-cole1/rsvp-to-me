@@ -10,7 +10,7 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🛠️ Bug / Fix
 
-_No pending items in this category._
+- **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch.
 
 ### 🔒 Backend / Security / DevOps
 
@@ -24,8 +24,7 @@ _Functional improvements, layout adjustments, and secondary features that can be
 
 ### 🛠️ Bug / Fix
 
-- **[UX-01] Account Deletion Revocation**: A host who requests account deletion is signed out, and their account is scheduled to be deleted/anonymized in 30 days. However, if they log back in, they are not presented with any UI on their profile to cancel the request, and the cron job will still delete them.
-  - _Recommended Fix_: Add a "Cancel Deletion Request" button on the host Profile page that calls a new `cancelAccountDeletion` server action (currently only exposed to admins).
+_No pending items in this category._
 
 ### 🎨 UI / UX / Feature
 
@@ -49,8 +48,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ### 🛠️ Bug / Fix
 
 - **[L-4b] One missed L-4 site**: `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`, formerly `app/actions/event.ts` ~L1890) still swallows errors without `logSafe("inviteFriendAsGuest")`. Found during the L-3 split of `event.ts` and deliberately moved verbatim to keep that refactor 100% behavior-preserving; fix is a one-liner.
-- **[SEC-33] Missing Cron locks on Backups & Deletions**: In-process cron tasks (`runBackup` and `processExpiredDeletions`) in `lib/cron-scheduler.ts` do not use distributed locks. When scaled horizontally, all replicas will trigger backups and deletions simultaneously, causing database transaction deadlocks, file writing conflicts, and performance degradation.
-  - _Recommended Fix_: Implement a Redis-based distributed lock check (mirroring the one in `processReminders`) to ensure only one instance executes backups or deletions at any given time.
 - **[DEV-01] Database Rate Limit Table Bloat**: `cleanupRateLimits()` in `lib/rateLimit.ts` is never scheduled, meaning database-driven rate limit entries will accumulate indefinitely in PostgreSQL when Redis is disabled.
   - _Recommended Fix_: Schedule a daily clean task using the in-process cron (`lib/cron-scheduler.ts`) that runs `cleanupRateLimits()`.
 
@@ -99,6 +96,12 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Self-Service Account Deletion Revocation & Admin Override [PR #234](https://github.com/joe-cole1/rsvp-to-me/pull/234)
+
+- [x] **[UX-01] Account Deletion Revocation**: Added a "Cancel Deletion Request" button on the host Profile page, implemented the `cancelMyAccountDeletion` server action, and updated host FAQs.
+- [x] **Admin Deletion & Anonymization UI**: Displayed deletion request details on the Admin panel, allowed admins to bypass the 30-day grace period and delete/anonymize users immediately with warning prompts, and added role and status filter dropdowns to the Admin Users tab.
+- [x] **[SEC-33] Missing Cron locks on Backups & Deletions**: Implemented a reusable Redis-based distributed lock check (`runWithLock` helper) with local database-backed locking fallback. Wrapped in-process backup and deletion tasks with it.
 
 ### Admin Promotion Guard Bypass
 

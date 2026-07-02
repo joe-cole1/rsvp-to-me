@@ -6,12 +6,20 @@ const {
   mockProcessReminders,
   mockRunBackup,
   mockSystemConfigFindUnique,
+  mockCronLockDeleteMany,
+  mockCronLockCreate,
+  mockCronLockDelete,
+  mockUserFindMany,
 } = vi.hoisted(() => ({
   mockCronSchedule: vi.fn(),
   mockCronValidate: vi.fn().mockReturnValue(true),
   mockProcessReminders: vi.fn().mockResolvedValue(undefined),
   mockRunBackup: vi.fn().mockResolvedValue("backup.sqlite"),
   mockSystemConfigFindUnique: vi.fn(),
+  mockCronLockDeleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  mockCronLockCreate: vi.fn().mockResolvedValue({}),
+  mockCronLockDelete: vi.fn().mockResolvedValue({}),
+  mockUserFindMany: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("node-cron", () => {
@@ -37,6 +45,14 @@ vi.mock("@/lib/db", () => ({
   db: {
     systemConfig: {
       findUnique: mockSystemConfigFindUnique,
+    },
+    cronLock: {
+      deleteMany: mockCronLockDeleteMany,
+      create: mockCronLockCreate,
+      delete: mockCronLockDelete,
+    },
+    user: {
+      findMany: mockUserFindMany,
     },
   },
 }));
@@ -97,6 +113,7 @@ describe("lib/cron-scheduler.ts", () => {
 
     // Trigger backup callback
     await callbacks.backup?.();
+    await new Promise((resolve) => setTimeout(resolve, 20));
     expect(mockRunBackup).toHaveBeenCalled();
   });
 
@@ -169,7 +186,7 @@ describe("lib/cron-scheduler.ts", () => {
 
     // Trigger backup callback
     callbacks.backup?.();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     // Trigger sync callback
     callbacks.sync?.();

@@ -2,60 +2,93 @@ import cron from "node-cron";
 import { processReminders } from "./reminders";
 import { runBackup } from "./backup";
 import { db } from "./db";
+import { isRedisEnabled, redisAcquireLock, redisReleaseLock } from "./redis";
+import { logSafe } from "./logger";
+import { performImmediateUserDeletion } from "./account-deletion";
+
+async function runWithLock(
+  jobName: string,
+  lockDurationSeconds: number,
+  fn: () => Promise<void>
+): Promise<void> {
+  const now = new Date();
+  const expireAt = new Date(now.getTime() + lockDurationSeconds * 1000);
+  const lockKey = `lock:cron:${jobName}`;
+
+  let hasRedisLock = false;
+
+  if (isRedisEnabled()) {
+    const acquired = await redisAcquireLock(lockKey, lockDurationSeconds);
+    if (!acquired) {
+      console.log(
+        `[cron-scheduler] Failed to acquire Redis lock for job "${jobName}" (another instance is running). Skipping.`
+      );
+      return;
+    }
+    hasRedisLock = true;
+  } else {
+    // Clean up stale database locks
+    await db.cronLock
+      .deleteMany({
+        where: { expireAt: { lt: now } },
+      })
+      .catch(logSafe(`cron:${jobName}:stale-db-lock-cleanup`));
+
+    try {
+      await db.cronLock.create({
+        data: { jobName, lockedAt: now, expireAt },
+      });
+    } catch {
+      console.log(
+        `[cron-scheduler] Failed to acquire database lock for job "${jobName}" (another instance is running). Skipping.`
+      );
+      return;
+    }
+  }
+
+  try {
+    await fn();
+  } finally {
+    if (hasRedisLock) {
+      await redisReleaseLock(lockKey).catch(logSafe(`cron:release-redis-lock:${jobName}`));
+    } else {
+      await db.cronLock
+        .delete({ where: { jobName } })
+        .catch(logSafe(`cron:release-db-lock:${jobName}`));
+    }
+  }
+}
 
 async function processExpiredDeletions() {
-  const now = new Date();
-  const pending = await db.user.findMany({
-    where: { deletionScheduledAt: { lte: now, not: null } },
-    select: { id: true, name: true, email: true },
-  });
-
-  if (pending.length === 0) return;
-  console.log(`[cron-scheduler] Processing ${pending.length} expired account deletion(s)...`);
-
-  for (const user of pending) {
-    const upcomingEvents = await db.event.count({
-      where: { hostId: user.id, status: "PUBLISHED", startAt: { gt: now } },
+  await runWithLock("process_expired_deletions", 600, async () => {
+    const now = new Date();
+    const pending = await db.user.findMany({
+      where: { deletionScheduledAt: { lte: now, not: null } },
+      select: { id: true, name: true, email: true },
     });
 
-    if (upcomingEvents > 0) {
-      console.warn(
-        `[cron-scheduler] Skipping deletion for user ${user.id} — still has ${upcomingEvents} upcoming published event(s).`
+    if (pending.length === 0) return;
+    console.log(`[cron-scheduler] Processing ${pending.length} expired account deletion(s)...`);
+
+    for (const user of pending) {
+      const upcomingEvents = await db.event.count({
+        where: { hostId: user.id, status: "PUBLISHED", startAt: { gt: now } },
+      });
+
+      if (upcomingEvents > 0) {
+        console.warn(
+          `[cron-scheduler] Skipping deletion for user ${user.id} — still has ${upcomingEvents} upcoming published event(s).`
+        );
+        continue;
+      }
+
+      await performImmediateUserDeletion(user.id);
+
+      console.log(
+        `[cron-scheduler] Anonymized account for user ${user.id} (was: ${user.email ?? user.name}).`
       );
-      continue;
     }
-
-    // Delete user's guest RSVPs on other events (cascades: RSVPAnswers, PlusOneGuests, CheckIns)
-    await db.rSVP.deleteMany({ where: { userId: user.id } });
-
-    // Remove co-host slots on other events
-    await db.eventCoHost.deleteMany({ where: { userId: user.id } });
-
-    // Clean up auth tokens and sessions
-    await db.magicToken.deleteMany({ where: { userId: user.id } });
-    await db.session.deleteMany({ where: { userId: user.id } });
-
-    // Reassign hosted events to the SYSTEM tombstone user
-    await db.event.updateMany({ where: { hostId: user.id }, data: { hostId: "system" } });
-
-    // Anonymize PII
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        email: null,
-        phone: null,
-        name: "Deleted User",
-        avatarUrl: null,
-        role: "GUEST",
-        deletionRequestedAt: null,
-        deletionScheduledAt: null,
-      },
-    });
-
-    console.log(
-      `[cron-scheduler] Anonymized account for user ${user.id} (was: ${user.email ?? user.name}).`
-    );
-  }
+  });
 }
 
 console.log("[cron-scheduler] Module loaded");
@@ -105,7 +138,9 @@ async function syncBackupJob() {
         if (cron.validate(schedule)) {
           backupTask = cron.schedule(schedule, () => {
             console.log("[cron-scheduler] Starting scheduled database backup...");
-            runBackup().catch((err) =>
+            runWithLock("run_backup", 600, async () => {
+              await runBackup();
+            }).catch((err) =>
               console.error("[cron-scheduler] Scheduled database backup failed:", err)
             );
           });
