@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { isRedisEnabled, redisIncrAndExpire, getRedisClient } from "./redis";
+import { logSafe } from "./logger";
 
 export async function rateLimit(
   key: string,
@@ -92,5 +93,5 @@ export async function cleanupRateLimits(): Promise<void> {
     .deleteMany({
       where: { expireAt: { lt: now } },
     })
-    .catch(() => {});
+    .catch(logSafe("cleanupRateLimits"));
 }

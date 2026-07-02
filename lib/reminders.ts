@@ -2,6 +2,7 @@ import { db } from "./db";
 import { sendBlastEmail } from "./email";
 import { sendSmsBlast } from "./sms";
 import { isRedisEnabled, redisAcquireLock, redisReleaseLock } from "./redis";
+import { logSafe } from "./logger";
 
 type ReminderType =
   | "email_week"
@@ -41,7 +42,7 @@ export async function processReminders(): Promise<void> {
       .deleteMany({
         where: { expireAt: { lt: now } },
       })
-      .catch(() => {});
+      .catch(logSafe("reminders:stale-db-lock-cleanup"));
 
     try {
       await db.cronLock.create({
@@ -61,7 +62,7 @@ export async function processReminders(): Promise<void> {
       .deleteMany({
         where: { expiresAt: { lt: now } },
       })
-      .catch(() => {});
+      .catch(logSafe("reminders:expired-session-cleanup"));
 
     const events = await db.event.findMany({
       where: {
@@ -226,9 +227,9 @@ export async function processReminders(): Promise<void> {
   } finally {
     // Release the lock
     if (hasRedisLock) {
-      await redisReleaseLock(lockKey).catch(() => {});
+      await redisReleaseLock(lockKey).catch(logSafe("reminders:release-redis-lock"));
     } else {
-      await db.cronLock.delete({ where: { jobName } }).catch(() => {});
+      await db.cronLock.delete({ where: { jobName } }).catch(logSafe("reminders:release-db-lock"));
     }
   }
 }

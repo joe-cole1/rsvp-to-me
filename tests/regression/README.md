@@ -34,3 +34,4 @@ For every bug fix merged to main:
 | `sec-25-docker-default-creds.test.ts`                | Compose files shipped weak default DB/Redis passwords + host-exposed 5432   | SEC-25   |
 | `sec-31-health-info-leak.test.ts`                    | `/api/health` leaked migration/DB state + timestamp to anonymous callers    | SEC-31   |
 | `sec-30-cohost-authz.test.ts`                        | Inconsistent host/co-host authz: co-hosts blocked from documented actions   | SEC-30   |
+| `l7-slug-collision-bound.test.ts`                    | `generateUniqueSlug` scanned sequential suffixes in an unbounded query loop | L-7      |
