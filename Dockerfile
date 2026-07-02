@@ -12,6 +12,8 @@ RUN npm run db:generate
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=postgresql://build-placeholder:5432/build
 ENV REDIS_URL=redis://build-placeholder:6379
+ARG DISABLE_HSTS
+ENV DISABLE_HSTS=${DISABLE_HSTS}
 RUN npm run build
 
 FROM node:22-alpine AS runner

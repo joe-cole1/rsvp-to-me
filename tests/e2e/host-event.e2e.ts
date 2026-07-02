@@ -28,6 +28,8 @@ test.describe("Host event management", () => {
   test("dashboard shows the host's events", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/dashboard/);
-    await expect(page.getByText("E2E Test Event")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("link", { name: "E2E Test Event" }).first()).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });

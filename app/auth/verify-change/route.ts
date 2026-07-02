@@ -10,6 +10,9 @@ const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
+  const host = request.headers.get("host") || "localhost:3000";
+  const protocol = request.headers.get("x-forwarded-proto") || "http";
+  const origin = `${protocol}://${host}`;
 
   const redirectWithNoReferrer = (url: string) => {
     const res = NextResponse.redirect(url);
@@ -18,40 +21,40 @@ export async function GET(request: NextRequest) {
   };
 
   if (!token) {
-    return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/profile?error=invalid-token`);
   }
 
   if (token.length > 128) {
-    return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/profile?error=invalid-token`);
   }
 
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
   if (!record || record.used || record.expiresAt < new Date() || record.type === "LOGIN") {
-    return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/profile?error=invalid-token`);
   }
 
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) {
-    return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/profile?error=invalid-token`);
   }
 
   const isEmail = record.type === "EMAIL_CHANGE";
   const newValue = record.metadata;
   if (!newValue) {
-    return redirectWithNoReferrer(`${APP_URL()}/profile?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/profile?error=invalid-token`);
   }
 
   // Check for conflicts before consuming the token so it isn't burned on a recoverable error
   if (isEmail) {
     const existing = await db.user.findFirst({ where: { email: newValue, NOT: { id: user.id } } });
     if (existing) {
-      return redirectWithNoReferrer(`${APP_URL()}/profile?error=email-taken`);
+      return redirectWithNoReferrer(`${origin}/profile?error=email-taken`);
     }
   } else {
     const existing = await db.user.findFirst({ where: { phone: newValue, NOT: { id: user.id } } });
     if (existing) {
-      return redirectWithNoReferrer(`${APP_URL()}/profile?error=phone-taken`);
+      return redirectWithNoReferrer(`${origin}/profile?error=phone-taken`);
     }
   }
 
@@ -110,10 +113,10 @@ export async function GET(request: NextRequest) {
     sessionId,
   });
 
-  const response = redirectWithNoReferrer(`${APP_URL()}/profile?verified=1`);
+  const response = redirectWithNoReferrer(`${origin}/profile?verified=1`);
   response.cookies.set(COOKIE_NAME, sealed, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.DISABLE_HSTS !== "true",
     sameSite: "lax",
     maxAge: SESSION_TTL,
     path: "/",

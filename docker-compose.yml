@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        - DISABLE_HSTS=true
     ports:
       - "3000:3000"
     env_file: .env
@@ -9,6 +12,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required - set a strong value in .env}@redis:6379
       OPEN_REGISTRATION: "false"
       SEED_TEST_DATA: "true"
+      DISABLE_HSTS: "true"
       CLOUDFLARE_WORKER_EMAIL_URL: ""
       CLOUDFLARE_WORKER_API_SECRET: ""
     volumes:
