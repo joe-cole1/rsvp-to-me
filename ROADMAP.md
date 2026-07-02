@@ -41,12 +41,12 @@ _Full write-up with file:line references, fix snippets, and an architecture diag
 **Low** (batch as a cleanup PR)
 
 - ~~**[L-1]** `updateInfoSection` force-nulls `title` on every edit and skips co-host access~~ _(fixed with SEC-30 — title only written when supplied; co-host access via `assertHostOrCohost`)_.
-- **[L-2]** Duplicated blast-filter builder in `sendBlast` / `sendSmsBlast` → extract shared helper.
+- ~~**[L-2]** Duplicated blast-filter builder in `sendBlast` / `sendSmsBlast` → extract shared helper~~ _(fixed — shared `buildRsvpStatusFilter()` in `lib/blastFilters.ts`, behavior-preserving; unit test `tests/lib/blastFilters.test.ts`)_.
 - **[L-3]** God-files (`app/actions/event.ts` ~2349, `components/event/EventPage.tsx` ~4747, `app/(app)/admin/AdminClient.tsx` ~5136) → split by feature.
-- **[L-4]** `.catch(() => {})` swallowing (25+ sites) → funnel through a `logSafe()` at debug level.
-- **[L-5]** Verify the masked Twilio token is never returned decrypted to the admin client; keep the field write-only.
+- ~~**[L-4]** `.catch(() => {})` swallowing (25+ sites) → funnel through a `logSafe()` at debug level~~ _(fixed — `logSafe(context)` in `lib/logger.ts`; all 27 `app/actions/event.ts` sites plus the `lib/reminders.ts`/`lib/session.ts`/`lib/redis.ts`/`lib/rateLimit.ts` sites now record swallowed errors at debug level; unit test `tests/lib/logger.test.ts`. The one client-side site in `EventPage.tsx` is left for the L-3 split — the server logger doesn't belong in the client bundle)_.
+- ~~**[L-5]** Verify the masked Twilio token is never returned decrypted to the admin client; keep the field write-only~~ _(verified — `getSystemConfig` masks `twilio_auth_token` (DB **and** env sourced) and never calls `decryptConfig`; `updateSystemConfig` no-ops when the mask is echoed back; `testSmsConfigAction` decrypts server-side only and returns just `{success, error}`. No code change needed; pinned by new assertions in `tests/actions/admin.test.ts`)_.
 - **[L-6]** `.env.example` ships `HOST_INVITE_CODE="letmein"` → change to an obvious placeholder.
-- **[L-7]** `generateUniqueSlug` unbounded sequential retry loop → add a random suffix after N collisions.
+- ~~**[L-7]** `generateUniqueSlug` unbounded sequential retry loop → add a random suffix after N collisions~~ _(fixed — sequential probe capped at 10, then CSPRNG hex suffixes with growing entropy (4 tries), then a loud failure; regression test `tests/regression/l7-slug-collision-bound.test.ts`)_.
 - _(Related, already tracked: SEC-21(c) upload gating, SEC-14 auth error enumeration, SEC-15 unpaginated blasts.)_
 
 ### 👥 Guest List & RSVP Enhancements

@@ -17,6 +17,8 @@ import {
 } from "@/lib/sms";
 import type { BaseTheme } from "@/lib/theme";
 import { logActivity, iconLabel } from "@/lib/activity";
+import { logSafe } from "@/lib/logger";
+import { buildRsvpStatusFilter, type BlastStatusFilter } from "@/lib/blastFilters";
 import { tzLocalToUtc } from "@/lib/utils";
 import {
   AddRsvpSchema,
@@ -148,7 +150,7 @@ export async function saveEventField(eventId: string, field: string, value: stri
     if (field === "virtualUrl") return v ? "Virtual link updated" : "Virtual link cleared";
     return "Event updated";
   })();
-  logActivity(eventId, actType, detail).catch(() => {});
+  logActivity(eventId, actType, detail).catch(logSafe("saveEventField"));
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -178,7 +180,7 @@ export async function saveEventLocation(
     if (data.locationType === "TBD") return "Location set to TBD";
     return data.locationName ? `Location updated to "${data.locationName}"` : "Location updated";
   })();
-  logActivity(eventId, "event_location", locDetail).catch(() => {});
+  logActivity(eventId, "event_location", locDetail).catch(logSafe("saveEventLocation"));
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -243,7 +245,7 @@ export async function addInfoSection(data: {
     data.eventId,
     "info_add",
     `Added ${iconLabel(data.type)} section: ${preview}`
-  ).catch(() => null);
+  ).catch(logSafe("addInfoSection"));
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: section.id, activityEvent };
 }
@@ -272,7 +274,7 @@ export async function updateInfoSection(
     section.eventId,
     "info_edit",
     `Updated ${iconLabel(data.type ?? section.type)} section: ${editPreview}`
-  ).catch(() => {});
+  ).catch(logSafe("updateInfoSection"));
   revalidatePath(`/e/${section.event.slug}`);
   return { success: true };
 }
@@ -289,7 +291,7 @@ export async function removeInfoSection(sectionId: string) {
     section.eventId,
     "info_delete",
     `Removed ${iconLabel(section.type)} section`
-  ).catch(() => null);
+  ).catch(logSafe("removeInfoSection"));
   revalidatePath(`/e/${section.event.slug}`);
   return { activityEvent };
 }
@@ -429,7 +431,7 @@ export async function addRSVP(rawInput: unknown) {
   const detail = data.note?.trim()
     ? `${data.guestName} is ${statusText}${plusStr}\n${data.note.trim()}`
     : `${data.guestName} is ${statusText}${plusStr}`;
-  logActivity(data.eventId, "rsvp_new", detail, data.guestName).catch(() => {});
+  logActivity(data.eventId, "rsvp_new", detail, data.guestName).catch(logSafe("addRSVP"));
 
   if (data.guestEmail) {
     sendRsvpConfirmationEmail(data.guestEmail, {
@@ -441,7 +443,7 @@ export async function addRSVP(rawInput: unknown) {
       startAt: event.startAt,
       locationName: event.locationName,
       replyTo: event.host.email || undefined,
-    }).catch(() => {});
+    }).catch(logSafe("addRSVP"));
   }
   if (data.guestPhone) {
     sendRsvpConfirmationSms(data.guestPhone, {
@@ -450,7 +452,7 @@ export async function addRSVP(rawInput: unknown) {
       eventSlug: event.slug,
       status: data.status,
       editToken: rsvp.editToken,
-    }).catch(() => {});
+    }).catch(logSafe("addRSVP"));
   }
 
   revalidatePath(`/e/${event.slug}`);
@@ -569,7 +571,7 @@ export async function addComment(rawInput: unknown) {
     "comment_new",
     `${guestName} commented: "${bodyPreview}"`,
     guestName
-  ).catch(() => {});
+  ).catch(logSafe("addComment"));
 
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: comment.id };
@@ -699,7 +701,7 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
     "rsvp_update",
     `${rsvp.guestName} updated to ${statusText}`,
     rsvp.guestName
-  ).catch(() => {});
+  ).catch(logSafe("updateRSVP"));
 
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true, rsvpId: rsvp.id };
@@ -713,7 +715,9 @@ export async function deleteRsvpAsHost(rsvpId: string) {
   if (!rsvp) throw new Error("Not found");
   await assertHostOrCohost(rsvp.event.id);
   await db.rSVP.delete({ where: { id: rsvpId } });
-  logActivity(rsvp.event.id, "rsvp_delete", `${rsvp.guestName}'s RSVP was removed`).catch(() => {});
+  logActivity(rsvp.event.id, "rsvp_delete", `${rsvp.guestName}'s RSVP was removed`).catch(
+    logSafe("deleteRsvpAsHost")
+  );
   revalidatePath(`/e/${rsvp.event.slug}/guests`);
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true };
@@ -732,11 +736,7 @@ export async function deleteActivityEvent(activityId: string) {
 
 // ── Message blast ──────────────────────────────────────────────────────────────
 
-export async function sendBlast(
-  eventId: string,
-  message: string,
-  filters: ("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]
-) {
+export async function sendBlast(eventId: string, message: string, filters: BlastStatusFilter[]) {
   await assertHostOrCohost(eventId);
 
   const event = await db.event.findUnique({
@@ -745,23 +745,7 @@ export async function sendBlast(
   });
   if (!event) throw new Error("Event not found");
 
-  const orConditions: { status?: "GOING" | "MAYBE" | "NO" | "INVITED"; responded?: boolean }[] = [];
-  for (const filter of filters) {
-    if (filter === "ALL") {
-      orConditions.length = 0;
-      break;
-    } else if (filter === "GOING") {
-      orConditions.push({ status: "GOING", responded: true });
-    } else if (filter === "MAYBE") {
-      orConditions.push({ status: "MAYBE", responded: true });
-    } else if (filter === "NO") {
-      orConditions.push({ status: "NO", responded: true });
-    } else if (filter === "INVITED") {
-      orConditions.push({ status: "INVITED" });
-    }
-  }
-
-  const whereStatus = orConditions.length > 0 ? { OR: orConditions } : {};
+  const whereStatus = buildRsvpStatusFilter(filters);
 
   const rsvps = await db.rSVP.findMany({
     where: { eventId, guestEmail: { not: null }, ...whereStatus },
@@ -785,16 +769,12 @@ export async function sendBlast(
     .createMany({
       data: emails.map((sentTo) => ({ eventId, sentTo, channel: "EMAIL" as const })),
     })
-    .catch(() => {});
+    .catch(logSafe("sendBlast"));
 
   return { success: true, sent: emails.length };
 }
 
-export async function sendSmsBlast(
-  eventId: string,
-  message: string,
-  filters: ("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]
-) {
+export async function sendSmsBlast(eventId: string, message: string, filters: BlastStatusFilter[]) {
   await assertHostOrCohost(eventId);
 
   const event = await db.event.findUnique({
@@ -803,23 +783,7 @@ export async function sendSmsBlast(
   });
   if (!event) throw new Error("Event not found");
 
-  const orConditions: { status?: "GOING" | "MAYBE" | "NO" | "INVITED"; responded?: boolean }[] = [];
-  for (const filter of filters) {
-    if (filter === "ALL") {
-      orConditions.length = 0;
-      break;
-    } else if (filter === "GOING") {
-      orConditions.push({ status: "GOING", responded: true });
-    } else if (filter === "MAYBE") {
-      orConditions.push({ status: "MAYBE", responded: true });
-    } else if (filter === "NO") {
-      orConditions.push({ status: "NO", responded: true });
-    } else if (filter === "INVITED") {
-      orConditions.push({ status: "INVITED" });
-    }
-  }
-
-  const whereStatus = orConditions.length > 0 ? { OR: orConditions } : {};
+  const whereStatus = buildRsvpStatusFilter(filters);
 
   const rsvps = await db.rSVP.findMany({
     where: { eventId, guestPhone: { not: null }, ...whereStatus },
@@ -842,7 +806,7 @@ export async function sendSmsBlast(
     .createMany({
       data: phones.map((sentTo) => ({ eventId, sentTo, channel: "SMS" as const })),
     })
-    .catch(() => {});
+    .catch(logSafe("sendSmsBlast"));
 
   return { success: true, sent };
 }
@@ -886,7 +850,7 @@ export async function saveEventDates(
     eventId,
     "event_date",
     `Date updated to ${months[parseInt(mo) - 1]} ${parseInt(day)} at ${timeStr}`
-  ).catch(() => {});
+  ).catch(logSafe("saveEventDates"));
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -939,13 +903,13 @@ export async function approveRsvp(rsvpId: string, message?: string) {
       approved: true,
       message,
       replyTo: rsvp.event.host.email || undefined,
-    }).catch(() => {});
+    }).catch(logSafe("approveRsvp"));
   } else if (rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
       eventTitle: rsvp.event.title,
       approved: true,
       message,
-    }).catch(() => {});
+    }).catch(logSafe("approveRsvp"));
   }
 
   revalidatePath(`/e/${rsvp.event.slug}`);
@@ -976,13 +940,13 @@ export async function declineRsvp(rsvpId: string, message?: string) {
       approved: false,
       message,
       replyTo: rsvp.event.host.email || undefined,
-    }).catch(() => {});
+    }).catch(logSafe("declineRsvp"));
   } else if (rsvp.guestPhone) {
     await sendApprovalSms(rsvp.guestPhone, {
       eventTitle: rsvp.event.title,
       approved: false,
       message,
-    }).catch(() => {});
+    }).catch(logSafe("declineRsvp"));
   }
 
   await db.rSVP.delete({ where: { id: rsvpId } });
@@ -1057,7 +1021,7 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
           message: body,
           hostName,
           replyTo,
-        }).catch(() => {});
+        }).catch(logSafe("addEventUpdate"));
       }
       if (smsGuests.length > 0) {
         smsSendBlast(smsGuests, {
@@ -1065,7 +1029,7 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
           eventSlug: event.slug,
           message: body,
           hostName,
-        }).catch(() => {});
+        }).catch(logSafe("addEventUpdate"));
       }
     }
   }
@@ -1153,7 +1117,7 @@ export async function claimPotluckItem(
     "potluck_claim",
     `${guestName} is bringing${qtyStr}: ${item.label}`,
     guestName
-  ).catch(() => null);
+  ).catch(logSafe("claimPotluckItem"));
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true, activityEvent, claim };
 }
@@ -1203,7 +1167,7 @@ export async function unclaimPotluckItem(
     "potluck_unclaim",
     `${guestName} won't bring: ${item.label}`,
     guestName
-  ).catch(() => null);
+  ).catch(logSafe("unclaimPotluckItem"));
   revalidatePath(`/e/${item.event.slug}`);
   return { success: true, activityEvent };
 }
@@ -1984,7 +1948,7 @@ export async function createPoll(
     "poll_create",
     `created a new poll: "${question.trim()}"`,
     hostName
-  ).catch(() => null);
+  ).catch(logSafe("createPoll"));
 
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: poll.id };
@@ -2094,7 +2058,7 @@ export async function castVote(
         ? `voted for "${option.text}" in the poll "${poll.question}"`
         : `retracted vote for "${option.text}" in the poll "${poll.question}"`,
       voterName
-    ).catch(() => null);
+    ).catch(logSafe("castVote"));
   }
 
   revalidatePath(`/e/${poll.event.slug}`);
@@ -2162,7 +2126,7 @@ export async function addPollOption(
     "poll_option_add",
     `added a new option "${text.trim()}" to the poll`,
     creatorName
-  ).catch(() => null);
+  ).catch(logSafe("addPollOption"));
 
   revalidatePath(`/e/${poll.event.slug}`);
   return { success: true, id: option.id };
@@ -2214,7 +2178,7 @@ export async function updatePollSettings(
       data.locked ? "poll_lock" : "poll_unlock",
       `${data.locked ? "locked" : "unlocked"} the poll: "${poll.question}"`,
       hostName
-    ).catch(() => null);
+    ).catch(logSafe("updatePollSettings"));
   }
 
   revalidatePath(`/e/${event.slug}`);
@@ -2255,7 +2219,7 @@ export async function deletePollOption(pollId: string, optionId: string) {
     "poll_option_delete",
     `deleted option "${option.text}" from the poll: "${poll.question}"`,
     hostName
-  ).catch(() => null);
+  ).catch(logSafe("deletePollOption"));
 
   revalidatePath(`/e/${event.slug}`);
   return { success: true };

@@ -32,3 +32,4 @@ For every bug fix merged to main:
 | `sec-26-sms-token-decrypt.test.ts`                   | DB-configured Twilio auth token never decrypted (broken `enc:` check)       | SEC-26   |
 | `sec-27-twilio-webhook-db-token.test.ts`             | Twilio inbound webhook validated only against the env token, not DB config  | SEC-27   |
 | `sec-30-cohost-authz.test.ts`                        | Inconsistent host/co-host authz: co-hosts blocked from documented actions   | SEC-30   |
+| `l7-slug-collision-bound.test.ts`                    | `generateUniqueSlug` scanned sequential suffixes in an unbounded query loop | L-7      |

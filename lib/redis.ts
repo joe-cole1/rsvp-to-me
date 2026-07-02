@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { logSafe } from "./logger";
 
 type RedisClientType = ReturnType<typeof createClient>;
 
@@ -47,7 +48,7 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
   if (!globalForRedis.redisConnected) {
     try {
       if (!redisClient.isOpen) {
-        await redisClient.connect().catch(() => {});
+        await redisClient.connect().catch(logSafe("redis:reconnect"));
       }
     } catch {}
   }

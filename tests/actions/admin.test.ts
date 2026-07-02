@@ -307,12 +307,28 @@ describe("app/actions/admin.ts", () => {
         { key: "smtp_pass", value: "super-secret-password" },
         { key: "cloudflare_worker_api_secret", value: "worker-api-token" },
         { key: "cloudflare_api_token", value: "cf-api-token" },
+        { key: "twilio_auth_token", value: "iv:tag:encrypted-twilio-token" },
       ]);
       const config = await getSystemConfig();
       expect(config.open_registration).toBe("true");
       expect(config.smtp_pass).toBe("••••••••");
       expect(config.cloudflare_worker_api_secret).toBe("••••••••");
       expect(config.cloudflare_api_token).toBe("••••••••");
+      // L-5: the Twilio auth token must never reach the admin client — neither
+      // decrypted nor as raw ciphertext.
+      expect(config.twilio_auth_token).toBe("••••••••");
+    });
+
+    it("masks the Twilio auth token even when it comes from the env fallback (L-5)", async () => {
+      mockSystemConfigFindMany.mockResolvedValue([]);
+      process.env.TWILIO_AUTH_TOKEN = "env-twilio-secret";
+      try {
+        const config = await getSystemConfig();
+        expect(config.twilio_auth_token).toBe("••••••••");
+        expect(JSON.stringify(config)).not.toContain("env-twilio-secret");
+      } finally {
+        delete process.env.TWILIO_AUTH_TOKEN;
+      }
     });
 
     it("updates system config setting", async () => {
@@ -331,6 +347,13 @@ describe("app/actions/admin.ts", () => {
     it("skips updating sensitive config setting if the value is the mask placeholder", async () => {
       mockSystemConfigUpsert.mockClear();
       const res = await updateSystemConfig("smtp_pass", "••••••••");
+      expect(res.success).toBe(true);
+      expect(mockSystemConfigUpsert).not.toHaveBeenCalled();
+    });
+
+    it("keeps twilio_auth_token write-only: echoing the mask back is a no-op (L-5)", async () => {
+      mockSystemConfigUpsert.mockClear();
+      const res = await updateSystemConfig("twilio_auth_token", "••••••••");
       expect(res.success).toBe(true);
       expect(mockSystemConfigUpsert).not.toHaveBeenCalled();
     });

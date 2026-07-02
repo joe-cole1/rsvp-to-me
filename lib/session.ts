@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { redisGet, redisSet, redisDel, isRedisEnabled } from "@/lib/redis";
+import { logSafe } from "./logger";
 
 export interface SessionData {
   userId: string;
@@ -211,7 +212,9 @@ export async function destroySession(): Promise<void> {
         ttl: TTL,
       });
       if (session?.sessionId) {
-        await db.session.delete({ where: { id: session.sessionId } }).catch(() => {});
+        await db.session
+          .delete({ where: { id: session.sessionId } })
+          .catch(logSafe("destroySession:db-delete"));
         if (isRedisEnabled()) {
           await redisDel(`session:${session.sessionId}`);
         }

@@ -220,6 +220,8 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 
 **What it does:** Controls the verbosity of application logs written to stdout. Use `"debug"` to troubleshoot setup or database issues, and `"info"` for standard production runs.
 
+At `"debug"`, the app also surfaces errors from non-critical background work (activity logging, best-effort notification sends, cleanup jobs) that are intentionally swallowed at higher levels so they never break the main request.
+
 ---
 
 ## Email Configuration

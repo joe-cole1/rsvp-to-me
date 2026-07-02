@@ -64,3 +64,20 @@ export const logger = {
   warn: (message: string, meta?: unknown) => log("warn", message, meta),
   error: (message: string, meta?: unknown) => log("error", message, meta),
 };
+
+/**
+ * L-4: shared rejection handler for fire-and-forget promises whose failures
+ * must never break the main flow (activity logging, best-effort notification
+ * sends). Instead of `.catch(() => {})` discarding the error invisibly, the
+ * swallowed error is recorded at debug level. Resolves to `null` so
+ * `await p.catch(logSafe("ctx"))` keeps the same "value or null" semantics
+ * as the previous `.catch(() => null)` call sites.
+ */
+export function logSafe(context: string) {
+  return (err: unknown): null => {
+    log("debug", `Swallowed non-critical error in ${context}`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  };
+}
