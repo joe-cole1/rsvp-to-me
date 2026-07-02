@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { encryptConfig, decryptConfig } from "@/lib/crypto";
 import { hashToken } from "@/lib/hash";
 import { sendWelcomeEmail } from "@/lib/email";
+import { normalizePhone } from "@/lib/auth";
 
 async function assertAdmin() {
   const session = await getSession();
@@ -617,7 +618,8 @@ export async function createAdminUser(data: {
     return { success: false, error: "Please enter a valid email address." };
   }
 
-  const phone = data.phone?.trim() || undefined;
+  const rawPhone = data.phone?.trim() || undefined;
+  const phone = rawPhone ? normalizePhone(rawPhone) : undefined;
   const name = data.name?.trim() || undefined;
   const role = data.role;
 
