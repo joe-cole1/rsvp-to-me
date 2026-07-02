@@ -61,6 +61,22 @@ After making changes and before presenting Git commands to the user to push to G
    - Ensure the application builds successfully and tests pass. Use the Docker Testing workflow above — `npm test` cannot be run directly on the host.
    <!-- END:post-modification-rules -->
 
+<!-- BEGIN:multi-pr-batch-rules -->
+
+# Multi-PR Batch & CI Hygiene Rules
+
+Proven during the 2026-07 security-audit tranches (PRs #218–#221 merged with zero CI failures). Follow these **in addition to** the existing prettier/label/test rules:
+
+1. **Prettier covers EVERY file you touch, not just `.ts`/`.tsx`.** CI runs `npx prettier --check .` over the **whole repository**, so one unformatted `.md` or `.yml` fails the build. Run `npx prettier --write` on every file you create or edit — docs, `ROADMAP.md`, compose files, test files — and re-run `npx prettier --check` on any file after resolving a merge conflict in it (hand-resolved hunks are the most common way to break formatting).
+2. **One branch per release label, each cut fresh from `origin/main`.** A PR carries exactly one release label, so work spanning labels (e.g. a `chore` and a `bug`) gets separate branches from the start — never plan to "split later". A small related item may ride along on a branch whose label it shares (e.g. two `chore` hardening items in one PR).
+3. **Stack, don't collide.** When two PRs must touch the same large file (e.g. `app/actions/event.ts`), base the second branch on the first, state the merge order explicitly in **both** PR bodies, and after the base PR merges, merge `main` into the stacked branch so its diff collapses to only its own changes.
+4. **Re-sync every open branch immediately after any PR merges.** GitHub sends no webhook for merge-conflict transitions — don't wait to find out. Fetch `main`, merge it into each remaining open branch, resolve, prettier-check, push. `ROADMAP.md` and `tests/regression/README.md` are guaranteed collision points (every PR strikes a checklist line and appends an index row); the correct resolution is always **keep both sides' entries**.
+5. **Respect conflict resolutions made on GitHub.** If a push is rejected because the remote branch moved, the user may have clicked "Update branch" or resolved the conflict in the web UI. Fetch, inspect their resolution, and adopt it (`git reset --hard origin/<branch>`) rather than force-pushing your own duplicate merge over it.
+6. **When a change intentionally alters behavior, update the tests that pin the OLD behavior in the same PR.** Grep the test tree for the touched function names, for mocked query/row shapes (e.g. an authz helper that now selects `coHosts` breaks every fixture that omits it), and for error-message assertions (`Forbidden` vs `Unauthorized`) — fix them alongside the change, never leave them for CI archaeology.
+7. **Verify without the local toolchain (remote/cloud sessions).** `npm test` cannot run in remote containers, so before pushing: run `npx tsc --noEmit` and disregard only the environment-noise errors (missing `@types/node` / `react` module stubs) — when unsure whether an error is pre-existing, `git stash` and re-run against the unmodified tree to compare; validate `.yml` edits with a real YAML parser; and sanity-check new test assertions with a standalone `node` script where the logic allows. CI remains the final gate.
+
+<!-- END:multi-pr-batch-rules -->
+
 <!-- BEGIN:pre-modification-rules -->
 
 # Pre-Modification Rules
