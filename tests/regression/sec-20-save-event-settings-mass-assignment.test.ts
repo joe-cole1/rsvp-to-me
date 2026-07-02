@@ -51,7 +51,7 @@ describe("SEC-20: saveEventSettings mass assignment", () => {
     mockEventFindUnique.mockReset();
     mockEventUpdate.mockReset();
     mockGetSession.mockResolvedValue({ userId: "host1", role: "HOST" });
-    mockEventFindUnique.mockResolvedValue({ hostId: "host1", slug: "my-party" });
+    mockEventFindUnique.mockResolvedValue({ hostId: "host1", slug: "my-party", coHosts: [] });
     mockEventUpdate.mockResolvedValue({});
   });
 

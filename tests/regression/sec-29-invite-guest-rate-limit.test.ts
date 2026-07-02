@@ -56,7 +56,7 @@ describe("SEC-29: inviteGuest batch cap + rate limiting", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSession.mockResolvedValue({ userId: "host-1", email: "h@x.com", role: "HOST" });
-    mockEventFindUnique.mockResolvedValue({ hostId: "host-1", slug: "party" });
+    mockEventFindUnique.mockResolvedValue({ hostId: "host-1", slug: "party", coHosts: [] });
     mockGetClientIp.mockResolvedValue("1.2.3.4");
     mockRateLimit.mockResolvedValue({ success: true, limit: 15, remaining: 14, reset: new Date() });
   });

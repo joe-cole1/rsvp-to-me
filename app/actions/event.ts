@@ -129,7 +129,7 @@ const ALLOWED_FIELDS = new Set([
 
 export async function saveEventField(eventId: string, field: string, value: string) {
   if (!ALLOWED_FIELDS.has(field)) throw new Error("Field not allowed");
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   await db.event.update({ where: { id: eventId }, data: { [field]: value || null } });
   const fieldTypes: Record<string, string> = {
     title: "event_title",
@@ -163,7 +163,7 @@ export async function saveEventLocation(
     virtualUrl: string | null;
   }
 ) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   await db.event.update({
     where: { id: eventId },
     data: {
@@ -193,7 +193,7 @@ export async function saveEventTheme(
   presetId?: string | null,
   cardOpacity?: number | null
 ) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   await db.eventTheme.upsert({
     where: { eventId },
     update: {
@@ -227,7 +227,7 @@ export async function addInfoSection(data: {
   url: string | null;
   order: number;
 }) {
-  const event = await assertHost(data.eventId);
+  const event = await assertHostOrCohost(data.eventId);
   const section = await db.eventInfoSection.create({
     data: {
       eventId: data.eventId,
@@ -254,16 +254,15 @@ export async function updateInfoSection(
 ) {
   const section = await db.eventInfoSection.findUnique({
     where: { id: sectionId },
-    include: { event: { select: { hostId: true, slug: true, id: true } } },
+    include: { event: { select: { slug: true } } },
   });
-  const session = await getSession();
-  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN"))
-    throw new Error("Forbidden");
+  if (!section) throw new Error("Forbidden");
+  await assertHostOrCohost(section.eventId);
   await db.eventInfoSection.update({
     where: { id: sectionId },
     data: {
       ...(data.type !== undefined && { type: data.type }),
-      title: null,
+      ...(data.title !== undefined && { title: data.title }),
       content: data.content,
       url: data.url || null,
     },
@@ -281,11 +280,10 @@ export async function updateInfoSection(
 export async function removeInfoSection(sectionId: string) {
   const section = await db.eventInfoSection.findUnique({
     where: { id: sectionId },
-    include: { event: { select: { hostId: true, slug: true } } },
+    include: { event: { select: { slug: true } } },
   });
-  const session = await getSession();
-  if (!section || (section.event.hostId !== session?.userId && session?.role !== "ADMIN"))
-    throw new Error("Forbidden");
+  if (!section) throw new Error("Forbidden");
+  await assertHostOrCohost(section.eventId);
   await db.eventInfoSection.delete({ where: { id: sectionId } });
   const activityEvent = await logActivity(
     section.eventId,
@@ -599,7 +597,7 @@ export async function saveEventSettings(
     guestsCanInvite?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   // SEC-20: validate against an explicit allow-list before spreading into the
   // update, so unknown keys (status, slug, hostId, …) can't be mass-assigned.
   const { password, rsvpDeadline, ...rest } = SaveEventSettingsSchema.parse(settings);
@@ -708,23 +706,12 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
 }
 
 export async function deleteRsvpAsHost(rsvpId: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: {
-      event: {
-        select: { id: true, hostId: true, slug: true, coHosts: { select: { userId: true } } },
-      },
-    },
+    include: { event: { select: { id: true, slug: true } } },
   });
   if (!rsvp) throw new Error("Not found");
-  const isOwner = rsvp.event.hostId === session.userId;
-  const isCohost = rsvp.event.coHosts.some(
-    (ch: { userId: string }) => ch.userId === session.userId
-  );
-  const isAdmin = session.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
+  await assertHostOrCohost(rsvp.event.id);
   await db.rSVP.delete({ where: { id: rsvpId } });
   logActivity(rsvp.event.id, "rsvp_delete", `${rsvp.guestName}'s RSVP was removed`).catch(() => {});
   revalidatePath(`/e/${rsvp.event.slug}/guests`);
@@ -733,19 +720,12 @@ export async function deleteRsvpAsHost(rsvpId: string) {
 }
 
 export async function deleteActivityEvent(activityId: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
   const activity = await db.activityEvent.findUnique({
     where: { id: activityId },
-    include: { event: { select: { hostId: true, coHosts: { select: { userId: true } } } } },
+    select: { eventId: true },
   });
   if (!activity) return { success: false };
-  const isOwner = activity.event.hostId === session.userId;
-  const isCohost = activity.event.coHosts.some(
-    (ch: { userId: string }) => ch.userId === session.userId
-  );
-  const isAdmin = session.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
+  await assertHostOrCohost(activity.eventId);
   await db.activityEvent.delete({ where: { id: activityId } });
   return { success: true };
 }
@@ -757,7 +737,7 @@ export async function sendBlast(
   message: string,
   filters: ("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]
 ) {
-  await assertHost(eventId);
+  await assertHostOrCohost(eventId);
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -815,7 +795,7 @@ export async function sendSmsBlast(
   message: string,
   filters: ("ALL" | "INVITED" | "GOING" | "MAYBE" | "NO")[]
 ) {
-  await assertHost(eventId);
+  await assertHostOrCohost(eventId);
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -874,7 +854,7 @@ export async function saveEventDates(
   startAt: string, // "YYYY-MM-DDTHH:MM" in the event's timezone
   endAt: string | null
 ) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   const evt = await db.event.findUnique({ where: { id: eventId }, select: { timezone: true } });
   if (!evt) throw new Error("Event not found");
   await db.event.update({
@@ -913,7 +893,7 @@ export async function saveEventDates(
 // ── Cover image ────────────────────────────────────────────────────────────────
 
 export async function saveCoverImage(eventId: string, url: string) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   await db.eventTheme.upsert({
     where: { eventId },
     update: { coverImageUrl: url },
@@ -923,7 +903,7 @@ export async function saveCoverImage(eventId: string, url: string) {
 }
 
 export async function removeCoverImage(eventId: string) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   await db.eventTheme.update({
     where: { eventId },
     data: { coverImageUrl: null },
@@ -934,27 +914,20 @@ export async function removeCoverImage(eventId: string) {
 // ── RSVP approval ─────────────────────────────────────────────────────────────
 
 export async function approveRsvp(rsvpId: string, message?: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
       event: {
         select: {
-          hostId: true,
           slug: true,
           title: true,
           host: { select: { email: true } },
-          coHosts: { select: { userId: true } },
         },
       },
     },
   });
   if (!rsvp) throw new Error("Not found");
-  const isOwner = rsvp.event.hostId === session.userId;
-  const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
-  const isAdmin = session.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
+  await assertHostOrCohost(rsvp.eventId);
 
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
 
@@ -980,27 +953,20 @@ export async function approveRsvp(rsvpId: string, message?: string) {
 }
 
 export async function declineRsvp(rsvpId: string, message?: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
       event: {
         select: {
-          hostId: true,
           slug: true,
           title: true,
           host: { select: { email: true } },
-          coHosts: { select: { userId: true } },
         },
       },
     },
   });
   if (!rsvp) throw new Error("Not found");
-  const isOwner = rsvp.event.hostId === session.userId;
-  const isCohost = rsvp.event.coHosts?.some((ch) => ch.userId === session.userId) ?? false;
-  const isAdmin = session.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
+  await assertHostOrCohost(rsvp.eventId);
 
   if (rsvp.guestEmail) {
     await sendApprovalEmail(rsvp.guestEmail, {
@@ -1036,7 +1002,7 @@ export async function saveReminderSettings(
     nudgeUnresponded: boolean;
   }
 ) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   await db.eventReminderSettings.upsert({
     where: { eventId },
     update: settings,
@@ -1048,7 +1014,7 @@ export async function saveReminderSettings(
 // ── Event updates ─────────────────────────────────────────────────────────────
 
 export async function addEventUpdate(eventId: string, body: string, notifyGuests: boolean) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   const update = await db.eventUpdate.create({ data: { eventId, body, notifyGuests } });
   if (notifyGuests) {
     const rsvps = await db.rSVP.findMany({
@@ -1110,11 +1076,10 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
 export async function deleteEventUpdate(updateId: string) {
   const update = await db.eventUpdate.findUnique({
     where: { id: updateId },
-    select: { event: { select: { hostId: true, slug: true } } },
+    select: { eventId: true, event: { select: { slug: true } } },
   });
-  const session = await getSession();
-  if (!update || (update.event.hostId !== session?.userId && session?.role !== "ADMIN"))
-    throw new Error("Forbidden");
+  if (!update) throw new Error("Forbidden");
+  await assertHostOrCohost(update.eventId);
   await db.eventUpdate.delete({ where: { id: updateId } });
   revalidatePath(`/e/${update.event.slug}`);
 }
@@ -1122,7 +1087,7 @@ export async function deleteEventUpdate(updateId: string) {
 // ── Potluck ───────────────────────────────────────────────────────────────────
 
 export async function addPotluckItem(eventId: string, label: string, quantity: number = 1) {
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
   const item = await db.potluckItem.create({ data: { eventId, label, quantity } });
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: item.id };
@@ -1131,11 +1096,10 @@ export async function addPotluckItem(eventId: string, label: string, quantity: n
 export async function removePotluckItem(itemId: string) {
   const item = await db.potluckItem.findUnique({
     where: { id: itemId },
-    select: { event: { select: { hostId: true, slug: true } } },
+    select: { eventId: true, event: { select: { slug: true } } },
   });
-  const session = await getSession();
-  if (!item || (item.event.hostId !== session?.userId && session?.role !== "ADMIN"))
-    throw new Error("Forbidden");
+  if (!item) throw new Error("Forbidden");
+  await assertHostOrCohost(item.eventId);
   await db.potluckItem.delete({ where: { id: itemId } });
   revalidatePath(`/e/${item.event.slug}`);
 }
@@ -1264,11 +1228,11 @@ export async function addCoHost(eventId: string, email: string) {
 export async function removeCoHost(cohostId: string) {
   const cohost = await db.eventCoHost.findUnique({
     where: { id: cohostId },
-    select: { event: { select: { hostId: true, slug: true } } },
+    select: { eventId: true, event: { select: { slug: true } } },
   });
-  const session = await getSession();
-  if (!cohost || (cohost.event.hostId !== session?.userId && session?.role !== "ADMIN"))
-    throw new Error("Forbidden");
+  if (!cohost) throw new Error("Forbidden");
+  // Deliberately host-only: co-host management stays with the original host.
+  await assertHost(cohost.eventId);
   await db.eventCoHost.delete({ where: { id: cohostId } });
   revalidatePath(`/e/${cohost.event.slug}/settings`);
 }
@@ -1307,18 +1271,10 @@ export async function updateRsvpField(
 ) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
-    include: {
-      event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } },
-    },
+    include: { event: { select: { slug: true } } },
   });
-  const session = await getSession();
   if (!field) throw new Error("Forbidden");
-  const isOwner = field.event.hostId === session?.userId;
-  const isCohost = field.event.coHosts.some(
-    (ch: { userId: string }) => ch.userId === session?.userId
-  );
-  const isAdmin = session?.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
+  await assertHostOrCohost(field.eventId);
   await db.rSVPField.update({
     where: { id: fieldId },
     data: {
@@ -1338,18 +1294,10 @@ export async function updateRsvpField(
 export async function deleteRsvpField(fieldId: string) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
-    include: {
-      event: { select: { hostId: true, slug: true, coHosts: { select: { userId: true } } } },
-    },
+    include: { event: { select: { slug: true } } },
   });
-  const session = await getSession();
   if (!field) throw new Error("Forbidden");
-  const isOwner = field.event.hostId === session?.userId;
-  const isCohost = field.event.coHosts.some(
-    (ch: { userId: string }) => ch.userId === session?.userId
-  );
-  const isAdmin = session?.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
+  await assertHostOrCohost(field.eventId);
   await db.rSVPField.delete({ where: { id: fieldId } });
   revalidatePath(`/e/${field.event.slug}/settings`);
   revalidatePath(`/e/${field.event.slug}`);
@@ -1675,18 +1623,11 @@ export async function getRsvpFieldAnswers(fieldId: string) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
     include: {
-      event: { select: { hostId: true, coHosts: { select: { userId: true } } } },
       answers: { include: { rsvp: { select: { guestName: true } } }, orderBy: { id: "asc" } },
     },
   });
-  const session = await getSession();
   if (!field) throw new Error("Forbidden");
-  const isOwner = field.event.hostId === session?.userId;
-  const isCohost = field.event.coHosts.some(
-    (ch: { userId: string }) => ch.userId === session?.userId
-  );
-  const isAdmin = session?.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
+  await assertHostOrCohost(field.eventId);
   return field.answers.map((a: { value: string; rsvp: { guestName: string } }) => ({
     guestName: a.rsvp.guestName,
     value: a.value,
@@ -1696,7 +1637,7 @@ export async function getRsvpFieldAnswers(fieldId: string) {
 export async function inviteGuest(eventId: string, emailOrPhone: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  const event = await assertHost(eventId);
+  const event = await assertHostOrCohost(eventId);
 
   const entries = emailOrPhone
     .split(",")
@@ -2332,15 +2273,13 @@ export async function getActiveThemePresets() {
 // Tombstones the event as DELETED and hard-deletes all guest data for GDPR compliance.
 // Only the host (or admin) may delete their own event this way.
 export async function deleteHostEvent(eventId: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
-
   const event = await db.event.findUnique({
     where: { id: eventId },
-    select: { id: true, hostId: true, slug: true, status: true },
+    select: { id: true, slug: true, status: true },
   });
   if (!event) throw new Error("Event not found");
-  if (event.hostId !== session.userId && session.role !== "ADMIN") throw new Error("Forbidden");
+  // Deliberately host-only: deleting the event stays with the original host.
+  await assertHost(eventId);
   if (event.status === "DELETED") throw new Error("Event is already deleted");
 
   // Hard-delete all guest data before tombstoning (GDPR: purpose no longer exists)
