@@ -23,17 +23,6 @@ export default async function AdminPage() {
   const sessionUser = await getSessionUser();
   if (!sessionUser || sessionUser.role !== "ADMIN") redirect("/dashboard");
 
-  // Auto-promote INITIAL_ADMIN_EMAIL if needed
-  const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-  if (
-    initialAdminEmail &&
-    sessionUser.email.toLowerCase().trim() === initialAdminEmail &&
-    sessionUser.role !== "ADMIN"
-  ) {
-    await db.user.update({ where: { id: sessionUser.id }, data: { role: "ADMIN" } });
-    sessionUser.role = "ADMIN";
-  }
-
   const [
     stats,
     users,
