@@ -156,7 +156,7 @@ The Dockerfile's `runner` stage does NOT copy `tests/` or app source. Only `buil
 
 ```powershell
 docker compose run --rm --no-deps `
-  -e DATABASE_URL="postgresql://postgres:postgres_password_here@postgres:5432/rsvp_test" `
+  -e DATABASE_URL="postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_test" `
   app `
   npx prisma migrate deploy
 ```
@@ -172,15 +172,15 @@ docker exec optimistic-planck-postgres-1 psql -U postgres -c "CREATE DATABASE rs
 ```powershell
 docker run --rm `
   --network optimistic-planck_default `
-  -e DATABASE_URL="postgresql://postgres:postgres_password_here@postgres:5432/rsvp_test" `
-  -e REDIS_URL="redis://:redis_password_placeholder@redis:6379" `
+  -e DATABASE_URL="postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_test" `
+  -e REDIS_URL="redis://:<REDIS_PASSWORD>@redis:6379" `
   -e SESSION_SECRET="test-secret-that-is-at-least-32-characters-long" `
   -e NEXT_PUBLIC_APP_URL="http://localhost:3000" `
   optimistic-planck-test `
   npm test
 ```
 
-`--network optimistic-planck_default` is required so the container can resolve `postgres` and `redis` by hostname. The `DATABASE_URL` env var overrides the `localhost` fallback in `tests/setup.ts`. Confirm the postgres password with: `docker exec optimistic-planck-postgres-1 printenv POSTGRES_PASSWORD`
+`--network optimistic-planck_default` is required so the container can resolve `postgres` and `redis` by hostname. The `DATABASE_URL` env var overrides the `localhost` fallback in `tests/setup.ts`. `<POSTGRES_PASSWORD>` / `<REDIS_PASSWORD>` are the values from your `.env` — there are no compose defaults (SEC-25). Confirm the postgres password with: `docker exec optimistic-planck-postgres-1 printenv POSTGRES_PASSWORD`
 
 ## Important: Next.js 16 + Prisma 7 Patterns
 
