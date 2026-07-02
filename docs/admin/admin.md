@@ -112,6 +112,8 @@ When you create the user, a 48-hour magic sign-in link is emailed to them so the
 | `HOST`  | Standard event organizer. | All guest actions, plus: create event pages, manage guest lists, send blast updates, invite guests, and manage co-hosts.        |
 | `ADMIN` | System administrator.     | All host actions, plus: access the Admin Panel, search and moderate all events, delete accounts, and configure system settings. |
 
+> **Co-hosts:** a host can appoint other registered users as co-hosts of an individual event. Co-hosts are not a separate role — they get per-event management rights equivalent to the host's (edit event details, theme, cover image, settings and reminders; manage RSVPs, guest list, potluck, polls, questionnaire fields; send email/SMS blasts and updates; invite guests) with two exceptions that stay with the original host: **deleting the event** and **adding/removing co-hosts**. Server actions enforce this uniformly via a shared authorization check (SEC-30).
+
 ### Deleting a User
 
 You can delete any user from their detail view.

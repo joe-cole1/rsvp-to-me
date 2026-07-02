@@ -62,7 +62,8 @@ function hostEventWithCohosts(cohostIds: string[] = []) {
 function fieldWithEvent(overrides = {}) {
   return {
     id: FIELD_ID,
-    event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+    eventId: EVENT_ID,
+    event: { slug: EVENT_SLUG },
     ...overrides,
   };
 }
@@ -160,7 +161,17 @@ describe("updateRsvpField", () => {
   beforeEach(() => {
     asHost();
     mockRsvpFieldFindUnique.mockResolvedValue(fieldWithEvent({ fieldType: "TEXT" }));
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventWithCohosts());
     mockRsvpFieldUpdate.mockResolvedValue({});
+  });
+
+  it("allows a cohost to update a field (SEC-30)", async () => {
+    const COHOST_ID = "cohost-1";
+    mockGetSession.mockResolvedValue({ userId: COHOST_ID, email: "cohost@example.com" });
+    mockEventFindUnique.mockResolvedValue(hostEventWithCohosts([COHOST_ID]));
+    const result = await updateRsvpField(FIELD_ID, { label: "New label", required: true });
+    expect(result).toEqual({ success: true });
   });
 
   it("updates label and required and returns success", async () => {
@@ -201,6 +212,8 @@ describe("deleteRsvpField", () => {
   beforeEach(() => {
     asHost();
     mockRsvpFieldFindUnique.mockResolvedValue(fieldWithEvent());
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventWithCohosts());
     mockRsvpFieldDelete.mockResolvedValue({});
   });
 
@@ -261,9 +274,11 @@ describe("getRsvpFieldAnswers", () => {
   it("returns answers including guest name and value", async () => {
     mockRsvpFieldFindUnique.mockResolvedValue({
       id: FIELD_ID,
-      event: { hostId: HOST_ID, coHosts: [] },
+      eventId: EVENT_ID,
       answers: [{ value: "No gluten", rsvp: { guestName: "Alice" } }],
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventWithCohosts());
 
     const result = await getRsvpFieldAnswers(FIELD_ID);
     expect(result).toEqual([{ guestName: "Alice", value: "No gluten" }]);

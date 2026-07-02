@@ -228,7 +228,7 @@ function asHost() {
 }
 
 function hostEventRow(overrides = {}) {
-  return { hostId: HOST_ID, slug: EVENT_SLUG, ...overrides };
+  return { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [], ...overrides };
 }
 
 const BASE_EVENT = {
@@ -247,18 +247,25 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// ── assertHost (exercised via saveEventField) ─────────────────────────────────
+// ── assertHostOrCohost (exercised via saveEventField; SEC-30) ─────────────────
 
-describe("assertHost", () => {
+describe("assertHostOrCohost", () => {
   it("throws Unauthorized when there is no session", async () => {
     mockGetSession.mockResolvedValue(null);
     await expect(saveEventField(EVENT_ID, "title", "X")).rejects.toThrow("Unauthorized");
   });
 
-  it("throws Forbidden when the session user is not the event host", async () => {
+  it("throws Forbidden when the session user is not the event host or a co-host", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
     mockEventFindUnique.mockResolvedValue(hostEventRow());
     await expect(saveEventField(EVENT_ID, "title", "X")).rejects.toThrow("Forbidden");
+  });
+
+  it("allows a co-host (SEC-30)", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
+    mockEventFindUnique.mockResolvedValue(hostEventRow({ coHosts: [{ userId: OTHER_ID }] }));
+    mockEventUpdate.mockResolvedValue({});
+    await expect(saveEventField(EVENT_ID, "title", "X")).resolves.toBeUndefined();
   });
 
   it("throws Forbidden when the event does not exist", async () => {
@@ -490,8 +497,11 @@ describe("approveRsvp", () => {
     asHost();
     mockRsvpFindUnique.mockResolvedValue({
       id: RSVP_ID,
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+      eventId: EVENT_ID,
+      event: { slug: EVENT_SLUG, title: "Test Party", host: { email: "host@example.com" } },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockRsvpUpdate.mockResolvedValue({});
   });
 
@@ -506,10 +516,7 @@ describe("approveRsvp", () => {
 
   it("allows a co-host to approve RSVPs", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
-    mockRsvpFindUnique.mockResolvedValue({
-      id: RSVP_ID,
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] },
-    });
+    mockEventFindUnique.mockResolvedValue(hostEventRow({ coHosts: [{ userId: OTHER_ID }] }));
     const result = await approveRsvp(RSVP_ID);
     expect(result).toEqual({ success: true });
     expect(mockRsvpUpdate).toHaveBeenCalledWith({
@@ -543,8 +550,11 @@ describe("declineRsvp", () => {
     asHost();
     mockRsvpFindUnique.mockResolvedValue({
       id: RSVP_ID,
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+      eventId: EVENT_ID,
+      event: { slug: EVENT_SLUG, title: "Test Party", host: { email: "host@example.com" } },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockRsvpDelete.mockResolvedValue({});
   });
 
@@ -556,10 +566,7 @@ describe("declineRsvp", () => {
 
   it("allows a co-host to decline RSVPs", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
-    mockRsvpFindUnique.mockResolvedValue({
-      id: RSVP_ID,
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: OTHER_ID }] },
-    });
+    mockEventFindUnique.mockResolvedValue(hostEventRow({ coHosts: [{ userId: OTHER_ID }] }));
     const result = await declineRsvp(RSVP_ID);
     expect(result).toEqual({ success: true });
     expect(mockRsvpDelete).toHaveBeenCalledWith({ where: { id: RSVP_ID } });
@@ -879,8 +886,11 @@ describe("removeInfoSection", () => {
     asHost();
     mockInfoSectionFindUnique.mockResolvedValue({
       id: SECTION_ID,
-      event: { hostId: HOST_ID, slug: EVENT_SLUG },
+      eventId: EVENT_ID,
+      event: { slug: EVENT_SLUG },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockInfoSectionDelete.mockResolvedValue({});
   });
 
@@ -1127,8 +1137,11 @@ describe("deleteEventUpdate", () => {
   beforeEach(() => {
     asHost();
     mockEventUpdateFindUnique.mockResolvedValue({
-      event: { hostId: HOST_ID, slug: EVENT_SLUG },
+      eventId: EVENT_ID,
+      event: { slug: EVENT_SLUG },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockEventUpdateDelete.mockResolvedValue({});
   });
 
@@ -1137,14 +1150,21 @@ describe("deleteEventUpdate", () => {
     expect(mockEventUpdateDelete).toHaveBeenCalledWith({ where: { id: UPDATE_ID } });
   });
 
-  it("throws Forbidden when the user is not the host", async () => {
+  it("allows a co-host to delete an update (SEC-30)", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
+    mockEventFindUnique.mockResolvedValue(hostEventRow({ coHosts: [{ userId: OTHER_ID }] }));
+    await deleteEventUpdate(UPDATE_ID);
+    expect(mockEventUpdateDelete).toHaveBeenCalledWith({ where: { id: UPDATE_ID } });
+  });
+
+  it("throws Forbidden when the user is not the host or a co-host", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
     await expect(deleteEventUpdate(UPDATE_ID)).rejects.toThrow("Forbidden");
   });
 
-  it("throws Forbidden when there is no session", async () => {
+  it("throws Unauthorized when there is no session", async () => {
     mockGetSession.mockResolvedValue(null);
-    await expect(deleteEventUpdate(UPDATE_ID)).rejects.toThrow("Forbidden");
+    await expect(deleteEventUpdate(UPDATE_ID)).rejects.toThrow("Unauthorized");
   });
 
   it("revalidates the event page", async () => {
@@ -1200,8 +1220,11 @@ describe("removePotluckItem", () => {
   beforeEach(() => {
     asHost();
     mockPotluckItemFindUnique.mockResolvedValue({
-      event: { hostId: HOST_ID, slug: EVENT_SLUG },
+      eventId: EVENT_ID,
+      event: { slug: EVENT_SLUG },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockPotluckItemDelete.mockResolvedValue({});
   });
 
@@ -1210,14 +1233,21 @@ describe("removePotluckItem", () => {
     expect(mockPotluckItemDelete).toHaveBeenCalledWith({ where: { id: ITEM_ID } });
   });
 
-  it("throws Forbidden when the user is not the host", async () => {
+  it("allows a co-host to delete an item (SEC-30)", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
+    mockEventFindUnique.mockResolvedValue(hostEventRow({ coHosts: [{ userId: OTHER_ID }] }));
+    await removePotluckItem(ITEM_ID);
+    expect(mockPotluckItemDelete).toHaveBeenCalledWith({ where: { id: ITEM_ID } });
+  });
+
+  it("throws Forbidden when the user is not the host or a co-host", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
     await expect(removePotluckItem(ITEM_ID)).rejects.toThrow("Forbidden");
   });
 
-  it("throws Forbidden when there is no session", async () => {
+  it("throws Unauthorized when there is no session", async () => {
     mockGetSession.mockResolvedValue(null);
-    await expect(removePotluckItem(ITEM_ID)).rejects.toThrow("Forbidden");
+    await expect(removePotluckItem(ITEM_ID)).rejects.toThrow("Unauthorized");
   });
 
   it("revalidates the event page", async () => {
@@ -1379,7 +1409,12 @@ describe("inviteGuest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     asHost();
-    mockEventFindUnique.mockResolvedValue({ id: EVENT_ID, hostId: HOST_ID, slug: EVENT_SLUG });
+    mockEventFindUnique.mockResolvedValue({
+      id: EVENT_ID,
+      hostId: HOST_ID,
+      slug: EVENT_SLUG,
+      coHosts: [],
+    });
     mockUserFindFirst.mockResolvedValue(null);
     mockUserCreate.mockResolvedValue({ id: "user-new-id" });
     mockRsvpFindFirst.mockResolvedValue(null);
@@ -1568,22 +1603,44 @@ describe("updateInfoSection", () => {
     mockInfoSectionFindUnique.mockResolvedValue({
       eventId: EVENT_ID,
       type: "DRESS_CODE",
-      event: { hostId: HOST_ID, slug: EVENT_SLUG, id: EVENT_ID },
+      event: { slug: EVENT_SLUG },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockInfoSectionUpdate.mockResolvedValue({});
   });
 
-  it("calls eventInfoSection.update with updated content", async () => {
+  it("calls eventInfoSection.update with updated content and leaves title untouched", async () => {
     const result = await updateInfoSection("section-1", { content: "New Content", url: null });
     expect(result.success).toBe(true);
+    // L-1: title is no longer force-nulled on every edit — it is only written
+    // when the caller actually supplies it.
     expect(mockInfoSectionUpdate).toHaveBeenCalledWith({
       where: { id: "section-1" },
       data: {
-        title: null,
         content: "New Content",
         url: null,
       },
     });
+  });
+
+  it("persists a provided title instead of nulling it (L-1)", async () => {
+    await updateInfoSection("section-1", { title: "Parking", content: "Street only", url: null });
+    expect(mockInfoSectionUpdate).toHaveBeenCalledWith({
+      where: { id: "section-1" },
+      data: {
+        title: "Parking",
+        content: "Street only",
+        url: null,
+      },
+    });
+  });
+
+  it("allows a co-host to edit an info section (SEC-30)", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
+    mockEventFindUnique.mockResolvedValue(hostEventRow({ coHosts: [{ userId: OTHER_ID }] }));
+    const result = await updateInfoSection("section-1", { content: "Edited", url: null });
+    expect(result.success).toBe(true);
   });
 });
 
@@ -1593,8 +1650,10 @@ describe("deleteRsvpAsHost", () => {
     mockRsvpFindUnique.mockResolvedValue({
       id: "rsvp-123",
       guestName: "Bob",
-      event: { id: EVENT_ID, hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
+      event: { id: EVENT_ID, slug: EVENT_SLUG },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockRsvpDelete.mockResolvedValue({});
   });
 
@@ -1606,19 +1665,12 @@ describe("deleteRsvpAsHost", () => {
 });
 
 describe("deleteActivityEvent", () => {
-  beforeEach(() => {
-    asHost();
-    mockRsvpFindUnique.mockResolvedValue({
-      id: "act-123",
-      event: { hostId: HOST_ID, coHosts: [] },
-    });
-  });
-
   it("throws Forbidden when user is not host/co-host", async () => {
     mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
-    const mockActivity = { event: { hostId: HOST_ID, coHosts: [] } };
     const { db } = await import("@/lib/db");
-    db.activityEvent.findUnique = vi.fn().mockResolvedValue(mockActivity);
+    db.activityEvent.findUnique = vi.fn().mockResolvedValue({ eventId: EVENT_ID });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
 
     await expect(deleteActivityEvent("act-123")).rejects.toThrow("Forbidden");
   });
@@ -1650,16 +1702,17 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
     asHost();
     mockRsvpFindUnique.mockResolvedValue({
       id: "rsvp-1",
+      eventId: EVENT_ID,
       guestName: "Guest",
       guestEmail: "guest@example.com",
       event: {
-        hostId: HOST_ID,
         slug: EVENT_SLUG,
         title: "Title",
         host: { email: "host@example.com" },
-        coHosts: [],
       },
     });
+    // SEC-30: authz goes through assertHostOrCohost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockRsvpUpdate.mockResolvedValue({});
     mockRsvpDelete.mockResolvedValue({});
   });

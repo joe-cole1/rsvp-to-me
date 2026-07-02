@@ -120,8 +120,11 @@ describe("removeCoHost", () => {
   beforeEach(() => {
     asHost();
     mockEventCoHostFindUnique.mockResolvedValue({
-      event: { hostId: HOST_ID, slug: EVENT_SLUG },
+      eventId: EVENT_ID,
+      event: { slug: EVENT_SLUG },
     });
+    // SEC-30: authz goes through assertHost, which loads the event itself
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockEventCoHostDelete.mockResolvedValue({});
   });
 
@@ -135,9 +138,15 @@ describe("removeCoHost", () => {
     await expect(removeCoHost(COHOST_RECORD_ID)).rejects.toThrow("Forbidden");
   });
 
-  it("throws Forbidden when no session", async () => {
-    mockGetSession.mockResolvedValue(null);
+  it("stays host-only: a co-host cannot remove other co-hosts (SEC-30)", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "cohost@example.com" });
+    mockEventFindUnique.mockResolvedValue(hostEventRow({ coHosts: [{ userId: OTHER_ID }] }));
     await expect(removeCoHost(COHOST_RECORD_ID)).rejects.toThrow("Forbidden");
+  });
+
+  it("throws Unauthorized when no session", async () => {
+    mockGetSession.mockResolvedValue(null);
+    await expect(removeCoHost(COHOST_RECORD_ID)).rejects.toThrow("Unauthorized");
   });
 
   it("revalidates the settings page", async () => {

@@ -20,11 +20,13 @@ From the event's host controls, search for any registered user by name or email 
 
 ## What Co-Hosts Can Do
 
-Co-hosts can:
+Co-hosts can do (almost) everything you can on the event:
 
-- Manage the guest list and approve or decline RSVPs
-- Send update blasts
-- Edit event settings and details
+- Edit the event page — title, description, date and time, location, theme, cover image, and info sections
+- Edit event settings (privacy, password, capacity, RSVP options) and reminder schedules
+- Manage the guest list: approve, decline, or remove RSVPs
+- Invite guests and send email/SMS update blasts
+- Manage the potluck list, polls, and questionnaire fields
 - Download the guest list
 
 ---
@@ -34,6 +36,6 @@ Co-hosts can:
 To keep the event safe, co-hosts **cannot**:
 
 - Delete the event
-- Remove other co-hosts
+- Add or remove co-hosts
 
 Those actions stay with the original host.
