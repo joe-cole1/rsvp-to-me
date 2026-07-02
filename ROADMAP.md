@@ -143,7 +143,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 _A log of completed capabilities._
 
-### Phone Number Normalization [PR #TBD](https://github.com/joe-cole1/rsvp-to-me/pull/TBD)
+### Phone Number Normalization [PR #233](https://github.com/joe-cole1/rsvp-to-me/pull/233)
 
 - [x] **[BUG-01] Phone Number Normalization Inconsistency**: Imported and applied `normalizePhone` in `createAdminUser`, `inviteGuest`, and `inviteFriendAsGuest` before executing database queries or creations to prevent duplicate user rows and broken sign-in lookups.
 
