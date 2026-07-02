@@ -10,7 +10,7 @@ _Immediate attention items. High impact bugs, UX papercuts, and essential routin
 
 ### 🛠️ Bugs & Blockers
 
-- **[BUG-01] Phone Number Normalization Inconsistency**: Custom logins and settings lookups use a normalized phone format (digits only, e.g. `5558675309`), but `createAdminUser` (`app/actions/admin.ts`), `inviteGuest` (`app/actions/event.ts`), and `inviteFriendAsGuest` (`app/actions/event.ts`) save phone numbers raw (e.g., `(555) 867-5309`). This breaks sign-in lookups for these users and creates duplicate user rows.
+- **[BUG-01] Phone Number Normalization Inconsistency**: Custom logins and settings lookups use a normalized phone format (digits only, e.g. `5558675309`), but `createAdminUser` (`app/actions/admin.ts`), `inviteGuest` (`app/actions/event/invites.ts`), and `inviteFriendAsGuest` (`app/actions/event/invites.ts`) save phone numbers raw (e.g., `(555) 867-5309`). This breaks sign-in lookups for these users and creates duplicate user rows.
   - _Recommended Fix_: Import and apply `normalizePhone` in `createAdminUser`, `inviteGuest`, and `inviteFriendAsGuest` before executing database queries or creations.
 
 ### 🔒 Routing & System Safety
@@ -46,8 +46,13 @@ _Full write-up with file:line references, fix snippets, and an architecture diag
 
 - ~~**[L-1]** `updateInfoSection` force-nulls `title` on every edit and skips co-host access~~ _(fixed with SEC-30 — title only written when supplied; co-host access via `assertHostOrCohost`)_.
 - ~~**[L-2]** Duplicated blast-filter builder in `sendBlast` / `sendSmsBlast` → extract shared helper~~ _(fixed — shared `buildRsvpStatusFilter()` in `lib/blastFilters.ts`, behavior-preserving; unit test `tests/lib/blastFilters.test.ts`)_.
-- **[L-3]** God-files (`app/actions/event.ts` ~2349, `components/event/EventPage.tsx` ~4747, `app/(app)/admin/AdminClient.tsx` ~5136) → split by feature.
+- **[L-3]** God-files → split by feature. Progress:
+  - ~~`app/actions/event.ts` (~2273)~~ _(split into `app/actions/event/` feature modules — `rsvp`, `rsvpFields`, `invites`, `blasts`, `polls`, `potluck`, `comments`, `cohosts`, `infoSections`, `settings`, `dashboard` — with the shared `assertHost`/`assertHostOrCohost`/`findApprovedGuestByToken` helpers in a plain (non-`"use server"`) `shared.ts` and an `index.ts` barrel that keeps the `@/app/actions/event` import path working unchanged for app code and tests; 100% behavior-preserving, every function body moved verbatim)_.
+  - `components/event/EventPage.tsx` (~4747) → per-section components (also route its one remaining client-side `.catch(() => {})` at the `deleteActivityEvent` call through client-appropriate error handling — see L-4 note).
+  - `app/(app)/admin/AdminClient.tsx` (~5136) → per-tab components.
+  - `components/event/SettingsPage.tsx` (~3408) → per-panel components.
 - ~~**[L-4]** `.catch(() => {})` swallowing (25+ sites) → funnel through a `logSafe()` at debug level~~ _(fixed — `logSafe(context)` in `lib/logger.ts`; all 27 `app/actions/event.ts` sites plus the `lib/reminders.ts`/`lib/session.ts`/`lib/redis.ts`/`lib/rateLimit.ts` sites now record swallowed errors at debug level; unit test `tests/lib/logger.test.ts`. The one client-side site in `EventPage.tsx` is left for the L-3 split — the server logger doesn't belong in the client bundle)_.
+- **[L-4b]** One missed L-4 site: `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`, formerly `app/actions/event.ts` ~L1890) still swallows errors without `logSafe("inviteFriendAsGuest")`. Found during the L-3 split of `event.ts` and deliberately moved verbatim to keep that refactor 100% behavior-preserving; fix is a one-liner.
 - ~~**[L-5]** Verify the masked Twilio token is never returned decrypted to the admin client; keep the field write-only~~ _(verified — `getSystemConfig` masks `twilio_auth_token` (DB **and** env sourced) and never calls `decryptConfig`; `updateSystemConfig` no-ops when the mask is echoed back; `testSmsConfigAction` decrypts server-side only and returns just `{success, error}`. No code change needed; pinned by new assertions in `tests/actions/admin.test.ts`)_.
 - ~~**[L-6]** `.env.example` ships `HOST_INVITE_CODE="letmein"` → change to an obvious placeholder~~ _(fixed with SEC-25 — example now ships `CHANGE_THIS_TO_A_STRONG_RANDOM_CODE`, which the existing `lib/session.ts` startup guard explicitly rejects in production; docs updated)_.
 - ~~**[L-7]** `generateUniqueSlug` unbounded sequential retry loop → add a random suffix after N collisions~~ _(fixed — sequential probe capped at 10, then CSPRNG hex suffixes with growing entropy (4 tries), then a loud failure; regression test `tests/regression/l7-slug-collision-bound.test.ts`)_.
