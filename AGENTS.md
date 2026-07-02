@@ -236,7 +236,7 @@ app/
     e/[slug]/       # Event page — guests RSVP here
       rsvp/         # Guest RSVP edit page (?token=<editToken>)
   dashboard/        # Host dashboard (protected)
-  actions/          # Server actions (auth.ts, event.ts, createEvent.ts)
+  actions/          # Server actions (auth.ts, createEvent.ts, event/ feature modules + index.ts barrel)
   api/
     upload/         # POST — accepts image, saves to data/uploads/, returns url
     uploads/[filename]/ # GET — serves uploaded images from data/uploads/
