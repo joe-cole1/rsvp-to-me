@@ -6,8 +6,6 @@ import { randomUUID } from "crypto";
 import { isRedisEnabled, redisSet } from "@/lib/redis";
 import { hashToken } from "@/lib/hash";
 
-const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const rawRedirect = request.nextUrl.searchParams.get("redirect");

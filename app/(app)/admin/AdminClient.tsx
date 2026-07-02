@@ -1467,7 +1467,9 @@ function extractRawEmail(fromStr) {
                   {/* Role Filter */}
                   <select
                     value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value as any)}
+                    onChange={(e) =>
+                      setRoleFilter(e.target.value as "ALL" | "HOST" | "GUEST" | "ADMIN")
+                    }
                     style={{
                       backgroundColor: APP_SHELL.inputBg,
                       border: `1px solid ${APP_SHELL.inputBorder}`,
@@ -1490,7 +1492,9 @@ function extractRawEmail(fromStr) {
                   {/* Status Filter */}
                   <select
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    onChange={(e) =>
+                      setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE")
+                    }
                     style={{
                       backgroundColor: APP_SHELL.inputBg,
                       border: `1px solid ${APP_SHELL.inputBorder}`,

@@ -12,7 +12,6 @@ import {
 import AdminClient from "./AdminClient";
 import { getSessionUser } from "@/lib/session-user";
 import { loadDocs } from "@/lib/docs";
-import { db } from "@/lib/db";
 
 export const metadata = {
   title: "Admin Panel | RSVP",
