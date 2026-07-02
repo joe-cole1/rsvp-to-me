@@ -180,6 +180,8 @@ curl http://localhost:3000/api/health
 
 _Expected Health Response:_ `{"status":"ok"}`
 
+> To confirm the database migrations applied cleanly, query the health endpoint with your `HEALTH_CHECK_TOKEN` (optional `.env` variable — see the [Configuration Reference](./configuration.md#health_check_token)): `curl -H "x-health-token: <your token>" http://localhost:3000/api/health` should include `"migrations":"ok"`. Without the token the endpoint returns only the minimal status above.
+
 Go to your event page and test functionality:
 
 - Log in and verify that your dashboard loads.
