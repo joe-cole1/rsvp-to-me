@@ -4,121 +4,85 @@ This document outlines the short-term backlog, long-term ideas, and historical m
 
 ---
 
-## 🔴 Priority 1: High Priority (Bugs, UX Blockers & Core Fixes)
+## 🔴 High Priority
 
-_Immediate attention items. High impact bugs, UX papercuts, and essential routing/data integrity fixes._
+_Immediate attention items. High impact bugs, critical security gaps, and essential routing/data integrity fixes._
 
-### 🛠️ Bugs & Blockers
+### 🛠️ Bug / Fix
 
-- ~~**[BUG-01] Phone Number Normalization Inconsistency**: Custom logins and settings lookups use a normalized phone format (digits only, e.g. `5558675309`), but `createAdminUser` (`app/actions/admin.ts`), `inviteGuest` (`app/actions/event/invites.ts`), and `inviteFriendAsGuest` (`app/actions/event/invites.ts`) save phone numbers raw (e.g., `(555) 867-5309`). This breaks sign-in lookups for these users and creates duplicate user rows.~~ _(fixed — see Completed Milestones)_
+_No pending items in this category._
 
-### 🔒 Routing & System Safety
+### 🔒 Backend / Security / DevOps
 
 - **[SEC-32] Admin Promotion Guard Bypass**: Auto-promotion of `INITIAL_ADMIN_EMAIL` to the `ADMIN` role is duplicated across `lib/session.ts`, `app/actions/profile.ts`, and `app/(app)/dashboard/page.tsx`. However, the dashboard page implementation lacks the `adminCount === 0` check. This allows any user matching `INITIAL_ADMIN_EMAIL` to escalate privileges to `ADMIN` upon login even if active administrators already exist.
   - _Recommended Fix_: Consolidate `INITIAL_ADMIN_EMAIL` auto-promotion into a single helper (e.g., inside `lib/session-user.ts` or `lib/auth.ts`) and enforce the `adminCount === 0` check consistently across all entry points.
 
-#### 🛡️ Security Audit 2026-07 — Remediation Plan
-
-_Full write-up with file:line references, fix snippets, and an architecture diagram lives in [`codebase-analysis-docs/REMEDIATION_PLAN.md`](./codebase-analysis-docs/REMEDIATION_PLAN.md). `STATE_BLOCK.md` (repo root) captures the architecture/data-flow context. Items are worked through one PR-checkpoint at a time; check off here as each lands with its regression test. Overlaps with already-deferred SEC-8 (static scrypt salt) and SEC-9 (CSP `'unsafe-inline'`) are cross-referenced, not duplicated._
-
-**High**
-
-_(All High-severity remediation items completed — see Completed Milestones)_
-
-**Medium**
-
-- **[M-3] CSP `script-src 'unsafe-inline'`** — already tracked as **SEC-9** (deferred, needs nonce middleware). No new entry.
-- **[M-5a] Static scrypt salt** — already tracked as **SEC-8** (deferred; re-encryption migration required). No new entry.
-
-**Low** (batch as a cleanup PR)
-
-- **[L-3] God-files → split by feature. Progress:**
-  - `app/(app)/admin/AdminClient.tsx` (~5136) → per-tab components.
-  - `components/event/SettingsPage.tsx` (~3408) → per-panel components.
-- **[L-4b] One missed L-4 site:** `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`, formerly `app/actions/event.ts` ~L1890) still swallows errors without `logSafe("inviteFriendAsGuest")`. Found during the L-3 split of `event.ts` and deliberately moved verbatim to keep that refactor 100% behavior-preserving; fix is a one-liner.
-- _(Related, already tracked: SEC-21(c) upload gating, SEC-14 auth error enumeration, SEC-15 unpaginated blasts.)_
-
-### 👥 Guest List & RSVP Enhancements
-
-_(No pending priority 1 guest list enhancements)_
-
 ---
 
-## 🟡 Priority 2: Medium Priority (Core UX & Feature Enhancements)
+## 🟡 Medium Priority
 
 _Functional improvements, layout adjustments, and secondary features that can be batched together for UX consistency._
 
-### 🎨 Layout & Page Hierarchy
+### 🛠️ Bug / Fix
 
-_(No pending priority 2 layout enhancements)_
-
-### 🔒 Privacy & Sharing Controls
-
-_(No pending priority 2 privacy controls)_
-
-### 👥 Guest List & RSVP Enhancements
-
-- **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Documented as a feature previously; the host feature docs were corrected to match reality (no check-in section in `docs/host/`). Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
-- **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Earlier docs promised phone numbers, check-in times, and questionnaire answers (now corrected in `docs/host/guest-list.md`). Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
-
-### ⚙️ Administration & Settings
-
-- ~~**Configurable Email / SMS Channels**~~ _(implemented — see Completed Milestones)_
-- ~~**Admin: Create User**~~ _(implemented — see Completed Milestones)_
-- **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
 - **[UX-01] Account Deletion Revocation**: A host who requests account deletion is signed out, and their account is scheduled to be deleted/anonymized in 30 days. However, if they log back in, they are not presented with any UI on their profile to cancel the request, and the cron job will still delete them.
   - _Recommended Fix_: Add a "Cancel Deletion Request" button on the host Profile page that calls a new `cancelAccountDeletion` server action (currently only exposed to admins).
 
-### 📖 Interactive Documentation Dashboard
+### 🎨 UI / UX / Feature
 
-- ~~**Interactive Documentation Dashboard (admin)**~~ _(implemented — see Completed Milestones)_
-- ~~**Host-facing documentation portal**~~ _(implemented — see Completed Milestones)_
+- **Beautiful & Modern Email Templates**: Make the transactional and blast email templates visually pleasing. Currently, SMTP and Cloudflare Email dispatches send very plain HTML. Leverage a modern React-based template builder or responsive compiler to build rich, responsive layout tables (with brand colors, stylized buttons, and card borders) that look premium across client environments (Gmail, Apple Mail, Outlook).
+  - _Research options_: Pair [React Email](https://react.email/) (using React components and tailwind styling) or [MJML](https://mjml.io/) (with `mjml-react`) to compile responsive HTML templates, allowing dynamic branding accents.
+- **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
+- **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
+- **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
+
+### 🔒 Backend / Security / DevOps
+
+- **[M-3] CSP `script-src 'unsafe-inline'`**: Already tracked as **SEC-9** (deferred, needs nonce middleware). No new entry.
+- **[M-5a] Static scrypt salt**: Already tracked as **SEC-8** (deferred; re-encryption migration required). No new entry.
 
 ---
 
-## 🟢 Priority 3: Low Priority & DevOps (Automation, Branding & Integrations)
+## 🟢 Low Priority & DevOps
 
 _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)._
 
-### 📸 Post-Event & Follow-Up
+### 🛠️ Bug / Fix
+
+- **[L-4b] One missed L-4 site**: `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`, formerly `app/actions/event.ts` ~L1890) still swallows errors without `logSafe("inviteFriendAsGuest")`. Found during the L-3 split of `event.ts` and deliberately moved verbatim to keep that refactor 100% behavior-preserving; fix is a one-liner.
+- **[SEC-33] Missing Cron locks on Backups & Deletions**: In-process cron tasks (`runBackup` and `processExpiredDeletions`) in `lib/cron-scheduler.ts` do not use distributed locks. When scaled horizontally, all replicas will trigger backups and deletions simultaneously, causing database transaction deadlocks, file writing conflicts, and performance degradation.
+  - _Recommended Fix_: Implement a Redis-based distributed lock check (mirroring the one in `processReminders`) to ensure only one instance executes backups or deletions at any given time.
+- **[DEV-01] Database Rate Limit Table Bloat**: `cleanupRateLimits()` in `lib/rateLimit.ts` is never scheduled, meaning database-driven rate limit entries will accumulate indefinitely in PostgreSQL when Redis is disabled.
+  - _Recommended Fix_: Schedule a daily clean task using the in-process cron (`lib/cron-scheduler.ts`) that runs `cleanupRateLimits()`.
+
+### 🎨 UI / UX / Feature
 
 - **Post-Event Photo Upload Prompt (low priority)**: After an event ends, prompt guests to upload or share their photos. Removed from Auto-Reminders settings as an unimplemented stub; the full feature would integrate with a dedicated photo-sharing section and optionally link to external album services (see Priority 2).
-
-### 🏷️ Branding & Customization
-
 - **White-Label Options**: Add system settings allowing hosts/admins to white-label the application (custom logo, website name, custom branding colors).
 - **One-Click Bookmark for Magic Links**: Provide hosts with a quick button/shortcut to bookmark their magic link RSVP sessions, keeping them logged in across devices.
 - **Rich Theme Presets**: Expand the theme builder with custom typography (from Google Fonts), vibrant gradients, and dynamic layout choices.
 - **Custom Cover Images**: Enable host upload cropping and stock image selection templates.
 - **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
-
-### 💬 Advanced Messaging Integrations
-
-- **Inbound Email Reply Logging**: Log guest email replies to sending addresses directly into a dedicated "Host Section" of the event dashboard (exploring unique routing addresses per event).
-- ~~**Notification Preferences**~~ _(implemented — see Completed Milestones)_
 - **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
 
-### 🧹 Code Quality & Best Practices Scrub
+### ⚙️ Refactoring & Clean Code
 
-- **Site-Wide Best Practices Scrub**: Audit the entire codebase against current Next.js 16 App Router, React, and TypeScript best practices. Key areas:
-  - ✅ **(1) Shared App Router layout**: Dashboard, admin, and profile pages migrated to a single route-group `layout.tsx` — per-page nav boilerplate eliminated. [PR #176](https://github.com/joe-cole1/rsvp-to-me/pull/176)
-  - ✅ **(2) Global nav unified**: `AppNavLogo` / `ProfileDropdown` consistent across event page, RSVP flow, guests page, and settings page — all `AppShell` outliers resolved. [PR #175](https://github.com/joe-cole1/rsvp-to-me/pull/175)
-  - ✅ **(3) `getSessionUser()` deduplication audit**: All per-page `getSession` + `db.user.findUnique` duplicates replaced with `getSessionUser()` across 6 files.
-  - **(4) [CLEAN-01] Consolidated System Config Loading**: Reading the system configuration (`db.systemConfig.findMany()`) is implemented 5 different times, duplicating mapping loops in `lib/sms.ts`, `lib/email.ts`, and `app/actions/admin.ts`.
-    - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
-  - **(5) [CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
-    - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
+- **[L-3] God-files → split by feature**:
+  - `app/(app)/admin/AdminClient.tsx` (~5136) → per-tab components.
+  - `components/event/SettingsPage.tsx` (~3408) → per-panel components.
+- **[CLEAN-01] Consolidated System Config Loading**: Reading the system configuration (`db.systemConfig.findMany()`) is implemented 5 different times, duplicating mapping loops in `lib/sms.ts`, `lib/email.ts`, and `app/actions/admin.ts`.
+  - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
+- **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
+  - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
 
-### ⚙️ DevOps & Security (Deferred)
+### 🔒 Backend / Security / DevOps
 
 - **[SEC-8] Hardcoded scrypt salt in `lib/crypto.ts:11`** _(deferred)_: `scryptSync(secret, "rsvp-to-me-salt", 32)` uses a static salt. Deferred: the salt is a KDF stretcher for a high-entropy `SESSION_SECRET`; AES-GCM semantic security is maintained by the per-ciphertext random IV. Changing the salt without a re-encryption migration script would silently break all existing encrypted admin configs on deploy.
 - **[SEC-9] CSP allows `'unsafe-eval'` + `'unsafe-inline'` in `script-src` — `next.config.ts`** _(partial fix [ed8436])_: `'unsafe-eval'` removed from production CSP; retained only in `NODE_ENV=development` for HMR. `'unsafe-inline'` remains — full removal requires nonce-based middleware injection (deferred).
 - **ESLint 10 Upgrade (blocked)**: `eslint` is held at `^9` because `eslint-plugin-react` v7 (bundled in `eslint-config-next@16.2.9`) calls `context.getFilename()` which was removed in ESLint 10. Unblock by upgrading to a `next` / `eslint-config-next` version whose bundled plugins declare ESLint ≥10 peer deps. Tracked as of 2026-06-23.
 - **Phone Number Encryption at Rest (M-2)**: Encrypt phone numbers deterministically at-rest using HMAC hashes for index lookups and AES-256-GCM for display.
 - **HTTP Request Logging & Distributed Tracing (G-1)**: Track request duration, method, and statuses using request IDs mapped to Pino structured logs.
-- ~~**Graceful Shutdown Signal Handling (G-2)**~~ _(implemented — see Completed Milestones)_
 - **Separate Database Migration Stage (G-3)**: Extract Prisma migrations (`prisma migrate deploy`) out of application container startup to a separate init container or CI/CD deployment pipeline step. This is the long-term fix for CRIT-1 — a migration failure fails the _deployment_ rather than crash-looping the running app container.
-- ~~**React Error Boundaries (G-4)**~~ _(implemented — see Completed Milestones)_
 - **Automated Database Backups (G-5)**: Implement cron backup service in `docker-compose.yml` to dump `prod.db` to S3 or secure local backups daily.
 - **Bot Protection / CAPTCHA (G-6)**: Add Cloudflare Turnstile bot checks to authentication magic link requests and guest registration forms.
 - **GDPR Compliance APIs (G-7)**: Implement export-data and account-deletion API actions for hosts and guests.
@@ -127,15 +91,9 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
 - **[SEC-14] Information disclosure in auth/admin error responses** _(deferred — low risk for personal-event scale)_: (a) `sendMagicLinkAction` in `app/actions/auth.ts` returns distinct error codes `"email_not_found"` vs. `"delivery_failed"`, allowing an attacker to enumerate which email addresses are registered. Fix: return a single generic error for both cases. (b) `testEmailConfigAction` / `testSmsConfigAction` in `app/actions/admin.ts` surface raw provider error messages; these are admin-only so blast radius is minimal, but verbose errors could leak infrastructure details.
 - **[SEC-15] Unpaginated blast queries — `app/actions/event.ts` ~lines 607–720** _(deferred — low risk at current scale)_: `sendBlast()` and `sendSmsBlast()` fetch all matching RSVPs with `db.rSVP.findMany` and no `take` limit. An event with a very large guest list could cause high memory pressure and slow database queries. Fix: paginate in chunks (e.g., `take: 500, skip: offset`) or add a reasonable hard cap.
-- **[SEC-21] Defense-in-depth hardening (minor, low risk)** _(deferred)_:
+- **[SEC-21] Defense-in-depth hardening** _(deferred)_:
   - (a) **Magic-token scope not enforced** — `verifyMagicToken` in `lib/auth.ts` ~line 116 never checks `record.type === "LOGIN"`, so an `EMAIL_CHANGE`/`PHONE_CHANGE` token can be redeemed at `/auth/verify`. Same-user only, so impact is low, but tokens should be scope-locked to their purpose.
-  - ~~(b) **`updateRSVP` skips deadline/capacity re-check**~~ _(fixed — see Completed Milestones, with SEC-12)_
   - (c) **Uploads open to any session incl. auto-created `GUEST` accounts** — `app/api/upload/route.ts` ~line 62 checks only `getSession()`, with no role check and no per-user/rate cap, allowing storage abuse. Magic-byte sniffing and SVG exclusion are already correct. Fix: gate upload access to HOST/ADMIN.
-- **[SEC-33] Missing Cron locks on Backups & Deletions**: In-process cron tasks (`runBackup` and `processExpiredDeletions`) in `lib/cron-scheduler.ts` do not use distributed locks. When scaled horizontally, all replicas will trigger backups and deletions simultaneously, causing database transaction deadlocks, file writing conflicts, and performance degradation.
-  - _Recommended Fix_: Implement a Redis-based distributed lock check (mirroring the one in `processReminders`) to ensure only one instance executes backups or deletions at any given time.
-- **[DEV-01] Database Rate Limit Table Bloat**: `cleanupRateLimits()` in `lib/rateLimit.ts` is never scheduled, meaning database-driven rate limit entries will accumulate indefinitely in PostgreSQL when Redis is disabled.
-  - _Recommended Fix_: Schedule a daily clean task using the in-process cron (`lib/cron-scheduler.ts`) that runs `cleanupRateLimits()`.
-- ~~**Auth Fallback Alerts**~~ _(implemented — see Completed Milestones)_
 
 ---
 
@@ -186,24 +144,24 @@ _A log of completed capabilities._
 - [x] **[SEC-28 / M-4] CSPRNG editTokens**: Replaced predictable `cuid()` database defaults for RSVPs with CSPRNG-backed v4 UUIDs for all guest edit tokens.
 - [x] **[SEC-29 / M-6] inviteGuest Rate Limits**: Implemented batch caps (max 200) and hourly rate limiting for host invites to restrict Twilio cost risks.
 
-### Interactive Documentation Dashboard
+### Interactive Documentation Dashboard [PR #203](https://github.com/joe-cole1/rsvp-to-me/pull/203)
 
 - [x] **Admin Documentation tab**: The operator guides are readable inside the app as the last tab of the **Admin Panel** (`/admin?tab=docs`), gated to ADMIN only (the panel itself is admin-gated). Rendered by `components/admin/DocsPanel.tsx` with `react-markdown` + `remark-gfm` (tables), `rehype-slug` (anchors), and `rehype-highlight` (syntax-highlighted code); category sidebar + full-text search; relative cross-links resolve within the panel.
 - [x] **Frontmatter-driven, folder-based structure**: Guides live under `docs/<audience>/` (`docs/admin/` for operator guides, `docs/host/` for host guides). Each `.md` carries YAML frontmatter (`title`, `description`, `category`, `audience`, `order`); `lib/docs.ts` scans the folder and reads frontmatter — there is **no central registry** to maintain. Adding a guide = drop a `.md` with frontmatter. The Dockerfile copies the whole `docs/` tree so guides ship in the image. Covered by `tests/lib/docs.test.ts`; convention documented in AGENTS.md "In-App Documentation Sync Rule".
 - [x] **Host-facing Help & Guides portal**: A reader at `/help` (linked from the profile dropdown, shown to HOST + ADMIN, guests redirected) renders the `docs/host/` guide set via `loadDocs("host")` and the shared `components/docs/DocsPanel.tsx`. The 11 host guides cover getting started, creating/customizing events, visibility, invitations, RSVPs, the guest list, messaging/reminders, polls/potluck/comments, co-hosting, and an FAQ.
 
-### Security Hardening — Atomic RSVP Capacity Enforcement (SEC-12, SEC-21b)
+### Security Hardening — Atomic RSVP Capacity Enforcement [PR #217](https://github.com/joe-cole1/rsvp-to-me/pull/217)
 
 - [x] **[SEC-12] Race condition in RSVP capacity check**: `addRSVP` (`app/actions/event.ts`) previously ran `rSVP.count()` (check) and `rSVP.create()` (act) as separate queries with nothing between them, so two simultaneous GOING submissions could both pass a stale count and overbook the event. The re-count and the RSVP write now run inside a per-event Redis lock (`withEventCapacityLock` in `lib/capacityLock.ts`, mirroring the cron sync-lock pattern), so the count immediately precedes the write within one critical section. Lock acquisition retries with a short backoff so concurrent legitimate RSVPs serialize rather than being rejected; if Redis is unavailable it falls back to running without the lock. Regression test: `tests/regression/sec-12-rsvp-capacity-race.test.ts`.
 - [x] **[SEC-21b] `updateRSVP` skipped deadline/capacity re-check**: a token-holding guest could flip their status to `GOING` after `rsvpDeadline` had passed or past `capacity` (a capacity-bypass cousin of SEC-12). `updateRSVP` now re-validates the deadline (declining to `NO` is still always allowed so guests can cancel late) and enforces capacity under the same per-event lock — but only when the RSVP is actually transitioning _into_ a GOING seat, so note edits and downgrades on an already-GOING RSVP are never blocked. Regression test: `tests/regression/sec-21b-updaterspv-capacity-deadline.test.ts`.
 
-### Security Hardening — Comment AuthZ & Cross-Event Threading (SEC-17, SEC-13)
+### Security Hardening — Comment AuthZ & Cross-Event Threading [PR #195](https://github.com/joe-cole1/rsvp-to-me/pull/195)
 
 - [x] **[SEC-17] Comment authZ bypass + identity spoofing**: `addComment` (`app/actions/event.ts`) now authorizes the author and derives the stored display name server-side. Host/co-host/admin may comment freely; a guest with a **pending** (unapproved) RSVP is blocked; a logged-in user with no RSVP may comment on **PUBLIC/UNLISTED** events (they are publicly viewable) but is blocked on **PRIVATE** events — closing the PRIVATE-event authZ bypass. The stored name comes from the user record or the matched approved RSVP row — never the client `guestName` — closing the impersonation vector. Regression test: `tests/regression/sec-17-comment-authz-spoofing.test.ts`.
 - [x] **[SEC-13] Cross-event parent comment**: replies now resolve the parent with `where: { id: parentId, eventId: data.eventId }` and reject if it isn't found, so a reply can't thread under a comment from a different event. Regression test: `tests/regression/sec-13-cross-event-parent-comment.test.ts`.
 - [x] **Approved-guest participation UI**: the event page now reflects the server rule across comments, polls, and potluck — pending (unapproved) guests see an "awaiting host approval" notice instead of dead controls, and an admin commenting on an event they aren't RSVP'd to sees a notice. `approved` is threaded from `app/e/[slug]/page.tsx` through to `EventPage`.
 
-### Security Hardening — Injection Escaping (SEC-11, SEC-16)
+### Security Hardening — Injection Escaping [PR #194](https://github.com/joe-cole1/rsvp-to-me/pull/194) · [PR #199](https://github.com/joe-cole1/rsvp-to-me/pull/199)
 
 - [x] **[SEC-11] XML injection in Twilio webhook**: Added an `escapeXml()` helper in `app/api/webhooks/twilio/route.ts` and applied it inside `twiml()`, so user-controlled strings (event titles, guest names) can no longer break out of the `<Message>` element to inject arbitrary TwiML. Regression test: `tests/regression/sec-11-twilio-xml-injection.test.ts`.
 - [x] **[SEC-16] CSV formula injection in guest export**: Hardened the `esc()` helper in `app/e/[slug]/guests.csv/route.ts` to prefix any cell beginning with `= + - @`, tab, or CR with a single quote before quoting, neutralizing spreadsheet formula evaluation of attacker-controlled `guestName`/`guestEmail`. Regression test: `tests/regression/sec-16-csv-formula-injection.test.ts`.
@@ -211,7 +169,7 @@ _A log of completed capabilities._
 - [x] **[SEC-20] Mass assignment in `saveEventSettings`**: Added `SaveEventSettingsSchema` (explicit Zod allow-list) in `lib/schemas.ts`; `saveEventSettings` now parses `settings` through it before the `db.event.update`, stripping non-allow-listed columns (`status`, `slug`, `hostId`, …) so they can't be smuggled into the write. Regression test: `tests/regression/sec-20-save-event-settings-mass-assignment.test.ts`.
 - [x] **[SEC-18] Uncapped outbound email/SMS via guest invite**: `inviteFriendAsGuest` (`app/actions/event.ts`) was authorized solely by a guest `editToken` and fanned out to SMTP/Twilio with no throttling, so a single token could drive unlimited email/SMS to arbitrary recipients (spam/phishing + Twilio cost). Now gated by the shared `rateLimit()`/`getClientIp()` helpers (same pattern as SEC-19/auth) with three layers: per-IP burst (`guest-invite:ip:<ip>`, 30/hr — checked before any DB lookup so it also throttles invalid-token enumeration), per-token burst (`guest-invite:token:<editToken>`, 10/10min), and a per-RSVP daily cap (`guest-invite:rsvp:<rsvpId>`, 20/24h). The token/RSVP limits are consumed only after the token is validated, authorized, and the target address is well-formed, so legitimate rejections don't burn the cap. Regression test: `tests/regression/sec-18-guest-invite-rate-limit.test.ts`.
 
-### Notification Preferences (`notificationChannel`)
+### Notification Preferences [PR #189](https://github.com/joe-cole1/rsvp-to-me/pull/189)
 
 - [x] **`prisma/schema.prisma`**: Added `NotificationChannel` enum (`EMAIL | SMS | BOTH`, default `BOTH`) and `notificationChannel` field on `User`.
 - [x] **Migration** (`20260626000000_add_notification_channel`): `CREATE TYPE "NotificationChannel"` and `ALTER TABLE "User" ADD COLUMN "notificationChannel"`.
@@ -219,7 +177,7 @@ _A log of completed capabilities._
 - [x] **`app/actions/event.ts`**: `addEventUpdate()` now queries guest `notificationChannel` and routes each notification — `SMS` → phone/SMS, `EMAIL`/`BOTH`/anonymous → email.
 - [x] **`app/(app)/profile/ProfileClient.tsx`**: Renamed "Notification Opt-Outs" → "Notification Preferences". Added pill-button channel selector (Email / SMS / Both) shown only when both `channelConfig.email` and `channelConfig.sms` are enabled. Saves immediately on click via `handleChannelChange`.
 
-### Guest Messaging Channel Toggles (`email_enabled` / `sms_enabled`)
+### Guest Messaging Channel Toggles [PR #181](https://github.com/joe-cole1/rsvp-to-me/pull/181)
 
 - [x] **`lib/config.ts`**: New `getChannelConfig()` (`React.cache`-wrapped) and `isChannelEnabled()` helpers. Reads `email_enabled`, `sms_enabled`, and `twilio_account_sid` from `SystemConfig` in a single DB query per request. `sms_enabled` auto-defaults to `true` when Twilio credentials are present, `false` otherwise. `email_enabled` defaults to `true`.
 - [x] **Send-path gating**: Guest-facing email functions (`sendRsvpConfirmationEmail`, `sendEventInviteEmail`, `sendBlastEmail`, `sendApprovalEmail`) gated by `email_enabled`. All SMS functions gated by `sms_enabled`. Host auth (`sendMagicLinkEmail`), host alerts (`sendHostRsvpAlertEmail`), and admin emails (`sendWelcomeEmail`) are immune to both toggles.
@@ -233,30 +191,32 @@ _A log of completed capabilities._
 - [x] **Unit tests** (`tests/lib/config.test.ts`): 10 tests covering default behavior, Twilio auto-detection, explicit overrides, and `isChannelEnabled` for both channels.
 - [x] **Docs updated**: `docs/admin.md`, `docs/features.md`.
 
-### Defensive Infra — Graceful Shutdown, Error Boundaries & Auth Fallback Alerts
+### Defensive Infra — Graceful Shutdown, Error Boundaries & Auth Fallback Alerts [PR #186](https://github.com/joe-cole1/rsvp-to-me/pull/186)
 
 - [x] **[G-2] Graceful Shutdown Signal Handling**: `lib/cron-scheduler.ts` now captures all `cron.schedule()` task references and exports `stopInProcessCron()`. `instrumentation.ts` registers `SIGTERM`/`SIGINT` handlers that call `stopInProcessCron()` and exit cleanly. Dockerfile CMD updated to `exec ./node_modules/.bin/next start` so SIGTERM lands on Node.js (not the shell). `docker-compose.yml` adds `stop_grace_period: 30s` to allow in-flight requests to drain before SIGKILL.
 - [x] **[G-4] React Error Boundaries**: Added `app/global-error.tsx` (catches root layout failures — renders own `<html>/<body>`), `app/error.tsx` (root-level route catch-all), and `app/(app)/error.tsx` (scoped boundary for authenticated app routes). All styled to match the dark APP_SHELL theme with a retry button and a home/dashboard link.
 - [x] **Auth Fallback Alerts**: `sendMagicLinkAction` in `app/actions/auth.ts` now wraps email/SMS delivery in try/catch and returns `{ error: "delivery_failed" }` on failure. `SignInForm.tsx` handles this with a dedicated UI state pointing self-hosters to `[auth:magic-link-fallback]` in the container logs.
 
-### Admin: Create User
+### Admin: Create User [PR #185](https://github.com/joe-cole1/rsvp-to-me/pull/185)
 
 - [x] **Create User modal**: Added a "Create User" button to the Admin → Users tab that opens a modal form (name, email, phone, role). Validates email format and uniqueness, checks phone uniqueness if provided. After creation, generates a 48-hour magic token and sends a welcome email (`sendWelcomeEmail` in `lib/email.ts`) so the new user can sign in immediately. Email failure is non-blocking — user creation succeeds regardless. Server action `createAdminUser` in `app/actions/admin.ts` is admin-gated via `assertAdmin()`.
 
-### Code Quality Sweep — Prettier, Session Dedup & Profile Nav
+### Code Quality Sweep — Prettier, Session Dedup & Profile Nav [PR #175](https://github.com/joe-cole1/rsvp-to-me/pull/175) · [PR #176](https://github.com/joe-cole1/rsvp-to-me/pull/176)
 
 - [x] **Prettier Formatting**: Added Prettier v3 as a devDependency with `.prettierrc` (double quotes, semis, 100-char printWidth) and `.prettierignore`. Ran `prettier --write` across the full codebase as a one-time prep commit. `npx prettier --check .` added to `ci.yml` to enforce formatting on every PR.
-- [x] **`getSessionUser()` deduplication**: Replaced all remaining `getSession()` + `db.user.findUnique(session.userId)` duplicates with the existing `React.cache`-wrapped `getSessionUser()` helper across 6 files: `app/e/[slug]/page.tsx`, `app/e/[slug]/rsvp/page.tsx`, `app/e/[slug]/settings/page.tsx`, `app/e/[slug]/guests/page.tsx`, `app/actions/createEvent.ts`, and `app/actions/profile.ts`.
+- [x] **`getSessionUser()` deduplication**: Replaced all remaining `getSession()` + `db.user.findUnique(session.userId)` duplicates with the existing `React.cache`-wrapped `getSessionUser()` helper across 6 files: `app/e/[slug]/page.tsx`, `app/e/[slug]/rsvp/page.tsx`, `app/e/[slug]/settings/page.tsx`, `app/e/[slug]/guests.csv/route.ts`, `app/actions/createEvent.ts`, and `app/actions/profile.ts`.
 - [x] **Profile Nav Reactive Update**: Added `router.refresh()` call in `ProfileClient.tsx` after a successful profile save, so the layout re-runs `getSessionUser()` and the `ProfileDropdown` name/avatar updates immediately without a full page reload.
+- [x] **Shared App Router layout**: Dashboard, admin, and profile pages migrated to a single route-group `layout.tsx` — per-page nav boilerplate eliminated.
+- [x] **Global nav unified**: `AppNavLogo` / `ProfileDropdown` consistent across event page, RSVP flow, guests page, and settings page — all `AppShell` outliers resolved.
 
 ### Database Migration Hardening [PR #169](https://github.com/joe-cole1/rsvp-to-me/pull/169)
 
 - [x] **[CRIT-1] `migrate-db.js` crash loop**: 3-attempt retry with backoff; P3009 detected and logs actionable `prisma migrate resolve` command; `docker-compose.yml` app service changed to `restart: on-failure:3`.
 - [x] **[CRIT-2] Pre-migration database snapshot**: `pg_dump` via `execFileSync` (no shell) to `data/backups/pre-migration/` with timestamp before every migration run. Failure warns but never blocks the deploy.
 - [x] **[CRIT-3] Health endpoint migration state check**: Queries `_prisma_migrations` for pending/stuck rows; returns 503 + `{ status: "degraded", migrations: "pending" }` if any found. 7 new tests added to `tests/api/health.test.ts`.
-- [x] **Failing Test Suite**: Unit tests in `tests/actions/event.test.ts` (potluck item claims) and `tests/actions/rsvpfields.test.ts` (`reorderRsvpFields`) confirmed resolved with [PR #161](https://github.com/joe-cole1/rsvp-to-me/pull/161). Full suite: 535 tests passing across 31 files.
+- [x] **Failing Test Suite**: Unit tests in `tests/actions/event.test.ts` (potluck item claims) and `tests/actions/rsvpfields.test.ts` (`reorderRsvpFields`) confirmed resolved. Full suite: 535 tests passing across 31 files.
 
-### Security Hardening — Passwords, Backup & CSV [PR #164](https://github.com/joe-cole1/rsvp-to-me/pull/164) · [PR #163](https://github.com/joe-cole1/rsvp-to-me/pull/163)
+### Security Hardening — Passwords, Backup & CSV [PR #163](https://github.com/joe-cole1/rsvp-to-me/pull/163) · [PR #164](https://github.com/joe-cole1/rsvp-to-me/pull/164)
 
 - [x] **[SEC-5] Event passwords stored in plaintext**: `passwordHash` column added (bcryptjs, cost 10); `verifyEventPassword` uses `bcrypt.compare`; `saveEventSettings` hashes on write. Migration `20260624200000_rename_event_password_to_hash`.
 - [x] **[SEC-6] `pg_dump` command injection**: Switched to `execFile('pg_dump', [...])` with explicit argument array in `lib/backup.ts` — no shell invocation.
@@ -282,7 +242,7 @@ _A log of completed capabilities._
 
 - [x] **Admin Settings History & Refresh**: Active admin tab is synced to the URL (`/admin?tab=backups`) via `useSearchParams` + `router.replace`. Browser back/forward and page refresh all preserve the selected tab.
 - [x] **Backup Schedule Picker**: Replaced raw cron text input (Admin → Backups) with a preset dropdown (Disabled, Hourly, Every 6h, Daily, Every 3 days, Weekly). A "Custom" option reveals the raw input for advanced cron expressions.
-- [x] **Host Account Deletion Flow**: Hosts can delete their account from Profile settings. Upcoming published events must be explicitly deleted first (each shows a "Delete event" button; deleted events show a tombstone page at their original URL). After clearing events, the host types "DELETE" to confirm. Account is signed out immediately and anonymized within 24 hours. Admins see a "Deletion Pending" badge in the Users tab and can cancel within the window. Past events are reassigned to a SYSTEM tombstone user; guest RSVP/comment data for past events is preserved (GDPR-defensible: it is the guests' data). Added `DELETED` EventStatus; `deleteHostEvent()` server action; `requestAccountDeletion()` and `cancelAccountDeletion()` actions; hourly cron processing in `lib/cron-scheduler.ts`; Prisma migration `add_deletion_fields`.
+- [x] **Host Account Deletion Flow**: Hosts can delete their account from Profile settings. Upcoming published events must be explicitly deleted first (each shows a "Delete event" button; deleted events show a tombstone page at their original URL). After clearing events, the host types "DELETE" to confirm. Account is signed out immediately and anonymized within 24 hours. Admins see a "Deletion Pending" badge in the Users tab and can cancel within the window. Past events are reassigned to a SYSTEM tombstone user; guest RSVP/comment data for past events is preserved.
 
 ### Favicon & Page Titles [PR #123](https://github.com/joe-cole1/rsvp-to-me/pull/123)
 
@@ -307,7 +267,7 @@ _A log of completed capabilities._
 - [x] **Magic Link Authentication**: Authentication mechanism via iron-session cookies.
 - [x] **Seeding & Mock Data**: Automated test seeding of events, comments, and RSVPs via `SEED_TEST_DATA=true`.
 
-### Event & Guest Engagement [PR #56](https://github.com/joe-cole1/rsvp-to-me/pull/56) · [PR #55](https://github.com/joe-cole1/rsvp-to-me/pull/55)
+### Event & Guest Engagement [PR #55](https://github.com/joe-cole1/rsvp-to-me/pull/55) · [PR #56](https://github.com/joe-cole1/rsvp-to-me/pull/56)
 
 - [x] **Interactive Event Polls**: Anonymous voting, host controls, write-in suggestions, and vote audits.
 - [x] **Comment Threading & Activity Feed**: Nested replies, activity log pagination, and user roles.
@@ -344,7 +304,7 @@ _A log of completed capabilities._
 - [x] **Location Selector Layout Polish**: Prevented layout wrapping of option chips and corrected width scaling for the Physical/Virtual popover edit views to align with other card components.
 - [x] **Questionnaire Serialization Fix**: Resolved select/checkbox option parsing bugs on RSVP forms by standardizing field config storage as JSON strings.
 
-### PostgreSQL 18 Hard Requirement & SQLite Removal [PR #143](https://github.com/joe-cole1/rsvp-to-me/pull/143) · [PR #142](https://github.com/joe-cole1/rsvp-to-me/pull/142) · [PR #139](https://github.com/joe-cole1/rsvp-to-me/pull/139)
+### PostgreSQL 18 Hard Requirement & SQLite Removal [PR #139](https://github.com/joe-cole1/rsvp-to-me/pull/139) · [PR #142](https://github.com/joe-cole1/rsvp-to-me/pull/142) · [PR #143](https://github.com/joe-cole1/rsvp-to-me/pull/143)
 
 - [x] **Drop SQLite / Hard-Require PostgreSQL 18**: Removed all SQLite/LibSQL dependencies (`@libsql/client`, `@prisma/adapter-libsql`). `schema.prisma` is now the single Postgres schema. `REDIS_URL` throws at startup if unset. Squashed 5 incremental Postgres migrations into a single clean `20260623000000_init` migration. Updated CI to use a `postgres:18-alpine` service. Updated all docs, `docker-compose.dev.yml`, `.env.example`, `AGENTS.md`, and `tests/setup.ts`.
 - [x] **node-redis v4 → v5 → v6 upgrade**: Two-hop upgrade (v4→v5 in PR #139, v5→v6 in PR #142). Updated RESP3 multi-exec result handling and TypeScript types throughout `lib/redis.ts`.
