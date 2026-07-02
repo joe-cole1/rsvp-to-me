@@ -31,5 +31,6 @@ For every bug fix merged to main:
 | `sec-29-invite-guest-rate-limit.test.ts`             | Host `inviteGuest` fan-out had no batch cap or rate limit                   | SEC-29   |
 | `sec-26-sms-token-decrypt.test.ts`                   | DB-configured Twilio auth token never decrypted (broken `enc:` check)       | SEC-26   |
 | `sec-27-twilio-webhook-db-token.test.ts`             | Twilio inbound webhook validated only against the env token, not DB config  | SEC-27   |
+| `sec-25-docker-default-creds.test.ts`                | Compose files shipped weak default DB/Redis passwords + host-exposed 5432   | SEC-25   |
 | `sec-31-health-info-leak.test.ts`                    | `/api/health` leaked migration/DB state + timestamp to anonymous callers    | SEC-31   |
 | `sec-30-cohost-authz.test.ts`                        | Inconsistent host/co-host authz: co-hosts blocked from documented actions   | SEC-30   |

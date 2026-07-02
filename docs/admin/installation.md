@@ -22,9 +22,10 @@ This guide walks you through deploying **RSVP to Me** on any machine that can ru
 6. [Step 4 — Start the Application](#step-4--start-the-application)
 7. [Step 5 — First Login and Admin Setup](#step-5--first-login-and-admin-setup)
 8. [Understanding Your Data & Backups](#understanding-your-data--backups)
-9. [Stopping, Starting, and Restarting](#stopping-starting-and-restarting)
-10. [HTTPS and Custom Domains](#https-and-custom-domains)
-11. [Troubleshooting](#troubleshooting)
+9. [Connecting Database Tools](#connecting-database-tools)
+10. [Stopping, Starting, and Restarting](#stopping-starting-and-restarting)
+11. [HTTPS and Custom Domains](#https-and-custom-domains)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -46,8 +47,8 @@ RSVP to Me runs as a set of Docker containers defined in `docker-compose.yml`:
 | Container  | Purpose                                                                                                                                                                                       |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app`      | The main web server. It handles webpage rendering, guest RSVPs, comment boards, and admin actions. It also runs the in-process cron scheduler for reminders and backups. Runs on port `3000`. |
-| `postgres` | PostgreSQL 18 database — stores all users, events, RSVPs, and application data.                                                                                                               |
-| `redis`    | Redis — session caching, rate limiting, and distributed cron locking.                                                                                                                         |
+| `postgres` | PostgreSQL 18 database — stores all users, events, RSVPs, and application data. Reachable only by the other containers on the internal Docker network — it is **not** exposed on a host port. |
+| `redis`    | Redis — session caching, rate limiting, and distributed cron locking. Internal-only, like `postgres` — no host port is exposed.                                                               |
 
 ---
 
@@ -142,13 +143,14 @@ You must set at least these variables before launching:
 
 1. **`POSTGRES_PASSWORD`**: A secure password for the PostgreSQL database container.
 2. **`REDIS_PASSWORD`**: A secure password for the Redis container.
+   > **These two are enforced.** The compose files ship **no default passwords** — if either variable is missing or empty, `docker compose up` refuses to start and prints an error naming the variable (e.g. `POSTGRES_PASSWORD is required - set a strong value in .env`). The database and cache are also not published on host ports, so they are only reachable by the app container on the internal Docker network.
 3. **`SESSION_SECRET`**: A secure, random string (at least 32 characters) used to encrypt user session cookies.
    - _CLI (Linux/Mac):_ Run `openssl rand -base64 32` to generate a key.
    - _CLI (Windows PowerShell):_ Run `[Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Max 256) }))`.
    - _Web:_ Generate it via [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32).
 4. **`NEXT_PUBLIC_APP_URL`**: The public URL that users and guests will visit (e.g. `https://rsvp.yourdomain.com`). No trailing slash.
 5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Logging in with this email for the first time automatically promotes your account to Administrator.
-6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). Change it from the default `letmein`!
+6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). The `.env.example` placeholder (`CHANGE_THIS_TO_A_STRONG_RANDOM_CODE`) is rejected at startup in production — replace it with a strong value (e.g. `openssl rand -hex 8`).
 
 > **Warning:** Your `.env` file contains sensitive passwords and secrets. Never commit it to a public repository. Ensure it is added to your `.gitignore` file.
 
@@ -265,6 +267,61 @@ docker compose exec postgres pg_dump -U postgres rsvp_db > ./data/backups/manual
 ```
 
 > **Caution:** Running `docker compose down -v` deletes all Docker volumes. While RSVP to Me uses a local directory bind mount, running this with custom setups might lead to permanent data loss. Always omit the `-v` flag to protect your data.
+
+---
+
+## Connecting Database Tools
+
+For security, PostgreSQL and Redis are **not published on host ports** — they are only reachable on the stack's internal Docker network. If you previously connected tools to `localhost:5432`, use one of these patterns instead.
+
+### Option A: Run the client inside the container (simplest)
+
+No network exposure at all — the client runs where the database lives:
+
+```bash
+docker compose exec postgres psql -U postgres -d rsvp_db
+```
+
+This is also how the backup commands in this guide work.
+
+### Option B: Loopback-only host port (desktop GUI clients)
+
+If you need a host-reachable port for a GUI client (DBeaver, pgAdmin, TablePlus) on the **same machine**, create a `docker-compose.override.yml` next to your `docker-compose.yml` (Docker Compose merges it automatically; it stays out of the repository):
+
+```yaml
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+```
+
+Then run `docker compose up -d` to apply it. Binding to `127.0.0.1` restores `localhost:5432` for tools on that machine only — the database is still **not** exposed to the network. Never use a bare `"5432:5432"` mapping in production; that publishes the database on all interfaces.
+
+### Option C: Join the stack's Docker network (tools in other containers/stacks)
+
+Containers from other Docker stacks can talk to the database directly by joining this stack's network — no host port needed. The network is named `<project>_default`, where `<project>` is the folder containing your `docker-compose.yml` (confirm with `docker network ls`).
+
+In the other stack's compose file, declare the network as external and attach your tool to it:
+
+```yaml
+services:
+  my-db-tool:
+    # ...
+    networks:
+      - rsvp
+networks:
+  rsvp:
+    external: true
+    name: rsvp-to-me_default # adjust to your actual network name
+```
+
+Or attach an already-running container ad hoc:
+
+```bash
+docker network connect rsvp-to-me_default my-db-tool
+```
+
+The tool can then connect with `postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_db`. If the other stack has its own service named `postgres`, use this stack's full container name instead (e.g. `rsvp-to-me-postgres-1`, from `docker compose ps`) to avoid an ambiguous hostname.
 
 ---
 
