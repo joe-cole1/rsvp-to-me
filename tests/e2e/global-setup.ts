@@ -34,7 +34,19 @@ export default async function globalSetup() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
-    // Upsert host user
+    // 1. Clean up any stale E2E test data first to guarantee clean slate
+    await pool.query(
+      `DELETE FROM "RSVP" WHERE "eventId" IN (SELECT id FROM "Event" WHERE slug = $1)`,
+      [E2E_EVENT_SLUG]
+    );
+    await pool.query(
+      `DELETE FROM "Comment" WHERE "eventId" IN (SELECT id FROM "Event" WHERE slug = $1)`,
+      [E2E_EVENT_SLUG]
+    );
+    await pool.query(`DELETE FROM "Event" WHERE slug = $1`, [E2E_EVENT_SLUG]);
+    await pool.query(`DELETE FROM "User" WHERE email = $1`, [E2E_HOST_EMAIL]);
+
+    // 2. Upsert host user
     const userRes = await pool.query<{ id: string }>(
       `INSERT INTO "User" (id, email, name, role, "createdAt")
        VALUES ($1, $2, 'E2E Test Host', 'HOST'::"Role", now())
@@ -44,7 +56,7 @@ export default async function globalSetup() {
     );
     const hostId = userRes.rows[0].id;
 
-    // Upsert test event
+    // 3. Upsert test event
     const eventId = randomUUID();
     await pool.query(
       `INSERT INTO "Event" (id, slug, title, status, visibility, "startAt", timezone, "locationType", "hostId", "createdAt", "updatedAt")
@@ -53,7 +65,7 @@ export default async function globalSetup() {
       [eventId, E2E_EVENT_SLUG, hostId]
     );
 
-    // Create a DB session and seal it into a cookie
+    // 4. Create a DB session and seal it into a cookie
     const sessionId = randomUUID();
     const expiresAt = new Date(Date.now() + SESSION_TTL * 1000);
     await pool.query(
@@ -68,6 +80,9 @@ export default async function globalSetup() {
       { password: getPassword(), ttl: SESSION_TTL }
     );
 
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
+    const cookieDomain = new URL(baseUrl).hostname;
+
     fs.mkdirSync(path.dirname(AUTH_STATE_PATH), { recursive: true });
     fs.writeFileSync(
       AUTH_STATE_PATH,
@@ -76,7 +91,7 @@ export default async function globalSetup() {
           {
             name: COOKIE_NAME,
             value: sealed,
-            domain: "localhost",
+            domain: cookieDomain,
             path: "/",
             expires: Math.floor(expiresAt.getTime() / 1000),
             httpOnly: true,

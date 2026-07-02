@@ -11,6 +11,9 @@ const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const rawRedirect = request.nextUrl.searchParams.get("redirect");
+  const host = request.headers.get("host") || "localhost:3000";
+  const protocol = request.headers.get("x-forwarded-proto") || "http";
+  const origin = `${protocol}://${host}`;
 
   const redirectWithNoReferrer = (url: string) => {
     const res = NextResponse.redirect(url);
@@ -19,24 +22,24 @@ export async function GET(request: NextRequest) {
   };
 
   if (!token) {
-    return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in`);
+    return redirectWithNoReferrer(`${origin}/auth/sign-in`);
   }
 
   if (token.length > 128) {
-    return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
   }
 
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
   if (!record || record.used || record.expiresAt < new Date() || record.type !== "LOGIN") {
-    return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
   }
 
   await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
 
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) {
-    return redirectWithNoReferrer(`${APP_URL()}/auth/sign-in?error=invalid-token`);
+    return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
   }
 
   // Link any matching RSVPs dynamically on sign-in
@@ -78,17 +81,15 @@ export async function GET(request: NextRequest) {
   // Validate redirect at the point of use — defence in depth against encoded payloads
   // that bypassed the check in createMagicLink (e.g. %2F-encoded slashes).
   const destination =
-    rawRedirect && isSafeRedirect(rawRedirect)
-      ? `${APP_URL()}${rawRedirect}`
-      : `${APP_URL()}/dashboard`;
+    rawRedirect && isSafeRedirect(rawRedirect) ? `${origin}${rawRedirect}` : `${origin}/dashboard`;
 
   const response = redirectWithNoReferrer(destination);
   response.cookies.set(COOKIE_NAME, sealed, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.DISABLE_HSTS !== "true",
     sameSite: "lax",
-    maxAge: SESSION_TTL,
     path: "/",
+    maxAge: SESSION_TTL,
   });
 
   return response;
