@@ -23,3 +23,39 @@ export async function scheduleUserDeletion(userId: string) {
 
   return { success: true as const, scheduledAt };
 }
+
+export async function cancelUserDeletion(userId: string): Promise<void> {
+  await db.user.update({
+    where: { id: userId },
+    data: { deletionRequestedAt: null, deletionScheduledAt: null },
+  });
+}
+
+export async function performImmediateUserDeletion(userId: string): Promise<void> {
+  // Delete user's guest RSVPs on other events (cascades: RSVPAnswers, PlusOneGuests, CheckIns)
+  await db.rSVP.deleteMany({ where: { userId } });
+
+  // Remove co-host slots on other events
+  await db.eventCoHost.deleteMany({ where: { userId } });
+
+  // Clean up auth tokens and sessions
+  await db.magicToken.deleteMany({ where: { userId } });
+  await db.session.deleteMany({ where: { userId } });
+
+  // Reassign hosted events to the SYSTEM tombstone user
+  await db.event.updateMany({ where: { hostId: userId }, data: { hostId: "system" } });
+
+  // Anonymize PII
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      email: null,
+      phone: null,
+      name: "Deleted User",
+      avatarUrl: null,
+      role: "GUEST",
+      deletionRequestedAt: null,
+      deletionScheduledAt: null,
+    },
+  });
+}

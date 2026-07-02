@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
 import { getDashboardEvents, getDashboardActivity, getDashboardInvites } from "@/app/actions/event";
 import { isOpenRegistrationActive } from "@/lib/auth";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";

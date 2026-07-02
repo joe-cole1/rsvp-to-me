@@ -34,6 +34,11 @@ const {
   mockThemePresetCreate,
   mockThemePresetUpdate,
   mockThemePresetDelete,
+  mockRsvpDeleteMany,
+  mockCoHostDeleteMany,
+  mockMagicTokenDeleteMany,
+  mockSessionDeleteMany,
+  mockEventUpdateMany,
 } = vi.hoisted(() => ({
   mockUserCount: vi.fn(),
   mockEventCount: vi.fn(),
@@ -68,6 +73,11 @@ const {
   mockThemePresetCreate: vi.fn(),
   mockThemePresetUpdate: vi.fn(),
   mockThemePresetDelete: vi.fn(),
+  mockRsvpDeleteMany: vi.fn(),
+  mockCoHostDeleteMany: vi.fn(),
+  mockMagicTokenDeleteMany: vi.fn(),
+  mockSessionDeleteMany: vi.fn(),
+  mockEventUpdateMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -82,14 +92,17 @@ vi.mock("@/lib/db", () => ({
     },
     magicToken: {
       create: mockMagicTokenCreate,
+      deleteMany: mockMagicTokenDeleteMany,
     },
     event: {
       count: mockEventCount,
       findMany: mockEventFindMany,
       delete: mockEventDelete,
+      updateMany: mockEventUpdateMany,
     },
     rSVP: {
       count: mockRsvpCount,
+      deleteMany: mockRsvpDeleteMany,
     },
     checkIn: {
       count: mockCheckInCount,
@@ -102,7 +115,10 @@ vi.mock("@/lib/db", () => ({
       findUnique: mockHostInviteCodeFindUnique,
     },
     eventCoHost: {
-      deleteMany: vi.fn(),
+      deleteMany: mockCoHostDeleteMany,
+    },
+    session: {
+      deleteMany: mockSessionDeleteMany,
     },
     systemConfig: {
       findMany: mockSystemConfigFindMany,
@@ -144,6 +160,8 @@ import {
   getAdminUsers,
   updateUserRole,
   deleteUserAccount,
+  cancelAccountDeletion,
+  deleteUserAccountImmediately,
   createAdminUser,
   getAdminEvents,
   deleteEventAdmin,
@@ -708,6 +726,84 @@ describe("app/actions/admin.ts", () => {
         );
         expect(mockUserCreate).toHaveBeenCalledWith({
           data: expect.objectContaining({ phone: "5558675309" }),
+        });
+      });
+    });
+
+    describe("cancelAccountDeletion", () => {
+      it("throws error if unauthorized or not admin", async () => {
+        mockGetSession.mockResolvedValue(null);
+        await expect(cancelAccountDeletion("u-1")).rejects.toThrow(
+          "Forbidden: Admin access required"
+        );
+      });
+
+      it("cancels account deletion for the specified user", async () => {
+        mockGetSession.mockResolvedValue({
+          userId: "admin-1",
+          email: "admin@example.com",
+          role: "ADMIN",
+        });
+        mockUserUpdate.mockResolvedValue({});
+
+        const res = await cancelAccountDeletion("u-1");
+        expect(res.success).toBe(true);
+        expect(mockUserUpdate).toHaveBeenCalledWith({
+          where: { id: "u-1" },
+          data: { deletionRequestedAt: null, deletionScheduledAt: null },
+        });
+      });
+    });
+
+    describe("deleteUserAccountImmediately", () => {
+      it("throws error if unauthorized or not admin", async () => {
+        mockGetSession.mockResolvedValue(null);
+        await expect(deleteUserAccountImmediately("u-1")).rejects.toThrow(
+          "Forbidden: Admin access required"
+        );
+      });
+
+      it("throws error if trying to delete own admin account", async () => {
+        mockGetSession.mockResolvedValue({
+          userId: "admin-1",
+          email: "admin@example.com",
+          role: "ADMIN",
+        });
+        await expect(deleteUserAccountImmediately("admin-1")).rejects.toThrow(
+          "You cannot delete your own admin account."
+        );
+      });
+
+      it("deletes user immediately and anonymizes details", async () => {
+        mockGetSession.mockResolvedValue({
+          userId: "admin-1",
+          email: "admin@example.com",
+          role: "ADMIN",
+        });
+        mockUserFindUnique.mockResolvedValue({ id: "u-1", name: "Joe", email: "joe@example.com" });
+        mockUserUpdate.mockResolvedValue({});
+
+        const res = await deleteUserAccountImmediately("u-1");
+        expect(res.success).toBe(true);
+        expect(mockRsvpDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
+        expect(mockCoHostDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
+        expect(mockMagicTokenDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
+        expect(mockSessionDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
+        expect(mockEventUpdateMany).toHaveBeenCalledWith({
+          where: { hostId: "u-1" },
+          data: { hostId: "system" },
+        });
+        expect(mockUserUpdate).toHaveBeenCalledWith({
+          where: { id: "u-1" },
+          data: {
+            email: null,
+            phone: null,
+            name: "Deleted User",
+            avatarUrl: null,
+            role: "GUEST",
+            deletionRequestedAt: null,
+            deletionScheduledAt: null,
+          },
         });
       });
     });

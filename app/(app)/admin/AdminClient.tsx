@@ -10,6 +10,7 @@ import {
   updateUserRole,
   deleteUserAccount,
   cancelAccountDeletion,
+  deleteUserAccountImmediately,
   createAdminUser,
   deleteEventAdmin,
   createInviteCode,
@@ -205,6 +206,8 @@ export default function AdminClient({
   const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   const [userSearch, setUserSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "HOST" | "GUEST" | "ADMIN">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING_DELETE" | "ACTIVE">("ALL");
   const [eventSearch, setEventSearch] = useState("");
 
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -664,6 +667,46 @@ function extractRawEmail(fromStr) {
     });
   };
 
+  const handleUserDeleteImmediately = (userId: string, name: string) => {
+    if (
+      !confirm(
+        `WARNING: Are you absolutely sure you want to permanently delete and anonymize ${name}'s account immediately? This will bypass the 30-day grace period, reassign all hosted events to the System, and cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setFeedback(null);
+    startTransition(async () => {
+      try {
+        const res = await deleteUserAccountImmediately(userId);
+        if (res.success) {
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === userId
+                ? {
+                    ...u,
+                    name: "Deleted User",
+                    email: null,
+                    phone: null,
+                    role: "GUEST",
+                    deletionRequestedAt: null,
+                    deletionScheduledAt: null,
+                  }
+                : u
+            )
+          );
+          setFeedback({
+            type: "success",
+            message: `${name}'s account has been permanently deleted/anonymized.`,
+          });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete immediately.";
+        setFeedback({ type: "error", message });
+      }
+    });
+  };
+
   const handleCreateUser = () => {
     setFeedback(null);
     startTransition(async () => {
@@ -965,6 +1008,13 @@ function extractRawEmail(fromStr) {
       description: "Setup, configuration, and operations guides for self-hosting RSVP to Me.",
     },
   };
+
+  const filteredUsers = users.filter((u) => {
+    if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
+    if (statusFilter === "PENDING_DELETE" && !u.deletionScheduledAt) return false;
+    if (statusFilter === "ACTIVE" && u.deletionScheduledAt) return false;
+    return true;
+  });
 
   return (
     <AppShell>
@@ -1393,14 +1443,16 @@ function extractRawEmail(fromStr) {
             {/* PANEL: USERS */}
             {activeTab === "users" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <div
+                  style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}
+                >
                   <input
                     type="text"
                     placeholder="Search users by name, email, or phone..."
                     value={userSearch}
                     onChange={(e) => handleUserSearch(e.target.value)}
                     style={{
-                      flex: 1,
+                      flex: "1 1 200px",
                       backgroundColor: APP_SHELL.inputBg,
                       border: `1px solid ${APP_SHELL.inputBorder}`,
                       borderRadius: APP_SHELL.inputRadius,
@@ -1411,6 +1463,56 @@ function extractRawEmail(fromStr) {
                       boxSizing: "border-box",
                     }}
                   />
+
+                  {/* Role Filter */}
+                  <select
+                    value={roleFilter}
+                    onChange={(e) =>
+                      setRoleFilter(e.target.value as "ALL" | "HOST" | "GUEST" | "ADMIN")
+                    }
+                    style={{
+                      backgroundColor: APP_SHELL.inputBg,
+                      border: `1px solid ${APP_SHELL.inputBorder}`,
+                      color: APP_SHELL.textPrimary,
+                      borderRadius: APP_SHELL.inputRadius,
+                      padding: "12px 16px",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: "pointer",
+                      minWidth: "130px",
+                      colorScheme: "dark",
+                    }}
+                  >
+                    <option value="ALL">All Roles</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="HOST">HOST</option>
+                    <option value="GUEST">GUEST</option>
+                  </select>
+
+                  {/* Status Filter */}
+                  <select
+                    value={statusFilter}
+                    onChange={(e) =>
+                      setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE")
+                    }
+                    style={{
+                      backgroundColor: APP_SHELL.inputBg,
+                      border: `1px solid ${APP_SHELL.inputBorder}`,
+                      color: APP_SHELL.textPrimary,
+                      borderRadius: APP_SHELL.inputRadius,
+                      padding: "12px 16px",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: "pointer",
+                      minWidth: "160px",
+                      colorScheme: "dark",
+                    }}
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="PENDING_DELETE">Pending Deletion</option>
+                  </select>
+
                   <button
                     onClick={() => setCreateUserOpen(true)}
                     style={{
@@ -1454,7 +1556,7 @@ function extractRawEmail(fromStr) {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.length === 0 ? (
+                        {filteredUsers.length === 0 ? (
                           <tr>
                             <td
                               colSpan={4}
@@ -1468,7 +1570,7 @@ function extractRawEmail(fromStr) {
                             </td>
                           </tr>
                         ) : (
-                          users.map((u) => (
+                          filteredUsers.map((u) => (
                             <tr
                               key={u.id}
                               style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}
@@ -1489,8 +1591,12 @@ function extractRawEmail(fromStr) {
                                       marginTop: "4px",
                                     }}
                                   >
-                                    Deletion pending —{" "}
-                                    {new Date(u.deletionScheduledAt).toLocaleString()}
+                                    Deletion requested on{" "}
+                                    {u.deletionRequestedAt
+                                      ? new Date(u.deletionRequestedAt).toLocaleDateString()
+                                      : "unknown"}{" "}
+                                    — scheduled for{" "}
+                                    {new Date(u.deletionScheduledAt).toLocaleDateString()}
                                   </div>
                                 )}
                               </td>
@@ -1542,26 +1648,54 @@ function extractRawEmail(fromStr) {
                               </td>
                               <td style={{ padding: "16px", textAlign: "right" }}>
                                 {u.deletionScheduledAt ? (
-                                  <button
-                                    onClick={() =>
-                                      handleCancelDeletion(
-                                        u.id,
-                                        u.name || u.email || "Unknown User"
-                                      )
-                                    }
+                                  <div
                                     style={{
-                                      backgroundColor: "transparent",
-                                      border: "1px solid #ef4444",
-                                      color: "#ef4444",
-                                      cursor: "pointer",
-                                      fontWeight: 600,
-                                      fontSize: "12px",
-                                      borderRadius: "6px",
-                                      padding: "4px 10px",
+                                      display: "flex",
+                                      gap: "8px",
+                                      justifyContent: "flex-end",
                                     }}
                                   >
-                                    Restore Account
-                                  </button>
+                                    <button
+                                      onClick={() =>
+                                        handleCancelDeletion(
+                                          u.id,
+                                          u.name || u.email || "Unknown User"
+                                        )
+                                      }
+                                      style={{
+                                        backgroundColor: "transparent",
+                                        border: "1px solid #22c55e",
+                                        color: "#22c55e",
+                                        cursor: "pointer",
+                                        fontWeight: 600,
+                                        fontSize: "12px",
+                                        borderRadius: "6px",
+                                        padding: "4px 10px",
+                                      }}
+                                    >
+                                      Restore
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleUserDeleteImmediately(
+                                          u.id,
+                                          u.name || u.email || "Unknown User"
+                                        )
+                                      }
+                                      style={{
+                                        backgroundColor: "transparent",
+                                        border: "1px solid #ef4444",
+                                        color: "#ef4444",
+                                        cursor: "pointer",
+                                        fontWeight: 600,
+                                        fontSize: "12px",
+                                        borderRadius: "6px",
+                                        padding: "4px 10px",
+                                      }}
+                                    >
+                                      Delete Now
+                                    </button>
+                                  </div>
                                 ) : (
                                   <button
                                     onClick={() =>

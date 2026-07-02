@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getSession, destroySession } from "@/lib/session";
 import { getSessionUser } from "@/lib/session-user";
 import { promoteInitialAdmin } from "@/lib/admin-promotion";
-import { scheduleUserDeletion } from "@/lib/account-deletion";
+import { scheduleUserDeletion, cancelUserDeletion } from "@/lib/account-deletion";
 import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
@@ -180,4 +180,14 @@ export async function requestAccountDeletion() {
 
   await destroySession();
   return result;
+}
+
+export async function cancelMyAccountDeletion() {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+
+  await cancelUserDeletion(session.userId);
+
+  revalidatePath("/profile");
+  return { success: true };
 }

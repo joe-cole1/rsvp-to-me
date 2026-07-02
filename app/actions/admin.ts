@@ -3,7 +3,11 @@
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { getSession, invalidateUserSessions } from "@/lib/session";
-import { scheduleUserDeletion } from "@/lib/account-deletion";
+import {
+  scheduleUserDeletion,
+  cancelUserDeletion,
+  performImmediateUserDeletion,
+} from "@/lib/account-deletion";
 import { revalidatePath } from "next/cache";
 import { encryptConfig, decryptConfig } from "@/lib/crypto";
 import { hashToken } from "@/lib/hash";
@@ -668,10 +672,19 @@ export async function createAdminUser(data: {
 
 export async function cancelAccountDeletion(userId: string) {
   await assertAdmin();
-  await db.user.update({
-    where: { id: userId },
-    data: { deletionRequestedAt: null, deletionScheduledAt: null },
-  });
+  await cancelUserDeletion(userId);
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function deleteUserAccountImmediately(userId: string) {
+  const session = await assertAdmin();
+  if (userId === session.userId) {
+    throw new Error("You cannot delete your own admin account.");
+  }
+
+  await performImmediateUserDeletion(userId);
+
   revalidatePath("/admin");
   return { success: true };
 }
