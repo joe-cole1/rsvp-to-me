@@ -10,11 +10,14 @@ _Immediate attention items. High impact bugs, UX papercuts, and essential routin
 
 ### 🛠️ Bugs & Blockers
 
-_(No pending priority 1 bugs)_
+- **[BUG-01] Phone Number Normalization Inconsistency**: Custom logins and settings lookups use a normalized phone format (digits only, e.g. `5558675309`), but `createAdminUser` (`app/actions/admin.ts`), `inviteGuest` (`app/actions/event.ts`), and `inviteFriendAsGuest` (`app/actions/event.ts`) save phone numbers raw (e.g., `(555) 867-5309`). This breaks sign-in lookups for these users and creates duplicate user rows.
+  - _Recommended Fix_: Import and apply `normalizePhone` in `createAdminUser`, `inviteGuest`, and `inviteFriendAsGuest` before executing database queries or creations.
 
 ### 🔒 Routing & System Safety
 
 - ~~**[SEC-18] Uncapped outbound email/SMS via guest invite**~~ _(fixed — see Completed Milestones)_
+- **[SEC-32] Admin Promotion Guard Bypass**: Auto-promotion of `INITIAL_ADMIN_EMAIL` to the `ADMIN` role is duplicated across `lib/session.ts`, `app/actions/profile.ts`, and `app/(app)/dashboard/page.tsx`. However, the dashboard page implementation lacks the `adminCount === 0` check. This allows any user matching `INITIAL_ADMIN_EMAIL` to escalate privileges to `ADMIN` upon login even if active administrators already exist.
+  - _Recommended Fix_: Consolidate `INITIAL_ADMIN_EMAIL` auto-promotion into a single helper (e.g., inside `lib/session-user.ts` or `lib/auth.ts`) and enforce the `adminCount === 0` check consistently across all entry points.
 
 #### 🛡️ Security Audit 2026-07 — Remediation Plan
 
@@ -78,6 +81,8 @@ _(No pending priority 2 privacy controls)_
 - ~~**Configurable Email / SMS Channels**~~ _(implemented — see Completed Milestones)_
 - ~~**Admin: Create User**~~ _(implemented — see Completed Milestones)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
+- **[UX-01] Account Deletion Revocation**: A host who requests account deletion is signed out, and their account is scheduled to be deleted/anonymized in 30 days. However, if they log back in, they are not presented with any UI on their profile to cancel the request, and the cron job will still delete them.
+  - _Recommended Fix_: Add a "Cancel Deletion Request" button on the host Profile page that calls a new `cancelAccountDeletion` server action (currently only exposed to admins).
 
 ### 📖 Interactive Documentation Dashboard
 
@@ -114,6 +119,10 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
   - ✅ **(1) Shared App Router layout**: Dashboard, admin, and profile pages migrated to a single route-group `layout.tsx` — per-page nav boilerplate eliminated. [PR #176](https://github.com/joe-cole1/rsvp-to-me/pull/176)
   - ✅ **(2) Global nav unified**: `AppNavLogo` / `ProfileDropdown` consistent across event page, RSVP flow, guests page, and settings page — all `AppShell` outliers resolved. [PR #175](https://github.com/joe-cole1/rsvp-to-me/pull/175)
   - ✅ **(3) `getSessionUser()` deduplication audit**: All per-page `getSession` + `db.user.findUnique` duplicates replaced with `getSessionUser()` across 6 files.
+  - **(4) [CLEAN-01] Consolidated System Config Loading**: Reading the system configuration (`db.systemConfig.findMany()`) is implemented 5 different times, duplicating mapping loops in `lib/sms.ts`, `lib/email.ts`, and `app/actions/admin.ts`.
+    - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
+  - **(5) [CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
+    - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
 
 ### ⚙️ DevOps & Security (Deferred)
 
@@ -136,7 +145,11 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **[SEC-21] Defense-in-depth hardening (minor, low risk)** _(deferred)_:
   - (a) **Magic-token scope not enforced** — `verifyMagicToken` in `lib/auth.ts` ~line 116 never checks `record.type === "LOGIN"`, so an `EMAIL_CHANGE`/`PHONE_CHANGE` token can be redeemed at `/auth/verify`. Same-user only, so impact is low, but tokens should be scope-locked to their purpose.
   - ~~(b) **`updateRSVP` skips deadline/capacity re-check**~~ _(fixed — see Completed Milestones, with SEC-12)_
-  - (c) **Uploads open to any session incl. auto-created `GUEST` accounts** — `app/api/upload/route.ts` ~line 62 checks only `getSession()`, with no role check and no per-user/rate cap, allowing storage abuse. Magic-byte sniffing and SVG exclusion are already correct. Fix: gate to HOST/ADMIN (or rate-limit + per-user quota).
+  - (c) **Uploads open to any session incl. auto-created `GUEST` accounts** — `app/api/upload/route.ts` ~line 62 checks only `getSession()`, with no role check and no per-user/rate cap, allowing storage abuse. Magic-byte sniffing and SVG exclusion are already correct. Fix: gate upload access to HOST/ADMIN.
+- **[SEC-33] Missing Cron locks on Backups & Deletions**: In-process cron tasks (`runBackup` and `processExpiredDeletions`) in `lib/cron-scheduler.ts` do not use distributed locks. When scaled horizontally, all replicas will trigger backups and deletions simultaneously, causing database transaction deadlocks, file writing conflicts, and performance degradation.
+  - _Recommended Fix_: Implement a Redis-based distributed lock check (mirroring the one in `processReminders`) to ensure only one instance executes backups or deletions at any given time.
+- **[DEV-01] Database Rate Limit Table Bloat**: `cleanupRateLimits()` in `lib/rateLimit.ts` is never scheduled, meaning database-driven rate limit entries will accumulate indefinitely in PostgreSQL when Redis is disabled.
+  - _Recommended Fix_: Schedule a daily clean task using the in-process cron (`lib/cron-scheduler.ts`) that runs `cleanupRateLimits()`.
 - ~~**Auth Fallback Alerts**~~ _(implemented — see Completed Milestones)_
 
 ---
