@@ -123,6 +123,26 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 
 ---
 
+### HEALTH_CHECK_TOKEN
+
+- **Required**: No
+- **Default**: _(none)_
+- **Type**: Random string
+
+**What it does:** Unlocks the detailed response body of the `GET /api/health` endpoint. The endpoint is public (Docker healthchecks and uptime monitors probe it anonymously), so by default it returns only a minimal liveness signal — `{"status":"ok"}` with HTTP `200` when healthy, `{"status":"unavailable"}` with HTTP `503` when not — and no internal detail.
+
+When `HEALTH_CHECK_TOKEN` is set, requests that present the same value in the `x-health-token` header receive the detailed body instead, including the database migration state (`migrations: "ok" | "pending" | "unreachable"`) and a timestamp:
+
+```bash
+curl -H "x-health-token: <your token>" http://localhost:3000/api/health
+```
+
+When the variable is unset, every caller gets the minimal body. Requests with a missing or wrong token also get the minimal body — the status code (200/503) is the same either way, so anonymous monitoring keeps working.
+
+**How to generate:** Use the same method as `SESSION_SECRET` (e.g. `openssl rand -base64 32`).
+
+---
+
 ### ENCRYPTION_KEY
 
 - **Required**: No (falls back to `SESSION_SECRET` if not set)
@@ -424,6 +444,7 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 | `BACKUP_KEEP_COUNT`            | No              | `7`                 | Maximum number of backup files to retain before rotating.                                                       |
 | `SESSION_SECRET`               | Yes             | _(none)_            | Random string (32+ chars) for signing session cookies.                                                          |
 | `TRUSTED_IP_HEADER`            | No              | _(none)_            | Trusted proxy header for client IP (e.g. CF-Connecting-IP). Unset = headers not trusted; set it behind a proxy. |
+| `HEALTH_CHECK_TOKEN`           | No              | _(none)_            | Token for the `x-health-token` header that unlocks the detailed `/api/health` body (migration state).           |
 | `ENCRYPTION_KEY`               | No              | _(falls back)_      | Encryption key for database-stored credentials.                                                                 |
 | `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                                                         |
 | `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email address promoted to Admin on first login.                                                                 |
