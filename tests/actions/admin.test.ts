@@ -691,6 +691,25 @@ describe("app/actions/admin.ts", () => {
           data: expect.objectContaining({ email: "trimmed@example.com" }),
         });
       });
+
+      it("normalizes phone numbers before querying and saving", async () => {
+        mockUserFindUnique.mockResolvedValue(null);
+        mockUserCreate.mockResolvedValue({ id: "new-user-4", email: "norm@example.com" });
+
+        await createAdminUser({
+          email: "norm@example.com",
+          phone: " (555) 867-5309 ",
+          role: "GUEST",
+        });
+
+        expect(mockUserFindUnique).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({ where: { phone: "5558675309" } })
+        );
+        expect(mockUserCreate).toHaveBeenCalledWith({
+          data: expect.objectContaining({ phone: "5558675309" }),
+        });
+      });
     });
   });
 });

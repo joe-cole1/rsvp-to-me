@@ -9,6 +9,7 @@ import { logActivity } from "@/lib/activity";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/clientIp";
 import { assertHostOrCohost } from "./shared";
+import { normalizePhone } from "@/lib/auth";
 
 export async function inviteGuest(eventId: string, emailOrPhone: string) {
   const session = await getSession();
@@ -61,12 +62,14 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
         }
       }
 
+      const target = isEmail ? entry : normalizePhone(entry);
+
       let user = await db.user.findFirst({
-        where: isEmail ? { email: entry } : { phone: entry },
+        where: isEmail ? { email: entry } : { phone: target },
       });
       if (!user) {
         user = await db.user.create({
-          data: isEmail ? { email: entry, role: "GUEST" } : { phone: entry, role: "GUEST" },
+          data: isEmail ? { email: entry, role: "GUEST" } : { phone: target, role: "GUEST" },
         });
       }
 
@@ -75,13 +78,13 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
       });
 
       if (!rsvp) {
-        const namePrefix = isEmail ? entry.split("@")[0] : entry;
+        const namePrefix = isEmail ? entry.split("@")[0] : target;
         rsvp = await db.rSVP.create({
           data: {
             eventId,
             guestName: namePrefix,
             guestEmail: isEmail ? entry : null,
-            guestPhone: isEmail ? null : entry,
+            guestPhone: isEmail ? null : target,
             status: "INVITED",
             responded: false,
             approved: true,
@@ -92,14 +95,14 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
 
       // Prevent duplicate invitations for the same target
       const existingInvitation = await db.invitation.findFirst({
-        where: { eventId, sentTo: entry },
+        where: { eventId, sentTo: target },
       });
 
       if (!existingInvitation) {
         await db.invitation.create({
           data: {
             eventId,
-            sentTo: entry,
+            sentTo: target,
             channel: isEmail ? "EMAIL" : "SMS",
             rsvpId: rsvp.id,
           },
@@ -136,7 +139,7 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
           where: { id: eventId },
           select: { title: true, maybeEnabled: true, host: { select: { name: true } } },
         });
-        await sendEventInviteSms(entry, {
+        await sendEventInviteSms(target, {
           hostName: eventDetails?.host?.name ?? session.email?.split("@")[0] ?? "Your Host",
           eventTitle: eventDetails?.title ?? "Event",
           rsvpBaseUrl,
@@ -144,7 +147,7 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
         });
       }
 
-      invited.push(entry);
+      invited.push(target);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       errors.push(message);
@@ -233,12 +236,14 @@ export async function inviteFriendAsGuest(
     };
   }
 
+  const target = isEmail ? entry : normalizePhone(entry);
+
   let user = await db.user.findFirst({
-    where: isEmail ? { email: entry } : { phone: entry },
+    where: isEmail ? { email: entry } : { phone: target },
   });
   if (!user) {
     user = await db.user.create({
-      data: isEmail ? { email: entry, role: "GUEST" } : { phone: entry, role: "GUEST" },
+      data: isEmail ? { email: entry, role: "GUEST" } : { phone: target, role: "GUEST" },
     });
   }
 
@@ -246,13 +251,13 @@ export async function inviteFriendAsGuest(
     where: { eventId, userId: user.id },
   });
   if (!rsvp) {
-    const namePrefix = isEmail ? entry.split("@")[0] : entry;
+    const namePrefix = isEmail ? entry.split("@")[0] : target;
     rsvp = await db.rSVP.create({
       data: {
         eventId,
         guestName: namePrefix,
         guestEmail: isEmail ? entry : null,
-        guestPhone: isEmail ? null : entry,
+        guestPhone: isEmail ? null : target,
         status: "INVITED",
         responded: false,
         approved: false,
@@ -262,13 +267,13 @@ export async function inviteFriendAsGuest(
   }
 
   const existingInvitation = await db.invitation.findFirst({
-    where: { eventId, sentTo: entry },
+    where: { eventId, sentTo: target },
   });
   if (!existingInvitation) {
     await db.invitation.create({
       data: {
         eventId,
-        sentTo: entry,
+        sentTo: target,
         channel: isEmail ? "EMAIL" : "SMS",
         rsvpId: rsvp.id,
       },
@@ -291,7 +296,7 @@ export async function inviteFriendAsGuest(
       replyTo: invitingRsvp.guestEmail || undefined,
     });
   } else {
-    await sendEventInviteSms(entry, {
+    await sendEventInviteSms(target, {
       hostName: invitingRsvp.guestName,
       eventTitle: event.title,
       rsvpBaseUrl,

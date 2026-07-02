@@ -10,7 +10,7 @@ function looksLikePhone(s: string): boolean {
   return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
 }
 
-function normalizePhone(s: string): string {
+export function normalizePhone(s: string): string {
   // Strip spaces/dashes/parens but keep leading +
   return s.trim().replace(/[\s\-().]/g, "");
 }

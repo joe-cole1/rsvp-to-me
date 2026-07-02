@@ -1475,6 +1475,26 @@ describe("inviteGuest", () => {
     expect(sendEventInviteSms).toHaveBeenCalled();
   });
 
+  it("normalizes raw phone inputs before saving and sending SMS in inviteGuest", async () => {
+    const { sendEventInviteSms } = await import("@/lib/sms");
+    const rawPhone = " (555) 867-5309 ";
+    const normalized = "5558675309";
+    const result = await inviteGuest(EVENT_ID, rawPhone);
+
+    expect(result).toEqual({ success: true, emailOrPhone: normalized });
+    expect(mockUserCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { phone: normalized, role: "GUEST" },
+      })
+    );
+    expect(mockInvitationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { eventId: EVENT_ID, sentTo: normalized, channel: "SMS", rsvpId: "rsvp-new-id" },
+      })
+    );
+    expect(sendEventInviteSms).toHaveBeenCalledWith(normalized, expect.any(Object));
+  });
+
   it("handles mixed comma-separated entries with some valid and some invalid", async () => {
     const { sendEventInviteEmail } = await import("@/lib/email");
     const { sendEventInviteSms } = await import("@/lib/sms");
@@ -1830,5 +1850,28 @@ describe("inviteFriendAsGuest", () => {
     });
     const { sendEventInviteEmail } = await import("@/lib/email");
     expect(sendEventInviteEmail).toHaveBeenCalled();
+  });
+
+  it("normalizes raw phone inputs before saving and sending SMS in inviteFriendAsGuest", async () => {
+    const rawPhone = " (555) 867-5309 ";
+    const normalized = "5558675309";
+    const res = await inviteFriendAsGuest(EVENT_ID, "token", rawPhone);
+
+    expect(res).toEqual({ success: true });
+    expect(mockUserCreate).toHaveBeenCalledWith({
+      data: { phone: normalized, role: "GUEST" },
+    });
+    expect(mockRsvpCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventId: EVENT_ID,
+          guestPhone: normalized,
+          status: "INVITED",
+          approved: false,
+        }),
+      })
+    );
+    const { sendEventInviteSms } = await import("@/lib/sms");
+    expect(sendEventInviteSms).toHaveBeenCalledWith(normalized, expect.any(Object));
   });
 });
