@@ -59,6 +59,9 @@ After making changes and before presenting Git commands to the user to push to G
    - Run `docker compose up --build -d` to rebuild the application image and launch all containers from scratch. The seed script will run automatically on startup to populate fresh data.
 3. **Verify Correctness**:
    - Ensure the application builds successfully and tests pass. Use the Docker Testing workflow above — `npm test` cannot be run directly on the host.
+4. **Remind User to Run Local E2E Tests (Non-Mandatory)**:
+   - Always output a prompt/reminder to the user in your response prior to any git commit or push, suggesting they run the local Playwright E2E tests using the script: `powershell -ExecutionPolicy Bypass -File .\scripts\run-e2e-docker.ps1`.
+   - Do NOT make running this script mandatory for the user, but always remind them so they can choose to run it manually.
    <!-- END:post-modification-rules -->
 
 <!-- BEGIN:multi-pr-batch-rules -->
