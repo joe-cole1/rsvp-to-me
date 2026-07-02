@@ -22,9 +22,10 @@ This guide walks you through deploying **RSVP to Me** on any machine that can ru
 6. [Step 4 — Start the Application](#step-4--start-the-application)
 7. [Step 5 — First Login and Admin Setup](#step-5--first-login-and-admin-setup)
 8. [Understanding Your Data & Backups](#understanding-your-data--backups)
-9. [Stopping, Starting, and Restarting](#stopping-starting-and-restarting)
-10. [HTTPS and Custom Domains](#https-and-custom-domains)
-11. [Troubleshooting](#troubleshooting)
+9. [Connecting Database Tools](#connecting-database-tools)
+10. [Stopping, Starting, and Restarting](#stopping-starting-and-restarting)
+11. [HTTPS and Custom Domains](#https-and-custom-domains)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -264,6 +265,61 @@ docker compose exec postgres pg_dump -U postgres rsvp_db > ./data/backups/manual
 ```
 
 > **Caution:** Running `docker compose down -v` deletes all Docker volumes. While RSVP to Me uses a local directory bind mount, running this with custom setups might lead to permanent data loss. Always omit the `-v` flag to protect your data.
+
+---
+
+## Connecting Database Tools
+
+For security, PostgreSQL and Redis are **not published on host ports** — they are only reachable on the stack's internal Docker network. If you previously connected tools to `localhost:5432`, use one of these patterns instead.
+
+### Option A: Run the client inside the container (simplest)
+
+No network exposure at all — the client runs where the database lives:
+
+```bash
+docker compose exec postgres psql -U postgres -d rsvp_db
+```
+
+This is also how the backup commands in this guide work.
+
+### Option B: Loopback-only host port (desktop GUI clients)
+
+If you need a host-reachable port for a GUI client (DBeaver, pgAdmin, TablePlus) on the **same machine**, create a `docker-compose.override.yml` next to your `docker-compose.yml` (Docker Compose merges it automatically; it stays out of the repository):
+
+```yaml
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+```
+
+Then run `docker compose up -d` to apply it. Binding to `127.0.0.1` restores `localhost:5432` for tools on that machine only — the database is still **not** exposed to the network. Never use a bare `"5432:5432"` mapping in production; that publishes the database on all interfaces.
+
+### Option C: Join the stack's Docker network (tools in other containers/stacks)
+
+Containers from other Docker stacks can talk to the database directly by joining this stack's network — no host port needed. The network is named `<project>_default`, where `<project>` is the folder containing your `docker-compose.yml` (confirm with `docker network ls`).
+
+In the other stack's compose file, declare the network as external and attach your tool to it:
+
+```yaml
+services:
+  my-db-tool:
+    # ...
+    networks:
+      - rsvp
+networks:
+  rsvp:
+    external: true
+    name: rsvp-to-me_default # adjust to your actual network name
+```
+
+Or attach an already-running container ad hoc:
+
+```bash
+docker network connect rsvp-to-me_default my-db-tool
+```
+
+The tool can then connect with `postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_db`. If the other stack has its own service named `postgres`, use this stack's full container name instead (e.g. `rsvp-to-me-postgres-1`, from `docker compose ps`) to avoid an ambiguous hostname.
 
 ---
 
