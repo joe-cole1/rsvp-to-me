@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { getSession, destroySession } from "@/lib/session";
 import { getSessionUser } from "@/lib/session-user";
+import { promoteInitialAdmin } from "@/lib/admin-promotion";
 import { scheduleUserDeletion } from "@/lib/account-deletion";
 import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
@@ -159,21 +160,10 @@ export async function getUserProfile() {
     },
   });
 
-  if (user) {
-    const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-    if (
-      initialAdminEmail &&
-      user.email?.toLowerCase().trim() === initialAdminEmail &&
-      user.role !== "ADMIN"
-    ) {
-      const adminCount = await db.user.count({ where: { role: "ADMIN" } });
-      if (adminCount === 0) {
-        await db.user.update({
-          where: { id: user.id },
-          data: { role: "ADMIN" },
-        });
-        user.role = "ADMIN";
-      }
+  if (user && user.role !== "ADMIN") {
+    const promoted = await promoteInitialAdmin(user.id, user.email ?? "");
+    if (promoted) {
+      user.role = "ADMIN";
     }
   }
 

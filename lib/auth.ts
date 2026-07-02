@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { db } from "./db";
 import { createSession } from "./session";
 import { hashToken } from "./hash";
+import { promoteInitialAdmin } from "./admin-promotion";
 
 const TOKEN_TTL_MINUTES = 15;
 
@@ -130,18 +131,9 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
   if (!user) return false;
 
   let role = user.role;
-  const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-  if (
-    initialAdminEmail &&
-    user.email?.toLowerCase().trim() === initialAdminEmail &&
-    user.role !== "ADMIN"
-  ) {
-    const adminCount = await db.user.count({ where: { role: "ADMIN" } });
-    if (adminCount === 0) {
-      await db.user.update({
-        where: { id: user.id },
-        data: { role: "ADMIN" },
-      });
+  if (role !== "ADMIN") {
+    const promoted = await promoteInitialAdmin(user.id, user.email ?? user.phone ?? "");
+    if (promoted) {
       role = "ADMIN";
     }
   }

@@ -14,8 +14,7 @@ _No pending items in this category._
 
 ### 🔒 Backend / Security / DevOps
 
-- **[SEC-32] Admin Promotion Guard Bypass**: Auto-promotion of `INITIAL_ADMIN_EMAIL` to the `ADMIN` role is duplicated across `lib/session.ts`, `app/actions/profile.ts`, and `app/(app)/dashboard/page.tsx`. However, the dashboard page implementation lacks the `adminCount === 0` check. This allows any user matching `INITIAL_ADMIN_EMAIL` to escalate privileges to `ADMIN` upon login even if active administrators already exist.
-  - _Recommended Fix_: Consolidate `INITIAL_ADMIN_EMAIL` auto-promotion into a single helper (e.g., inside `lib/session-user.ts` or `lib/auth.ts`) and enforce the `adminCount === 0` check consistently across all entry points.
+_No pending items in this category._
 
 ---
 
@@ -100,6 +99,10 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Admin Promotion Guard Bypass
+
+- [x] **[SEC-32] Admin Promotion Guard Bypass**: Consolidated the `INITIAL_ADMIN_EMAIL` auto-promotion logic into a single helper (`promoteInitialAdmin` in `lib/admin-promotion.ts`) and enforced the `adminCount === 0` check consistently across all entry points, removing the privilege escalation vulnerability on the dashboard page.
 
 ### Phone Number Normalization [PR #233](https://github.com/joe-cole1/rsvp-to-me/pull/233)
 
