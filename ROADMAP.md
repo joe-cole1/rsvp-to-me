@@ -12,7 +12,6 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 - **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch.
 - **[BUG-03] Flaky Unit Test Timeouts in CI**: The unit test suite frequently encounters test timeouts in `tests/lib/crypto.test.ts` and `tests/actions/event.test.ts` on slow/constrained CI environments. These should be resolved by increasing Vitest's default timeout or optimizing slow mock/crypto operations.
-_No pending items in this category._
 
 ### 🔒 Backend / Security / DevOps
 
