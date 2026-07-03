@@ -524,7 +524,9 @@ export async function sendEmailTemplateTestAction(id: string, sampleBase?: strin
   const overrides = await getEmailTemplateSettings(templateId);
   const { subject, element } = buildSampleEmail(templateId, theme, overrides);
   const { html, text } = await renderEmail(element);
-  await sendRenderedEmail({ to: session.email, subject: `[Test] ${subject}`, html, text });
+  // Send the real subject (no prefix) so the test matches exactly what a
+  // recipient would receive; it goes only to the admin's own inbox.
+  await sendRenderedEmail({ to: session.email, subject, html, text });
   return { success: true as const, sentTo: session.email };
 }
 

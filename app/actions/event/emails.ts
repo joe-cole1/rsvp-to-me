@@ -157,7 +157,9 @@ export async function sendEventEmailTest(eventId: string, templateId: TemplateId
     return { success: false as const, error: "Too many test emails. Try again later." };
   }
   const { subject, html, text } = await renderEventEmail(eventId, templateId);
-  await sendRenderedEmail({ to: session.email, subject: `[Test] ${subject}`, html, text });
+  // Send the real subject (no prefix) so the host previews exactly what guests
+  // receive; it goes only to the signed-in host's own inbox.
+  await sendRenderedEmail({ to: session.email, subject, html, text });
   return { success: true as const, sentTo: session.email };
 }
 
