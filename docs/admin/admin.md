@@ -37,7 +37,7 @@ Navigate to `/admin` on your installation in your browser:
 
 The Admin Panel is strictly gated to users with the `ADMIN` role. If you attempt to access `/admin` with a lower-privilege account, the app redirects you to the main dashboard.
 
-The panel is organized into a sidebar of tabs (a slide-in drawer on mobile): **Overview**, **Users**, **Events**, **Host Settings**, **Email**, **SMS**, **Backups**, **Themes**, and **Documentation**. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
+The panel is organized into a sidebar of tabs: **Overview**, **Users**, **Events**, **Host Settings**, **Email**, **SMS**, **Backups**, **Themes**, and **Documentation**. On phones and small tablets the sidebar is replaced by a hamburger button (☰) in the page header — tap it to open a slide-in drawer with the same tabs. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
 
 > **Tip:** All of these admin guides — this one plus installation, configuration, email, SMS, and upgrading — are also readable inside the app in the **Documentation** tab at the bottom of the Admin Panel menu.
 

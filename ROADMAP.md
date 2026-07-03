@@ -10,8 +10,7 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🛠️ Bug / Fix
 
-- **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch. _(Note: the full unit suite passed 671/671 during the 2026-07 AdminClient split, so this may already be resolved — verify and close.)_
-- **[BUG-03] Admin mobile drawer can never open**: The sliding admin navigation drawer (now `app/(app)/admin/tabs/AdminMobileDrawer.tsx`, formerly inline in `AdminClient.tsx`) is gated on `isDrawerOpen`, but nothing ever calls `setIsDrawerOpen(true)` — there is no hamburger/trigger button. On screens below `lg` (where the sidebar is `hidden lg:flex`) admins cannot switch tabs except via the `?tab=` URL param. Found during the L-3 split of `AdminClient.tsx`; the drawer was moved verbatim to keep that refactor behavior-preserving.
+_No pending items in this category._
 
 ### 🔒 Backend / Security / DevOps
 
@@ -48,7 +47,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 ### 🛠️ Bug / Fix
 
-- **[L-4b] One missed L-4 site**: `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`, formerly `app/actions/event.ts` ~L1890) still swallows errors without `logSafe("inviteFriendAsGuest")`. Found during the L-3 split of `event.ts` and deliberately moved verbatim to keep that refactor 100% behavior-preserving; fix is a one-liner.
 - **[DEV-01] Database Rate Limit Table Bloat**: `cleanupRateLimits()` in `lib/rateLimit.ts` is never scheduled, meaning database-driven rate limit entries will accumulate indefinitely in PostgreSQL when Redis is disabled.
   - _Recommended Fix_: Schedule a daily clean task using the in-process cron (`lib/cron-scheduler.ts`) that runs `cleanupRateLimits()`.
 
@@ -94,6 +92,12 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Admin Mobile Drawer Trigger, Slug-Test Flake & Invite Logging
+
+- [x] **[BUG-03] Admin mobile drawer can never open**: Added a `lg:hidden` hamburger button to the admin page banner (`AdminClient.tsx`) that calls `setIsDrawerOpen(true)`, so admins on screens below `lg` can open the sliding drawer and switch tabs. Regression test: `tests/regression/bug-03-admin-mobile-drawer-trigger.test.ts`.
+- [x] **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: Root-caused as a flaky test, not a code bug — `randomBytes(3)` has a ~6% chance of producing an all-digit 6-char hex suffix, which the "every numeric suffix is taken" fixture counted as a collision, pushing the generator to an 8-char suffix and failing the `{6}` assertion. `l7-slug-collision-bound.test.ts` now stubs `randomBytes` to a deterministic letter-bearing buffer.
+- [x] **[L-4b] One missed L-4 site**: `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`) now routes through `logSafe("inviteFriendAsGuest")` like every other non-critical activity-log call. Regression test: `tests/regression/l4b-invite-friend-swallowed-error.test.ts`.
 
 ### components/event/SettingsPage.tsx God-File Split
 
