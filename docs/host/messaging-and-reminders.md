@@ -34,6 +34,19 @@ A guest's own notification preferences always take precedence — if a guest has
 
 ---
 
+## Preview Your Event's Emails
+
+Every email your guests receive — the invite, RSVP confirmation, approval, and update/reminder blasts — is styled to match your event's **theme**. Change your theme's colors, base vibe, or cover image, and your emails automatically follow; there's nothing extra to set up.
+
+To see exactly what guests get, open **Settings → 💌 Emails**:
+
+- Pick an email from the dropdown to see a live preview rendered with **your event's real details and current theme**.
+- Click **Send me a test** to receive that email at your own address, so you can check how it looks in your actual inbox before guests do.
+
+The wording of these emails is managed site-wide by your administrator, so the Emails panel is preview-only. If you'd like different copy, ask your admin. (The Emails panel appears only when email is enabled on your site.)
+
+---
+
 ## When Messaging Is Turned Off
 
 If your site administrator has disabled both email and SMS, the messaging panel is hidden and the app runs in **pure RSVP-collection mode**: guests fill out forms and you see the guest list, but no messages are sent.

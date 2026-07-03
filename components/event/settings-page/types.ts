@@ -154,4 +154,12 @@ export type DbThemePreset = {
 };
 
 export type SettingsSection =
-  "theme" | "hosts" | "rsvp" | "questionnaire" | "privacy" | "reminders" | "polls" | "potluck";
+  | "theme"
+  | "hosts"
+  | "rsvp"
+  | "questionnaire"
+  | "privacy"
+  | "reminders"
+  | "polls"
+  | "potluck"
+  | "emails";

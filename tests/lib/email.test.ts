@@ -9,10 +9,12 @@ vi.mock("nodemailer", () => ({
 }));
 
 const mockSystemConfigFindMany = vi.fn().mockResolvedValue([]);
+const mockSystemConfigFindUnique = vi.fn().mockResolvedValue(null);
 vi.mock("@/lib/db", () => ({
   db: {
     systemConfig: {
       findMany: () => mockSystemConfigFindMany(),
+      findUnique: (args: unknown) => mockSystemConfigFindUnique(args),
     },
   },
 }));
@@ -36,6 +38,8 @@ describe("lib/email.ts", () => {
     mockCreateTransport.mockClear();
     mockSystemConfigFindMany.mockClear();
     mockSystemConfigFindMany.mockResolvedValue([]);
+    mockSystemConfigFindUnique.mockClear();
+    mockSystemConfigFindUnique.mockResolvedValue(null);
     mockFetch.mockClear();
 
     delete process.env.SMTP_HOST;
@@ -92,6 +96,7 @@ describe("lib/email.ts", () => {
           to: "user@example.com",
           subject: "Your sign-in link for RSVP to Me",
           html: expect.stringContaining("http://localhost:3000/auth/verify?token=abc"),
+          text: expect.stringContaining("http://localhost:3000/auth/verify?token=abc"),
         })
       );
     });

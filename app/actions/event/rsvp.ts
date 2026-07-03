@@ -86,7 +86,13 @@ export async function addRSVP(rawInput: unknown) {
       rsvpDeadline: true,
       capacity: true,
       startAt: true,
+      endAt: true,
+      timezone: true,
+      locationType: true,
       locationName: true,
+      locationAddress: true,
+      virtualUrl: true,
+      theme: true,
       host: { select: { name: true, email: true } },
     },
   });
@@ -198,10 +204,17 @@ export async function addRSVP(rawInput: unknown) {
       guestName: data.guestName,
       eventTitle: event.title,
       eventSlug: event.slug,
+      eventId: event.id,
       status: data.status,
       editToken: rsvp.editToken,
       startAt: event.startAt,
+      endAt: event.endAt,
+      timezone: event.timezone,
+      locationType: event.locationType,
       locationName: event.locationName,
+      locationAddress: event.locationAddress,
+      virtualUrl: event.virtualUrl,
+      theme: event.theme,
       replyTo: event.host.email || undefined,
     }).catch(logSafe("addRSVP"));
   }
@@ -326,6 +339,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
         select: {
           slug: true,
           title: true,
+          theme: true,
           host: { select: { email: true } },
         },
       },
@@ -343,6 +357,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
       eventSlug: rsvp.event.slug,
       approved: true,
       message,
+      theme: rsvp.event.theme,
       replyTo: rsvp.event.host.email || undefined,
     }).catch(logSafe("approveRsvp"));
   } else if (rsvp.guestPhone) {
@@ -365,6 +380,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
         select: {
           slug: true,
           title: true,
+          theme: true,
           host: { select: { email: true } },
         },
       },
@@ -380,6 +396,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
       eventSlug: rsvp.event.slug,
       approved: false,
       message,
+      theme: rsvp.event.theme,
       replyTo: rsvp.event.host.email || undefined,
     }).catch(logSafe("declineRsvp"));
   } else if (rsvp.guestPhone) {

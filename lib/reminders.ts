@@ -72,6 +72,7 @@ export async function processReminders(): Promise<void> {
       },
       include: {
         reminderSettings: true,
+        theme: true,
         host: { select: { name: true } },
         rsvps: {
           where: { approved: true },
@@ -111,6 +112,9 @@ export async function processReminders(): Promise<void> {
 
       const hostName = event.host.name ?? "Your host";
       const base = { eventTitle: event.title, eventSlug: event.slug, hostName };
+      // Theme is loaded fresh each cron tick, so host theme edits are
+      // reflected in the next reminder that goes out.
+      const emailBase = { ...base, theme: event.theme };
 
       const checks: Array<{
         type: ReminderType;
@@ -124,7 +128,7 @@ export async function processReminders(): Promise<void> {
           dueAt: new Date(startAt.getTime() - 7 * 24 * 60 * 60 * 1000),
           send: () =>
             sendBlastEmail(emails, {
-              ...base,
+              ...emailBase,
               message: `Just a reminder — ${event.title} is one week away! We can't wait to see you.`,
             }),
         },
@@ -134,7 +138,7 @@ export async function processReminders(): Promise<void> {
           dueAt: new Date(startAt.getTime() - 24 * 60 * 60 * 1000),
           send: () =>
             sendBlastEmail(emails, {
-              ...base,
+              ...emailBase,
               message: `${event.title} is tomorrow! See you then.`,
             }),
         },
@@ -144,7 +148,7 @@ export async function processReminders(): Promise<void> {
           dueAt: new Date(startAt.getTime() - rs.emailHoursBefore * 60 * 60 * 1000),
           send: () =>
             sendBlastEmail(emails, {
-              ...base,
+              ...emailBase,
               message: `${event.title} starts in ${hoursLabel(rs.emailHoursBefore)}! See you soon.`,
             }),
         },
@@ -186,7 +190,7 @@ export async function processReminders(): Promise<void> {
             );
             if (nudgeEmails.length === 0) return;
             return sendBlastEmail(nudgeEmails, {
-              ...base,
+              ...emailBase,
               message: `You're invited to ${event.title} in 3 days — have you had a chance to RSVP?`,
             });
           },
