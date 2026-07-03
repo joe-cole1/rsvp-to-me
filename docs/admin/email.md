@@ -26,8 +26,10 @@ RSVP to Me sends email notifications for passwordless logins (magic links), gues
 5. [Option B: Cloudflare Workers (Full Setup)](#option-b-cloudflare-workers-full-setup)
 6. [Option C: Cloudflare REST API (Outbound Only)](#option-c-cloudflare-rest-api-outbound-only)
 7. [Testing Your Email Configuration](#testing-your-email-configuration)
-8. [Troubleshooting](#troubleshooting)
-9. [SPF, DKIM, and DMARC Explained](#spf-dkim-and-dmarc-explained)
+8. [Themed Email Templates](#themed-email-templates)
+9. [Editing Template Copy & Content Blocks](#editing-template-copy--content-blocks)
+10. [Troubleshooting](#troubleshooting)
+11. [SPF, DKIM, and DMARC Explained](#spf-dkim-and-dmarc-explained)
 
 ---
 
@@ -39,7 +41,7 @@ Email dispatches are triggered by the following application events:
 | -------------------------------------------------- | ----------------------------------------------------- |
 | User requests login link                           | The requesting user (magic link)                      |
 | Host invites guests                                | The invited guests                                    |
-| Guest submits an RSVP                              | The guest (confirmation) & the host (new RSVP alert)  |
+| Guest submits an RSVP                              | The guest (confirmation)                              |
 | Host approves/declines a pending RSVP              | The approved/declined guest                           |
 | Host sends an event update blast                   | All Going and Maybe guests (if notify is selected)    |
 | Automated reminder (7 days, 1 day, N hours before) | All Going and Maybe guests with notifications enabled |
@@ -48,7 +50,9 @@ Email dispatches are triggered by the following application events:
 
 _Note on Reminders:_ The in-process cron scheduler checks every 15 minutes to trigger due reminders. Each reminder type is sent exactly once per user per event.
 
-_Note on Notification Toggles:_ Hosts can control which of the above fire on a per-event basis under **Event Settings → RSVP Options → Notification Settings**. Individual toggles exist for guest confirmations (email/SMS), host RSVP alerts (email/SMS), and approval notifications (email/SMS).
+_Note on Notification Toggles:_ Hosts can control which guest-facing emails fire on a per-event basis under **Event Settings → RSVP Options**. A host **new-RSVP alert** email template ships and can be previewed, but it is **not yet wired to fire** on guest RSVPs (tracked in `ROADMAP.md`).
+
+_Note on Themed Templates:_ Every event email (invite, RSVP confirmation, approval, update/reminder) is styled from that event's theme — see [Themed Email Templates](#themed-email-templates) below.
 
 ---
 
@@ -304,19 +308,57 @@ If you do not need inbound guest replies forwarded to you, you can call Cloudfla
 
 ## Testing Your Email Configuration
 
-To verify that your configuration works:
+The Admin Panel's **Email** tab is split into two collapsible sections:
+
+- **Email Setup** — the guest-notifications toggle, provider selector, provider fields, and a **Test Connection** button. The connection test now sends the fully styled test email (not a plain "it works" line) to your admin address, so you can confirm both delivery _and_ rendering.
+- **Email Templates** — see [Editing Template Copy & Content Blocks](#editing-template-copy--content-blocks).
+
+To verify delivery:
 
 1. Log in to the application as an `ADMIN` user.
-2. Go to the Admin settings panel at `/admin` and click the **System Configuration** tab.
-3. Under the **Email Settings** block, click **Send Test Email**.
-4. Type in your email address and click Send.
-5. Check your inbox and spam folder.
+2. Go to `/admin` → the **Email** tab → open **Email Setup**.
+3. Configure your provider, then click **Test Connection**.
+4. Check your inbox and spam folder for the styled test email.
 
 If the email does not arrive, inspect your container logs:
 
 ```bash
 docker compose logs app | grep -i email
 ```
+
+---
+
+## Themed Email Templates
+
+All event-related emails are rendered from the event's own theme, so an invite for a Halloween-themed party looks like that party and a Soft & Dreamy wedding shower looks like that shower. Emails are built with [React Email](https://react.email/) into table-based HTML that renders reliably across Gmail, Apple Mail, and Outlook.
+
+**How theming flows into email:**
+
+- The email palette is **derived from the same `resolveTheme()`** engine that styles the event page (`lib/email-theme.ts` → `resolveEmailTheme()`), so it always tracks the event page. There is no separate email palette to maintain.
+- Theme is resolved **at send time** from the event's current theme row. If a host changes their theme, every subsequent email — including automated reminders — uses the new look. Already-sent emails are unchanged.
+- New theme presets (built-in or admin-created) work in email automatically, with no email-code changes.
+- Emails use a **light canvas with a themed gradient hero** (plus the cover image when set). This is the most reliable choice across clients: Apple Mail/Outlook honor the `prefers-color-scheme` dark tweaks we ship, while Gmail applies its own dark treatment to the light canvas gracefully.
+
+> **Degradation contract (for developers):** email clients cannot run modern CSS, so `resolveEmailTheme()` is the single place where web-theme capabilities are mapped to email-safe equivalents. Every new `ResolvedTheme` capability must declare its email mapping or explicitly degrade (e.g. a future background image → a bulletproof hero background with a solid-color fallback; animation → a static equivalent). Anything undeclared is ignored — email rendering must never break because a web-only token was added. See the module docblock in `lib/email-theme.ts` and the rule in `AGENTS.md`.
+
+> **Self-hosting note:** cover images and the `.ics` calendar link are absolute URLs built from `NEXT_PUBLIC_APP_URL`. Set it to your real public URL so guests' mail clients can load the cover image and download calendar files.
+
+---
+
+## Editing Template Copy & Content Blocks
+
+Under **Admin Panel → Email → Email Templates**, admins can customize each email without touching code. Pick a template from the dropdown to edit it; a **live preview** renders beside the editor (with a Dark/Soft/Bold sample switcher for event emails), and **Send test to me** delivers a sample to your admin address.
+
+**What you can edit per template:**
+
+- **Subject line** — with `{placeholder}` variables (see below).
+- **Body copy** — for templates whose body is editable (invite, RSVP confirmation, sign-in link, welcome, test). The host-written blast/reminder and the approval/host-alert bodies are generated, so only their subjects are editable.
+- **Content blocks** — toggle optional pieces on/off: cover image, "Hosted by" flourish, Google Maps link, and add-to-calendar links (only the toggles relevant to each template are shown).
+- **Reset to default** — clears your overrides and restores the shipped copy.
+
+**Placeholders** are written in curly braces and substituted at send time. Available variables depend on the template (shown as clickable chips in the editor), e.g. `{guestName}`, `{hostName}`, `{eventTitle}`, `{eventDate}`, `{location}`, `{status}`. Unknown placeholders are left as-is so typos are visible. Copy is inserted as plain text — any HTML you type appears literally and cannot break the layout.
+
+Template overrides are stored per-template in system configuration and apply site-wide. Hosts do not edit template copy; they can only preview their event's emails (see the host guide).
 
 ---
 

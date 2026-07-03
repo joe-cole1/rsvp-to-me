@@ -24,12 +24,10 @@ _Functional improvements, layout adjustments, and secondary features that can be
 
 ### 🛠️ Bug / Fix
 
-_No pending items in this category._
+- **Host new-RSVP alert email is not wired up**: `sendHostRsvpAlertEmail` (and its SMS twin `sendHostRsvpAlertSms`) exist and now have a styled, previewable template, but nothing calls them — hosts do **not** actually receive a "New RSVP" email/SMS when a guest RSVPs, despite the notification toggles implying they do. The initial migration also carries orphaned `Event` columns (`hostAlertEmail`, `rsvpConfirmEmail`, …) that no longer exist in `schema.prisma` (schema drift). Wire the alert into `addRSVP` (respecting the per-event host-alert toggles) and reconcile or remove the stale columns. _(Discovered during the 2026-07 email-template rebuild.)_
 
 ### 🎨 UI / UX / Feature
 
-- **Beautiful & Modern Email Templates**: Make the transactional and blast email templates visually pleasing. Currently, SMTP and Cloudflare Email dispatches send very plain HTML. Leverage a modern React-based template builder or responsive compiler to build rich, responsive layout tables (with brand colors, stylized buttons, and card borders) that look premium across client environments (Gmail, Apple Mail, Outlook).
-  - _Research options_: Pair [React Email](https://react.email/) (using React components and tailwind styling) or [MJML](https://mjml.io/) (with `mjml-react`) to compile responsive HTML templates, allowing dynamic branding accents.
 - **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
@@ -92,6 +90,11 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Themed, Responsive Email Templates (React Email)
+
+- [x] **Beautiful & Modern Email Templates**: Rebuilt all 8 transactional/blast emails with [React Email](https://react.email/) (`emails/`), rendered to responsive table-based HTML with a light canvas + themed gradient hero, `color-scheme` meta tags, mobile media queries, and a `prefers-color-scheme` dark enhancement. Event emails are themed **at send time** from the event's own theme via `resolveEmailTheme()` (`lib/email-theme.ts`), which **derives** the palette from the existing `resolveTheme()` — so new presets and host theme changes (including on cron reminders) flow into email automatically with no email-code changes. Invite uses an accent primary "Going" button with quiet Maybe/Can't-Go links; emails gained an add-to-calendar row (Google + a new `/e/[slug]/calendar.ics` route), a map-linked details card, and a themed host monogram. Admins can edit per-template copy + content-block toggles (stored in `SystemConfig`, rendered as escaped text nodes) and preview/test-send any template from **Admin → Email → Email Templates**; hosts can preview their event's themed emails and send themselves a test from **Settings → 💌 Emails**. A documented **degradation contract** in `lib/email-theme.ts` + `AGENTS.md` makes the theme→email mapper the single extension point for future theme capabilities, enforced by a preset-sweep test. Tests: `tests/lib/email-theme.test.ts`, `email-templates.test.tsx`, `email-preset-sweep.test.tsx`, `email-settings.test.ts`, `calendar.test.ts`, `tests/api/calendar-ics.test.ts`.
+- [x] **Latent unescaped-message fix**: the old inline-HTML blast and approval templates interpolated host/guest-typed `message` strings directly into HTML (a stored-injection-into-email vector). The React rebuild renders all copy as text nodes, structurally eliminating it.
 
 ### Admin Mobile Drawer Trigger, Slug-Test Flake & Invite Logging
 

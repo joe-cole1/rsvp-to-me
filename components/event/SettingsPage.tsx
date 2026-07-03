@@ -48,6 +48,7 @@ import { DisplayOptionsPanel } from "./settings-page/DisplayOptionsPanel";
 import { RemindersPanel } from "./settings-page/RemindersPanel";
 import { PollsPanel } from "./settings-page/PollsPanel";
 import { PotluckPanel } from "./settings-page/PotluckPanel";
+import { EmailsPanel } from "./settings-page/EmailsPanel";
 
 export type { SessionUser } from "./settings-page/types";
 
@@ -816,6 +817,7 @@ export function SettingsPage({
                 {activeSection === "potluck" && "Potluck"}
                 {activeSection === "privacy" && "Display Options"}
                 {activeSection === "reminders" && "Auto-Reminders"}
+                {activeSection === "emails" && "Emails"}
               </span>
             </div>
           ) : (
@@ -880,7 +882,12 @@ export function SettingsPage({
 
       <div style={S.container}>
         {activeSection === null && (
-          <SettingsMenu isOwner={isOwner} openSection={openSection} t={t} />
+          <SettingsMenu
+            isOwner={isOwner}
+            openSection={openSection}
+            t={t}
+            emailEnabled={channelConfig.email}
+          />
         )}
 
         {/* ── Theme ── */}
@@ -1035,6 +1042,9 @@ export function SettingsPage({
             t={t}
           />
         )}
+
+        {/* ── Emails ── */}
+        {activeSection === "emails" && <EmailsPanel eventId={event.id} t={t} />}
 
         {/* ── Polls Sub-page ── */}
         {activeSection === "polls" && (

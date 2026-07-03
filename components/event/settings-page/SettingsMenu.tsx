@@ -7,10 +7,12 @@ export function SettingsMenu({
   isOwner,
   openSection,
   t,
+  emailEnabled = true,
 }: {
   isOwner: boolean;
   openSection: (section: SettingsSection) => void;
   t: ResolvedTheme;
+  emailEnabled?: boolean;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -41,6 +43,15 @@ export function SettingsMenu({
             title: "🔔 Auto-Reminders",
             desc: "Set up automatic emails and texts before/after event",
           },
+          ...(emailEnabled
+            ? [
+                {
+                  id: "emails" as const,
+                  title: "💌 Emails",
+                  desc: "Preview this event's themed emails and send yourself a test",
+                },
+              ]
+            : []),
           { id: "polls", title: "📊 Polls", desc: "Create and manage polls for guests" },
           {
             id: "questionnaire",

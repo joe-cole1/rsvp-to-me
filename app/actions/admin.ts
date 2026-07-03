@@ -13,6 +13,7 @@ import { encryptConfig, decryptConfig } from "@/lib/crypto";
 import { hashToken } from "@/lib/hash";
 import { sendWelcomeEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/auth";
+import { EMAIL_TEMPLATE_META, TEMPLATE_IDS, type TemplateId } from "@/emails/registry";
 
 async function assertAdmin() {
   const session = await getSession();
@@ -407,6 +408,124 @@ export async function testEmailConfigAction(data: {
   });
 
   return result;
+}
+
+// ── Email templates (copy + toggles, previews, test sends) ───────────────────
+
+function parseTemplateId(id: string): TemplateId {
+  if (!TEMPLATE_IDS.includes(id as TemplateId)) {
+    throw new Error("Unknown email template");
+  }
+  return id as TemplateId;
+}
+
+async function emailThemeForPreview(base?: string) {
+  const { appShellEmailTheme, resolveEmailTheme } = await import("@/lib/email-theme");
+  const { BASE_THEMES } = await import("@/lib/theme");
+  const baseTheme = BASE_THEMES.find((b) => b.id === base);
+  if (!baseTheme) return appShellEmailTheme();
+  return resolveEmailTheme({
+    baseTheme: baseTheme.id,
+    gradientFrom: baseTheme.defaultGradientFrom,
+    gradientTo: baseTheme.defaultGradientTo,
+    accentColor: baseTheme.defaultAccent,
+  });
+}
+
+export async function getEmailTemplatesAdmin() {
+  await assertAdmin();
+  const { getEmailTemplateSettings } = await import("@/lib/email-settings");
+  const templates = await Promise.all(
+    TEMPLATE_IDS.map(async (id) => ({
+      meta: EMAIL_TEMPLATE_META[id],
+      overrides: await getEmailTemplateSettings(id),
+    }))
+  );
+  return { templates };
+}
+
+export async function saveEmailTemplateAction(id: string, overrides: unknown) {
+  await assertAdmin();
+  const templateId = parseTemplateId(id);
+  const { templateOverridesSchema, templateConfigKey } = await import("@/lib/email-settings");
+  const parsed = templateOverridesSchema.safeParse(overrides);
+  if (!parsed.success) {
+    return { success: false as const, error: "Invalid template settings" };
+  }
+  // Persist only real overrides; empty strings mean "use the default".
+  const cleaned = Object.fromEntries(
+    Object.entries(parsed.data).filter(([, v]) => v !== undefined && v !== "")
+  );
+  const key = templateConfigKey(templateId);
+  if (Object.keys(cleaned).length === 0) {
+    await db.systemConfig.deleteMany({ where: { key } });
+  } else {
+    const value = JSON.stringify(cleaned);
+    await db.systemConfig.upsert({ where: { key }, update: { value }, create: { key, value } });
+  }
+  revalidatePath("/admin");
+  return { success: true as const };
+}
+
+export async function resetEmailTemplateAction(id: string) {
+  await assertAdmin();
+  const templateId = parseTemplateId(id);
+  const { templateConfigKey } = await import("@/lib/email-settings");
+  await db.systemConfig.deleteMany({ where: { key: templateConfigKey(templateId) } });
+  revalidatePath("/admin");
+  return { success: true as const };
+}
+
+/** Live preview for the admin editor — renders unsaved state with sample data. */
+export async function previewEmailTemplateAction(
+  id: string,
+  overrides: unknown,
+  sampleBase?: string
+) {
+  await assertAdmin();
+  const templateId = parseTemplateId(id);
+  const { templateOverridesSchema } = await import("@/lib/email-settings");
+  const parsed = templateOverridesSchema.safeParse(overrides ?? {});
+  const { buildSampleEmail } = await import("@/emails/registry");
+  const { renderEmail } = await import("@/emails/render");
+  const meta = EMAIL_TEMPLATE_META[templateId];
+  const theme = meta.eventScoped
+    ? await emailThemeForPreview(sampleBase ?? "DARK")
+    : await emailThemeForPreview();
+  const { subject, element } = buildSampleEmail(
+    templateId,
+    theme,
+    parsed.success ? parsed.data : {}
+  );
+  const { html } = await renderEmail(element);
+  return { subject, html };
+}
+
+/** Send a sample of any template to the signed-in admin's email. */
+export async function sendEmailTemplateTestAction(id: string, sampleBase?: string) {
+  const session = await assertAdmin();
+  if (!session.email) {
+    throw new Error("Admin email is required to send a test email.");
+  }
+  const templateId = parseTemplateId(id);
+  const { rateLimit } = await import("@/lib/rateLimit");
+  const limit = await rateLimit(`admin-email-test:${session.userId}`, 10, 3600);
+  if (!limit.success) {
+    return { success: false as const, error: "Too many test emails. Try again later." };
+  }
+  const { getEmailTemplateSettings } = await import("@/lib/email-settings");
+  const { buildSampleEmail } = await import("@/emails/registry");
+  const { renderEmail } = await import("@/emails/render");
+  const { sendRenderedEmail } = await import("@/lib/email");
+  const meta = EMAIL_TEMPLATE_META[templateId];
+  const theme = meta.eventScoped
+    ? await emailThemeForPreview(sampleBase ?? "DARK")
+    : await emailThemeForPreview();
+  const overrides = await getEmailTemplateSettings(templateId);
+  const { subject, element } = buildSampleEmail(templateId, theme, overrides);
+  const { html, text } = await renderEmail(element);
+  await sendRenderedEmail({ to: session.email, subject: `[Test] ${subject}`, html, text });
+  return { success: true as const, sentTo: session.email };
 }
 
 export async function testSmsConfigAction(data: {
