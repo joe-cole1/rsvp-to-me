@@ -216,7 +216,6 @@ function extractRawEmail(fromStr) {
       <CollapsibleSection
         title="Email Setup"
         subtitle="Guest notifications toggle, delivery provider, and connection test"
-        defaultOpen
       >
         {/* Guest Email Channel Toggle */}
         <div
