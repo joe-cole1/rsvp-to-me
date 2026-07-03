@@ -50,4 +50,5 @@ export {
   getDashboardActivity,
   deleteActivityEvent,
 } from "./dashboard";
+export { getEventEmailPreview, sendEventEmailTest, getEventEmailTemplates } from "./emails";
 export type { DashboardEvent, DashboardInvite, DashboardActivity } from "./types";

@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { sendEventInviteEmail } from "@/lib/email";
 import { sendEventInviteSms } from "@/lib/sms";
 import { logActivity } from "@/lib/activity";
+import { logSafe } from "@/lib/logger";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/clientIp";
 import { assertHostOrCohost } from "./shared";
@@ -118,8 +119,14 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
           select: {
             title: true,
             startAt: true,
+            endAt: true,
+            timezone: true,
+            locationType: true,
             locationName: true,
+            locationAddress: true,
+            virtualUrl: true,
             maybeEnabled: true,
+            theme: true,
             host: { select: { name: true, email: true } },
           },
         });
@@ -128,10 +135,17 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
           hostName: eventDetails?.host?.name ?? session.email?.split("@")[0] ?? "Your Host",
           eventTitle: eventDetails?.title ?? "Event",
           eventSlug: event.slug,
+          eventId,
           startAt: eventDetails?.startAt ?? new Date(),
+          endAt: eventDetails?.endAt,
+          timezone: eventDetails?.timezone,
+          locationType: eventDetails?.locationType,
           locationName: eventDetails?.locationName,
+          locationAddress: eventDetails?.locationAddress,
+          virtualUrl: eventDetails?.virtualUrl,
           rsvpBaseUrl,
           maybeEnabled: eventDetails?.maybeEnabled ?? true,
+          theme: eventDetails?.theme,
           replyTo: eventDetails?.host?.email || undefined,
         });
       } else {
@@ -185,7 +199,7 @@ export async function inviteFriendAsGuest(
 
   const invitingRsvp = await db.rSVP.findUnique({
     where: { editToken },
-    include: { event: true },
+    include: { event: { include: { theme: true } } },
   });
   if (!invitingRsvp || invitingRsvp.eventId !== eventId) {
     return { success: false, error: "Invalid guest token" };
@@ -289,10 +303,17 @@ export async function inviteFriendAsGuest(
       hostName: invitingRsvp.guestName,
       eventTitle: event.title,
       eventSlug: event.slug,
+      eventId: event.id,
       startAt: event.startAt,
+      endAt: event.endAt,
+      timezone: event.timezone,
+      locationType: event.locationType,
       locationName: event.locationName,
+      locationAddress: event.locationAddress,
+      virtualUrl: event.virtualUrl,
       rsvpBaseUrl,
       maybeEnabled: event.maybeEnabled,
+      theme: event.theme,
       replyTo: invitingRsvp.guestEmail || undefined,
     });
   } else {
@@ -305,7 +326,7 @@ export async function inviteFriendAsGuest(
   }
 
   logActivity(eventId, "guest_invite", `${invitingRsvp.guestName} invited ${rsvp.guestName}`).catch(
-    () => {}
+    logSafe("inviteFriendAsGuest")
   );
   revalidatePath(`/e/${event.slug}`);
 

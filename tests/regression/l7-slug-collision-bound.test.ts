@@ -10,12 +10,29 @@
 // Fix: the friendly sequential probe is capped at 10 attempts; after that the
 // generator switches to CSPRNG hex suffixes with growing entropy (4 attempts),
 // then fails loudly instead of looping forever.
+//
+// BUG-02 (found 2026-07): the first test here was flaky. With real
+// randomBytes(3) there is a ~6% chance ((10/16)^6) that all six hex chars are
+// decimal digits, which the "every base-<number> candidate is taken" fixture
+// then counts as a collision — so the generator moved on to randomBytes(4)
+// and returned an 8-char suffix (e.g. my-party-9f2b2b91), failing the {6}
+// assertion. randomBytes is now stubbed to a fixed letter-bearing buffer so
+// the probe counts and suffix length are deterministic.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { mockEventFindUnique } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
 }));
+
+vi.mock("crypto", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("crypto")>();
+  return {
+    ...actual,
+    // Deterministic stand-in: hex output is "abab…" (always contains letters).
+    randomBytes: (size: number) => Buffer.alloc(size, 0xab),
+  };
+});
 
 vi.mock("@/lib/db", () => ({
   db: { event: { findUnique: mockEventFindUnique } },

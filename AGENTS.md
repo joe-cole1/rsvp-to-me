@@ -321,6 +321,13 @@ Local filesystem storage — no external service needed.
 - **Email:** `lib/email.ts` uses nodemailer. When `SMTP_HOST` is set, sends via SMTP. When unset, logs the payload to console (dev mode). No external API key required.
 - **SMS:** `lib/sms.ts` uses Twilio. When `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` are set, sends real SMS. When unset, logs to console. `sendSmsBlast` uses `Promise.allSettled` so partial failures don't throw.
 
+### Themed Emails (React Email) — Degradation Contract
+
+- Email templates live in `emails/` as [React Email](https://react.email/) components, rendered to table-based HTML by `lib/email.ts`. A registry (`emails/registry.tsx`) is the single source of truth for template ids, default copy, placeholders, toggles, and sample data — it drives `lib/email.ts`, the admin editor, host/admin previews, and tests. `next.config.ts` lists the react-email packages in `serverExternalPackages` (required so `render()` works in App Router server actions and the reminder cron).
+- **Event emails are themed at send time.** Each event-email call site loads the event's `theme` (EventTheme) and passes it through; `resolveEmailTheme()` in `lib/email-theme.ts` **derives** the email palette from `resolveTheme()`. Never build a parallel email palette. If you add an email call site for an event, `select`/`include` the `theme` and pass it — otherwise host theme changes and presets won't reach that email.
+- **Degradation contract:** `resolveEmailTheme()` is the single place web-theme capabilities are mapped to email-safe values. Any new `ResolvedTheme` capability MUST declare its email equivalent there or explicitly degrade (background image → bulletproof hero bg with solid fallback; animation → static; rgba/hsla → solid hex; undeclared → ignored). Email rendering must never break because a web-only token was added. The preset-sweep test (`tests/lib/email-preset-sweep.test.tsx`) enforces this across all presets and asserts each email stays under Gmail's 102KB clip.
+- **Admin-editable copy** lives in `SystemConfig` rows keyed `email_template_<id>` (JSON overrides only; reset = delete row), validated in `lib/email-settings.ts`. Editable copy is always rendered as React text nodes, never raw HTML.
+
 ## Environment Variables
 
 ```bash

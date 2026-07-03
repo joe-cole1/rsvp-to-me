@@ -1,9 +1,42 @@
+import { createElement } from "react";
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
 import { decryptConfig } from "./crypto";
 import { isChannelEnabled } from "./config";
+import { appShellEmailTheme, resolveEmailTheme, type EmailThemeInput } from "./email-theme";
+import { getEmailTemplateSettings, mergeWithDefaults } from "./email-settings";
+import { renderEmail, substitutePlaceholders } from "@/emails/render";
+import { mergedToggles, type TemplateId } from "@/emails/registry";
+import type { EventEmailDetails } from "@/emails/components/DetailsCard";
+import type { RsvpStatusLabel } from "@/emails/types";
+import { InviteEmail } from "@/emails/templates/InviteEmail";
+import { RsvpConfirmationEmail } from "@/emails/templates/RsvpConfirmationEmail";
+import { ApprovalEmail } from "@/emails/templates/ApprovalEmail";
+import { BlastEmail } from "@/emails/templates/BlastEmail";
+import { HostRsvpAlertEmail } from "@/emails/templates/HostRsvpAlertEmail";
+import { MagicLinkEmail } from "@/emails/templates/MagicLinkEmail";
+import { WelcomeEmail } from "@/emails/templates/WelcomeEmail";
+import { TestEmail } from "@/emails/templates/TestEmail";
+import { formatEventDateTime } from "./calendar";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+/**
+ * Admin-editable copy (subject/body with {placeholders}) + structural toggles
+ * for a template, resolved from SystemConfig at send time.
+ */
+async function templateCopy(id: TemplateId, vars: Record<string, string | undefined>) {
+  const overrides = await getEmailTemplateSettings(id);
+  const merged = mergeWithDefaults(id, overrides);
+  return {
+    subject: substitutePlaceholders(merged.subject, vars),
+    body: substitutePlaceholders(merged.body, vars),
+    toggles: mergedToggles(id, overrides),
+  };
+}
+
+const statusLabel = (status: "GOING" | "MAYBE" | "NO"): RsvpStatusLabel =>
+  status === "GOING" ? "Going" : status === "MAYBE" ? "Maybe" : "Can't Go";
 
 function isSafeWorkerUrl(urlStr: string): boolean {
   try {
@@ -37,6 +70,7 @@ type MailOpts = {
   bcc?: string | string[];
   subject: string;
   html: string;
+  text?: string;
   replyTo?: string;
 };
 
@@ -47,6 +81,7 @@ type WorkerMailOpts = {
   replyTo?: string;
   subject: string;
   html: string;
+  text?: string;
 };
 
 async function resolveEmailConfig() {
@@ -166,6 +201,7 @@ async function sendViaRestApi(
         bcc: opts.bcc,
         subject: opts.subject,
         html: opts.html,
+        text: opts.text,
         replyTo: opts.replyTo,
       }),
     });
@@ -193,6 +229,7 @@ async function send(opts: MailOpts) {
         replyTo: opts.replyTo,
         subject: opts.subject,
         html: opts.html,
+        text: opts.text,
       },
       config.cloudflare
     );
@@ -212,6 +249,7 @@ async function send(opts: MailOpts) {
         replyTo: opts.replyTo,
         subject: opts.subject,
         html: opts.html,
+        text: opts.text,
       },
       config.cloudflare
     );
@@ -229,8 +267,22 @@ async function send(opts: MailOpts) {
     bcc: opts.bcc,
     subject: opts.subject,
     html: opts.html,
+    text: opts.text,
     replyTo: opts.replyTo,
   });
+}
+
+/**
+ * Send an already-rendered email through the configured transport. Used by the
+ * admin/host template test-sends, which render via the registry themselves.
+ */
+export async function sendRenderedEmail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}) {
+  return send(opts);
 }
 
 export async function sendMagicLinkEmail(to: string, magicLink: string) {
@@ -238,20 +290,11 @@ export async function sendMagicLinkEmail(to: string, magicLink: string) {
     console.log(`[auth:magic-link-fallback] Magic link for ${to} is: ${magicLink}`);
   }
 
-  return send({
-    to,
-    subject: "Your sign-in link for RSVP to Me",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="margin-bottom:8px">Sign in to RSVP to Me</h2>
-        <p style="color:#666;margin-bottom:24px">Click the link below to sign in. This link expires in 15 minutes.</p>
-        <a href="${magicLink}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
-          Sign In
-        </a>
-        <p style="color:#999;font-size:12px;margin-top:24px">If you didn't request this, you can safely ignore this email.</p>
-      </div>
-    `,
-  });
+  const { subject, body } = await templateCopy("magicLink", {});
+  const { html, text } = await renderEmail(
+    createElement(MagicLinkEmail, { theme: appShellEmailTheme(), body, magicLink })
+  );
+  return send({ to, subject, html, text });
 }
 
 export async function sendWelcomeEmail(to: string, magicLink: string) {
@@ -259,20 +302,43 @@ export async function sendWelcomeEmail(to: string, magicLink: string) {
     console.log(`[admin:welcome-email] Welcome link for ${to} is: ${magicLink}`);
   }
 
-  return send({
-    to,
-    subject: "Your account on RSVP to Me",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="margin-bottom:8px">Welcome to RSVP to Me</h2>
-        <p style="color:#666;margin-bottom:24px">An account has been created for you. Click below to sign in — this link expires in 48 hours.</p>
-        <a href="${magicLink}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
-          Sign In
-        </a>
-        <p style="color:#999;font-size:12px;margin-top:24px">If you weren't expecting this, you can safely ignore this email.</p>
-      </div>
-    `,
-  });
+  const { subject, body } = await templateCopy("welcome", {});
+  const { html, text } = await renderEmail(
+    createElement(WelcomeEmail, { theme: appShellEmailTheme(), body, magicLink })
+  );
+  return send({ to, subject, html, text });
+}
+
+export type EventEmailContext = {
+  theme?: EmailThemeInput | null;
+  eventId?: string;
+  endAt?: Date | null;
+  timezone?: string;
+  locationAddress?: string | null;
+  locationType?: "PHYSICAL" | "VIRTUAL" | "TBD";
+  virtualUrl?: string | null;
+};
+
+function eventDetails(
+  opts: {
+    eventTitle: string;
+    eventSlug: string;
+    startAt: Date;
+    locationName?: string | null;
+  } & EventEmailContext
+): EventEmailDetails {
+  return {
+    id: opts.eventId ?? opts.eventSlug,
+    slug: opts.eventSlug,
+    title: opts.eventTitle,
+    startAt: opts.startAt,
+    endAt: opts.endAt ?? null,
+    timezone: opts.timezone,
+    locationType: opts.locationType,
+    locationName: opts.locationName ?? null,
+    locationAddress: opts.locationAddress ?? null,
+    virtualUrl: opts.virtualUrl ?? null,
+  };
 }
 
 export async function sendEventInviteEmail(
@@ -287,38 +353,31 @@ export async function sendEventInviteEmail(
     rsvpBaseUrl: string;
     maybeEnabled: boolean;
     replyTo?: string;
-  }
+  } & EventEmailContext
 ) {
   if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  const dateStr = opts.startAt.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+  const event = eventDetails(opts);
+  const { subject, body, toggles } = await templateCopy("invite", {
+    guestName: opts.guestName,
+    hostName: opts.hostName,
+    eventTitle: opts.eventTitle,
+    eventDate: formatEventDateTime(opts.startAt, opts.endAt, opts.timezone).date,
+    location: opts.locationName ?? "",
   });
-  const maybeBtn = opts.maybeEnabled
-    ? `<a href="${opts.rsvpBaseUrl}&status=MAYBE" style="display:inline-block;background:#f59e0b;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px">Maybe</a>`
-    : "";
-  return send({
-    to,
-    subject: `You're invited: ${opts.eventTitle}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <p style="color:#666">Hey ${opts.guestName},</p>
-        <h2 style="margin:4px 0">${opts.eventTitle}</h2>
-        <p style="color:#666">${dateStr}${opts.locationName ? ` · ${opts.locationName}` : ""}</p>
-        <p style="color:#444">Hosted by ${opts.hostName}</p>
-        <div style="margin-top:16px">
-          <a href="${opts.rsvpBaseUrl}&status=GOING" style="display:inline-block;background:#22c55e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px">Going</a>
-          ${maybeBtn}
-          <a href="${opts.rsvpBaseUrl}&status=NO" style="display:inline-block;background:#ef4444;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">Can't Go</a>
-        </div>
-        <p style="margin-top:12px"><a href="${eventUrl}" style="color:#a855f7;font-size:14px;text-decoration:none">View event details →</a></p>
-      </div>
-    `,
-    replyTo: opts.replyTo,
-  });
+  const { html, text } = await renderEmail(
+    createElement(InviteEmail, {
+      theme: resolveEmailTheme(opts.theme),
+      body,
+      toggles,
+      event,
+      hostName: opts.hostName,
+      rsvpBaseUrl: opts.rsvpBaseUrl,
+      maybeEnabled: opts.maybeEnabled,
+      eventUrl,
+    })
+  );
+  return send({ to, subject, html, text, replyTo: opts.replyTo });
 }
 
 export async function sendApprovalEmail(
@@ -330,31 +389,27 @@ export async function sendApprovalEmail(
     approved: boolean;
     message?: string;
     replyTo?: string;
+    theme?: EmailThemeInput | null;
   }
 ) {
   if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  const subject = opts.approved
-    ? `RSVP Approved: ${opts.eventTitle}`
-    : `RSVP Declined: ${opts.eventTitle}`;
-  const statusHtml = opts.approved
-    ? `<h3>Your RSVP is approved!</h3><p>You are officially on the guest list for <strong>${opts.eventTitle}</strong>.</p>`
-    : `<h3>RSVP Declined</h3><p>We're sorry, but the host has declined your RSVP for <strong>${opts.eventTitle}</strong>.</p>`;
-  const messageHtml = opts.message
-    ? `<div style="margin-top:16px;padding:12px;background:#f3f4f6;border-radius:8px;color:#333;font-style:italic">Message from the host: &ldquo;${opts.message}&rdquo;</div>`
-    : "";
-  return send({
-    to,
-    subject,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        ${statusHtml}
-        ${messageHtml}
-        ${opts.approved ? `<p style="margin-top:16px"><a href="${eventUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">View Event</a></p>` : ""}
-      </div>
-    `,
-    replyTo: opts.replyTo,
+  const { subject, toggles } = await templateCopy("approval", {
+    guestName: opts.guestName,
+    eventTitle: opts.eventTitle,
+    decision: opts.approved ? "Approved" : "Declined",
   });
+  const { html, text } = await renderEmail(
+    createElement(ApprovalEmail, {
+      theme: resolveEmailTheme(opts.theme),
+      toggles,
+      eventTitle: opts.eventTitle,
+      approved: opts.approved,
+      hostMessage: opts.message,
+      eventUrl,
+    })
+  );
+  return send({ to, subject, html, text, replyTo: opts.replyTo });
 }
 
 export async function sendBlastEmail(
@@ -365,23 +420,26 @@ export async function sendBlastEmail(
     message: string;
     hostName: string;
     replyTo?: string;
+    theme?: EmailThemeInput | null;
   }
 ) {
   if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  return send({
-    to: "FROM",
-    bcc: to,
-    subject: `Update from ${opts.hostName}: ${opts.eventTitle}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <p style="color:#666">A message from ${opts.hostName} about <strong>${opts.eventTitle}</strong>:</p>
-        <p style="white-space:pre-line">${opts.message}</p>
-        <a href="${eventUrl}" style="display:inline-block;color:#a855f7;text-decoration:none;font-size:14px">View event →</a>
-      </div>
-    `,
-    replyTo: opts.replyTo,
+  const { subject, toggles } = await templateCopy("blast", {
+    hostName: opts.hostName,
+    eventTitle: opts.eventTitle,
   });
+  const { html, text } = await renderEmail(
+    createElement(BlastEmail, {
+      theme: resolveEmailTheme(opts.theme),
+      toggles,
+      eventTitle: opts.eventTitle,
+      hostName: opts.hostName,
+      message: opts.message,
+      eventUrl,
+    })
+  );
+  return send({ to: "FROM", bcc: to, subject, html, text, replyTo: opts.replyTo });
 }
 
 export async function sendRsvpConfirmationEmail(
@@ -395,38 +453,32 @@ export async function sendRsvpConfirmationEmail(
     startAt: Date;
     locationName?: string | null;
     replyTo?: string;
-  }
+  } & EventEmailContext
 ) {
   if (!(await isChannelEnabled("email"))) return;
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
-  const dateStr = opts.startAt.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+  const label = statusLabel(opts.status);
+  const event = eventDetails(opts);
+  const { subject, body, toggles } = await templateCopy("rsvpConfirmation", {
+    guestName: opts.guestName,
+    eventTitle: opts.eventTitle,
+    eventDate: formatEventDateTime(opts.startAt, opts.endAt, opts.timezone).date,
+    location: opts.locationName ?? "",
+    status: label,
   });
-  const statusLabel =
-    opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
-  return send({
-    to,
-    subject: `RSVP confirmed: ${opts.eventTitle}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2>You're ${statusLabel}!</h2>
-        <p><strong>${opts.eventTitle}</strong><br>${dateStr}${opts.locationName ? `<br>${opts.locationName}` : ""}</p>
-        <a href="${eventUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:8px">
-          View Event
-        </a>
-        <p style="margin-top:16px;font-size:14px;color:#999">
-          Changed your mind? <a href="${editUrl}" style="color:#a855f7">Update your RSVP</a>
-        </p>
-      </div>
-    `,
-    replyTo: opts.replyTo,
-  });
+  const { html, text } = await renderEmail(
+    createElement(RsvpConfirmationEmail, {
+      theme: resolveEmailTheme(opts.theme),
+      body,
+      toggles,
+      event,
+      statusLabel: label,
+      eventUrl,
+      editUrl,
+    })
+  );
+  return send({ to, subject, html, text, replyTo: opts.replyTo });
 }
 
 export async function sendHostRsvpAlertEmail(
@@ -441,30 +493,31 @@ export async function sendHostRsvpAlertEmail(
     goingCount: number;
     maybeCount: number;
     noCount: number;
+    theme?: EmailThemeInput | null;
   }
 ) {
   const guestListUrl = `${APP_URL}/e/${opts.eventSlug}#guests`;
-  const statusLabel =
-    opts.status === "GOING" ? "Going" : opts.status === "MAYBE" ? "Maybe" : "Can't Go";
-  const plusStr = opts.plusOneCount > 0 ? ` +${opts.plusOneCount}` : "";
-  const noteHtml = opts.note?.trim()
-    ? `<p style="margin:12px 0;padding:10px 14px;background:#f5f5f5;border-left:3px solid #a855f7;border-radius:4px;font-size:14px;color:#555">"${opts.note.trim()}"</p>`
-    : "";
-  return send({
-    to,
-    subject: `New RSVP: ${opts.guestName} is ${statusLabel} — ${opts.eventTitle}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="margin:0 0 8px">New RSVP on ${opts.eventTitle}</h2>
-        <p style="margin:0 0 4px"><strong>${opts.guestName}${plusStr}</strong> — ${statusLabel}</p>
-        ${noteHtml}
-        <p style="margin:16px 0 8px;font-size:13px;color:#888">Current headcount: ${opts.goingCount} going · ${opts.maybeCount} maybe · ${opts.noCount} can't go</p>
-        <a href="${guestListUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">
-          View Guest List
-        </a>
-      </div>
-    `,
+  const label = statusLabel(opts.status);
+  const { subject } = await templateCopy("hostRsvpAlert", {
+    guestName: opts.guestName,
+    status: label,
+    eventTitle: opts.eventTitle,
   });
+  const { html, text } = await renderEmail(
+    createElement(HostRsvpAlertEmail, {
+      theme: resolveEmailTheme(opts.theme),
+      guestName: opts.guestName,
+      statusLabel: label,
+      plusOneCount: opts.plusOneCount,
+      note: opts.note,
+      eventTitle: opts.eventTitle,
+      goingCount: opts.goingCount,
+      maybeCount: opts.maybeCount,
+      noCount: opts.noCount,
+      guestListUrl,
+    })
+  );
+  return send({ to, subject, html, text });
 }
 
 export async function testEmailConfig(
@@ -487,6 +540,11 @@ export async function testEmailConfig(
     };
   }
 ): Promise<{ success: boolean; error?: string }> {
+  const { subject, body } = await templateCopy("test", {});
+  const { html, text } = await renderEmail(
+    createElement(TestEmail, { theme: appShellEmailTheme(), body })
+  );
+
   if (config.provider === "cloudflare_api") {
     if (!config.cloudflare.accountId || !config.cloudflare.apiToken) {
       return { success: false, error: "Cloudflare Account ID and API Token are required." };
@@ -505,8 +563,9 @@ export async function testEmailConfig(
         body: JSON.stringify({
           from: config.from,
           to: testTo,
-          subject: "Test Email from RSVP to Me",
-          html: "<p>This is a test email to verify your Cloudflare REST API email sending configuration. It works!</p>",
+          subject,
+          html,
+          text,
         }),
       });
       if (!res.ok) {
@@ -543,8 +602,9 @@ export async function testEmailConfig(
         body: JSON.stringify({
           from: config.from,
           to: testTo,
-          subject: "Test Email from RSVP to Me",
-          html: "<p>This is a test email to verify your Cloudflare Worker email routing configuration. It works!</p>",
+          subject,
+          html,
+          text,
         }),
       });
       if (!res.ok) {
@@ -583,8 +643,9 @@ export async function testEmailConfig(
       await transport.sendMail({
         from: config.from,
         to: testTo,
-        subject: "Test Email from RSVP to Me",
-        html: "<p>This is a test email to verify your SMTP configuration. It works!</p>",
+        subject,
+        html,
+        text,
       });
 
       return { success: true };
@@ -598,6 +659,6 @@ export async function testEmailConfig(
   }
 
   // console provider fallback
-  console.log("[email:dev-test]", { to: testTo, subject: "Test Email from RSVP to Me" });
+  console.log("[email:dev-test]", { to: testTo, subject });
   return { success: true };
 }

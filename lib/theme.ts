@@ -468,6 +468,50 @@ export function getReadableText(bg: string): "#ffffff" | "#0a0a0a" {
   return contrastWhite >= contrastBlack ? "#ffffff" : "#0a0a0a";
 }
 
+// ── Color conversion helpers (shared with lib/email-theme.ts) ────────────────
+
+export function hex2rgb(hex: string) {
+  const h = hex.replace("#", "");
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+export function hex2hsl(hex: string) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let hVal = 0;
+  let sVal = 0;
+  const lVal = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    sVal = lVal > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        hVal = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        hVal = (b - r) / d + 2;
+        break;
+      case b:
+        hVal = (r - g) / d + 4;
+        break;
+    }
+    hVal /= 6;
+  }
+  return {
+    h: Math.round(hVal * 360),
+    s: Math.round(sVal * 100),
+    l: Math.round(lVal * 100),
+  };
+}
+
 // ── resolveTheme ──────────────────────────────────────────────────────────────
 
 export function resolveTheme(
@@ -477,48 +521,6 @@ export function resolveTheme(
   accentColor: string,
   cardOpacity?: number | null
 ): ResolvedTheme {
-  const hex2rgb = (hex: string) => {
-    const h = hex.replace("#", "");
-    return {
-      r: parseInt(h.slice(0, 2), 16),
-      g: parseInt(h.slice(2, 4), 16),
-      b: parseInt(h.slice(4, 6), 16),
-    };
-  };
-
-  const hex2hsl = (hex: string) => {
-    const h = hex.replace("#", "");
-    const r = parseInt(h.slice(0, 2), 16) / 255;
-    const g = parseInt(h.slice(2, 4), 16) / 255;
-    const b = parseInt(h.slice(4, 6), 16) / 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let hVal = 0;
-    let sVal = 0;
-    const lVal = (max + min) / 2;
-    if (max !== min) {
-      const d = max - min;
-      sVal = lVal > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r:
-          hVal = (g - b) / d + (g < b ? 6 : 0);
-          break;
-        case g:
-          hVal = (b - r) / d + 2;
-          break;
-        case b:
-          hVal = (r - g) / d + 4;
-          break;
-      }
-      hVal /= 6;
-    }
-    return {
-      h: Math.round(hVal * 360),
-      s: Math.round(sVal * 100),
-      l: Math.round(lVal * 100),
-    };
-  };
-
   const { r: aR, g: aG, b: aB } = hex2rgb(accentColor);
   const accentRgb = `${aR},${aG},${aB}`;
   const accentFg = getReadableText(accentColor);

@@ -12,6 +12,7 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 - **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch.
 - **[BUG-03] Flaky Unit Test Timeouts in CI**: The unit test suite frequently encounters test timeouts in `tests/lib/crypto.test.ts` and `tests/actions/event.test.ts` on slow/constrained CI environments. These should be resolved by increasing Vitest's default timeout or optimizing slow mock/crypto operations.
+_No pending items in this category._
 
 ### 🔒 Backend / Security / DevOps
 
@@ -25,12 +26,10 @@ _Functional improvements, layout adjustments, and secondary features that can be
 
 ### 🛠️ Bug / Fix
 
-_No pending items in this category._
+- **Host new-RSVP alert email is not wired up**: `sendHostRsvpAlertEmail` (and its SMS twin `sendHostRsvpAlertSms`) exist and now have a styled, previewable template, but nothing calls them — hosts do **not** actually receive a "New RSVP" email/SMS when a guest RSVPs, despite the notification toggles implying they do. The initial migration also carries orphaned `Event` columns (`hostAlertEmail`, `rsvpConfirmEmail`, …) that no longer exist in `schema.prisma` (schema drift). Wire the alert into `addRSVP` (respecting the per-event host-alert toggles) and reconcile or remove the stale columns. _(Discovered during the 2026-07 email-template rebuild.)_
 
 ### 🎨 UI / UX / Feature
 
-- **Beautiful & Modern Email Templates**: Make the transactional and blast email templates visually pleasing. Currently, SMTP and Cloudflare Email dispatches send very plain HTML. Leverage a modern React-based template builder or responsive compiler to build rich, responsive layout tables (with brand colors, stylized buttons, and card borders) that look premium across client environments (Gmail, Apple Mail, Outlook).
-  - _Research options_: Pair [React Email](https://react.email/) (using React components and tailwind styling) or [MJML](https://mjml.io/) (with `mjml-react`) to compile responsive HTML templates, allowing dynamic branding accents.
 - **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
@@ -48,7 +47,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 ### 🛠️ Bug / Fix
 
-- **[L-4b] One missed L-4 site**: `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`, formerly `app/actions/event.ts` ~L1890) still swallows errors without `logSafe("inviteFriendAsGuest")`. Found during the L-3 split of `event.ts` and deliberately moved verbatim to keep that refactor 100% behavior-preserving; fix is a one-liner.
 - **[DEV-01] Database Rate Limit Table Bloat**: `cleanupRateLimits()` in `lib/rateLimit.ts` is never scheduled, meaning database-driven rate limit entries will accumulate indefinitely in PostgreSQL when Redis is disabled.
   - _Recommended Fix_: Schedule a daily clean task using the in-process cron (`lib/cron-scheduler.ts`) that runs `cleanupRateLimits()`.
 
@@ -64,9 +62,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 ### ⚙️ Refactoring & Clean Code
 
-- **[L-3] God-files → split by feature**:
-  - `app/(app)/admin/AdminClient.tsx` (~5136) → per-tab components.
-  - `components/event/SettingsPage.tsx` (~3408) → per-panel components.
 - **[CLEAN-01] Consolidated System Config Loading**: Reading the system configuration (`db.systemConfig.findMany()`) is implemented 5 different times, duplicating mapping loops in `lib/sms.ts`, `lib/email.ts`, and `app/actions/admin.ts`.
   - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
 - **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
@@ -97,6 +92,25 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Themed, Responsive Email Templates (React Email)
+
+- [x] **Beautiful & Modern Email Templates**: Rebuilt all 8 transactional/blast emails with [React Email](https://react.email/) (`emails/`), rendered to responsive table-based HTML with a light canvas + themed gradient hero, `color-scheme` meta tags, mobile media queries, and a `prefers-color-scheme` dark enhancement. Event emails are themed **at send time** from the event's own theme via `resolveEmailTheme()` (`lib/email-theme.ts`), which **derives** the palette from the existing `resolveTheme()` — so new presets and host theme changes (including on cron reminders) flow into email automatically with no email-code changes. Invite uses an accent primary "Going" button with quiet Maybe/Can't-Go links; emails gained an add-to-calendar row (Google + a new `/e/[slug]/calendar.ics` route), a map-linked details card, and a themed host monogram. Admins can edit per-template copy + content-block toggles (stored in `SystemConfig`, rendered as escaped text nodes) and preview/test-send any template from **Admin → Email → Email Templates**; hosts can preview their event's themed emails and send themselves a test from **Settings → 💌 Emails**. A documented **degradation contract** in `lib/email-theme.ts` + `AGENTS.md` makes the theme→email mapper the single extension point for future theme capabilities, enforced by a preset-sweep test. Tests: `tests/lib/email-theme.test.ts`, `email-templates.test.tsx`, `email-preset-sweep.test.tsx`, `email-settings.test.ts`, `calendar.test.ts`, `tests/api/calendar-ics.test.ts`.
+- [x] **Latent unescaped-message fix**: the old inline-HTML blast and approval templates interpolated host/guest-typed `message` strings directly into HTML (a stored-injection-into-email vector). The React rebuild renders all copy as text nodes, structurally eliminating it.
+
+### Admin Mobile Drawer Trigger, Slug-Test Flake & Invite Logging
+
+- [x] **[BUG-03] Admin mobile drawer can never open**: Added a `lg:hidden` hamburger button to the admin page banner (`AdminClient.tsx`) that calls `setIsDrawerOpen(true)`, so admins on screens below `lg` can open the sliding drawer and switch tabs. Regression test: `tests/regression/bug-03-admin-mobile-drawer-trigger.test.ts`.
+- [x] **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: Root-caused as a flaky test, not a code bug — `randomBytes(3)` has a ~6% chance of producing an all-digit 6-char hex suffix, which the "every numeric suffix is taken" fixture counted as a collision, pushing the generator to an 8-char suffix and failing the `{6}` assertion. `l7-slug-collision-bound.test.ts` now stubs `randomBytes` to a deterministic letter-bearing buffer.
+- [x] **[L-4b] One missed L-4 site**: `logActivity(...).catch(() => {})` in `inviteFriendAsGuest` (`app/actions/event/invites.ts`) now routes through `logSafe("inviteFriendAsGuest")` like every other non-critical activity-log call. Regression test: `tests/regression/l4b-invite-friend-swallowed-error.test.ts`.
+
+### components/event/SettingsPage.tsx God-File Split
+
+- [x] **[L-3] God-file split (components/event/SettingsPage.tsx)**: Split the ~3,408 line `components/event/SettingsPage.tsx` into per-panel, props-driven components under `components/event/settings-page/` (`SettingsMenu`, `ThemePanel`, `HostsPanel`, `RsvpOptionsPanel`, `QuestionnairePanel`, `DisplayOptionsPanel`, `RemindersPanel`, `PollsPanel`, `PotluckPanel`, plus shared `types.ts`, `helpers.ts`, `styles.ts` (`buildStyles`), `ui.tsx` (`Label`/`Toggle`/`Section`), and `SettingsDecorations`). `SettingsPage.tsx` remains the state-owning orchestrator (~1,090 lines) with an unchanged import path, keeping all hooks, auto-save triggers, handlers, and URL-section sync in place. This closes out the L-3 god-file series (PRs #231, #232, #237).
+
+### app/(app)/admin/AdminClient.tsx God-File Split
+
+- [x] **[L-3] God-file split (app/(app)/admin/AdminClient.tsx)**: Split the ~5,270 line `app/(app)/admin/AdminClient.tsx` into per-tab, props-driven components under `app/(app)/admin/tabs/` (`OverviewTab`, `UsersTab`, `EventsTab`, `InvitesTab`, `EmailTab`, `SmsTab`, `BackupsTab`, `ThemesTab`, plus `ThemePresetModal`, `CreateUserModal`, `AdminSidebar`, `AdminMobileDrawer`, and shared `types.ts`). `AdminClient.tsx` remains the state-owning orchestrator (~1,120 lines) with an unchanged import path, keeping all hooks, handlers, and URL-tab sync in place.
 
 ### Self-Service Account Deletion Revocation & Admin Override [PR #234](https://github.com/joe-cole1/rsvp-to-me/pull/234)
 

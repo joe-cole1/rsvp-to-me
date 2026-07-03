@@ -31,6 +31,8 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/themes": "^3.3.0",
+    "@react-email/components": "1.0.12",
+    "@react-email/render": "2.0.10",
     "@types/qrcode": "^1.5.6",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",

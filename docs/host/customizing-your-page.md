@@ -41,6 +41,8 @@ Your site's administrator may publish additional **theme presets** that also app
 
 A color picker sets the accent color used for buttons, links, and highlights.
 
+Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
+
 ---
 
 ## Cover Image
