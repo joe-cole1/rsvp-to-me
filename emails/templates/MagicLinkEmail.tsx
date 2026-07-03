@@ -33,7 +33,7 @@ export function MagicLinkEmail({ theme, body, magicLink }: MagicLinkEmailProps) 
           className="dm-text-muted"
           style={{ margin: "24px 0 0", fontSize: "12px", color: theme.textMuted }}
         >
-          If you didn't request this, you can safely ignore this email.
+          {"If you didn't request this, you can safely ignore this email."}
         </Text>
       </Section>
     </EmailLayout>

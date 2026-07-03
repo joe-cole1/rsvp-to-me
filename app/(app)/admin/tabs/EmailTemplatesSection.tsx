@@ -59,6 +59,8 @@ export function EmailTemplatesSection() {
   const [busy, setBusy] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [seededId, setSeededId] = useState<string | null>(null);
+
   const selected = templates.find((t) => t.meta.id === selectedId);
 
   const loadTemplates = useCallback(async () => {
@@ -68,22 +70,26 @@ export function EmailTemplatesSection() {
   }, []);
 
   useEffect(() => {
-    loadTemplates().catch(() => setStatus("Failed to load templates"));
-  }, [loadTemplates]);
+    // setState only in the async callback (not synchronously in the effect body).
+    getEmailTemplatesAdmin()
+      .then(({ templates: loaded }) => setTemplates(loaded as TemplateEntry[]))
+      .catch(() => setStatus("Failed to load templates"));
+  }, []);
 
-  // Initialize the editor whenever the selected template (or its saved state) changes
-  useEffect(() => {
-    if (!selected) return;
+  // Seed the editor from the selected template's saved copy when the selection
+  // changes. Adjusting state during render (React's documented pattern) instead
+  // of in an effect avoids a cascading-render setState-in-effect.
+  if (selected && seededId !== selectedId) {
+    setSeededId(selectedId);
     setSubject(selected.overrides.subject ?? selected.meta.defaultSubject);
     setBody(selected.overrides.body ?? selected.meta.defaultBody);
-    const t: Partial<Record<TemplateToggleKey, boolean>> = {};
+    const seeded: Partial<Record<TemplateToggleKey, boolean>> = {};
     for (const key of selected.meta.toggles) {
-      t[key] = selected.overrides[key] ?? true;
+      seeded[key] = selected.overrides[key] ?? true;
     }
-    setToggles(t);
+    setToggles(seeded);
     setStatus(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, templates]);
+  }
 
   const currentOverrides = useCallback(() => {
     if (!selected) return {};
@@ -138,6 +144,12 @@ export function EmailTemplatesSection() {
     try {
       await resetEmailTemplateAction(selected.meta.id);
       await loadTemplates();
+      // Selection didn't change, so seed the editor back to defaults here.
+      setSubject(selected.meta.defaultSubject);
+      setBody(selected.meta.defaultBody);
+      const cleared: Partial<Record<TemplateToggleKey, boolean>> = {};
+      for (const key of selected.meta.toggles) cleared[key] = true;
+      setToggles(cleared);
       setStatus("Reset to default");
     } catch {
       setStatus("Reset failed");

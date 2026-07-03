@@ -15,7 +15,11 @@ type EventTemplateOption = { id: string; label: string; description: string };
 export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme }) {
   const [templates, setTemplates] = useState<EventTemplateOption[]>([]);
   const [selectedId, setSelectedId] = useState("invite");
-  const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null);
+  // Tag the preview with the template it was rendered for, so a stale result
+  // from a previous selection is never shown (no synchronous clear needed).
+  const [preview, setPreview] = useState<{ id: string; subject: string; html: string } | null>(
+    null
+  );
   const [status, setStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -27,10 +31,9 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
 
   useEffect(() => {
     let cancelled = false;
-    setPreview(null);
     getEventEmailPreview(eventId, selectedId as Parameters<typeof getEventEmailPreview>[1])
       .then((p) => {
-        if (!cancelled) setPreview(p);
+        if (!cancelled) setPreview({ id: selectedId, ...p });
       })
       .catch(() => {
         if (!cancelled) setStatus("Failed to render preview");
@@ -39,6 +42,8 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
       cancelled = true;
     };
   }, [eventId, selectedId]);
+
+  const currentPreview = preview?.id === selectedId ? preview : null;
 
   const handleSendTest = async () => {
     setSending(true);
@@ -62,8 +67,9 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
     <Section title="Emails" t={t}>
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <div style={{ fontSize: "13px", color: t.textSecondary }}>
-          Guests receive these emails styled with this event's theme — change the theme and the
-          emails follow automatically. Email wording is managed by your site admin.
+          {
+            "Guests receive these emails styled with this event's theme — change the theme and the emails follow automatically. Email wording is managed by your site admin."
+          }
         </div>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
@@ -94,7 +100,7 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
           <button
             type="button"
             onClick={handleSendTest}
-            disabled={sending || !preview}
+            disabled={sending || !currentPreview}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -107,7 +113,7 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
               fontSize: "13px",
               fontWeight: 700,
               cursor: sending ? "not-allowed" : "pointer",
-              opacity: sending || !preview ? 0.6 : 1,
+              opacity: sending || !currentPreview ? 0.6 : 1,
             }}
           >
             <Send size={14} /> Send me a test
@@ -119,7 +125,7 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
         )}
         {status && <div style={{ fontSize: "12px", color: t.textSecondary }}>{status}</div>}
 
-        {preview ? (
+        {currentPreview ? (
           <div>
             <div
               style={{
@@ -131,12 +137,12 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
                 whiteSpace: "nowrap",
               }}
             >
-              Subject: <span style={{ color: t.textPrimary }}>{preview.subject}</span>
+              Subject: <span style={{ color: t.textPrimary }}>{currentPreview.subject}</span>
             </div>
             <iframe
               title="Email preview"
               sandbox=""
-              srcDoc={preview.html}
+              srcDoc={currentPreview.html}
               style={{
                 width: "100%",
                 height: "520px",

@@ -33,7 +33,7 @@ export function WelcomeEmail({ theme, body, magicLink }: WelcomeEmailProps) {
           className="dm-text-muted"
           style={{ margin: "24px 0 0", fontSize: "12px", color: theme.textMuted }}
         >
-          If you weren't expecting this, you can safely ignore this email.
+          {"If you weren't expecting this, you can safely ignore this email."}
         </Text>
       </Section>
     </EmailLayout>

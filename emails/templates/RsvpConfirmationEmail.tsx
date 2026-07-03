@@ -45,7 +45,8 @@ export function RsvpConfirmationEmail({
             color: theme.textPrimary,
           }}
         >
-          You're {statusLabel}!{emoji}
+          {"You're "}
+          {statusLabel}!{emoji}
         </Heading>
         {splitParagraphs(body).map((paragraph, i) => (
           <Text

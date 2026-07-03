@@ -13,15 +13,7 @@ export type EventEmailDetails = CalendarEventInput & {
   locationType?: "PHYSICAL" | "VIRTUAL" | "TBD";
 };
 
-function DetailRow({
-  theme,
-  label,
-  children,
-}: {
-  theme: EmailTheme;
-  label: string;
-  children: React.ReactNode;
-}) {
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <Row style={{ marginBottom: "2px" }}>
       <Column style={{ width: "32px", verticalAlign: "top" }}>
@@ -68,7 +60,7 @@ export function DetailsCard({
         margin: "20px 0 0",
       }}
     >
-      <DetailRow theme={theme} label="📅">
+      <DetailRow label="📅">
         <Text className="dm-text-primary" style={{ ...textStyle, fontWeight: "600" }}>
           {date}
         </Text>
@@ -78,7 +70,7 @@ export function DetailsCard({
       </DetailRow>
 
       {isVirtual ? (
-        <DetailRow theme={theme} label="💻">
+        <DetailRow label="💻">
           <Text className="dm-text-primary" style={textStyle}>
             {event.locationName || "Virtual event"}
           </Text>
@@ -91,7 +83,7 @@ export function DetailsCard({
           ) : null}
         </DetailRow>
       ) : event.locationName || event.locationAddress ? (
-        <DetailRow theme={theme} label="📍">
+        <DetailRow label="📍">
           <Text className="dm-text-primary" style={{ ...textStyle, fontWeight: "600" }}>
             {event.locationName || event.locationAddress}
           </Text>
@@ -111,7 +103,7 @@ export function DetailsCard({
       ) : null}
 
       {showCalendarLinks ? (
-        <DetailRow theme={theme} label="🗓️">
+        <DetailRow label="🗓️">
           <Text style={subStyle}>
             Add to calendar:{" "}
             <Link href={buildGoogleCalendarUrl(event)} style={linkStyle}>

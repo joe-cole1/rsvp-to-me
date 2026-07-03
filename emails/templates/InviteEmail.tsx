@@ -56,7 +56,7 @@ export function InviteEmail({
 
         <Section style={{ margin: "26px 0 0", textAlign: "center" as const }}>
           <EmailButton theme={theme} href={`${rsvpBaseUrl}&status=GOING`} variant="primary">
-            I'm going 🎉
+            {"I'm going 🎉"}
           </EmailButton>
           <Text style={{ margin: "14px 0 0" }}>
             {maybeEnabled ? (
@@ -82,7 +82,7 @@ export function InviteEmail({
               className="dm-text-secondary"
               style={{ color: theme.textSecondary, fontSize: "14px", textDecoration: "underline" }}
             >
-              Can't go
+              {"Can't go"}
             </Link>
           </Text>
         </Section>

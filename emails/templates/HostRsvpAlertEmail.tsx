@@ -60,7 +60,8 @@ export function HostRsvpAlertEmail({
           className="dm-text-muted"
           style={{ margin: "16px 0 0", fontSize: "13px", color: theme.textMuted }}
         >
-          Current headcount: {goingCount} going · {maybeCount} maybe · {noCount} can't go
+          Current headcount: {goingCount} going · {maybeCount} maybe · {noCount}
+          {" can't go"}
         </Text>
 
         <Section style={{ margin: "22px 0 0" }}>
