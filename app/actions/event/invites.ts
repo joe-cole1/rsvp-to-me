@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { sendEventInviteEmail } from "@/lib/email";
 import { sendEventInviteSms } from "@/lib/sms";
 import { logActivity } from "@/lib/activity";
+import { logSafe } from "@/lib/logger";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/clientIp";
 import { assertHostOrCohost } from "./shared";
@@ -305,7 +306,7 @@ export async function inviteFriendAsGuest(
   }
 
   logActivity(eventId, "guest_invite", `${invitingRsvp.guestName} invited ${rsvp.guestName}`).catch(
-    () => {}
+    logSafe("inviteFriendAsGuest")
   );
   revalidatePath(`/e/${event.slug}`);
 

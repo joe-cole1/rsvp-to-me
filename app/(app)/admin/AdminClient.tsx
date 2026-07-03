@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Menu } from "lucide-react";
 import DocsPanel, { type PanelDoc } from "@/components/docs/DocsPanel";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
@@ -882,6 +883,27 @@ export default function AdminClient({
               {TAB_META[activeTab].description}
             </p>
           </div>
+          {/* Hamburger trigger for the mobile drawer — sidebar is hidden below lg */}
+          <button
+            type="button"
+            aria-label="Open admin navigation"
+            className="lg:hidden"
+            onClick={() => setIsDrawerOpen(true)}
+            style={{
+              backgroundColor: APP_SHELL.cardBg,
+              border: `1px solid ${APP_SHELL.cardBorder}`,
+              borderRadius: "10px",
+              cursor: "pointer",
+              color: APP_SHELL.textPrimary,
+              padding: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Menu size={20} />
+          </button>
         </div>
 
         {/* Create User Modal */}

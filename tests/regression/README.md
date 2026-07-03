@@ -35,3 +35,5 @@ For every bug fix merged to main:
 | `sec-31-health-info-leak.test.ts`                    | `/api/health` leaked migration/DB state + timestamp to anonymous callers    | SEC-31   |
 | `sec-30-cohost-authz.test.ts`                        | Inconsistent host/co-host authz: co-hosts blocked from documented actions   | SEC-30   |
 | `l7-slug-collision-bound.test.ts`                    | `generateUniqueSlug` scanned sequential suffixes in an unbounded query loop | L-7      |
+| `bug-03-admin-mobile-drawer-trigger.test.ts`         | Admin mobile drawer had no trigger — nothing called `setIsDrawerOpen(true)` | BUG-03   |
+| `l4b-invite-friend-swallowed-error.test.ts`          | `inviteFriendAsGuest` activity-log failure swallowed by bare `.catch()`     | L-4b     |
