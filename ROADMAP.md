@@ -10,7 +10,8 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🛠️ Bug / Fix
 
-- **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch.
+- **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch. _(Note: the full unit suite passed 671/671 during the 2026-07 AdminClient split, so this may already be resolved — verify and close.)_
+- **[BUG-03] Admin mobile drawer can never open**: The sliding admin navigation drawer (now `app/(app)/admin/tabs/AdminMobileDrawer.tsx`, formerly inline in `AdminClient.tsx`) is gated on `isDrawerOpen`, but nothing ever calls `setIsDrawerOpen(true)` — there is no hamburger/trigger button. On screens below `lg` (where the sidebar is `hidden lg:flex`) admins cannot switch tabs except via the `?tab=` URL param. Found during the L-3 split of `AdminClient.tsx`; the drawer was moved verbatim to keep that refactor behavior-preserving.
 
 ### 🔒 Backend / Security / DevOps
 
@@ -64,7 +65,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ### ⚙️ Refactoring & Clean Code
 
 - **[L-3] God-files → split by feature**:
-  - `app/(app)/admin/AdminClient.tsx` (~5136) → per-tab components.
   - `components/event/SettingsPage.tsx` (~3408) → per-panel components.
 - **[CLEAN-01] Consolidated System Config Loading**: Reading the system configuration (`db.systemConfig.findMany()`) is implemented 5 different times, duplicating mapping loops in `lib/sms.ts`, `lib/email.ts`, and `app/actions/admin.ts`.
   - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
@@ -96,6 +96,10 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### app/(app)/admin/AdminClient.tsx God-File Split
+
+- [x] **[L-3] God-file split (app/(app)/admin/AdminClient.tsx)**: Split the ~5,270 line `app/(app)/admin/AdminClient.tsx` into per-tab, props-driven components under `app/(app)/admin/tabs/` (`OverviewTab`, `UsersTab`, `EventsTab`, `InvitesTab`, `EmailTab`, `SmsTab`, `BackupsTab`, `ThemesTab`, plus `ThemePresetModal`, `CreateUserModal`, `AdminSidebar`, `AdminMobileDrawer`, and shared `types.ts`). `AdminClient.tsx` remains the state-owning orchestrator (~1,120 lines) with an unchanged import path, keeping all hooks, handlers, and URL-tab sync in place.
 
 ### Self-Service Account Deletion Revocation & Admin Override [PR #234](https://github.com/joe-cole1/rsvp-to-me/pull/234)
 
