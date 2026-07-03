@@ -1,0 +1,13 @@
+services:
+  app:
+    # Disable starting the Next.js container by default since we run natively in WSL 2
+    profiles:
+      - disabled
+
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"

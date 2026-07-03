@@ -49,19 +49,23 @@ At the start of every new chat session or when resuming work:
 
 # Post-Modification / Local Verification Rules
 
-After making changes and before presenting Git commands to the user to push to GitHub:
+After making changes and before presenting Git commands to the user to push to GitHub, the AI agent MUST run the full local verification suite to ensure all changes conform to CI requirements:
 
-1. **Verify Linter and TypeScript Correctness**:
-   - Note: Do NOT run `npm run lint` or ESLint commands directly. The linter runs via CI.
-   - **Prettier is enforced via husky + lint-staged** (`.husky/pre-commit`). Before committing any `.ts` or `.tsx` files in a remote/CI-only environment where the husky hook won't fire, run `npx prettier --write` on the changed files manually before staging them.
-2. **Wipe and Rebuild Local Docker Environment**:
-   - Run `docker compose down -v` to shut down containers and wipe all Docker volumes (including the PostgreSQL data volume), ensuring a completely fresh database state.
-   - Run `docker compose up --build -d` to rebuild the application image and launch all containers from scratch. The seed script will run automatically on startup to populate fresh data.
-3. **Verify Correctness**:
-   - Ensure the application builds successfully and tests pass. Use the Docker Testing workflow above — `npm test` cannot be run directly on the host.
-4. **Remind User to Run Local E2E Tests (Non-Mandatory)**:
-   - Always output a prompt/reminder to the user in your response prior to any git commit or push, suggesting they run the local Playwright E2E tests using the script: `powershell -ExecutionPolicy Bypass -File .\scripts\run-e2e-docker.ps1`.
-   - Do NOT make running this script mandatory for the user, but always remind them so they can choose to run it manually.
+1. **Format Check & Linting**:
+   - Run Prettier formatting on all modified files: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npx prettier --write <modified_files>'` (or format the whole codebase: `npx prettier --write .`).
+   - Run ESLint to check for code quality issues: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run lint'`.
+   - Run TypeScript typecheck: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npx tsc --noEmit'`.
+2. **Database Health**:
+   - Ensure the PostgreSQL and Redis containers are running with exposed ports: `docker compose up -d`.
+3. **Verify All Tests (Unit, Integration, and E2E)**:
+   - Run unit and regression tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm test'`.
+   - Run integration tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && DATABASE_URL="postgresql://postgres:postgres_password_here@127.0.0.1:5432/rsvp_test" REDIS_URL="redis://:redis_password_placeholder@127.0.0.1:6379" npm run test:integration'`.
+   - Run local Playwright E2E tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:local'`.
+4. **Exceptions (Non-Substantive Changes)**:
+   - If the changes are purely non-substantive (e.g. editing `AGENTS.md`, `ROADMAP.md`, or markdown documentation files under `docs/`), you may skip full test suite/E2E executions and append `--no-verify` to your commit to bypass hooks.
+5. **Post-Commit/Post-Push Local Server Restart**:
+   - Immediately after any git commit and push operations complete, the AI agent MUST restart the local Next.js development server inside WSL 2 to ensure `http://localhost:3000` is always running and loaded with the absolute latest changes.
+   - Use the command: `wsl bash -c 'fuser -k 3000/tcp || true; export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run dev'` (run as a background task).
    <!-- END:post-modification-rules -->
 
 <!-- BEGIN:multi-pr-batch-rules -->
@@ -159,47 +163,45 @@ docker compose up --build                              # Local dev (build from w
 docker compose -f docker-compose.dev.yml up --build   # Build from GitHub main branch
 ```
 
-## Docker Testing (CRITICAL — Node.js is NOT installed on the host machine)
+## WSL 2 Development & Testing Workflow (CRITICAL)
 
-`npm`, `npx`, and `node` are not on the host PATH. All testing must happen inside Docker containers. Do not waste time running `where.exe node`, `Get-Command npm`, or scanning the filesystem for Node executables — they don't exist on the host.
+All packages, linters, formatter rules, and tests must be executed natively inside WSL 2 (in the `~/projects/rsvp-to-me` directory) rather than inside Docker containers, to optimize file access performance and resolve hot-reloading issues.
 
-**Step 1 — Build the test image (builder stage has source + node_modules + tests/)**
+**Step 1 — Start the local database containers**
 
-```powershell
-docker build --target builder -t optimistic-planck-test .
+Ensure the PostgreSQL and Redis containers are running and exposing their ports to the host (`5432` and `6379`). In the WSL project folder, run:
+
+```bash
+docker compose up -d
 ```
 
-The Dockerfile's `runner` stage does NOT copy `tests/` or app source. Only `builder` (which runs `COPY . .`) has what `npm test` needs. Rebuild any time source or test files change.
+**Step 2 — Create the test database if needed**
 
-**Step 2 — Apply migrations to the test DB**
+If the `rsvp_test` database does not exist in the PostgreSQL container, create it:
 
-```powershell
-docker compose run --rm --no-deps `
-  -e DATABASE_URL="postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_test" `
-  app `
-  npx prisma migrate deploy
+```bash
+docker exec rsvp-to-me-postgres-1 psql -U postgres -c "CREATE DATABASE rsvp_test;"
 ```
 
-Create `rsvp_test` first if it doesn't exist:
+**Step 3 — Run the test suites natively in WSL**
 
-```powershell
-docker exec optimistic-planck-postgres-1 psql -U postgres -c "CREATE DATABASE rsvp_test;"
-```
-
-**Step 3 — Run the test suite**
-
-```powershell
-docker run --rm `
-  --network optimistic-planck_default `
-  -e DATABASE_URL="postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_test" `
-  -e REDIS_URL="redis://:<REDIS_PASSWORD>@redis:6379" `
-  -e SESSION_SECRET="test-secret-that-is-at-least-32-characters-long" `
-  -e NEXT_PUBLIC_APP_URL="http://localhost:3000" `
-  optimistic-planck-test `
-  npm test
-```
-
-`--network optimistic-planck_default` is required so the container can resolve `postgres` and `redis` by hostname. The `DATABASE_URL` env var overrides the `localhost` fallback in `tests/setup.ts`. `<POSTGRES_PASSWORD>` / `<REDIS_PASSWORD>` are the values from your `.env` — there are no compose defaults (SEC-25). Confirm the postgres password with: `docker exec optimistic-planck-postgres-1 printenv POSTGRES_PASSWORD`
+- **Unit and Regression tests:**
+  ```bash
+  wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm test'
+  ```
+- **Integration tests:**
+  ```bash
+  wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && DATABASE_URL="postgresql://postgres:postgres_password_here@127.0.0.1:5432/rsvp_test" REDIS_URL="redis://:redis_password_placeholder@127.0.0.1:6379" npm run test:integration'
+  ```
+- **E2E Tests (Playwright):**
+  Ensure browsers are installed natively: `npx playwright install --with-deps`. Then start the app server via `npm run dev` and run:
+  ```bash
+  wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:local'
+  ```
+  Or run with UI mode:
+  ```bash
+  wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:local:ui'
+  ```
 
 ## Important: Next.js 16 + Prisma 7 Patterns
 

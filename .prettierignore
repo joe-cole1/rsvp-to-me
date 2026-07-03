@@ -4,3 +4,5 @@ app/generated/
 prisma/postgres-migrations/
 data/
 public/
+pg_data/
+redis_data/
