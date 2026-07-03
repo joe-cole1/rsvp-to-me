@@ -64,8 +64,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 ### ⚙️ Refactoring & Clean Code
 
-- **[L-3] God-files → split by feature**:
-  - `components/event/SettingsPage.tsx` (~3408) → per-panel components.
 - **[CLEAN-01] Consolidated System Config Loading**: Reading the system configuration (`db.systemConfig.findMany()`) is implemented 5 different times, duplicating mapping loops in `lib/sms.ts`, `lib/email.ts`, and `app/actions/admin.ts`.
   - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
 - **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
@@ -96,6 +94,10 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### components/event/SettingsPage.tsx God-File Split
+
+- [x] **[L-3] God-file split (components/event/SettingsPage.tsx)**: Split the ~3,408 line `components/event/SettingsPage.tsx` into per-panel, props-driven components under `components/event/settings-page/` (`SettingsMenu`, `ThemePanel`, `HostsPanel`, `RsvpOptionsPanel`, `QuestionnairePanel`, `DisplayOptionsPanel`, `RemindersPanel`, `PollsPanel`, `PotluckPanel`, plus shared `types.ts`, `helpers.ts`, `styles.ts` (`buildStyles`), `ui.tsx` (`Label`/`Toggle`/`Section`), and `SettingsDecorations`). `SettingsPage.tsx` remains the state-owning orchestrator (~1,090 lines) with an unchanged import path, keeping all hooks, auto-save triggers, handlers, and URL-section sync in place. This closes out the L-3 god-file series (PRs #231, #232, #237).
 
 ### app/(app)/admin/AdminClient.tsx God-File Split
 
