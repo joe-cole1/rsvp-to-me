@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/session-user";
+import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
 import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
-import { cookies } from "next/headers";
-import { getUnlockSignature } from "@/lib/crypto";
 import { AppShell } from "@/components/ui/AppShell";
 import { getChannelConfig } from "@/lib/config";
 
@@ -93,54 +91,22 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   if (event.status === "CANCELLED") notFound();
 
-  const sessionUser = await getSessionUser();
-  const isHostOwner = sessionUser?.id === event.hostId;
-  const isCohost = event.coHosts.some((ch) => ch.userId === sessionUser?.id);
-  const isAdminModerating = sessionUser?.role === "ADMIN" && searchParams?.admin === "1";
-  const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
-
-  // Check if event is unlocked via signed cookie
-  const unlockedCookie = (await cookies()).get(`rsvp-unlocked-${slug}`)?.value;
-  const isUnlocked = unlockedCookie === getUnlockSignature(slug);
-
-  // Check if the URL token corresponds to a valid RSVP (lets INVITED guests through the private gate)
-  const hasValidToken = token
-    ? !!(await db.rSVP.findFirst({
-        where: { editToken: token, eventId: event.id },
-        select: { id: true },
-      }))
-    : false;
-
-  // Fetch the logged-in user's RSVP by userId (used for gate bypass and guest RSVP display)
-  const loggedInUserRsvp =
-    !isHost && !token && sessionUser?.id
-      ? await db.rSVP.findFirst({
-          where: { userId: sessionUser.id, eventId: event.id },
-          select: {
-            id: true,
-            guestName: true,
-            editToken: true,
-            status: true,
-            responded: true,
-            approved: true,
-            _count: { select: { answers: true } },
-          },
-        })
-      : null;
-  const isLoggedInGuest = !!loggedInUserRsvp;
-
-  // Block / gate access to PRIVATE events
-  if (
-    event.visibility === "PRIVATE" &&
-    !isHost &&
-    !isUnlocked &&
-    !hasValidToken &&
-    !isLoggedInGuest
-  ) {
-    if (event.passwordHash) {
-      // Password is a valid access path — show the entry form
-      return <PasswordGate slug={slug} />;
+  const { sessionUser, isHost, loggedInUserRsvp, decision } = await resolveEventAccess(
+    event,
+    slug,
+    {
+      token,
+      isPreview,
+      admin: searchParams?.admin === "1",
     }
+  );
+
+  if (decision === "password") {
+    // Password is a valid access path — show the entry form.
+    return <PasswordGate slug={slug} />;
+  }
+
+  if (decision === "private-blocked") {
     return (
       <AppShell center>
         <div style={{ textAlign: "center", maxWidth: "400px", padding: "40px 24px" }}>
@@ -171,11 +137,6 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         </div>
       </AppShell>
     );
-  }
-
-  // Password gate for non-private events with a password — hosts bypass it
-  if (event.passwordHash && !isHost && !isUnlocked) {
-    return <PasswordGate slug={slug} />;
   }
 
   const _guestRsvpRaw = token

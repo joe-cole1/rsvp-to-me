@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { buildIcsContent } from "@/lib/calendar";
+import { resolveEventAccess } from "@/lib/eventAccess";
 
-// Public like the event page itself: recipients of an invite/confirmation
-// email already know the event details, so no session is required.
-export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
+// The ICS export discloses the full event details (description, address,
+// virtual meeting URL, exact timings), so it must enforce the same
+// visibility/password gate as the event page. Recipients reach it via the
+// signed unlock cookie, a valid RSVP token, or an authenticated host session —
+// never as an anonymous scrape of a PRIVATE or password-protected event.
+export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const token = new URL(req.url).searchParams.get("token") ?? undefined;
 
   const event = await db.event.findUnique({
     where: { slug },
@@ -20,10 +25,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       locationAddress: true,
       virtualUrl: true,
       status: true,
+      visibility: true,
+      passwordHash: true,
+      hostId: true,
+      coHosts: { select: { userId: true } },
     },
   });
 
   if (!event || event.status === "DELETED") {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
+  const { decision } = await resolveEventAccess(event, slug, { token });
+  if (decision !== "granted") {
+    // Fail closed: don't disclose details (or existence) to unauthorized callers.
     return new NextResponse("Not found", { status: 404 });
   }
 
