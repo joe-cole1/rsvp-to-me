@@ -6,6 +6,7 @@ import { APP_SHELL } from "@/lib/theme";
 import {
   getEmailTemplatesAdmin,
   previewEmailTemplateAction,
+  resetAllEmailTemplatesAction,
   resetEmailTemplateAction,
   saveEmailTemplateAction,
   sendEmailTemplateTestAction,
@@ -158,6 +159,39 @@ export function EmailTemplatesSection() {
     }
   };
 
+  const handleResetAll = async () => {
+    if (
+      !window.confirm(
+        "Reset ALL email templates to their defaults? This clears every saved subject, body, and toggle override for all templates. This can't be undone."
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await resetAllEmailTemplatesAction();
+      await loadTemplates();
+      // Selection is unchanged, so seed the open editor back to defaults too.
+      if (selected) {
+        setSubject(selected.meta.defaultSubject);
+        setBody(selected.meta.defaultBody);
+        const cleared: Partial<Record<TemplateToggleKey, boolean>> = {};
+        for (const key of selected.meta.toggles) cleared[key] = true;
+        setToggles(cleared);
+      }
+      setStatus(
+        res.cleared > 0
+          ? `Reset all templates (${res.cleared} override${res.cleared === 1 ? "" : "s"} cleared)`
+          : "All templates were already at their defaults"
+      );
+    } catch {
+      setStatus("Reset all failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleSendTest = async () => {
     if (!selected) return;
     setBusy(true);
@@ -229,6 +263,28 @@ export function EmailTemplatesSection() {
           }}
         >
           <Send size={14} /> Send test to me
+        </button>
+        <button
+          type="button"
+          onClick={handleResetAll}
+          disabled={busy}
+          title="Clear every saved override and restore all shipped defaults"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            backgroundColor: "transparent",
+            border: `1px solid ${APP_SHELL.cardBorder}`,
+            color: APP_SHELL.textSecondary,
+            borderRadius: "10px",
+            padding: "10px 16px",
+            fontSize: "13px",
+            fontWeight: 700,
+            cursor: busy ? "not-allowed" : "pointer",
+            opacity: busy ? 0.6 : 1,
+          }}
+        >
+          <RotateCcw size={14} /> Reset all to default
         </button>
       </div>
 

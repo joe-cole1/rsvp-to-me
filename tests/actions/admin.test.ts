@@ -20,6 +20,7 @@ const {
   mockHostInviteCodeFindUnique,
   mockSystemConfigFindMany,
   mockSystemConfigUpsert,
+  mockSystemConfigDeleteMany,
   mockGetSession,
   mockTestEmailConfig,
   mockSendWelcomeEmail,
@@ -59,6 +60,7 @@ const {
   mockHostInviteCodeFindUnique: vi.fn(),
   mockSystemConfigFindMany: vi.fn(),
   mockSystemConfigUpsert: vi.fn(),
+  mockSystemConfigDeleteMany: vi.fn(),
   mockGetSession: vi.fn(),
   mockTestEmailConfig: vi.fn(),
   mockSendWelcomeEmail: vi.fn(),
@@ -123,6 +125,7 @@ vi.mock("@/lib/db", () => ({
     systemConfig: {
       findMany: mockSystemConfigFindMany,
       upsert: mockSystemConfigUpsert,
+      deleteMany: mockSystemConfigDeleteMany,
       findUnique: vi.fn(),
     },
     themePreset: {
@@ -181,6 +184,7 @@ import {
   createThemePreset,
   updateThemePreset,
   deleteThemePreset,
+  resetAllEmailTemplatesAction,
 } from "@/app/actions/admin";
 
 describe("app/actions/admin.ts", () => {
@@ -367,6 +371,21 @@ describe("app/actions/admin.ts", () => {
       const res = await updateSystemConfig("smtp_pass", "••••••••");
       expect(res.success).toBe(true);
       expect(mockSystemConfigUpsert).not.toHaveBeenCalled();
+    });
+
+    it("resetAllEmailTemplatesAction clears every email_template_ override", async () => {
+      mockSystemConfigDeleteMany.mockResolvedValue({ count: 3 });
+      const res = await resetAllEmailTemplatesAction();
+      expect(res).toEqual({ success: true, cleared: 3 });
+      expect(mockSystemConfigDeleteMany).toHaveBeenCalledWith({
+        where: { key: { startsWith: "email_template_" } },
+      });
+    });
+
+    it("resetAllEmailTemplatesAction reports zero when nothing was overridden", async () => {
+      mockSystemConfigDeleteMany.mockResolvedValue({ count: 0 });
+      const res = await resetAllEmailTemplatesAction();
+      expect(res).toEqual({ success: true, cleared: 0 });
     });
 
     it("keeps twilio_auth_token write-only: echoing the mask back is a no-op (L-5)", async () => {
@@ -570,6 +589,12 @@ describe("app/actions/admin.ts", () => {
   });
 
   describe("Non-admin access", () => {
+    it("resetAllEmailTemplatesAction throws Forbidden for non-admin", async () => {
+      mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
+      await expect(resetAllEmailTemplatesAction()).rejects.toThrow("Forbidden");
+      expect(mockSystemConfigDeleteMany).not.toHaveBeenCalled();
+    });
+
     it("createThemePreset throws Forbidden for non-admin", async () => {
       mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
       await expect(
