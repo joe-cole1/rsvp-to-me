@@ -420,3 +420,11 @@ For every bug fix, add a test to `tests/regression/` that would have caught it:
 5. Tests use the same Vitest unit setup as `tests/lib/` and `tests/actions/` — mock Prisma as needed
 
 <!-- END:regression-test-rules -->
+
+<!-- BEGIN:workflow-pointer -->
+
+# Full Workflow Runbook
+
+The complete end-to-end agent workflow (session start → sync → branch → plan → implement → local CI → commit → PR → CI check) lives in **`WORKFLOW.md`** at the repo root, automated by `scripts/dev-sync.sh`, `scripts/preflight.sh`, and `scripts/ship.sh`.
+
+<!-- END:workflow-pointer -->

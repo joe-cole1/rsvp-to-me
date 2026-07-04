@@ -85,6 +85,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **[SEC-21] Defense-in-depth hardening** _(deferred)_:
   - (a) **Magic-token scope not enforced** — `verifyMagicToken` in `lib/auth.ts` ~line 116 never checks `record.type === "LOGIN"`, so an `EMAIL_CHANGE`/`PHONE_CHANGE` token can be redeemed at `/auth/verify`. Same-user only, so impact is low, but tokens should be scope-locked to their purpose.
   - (c) **Uploads open to any session incl. auto-created `GUEST` accounts** — `app/api/upload/route.ts` ~line 62 checks only `getSession()`, with no role check and no per-user/rate cap, allowing storage abuse. Magic-byte sniffing and SVG exclusion are already correct. Fix: gate upload access to HOST/ADMIN.
+- **Local `scripts/preflight.sh` full E2E fails on `auth.e2e.ts › magic link verify → dashboard`** _(discovered 2026-07-04, local-CI tooling PR)_: the ephemeral Redis the script starts (`127.0.0.1:56399`) isn't reachable by the app server during E2E (log shows persistent `[redis] Error … Redis error`), so the magic-link/rate-limit path fails-closed and the `/dashboard` redirect never happens. Fails identically on `main` locally but **passes in GitHub CI**, so it's an ephemeral-Redis reachability gap in the local harness, not an app bug. Fix: add a Redis-readiness wait (mirroring the `pg_isready` loop) and verify the server resolves `REDIS_URL` to the mapped port.
 
 ---
 

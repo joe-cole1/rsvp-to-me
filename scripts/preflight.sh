@@ -4,8 +4,9 @@
 # you never wait on GitHub to find a failure you could have caught locally.
 #
 # It spins up EPHEMERAL Postgres/Redis containers (identical to CI's service
-# containers) on non-standard ports, so it never touches your dev database, then
-# runs the exact CI step list against them and tears them down on exit.
+# containers) on NON-DEFAULT ports (55432 / 56399) so it never touches your dev
+# database or clashes with dev services (5432 / 6379). It runs the exact CI step
+# list against them and tears them down on exit.
 #
 #   scripts/preflight.sh          # full CI parity, including Playwright E2E
 #   scripts/preflight.sh --fast   # everything except E2E (much faster)
@@ -23,11 +24,12 @@ cd "$(git rev-parse --show-toplevel)"
 FAST=0
 [ "${1:-}" = "--fast" ] && FAST=1
 
-# ---- Ephemeral CI-parity services (non-standard ports to avoid dev clashes) --
+# ---- Ephemeral CI-parity services (non-default ports to avoid dev clashes) ----
 PG_NAME=preflight-pg
 REDIS_NAME=preflight-redis
 PG_PORT=55432
 REDIS_PORT=56399
+E2E_PORT=3001
 SERVER_PID=""
 
 cleanup() {
@@ -41,6 +43,9 @@ trap cleanup EXIT INT TERM
 export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:${PG_PORT}/rsvp_test"
 export REDIS_URL="redis://127.0.0.1:${REDIS_PORT}"
 export SESSION_SECRET="preflight-secret-must-be-at-least-32-characters"
+# Unit/integration/component fixtures assert URLs at :3000 (tests/setup.ts default),
+# so tests run on :3000. The E2E server switches to :3001 just before the build
+# (see below) to avoid clashing with a dev server on :3000.
 export NEXT_PUBLIC_APP_URL="http://localhost:3000"
 export HOST_INVITE_CODE="ci-test"
 export EMAIL_FROM="ci@example.com"
@@ -49,16 +54,24 @@ export OPEN_REGISTRATION="true"
 step() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
 ok()   { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
 
-step "Starting ephemeral Postgres + Redis"
+step "Starting ephemeral Postgres + Redis (ports ${PG_PORT}/${REDIS_PORT})"
 docker rm -f "$PG_NAME" "$REDIS_NAME" >/dev/null 2>&1 || true
 docker run -d --name "$PG_NAME" \
   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=rsvp_test -e POSTGRES_USER=postgres \
   -p "${PG_PORT}:5432" postgres:18-alpine >/dev/null
 docker run -d --name "$REDIS_NAME" -p "${REDIS_PORT}:6379" redis:7-alpine >/dev/null
+db_ready=0
 for _ in $(seq 1 30); do
-  docker exec "$PG_NAME" pg_isready -U postgres >/dev/null 2>&1 && break
+  if docker exec "$PG_NAME" pg_isready -U postgres >/dev/null 2>&1; then
+    db_ready=1
+    break
+  fi
   sleep 1
 done
+if [ "$db_ready" -eq 0 ]; then
+  echo "✗ Ephemeral Postgres failed to become ready within 30s (Docker issue?)." >&2
+  exit 1
+fi
 ok "services up"
 
 step "Install dependencies (npm ci)"
@@ -89,23 +102,41 @@ npm run test:integration
 step "Component tests"
 npm run test:components
 
+# Switch to the E2E server port for the build + E2E only. `next build` BAKES
+# NEXT_PUBLIC_APP_URL and `next start` binds $PORT, so both must be the E2E port —
+# keeping app-generated links consistent with the served port and never clashing
+# with a dev server on :3000. (In --fast mode the build simply uses this value.)
+export PORT="$E2E_PORT"
+export NEXT_PUBLIC_APP_URL="http://localhost:${E2E_PORT}"
+
 step "Build (next build)"
 npm run build
+
+# Type-check AFTER build so Next's generated route types (PageProps) resolve, and
+# so test files that `next build` does not compile still get checked.
+step "Type-check (tsc --noEmit)"
+npx tsc --noEmit
 
 if [ "$FAST" = 1 ]; then
   ok "PREFLIGHT PASSED — fast mode (E2E skipped)"
   exit 0
 fi
 
+# ---- E2E ---------------------------------------------------------------------
+# Seed the fresh ephemeral DB for deterministic state. SEED_TEST_DATA=true loads
+# the rich fixtures; the seed is idempotent (upsert base + empty-DB guard).
+step "E2E — seeding ephemeral database"
+SEED_TEST_DATA=true npm run db:seed
+
 step "E2E — starting app server"
 npm start >/tmp/preflight-server.log 2>&1 &
 SERVER_PID=$!
-npx wait-on http://localhost:3000/api/health --timeout 120000
+npx wait-on "http://localhost:${E2E_PORT}/api/health" --timeout 120000
 
 step "E2E — ensuring Playwright Chromium is installed"
 npx playwright install chromium >/dev/null
 
 step "E2E — Playwright tests"
-PLAYWRIGHT_BASE_URL="http://localhost:3000" npm run test:e2e
+PLAYWRIGHT_BASE_URL="http://localhost:${E2E_PORT}" npm run test:e2e
 
 ok "PREFLIGHT PASSED — full CI parity ✅"
