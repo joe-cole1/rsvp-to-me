@@ -30,6 +30,10 @@ Choose how much guests can see in Settings:
 - **Going guests only** — only guests marked Going can see it.
 - **Host only** — hidden from guests; visible to you and your co-hosts.
 
+If your event is **Private** or password-protected, the guest list is gated the same way as the event page — a visitor who hasn't been let in can't reach it, regardless of the setting above.
+
+**Guests' personal details stay private.** Even when the list is visible to guests, contact information (email, phone) and the per-guest edit links are shown **only to you and your co-hosts**. Guests see names and RSVP status, never each other's contact details or private questionnaire answers.
+
 ---
 
 ## Showing Guest Names

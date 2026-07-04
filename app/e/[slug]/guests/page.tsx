@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/session-user";
+import { resolveEventAccess } from "@/lib/eventAccess";
+import { serializeGuestRsvp } from "@/lib/guestList";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -32,10 +33,10 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
 
   if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
 
-  const sessionUser = await getSessionUser();
-  const isHostOwner = sessionUser?.id === event.hostId;
-  const isCohost = event.coHosts.some((ch) => ch.userId === sessionUser?.id);
-  const isHost = isHostOwner || isCohost;
+  // Enforce the same visibility/password gate as the event page — a PRIVATE or
+  // password-protected event must not expose its guest list to anonymous visitors.
+  const { sessionUser, isHost, decision } = await resolveEventAccess(event, slug);
+  if (decision !== "granted") redirect(`/e/${slug}`);
 
   if (event.guestListVis === "HOST_ONLY" && !isHost) redirect(`/e/${slug}`);
 
@@ -66,14 +67,9 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
   const no = approvedRsvps.filter((r) => r.status === "NO");
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
 
-  // Serialize dates before crossing server→client boundary
-  const serializeRsvp = (r: (typeof event.rsvps)[number]) => ({
-    ...r,
-    createdAt: r.createdAt.toISOString(),
-    answers: r.answers.map((a) => ({ label: a.rsvpField.label, value: a.value })),
-    plusOneGuests: r.plusOneGuests.map((g) => g.name),
-    editToken: r.editToken,
-  });
+  // Serialize for the client boundary, stripping host-only data (editToken,
+  // email, phone, answers) for non-hosts — see lib/guestList.ts for why.
+  const serializeRsvp = (r: (typeof event.rsvps)[number]) => serializeGuestRsvp(r, isHost);
 
   return (
     <div
@@ -233,23 +229,29 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
             maybe={maybe.map(serializeRsvp)}
             no={no.map(serializeRsvp)}
             pending={isHost ? pendingRsvps.map(serializeRsvp) : []}
-            invited={[
-              // RSVPs with INVITED status (host pre-invited, awaiting response)
-              ...invitedRsvps.map((r) => ({
-                id: r.id,
-                sentTo: r.guestEmail || r.guestPhone || r.guestName,
-                channel: (r.guestEmail ? "EMAIL" : "SMS") as "EMAIL" | "SMS",
-                sentAt: r.createdAt.toISOString(),
-                guestName: r.guestName,
-                editToken: r.editToken,
-              })),
-              // Invitation records with no linked RSVP (blast tracking)
-              ...pendingInvitations.map((inv) => ({
-                ...inv,
-                sentAt: inv.sentAt.toISOString(),
-                guestName: undefined,
-              })),
-            ]}
+            invited={
+              // Host-only tab: contains invitee contact info + editTokens, so
+              // only serialize it for hosts (never ship it in a guest payload).
+              isHost
+                ? [
+                    // RSVPs with INVITED status (host pre-invited, awaiting response)
+                    ...invitedRsvps.map((r) => ({
+                      id: r.id,
+                      sentTo: r.guestEmail || r.guestPhone || r.guestName,
+                      channel: (r.guestEmail ? "EMAIL" : "SMS") as "EMAIL" | "SMS",
+                      sentAt: r.createdAt.toISOString(),
+                      guestName: r.guestName,
+                      editToken: r.editToken,
+                    })),
+                    // Invitation records with no linked RSVP (blast tracking)
+                    ...pendingInvitations.map((inv) => ({
+                      ...inv,
+                      sentAt: inv.sentAt.toISOString(),
+                      guestName: undefined,
+                    })),
+                  ]
+                : []
+            }
             isHost={isHost}
             slug={slug}
             t={t}

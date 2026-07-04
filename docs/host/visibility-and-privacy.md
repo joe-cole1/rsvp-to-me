@@ -35,6 +35,19 @@ On a **Private** event, you can allow your invited guests to bring others by sen
 
 ---
 
+## What the Gate Protects
+
+Privacy and password protection cover the **whole event**, not just the main page. The same check guards every part of a Private or password-protected event:
+
+- The **event page** itself.
+- The **guest list** page.
+- The **RSVP form** (nobody can respond without being let in).
+- The **Add to Calendar** (`.ics`) download link used in your invite emails.
+
+A visitor gets through only if they are a host or co-host, an invited guest opening their personal link, or someone who has already entered the password. Everyone else is turned away consistently across all of these — so a Private event's details, guest list, and calendar file can't be pulled up by guessing the address.
+
+---
+
 ## Choosing the Right Mode
 
 - Hosting something open to the community? **Public.**

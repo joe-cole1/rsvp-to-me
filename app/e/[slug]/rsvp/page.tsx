@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/session-user";
+import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
 import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
 import { getChannelConfig } from "@/lib/config";
@@ -23,6 +24,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     where: { slug },
     include: {
       theme: true,
+      coHosts: { select: { userId: true } },
       rsvpFields: { orderBy: { order: "asc" } },
       polls: {
         orderBy: { createdAt: "asc" },
@@ -35,6 +37,12 @@ export default async function RsvpPage({ params, searchParams }: Props) {
   });
 
   if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
+
+  // Enforce the visibility/password gate before rendering the RSVP flow — a
+  // valid token, host session, or unlock cookie is required for PRIVATE or
+  // password-protected events. New guests reach public events normally.
+  const { decision } = await resolveEventAccess(event, slug, { token });
+  if (decision !== "granted") redirect(`/e/${slug}`);
 
   const theme = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
