@@ -354,11 +354,12 @@ Under **Admin Panel → Email → Email Templates**, admins can customize each e
 - **Subject line** — with `{placeholder}` variables (see below).
 - **Body copy** — for templates whose body is editable (invite, RSVP confirmation, sign-in link, welcome, test). The host-written blast/reminder and the approval/host-alert bodies are generated, so only their subjects are editable.
 - **Content blocks** — toggle optional pieces on/off: cover image, "Hosted by" flourish, Google Maps link, and add-to-calendar links (only the toggles relevant to each template are shown).
-- **Reset to default** — clears your overrides and restores the shipped copy.
+- **Reset to default** — clears the current template's overrides and restores its shipped copy.
+- **Reset all to default** — clears the saved overrides for **every** template at once and restores all shipped defaults (asks for confirmation first). Use this if a template's subject or body is showing leftover text from earlier testing.
 
 **Placeholders** are written in curly braces and substituted at send time. Available variables depend on the template (shown as clickable chips in the editor), e.g. `{guestName}`, `{hostName}`, `{eventTitle}`, `{eventDate}`, `{location}`, `{status}`. Unknown placeholders are left as-is so typos are visible. Copy is inserted as plain text — any HTML you type appears literally and cannot break the layout.
 
-Template overrides are stored per-template in system configuration and apply site-wide. Hosts do not edit template copy; they can only preview their event's emails (see the host guide).
+Template overrides are stored per-template in system configuration and apply site-wide; when a template has no override, the shipped default is used as-is (generated on the fly, no database row required). Hosts do not edit template copy; they can only preview their event's emails (see the host guide).
 
 ---
 

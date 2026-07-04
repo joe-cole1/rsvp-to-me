@@ -476,6 +476,16 @@ export async function resetEmailTemplateAction(id: string) {
   return { success: true as const };
 }
 
+/** Clear every email-template override at once, restoring all shipped defaults. */
+export async function resetAllEmailTemplatesAction() {
+  await assertAdmin();
+  const { count } = await db.systemConfig.deleteMany({
+    where: { key: { startsWith: "email_template_" } },
+  });
+  revalidatePath("/admin");
+  return { success: true as const, cleared: count };
+}
+
 /** Live preview for the admin editor — renders unsaved state with sample data. */
 export async function previewEmailTemplateAction(
   id: string,
