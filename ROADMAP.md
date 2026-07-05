@@ -12,10 +12,11 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 - **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch.
 - **[BUG-03] Flaky Unit Test Timeouts in CI**: The unit test suite frequently encounters test timeouts in `tests/lib/crypto.test.ts` and `tests/actions/event.test.ts` on slow/constrained CI environments. These should be resolved by increasing Vitest's default timeout or optimizing slow mock/crypto operations.
+- **[BUG/SAFE] Admin Protection Guard (Self & System Deletion)**: Prevent admins from scheduling or executing deletion of their own user accounts or the `system` user. Hide/disable deletion actions in the `UsersTab.tsx` UI and add backend checks to fail-safe. Exclude the `system` user completely from the user list to eliminate confusion.
 
 ### 🔒 Backend / Security / DevOps
 
-_No pending items in this category._
+- **[CLEAN] Reconcile Header & Page Admin Menus**: Remove the global `AdminHamburger` drawer button from the header navigation. Add a clear `🛡️ Admin Panel` link to the `ProfileDropdown` (only visible to admins) to serve as the single entry point. This keeps `/admin` navigation consolidated within the page's sidebar and mobile drawer.
 
 ---
 
@@ -26,12 +27,19 @@ _Functional improvements, layout adjustments, and secondary features that can be
 ### 🛠️ Bug / Fix
 
 - **Host new-RSVP alert email is not wired up**: `sendHostRsvpAlertEmail` (and its SMS twin `sendHostRsvpAlertSms`) exist and now have a styled, previewable template, but nothing calls them — hosts do **not** actually receive a "New RSVP" email/SMS when a guest RSVPs, despite the notification toggles implying they do. The initial migration also carries orphaned `Event` columns (`hostAlertEmail`, `rsvpConfirmEmail`, …) that no longer exist in `schema.prisma` (schema drift). Wire the alert into `addRSVP` (respecting the per-event host-alert toggles) and reconcile or remove the stale columns. _(Discovered during the 2026-07 email-template rebuild.)_
+- **Filter Out Deleted Users in Admin panel**: Exclude anonymized/deleted users from the default view by defaulting the status filter in `UsersTab` to `"ACTIVE"`. Add a `"DELETED"` status filter option to specifically show them when selected.
 
 ### 🎨 UI / UX / Feature
 
 - **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
+- **RSVP Deadline Visibility & Guest Gate**: Style the deadline notice prominently on the event page. If the deadline has passed, hide/remove all guest RSVP actions (GOING/MAYBE/NO and Edit RSVP links), display a clear "RSVPs Closed" alert, and redirect guests attempting to access `/e/[slug]/rsvp` after the deadline back to `/e/[slug]`. Display the RSVP deadline on the host dashboard cards.
+- **Host & Co-host Event Deletion**: Add a "Delete Event" button to the Display Options settings panel (Danger Zone). Render a confirmation modal/prompt warning that this action is permanent and cannot be undone. Create a `deleteEvent` server action that validates `assertHostOrCohost` and deletes the event.
+- **Cover Image Variable Aspect Ratio**: Implement a flexible aspect ratio for cover images on the event page (capped between 200px and 450px) while maintaining the uniform 4:3 aspect ratio on the dashboard event cards for grid alignment.
+- **Questionnaire Auto-Enable & Verbose Settings**: Remove the toggle switch. Check `event.rsvpFields.length > 0` directly in `RsvpFlow` to enable the questionnaire. Add verbose descriptive copy in settings explaining that questions appear during RSVP.
+- **Consistent Add Item Styling (Questionnaire, Polls, Potluck)**: Remove the permanently expanded "Add" forms in Polls and Potluck. Place a "+ Add [Item/Poll/Question]" button by default in all three settings panels that expands a styled form card with aligned "Add" and "Cancel" buttons.
+- **Event Host Display Name Override**: Add `hostDisplayName String?` to the `Event` schema. Render an input in the Hosts settings panel allowing hosts to override their display name for that event. Prioritize `hostDisplayName` across the event page, dashboard, and notifications.
 
 ### 🔒 Backend / Security / DevOps
 
@@ -58,6 +66,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Custom Cover Images**: Enable host upload cropping and stock image selection templates.
 - **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
 - **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
+- **Event Description Section Title**: Style the description/details card header on the event page exactly like the comments, polls, and potluck cards (adding a `📝 Description` title with `fontWeight: 700`).
 
 ### ⚙️ Refactoring & Clean Code
 
@@ -65,6 +74,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
   - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
 - **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
   - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
+- **Change Default Settings to Off (Schema Migration)**: Change `plusOneAllowed` default to `false`, `allowGuestsToAdd` (Polls) default to `false`, and `emailHoursBefore` (Auto-Reminders) default to `0` (off) in `schema.prisma`.
 
 ### 🔒 Backend / Security / DevOps
 
