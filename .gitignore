@@ -68,3 +68,6 @@ next-env.d.ts
 /worker/node_modules/
 /worker/.wrangler/
 /worker/dist/
+
+# Local agent workspace files
+/.agents/
