@@ -911,12 +911,15 @@ export function SettingsPage({
 
       <div style={S.container}>
         {activeSection === null && (
-          <SettingsMenu
-            isOwner={isOwner}
-            openSection={openSection}
-            t={t}
-            emailEnabled={channelConfig.email}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <SettingsMenu
+              isOwner={isOwner}
+              openSection={openSection}
+              t={t}
+              emailEnabled={channelConfig.email}
+            />
+            <DangerZonePanel eventId={event.id} t={t} S={S} />
+          </div>
         )}
 
         {/* ── Theme ── */}
@@ -1030,32 +1033,29 @@ export function SettingsPage({
 
         {/* ── Display Options ── */}
         {activeSection === "privacy" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <DisplayOptionsPanel
-              commentsEnabled={commentsEnabled}
-              setCommentsEnabled={setCommentsEnabled}
-              guestSharingEnabled={guestSharingEnabled}
-              setGuestSharingEnabled={setGuestSharingEnabled}
-              guestListVis={guestListVis}
-              setGuestListVis={setGuestListVis}
-              visibility={visibility}
-              setVisibility={setVisibility}
-              guestsCanInvite={guestsCanInvite}
-              setGuestsCanInvite={setGuestsCanInvite}
-              password={password}
-              setPassword={setPassword}
-              passwordDirty={passwordDirty}
-              setPasswordDirty={setPasswordDirty}
-              showPassword={showPassword}
-              setShowPassword={setShowPassword}
-              setPasswordSavedAsNull={setPasswordSavedAsNull}
-              effectivePasswordHash={effectivePasswordHash}
-              triggerSaveSettings={triggerSaveSettings}
-              t={t}
-              S={S}
-            />
-            <DangerZonePanel eventId={event.id} t={t} S={S} />
-          </div>
+          <DisplayOptionsPanel
+            commentsEnabled={commentsEnabled}
+            setCommentsEnabled={setCommentsEnabled}
+            guestSharingEnabled={guestSharingEnabled}
+            setGuestSharingEnabled={setGuestSharingEnabled}
+            guestListVis={guestListVis}
+            setGuestListVis={setGuestListVis}
+            visibility={visibility}
+            setVisibility={setVisibility}
+            guestsCanInvite={guestsCanInvite}
+            setGuestsCanInvite={setGuestsCanInvite}
+            password={password}
+            setPassword={setPassword}
+            passwordDirty={passwordDirty}
+            setPasswordDirty={setPasswordDirty}
+            showPassword={showPassword}
+            setShowPassword={setShowPassword}
+            setPasswordSavedAsNull={setPasswordSavedAsNull}
+            effectivePasswordHash={effectivePasswordHash}
+            triggerSaveSettings={triggerSaveSettings}
+            t={t}
+            S={S}
+          />
         )}
 
         {/* ── Auto-Reminders ── */}
