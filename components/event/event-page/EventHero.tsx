@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Pencil, Settings } from "lucide-react";
 import { InlineEdit } from "./InlineEdit";
 import { DateEdit } from "./DateEdit";
@@ -49,6 +50,32 @@ export function EventHero({
   isHost: boolean;
   coverUploadEnabled: boolean;
 }) {
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+
+  useEffect(() => {
+    const imageUrl = event.theme?.coverImageUrl;
+    if (imageUrl) {
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        setAspectRatio(img.naturalWidth / img.naturalHeight);
+      };
+      img.onerror = () => {
+        setAspectRatio(null);
+      };
+    } else {
+      Promise.resolve().then(() => {
+        setAspectRatio(null);
+      });
+    }
+  }, [event.theme?.coverImageUrl]);
+
+  const hasCover = !!event.theme?.coverImageUrl;
+  const containerHeight = hasCover ? (aspectRatio ? "auto" : "260px") : "260px";
+  const containerAspectRatio = hasCover && aspectRatio ? `${aspectRatio}` : undefined;
+  const containerMinHeight = hasCover ? "200px" : "260px";
+  const containerMaxHeight = hasCover ? "450px" : "260px";
+
   return (
     <>
       {/* ── Title ── */}
@@ -146,7 +173,10 @@ export function EventHero({
           style={{
             ...coverStyle,
             width: "100%",
-            height: "260px",
+            height: containerHeight,
+            aspectRatio: containerAspectRatio,
+            minHeight: containerMinHeight,
+            maxHeight: containerMaxHeight,
             borderRadius: "20px",
             marginBottom: "32px",
             display: "flex",

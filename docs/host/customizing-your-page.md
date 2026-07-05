@@ -52,6 +52,7 @@ Upload a cover photo to set the mood:
 - Supported formats: JPEG, PNG, GIF, WebP.
 - Maximum file size: 8 MB.
 - Large images are automatically resized in your browser (up to 1600×900) before uploading, so uploads stay fast.
+- **Aspect Ratio:** On the event page itself, the cover image renders with its natural aspect ratio (automatically scaling between a height of 200px and 450px depending on the width and shape). On your dashboard list and public feeds, cover photos are cropped to a uniform 4:3 grid aspect ratio.
 
 ---
 
