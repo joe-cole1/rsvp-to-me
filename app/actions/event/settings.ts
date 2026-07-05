@@ -121,6 +121,7 @@ export async function saveEventSettings(
     plusOneNamesRequired?: boolean;
     approvalRequired?: boolean;
     rsvpDeadline?: string | null;
+    allowEditAfterDeadline?: boolean;
     capacity?: number | null;
     guestListVis?: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
     visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -130,6 +131,7 @@ export async function saveEventSettings(
     password?: string | null;
     guestSharingEnabled?: boolean;
     guestsCanInvite?: boolean;
+    hostDisplayName?: string | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHostOrCohost(eventId);

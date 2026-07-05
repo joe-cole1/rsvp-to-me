@@ -72,7 +72,7 @@ export default async function globalSetup() {
       `INSERT INTO "Session" (id, token, "userId", "expiresAt", "createdAt")
        VALUES ($1, $1, $2, $3, now())
        ON CONFLICT (id) DO NOTHING`,
-      [sessionId, hostId, expiresAt]
+      [sessionId, hostId, expiresAt.toISOString()]
     );
 
     const sealed = await sealData(
@@ -114,7 +114,7 @@ export default async function globalSetup() {
     await pool.query(
       `INSERT INTO "MagicToken" (id, "userId", token, "expiresAt", "createdAt", used, type)
        VALUES ($1, $2, $3, $4, now(), false, 'LOGIN'::"MagicTokenType")`,
-      [randomUUID(), hostId, hashed, new Date(Date.now() + 15 * 60 * 1000)]
+      [randomUUID(), hostId, hashed, new Date(Date.now() + 15 * 60 * 1000).toISOString()]
     );
 
     fs.writeFileSync(path.join(__dirname, "fixtures", "magic-token.txt"), rawToken);

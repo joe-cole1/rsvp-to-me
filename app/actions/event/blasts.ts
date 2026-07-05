@@ -15,7 +15,13 @@ export async function sendBlast(eventId: string, message: string, filters: Blast
 
   const event = await db.event.findUnique({
     where: { id: eventId },
-    select: { title: true, slug: true, theme: true, host: { select: { name: true, email: true } } },
+    select: {
+      title: true,
+      slug: true,
+      theme: true,
+      hostDisplayName: true,
+      host: { select: { name: true, email: true } },
+    },
   });
   if (!event) throw new Error("Event not found");
 
@@ -35,7 +41,7 @@ export async function sendBlast(eventId: string, message: string, filters: Blast
     eventTitle: event.title,
     eventSlug: event.slug,
     message,
-    hostName: event.host.name ?? "Your host",
+    hostName: event.hostDisplayName ?? event.host.name ?? "Your host",
     theme: event.theme,
     replyTo: event.host.email || undefined,
   });
@@ -54,7 +60,7 @@ export async function sendSmsBlast(eventId: string, message: string, filters: Bl
 
   const event = await db.event.findUnique({
     where: { id: eventId },
-    select: { title: true, slug: true, host: { select: { name: true } } },
+    select: { title: true, slug: true, hostDisplayName: true, host: { select: { name: true } } },
   });
   if (!event) throw new Error("Event not found");
 
@@ -74,7 +80,7 @@ export async function sendSmsBlast(eventId: string, message: string, filters: Bl
     eventTitle: event.title,
     eventSlug: event.slug,
     message,
-    hostName: event.host.name ?? "Your host",
+    hostName: event.hostDisplayName ?? event.host.name ?? "Your host",
   });
 
   db.invitation
@@ -119,10 +125,15 @@ export async function addEventUpdate(eventId: string, body: string, notifyGuests
     if (emailGuests.length > 0 || smsGuests.length > 0) {
       const fullEvent = await db.event.findUnique({
         where: { id: eventId },
-        select: { title: true, theme: true, host: { select: { name: true, email: true } } },
+        select: {
+          title: true,
+          theme: true,
+          hostDisplayName: true,
+          host: { select: { name: true, email: true } },
+        },
       });
       const eventTitle = fullEvent?.title ?? event.slug;
-      const hostName = fullEvent?.host?.name ?? "Your host";
+      const hostName = fullEvent?.hostDisplayName ?? fullEvent?.host?.name ?? "Your host";
       const replyTo = fullEvent?.host?.email || undefined;
 
       if (emailGuests.length > 0) {

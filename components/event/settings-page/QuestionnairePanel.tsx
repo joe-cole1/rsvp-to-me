@@ -4,11 +4,9 @@ import { Plus, X } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { RsvpFieldEntry, SettingsOverrides } from "./types";
 import type { SettingsPageStyles } from "./styles";
-import { Section, Toggle } from "./ui";
+import { Section } from "./ui";
 
 export function QuestionnairePanel({
-  questionnaireEnabled,
-  setQuestionnaireEnabled,
   fields,
   addingField,
   setAddingField,
@@ -30,7 +28,6 @@ export function QuestionnairePanel({
   handleUpdateFieldLabel,
   handleUpdateFieldOptions,
   handleDeleteField,
-  triggerSaveSettings,
   isPending,
   t,
   S,
@@ -67,15 +64,18 @@ export function QuestionnairePanel({
 }) {
   return (
     <Section title="Questionnaire" t={t}>
-      <Toggle
-        label="Ask guests custom questions"
-        value={questionnaireEnabled}
-        onChange={(val) => {
-          setQuestionnaireEnabled(val);
-          triggerSaveSettings({ questionnaireEnabled: val });
+      <div
+        style={{
+          fontSize: "13px",
+          color: t.textSecondary,
+          marginBottom: "16px",
+          lineHeight: "1.5",
         }}
-        t={t}
-      />
+      >
+        Add custom questions to gather extra information from guests (e.g., dietary restrictions,
+        song requests). The questionnaire is automatically enabled and presented during the RSVP
+        flow when one or more questions are added here.
+      </div>
 
       {fields.length > 0 && (
         <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>

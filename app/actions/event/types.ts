@@ -21,6 +21,8 @@ export type DashboardEvent = {
   host?: { name: string | null; email: string | null; avatarUrl: string | null } | null;
   coHosts?: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
   commentCount: number;
+  rsvpDeadline: Date | null;
+  hostDisplayName: string | null;
 };
 
 export type DashboardInvite = {
@@ -44,6 +46,8 @@ export type DashboardInvite = {
   commentCount: number;
   userRsvpStatus: string;
   userRsvpEditToken: string;
+  rsvpDeadline: Date | null;
+  hostDisplayName: string | null;
 };
 
 export type DashboardActivity = {

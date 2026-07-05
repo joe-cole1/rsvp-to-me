@@ -63,6 +63,7 @@ export const SaveEventSettingsSchema = z.object({
   plusOneNamesRequired: z.boolean().optional(),
   approvalRequired: z.boolean().optional(),
   rsvpDeadline: z.string().trim().nullable().optional(),
+  allowEditAfterDeadline: z.boolean().optional(),
   capacity: z.number().int().min(0).nullable().optional(),
   guestListVis: z.enum(["ALL", "GUESTS_ONLY", "HOST_ONLY"]).optional(),
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).optional(),
@@ -72,6 +73,7 @@ export const SaveEventSettingsSchema = z.object({
   password: z.string().nullable().optional(),
   guestSharingEnabled: z.boolean().optional(),
   guestsCanInvite: z.boolean().optional(),
+  hostDisplayName: z.string().trim().max(100).nullable().optional(),
 });
 
 export const UpdateRsvpSchema = z.object({

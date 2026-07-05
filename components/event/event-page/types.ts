@@ -33,6 +33,8 @@ export type EventData = {
   showTimestamps: boolean;
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  hostDisplayName: string | null;
+  allowEditAfterDeadline: boolean;
   host: { id: string; name: string | null; email: string; avatarUrl?: string | null };
   theme: {
     baseTheme: "DARK" | "SOFT" | "BOLD";

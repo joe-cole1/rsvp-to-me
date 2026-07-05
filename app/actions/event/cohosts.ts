@@ -33,3 +33,19 @@ export async function removeCoHost(cohostId: string) {
   await db.eventCoHost.delete({ where: { id: cohostId } });
   revalidatePath(`/e/${cohost.event.slug}/settings`);
 }
+
+export async function updateCoHostDisplayName(cohostId: string, displayName: string | null) {
+  const cohost = await db.eventCoHost.findUnique({
+    where: { id: cohostId },
+    select: { eventId: true, event: { select: { slug: true } } },
+  });
+  if (!cohost) throw new Error("Forbidden");
+  // Deliberately host-only: co-host management stays with the original host.
+  await assertHost(cohost.eventId);
+  await db.eventCoHost.update({
+    where: { id: cohostId },
+    data: { displayName: displayName ? displayName.trim() : null },
+  });
+  revalidatePath(`/e/${cohost.event.slug}/settings`);
+  return { success: true };
+}

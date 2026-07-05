@@ -8,6 +8,7 @@ import type { DashboardEvent, DashboardInvite, DashboardActivity } from "./types
 // ── Dashboard ──────────────────────────────────────────────────────────────────
 
 type CoHostQueryItem = {
+  displayName?: string | null;
   user?: {
     id: string;
     name: string | null;
@@ -33,6 +34,7 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       rsvps: { select: { status: true, approved: true } },
       coHosts: {
         select: {
+          displayName: true,
           user: {
             select: {
               id: true,
@@ -75,11 +77,20 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       host: e.host,
       coHosts: e.coHosts
         ? (e.coHosts
-            .map(
-              (ch: CoHostQueryItem) =>
-                ch.user ||
-                (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)
-            )
+            .map((ch: CoHostQueryItem) => {
+              const u = ch.user;
+              if (!u) {
+                return ch.userId
+                  ? { id: ch.userId, name: ch.displayName || null, email: null, avatarUrl: null }
+                  : null;
+              }
+              return {
+                id: u.id,
+                name: ch.displayName || u.name || (u.email ? u.email.split("@")[0] : "Co-host"),
+                email: u.email || null,
+                avatarUrl: u.avatarUrl,
+              };
+            })
             .filter(Boolean) as {
             id: string;
             name: string | null;
@@ -88,6 +99,8 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
           }[])
         : [],
       commentCount: e._count?.comments ?? 0,
+      rsvpDeadline: e.rsvpDeadline,
+      hostDisplayName: e.hostDisplayName,
     };
   });
 }
@@ -133,6 +146,7 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
           host: { select: { name: true, email: true, avatarUrl: true } },
           coHosts: {
             select: {
+              displayName: true,
               user: {
                 select: {
                   id: true,
@@ -185,11 +199,20 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
       host: e.host,
       coHosts: e.coHosts
         ? (e.coHosts
-            .map(
-              (ch: CoHostQueryItem) =>
-                ch.user ||
-                (ch.userId ? { id: ch.userId, name: null, email: null, avatarUrl: null } : null)
-            )
+            .map((ch: CoHostQueryItem) => {
+              const u = ch.user;
+              if (!u) {
+                return ch.userId
+                  ? { id: ch.userId, name: ch.displayName || null, email: null, avatarUrl: null }
+                  : null;
+              }
+              return {
+                id: u.id,
+                name: ch.displayName || u.name || (u.email ? u.email.split("@")[0] : "Co-host"),
+                email: u.email || null,
+                avatarUrl: u.avatarUrl,
+              };
+            })
             .filter(Boolean) as {
             id: string;
             name: string | null;
@@ -200,6 +223,8 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
       commentCount: e._count?.comments ?? 0,
       userRsvpStatus: r.status,
       userRsvpEditToken: r.editToken,
+      rsvpDeadline: e.rsvpDeadline,
+      hostDisplayName: e.hostDisplayName,
     };
   });
 }

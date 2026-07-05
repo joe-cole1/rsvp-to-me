@@ -75,7 +75,9 @@ export function EventPage({
 
   const getAvatarUrl = (name: string, rsvpId?: string | null) => {
     // Check host
-    const isHostName = event.host.name && name.startsWith(event.host.name);
+    const isHostName =
+      (event.hostDisplayName && name.startsWith(event.hostDisplayName)) ||
+      (event.host.name && name.startsWith(event.host.name));
     if (isHostName && event.host.avatarUrl) {
       return event.host.avatarUrl;
     }

@@ -127,12 +127,17 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
             virtualUrl: true,
             maybeEnabled: true,
             theme: true,
+            hostDisplayName: true,
             host: { select: { name: true, email: true } },
           },
         });
         await sendEventInviteEmail(entry, {
           guestName: rsvp.guestName,
-          hostName: eventDetails?.host?.name ?? session.email?.split("@")[0] ?? "Your Host",
+          hostName:
+            eventDetails?.hostDisplayName ??
+            eventDetails?.host?.name ??
+            session.email?.split("@")[0] ??
+            "Your Host",
           eventTitle: eventDetails?.title ?? "Event",
           eventSlug: event.slug,
           eventId,
@@ -151,10 +156,19 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
       } else {
         const eventDetails = await db.event.findUnique({
           where: { id: eventId },
-          select: { title: true, maybeEnabled: true, host: { select: { name: true } } },
+          select: {
+            title: true,
+            maybeEnabled: true,
+            hostDisplayName: true,
+            host: { select: { name: true } },
+          },
         });
         await sendEventInviteSms(target, {
-          hostName: eventDetails?.host?.name ?? session.email?.split("@")[0] ?? "Your Host",
+          hostName:
+            eventDetails?.hostDisplayName ??
+            eventDetails?.host?.name ??
+            session.email?.split("@")[0] ??
+            "Your Host",
           eventTitle: eventDetails?.title ?? "Event",
           rsvpBaseUrl,
           maybeEnabled: eventDetails?.maybeEnabled ?? true,

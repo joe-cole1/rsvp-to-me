@@ -22,6 +22,8 @@ export function RsvpOptionsPanel({
   setCapacity,
   rsvpDeadline,
   setRsvpDeadline,
+  allowEditAfterDeadline,
+  setAllowEditAfterDeadline,
   triggerSaveSettings,
   t,
   S,
@@ -42,6 +44,8 @@ export function RsvpOptionsPanel({
   setCapacity: React.Dispatch<React.SetStateAction<string>>;
   rsvpDeadline: string;
   setRsvpDeadline: React.Dispatch<React.SetStateAction<string>>;
+  allowEditAfterDeadline: boolean;
+  setAllowEditAfterDeadline: React.Dispatch<React.SetStateAction<boolean>>;
   triggerSaveSettings: (overrides: SettingsOverrides) => void;
   t: ResolvedTheme;
   S: SettingsPageStyles;
@@ -152,7 +156,7 @@ export function RsvpOptionsPanel({
           style={S.inp}
         />
       </div>
-      <div>
+      <div style={{ marginBottom: "16px" }}>
         <Label t={t}>RSVP deadline (optional)</Label>
         <input
           type="datetime-local"
@@ -170,6 +174,17 @@ export function RsvpOptionsPanel({
           style={S.inp}
         />
       </div>
+      {rsvpDeadline && (
+        <Toggle
+          label="Allow editing RSVPs after deadline"
+          value={allowEditAfterDeadline}
+          onChange={(val) => {
+            setAllowEditAfterDeadline(val);
+            triggerSaveSettings({ allowEditAfterDeadline: val });
+          }}
+          t={t}
+        />
+      )}
     </Section>
   );
 }
