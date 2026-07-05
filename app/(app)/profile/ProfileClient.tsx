@@ -9,7 +9,7 @@ import {
   requestAccountDeletion,
   cancelMyAccountDeletion,
 } from "@/app/actions/profile";
-import { deleteHostEvent } from "@/app/actions/event";
+import { deleteEvent } from "@/app/actions/event";
 import { APP_SHELL } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 
@@ -934,7 +934,7 @@ export default function ProfileClient({
                         onClick={async () => {
                           setIsDeletingEvent(ev.id);
                           try {
-                            await deleteHostEvent(ev.id);
+                            await deleteEvent(ev.id);
                             setBlockedEvents((prev) =>
                               prev ? prev.filter((e) => e.id !== ev.id) : null
                             );

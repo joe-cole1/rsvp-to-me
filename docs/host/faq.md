@@ -36,6 +36,10 @@ You've hit the **capacity** limit for Going guests. Raise the capacity in the ev
 
 Open the event's **Settings** and mark it cancelled. This closes RSVPs and shows guests the event is no longer happening.
 
+## How do I delete an event?
+
+Open the event's **Settings**, select the **Display Options** tab, scroll to the **Danger Zone** at the bottom, and click **Delete Event**. You will be prompted to type `DELETE` to confirm. Once deleted, the event and all guest data are permanently and irreversibly removed.
+
 ## Will guests be notified if I change the event?
 
 Editing details doesn't automatically message guests. To tell them about a change, send an update blast — see [Messaging Guests & Reminders](messaging-and-reminders.md).

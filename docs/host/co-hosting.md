@@ -28,6 +28,7 @@ Co-hosts can do (almost) everything you can on the event:
 - Invite guests and send email/SMS update blasts
 - Manage the potluck list, polls, and questionnaire fields
 - Download the guest list
+- Delete the event
 
 ---
 
@@ -35,7 +36,6 @@ Co-hosts can do (almost) everything you can on the event:
 
 To keep the event safe, co-hosts **cannot**:
 
-- Delete the event
 - Add or remove co-hosts
 
 Those actions stay with the original host.

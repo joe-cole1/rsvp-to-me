@@ -36,15 +36,39 @@ const {
   mockGetSession: vi.fn(),
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    event: { findUnique: mockEventFindUnique, update: mockEventUpdate },
-    eventInfoSection: { findUnique: mockInfoSectionFindUnique, update: mockInfoSectionUpdate },
-    eventCoHost: { findUnique: mockEventCoHostFindUnique, delete: mockEventCoHostDelete },
-    activityEvent: { create: vi.fn().mockResolvedValue({}) },
-    $transaction: mockTransaction,
-  },
-}));
+vi.mock("@/lib/db", () => {
+  const mockDeleteMany = vi.fn().mockResolvedValue({ count: 0 });
+  return {
+    db: {
+      event: { findUnique: mockEventFindUnique, update: mockEventUpdate },
+      eventInfoSection: {
+        findUnique: mockInfoSectionFindUnique,
+        update: mockInfoSectionUpdate,
+        deleteMany: mockDeleteMany,
+      },
+      eventCoHost: {
+        findUnique: mockEventCoHostFindUnique,
+        delete: mockEventCoHostDelete,
+        deleteMany: mockDeleteMany,
+      },
+      activityEvent: { create: vi.fn().mockResolvedValue({}), deleteMany: mockDeleteMany },
+      rSVPAnswer: { deleteMany: mockDeleteMany },
+      plusOneGuest: { deleteMany: mockDeleteMany },
+      rSVP: { deleteMany: mockDeleteMany },
+      checkIn: { deleteMany: mockDeleteMany },
+      comment: { deleteMany: mockDeleteMany },
+      pollVote: { deleteMany: mockDeleteMany },
+      pollOption: { deleteMany: mockDeleteMany },
+      poll: { deleteMany: mockDeleteMany },
+      potluckClaim: { deleteMany: mockDeleteMany },
+      potluckItem: { deleteMany: mockDeleteMany },
+      invitation: { deleteMany: mockDeleteMany },
+      eventUpdate: { deleteMany: mockDeleteMany },
+      sentReminder: { deleteMany: mockDeleteMany },
+      $transaction: mockTransaction,
+    },
+  };
+});
 
 vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -57,7 +81,7 @@ import {
   saveEventSettings,
   updateInfoSection,
   removeCoHost,
-  deleteHostEvent,
+  deleteEvent,
 } from "@/app/actions/event";
 
 const HOST_ID = "host-1";
@@ -134,9 +158,17 @@ describe("SEC-30: destructive owner actions stay host-only", () => {
     expect(mockEventCoHostDelete).not.toHaveBeenCalled();
   });
 
-  it("co-host cannot delete the event", async () => {
+  it("co-host can delete the event", async () => {
     asCohost();
-    await expect(deleteHostEvent(EVENT_ID)).rejects.toThrow("Forbidden");
+    mockTransaction.mockResolvedValue([{ success: true }]);
+    const result = await deleteEvent(EVENT_ID);
+    expect(result).toEqual({ success: true });
+    expect(mockTransaction).toHaveBeenCalled();
+  });
+
+  it("a non-co-host stranger cannot delete the event", async () => {
+    mockGetSession.mockResolvedValue({ userId: STRANGER_ID, email: "s@example.com" });
+    await expect(deleteEvent(EVENT_ID)).rejects.toThrow("Forbidden");
     expect(mockTransaction).not.toHaveBeenCalled();
   });
 });

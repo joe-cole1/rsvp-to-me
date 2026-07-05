@@ -45,6 +45,7 @@ import { HostsPanel } from "./settings-page/HostsPanel";
 import { RsvpOptionsPanel } from "./settings-page/RsvpOptionsPanel";
 import { QuestionnairePanel } from "./settings-page/QuestionnairePanel";
 import { DisplayOptionsPanel } from "./settings-page/DisplayOptionsPanel";
+import { DangerZonePanel } from "./settings-page/DangerZonePanel";
 import { RemindersPanel } from "./settings-page/RemindersPanel";
 import { PollsPanel } from "./settings-page/PollsPanel";
 import { PotluckPanel } from "./settings-page/PotluckPanel";
@@ -995,29 +996,32 @@ export function SettingsPage({
 
         {/* ── Display Options ── */}
         {activeSection === "privacy" && (
-          <DisplayOptionsPanel
-            commentsEnabled={commentsEnabled}
-            setCommentsEnabled={setCommentsEnabled}
-            guestSharingEnabled={guestSharingEnabled}
-            setGuestSharingEnabled={setGuestSharingEnabled}
-            guestListVis={guestListVis}
-            setGuestListVis={setGuestListVis}
-            visibility={visibility}
-            setVisibility={setVisibility}
-            guestsCanInvite={guestsCanInvite}
-            setGuestsCanInvite={setGuestsCanInvite}
-            password={password}
-            setPassword={setPassword}
-            passwordDirty={passwordDirty}
-            setPasswordDirty={setPasswordDirty}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            setPasswordSavedAsNull={setPasswordSavedAsNull}
-            effectivePasswordHash={effectivePasswordHash}
-            triggerSaveSettings={triggerSaveSettings}
-            t={t}
-            S={S}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <DisplayOptionsPanel
+              commentsEnabled={commentsEnabled}
+              setCommentsEnabled={setCommentsEnabled}
+              guestSharingEnabled={guestSharingEnabled}
+              setGuestSharingEnabled={setGuestSharingEnabled}
+              guestListVis={guestListVis}
+              setGuestListVis={setGuestListVis}
+              visibility={visibility}
+              setVisibility={setVisibility}
+              guestsCanInvite={guestsCanInvite}
+              setGuestsCanInvite={setGuestsCanInvite}
+              password={password}
+              setPassword={setPassword}
+              passwordDirty={passwordDirty}
+              setPasswordDirty={setPasswordDirty}
+              showPassword={showPassword}
+              setShowPassword={setShowPassword}
+              setPasswordSavedAsNull={setPasswordSavedAsNull}
+              effectivePasswordHash={effectivePasswordHash}
+              triggerSaveSettings={triggerSaveSettings}
+              t={t}
+              S={S}
+            />
+            <DangerZonePanel eventId={event.id} t={t} S={S} />
+          </div>
         )}
 
         {/* ── Auto-Reminders ── */}

@@ -8,7 +8,7 @@ import { logSafe } from "@/lib/logger";
 import { tzLocalToUtc } from "@/lib/utils";
 import { SaveEventSettingsSchema } from "@/lib/schemas";
 import bcrypt from "bcryptjs";
-import { assertHost, assertHostOrCohost } from "./shared";
+import { assertHostOrCohost } from "./shared";
 
 // ── Inline field edits ─────────────────────────────────────────────────────────
 
@@ -254,15 +254,14 @@ export async function getActiveThemePresets() {
 }
 
 // Tombstones the event as DELETED and hard-deletes all guest data for GDPR compliance.
-// Only the host (or admin) may delete their own event this way.
-export async function deleteHostEvent(eventId: string) {
+// Only the host, co-hosts (or admin) may delete their event this way.
+export async function deleteEvent(eventId: string) {
   const event = await db.event.findUnique({
     where: { id: eventId },
     select: { id: true, slug: true, status: true },
   });
   if (!event) throw new Error("Event not found");
-  // Deliberately host-only: deleting the event stays with the original host.
-  await assertHost(eventId);
+  await assertHostOrCohost(eventId);
   if (event.status === "DELETED") throw new Error("Event is already deleted");
 
   // Hard-delete all guest data before tombstoning (GDPR: purpose no longer exists)
