@@ -65,7 +65,7 @@ After making changes and before presenting Git commands to the user to push to G
    - If the changes are purely non-substantive (e.g. editing `AGENTS.md`, `ROADMAP.md`, or markdown documentation files under `docs/`), you may skip full test suite/E2E executions and append `--no-verify` to your commit to bypass hooks.
 5. **Post-Commit/Post-Push Local Server Restart**:
    - Immediately after any git commit and push operations complete, the AI agent MUST restart the local Next.js development server inside WSL 2 to ensure `http://localhost:3000` is always running and loaded with the absolute latest changes.
-   - Use the command: `wsl bash -c 'fuser -k 3000/tcp || true; export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run dev'` (run as a background task).
+   - Use the command: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && pm2 restart rsvp-dev || pm2 start npm --name "rsvp-dev" -- run dev'` (run as a background task).
    <!-- END:post-modification-rules -->
 
 <!-- BEGIN:multi-pr-batch-rules -->
