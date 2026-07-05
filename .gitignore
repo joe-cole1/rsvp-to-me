@@ -71,3 +71,6 @@ next-env.d.ts
 
 # Local agent workspace files
 /.agents/
+/walkthrough.md
+/implementation_plan.md
+/task.md
