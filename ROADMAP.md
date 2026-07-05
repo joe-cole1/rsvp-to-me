@@ -35,7 +35,6 @@ _Functional improvements, layout adjustments, and secondary features that can be
 - **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
 - **RSVP Deadline Visibility & Guest Gate**: Style the deadline notice prominently on the event page. If the deadline has passed, hide/remove all guest RSVP actions (GOING/MAYBE/NO and Edit RSVP links), display a clear "RSVPs Closed" alert, and redirect guests attempting to access `/e/[slug]/rsvp` after the deadline back to `/e/[slug]`. Display the RSVP deadline on the host dashboard cards.
-- **Host & Co-host Event Deletion**: Add a "Delete Event" button to the Display Options settings panel (Danger Zone). Render a confirmation modal/prompt warning that this action is permanent and cannot be undone. Create a `deleteEvent` server action that validates `assertHostOrCohost` and deletes the event.
 - **Questionnaire Auto-Enable & Verbose Settings**: Remove the toggle switch. Check `event.rsvpFields.length > 0` directly in `RsvpFlow` to enable the questionnaire. Add verbose descriptive copy in settings explaining that questions appear during RSVP.
 - **Consistent Add Item Styling (Questionnaire, Polls, Potluck)**: Remove the permanently expanded "Add" forms in Polls and Potluck. Place a "+ Add [Item/Poll/Question]" button by default in all three settings panels that expands a styled form card with aligned "Add" and "Cancel" buttons.
 - **Event Host Display Name Override**: Add `hostDisplayName String?` to the `Event` schema. Render an input in the Hosts settings panel allowing hosts to override their display name for that event. Prioritize `hostDisplayName` across the event page, dashboard, and notifications.
@@ -101,6 +100,10 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Host & Co-host Event Deletion
+
+- [x] **Host & Co-host Event Deletion**: Add a "Delete Event" button to the Display Options settings panel (Danger Zone). Render a confirmation modal/prompt warning that this action is permanent and cannot be undone. Create a `deleteEvent` server action that validates `assertHostOrCohost` and deletes the event. Tests: `tests/regression/sec-30-cohost-authz.test.ts`.
 
 ### Cover Image Variable Aspect Ratio
 

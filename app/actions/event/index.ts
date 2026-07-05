@@ -42,7 +42,7 @@ export {
   removeCoverImage,
   saveReminderSettings,
   getActiveThemePresets,
-  deleteHostEvent,
+  deleteEvent,
 } from "./settings";
 export {
   getDashboardEvents,
