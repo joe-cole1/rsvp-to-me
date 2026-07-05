@@ -253,6 +253,18 @@ describe("app/actions/admin.ts", () => {
       );
     });
 
+    it("prevents changing the role of the system user", async () => {
+      await expect(updateUserRole("system", "HOST")).rejects.toThrow(
+        "You cannot change the role of the system user."
+      );
+    });
+
+    it("prevents scheduling the system user for deletion", async () => {
+      await expect(deleteUserAccount("system")).rejects.toThrow(
+        "You cannot delete the system user."
+      );
+    });
+
     it("schedules user account for deletion", async () => {
       mockEventFindMany.mockResolvedValue([]);
       mockUserUpdate.mockResolvedValue({ id: "u-1" });
@@ -796,6 +808,17 @@ describe("app/actions/admin.ts", () => {
         });
         await expect(deleteUserAccountImmediately("admin-1")).rejects.toThrow(
           "You cannot delete your own admin account."
+        );
+      });
+
+      it("throws error if trying to delete the system user", async () => {
+        mockGetSession.mockResolvedValue({
+          userId: "admin-1",
+          email: "admin@example.com",
+          role: "ADMIN",
+        });
+        await expect(deleteUserAccountImmediately("system")).rejects.toThrow(
+          "You cannot delete the system user."
         );
       });
 
