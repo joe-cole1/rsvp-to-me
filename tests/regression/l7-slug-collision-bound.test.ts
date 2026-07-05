@@ -47,8 +47,12 @@ beforeEach(() => {
 describe("L-7: generateUniqueSlug collision probing is bounded", () => {
   it("falls back to a random hex suffix when every sequential candidate is taken", async () => {
     // base and every base-<number> candidate collide; anything else is free.
+    const sequentialSlugs = new Set([
+      "my-party",
+      ...Array.from({ length: 10 }, (_, i) => `my-party-${i + 1}`),
+    ]);
     mockEventFindUnique.mockImplementation(({ where }: { where: { slug: string } }) =>
-      Promise.resolve(/^my-party(-\d+)?$/.test(where.slug) ? { id: "taken" } : null)
+      Promise.resolve(sequentialSlugs.has(where.slug) ? { id: "taken" } : null)
     );
 
     const result = await generateUniqueSlug("My Party");

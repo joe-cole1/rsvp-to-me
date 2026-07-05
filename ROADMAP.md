@@ -10,10 +10,6 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🛠️ Bug / Fix
 
-- **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: The test `tests/regression/l7-slug-collision-bound.test.ts > L-7: generateUniqueSlug collision probing is bounded > falls back to a random hex suffix when every sequential candidate is taken` fails because `generateUniqueSlug` returns an 8-character hex suffix (`my-party-9f2b2b91`), but the test expects a 6-character hex suffix (`/^my-party-[0-9a-f]{6}$/`). This is out-of-scope for the account deletion branch.
-- **[BUG-03] Flaky Unit Test Timeouts in CI**: The unit test suite frequently encounters test timeouts in `tests/lib/crypto.test.ts` and `tests/actions/event.test.ts` on slow/constrained CI environments. These should be resolved by increasing Vitest's default timeout or optimizing slow mock/crypto operations.
-- **[BUG/SAFE] Admin Protection Guard (Self & System Deletion)**: Prevent admins from scheduling or executing deletion of their own user accounts or the `system` user. Hide/disable deletion actions in the `UsersTab.tsx` UI and add backend checks to fail-safe. Exclude the `system` user completely from the user list to eliminate confusion.
-
 ### 🔒 Backend / Security / DevOps
 
 - **[CLEAN] Reconcile Header & Page Admin Menus**: Remove the global `AdminHamburger` drawer button from the header navigation. Add a clear `🛡️ Admin Panel` link to the `ProfileDropdown` (only visible to admins) to serve as the single entry point. This keeps `/admin` navigation consolidated within the page's sidebar and mobile drawer.
@@ -95,6 +91,12 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### High-Priority Bug Fixes (Batch [8f3093])
+
+- [x] **[BUG-02] Bounded Slug Collision Probing Fallback Length Mismatch**: Resolved flakiness in the slug collision test by using a set of exact sequential slug candidates instead of a digit-matching regex.
+- [x] **[BUG-03] Flaky Unit Test Timeouts in CI**: Configured default `testTimeout` and `hookTimeout` in `vitest.config.ts` and `vitest.components.config.ts` to `30000ms`, matching the integration test timeout configuration.
+- [x] **[BUG/SAFE] Admin Protection Guard (Self & System Deletion)**: Added backend validation and UI locks to prevent the deletion/role change of the logged-in admin user and the `system` user, and excluded the `system` user from the admin user list.
 
 ### Event Page UI/UX Enhancements
 

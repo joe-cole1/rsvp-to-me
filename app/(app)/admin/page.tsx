@@ -56,6 +56,7 @@ export default async function AdminPage() {
       initialThemePresets={themePresets}
       initialDocs={docs}
       sessionUser={{
+        id: sessionUser.id,
         name: sessionUser.name,
         email: sessionUser.email,
         role: sessionUser.role,

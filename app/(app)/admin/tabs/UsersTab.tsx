@@ -16,6 +16,7 @@ export function UsersTab({
   handleCancelDeletion,
   handleUserDeleteImmediately,
   handleUserDelete,
+  sessionUserId,
 }: {
   userSearch: string;
   handleUserSearch: (val: string) => Promise<void>;
@@ -29,6 +30,7 @@ export function UsersTab({
   handleCancelDeletion: (userId: string, name: string) => void;
   handleUserDeleteImmediately: (userId: string, name: string) => void;
   handleUserDelete: (userId: string, name: string) => void;
+  sessionUserId?: string;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -191,6 +193,7 @@ export function UsersTab({
                         onChange={(e) =>
                           handleRoleChange(u.id, e.target.value as "GUEST" | "HOST" | "ADMIN")
                         }
+                        disabled={u.id === sessionUserId}
                         style={{
                           backgroundColor: APP_SHELL.inputBg,
                           border: `1px solid ${APP_SHELL.inputBorder}`,
@@ -200,6 +203,8 @@ export function UsersTab({
                           fontSize: "12px",
                           outline: "none",
                           colorScheme: "dark",
+                          opacity: u.id === sessionUserId ? 0.6 : 1,
+                          cursor: u.id === sessionUserId ? "not-allowed" : "default",
                         }}
                       >
                         <option
@@ -223,7 +228,17 @@ export function UsersTab({
                       </select>
                     </td>
                     <td style={{ padding: "16px", textAlign: "right" }}>
-                      {u.deletionScheduledAt ? (
+                      {u.id === sessionUserId ? (
+                        <span
+                          style={{
+                            color: APP_SHELL.textMuted,
+                            fontSize: "13px",
+                            fontStyle: "italic",
+                          }}
+                        >
+                          Current Session
+                        </span>
+                      ) : u.deletionScheduledAt ? (
                         <div
                           style={{
                             display: "flex",

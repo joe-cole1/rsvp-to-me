@@ -67,6 +67,7 @@ interface AdminClientProps {
   initialThemePresets: AdminThemePreset[];
   initialDocs: PanelDoc[];
   sessionUser: {
+    id: string;
     name: string | null;
     email: string | null;
     role: "GUEST" | "HOST" | "ADMIN";
@@ -984,6 +985,7 @@ export default function AdminClient({
                 handleCancelDeletion={handleCancelDeletion}
                 handleUserDeleteImmediately={handleUserDeleteImmediately}
                 handleUserDelete={handleUserDelete}
+                sessionUserId={sessionUser?.id}
               />
             )}
 

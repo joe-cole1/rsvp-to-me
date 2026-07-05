@@ -51,13 +51,16 @@ export async function getAdminUsers(query: string = "") {
   const users = await db.user.findMany({
     where: trimmedQuery
       ? {
+          id: { not: "system" },
           OR: [
             { name: { contains: trimmedQuery } },
             { email: { contains: trimmedQuery } },
             { phone: { contains: trimmedQuery } },
           ],
         }
-      : {},
+      : {
+          id: { not: "system" },
+        },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -85,6 +88,9 @@ export async function updateUserRole(userId: string, role: "GUEST" | "HOST" | "A
   if (userId === session.userId) {
     throw new Error("You cannot change your own admin role.");
   }
+  if (userId === "system") {
+    throw new Error("You cannot change the role of the system user.");
+  }
 
   await db.user.update({
     where: { id: userId },
@@ -102,6 +108,9 @@ export async function deleteUserAccount(userId: string) {
   const session = await assertAdmin();
   if (userId === session.userId) {
     throw new Error("You cannot delete your own admin account.");
+  }
+  if (userId === "system") {
+    throw new Error("You cannot delete the system user.");
   }
 
   const result = await scheduleUserDeletion(userId);
@@ -812,6 +821,9 @@ export async function deleteUserAccountImmediately(userId: string) {
   const session = await assertAdmin();
   if (userId === session.userId) {
     throw new Error("You cannot delete your own admin account.");
+  }
+  if (userId === "system") {
+    throw new Error("You cannot delete the system user.");
   }
 
   await performImmediateUserDeletion(userId);
