@@ -38,6 +38,22 @@ export default async function RsvpPage({ params, searchParams }: Props) {
 
   if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
 
+  // Gate RSVPs after deadline
+  const isOrganizer =
+    !!sessionUser &&
+    (event.hostId === sessionUser.id || event.coHosts.some((ch) => ch.userId === sessionUser.id));
+
+  const deadline = event.rsvpDeadline ? new Date(event.rsvpDeadline) : null;
+  const now = new Date();
+  const deadlinePassed = deadline ? deadline < now : false;
+
+  if (deadlinePassed && !isOrganizer) {
+    const isEditAllowed = !!token && event.allowEditAfterDeadline;
+    if (!isEditAllowed) {
+      redirect(`/e/${slug}`);
+    }
+  }
+
   // Enforce the visibility/password gate before rendering the RSVP flow — a
   // valid token, host session, or unlock cookie is required for PRIVATE or
   // password-protected events. New guests reach public events normally.

@@ -44,6 +44,18 @@ Plus-ones are counted on the main guest's RSVP and share that guest's status. Th
 
 ---
 
+## RSVP Deadlines & Editing Gates
+
+You can set an optional **RSVP deadline** on your event under Settings → RSVP.
+
+- **Before the deadline:** Guests can RSVP and edit their RSVP at any time.
+- **After the deadline:**
+  - New guests are prevented from RSVPing, and they will see a "RSVPs Closed" notice.
+  - Existing guests cannot edit their RSVP from their unique edit link unless the **Allow guests to edit RSVPs after deadline** option is enabled in settings. If disabled, their edit links will be hidden/gated.
+  - Hosts and co-hosts are exempt from these deadline restrictions and can manage RSVPs at any time.
+
+---
+
 ## Custom Questionnaires
 
 Add your own questions to the RSVP form (dietary needs, song requests, t-shirt size — whatever you need):

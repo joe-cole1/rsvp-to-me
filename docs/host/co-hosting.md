@@ -39,3 +39,9 @@ To keep the event safe, co-hosts **cannot**:
 - Add or remove co-hosts
 
 Those actions stay with the original host.
+
+---
+
+## Display Name Overrides
+
+The main host can set a custom display name override for themselves and for any co-host under the **Hosts** settings page (?section=hosts). This override will prioritize showing the custom name instead of their default name/email on the public event page, the host dashboard, and in email/SMS blasts.

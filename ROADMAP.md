@@ -34,10 +34,6 @@ _Functional improvements, layout adjustments, and secondary features that can be
 - **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
-- **RSVP Deadline Visibility & Guest Gate**: Style the deadline notice prominently on the event page. If the deadline has passed, hide/remove all guest RSVP actions (GOING/MAYBE/NO and Edit RSVP links), display a clear "RSVPs Closed" alert, and redirect guests attempting to access `/e/[slug]/rsvp` after the deadline back to `/e/[slug]`. Display the RSVP deadline on the host dashboard cards.
-- **Questionnaire Auto-Enable & Verbose Settings**: Remove the toggle switch. Check `event.rsvpFields.length > 0` directly in `RsvpFlow` to enable the questionnaire. Add verbose descriptive copy in settings explaining that questions appear during RSVP.
-- **Consistent Add Item Styling (Questionnaire, Polls, Potluck)**: Remove the permanently expanded "Add" forms in Polls and Potluck. Place a "+ Add [Item/Poll/Question]" button by default in all three settings panels that expands a styled form card with aligned "Add" and "Cancel" buttons.
-- **Event Host Display Name Override**: Add `hostDisplayName String?` to the `Event` schema. Render an input in the Hosts settings panel allowing hosts to override their display name for that event. Prioritize `hostDisplayName` across the event page, dashboard, and notifications.
 
 ### 🔒 Backend / Security / DevOps
 
@@ -64,7 +60,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Custom Cover Images**: Enable host upload cropping and stock image selection templates.
 - **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
 - **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
-- **Event Description Section Title**: Style the description/details card header on the event page exactly like the comments, polls, and potluck cards (adding a `📝 Description` title with `fontWeight: 700`).
 
 ### ⚙️ Refactoring & Clean Code
 
@@ -100,6 +95,14 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Event Page UI/UX Enhancements
+
+- [x] **Event Host Display Name Override**: Added support for host and co-host display name overrides directly in the Hosts Settings panel (`?section=hosts`), prioritizing overrides across the event page, dashboard cards, and email templates/reminders.
+- [x] **RSVP Deadline & Guest Gate**: Added RSVP deadline inputs, styled the deadline notice prominently, disabled and hid guest RSVP forms once the deadline passes, and added server-side validation to prevent late RSVP updates.
+- [x] **Consistent Add Item Styling**: Converted Questionnaire, Polls, and Potluck panels to use collapsible "+ Add" buttons that expand into forms with aligned buttons.
+- [x] **Questionnaire Auto-Enable**: Enabled the questionnaire automatically based on existing questions, and added detailed settings copy.
+- [x] **Description Card Header**: Added the `📝 Description` title to the event page details card to align with the other sections.
 
 ### Host & Co-host Event Deletion
 

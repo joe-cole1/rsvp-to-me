@@ -7,7 +7,11 @@ export type SessionUser = {
   role: "GUEST" | "HOST" | "ADMIN";
 };
 
-export type CoHostEntry = { id: string; user: { id: string; name: string | null; email: string } };
+export type CoHostEntry = {
+  id: string;
+  displayName?: string | null;
+  user: { id: string; name: string | null; email: string; avatarUrl?: string | null };
+};
 
 export type RsvpFieldEntry = {
   id: string;
@@ -68,6 +72,7 @@ export type EventInput = {
   guestsCanInvite: boolean;
   approvalRequired: boolean;
   rsvpDeadline: Date | null;
+  allowEditAfterDeadline: boolean;
   capacity: number | null;
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -75,6 +80,7 @@ export type EventInput = {
   questionnaireEnabled: boolean;
   showTimestamps: boolean;
   passwordHash: string | null;
+  hostDisplayName: string | null;
   theme: {
     baseTheme: "DARK" | "SOFT" | "BOLD";
     gradientFrom: string;
@@ -106,6 +112,7 @@ export interface SettingsOverrides {
   plusOneNamesRequired?: boolean;
   approvalRequired?: boolean;
   rsvpDeadline?: string | null;
+  allowEditAfterDeadline?: boolean;
   capacity?: number | null;
   guestListVis?: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -115,6 +122,7 @@ export interface SettingsOverrides {
   password?: string | null;
   guestSharingEnabled?: boolean;
   guestsCanInvite?: boolean;
+  hostDisplayName?: string | null;
 }
 
 export interface ReminderOverrides {

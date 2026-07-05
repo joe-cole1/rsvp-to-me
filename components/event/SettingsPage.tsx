@@ -12,6 +12,7 @@ import {
   saveReminderSettings,
   addCoHost,
   removeCoHost,
+  updateCoHostDisplayName,
   addRsvpField,
   updateRsvpField,
   deleteRsvpField,
@@ -100,6 +101,10 @@ export function SettingsPage({
   const [rsvpDeadline, setRsvpDeadline] = useState(
     event.rsvpDeadline ? new Date(event.rsvpDeadline).toISOString().slice(0, 16) : ""
   );
+  const [allowEditAfterDeadline, setAllowEditAfterDeadline] = useState(
+    event.allowEditAfterDeadline
+  );
+  const [hostDisplayName, setHostDisplayName] = useState(event.hostDisplayName || "");
 
   // ── Display & Privacy State ──
   const [commentsEnabled, setCommentsEnabled] = useState(event.commentsEnabled);
@@ -299,6 +304,10 @@ export function SettingsPage({
             : null,
       rsvpDeadline:
         overrides.rsvpDeadline !== undefined ? overrides.rsvpDeadline : rsvpDeadline || null,
+      allowEditAfterDeadline:
+        overrides.allowEditAfterDeadline !== undefined
+          ? overrides.allowEditAfterDeadline
+          : allowEditAfterDeadline,
       commentsEnabled:
         overrides.commentsEnabled !== undefined ? overrides.commentsEnabled : commentsEnabled,
       guestListVis: overrides.guestListVis !== undefined ? overrides.guestListVis : guestListVis,
@@ -314,6 +323,10 @@ export function SettingsPage({
         overrides.questionnaireEnabled !== undefined
           ? overrides.questionnaireEnabled
           : questionnaireEnabled,
+      hostDisplayName:
+        overrides.hostDisplayName !== undefined
+          ? overrides.hostDisplayName
+          : hostDisplayName || null,
     };
     startTransition(async () => {
       try {
@@ -395,6 +408,21 @@ export function SettingsPage({
       try {
         await removeCoHost(cohostRecordId);
         setCoHosts((prev) => prev.filter((c) => c.id !== cohostRecordId));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleUpdateCohostDisplayName = (cohostRecordId: string, displayName: string | null) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await updateCoHostDisplayName(cohostRecordId, displayName);
+        setCoHosts((prev) =>
+          prev.map((c) => (c.id === cohostRecordId ? { ...c, displayName } : c))
+        );
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -930,6 +958,10 @@ export function SettingsPage({
             cohostError={cohostError}
             handleAddCohost={handleAddCohost}
             handleRemoveCohost={handleRemoveCohost}
+            hostDisplayName={hostDisplayName}
+            setHostDisplayName={setHostDisplayName}
+            triggerSaveSettings={triggerSaveSettings}
+            handleUpdateCohostDisplayName={handleUpdateCohostDisplayName}
             isPending={isPending}
             t={t}
             S={S}
@@ -955,6 +987,8 @@ export function SettingsPage({
             setCapacity={setCapacity}
             rsvpDeadline={rsvpDeadline}
             setRsvpDeadline={setRsvpDeadline}
+            allowEditAfterDeadline={allowEditAfterDeadline}
+            setAllowEditAfterDeadline={setAllowEditAfterDeadline}
             triggerSaveSettings={triggerSaveSettings}
             t={t}
             S={S}

@@ -110,7 +110,7 @@ export async function processReminders(): Promise<void> {
       const rsvpEmails = new Set(emails);
       const rsvpPhones = new Set(phones);
 
-      const hostName = event.host.name ?? "Your host";
+      const hostName = event.hostDisplayName ?? event.host.name ?? "Your host";
       const base = { eventTitle: event.title, eventSlug: event.slug, hostName };
       // Theme is loaded fresh each cron tick, so host theme edits are
       // reflected in the next reminder that goes out.

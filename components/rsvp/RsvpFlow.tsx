@@ -150,8 +150,7 @@ export function RsvpFlow({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const hasQuestionnaire =
-    status !== "NO" && event.questionnaireEnabled && event.rsvpFields.length > 0;
+  const hasQuestionnaire = status !== "NO" && event.rsvpFields.length > 0;
   const maxStep = hasQuestionnaire ? 2 : 1;
 
   const plusOneCount = status === "GOING" ? plusOneNames.length : 0;

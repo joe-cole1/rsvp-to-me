@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import { Plus, X } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { PollEntry } from "./types";
@@ -60,181 +61,231 @@ export function PollsPanel({
   t: ResolvedTheme;
   S: SettingsPageStyles;
 }) {
+  const [addingPoll, setAddingPoll] = useState(false);
+
   return (
     <Section title="Manage Polls" t={t}>
       {/* Create Poll Form */}
-      <div
-        style={{
-          background: "rgba(255, 255, 255, 0.03)",
-          padding: "16px",
-          borderRadius: t.cardRadius,
-          border: `1px solid ${t.cardBorder}`,
-          marginBottom: "20px",
-        }}
-      >
+      {addingPoll ? (
         <div
           style={{
-            fontWeight: 700,
-            fontSize: "14px",
-            color: t.textPrimary,
-            marginBottom: "12px",
+            background: "rgba(255, 255, 255, 0.03)",
+            padding: "16px",
+            borderRadius: t.cardRadius,
+            border: `1px solid ${t.cardBorder}`,
+            marginBottom: "20px",
           }}
         >
-          Create a New Poll
-        </div>
-        <div style={{ marginBottom: "12px" }}>
-          <input
-            style={S.inp}
-            placeholder="Ask a question... (e.g. What day works best?)"
-            value={newPollQuestion}
-            onChange={(e) => setNewPollQuestion(e.target.value)}
-          />
-        </div>
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: "14px",
+              color: t.textPrimary,
+              marginBottom: "12px",
+            }}
+          >
+            Create a New Poll
+          </div>
+          <div style={{ marginBottom: "12px" }}>
+            <input
+              style={S.inp}
+              placeholder="Ask a question... (e.g. What day works best?)"
+              value={newPollQuestion}
+              onChange={(e) => setNewPollQuestion(e.target.value)}
+            />
+          </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            marginBottom: "12px",
-          }}
-        >
-          <div style={{ fontSize: "12px", fontWeight: 700, color: t.textMuted }}>Options:</div>
-          {newPollOptions.map((opt, idx) => (
-            <div key={idx} style={{ display: "flex", gap: "6px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              marginBottom: "12px",
+            }}
+          >
+            <div style={{ fontSize: "12px", fontWeight: 700, color: t.textMuted }}>Options:</div>
+            {newPollOptions.map((opt, idx) => (
+              <div key={idx} style={{ display: "flex", gap: "6px" }}>
+                <input
+                  style={{ ...S.inp, padding: "8px 12px" }}
+                  placeholder={`Option ${idx + 1}`}
+                  value={opt}
+                  onChange={(e) => {
+                    const updated = [...newPollOptions];
+                    updated[idx] = e.target.value;
+                    setNewPollOptions(updated);
+                  }}
+                />
+                {newPollOptions.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewPollOptions(newPollOptions.filter((_, i) => i !== idx));
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: t.textMuted,
+                      padding: "4px",
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setNewPollOptions([...newPollOptions, ""])}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: t.accent,
+                fontSize: "12px",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                alignSelf: "flex-start",
+                padding: "4px 0",
+              }}
+            >
+              <Plus size={14} /> Add option
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              marginBottom: "16px",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                color: t.textSecondary,
+                cursor: "pointer",
+              }}
+            >
               <input
-                style={{ ...S.inp, padding: "8px 12px" }}
-                placeholder={`Option ${idx + 1}`}
-                value={opt}
-                onChange={(e) => {
-                  const updated = [...newPollOptions];
-                  updated[idx] = e.target.value;
-                  setNewPollOptions(updated);
-                }}
+                type="checkbox"
+                checked={newPollMultiChoice}
+                onChange={(e) => setNewPollMultiChoice(e.target.checked)}
+                style={{ cursor: "pointer" }}
               />
-              {newPollOptions.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewPollOptions(newPollOptions.filter((_, i) => i !== idx));
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: t.textMuted,
-                    padding: "4px",
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => setNewPollOptions([...newPollOptions, ""])}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: t.accent,
-              fontSize: "12px",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              alignSelf: "flex-start",
-              padding: "4px 0",
-            }}
-          >
-            <Plus size={14} /> Add option
-          </button>
-        </div>
+              <span>Allow voting for multiple options</span>
+            </label>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                color: t.textSecondary,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={newPollAllowGuestsToAdd}
+                onChange={(e) => setNewPollAllowGuestsToAdd(e.target.checked)}
+                style={{ cursor: "pointer" }}
+              />
+              <span>Allow guests to suggest options</span>
+            </label>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                color: t.textSecondary,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={newPollHideVoters}
+                onChange={(e) => setNewPollHideVoters(e.target.checked)}
+                style={{ cursor: "pointer" }}
+              />
+              <span>Hide voter names from other guests</span>
+            </label>
+          </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            marginBottom: "16px",
-          }}
-        >
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "13px",
-              color: t.textSecondary,
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={newPollMultiChoice}
-              onChange={(e) => setNewPollMultiChoice(e.target.checked)}
-              style={{ cursor: "pointer" }}
-            />
-            <span>Allow voting for multiple options</span>
-          </label>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "13px",
-              color: t.textSecondary,
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={newPollAllowGuestsToAdd}
-              onChange={(e) => setNewPollAllowGuestsToAdd(e.target.checked)}
-              style={{ cursor: "pointer" }}
-            />
-            <span>Allow guests to suggest options</span>
-          </label>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "13px",
-              color: t.textSecondary,
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={newPollHideVoters}
-              onChange={(e) => setNewPollHideVoters(e.target.checked)}
-              style={{ cursor: "pointer" }}
-            />
-            <span>Hide voter names from other guests</span>
-          </label>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => {
+                handleAddPoll();
+                setAddingPoll(false);
+              }}
+              disabled={
+                !newPollQuestion.trim() ||
+                newPollOptions.filter((o) => o.trim()).length < 2 ||
+                isPending
+              }
+              style={{
+                ...S.smallBtn,
+                flex: 1,
+                padding: "10px",
+                borderRadius: "10px",
+                fontSize: "13px",
+              }}
+            >
+              Create Poll
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddingPoll(false);
+                setNewPollQuestion("");
+                setNewPollOptions(["", ""]);
+              }}
+              style={{
+                ...S.smallBtn,
+                flex: 1,
+                padding: "10px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                background: t.inputBg,
+                color: t.textSecondary,
+                border: `1px solid ${t.inputBorder}`,
+              }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-
+      ) : (
         <button
-          type="button"
-          onClick={handleAddPoll}
-          disabled={
-            !newPollQuestion.trim() ||
-            newPollOptions.filter((o) => o.trim()).length < 2 ||
-            isPending
-          }
+          onClick={() => setAddingPoll(true)}
           style={{
-            ...S.smallBtn,
-            width: "100%",
-            padding: "10px",
+            marginBottom: "20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: t.inputBg,
+            border: `1px dashed ${t.accentBorder}`,
             borderRadius: "10px",
+            padding: "10px 14px",
+            color: t.textMuted,
+            cursor: "pointer",
+            fontFamily: "inherit",
             fontSize: "13px",
+            width: "100%",
           }}
         >
-          Create Poll
+          <Plus size={14} /> Add Poll
         </button>
-      </div>
+      )}
 
       {/* List Existing Polls */}
       <div>

@@ -112,6 +112,7 @@ model Event {
 
   // RSVP settings
   rsvpDeadline      DateTime?
+  allowEditAfterDeadline Boolean    @default(false)
   approvalRequired  Boolean    @default(false)
   plusOneAllowed    Boolean    @default(true)
   plusOneMax        Int        @default(1)
@@ -127,6 +128,7 @@ model Event {
   questionnaireEnabled Boolean    @default(false)
   showTimestamps       Boolean    @default(true)
   passwordHash         String?
+  hostDisplayName      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -174,9 +176,10 @@ enum GuestListVis {
 }
 
 model EventCoHost {
-  id      String @id @default(cuid())
-  eventId String
-  userId  String
+  id          String  @id @default(cuid())
+  eventId     String
+  userId      String
+  displayName String?
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)

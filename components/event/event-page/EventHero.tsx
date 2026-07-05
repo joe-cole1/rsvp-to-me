@@ -144,13 +144,13 @@ export function EventHero({
           textShadow: t.heroTextShadow,
         }}
       >
-        {renderAvatar(event.host.name ?? event.host.email, null, {
+        {renderAvatar(event.hostDisplayName ?? event.host.name ?? event.host.email, null, {
           width: "48px",
           height: "48px",
           minWidth: "48px",
           fontSize: "18px",
         })}
-        Hosted by {event.host.name ?? event.host.email}
+        Hosted by {event.hostDisplayName ?? event.host.name ?? event.host.email}
         {isHost && (
           <a
             href={`/e/${event.slug}/settings?section=hosts`}
@@ -297,19 +297,12 @@ export function EventHero({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "8px",
+            marginBottom: "16px",
           }}
         >
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              textTransform: "none" as const,
-              letterSpacing: "0.02em",
-              color: t.textMuted,
-            }}
-          >
-            Details
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "16px" }}>📝</span>
+            <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>Description</span>
           </div>
           {isHost && (
             <Pencil

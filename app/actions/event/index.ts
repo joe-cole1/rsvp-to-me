@@ -30,7 +30,7 @@ export {
 } from "./polls";
 export { addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "./potluck";
 export { addComment } from "./comments";
-export { addCoHost, removeCoHost } from "./cohosts";
+export { addCoHost, removeCoHost, updateCoHostDisplayName } from "./cohosts";
 export { addInfoSection, updateInfoSection, removeInfoSection } from "./infoSections";
 export {
   saveEventField,

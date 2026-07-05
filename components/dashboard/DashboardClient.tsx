@@ -43,6 +43,8 @@ export interface DashboardGridItem {
   isInvite: boolean;
   userRsvpStatus?: string;
   userRsvpEditToken?: string;
+  rsvpDeadline?: Date | string | null;
+  hostDisplayName?: string | null;
 }
 
 export interface CoHostProfile {
@@ -953,7 +955,8 @@ function EventCard({
     }
   }
 
-  const hostName = item.host?.name || item.host?.email?.split("@")[0] || "Host";
+  const hostName =
+    item.hostDisplayName || item.host?.name || item.host?.email?.split("@")[0] || "Host";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
@@ -1193,6 +1196,31 @@ function EventCard({
               <span>{item.commentCount}</span>
             </div>
           )}
+          {item.rsvpDeadline &&
+            (() => {
+              const deadline = new Date(item.rsvpDeadline);
+              const now = new Date();
+              const hasPassed = deadline < now;
+              const formatted = deadline.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+              return (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "3px",
+                    color: hasPassed ? "#ef4444" : APP_SHELL.textTertiary,
+                    fontWeight: hasPassed ? 700 : 500,
+                  }}
+                >
+                  <span>·</span>
+                  <Clock size={10} />
+                  <span>RSVPs {hasPassed ? "closed" : `by ${formatted}`}</span>
+                </div>
+              );
+            })()}
         </div>
       </div>
     </div>
