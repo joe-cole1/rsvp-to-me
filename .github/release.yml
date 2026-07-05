@@ -28,3 +28,6 @@ changelog:
     - title: ⚙️ Maintenance & Dependency Updates
       labels:
         - chore
+    - title: 📦 Other Changes
+      labels:
+        - '*'
