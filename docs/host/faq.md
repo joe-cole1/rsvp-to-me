@@ -38,7 +38,7 @@ Open the event's **Settings** and mark it cancelled. This closes RSVPs and shows
 
 ## How do I delete an event?
 
-Open the event's **Settings**, select the **Display Options** tab, scroll to the **Danger Zone** at the bottom, and click **Delete Event**. You will be prompted to type `DELETE` to confirm. Once deleted, the event and all guest data are permanently and irreversibly removed.
+Open the event's **Settings**, scroll to the **Danger Zone** at the bottom of the main settings page, and click **Delete Event**. You will be prompted to type `DELETE` to confirm. Once deleted, the event and all guest data are permanently and irreversibly removed.
 
 ## Will guests be notified if I change the event?
 
