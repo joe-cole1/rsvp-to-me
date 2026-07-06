@@ -6,3 +6,5 @@ data/
 public/
 pg_data/
 redis_data/
+.*
+.github/

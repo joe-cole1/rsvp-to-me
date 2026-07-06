@@ -12,16 +12,16 @@ datasource db {
 // ──────────────────────────────────────────────
 
 model User {
-  id                  String    @id @default(cuid())
-  email               String?   @unique
-  phone               String?   @unique
+  id                  String              @id @default(cuid())
+  email               String?             @unique
+  phone               String?             @unique
   name                String?
   avatarUrl           String?
-  role                Role      @default(GUEST)
+  role                Role                @default(GUEST)
   emailNotifications  Boolean             @default(true)
   smsNotifications    Boolean             @default(true)
   notificationChannel NotificationChannel @default(BOTH)
-  createdAt           DateTime  @default(now())
+  createdAt           DateTime            @default(now())
   deletionRequestedAt DateTime?
   deletionScheduledAt DateTime?
 
@@ -111,43 +111,42 @@ model Event {
   status          EventStatus  @default(DRAFT)
 
   // RSVP settings
-  rsvpDeadline      DateTime?
-  allowEditAfterDeadline Boolean    @default(false)
-  approvalRequired  Boolean    @default(false)
-  plusOneAllowed    Boolean    @default(true)
-  plusOneMax        Int        @default(1)
-  plusOneNamesRequired Boolean @default(false)
-  guestListVis      GuestListVis @default(ALL)
-  guestSharingEnabled  Boolean    @default(true)
-  guestsCanInvite      Boolean    @default(false)
-
+  rsvpDeadline           DateTime?
+  allowEditAfterDeadline Boolean      @default(false)
+  approvalRequired       Boolean      @default(false)
+  plusOneAllowed         Boolean      @default(true)
+  plusOneMax             Int          @default(1)
+  plusOneNamesRequired   Boolean      @default(false)
+  guestListVis           GuestListVis @default(ALL)
+  guestSharingEnabled    Boolean      @default(true)
+  guestsCanInvite        Boolean      @default(false)
 
   // Feature flags
-  commentsEnabled      Boolean    @default(true)
-  maybeEnabled         Boolean    @default(true)
-  questionnaireEnabled Boolean    @default(false)
-  showTimestamps       Boolean    @default(true)
+  commentsEnabled      Boolean @default(true)
+  maybeEnabled         Boolean @default(true)
+  questionnaireEnabled Boolean @default(false)
+  showTimestamps       Boolean @default(true)
   passwordHash         String?
   hostDisplayName      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  host            User              @relation(fields: [hostId], references: [id])
-  coHosts         EventCoHost[]
-  theme           EventTheme?
+  host             User                   @relation(fields: [hostId], references: [id])
+  coHosts          EventCoHost[]
+  theme            EventTheme?
   reminderSettings EventReminderSettings?
-  infoSections    EventInfoSection[]
-  rsvps           RSVP[]
-  invitations     Invitation[]
-  updates         EventUpdate[]
-  potluckItems    PotluckItem[]
-  sentReminders   SentReminder[]
-  comments        Comment[]
-  rsvpFields      RSVPField[]
-  checkIns        CheckIn[]
-  activityEvents  ActivityEvent[]
-  polls           Poll[]
+  infoSections     EventInfoSection[]
+  rsvps            RSVP[]
+  invitations      Invitation[]
+  updates          EventUpdate[]
+  potluckItems     PotluckItem[]
+  sentReminders    SentReminder[]
+  comments         Comment[]
+  rsvpFields       RSVPField[]
+  checkIns         CheckIn[]
+  activityEvents   ActivityEvent[]
+  polls            Poll[]
 }
 
 enum LocationType {
@@ -229,7 +228,7 @@ model ThemePreset {
 model EventInfoSection {
   id      String  @id @default(cuid())
   eventId String
-  type    String  // icon key: "shirt", "utensils", "parking", "link", "info", "music", "gift", "bed", "mappin", "calendar", "sparkles", "filetext", "camera", "phone"
+  type    String // icon key: "shirt", "utensils", "parking", "link", "info", "music", "gift", "bed", "mappin", "calendar", "sparkles", "filetext", "camera", "phone"
   title   String? // deprecated — kept for backward compatibility
   content String
   url     String?
@@ -243,7 +242,7 @@ model EventReminderSettings {
   eventId          String  @unique
   emailWeekBefore  Boolean @default(false)
   emailDayBefore   Boolean @default(true)
-  emailHoursBefore Int     @default(2)   // 0 = disabled
+  emailHoursBefore Int     @default(2) // 0 = disabled
   smsWeekBefore    Boolean @default(false)
   smsDayBefore     Boolean @default(false)
   smsHoursBefore   Int     @default(0)
@@ -262,7 +261,7 @@ model RSVPField {
   label     String
   fieldType RSVPFieldType
   required  Boolean       @default(false)
-  options   String?       // JSON array of strings for SELECT/CHECKBOX types
+  options   String? // JSON array of strings for SELECT/CHECKBOX types
   order     Int           @default(0)
 
   event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -298,11 +297,11 @@ model RSVP {
   updatedAt    DateTime   @updatedAt
   userId       String?
 
-  event          Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  answers        RSVPAnswer[]
-  checkIn        CheckIn?
-  plusOneGuests  PlusOneGuest[]
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  answers       RSVPAnswer[]
+  checkIn       CheckIn?
+  plusOneGuests PlusOneGuest[]
 }
 
 model PlusOneGuest {
@@ -342,7 +341,7 @@ model RSVPAnswer {
 model Invitation {
   id      String        @id @default(cuid())
   eventId String
-  sentTo  String        // email or phone number
+  sentTo  String // email or phone number
   channel InviteChannel
   sentAt  DateTime      @default(now())
   rsvpId  String?
@@ -388,11 +387,11 @@ model Comment {
 // ──────────────────────────────────────────────
 
 model PotluckItem {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   eventId   String
   label     String
-  quantity  Int       @default(1)
-  createdAt DateTime  @default(now())
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
 
   event  Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   claims PotluckClaim[]
@@ -417,7 +416,7 @@ model PotluckClaim {
 model SentReminder {
   id      String   @id @default(cuid())
   eventId String
-  type    String   // email_week | email_day | email_hours | sms_week | sms_day | sms_hours | nudge_email
+  type    String // email_week | email_day | email_hours | sms_week | sms_day | sms_hours | nudge_email
   sentAt  DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -447,7 +446,7 @@ model CheckIn {
 model ActivityEvent {
   id        String   @id @default(cuid())
   eventId   String
-  type      String   // rsvp_new | rsvp_update | event_title | event_description | event_date | event_location | info_add | info_edit | info_delete
+  type      String // rsvp_new | rsvp_update | event_title | event_description | event_date | event_location | info_add | info_edit | info_delete
   actorName String?
   detail    String
   createdAt DateTime @default(now())
@@ -460,42 +459,42 @@ model ActivityEvent {
 // ──────────────────────────────────────────────
 
 model Poll {
-  id               String       @id @default(cuid())
+  id               String   @id @default(cuid())
   eventId          String
   question         String
-  multiChoice      Boolean      @default(false)
-  allowGuestsToAdd Boolean      @default(true)
-  locked           Boolean      @default(false)
-  hideVoters       Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  multiChoice      Boolean  @default(false)
+  allowGuestsToAdd Boolean  @default(true)
+  locked           Boolean  @default(false)
+  hideVoters       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  event            Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  options          PollOption[]
-  votes            PollVote[]
+  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
 }
 
 model PollOption {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   pollId      String
   text        String
-  creatorName String?    // Null if created by host, guestName if write-in
-  createdAt   DateTime   @default(now())
+  creatorName String? // Null if created by host, guestName if write-in
+  createdAt   DateTime @default(now())
 
-  poll        Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  votes       PollVote[]
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
 }
 
 model PollVote {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   pollId       String
   pollOptionId String
-  voterName    String     // Name of the guest or host voting
-  userId       String?    // Link to User if they are logged in
-  createdAt    DateTime   @default(now())
+  voterName    String // Name of the guest or host voting
+  userId       String? // Link to User if they are logged in
+  createdAt    DateTime @default(now())
 
-  poll         Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  option       PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
   @@unique([pollOptionId, voterName])
 }
@@ -515,4 +514,3 @@ model CronLock {
   lockedAt DateTime
   expireAt DateTime
 }
-
