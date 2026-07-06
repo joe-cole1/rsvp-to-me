@@ -6,7 +6,6 @@ import type { ResolvedTheme } from "@/lib/theme";
 import { Check } from "lucide-react";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
-import AdminHamburger from "@/components/ui/AdminHamburger";
 
 type SessionUser = {
   email: string;
@@ -328,7 +327,6 @@ export function RsvpFlow({
   const renderNav = () => (
     <AppNavLogo
       href="/dashboard"
-      leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
       trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
       style={{
         position: "fixed",
