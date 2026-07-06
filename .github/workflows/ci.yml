@@ -78,7 +78,7 @@ jobs:
         run: npm run lint -- --fix || true
 
       - name: Commit automated fixes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d
         with:
           commit_message: "style/chore: automated formatting and lint fixes"
 
