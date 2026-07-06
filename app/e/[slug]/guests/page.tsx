@@ -7,7 +7,6 @@ import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
-import AdminHamburger from "@/components/ui/AdminHamburger";
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const { slug } = await props.params;
@@ -84,7 +83,6 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     >
       <AppNavLogo
         href="/dashboard"
-        leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
         trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
         style={{
           position: "fixed",

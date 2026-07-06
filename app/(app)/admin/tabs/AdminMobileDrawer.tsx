@@ -31,7 +31,7 @@ export function AdminMobileDrawer({
             backdropFilter: "blur(4px)",
             zIndex: 999,
             display: "flex",
-            justifyContent: "flex-end",
+            justifyContent: "flex-start",
           }}
           onClick={() => setIsDrawerOpen(false)}
         >
@@ -39,7 +39,7 @@ export function AdminMobileDrawer({
             dangerouslySetInnerHTML={{
               __html: `
                 @keyframes slideIn {
-                  from { transform: translateX(100%); }
+                  from { transform: translateX(-100%); }
                   to { transform: translateX(0); }
                 }
               `,
@@ -49,21 +49,21 @@ export function AdminMobileDrawer({
             style={{
               width: "280px",
               height: "100%",
-              backgroundColor: APP_SHELL.cardBg,
-              borderLeft: `1px solid ${APP_SHELL.cardBorder}`,
+              backgroundColor: "#13091f",
+              borderRight: "1px solid rgba(255, 255, 255, 0.10)",
               padding: "24px",
               boxSizing: "border-box",
               display: "flex",
               flexDirection: "column",
-              gap: "24px",
+              gap: "20px",
               position: "relative",
-              animation: "slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              animation: "slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <h3 style={{ fontSize: "16px", fontWeight: 800, color: APP_SHELL.textPrimary }}>
-                🛠️ Admin Navigation
+                🛡️ Admin Navigation
               </h3>
               <button
                 type="button"
@@ -89,7 +89,7 @@ export function AdminMobileDrawer({
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "8px",
+                gap: "4px",
                 overflowY: "auto",
                 flex: 1,
               }}
@@ -116,7 +116,7 @@ export function AdminMobileDrawer({
                   }}
                   style={{
                     textAlign: "left",
-                    padding: "12px 16px",
+                    padding: "11px 14px",
                     borderRadius: "10px",
                     border: "none",
                     backgroundColor: activeTab === tab.id ? APP_SHELL.accent : "transparent",
@@ -124,11 +124,11 @@ export function AdminMobileDrawer({
                     fontSize: "14px",
                     fontWeight: activeTab === tab.id ? 700 : 600,
                     cursor: "pointer",
-                    transition: "background 0.2s, color 0.2s",
+                    transition: "background 0.15s, color 0.15s",
                   }}
                   onMouseEnter={(e) => {
                     if (activeTab !== tab.id)
-                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)";
                   }}
                   onMouseLeave={(e) => {
                     if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "transparent";

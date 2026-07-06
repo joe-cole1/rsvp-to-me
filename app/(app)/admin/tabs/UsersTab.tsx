@@ -22,8 +22,10 @@ export function UsersTab({
   handleUserSearch: (val: string) => Promise<void>;
   roleFilter: "ALL" | "HOST" | "GUEST" | "ADMIN";
   setRoleFilter: React.Dispatch<React.SetStateAction<"ALL" | "HOST" | "GUEST" | "ADMIN">>;
-  statusFilter: "ALL" | "PENDING_DELETE" | "ACTIVE";
-  setStatusFilter: React.Dispatch<React.SetStateAction<"ALL" | "PENDING_DELETE" | "ACTIVE">>;
+  statusFilter: "ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED";
+  setStatusFilter: React.Dispatch<
+    React.SetStateAction<"ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED">
+  >;
   setCreateUserOpen: React.Dispatch<React.SetStateAction<boolean>>;
   filteredUsers: AdminUser[];
   handleRoleChange: (userId: string, newRole: "GUEST" | "HOST" | "ADMIN") => void;
@@ -79,7 +81,9 @@ export function UsersTab({
         {/* Status Filter */}
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE")}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED")
+          }
           style={{
             backgroundColor: APP_SHELL.inputBg,
             border: `1px solid ${APP_SHELL.inputBorder}`,
@@ -96,6 +100,7 @@ export function UsersTab({
           <option value="ALL">All Statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="PENDING_DELETE">Pending Deletion</option>
+          <option value="DELETED">Deleted / Anonymized</option>
         </select>
 
         <button
@@ -238,7 +243,9 @@ export function UsersTab({
                         >
                           Current Session
                         </span>
-                      ) : u.deletionScheduledAt ? (
+                      ) : !u.email &&
+                        !u.phone ? null : u // Already Deleted / Anonymized user - show nothing
+                        .deletionScheduledAt ? (
                         <div
                           style={{
                             display: "flex",

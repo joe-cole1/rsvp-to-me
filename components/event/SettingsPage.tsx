@@ -4,7 +4,6 @@ import { useState, useTransition, useEffect, useMemo } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
-import AdminHamburger from "@/components/ui/AdminHamburger";
 import { type BaseTheme, resolveTheme, getSortedPresets } from "@/lib/theme";
 import {
   saveEventSettings,
@@ -782,7 +781,6 @@ export function SettingsPage({
       {/* ── Global nav ── */}
       <AppNavLogo
         href="/dashboard"
-        leading={sessionUser?.role === "ADMIN" ? <AdminHamburger /> : undefined}
         trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
         style={{
           position: "fixed",

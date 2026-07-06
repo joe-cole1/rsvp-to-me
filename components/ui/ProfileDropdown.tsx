@@ -234,6 +234,31 @@ export default function ProfileDropdown({ user }: { user: DropdownUser }) {
             </a>
           )}
 
+          {user.role === "ADMIN" && (
+            <a
+              href="/admin"
+              onClick={() => setIsOpen(false)}
+              style={{
+                padding: "10px 12px",
+                borderRadius: "10px",
+                color: APP_SHELL.textPrimary,
+                textDecoration: "none",
+                fontSize: "13px",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                transition: "background 0.2s",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.05)")
+              }
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
+              🛡️ Admin Panel
+            </a>
+          )}
+
           {/* Divider */}
           <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder, margin: "6px 0" }} />
 

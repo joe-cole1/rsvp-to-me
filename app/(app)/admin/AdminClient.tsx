@@ -115,7 +115,9 @@ export default function AdminClient({
 
   const [userSearch, setUserSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"ALL" | "HOST" | "GUEST" | "ADMIN">("ALL");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING_DELETE" | "ACTIVE">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED">(
+    "ACTIVE"
+  );
   const [eventSearch, setEventSearch] = useState("");
 
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -851,7 +853,9 @@ export default function AdminClient({
   const filteredUsers = users.filter((u) => {
     if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
     if (statusFilter === "PENDING_DELETE" && !u.deletionScheduledAt) return false;
-    if (statusFilter === "ACTIVE" && u.deletionScheduledAt) return false;
+    if (statusFilter === "ACTIVE" && (u.deletionScheduledAt || (!u.email && !u.phone)))
+      return false;
+    if (statusFilter === "DELETED" && (u.email || u.phone)) return false;
     return true;
   });
 
@@ -869,21 +873,11 @@ export default function AdminClient({
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: "16px",
             marginBottom: "32px",
           }}
         >
-          <div>
-            <h2
-              style={{ fontSize: "28px", fontWeight: 800, color: APP_SHELL.textPrimary, margin: 0 }}
-            >
-              {TAB_META[activeTab].title}
-            </h2>
-            <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", marginTop: "4px" }}>
-              {TAB_META[activeTab].description}
-            </p>
-          </div>
           {/* Hamburger trigger for the mobile drawer — sidebar is hidden below lg */}
           <button
             type="button"
@@ -891,20 +885,37 @@ export default function AdminClient({
             className="lg:hidden"
             onClick={() => setIsDrawerOpen(true)}
             style={{
-              backgroundColor: APP_SHELL.cardBg,
-              border: `1px solid ${APP_SHELL.cardBorder}`,
-              borderRadius: "10px",
+              backgroundColor: "rgba(255,255,255,0.08)",
+              border: `1px solid ${APP_SHELL.inputBorder}`,
+              borderRadius: "8px",
               cursor: "pointer",
               color: APP_SHELL.textPrimary,
-              padding: "10px",
+              padding: "8px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
+              marginTop: "4px",
             }}
           >
             <Menu size={20} />
           </button>
+          <div>
+            <h2
+              style={{
+                fontSize: "28px",
+                fontWeight: 800,
+                background: `linear-gradient(135deg, ${APP_SHELL.textPrimary}, ${APP_SHELL.textSecondary})`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              {TAB_META[activeTab].title}
+            </h2>
+            <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", marginTop: "4px" }}>
+              {TAB_META[activeTab].description}
+            </p>
+          </div>
         </div>
 
         {/* Create User Modal */}

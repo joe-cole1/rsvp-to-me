@@ -30,14 +30,16 @@ The Admin Panel gives you a complete view of your RSVP to Me installation: every
 
 ## Accessing the Admin Panel
 
-Navigate to `/admin` on your installation in your browser:
+You can access the Admin Panel in two ways:
 
-- Local address: `http://localhost:3000/admin`
-- Domain address: `https://rsvp.yourdomain.com/admin`
+1. **Profile Dropdown**: If you are logged in with the `ADMIN` role, click your profile picture/initials in the top-right navigation header and select **🛡️ Admin Panel**.
+2. **Direct URL**: Navigate directly to `/admin` in your browser:
+   - Local address: `http://localhost:3000/admin`
+   - Domain address: `https://rsvp.yourdomain.com/admin`
 
 The Admin Panel is strictly gated to users with the `ADMIN` role. If you attempt to access `/admin` with a lower-privilege account, the app redirects you to the main dashboard.
 
-The panel is organized into a sidebar of tabs: **Overview**, **Users**, **Events**, **Host Settings**, **Email**, **SMS**, **Backups**, **Themes**, and **Documentation**. On phones and small tablets the sidebar is replaced by a hamburger button (☰) in the page header — tap it to open a slide-in drawer with the same tabs. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
+The panel is organized into a sidebar of tabs: **Overview**, **Users**, **Events**, **Host Settings**, **Email**, **SMS**, **Backups**, **Themes**, and **Documentation**. On phones and small tablets the sidebar is replaced by a hamburger button (☰) in the top-left of the page — tap it to open a slide-in drawer with the same tabs. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
 
 > **Tip:** All of these admin guides — this one plus installation, configuration, email, SMS, and upgrading — are also readable inside the app in the **Documentation** tab at the bottom of the Admin Panel menu.
 
@@ -129,7 +131,7 @@ You can delete and manage users from the **Users** tab.
 The **Users** list can be filtered using the dropdown selectors:
 
 - **Role Filter**: Filter users by account type (`All Roles`, `ADMIN`, `HOST`, `GUEST`).
-- **Status Filter**: Filter users by account state (`All Statuses`, `Active`, `Pending Deletion`).
+- **Status Filter**: Filter users by account state (`All Statuses`, `Active` (default), `Pending Deletion`, `Deleted / Anonymized`).
 
 ---
 

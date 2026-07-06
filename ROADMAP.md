@@ -12,8 +12,6 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🔒 Backend / Security / DevOps
 
-- **[CLEAN] Reconcile Header & Page Admin Menus**: Remove the global `AdminHamburger` drawer button from the header navigation. Add a clear `🛡️ Admin Panel` link to the `ProfileDropdown` (only visible to admins) to serve as the single entry point. This keeps `/admin` navigation consolidated within the page's sidebar and mobile drawer.
-
 ---
 
 ## 🟡 Medium Priority
@@ -23,7 +21,6 @@ _Functional improvements, layout adjustments, and secondary features that can be
 ### 🛠️ Bug / Fix
 
 - **Host new-RSVP alert email is not wired up**: `sendHostRsvpAlertEmail` (and its SMS twin `sendHostRsvpAlertSms`) exist and now have a styled, previewable template, but nothing calls them — hosts do **not** actually receive a "New RSVP" email/SMS when a guest RSVPs, despite the notification toggles implying they do. The initial migration also carries orphaned `Event` columns (`hostAlertEmail`, `rsvpConfirmEmail`, …) that no longer exist in `schema.prisma` (schema drift). Wire the alert into `addRSVP` (respecting the per-event host-alert toggles) and reconcile or remove the stale columns. _(Discovered during the 2026-07 email-template rebuild.)_
-- **Filter Out Deleted Users in Admin panel**: Exclude anonymized/deleted users from the default view by defaulting the status filter in `UsersTab` to `"ACTIVE"`. Add a `"DELETED"` status filter option to specifically show them when selected.
 
 ### 🎨 UI / UX / Feature
 
@@ -91,6 +88,12 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Admin UI/UX Polish
+
+- [x] **Reconcile Header & Page Admin Menus**: Removed the global `AdminHamburger` drawer button from the header navigation. Added a clear `🛡️ Admin Panel` link to the `ProfileDropdown` (only visible to admins) to serve as the single entry point.
+- [x] **Filter Out Deleted Users in Admin panel**: Excluded anonymized/deleted users from the default view by defaulting the status filter in `UsersTab` to `"ACTIVE"`. Added a `"DELETED"` status filter option to specifically show them when selected. Also hid Actions controls for already deleted/anonymized users.
+- [x] **Admin Mobile Navigation Improvements**: Repositioned the mobile hamburger drawer trigger in `/admin` to the top-left, and updated the slide-in drawer to open from the left side using the condensed design and opaque background style.
 
 ### High-Priority Bug Fixes (Batch [8f3093])
 
