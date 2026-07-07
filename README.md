@@ -90,16 +90,15 @@ For in-depth explanations of specific features, configurations, and operations, 
 | [Host Guides](docs/host/)                              | Step-by-step guides for event hosts: creating events, RSVPs, invitations, and more.       |
 | [Safe Upgrading Guide](docs/admin/upgrading.md)        | Instructions on updating to new versions safely without losing any database data.         |
 
+## Chaotic Test Section
 
-##   Chaotic   Test   Section  
+- This list item has too many spaces.
+- This one is poorly indented.
+  - And this one has unnecessary trailing whitespace here ->
 
-*   This list item has too many spaces.
-  * This one is poorly indented.
-    * And this one has unnecessary trailing whitespace here ->      
+| Unaligned | Table   |
+| --------- | ------- |
+| bad       | spacing |
+| more      | lines   |
 
-|  Unaligned |   Table |
-|---|---|
-| bad |   spacing |
-|   more   | lines |
-
-This sentence has an   obnoxious    amount of hidden spaces in the middle of it.
+This sentence has an obnoxious amount of hidden spaces in the middle of it.
