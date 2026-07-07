@@ -10,6 +10,8 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🛠️ Bug / Fix
 
+### 🎨 UI / UX / Feature
+
 ### 🔒 Backend / Security / DevOps
 
 ---
