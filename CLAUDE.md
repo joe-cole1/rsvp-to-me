@@ -1,6 +1,6 @@
 # Claude Code Instructions
 
-**Always read and adhere to `AGENTS.md` before making any changes.**
+**Always read and adhere to `AGENTS.md` before making any changes. You MUST adhere to every intstruction in agents.md**
 
 ## Mandatory documentation updates (before pushing / opening a PR)
 
