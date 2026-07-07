@@ -8,3 +8,5 @@ pg_data/
 redis_data/
 .*
 .github/
+.*
+.github/
