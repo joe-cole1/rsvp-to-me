@@ -2,7 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
-import { getSession, invalidateUserSessions } from "@/lib/session";
+import { invalidateUserSessions } from "@/lib/session";
 import {
   scheduleUserDeletion,
   cancelUserDeletion,
@@ -14,14 +14,7 @@ import { hashToken } from "@/lib/hash";
 import { sendWelcomeEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/auth";
 import { EMAIL_TEMPLATE_META, TEMPLATE_IDS, type TemplateId } from "@/emails/registry";
-
-async function assertAdmin() {
-  const session = await getSession();
-  if (!session || session.role !== "ADMIN") {
-    throw new Error("Forbidden: Admin access required");
-  }
-  return session;
-}
+import { assertAdmin } from "@/lib/auth-guards";
 
 export async function getAdminStats() {
   await assertAdmin();

@@ -1,7 +1,7 @@
 import twilio from "twilio";
 import { db } from "@/lib/db";
 import { decryptConfig } from "./crypto";
-import { isChannelEnabled } from "./config";
+import { isChannelEnabled, getSystemConfigMap } from "./config";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -38,11 +38,7 @@ export async function resolveTwilioAuthToken(configMap?: Record<string, string>)
 
 async function resolveSmsConfig() {
   try {
-    const configs = await db.systemConfig.findMany();
-    const configMap: Record<string, string> = {};
-    for (const c of configs) {
-      configMap[c.key] = c.value;
-    }
+    const configMap = await getSystemConfigMap();
     const sid = configMap.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID || "";
     const token = await resolveTwilioAuthToken(configMap);
     const phone = configMap.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER || "";

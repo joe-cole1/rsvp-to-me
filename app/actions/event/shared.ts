@@ -6,38 +6,9 @@
 // imported by the sibling feature modules only and are NOT re-exported from
 // the ./index barrel, preserving the pre-split public API.
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { assertHost, assertHostOrCohost } from "@/lib/auth-guards";
 
-// ── Auth guard ─────────────────────────────────────────────────────────────────
-
-export async function assertHost(eventId: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
-  const event = await db.event.findUnique({
-    where: { id: eventId },
-    select: { hostId: true, slug: true },
-  });
-  if (!event) throw new Error("Forbidden");
-  const isOwner = event.hostId === session.userId;
-  const isAdmin = session.role === "ADMIN";
-  if (!isOwner && !isAdmin) throw new Error("Forbidden");
-  return event;
-}
-
-export async function assertHostOrCohost(eventId: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
-  const event = await db.event.findUnique({
-    where: { id: eventId },
-    select: { hostId: true, slug: true, coHosts: { select: { userId: true } } },
-  });
-  if (!event) throw new Error("Forbidden");
-  const isOwner = event.hostId === session.userId;
-  const isCohost = event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
-  const isAdmin = session.role === "ADMIN";
-  if (!isOwner && !isCohost && !isAdmin) throw new Error("Forbidden");
-  return event;
-}
+export { assertHost, assertHostOrCohost };
 
 // SEC-24: authorize an unauthenticated guest action by the secret per-RSVP
 // editToken (which only the guest holds), not a public rsvpId + client-supplied

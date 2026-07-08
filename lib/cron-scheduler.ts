@@ -5,6 +5,7 @@ import { db } from "./db";
 import { isRedisEnabled, redisAcquireLock, redisReleaseLock } from "./redis";
 import { logSafe } from "./logger";
 import { performImmediateUserDeletion } from "./account-deletion";
+import { cleanupRateLimits } from "./rateLimit";
 
 async function runWithLock(
   jobName: string,
@@ -88,6 +89,13 @@ async function processExpiredDeletions() {
         `[cron-scheduler] Anonymized account for user ${user.id} (was: ${user.email ?? user.name}).`
       );
     }
+  });
+}
+
+async function processRateLimitCleanup() {
+  await runWithLock("process_rate_limit_cleanup", 600, async () => {
+    console.log("[cron-scheduler] Running rate limit database cleanup...");
+    await cleanupRateLimits();
   });
 }
 
@@ -181,6 +189,18 @@ export async function startInProcessCron() {
     cron.schedule("0 0 * * *", () => {
       processExpiredDeletions().catch((err) =>
         console.error("[cron-scheduler] Account deletion processing failed:", err)
+      );
+    })
+  );
+
+  // Run rate limit database cleanup on startup and once daily (at 1:00 AM)
+  processRateLimitCleanup().catch((err) =>
+    console.error("[cron-scheduler] Startup rate limit cleanup failed:", err)
+  );
+  activeTasks.push(
+    cron.schedule("0 1 * * *", () => {
+      processRateLimitCleanup().catch((err) =>
+        console.error("[cron-scheduler] Daily rate limit cleanup failed:", err)
       );
     })
   );

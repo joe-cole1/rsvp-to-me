@@ -1,8 +1,7 @@
 import { createElement } from "react";
-import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
 import { decryptConfig } from "./crypto";
-import { isChannelEnabled } from "./config";
+import { isChannelEnabled, getSystemConfigMap } from "./config";
 import { appShellEmailTheme, resolveEmailTheme, type EmailThemeInput } from "./email-theme";
 import { getEmailTemplateSettings, mergeWithDefaults } from "./email-settings";
 import { renderEmail, substitutePlaceholders } from "@/emails/render";
@@ -85,11 +84,7 @@ type WorkerMailOpts = {
 };
 
 async function resolveEmailConfig() {
-  const configs = await db.systemConfig.findMany();
-  const configMap: Record<string, string> = {};
-  for (const c of configs) {
-    configMap[c.key] = c.value;
-  }
+  const configMap = await getSystemConfigMap();
 
   const from = configMap.email_from || process.env.EMAIL_FROM || "RSVP to Me <noreply@example.com>";
 

@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
-import { getSession } from "@/lib/session";
 import { NextResponse } from "next/server";
+import { assertAdmin } from "@/lib/auth-guards";
 
 export async function GET(request: Request, props: { params: Promise<{ filename: string }> }) {
-  const session = await getSession();
-  if (!session || session.role !== "ADMIN") {
+  try {
+    await assertAdmin();
+  } catch {
     return new NextResponse("Forbidden: Administrator access required", {
       status: 403,
     });
