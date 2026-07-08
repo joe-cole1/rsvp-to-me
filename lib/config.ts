@@ -3,11 +3,13 @@ import { db } from "@/lib/db";
 
 export type ChannelConfig = { email: boolean; sms: boolean };
 
+export const getSystemConfigMap = cache(async (): Promise<Record<string, string>> => {
+  const rows = await db.systemConfig.findMany();
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+});
+
 export const getChannelConfig = cache(async (): Promise<ChannelConfig> => {
-  const rows = await db.systemConfig.findMany({
-    where: { key: { in: ["email_enabled", "sms_enabled", "twilio_account_sid"] } },
-  });
-  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const map = await getSystemConfigMap();
 
   const emailEnabled = map["email_enabled"] !== "false";
 

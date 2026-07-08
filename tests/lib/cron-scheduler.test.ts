@@ -120,7 +120,7 @@ describe("lib/cron-scheduler.ts", () => {
   it("does not schedule backup when pattern is disabled or false", async () => {
     process.env.BACKUP_SCHEDULE = "disabled";
     await startInProcessCron();
-    expect(mockCronSchedule).toHaveBeenCalledTimes(3); // 15m reminders, 5m backup sync, daily deletion
+    expect(mockCronSchedule).toHaveBeenCalledTimes(4); // 15m reminders, 5m backup sync, daily deletion, daily rate limit cleanup
   });
 
   it("stops existing backup task when schedule changes", async () => {
@@ -148,7 +148,7 @@ describe("lib/cron-scheduler.ts", () => {
     process.env.BACKUP_SCHEDULE = "invalid pattern";
 
     await startInProcessCron();
-    expect(mockCronSchedule).toHaveBeenCalledTimes(3); // 15m reminders, 5m backup sync, daily deletion
+    expect(mockCronSchedule).toHaveBeenCalledTimes(4); // 15m reminders, 5m backup sync, daily deletion, daily rate limit cleanup
   });
 
   it("handles processReminders errors silently in startup and cron callbacks", async () => {

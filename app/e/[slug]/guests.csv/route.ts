@@ -1,24 +1,18 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { assertHostOrCohost } from "@/lib/auth-guards";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  const session = await getSession();
-  if (!session) return new NextResponse("Unauthorized", { status: 401 });
-
-  const event = await db.event.findUnique({
-    where: { slug },
-    select: { id: true, hostId: true, coHosts: { select: { userId: true } } },
-  });
-
-  if (!event) return new NextResponse("Not found", { status: 404 });
-
-  const isAdmin = session.role === "ADMIN";
-  const isHost = event.hostId === session.userId;
-  const isCoHost = event.coHosts.some((ch: { userId: string }) => ch.userId === session.userId);
-  if (!isAdmin && !isHost && !isCoHost) return new NextResponse("Forbidden", { status: 403 });
+  let event;
+  try {
+    event = await assertHostOrCohost(slug, true);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Forbidden";
+    if (msg === "Unauthorized") return new NextResponse("Unauthorized", { status: 401 });
+    return new NextResponse("Forbidden", { status: 403 });
+  }
 
   const rsvps = await db.rSVP.findMany({
     where: { eventId: event.id },
