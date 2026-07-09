@@ -61,7 +61,9 @@ function detectImageBuffer(buffer: Buffer): { ext: string; mime: string } | null
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session || (session.role !== "HOST" && session.role !== "ADMIN")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;

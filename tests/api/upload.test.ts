@@ -38,15 +38,26 @@ describe("POST /api/upload", () => {
     expect(res.status).toBe(401);
   });
 
+  it("returns 401 when role is GUEST", async () => {
+    mockGetSession.mockResolvedValue({
+      userId: "user1",
+      email: "guest@example.com",
+      role: "GUEST",
+    });
+    const req = makeFormDataRequest(new File(["data"], "photo.jpg", { type: "image/jpeg" }));
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
   it("returns 400 when no file provided", async () => {
-    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com" });
+    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com", role: "HOST" });
     const req = makeFormDataRequest(null);
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for non-image file", async () => {
-    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com" });
+    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com", role: "HOST" });
     const file = new File(["data"], "evil.exe", { type: "application/octet-stream" });
     const req = makeFormDataRequest(file);
     const res = await POST(req);
@@ -56,7 +67,7 @@ describe("POST /api/upload", () => {
   });
 
   it("returns 400 for files over 8MB", async () => {
-    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com" });
+    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com", role: "HOST" });
     const big = new Uint8Array(9 * 1024 * 1024);
     const file = new File([big], "big.png", { type: "image/png" });
     Object.defineProperty(file, "size", { value: 9 * 1024 * 1024 });
@@ -68,7 +79,7 @@ describe("POST /api/upload", () => {
   });
 
   it("returns url on successful upload", async () => {
-    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com" });
+    mockGetSession.mockResolvedValue({ userId: "user1", email: "host@example.com", role: "HOST" });
     const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
     const file = new File([jpegBytes], "photo.jpg", { type: "image/jpeg" });
     const req = makeFormDataRequest(file);

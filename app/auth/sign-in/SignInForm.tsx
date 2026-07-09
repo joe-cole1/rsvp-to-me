@@ -51,8 +51,7 @@ export default function SignInForm({
 }) {
   const [identifier, setIdentifier] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [deliveryFailed, setDeliveryFailed] = useState(false);
+  const [authFailed, setAuthFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -61,15 +60,12 @@ export default function SignInForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setNotFound(false);
-    setDeliveryFailed(false);
+    setAuthFailed(false);
     setLoading(true);
     const result = await sendMagicLinkAction(identifier, redirect);
     setLoading(false);
-    if (result.error === "email_not_found") {
-      setNotFound(true);
-    } else if (result.error === "delivery_failed") {
-      setDeliveryFailed(true);
+    if (result.error === "auth_failed") {
+      setAuthFailed(true);
     } else if (result.success) {
       setSubmitted(true);
     } else {
@@ -127,7 +123,7 @@ export default function SignInForm({
                 to sign in — it expires in 15 minutes.
               </p>
             </div>
-          ) : deliveryFailed ? (
+          ) : authFailed ? (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
               <h2
@@ -138,7 +134,7 @@ export default function SignInForm({
                   marginBottom: "8px",
                 }}
               >
-                Delivery failed
+                Sign-in failed
               </h2>
               <p
                 style={{
@@ -148,8 +144,9 @@ export default function SignInForm({
                   marginBottom: "20px",
                 }}
               >
-                We couldn&apos;t send your sign-in link. If you&apos;re self-hosting, check the
-                container logs — the link may be printed there as a fallback (look for{" "}
+                We couldn&apos;t complete your request. If your email or phone is registered, please
+                check your connection and try again. For self-hosters, check the container logs for
+                details or fallbacks (look for{" "}
                 <code
                   style={{
                     background: "rgba(255,255,255,0.08)",
@@ -165,7 +162,7 @@ export default function SignInForm({
               </p>
               <button
                 onClick={() => {
-                  setDeliveryFailed(false);
+                  setAuthFailed(false);
                   setIdentifier("");
                 }}
                 style={{
@@ -181,51 +178,6 @@ export default function SignInForm({
                 }}
               >
                 Try again
-              </button>
-            </div>
-          ) : notFound ? (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
-              <h2
-                style={{
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "20px",
-                  fontWeight: 700,
-                  marginBottom: "8px",
-                }}
-              >
-                Email not found
-              </h2>
-              <p
-                style={{
-                  color: APP_SHELL.textSecondary,
-                  fontSize: "14px",
-                  lineHeight: 1.6,
-                  marginBottom: "20px",
-                }}
-              >
-                <strong style={{ color: "rgba(255,255,255,0.8)" }}>{identifier}</strong> isn&apos;t
-                linked to an account. If you expect to have access, contact the host to request an
-                invitation.
-              </p>
-              <button
-                onClick={() => {
-                  setNotFound(false);
-                  setIdentifier("");
-                }}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.btnRadius,
-                  color: APP_SHELL.textSecondary,
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  padding: "10px 20px",
-                  fontFamily: "inherit",
-                }}
-              >
-                Try a different email
               </button>
             </div>
           ) : (

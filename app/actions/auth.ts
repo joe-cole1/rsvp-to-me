@@ -45,7 +45,7 @@ export async function sendMagicLinkAction(
   const link = await createMagicLink(identifier, redirect);
 
   if (!link) {
-    return { success: false, error: "email_not_found" };
+    return { success: false, error: "auth_failed" };
   }
 
   try {
@@ -57,7 +57,7 @@ export async function sendMagicLinkAction(
     }
   } catch (err) {
     console.error("[auth] Magic link delivery failed:", err);
-    return { success: false, error: "delivery_failed" };
+    return { success: false, error: "auth_failed" };
   }
 
   return { success: true };

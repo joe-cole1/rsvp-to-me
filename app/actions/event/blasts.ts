@@ -27,32 +27,49 @@ export async function sendBlast(eventId: string, message: string, filters: Blast
 
   const whereStatus = buildRsvpStatusFilter(filters);
 
-  const rsvps = await db.rSVP.findMany({
-    where: { eventId, guestEmail: { not: null }, ...whereStatus },
-    select: { guestEmail: true },
-  });
+  const CHUNK_SIZE = 500;
+  let skip = 0;
+  let totalSent = 0;
 
-  const emails = rsvps.flatMap((r: { guestEmail: string | null }) =>
-    r.guestEmail ? [r.guestEmail] : []
-  );
-  if (emails.length === 0) return { success: true, sent: 0 };
+  while (true) {
+    const rsvps = await db.rSVP.findMany({
+      where: { eventId, guestEmail: { not: null }, ...whereStatus },
+      select: { guestEmail: true },
+      take: CHUNK_SIZE,
+      skip,
+      orderBy: { id: "asc" },
+    });
 
-  await sendBlastEmail(emails, {
-    eventTitle: event.title,
-    eventSlug: event.slug,
-    message,
-    hostName: event.hostDisplayName ?? event.host.name ?? "Your host",
-    theme: event.theme,
-    replyTo: event.host.email || undefined,
-  });
+    if (rsvps.length === 0) break;
 
-  db.invitation
-    .createMany({
-      data: emails.map((sentTo) => ({ eventId, sentTo, channel: "EMAIL" as const })),
-    })
-    .catch(logSafe("sendBlast"));
+    const emails = rsvps.flatMap((r: { guestEmail: string | null }) =>
+      r.guestEmail ? [r.guestEmail] : []
+    );
 
-  return { success: true, sent: emails.length };
+    if (emails.length > 0) {
+      await sendBlastEmail(emails, {
+        eventTitle: event.title,
+        eventSlug: event.slug,
+        message,
+        hostName: event.hostDisplayName ?? event.host.name ?? "Your host",
+        theme: event.theme,
+        replyTo: event.host.email || undefined,
+      });
+
+      totalSent += emails.length;
+
+      await db.invitation
+        .createMany({
+          data: emails.map((sentTo) => ({ eventId, sentTo, channel: "EMAIL" as const })),
+        })
+        .catch(logSafe("sendBlast"));
+    }
+
+    if (rsvps.length < CHUNK_SIZE) break;
+    skip += CHUNK_SIZE;
+  }
+
+  return { success: true, sent: totalSent };
 }
 
 export async function sendSmsBlast(eventId: string, message: string, filters: BlastStatusFilter[]) {
@@ -66,30 +83,47 @@ export async function sendSmsBlast(eventId: string, message: string, filters: Bl
 
   const whereStatus = buildRsvpStatusFilter(filters);
 
-  const rsvps = await db.rSVP.findMany({
-    where: { eventId, guestPhone: { not: null }, ...whereStatus },
-    select: { guestPhone: true },
-  });
+  const CHUNK_SIZE = 500;
+  let skip = 0;
+  let totalSent = 0;
 
-  const phones = rsvps.flatMap((r: { guestPhone: string | null }) =>
-    r.guestPhone ? [r.guestPhone] : []
-  );
-  if (phones.length === 0) return { success: true, sent: 0 };
+  while (true) {
+    const rsvps = await db.rSVP.findMany({
+      where: { eventId, guestPhone: { not: null }, ...whereStatus },
+      select: { guestPhone: true },
+      take: CHUNK_SIZE,
+      skip,
+      orderBy: { id: "asc" },
+    });
 
-  const sent = await smsSendBlast(phones, {
-    eventTitle: event.title,
-    eventSlug: event.slug,
-    message,
-    hostName: event.hostDisplayName ?? event.host.name ?? "Your host",
-  });
+    if (rsvps.length === 0) break;
 
-  db.invitation
-    .createMany({
-      data: phones.map((sentTo) => ({ eventId, sentTo, channel: "SMS" as const })),
-    })
-    .catch(logSafe("sendSmsBlast"));
+    const phones = rsvps.flatMap((r: { guestPhone: string | null }) =>
+      r.guestPhone ? [r.guestPhone] : []
+    );
 
-  return { success: true, sent };
+    if (phones.length > 0) {
+      const sent = await smsSendBlast(phones, {
+        eventTitle: event.title,
+        eventSlug: event.slug,
+        message,
+        hostName: event.hostDisplayName ?? event.host.name ?? "Your host",
+      });
+
+      totalSent += sent;
+
+      await db.invitation
+        .createMany({
+          data: phones.map((sentTo) => ({ eventId, sentTo, channel: "SMS" as const })),
+        })
+        .catch(logSafe("sendSmsBlast"));
+    }
+
+    if (rsvps.length < CHUNK_SIZE) break;
+    skip += CHUNK_SIZE;
+  }
+
+  return { success: true, sent: totalSent };
 }
 
 // ── Event updates ─────────────────────────────────────────────────────────────
