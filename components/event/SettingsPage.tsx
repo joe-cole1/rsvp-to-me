@@ -123,7 +123,7 @@ export function SettingsPage({
   const rs = event.reminderSettings;
   const [emailWeekBefore, setEmailWeekBefore] = useState(rs?.emailWeekBefore ?? false);
   const [emailDayBefore, setEmailDayBefore] = useState(rs?.emailDayBefore ?? true);
-  const [emailHoursBefore, setEmailHoursBefore] = useState(rs?.emailHoursBefore ?? 2);
+  const [emailHoursBefore, setEmailHoursBefore] = useState(rs?.emailHoursBefore ?? 0);
   const [smsWeekBefore, setSmsWeekBefore] = useState(rs?.smsWeekBefore ?? false);
   const [smsDayBefore, setSmsDayBefore] = useState(rs?.smsDayBefore ?? false);
   const [smsHoursBefore, setSmsHoursBefore] = useState(rs?.smsHoursBefore ?? 0);
