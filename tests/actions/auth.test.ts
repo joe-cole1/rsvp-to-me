@@ -66,13 +66,22 @@ describe("sendMagicLinkAction", () => {
     expect(result.error).toContain("Too many sign-in requests for this email/phone");
   });
 
-  it("returns email_not_found and sends no email when user is not found", async () => {
+  it("returns auth_failed and sends no email when user is not found", async () => {
     mocks.mockCreateMagicLink.mockResolvedValue(null);
 
     const result = await sendMagicLinkAction("notfound@example.com");
     expect(result.success).toBe(false);
-    expect(result.error).toBe("email_not_found");
+    expect(result.error).toBe("auth_failed");
     expect(mocks.mockSendMagicLinkEmail).not.toHaveBeenCalled();
+  });
+
+  it("returns auth_failed when email delivery throws an error", async () => {
+    mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=abc");
+    mocks.mockSendMagicLinkEmail.mockRejectedValueOnce(new Error("SMTP down"));
+
+    const result = await sendMagicLinkAction("user@example.com");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("auth_failed");
   });
 
   it("sends email and returns success:true when user is found regardless of redirect", async () => {

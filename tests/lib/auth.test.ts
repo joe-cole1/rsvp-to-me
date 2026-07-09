@@ -321,13 +321,23 @@ describe("verifyMagicToken", () => {
   });
 
   it("returns false when token is already used", async () => {
-    mockMagicTokenFindUnique.mockResolvedValue({ id: "1", used: true, expiresAt: future });
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "1",
+      used: true,
+      expiresAt: future,
+      type: "LOGIN",
+    });
     const result = await verifyMagicToken(token);
     expect(result).toBe(false);
   });
 
   it("returns false when token is expired", async () => {
-    mockMagicTokenFindUnique.mockResolvedValue({ id: "1", used: false, expiresAt: past });
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "1",
+      used: false,
+      expiresAt: past,
+      type: "LOGIN",
+    });
     const result = await verifyMagicToken(token);
     expect(result).toBe(false);
   });
@@ -338,6 +348,7 @@ describe("verifyMagicToken", () => {
       used: false,
       expiresAt: future,
       userId: "user-1",
+      type: "LOGIN",
     });
     mockMagicTokenUpdate.mockResolvedValue({});
     mockUserFindUnique.mockResolvedValue(null);
@@ -352,6 +363,7 @@ describe("verifyMagicToken", () => {
       used: false,
       expiresAt: future,
       userId: "user-1",
+      type: "LOGIN",
     });
     mockMagicTokenUpdate.mockResolvedValue({});
     mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "user@example.com", role: "HOST" });
@@ -376,6 +388,7 @@ describe("verifyMagicToken", () => {
       used: false,
       expiresAt: future,
       userId: "user-1",
+      type: "LOGIN",
     });
     mockMagicTokenUpdate.mockResolvedValue({});
     mockUserFindUnique.mockResolvedValue({
@@ -405,6 +418,7 @@ describe("verifyMagicToken", () => {
       used: false,
       expiresAt: future,
       userId: "user-1",
+      type: "LOGIN",
     });
     mockMagicTokenUpdate.mockResolvedValue({});
     mockUserFindUnique.mockResolvedValue({
@@ -422,6 +436,20 @@ describe("verifyMagicToken", () => {
       email: "admin@example.com",
       role: "HOST",
     });
+  });
+
+  it("returns false when token type is not LOGIN", async () => {
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "tok-id",
+      used: false,
+      expiresAt: future,
+      userId: "user-1",
+      type: "EMAIL_CHANGE",
+    });
+
+    const result = await verifyMagicToken(token);
+    expect(result).toBe(false);
+    expect(mockMagicTokenUpdate).not.toHaveBeenCalled();
   });
 });
 

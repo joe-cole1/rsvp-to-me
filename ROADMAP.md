@@ -41,9 +41,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 ### 🛠️ Bug / Fix
 
-- **[DEV-01] Database Rate Limit Table Bloat**: `cleanupRateLimits()` in `lib/rateLimit.ts` is never scheduled, meaning database-driven rate limit entries will accumulate indefinitely in PostgreSQL when Redis is disabled.
-  - _Recommended Fix_: Schedule a daily clean task using the in-process cron (`lib/cron-scheduler.ts`) that runs `cleanupRateLimits()`.
-
 ### 🎨 UI / UX / Feature
 
 - **Post-Event Photo Upload Prompt (low priority)**: After an event ends, prompt guests to upload or share their photos. Removed from Auto-Reminders settings as an unimplemented stub; the full feature would integrate with a dedicated photo-sharing section and optionally link to external album services (see Priority 2).
@@ -75,11 +72,7 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard.
 - **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.
 - **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
-- **[SEC-14] Information disclosure in auth/admin error responses** _(deferred — low risk for personal-event scale)_: (a) `sendMagicLinkAction` in `app/actions/auth.ts` returns distinct error codes `"email_not_found"` vs. `"delivery_failed"`, allowing an attacker to enumerate which email addresses are registered. Fix: return a single generic error for both cases. (b) `testEmailConfigAction` / `testSmsConfigAction` in `app/actions/admin.ts` surface raw provider error messages; these are admin-only so blast radius is minimal, but verbose errors could leak infrastructure details.
-- **[SEC-15] Unpaginated blast queries — `app/actions/event.ts` ~lines 607–720** _(deferred — low risk at current scale)_: `sendBlast()` and `sendSmsBlast()` fetch all matching RSVPs with `db.rSVP.findMany` and no `take` limit. An event with a very large guest list could cause high memory pressure and slow database queries. Fix: paginate in chunks (e.g., `take: 500, skip: offset`) or add a reasonable hard cap.
-- **[SEC-21] Defense-in-depth hardening** _(deferred)_:
-  - (a) **Magic-token scope not enforced** — `verifyMagicToken` in `lib/auth.ts` ~line 116 never checks `record.type === "LOGIN"`, so an `EMAIL_CHANGE`/`PHONE_CHANGE` token can be redeemed at `/auth/verify`. Same-user only, so impact is low, but tokens should be scope-locked to their purpose.
-  - (c) **Uploads open to any session incl. auto-created `GUEST` accounts** — `app/api/upload/route.ts` ~line 62 checks only `getSession()`, with no role check and no per-user/rate cap, allowing storage abuse. Magic-byte sniffing and SVG exclusion are already correct. Fix: gate upload access to HOST/ADMIN.
+- **[SEC-14] Information disclosure in auth/admin error responses** _(deferred — low risk for personal-event scale)_: `testEmailConfigAction` / `testSmsConfigAction` in `app/actions/admin.ts` surface raw provider error messages; these are admin-only so blast radius is minimal, but verbose errors could leak infrastructure details. (Part (a) resolved: email/phone enumeration via magic link error codes eliminated).
 - **Local `scripts/preflight.sh` full E2E fails on `auth.e2e.ts › magic link verify → dashboard`** _(discovered 2026-07-04, local-CI tooling PR)_: the ephemeral Redis the script starts (`127.0.0.1:56399`) isn't reachable by the app server during E2E (log shows persistent `[redis] Error … Redis error`), so the magic-link/rate-limit path fails-closed and the `/dashboard` redirect never happens. Fails identically on `main` locally but **passes in GitHub CI**, so it's an ephemeral-Redis reachability gap in the local harness, not an app bug. Fix: add a Redis-readiness wait (mirroring the `pg_isready` loop) and verify the server resolves `REDIS_URL` to the mapped port.
 
 ---
@@ -87,6 +80,14 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Security Hardening & Edge Cases (Audit Batch)
+
+- [x] **Upload Gating ([SEC-21c])**: Restricted `/api/upload` access to logged-in hosts or admins, blocking auto-created guest accounts.
+- [x] **Magic Token Scope ([SEC-21a])**: Enforced scope checks in `verifyMagicToken` to ensure a login token cannot be used for email or phone updates.
+- [x] **Paginated Blasts ([SEC-15])**: Paginated queries in `sendBlast` and `sendSmsBlast` to load RSVPs in chunks of 500, preventing high memory load on large events.
+- [x] **Information Disclosure ([SEC-14a])**: Generalized authentication errors to prevent user email enumeration by returning a single generic `auth_failed` error code.
+- [x] **Rate Limit Cleanup ([DEV-01])**: Configured the in-process cron scheduler to run `cleanupRateLimits()` daily, preventing table bloat.
 
 ### Default RSVP & Poll Settings (Batch [fd1443])
 

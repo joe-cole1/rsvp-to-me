@@ -121,7 +121,7 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
 
-  if (!record || record.used || record.expiresAt < new Date()) {
+  if (!record || record.used || record.expiresAt < new Date() || record.type !== "LOGIN") {
     return false;
   }
 

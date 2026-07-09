@@ -25,6 +25,7 @@ A few things to know:
 - Magic links expire after **15 minutes** and can only be used once.
 - Once you're in, your session lasts **7 days** before you'll need a fresh link.
 - To sign out, click your avatar in the top navigation and choose **Sign Out**.
+- To protect user privacy and prevent email/phone enumeration, the sign-in page displays a generic "Sign-in failed" card if the email or phone is not linked to an active account, or if the delivery fails. If you see this, check that you have typed your address correctly or contact the administrator to verify your registration.
 
 See [Your Profile & Account](faq.md) for managing your name, photo, and notification preferences.
 
