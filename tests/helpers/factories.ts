@@ -20,7 +20,7 @@ export function makeEvent(overrides = {}) {
     capacity: null,
     rsvpDeadline: null,
     approvalRequired: false,
-    plusOneAllowed: true,
+    plusOneAllowed: false,
     plusOneMax: null,
     commentsEnabled: true,
     coHosts: [],

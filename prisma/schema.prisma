@@ -114,7 +114,7 @@ model Event {
   rsvpDeadline           DateTime?
   allowEditAfterDeadline Boolean      @default(false)
   approvalRequired       Boolean      @default(false)
-  plusOneAllowed         Boolean      @default(true)
+  plusOneAllowed         Boolean      @default(false)
   plusOneMax             Int          @default(1)
   plusOneNamesRequired   Boolean      @default(false)
   guestListVis           GuestListVis @default(ALL)
@@ -242,7 +242,7 @@ model EventReminderSettings {
   eventId          String  @unique
   emailWeekBefore  Boolean @default(false)
   emailDayBefore   Boolean @default(true)
-  emailHoursBefore Int     @default(2) // 0 = disabled
+  emailHoursBefore Int     @default(0) // 0 = disabled
   smsWeekBefore    Boolean @default(false)
   smsDayBefore     Boolean @default(false)
   smsHoursBefore   Int     @default(0)
@@ -463,7 +463,7 @@ model Poll {
   eventId          String
   question         String
   multiChoice      Boolean  @default(false)
-  allowGuestsToAdd Boolean  @default(true)
+  allowGuestsToAdd Boolean  @default(false)
   locked           Boolean  @default(false)
   hideVoters       Boolean  @default(false)
   createdAt        DateTime @default(now())

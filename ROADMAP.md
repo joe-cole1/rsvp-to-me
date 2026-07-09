@@ -60,7 +60,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
   - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
 - **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
   - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
-- **Change Default Settings to Off (Schema Migration)**: Change `plusOneAllowed` default to `false`, `allowGuestsToAdd` (Polls) default to `false`, and `emailHoursBefore` (Auto-Reminders) default to `0` (off) in `schema.prisma`.
 
 ### 🔒 Backend / Security / DevOps
 
@@ -88,6 +87,10 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Default RSVP & Poll Settings (Batch [fd1443])
+
+- [x] **Default settings to off/disabled**: Changed schema defaults for `plusOneAllowed` to `false`, `allowGuestsToAdd` (Polls) to `false`, and `emailHoursBefore` (Auto-Reminders) to `0` (off) in `schema.prisma`. Generated and applied a database migration, and aligned default fallback logic in settings panel UI components and test factories.
 
 ### Admin UI/UX Polish
 
