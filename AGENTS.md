@@ -60,7 +60,7 @@ After making changes and before presenting Git commands to the user to push to G
 3. **Verify All Tests (Unit, Integration, and E2E)**:
    - Run unit and regression tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm test'`.
    - Run integration tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && DATABASE_URL="postgresql://postgres:postgres_password_here@127.0.0.1:5432/rsvp_test" REDIS_URL="redis://:redis_password_placeholder@127.0.0.1:6379" npm run test:integration'`.
-   - Run local Playwright E2E tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:local'`.
+   - Run local Playwright E2E tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:local'` (or run the isolated dockerized tests: `wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:docker'`).
 4. **Exceptions (Non-Substantive Changes)**:
    - If the changes are purely non-substantive (e.g. editing `AGENTS.md`, `ROADMAP.md`, or markdown documentation files under `docs/`), you may skip full test suite/E2E executions and append `--no-verify` to your commit to bypass hooks.
 5. **Post-Commit/Post-Push Local Server Restart**:
@@ -201,6 +201,11 @@ docker exec rsvp-to-me-postgres-1 psql -U postgres -c "CREATE DATABASE rsvp_test
   Or run with UI mode:
   ```bash
   wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:local:ui'
+  ```
+- **Docker-based Playwright E2E Tests (Recommended to avoid hangs and port conflicts):**
+  Runs E2E inside an isolated Playwright Docker container with correct test databases and isolated next dev build. Simply run:
+  ```bash
+  wsl bash -c 'export NVM_DIR=$HOME/.nvm && . $NVM_DIR/nvm.sh && cd ~/projects/rsvp-to-me && npm run test:e2e:docker'
   ```
 
 ## Important: Next.js 16 + Prisma 7 Patterns
