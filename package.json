@@ -25,7 +25,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:local": "DATABASE_URL=\"postgresql://postgres:postgres_password_here@127.0.0.1:5432/rsvp_test\" REDIS_URL=\"redis://:redis_password_placeholder@127.0.0.1:6379\" SESSION_SECRET=\"test-secret-that-is-at-least-32-characters-long\" playwright test",
-    "test:e2e:local:ui": "DATABASE_URL=\"postgresql://postgres:postgres_password_here@127.0.0.1:5432/rsvp_test\" REDIS_URL=\"redis://:redis_password_placeholder@127.0.0.1:6379\" SESSION_SECRET=\"test-secret-that-is-at-least-32-characters-long\" playwright test --ui"
+    "test:e2e:local:ui": "DATABASE_URL=\"postgresql://postgres:postgres_password_here@127.0.0.1:5432/rsvp_test\" REDIS_URL=\"redis://:redis_password_placeholder@127.0.0.1:6379\" SESSION_SECRET=\"test-secret-that-is-at-least-32-characters-long\" playwright test --ui",
+    "test:e2e:docker": "bash scripts/run-e2e-docker.sh"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
