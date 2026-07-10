@@ -100,6 +100,7 @@ export type EventInput = {
     nudgeUnresponded: boolean;
   } | null;
   coHosts: CoHostEntry[];
+  coHostInvitations: { id: string; email: string; expiresAt: Date }[];
   rsvpFields: RsvpFieldEntry[];
   polls: PollEntry[];
   potluckItems: PotluckItemEntry[];

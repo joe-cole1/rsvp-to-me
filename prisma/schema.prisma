@@ -147,6 +147,7 @@ model Event {
   checkIns         CheckIn[]
   activityEvents   ActivityEvent[]
   polls            Poll[]
+  coHostInvitations CoHostInvitation[]
 }
 
 enum LocationType {
@@ -513,4 +514,17 @@ model CronLock {
   jobName  String   @id
   lockedAt DateTime
   expireAt DateTime
+}
+
+model CoHostInvitation {
+  id        String   @id @default(cuid())
+  eventId   String
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, email])
 }

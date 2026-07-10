@@ -16,6 +16,7 @@ import { HostRsvpAlertEmail } from "@/emails/templates/HostRsvpAlertEmail";
 import { MagicLinkEmail } from "@/emails/templates/MagicLinkEmail";
 import { WelcomeEmail } from "@/emails/templates/WelcomeEmail";
 import { TestEmail } from "@/emails/templates/TestEmail";
+import { CoHostInviteEmail } from "@/emails/templates/CoHostInviteEmail";
 import { formatEventDateTime } from "./calendar";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -302,6 +303,35 @@ export async function sendWelcomeEmail(to: string, magicLink: string) {
     createElement(WelcomeEmail, { theme: appShellEmailTheme(), body, magicLink })
   );
   return send({ to, subject, html, text });
+}
+
+export async function sendCoHostInviteEmail(
+  to: string,
+  opts: {
+    hostName: string;
+    eventTitle: string;
+    eventSlug: string;
+    startAt: Date;
+    locationName?: string | null;
+    inviteUrl: string;
+    replyTo?: string;
+  } & EventEmailContext
+) {
+  if (!(await isChannelEnabled("email"))) return;
+  const event = eventDetails(opts);
+  const { subject } = await templateCopy("coHostInvite", {
+    hostName: opts.hostName,
+    eventTitle: opts.eventTitle,
+  });
+  const { html, text } = await renderEmail(
+    createElement(CoHostInviteEmail, {
+      theme: resolveEmailTheme(opts.theme),
+      event,
+      hostName: opts.hostName,
+      inviteUrl: opts.inviteUrl,
+    })
+  );
+  return send({ to, subject, html, text, replyTo: opts.replyTo });
 }
 
 export type EventEmailContext = {

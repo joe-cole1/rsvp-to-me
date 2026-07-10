@@ -38,3 +38,4 @@ For every bug fix merged to main:
 | `bug-03-admin-mobile-drawer-trigger.test.ts`         | Admin mobile drawer had no trigger — nothing called `setIsDrawerOpen(true)`                                        | BUG-03   |
 | `l4b-invite-friend-swallowed-error.test.ts`          | `inviteFriendAsGuest` activity-log failure swallowed by bare `.catch()`                                            | L-4b     |
 | `sec-34-event-access-gates.test.ts`                  | PRIVATE/password gate bypass on calendar.ics / guests / rsvp routes + guest RSVP editToken/PII leak in RSC payload | SEC-34   |
+| `cohost-invite-reorder.test.ts`                      | Test co-host invitation flow and event info section widget reordering actions                                      | CH-REORD |

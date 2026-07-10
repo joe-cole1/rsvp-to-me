@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X, ExternalLink, Pencil } from "lucide-react";
+import { Plus, X, ExternalLink, Pencil, ChevronUp, ChevronDown } from "lucide-react";
 import { IconPicker } from "./IconPicker";
 import { getIconItem, getPlaceholder, ICON_SET, PRESET_CHIPS } from "./helpers";
 import type { EventData } from "./types";
@@ -27,6 +27,7 @@ export function InfoSectionsBlock({
   undoDeleteSection,
   startEditSection,
   commitEditSection,
+  moveSection,
 }: {
   event: EventData;
   t: ResolvedTheme;
@@ -55,6 +56,7 @@ export function InfoSectionsBlock({
   undoDeleteSection: () => void;
   startEditSection: (sec: EventData["infoSections"][number]) => void;
   commitEditSection: (id: string) => Promise<void>;
+  moveSection?: (index: number, direction: -1 | 1) => void;
 }) {
   return (
     <>
@@ -74,6 +76,25 @@ export function InfoSectionsBlock({
             const item = getIconItem(sec.type);
             const Icon = item.icon;
             const isEditing = editingSection === sec.id;
+            let displayContent = sec.content;
+            let targetUrl = sec.url;
+
+            if (sec.type === "venmo") {
+              if (!displayContent.startsWith("Venmo:")) {
+                displayContent = `Venmo: ${displayContent}`;
+              }
+              if (!targetUrl) {
+                const rawUsername = sec.content.replace(/^Venmo:\s*/i, "").trim();
+                if (rawUsername && !rawUsername.includes("://") && !rawUsername.includes(".")) {
+                  const cleanUsername = rawUsername.replace(/^@/, "");
+                  targetUrl = `https://venmo.com/${cleanUsername}`;
+                }
+              }
+            } else if (sec.type === "zelle") {
+              if (!displayContent.startsWith("Zelle:")) {
+                displayContent = `Zelle: ${displayContent}`;
+              }
+            }
             return (
               <div key={sec.id} style={{ borderTop: i > 0 ? `1px solid ${t.cardBorder}` : "none" }}>
                 {isEditing ? (
@@ -137,21 +158,21 @@ export function InfoSectionsBlock({
                   >
                     <Icon size={15} style={{ color: t.accent, flexShrink: 0 }} />
                     <div style={{ flex: 1, fontSize: "13px" }}>
-                      {sec.url ? (
+                      {targetUrl ? (
                         <a
-                          href={sec.url}
+                          href={targetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: t.accent, textDecoration: "none" }}
                         >
-                          {sec.content || sec.url}{" "}
+                          {displayContent}{" "}
                           <ExternalLink
                             size={11}
                             style={{ display: "inline", verticalAlign: "middle" }}
                           />
                         </a>
                       ) : (
-                        <span style={{ color: t.textSecondary }}>{sec.content}</span>
+                        <span style={{ color: t.textSecondary }}>{displayContent}</span>
                       )}
                       {sec.title && (sec.type === "zelle" || sec.type === "venmo") && (
                         <span style={{ marginLeft: "6px", color: t.textMuted, fontSize: "12px" }}>
@@ -161,6 +182,38 @@ export function InfoSectionsBlock({
                     </div>
                     {isHost && (
                       <>
+                        {moveSection && i > 0 && (
+                          <button
+                            onClick={() => moveSection(i, -1)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: t.textMuted,
+                              padding: "2px",
+                              flexShrink: 0,
+                            }}
+                            title="Move Up"
+                          >
+                            <ChevronUp size={13} />
+                          </button>
+                        )}
+                        {moveSection && i < event.infoSections.length - 1 && (
+                          <button
+                            onClick={() => moveSection(i, 1)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: t.textMuted,
+                              padding: "2px",
+                              flexShrink: 0,
+                            }}
+                            title="Move Down"
+                          >
+                            <ChevronDown size={13} />
+                          </button>
+                        )}
                         <button
                           onClick={() => startEditSection(sec)}
                           style={{
