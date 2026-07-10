@@ -12,6 +12,7 @@ import {
   addCoHost,
   removeCoHost,
   updateCoHostDisplayName,
+  cancelCoHostInvitation,
   addRsvpField,
   updateRsvpField,
   deleteRsvpField,
@@ -131,6 +132,9 @@ export function SettingsPage({
 
   // ── Co-hosts State ──
   const [coHosts, setCoHosts] = useState<CoHostEntry[]>(event.coHosts);
+  const [pendingInvitations, setPendingInvitations] = useState<{ id: string; email: string }[]>(
+    event.coHostInvitations || []
+  );
   const [cohostEmail, setCohostEmail] = useState("");
   const [cohostError, setCohostError] = useState<string | null>(null);
 
@@ -385,17 +389,30 @@ export function SettingsPage({
           setSaveStatus("ERROR");
           return;
         }
-        setCoHosts((prev) => [
+        setPendingInvitations((prev) => [
           ...prev,
           {
-            id: result.cohostId!,
-            user: { id: result.cohostId!, name: result.name ?? null, email: result.email! },
+            id: result.invitationId!,
+            email: result.email!,
           },
         ]);
         setCohostEmail("");
         setSaveStatus("SAVED");
       } catch {
         setCohostError("An unexpected error occurred.");
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleCancelInvitation = (invitationId: string) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await cancelCoHostInvitation(invitationId);
+        setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+        setSaveStatus("SAVED");
+      } catch {
         setSaveStatus("ERROR");
       }
     });
@@ -966,6 +983,8 @@ export function SettingsPage({
             isPending={isPending}
             t={t}
             S={S}
+            pendingInvitations={pendingInvitations}
+            handleCancelInvitation={handleCancelInvitation}
           />
         )}
 

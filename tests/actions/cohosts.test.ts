@@ -7,6 +7,12 @@ const {
   mockEventCoHostCreate,
   mockEventCoHostFindUnique,
   mockEventCoHostDelete,
+  mockEventCoHostUpdate,
+  mockCoHostInviteCreate,
+  mockCoHostInviteDelete,
+  mockCoHostInviteFindUnique,
+  mockCoHostInviteFindFirst,
+  mockCoHostInviteFindMany,
   mockGetSession,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
@@ -14,6 +20,12 @@ const {
   mockEventCoHostCreate: vi.fn(),
   mockEventCoHostFindUnique: vi.fn(),
   mockEventCoHostDelete: vi.fn(),
+  mockEventCoHostUpdate: vi.fn(),
+  mockCoHostInviteCreate: vi.fn(),
+  mockCoHostInviteDelete: vi.fn(),
+  mockCoHostInviteFindUnique: vi.fn(),
+  mockCoHostInviteFindFirst: vi.fn(),
+  mockCoHostInviteFindMany: vi.fn(),
   mockGetSession: vi.fn(),
 }));
 
@@ -25,16 +37,29 @@ vi.mock("@/lib/db", () => ({
       create: mockEventCoHostCreate,
       findUnique: mockEventCoHostFindUnique,
       delete: mockEventCoHostDelete,
+      update: mockEventCoHostUpdate,
+    },
+    coHostInvitation: {
+      create: mockCoHostInviteCreate,
+      delete: mockCoHostInviteDelete,
+      findUnique: mockCoHostInviteFindUnique,
+      findFirst: mockCoHostInviteFindFirst,
+      findMany: mockCoHostInviteFindMany,
     },
   },
 }));
 
 vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/email", () => ({ sendRsvpConfirmationEmail: vi.fn(), sendBlastEmail: vi.fn() }));
-vi.mock("@/lib/sms", () => ({ sendRsvpConfirmationSms: vi.fn(), sendSmsBlast: vi.fn() }));
+vi.mock("@/lib/email", () => ({ sendCoHostInviteEmail: vi.fn().mockResolvedValue({}) }));
 
-import { addCoHost, removeCoHost } from "@/app/actions/event";
+import {
+  addCoHost,
+  removeCoHost,
+  updateCoHostDisplayName,
+  cancelCoHostInvitation,
+  getPendingCoHostInvitations,
+} from "@/app/actions/event/cohosts";
 
 const HOST_ID = "host-1";
 const OTHER_ID = "other-user";
@@ -46,7 +71,16 @@ function asHost() {
 }
 
 function hostEventRow(overrides = {}) {
-  return { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [], ...overrides };
+  return {
+    id: EVENT_ID,
+    hostId: HOST_ID,
+    slug: EVENT_SLUG,
+    title: "Test Event",
+    startAt: new Date(),
+    host: { name: "Host User" },
+    coHosts: [],
+    ...overrides,
+  };
 }
 
 beforeEach(() => {
@@ -57,43 +91,36 @@ beforeEach(() => {
 
 describe("addCoHost", () => {
   const COHOST_EMAIL = "cohost@example.com";
-  const COHOST_USER = { id: "cohost-1", name: "Alex", email: COHOST_EMAIL };
 
   beforeEach(() => {
     asHost();
     mockEventFindUnique.mockResolvedValue(hostEventRow());
-    mockUserFindUnique.mockResolvedValue(COHOST_USER);
-    mockEventCoHostCreate.mockResolvedValue({ id: "ch-1" });
+    mockCoHostInviteFindFirst.mockResolvedValue(null);
+    mockCoHostInviteCreate.mockResolvedValue({ id: "invite-1" });
   });
 
-  it("returns success with cohost info on valid email", async () => {
+  it("returns success with invite info on valid email", async () => {
     const result = await addCoHost(EVENT_ID, COHOST_EMAIL);
     expect(result.success).toBe(true);
     expect(result.email).toBe(COHOST_EMAIL);
+    expect(result.invited).toBe(true);
   });
 
-  it("creates an EventCoHost row", async () => {
+  it("creates a CoHostInvitation row", async () => {
     await addCoHost(EVENT_ID, COHOST_EMAIL);
-    expect(mockEventCoHostCreate).toHaveBeenCalledWith(
+    expect(mockCoHostInviteCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ eventId: EVENT_ID, userId: COHOST_USER.id }),
+        data: expect.objectContaining({ eventId: EVENT_ID, email: COHOST_EMAIL }),
       })
     );
   });
 
-  it("returns error when email has no account", async () => {
-    mockUserFindUnique.mockResolvedValue(null);
+  it("returns error if already invited", async () => {
+    mockCoHostInviteFindFirst.mockResolvedValue({ id: "invite-1" });
     const result = await addCoHost(EVENT_ID, COHOST_EMAIL);
     expect(result.success).toBe(false);
-    expect(result.error).toBe("No account found for that email");
-    expect(mockEventCoHostCreate).not.toHaveBeenCalled();
-  });
-
-  it("returns error on duplicate (unique constraint violation)", async () => {
-    mockEventCoHostCreate.mockRejectedValue(new Error("Unique constraint failed"));
-    const result = await addCoHost(EVENT_ID, COHOST_EMAIL);
-    expect(result.success).toBe(false);
-    expect(result.error).toBe("Already a co-host");
+    expect(result.error).toBe("Already invited");
+    expect(mockCoHostInviteCreate).not.toHaveBeenCalled();
   });
 
   it("throws Unauthorized when no session", async () => {
@@ -123,7 +150,6 @@ describe("removeCoHost", () => {
       eventId: EVENT_ID,
       event: { slug: EVENT_SLUG },
     });
-    // SEC-30: authz goes through assertHost, which loads the event itself
     mockEventFindUnique.mockResolvedValue(hostEventRow());
     mockEventCoHostDelete.mockResolvedValue({});
   });
@@ -152,5 +178,84 @@ describe("removeCoHost", () => {
   it("revalidates the settings page", async () => {
     await removeCoHost(COHOST_RECORD_ID);
     expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}/settings`);
+  });
+});
+
+// ── updateCoHostDisplayName ───────────────────────────────────────────────────
+
+describe("updateCoHostDisplayName", () => {
+  const COHOST_RECORD_ID = "ch-1";
+
+  beforeEach(() => {
+    asHost();
+    mockEventCoHostFindUnique.mockResolvedValue({
+      eventId: EVENT_ID,
+      event: { slug: EVENT_SLUG },
+    });
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockEventCoHostUpdate.mockResolvedValue({});
+  });
+
+  it("updates the display name", async () => {
+    const result = await updateCoHostDisplayName(COHOST_RECORD_ID, "New Name");
+    expect(result.success).toBe(true);
+    expect(mockEventCoHostUpdate).toHaveBeenCalledWith({
+      where: { id: COHOST_RECORD_ID },
+      data: { displayName: "New Name" },
+    });
+  });
+
+  it("throws Forbidden if not host", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    await expect(updateCoHostDisplayName(COHOST_RECORD_ID, "New Name")).rejects.toThrow(
+      "Forbidden"
+    );
+  });
+});
+
+// ── cancelCoHostInvitation ────────────────────────────────────────────────────
+
+describe("cancelCoHostInvitation", () => {
+  beforeEach(() => {
+    asHost();
+    mockCoHostInviteFindUnique.mockResolvedValue({
+      id: "invite-1",
+      eventId: EVENT_ID,
+      email: "invited@example.com",
+      event: { slug: EVENT_SLUG },
+    });
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockCoHostInviteDelete.mockResolvedValue({});
+  });
+
+  it("deletes the invitation", async () => {
+    const result = await cancelCoHostInvitation("invite-1");
+    expect(result.success).toBe(true);
+    expect(mockCoHostInviteDelete).toHaveBeenCalledWith({ where: { id: "invite-1" } });
+  });
+
+  it("throws Forbidden if not host", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    await expect(cancelCoHostInvitation("invite-1")).rejects.toThrow("Forbidden");
+  });
+});
+
+// ── getPendingCoHostInvitations ───────────────────────────────────────────────
+
+describe("getPendingCoHostInvitations", () => {
+  beforeEach(() => {
+    asHost();
+    mockCoHostInviteFindMany.mockResolvedValue([{ id: "invite-1", email: "invited@example.com" }]);
+  });
+
+  it("returns pending invitations", async () => {
+    const result = await getPendingCoHostInvitations(EVENT_ID);
+    expect(result).toHaveLength(1);
+    expect(result[0].email).toBe("invited@example.com");
+  });
+
+  it("throws Forbidden if not host", async () => {
+    mockGetSession.mockResolvedValue({ userId: OTHER_ID, email: "other@example.com" });
+    await expect(getPendingCoHostInvitations(EVENT_ID)).rejects.toThrow("Forbidden");
   });
 });

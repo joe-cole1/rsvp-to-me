@@ -132,21 +132,22 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  host             User                   @relation(fields: [hostId], references: [id])
-  coHosts          EventCoHost[]
-  theme            EventTheme?
-  reminderSettings EventReminderSettings?
-  infoSections     EventInfoSection[]
-  rsvps            RSVP[]
-  invitations      Invitation[]
-  updates          EventUpdate[]
-  potluckItems     PotluckItem[]
-  sentReminders    SentReminder[]
-  comments         Comment[]
-  rsvpFields       RSVPField[]
-  checkIns         CheckIn[]
-  activityEvents   ActivityEvent[]
-  polls            Poll[]
+  host              User                   @relation(fields: [hostId], references: [id])
+  coHosts           EventCoHost[]
+  theme             EventTheme?
+  reminderSettings  EventReminderSettings?
+  infoSections      EventInfoSection[]
+  rsvps             RSVP[]
+  invitations       Invitation[]
+  updates           EventUpdate[]
+  potluckItems      PotluckItem[]
+  sentReminders     SentReminder[]
+  comments          Comment[]
+  rsvpFields        RSVPField[]
+  checkIns          CheckIn[]
+  activityEvents    ActivityEvent[]
+  polls             Poll[]
+  coHostInvitations CoHostInvitation[]
 }
 
 enum LocationType {
@@ -513,4 +514,17 @@ model CronLock {
   jobName  String   @id
   lockedAt DateTime
   expireAt DateTime
+}
+
+model CoHostInvitation {
+  id        String   @id @default(cuid())
+  eventId   String
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, email])
 }

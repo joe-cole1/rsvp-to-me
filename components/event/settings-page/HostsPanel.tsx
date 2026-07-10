@@ -21,6 +21,8 @@ export function HostsPanel({
   isPending,
   t,
   S,
+  pendingInvitations = [],
+  handleCancelInvitation,
 }: {
   event: EventInput;
   coHosts: CoHostEntry[];
@@ -36,6 +38,8 @@ export function HostsPanel({
   isPending: boolean;
   t: ResolvedTheme;
   S: SettingsPageStyles;
+  pendingInvitations?: { id: string; email: string }[];
+  handleCancelInvitation: (invitationId: string) => void;
 }) {
   return (
     <Section title="Hosts" t={t}>
@@ -149,6 +153,70 @@ export function HostsPanel({
             </div>
           </div>
         ))}
+
+        {/* Pending Invitations Section */}
+        {pendingInvitations && pendingInvitations.length > 0 && (
+          <div style={{ marginTop: "16px" }}>
+            <h4
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                color: t.textMuted,
+                marginBottom: "8px",
+              }}
+            >
+              PENDING CO-HOST INVITATIONS
+            </h4>
+            {pendingInvitations.map((invite) => (
+              <div
+                key={invite.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px 0",
+                  borderBottom: `1px solid ${t.cardBorder}`,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div
+                    style={{
+                      ...S.av,
+                      backgroundColor: "rgba(255, 255, 255, 0.05)",
+                      color: t.textMuted,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    ✉️
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: t.textPrimary }}>
+                      {invite.email}
+                    </div>
+                    <div style={{ fontSize: "12px", color: t.textMuted }}>
+                      Invited · Pending acceptance
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleCancelInvitation(invite.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: t.textMuted,
+                    padding: "4px",
+                  }}
+                  title="Cancel invitation"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
         <input

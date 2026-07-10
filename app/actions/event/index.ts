@@ -30,8 +30,19 @@ export {
 } from "./polls";
 export { addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "./potluck";
 export { addComment } from "./comments";
-export { addCoHost, removeCoHost, updateCoHostDisplayName } from "./cohosts";
-export { addInfoSection, updateInfoSection, removeInfoSection } from "./infoSections";
+export {
+  addCoHost,
+  removeCoHost,
+  updateCoHostDisplayName,
+  cancelCoHostInvitation,
+  getPendingCoHostInvitations,
+} from "./cohosts";
+export {
+  addInfoSection,
+  updateInfoSection,
+  removeInfoSection,
+  reorderInfoSections,
+} from "./infoSections";
 export {
   saveEventField,
   saveEventLocation,

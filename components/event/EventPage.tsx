@@ -11,6 +11,7 @@ import {
   addInfoSection,
   updateInfoSection,
   removeInfoSection,
+  reorderInfoSections,
   approveRsvp,
   declineRsvp,
   addEventUpdate,
@@ -513,6 +514,36 @@ export function EventPage({
     });
   };
 
+  const moveSection = (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= event.infoSections.length) return;
+
+    startTransition(async () => {
+      const newSections = [...event.infoSections];
+      // Swap
+      const temp = newSections[index];
+      newSections[index] = newSections[newIndex];
+      newSections[newIndex] = temp;
+
+      // Reassign order properties optimistically
+      const orderedSections = newSections.map((sec, idx) => ({ ...sec, order: idx }));
+
+      setEvent((e) => ({
+        ...e,
+        infoSections: orderedSections,
+      }));
+
+      const result = await reorderInfoSections(
+        event.id,
+        orderedSections.map((s) => s.id)
+      );
+      if (!result.success) {
+        // Revert to original on failure
+        setEvent((e) => ({ ...e, infoSections: event.infoSections }));
+      }
+    });
+  };
+
   const postUpdate = async () => {
     if (!updateDraft.trim() || isPostingUpdate) return;
     setIsPostingUpdate(true);
@@ -809,6 +840,7 @@ export function EventPage({
           undoDeleteSection={undoDeleteSection}
           startEditSection={startEditSection}
           commitEditSection={commitEditSection}
+          moveSection={moveSection}
         />
 
         <RsvpSection

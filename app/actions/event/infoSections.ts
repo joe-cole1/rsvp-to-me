@@ -82,3 +82,17 @@ export async function removeInfoSection(sectionId: string) {
   revalidatePath(`/e/${section.event.slug}`);
   return { activityEvent };
 }
+
+export async function reorderInfoSections(eventId: string, orderedSectionIds: string[]) {
+  const event = await assertHostOrCohost(eventId);
+  await db.$transaction(
+    orderedSectionIds.map((id, index) =>
+      db.eventInfoSection.update({
+        where: { id },
+        data: { order: index },
+      })
+    )
+  );
+  revalidatePath(`/e/${event.slug}`);
+  return { success: true };
+}

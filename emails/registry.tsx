@@ -10,6 +10,7 @@ import { HostRsvpAlertEmail } from "./templates/HostRsvpAlertEmail";
 import { MagicLinkEmail } from "./templates/MagicLinkEmail";
 import { WelcomeEmail } from "./templates/WelcomeEmail";
 import { TestEmail } from "./templates/TestEmail";
+import { CoHostInviteEmail } from "./templates/CoHostInviteEmail";
 
 export type TemplateId =
   | "invite"
@@ -19,7 +20,8 @@ export type TemplateId =
   | "hostRsvpAlert"
   | "magicLink"
   | "welcome"
-  | "test";
+  | "test"
+  | "coHostInvite";
 
 export const TEMPLATE_IDS: TemplateId[] = [
   "invite",
@@ -30,6 +32,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   "magicLink",
   "welcome",
   "test",
+  "coHostInvite",
 ];
 
 export interface EmailTemplateMeta {
@@ -140,6 +143,17 @@ export const EMAIL_TEMPLATE_META: Record<TemplateId, EmailTemplateMeta> = {
     placeholders: [],
     toggles: [],
   },
+  coHostInvite: {
+    id: "coHostInvite",
+    label: "Co-host invitation",
+    description: "Sent when a host invites someone to co-host an event.",
+    eventScoped: true,
+    defaultSubject: "You're invited to co-host: {eventTitle}",
+    defaultBody: "You've been invited to co-host {eventTitle} with {hostName}.",
+    bodyEditable: true,
+    placeholders: ["hostName", "eventTitle"],
+    toggles: [],
+  },
 };
 
 // ── Sample data for previews, admin test-sends, and tests ────────────────────
@@ -183,6 +197,7 @@ export const SAMPLE_VARS: Record<TemplateId, Record<string, string>> = {
   magicLink: {},
   welcome: {},
   test: {},
+  coHostInvite: { hostName: "Joe", eventTitle: "Backyard Wine Night" },
 };
 
 export type TemplateOverrides = {
@@ -327,5 +342,17 @@ export function buildSampleEmail(
       };
     case "test":
       return { subject, element: <TestEmail theme={theme} body={body} /> };
+    case "coHostInvite":
+      return {
+        subject,
+        element: (
+          <CoHostInviteEmail
+            theme={theme}
+            event={sampleEventDetails()}
+            hostName="Joe"
+            inviteUrl={`${APP_URL}/auth/verify-cohost?token=sample-token`}
+          />
+        ),
+      };
   }
 }

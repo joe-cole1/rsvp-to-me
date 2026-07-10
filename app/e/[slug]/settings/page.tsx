@@ -28,6 +28,9 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
         include: { user: { select: { id: true, name: true, email: true } } },
         orderBy: { id: "asc" },
       },
+      coHostInvitations: {
+        orderBy: { createdAt: "asc" },
+      },
       rsvpFields: { orderBy: { order: "asc" } },
       potluckItems: {
         include: {

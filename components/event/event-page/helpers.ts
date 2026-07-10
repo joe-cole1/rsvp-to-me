@@ -14,7 +14,6 @@ import {
   Camera,
   Phone,
   DollarSign,
-  Wallet,
 } from "lucide-react";
 
 // Cover images display at ~260px tall in a ~800px wide card. 1600×900 is
@@ -132,7 +131,7 @@ export const ICON_SET: { key: string; icon: React.ElementType; label: string }[]
   { key: "camera", icon: Camera, label: "Photos" },
   { key: "phone", icon: Phone, label: "Contact" },
   { key: "zelle", icon: DollarSign, label: "Zelle" },
-  { key: "venmo", icon: Wallet, label: "Venmo" },
+  { key: "venmo", icon: DollarSign, label: "Venmo" },
 ];
 
 export const PRESET_CHIPS = [
@@ -144,7 +143,7 @@ export const PRESET_CHIPS = [
   { key: "bed", label: "Accommodations", icon: Bed },
   { key: "info", label: "Additional Info", icon: Info },
   { key: "zelle", label: "Zelle", icon: DollarSign },
-  { key: "venmo", label: "Venmo", icon: Wallet },
+  { key: "venmo", label: "Venmo", icon: DollarSign },
 ];
 
 // Maps legacy enum type values to new icon keys
