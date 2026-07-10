@@ -22,6 +22,7 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
   const event = await db.event.findUnique({
     where: { slug },
     include: {
+      host: { select: { id: true, name: true, email: true } },
       theme: true,
       reminderSettings: true,
       coHosts: {

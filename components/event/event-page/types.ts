@@ -36,6 +36,12 @@ export type EventData = {
   hostDisplayName: string | null;
   allowEditAfterDeadline: boolean;
   host: { id: string; name: string | null; email: string; avatarUrl?: string | null };
+  coHosts: {
+    id: string;
+    userId: string;
+    displayName: string | null;
+    user: { name: string | null; email: string };
+  }[];
   theme: {
     baseTheme: "DARK" | "SOFT" | "BOLD";
     gradientFrom: string;

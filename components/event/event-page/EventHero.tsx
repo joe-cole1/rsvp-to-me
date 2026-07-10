@@ -51,6 +51,16 @@ export function EventHero({
   coverUploadEnabled: boolean;
 }) {
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [showHostsPopup, setShowHostsPopup] = useState(false);
+
+  useEffect(() => {
+    if (!showHostsPopup) return;
+    const handleOutsideClick = () => {
+      setShowHostsPopup(false);
+    };
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, [showHostsPopup]);
 
   useEffect(() => {
     const imageUrl = event.theme?.coverImageUrl;
@@ -150,21 +160,141 @@ export function EventHero({
           minWidth: "48px",
           fontSize: "18px",
         })}
-        Hosted by {event.hostDisplayName ?? event.host.name ?? event.host.email}
-        {isHost && (
-          <a
-            href={`/e/${event.slug}/settings?section=hosts`}
-            style={{
-              marginLeft: "2px",
-              color: t.heroText ? "rgba(255,255,255,0.5)" : t.textMuted,
-              display: "flex",
-              alignItems: "center",
-            }}
-            title="Host settings"
-          >
-            <Settings size={13} />
-          </a>
-        )}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+          <span>Hosted by {event.hostDisplayName ?? event.host.name ?? event.host.email}</span>
+          {event.coHosts && event.coHosts.length === 1 && (
+            <span>
+              {" + "}
+              {event.coHosts[0].displayName ||
+                event.coHosts[0].user.name ||
+                event.coHosts[0].user.email}
+            </span>
+          )}
+          {event.coHosts && event.coHosts.length > 1 && (
+            <span style={{ position: "relative" }}>
+              {" + "}
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowHostsPopup(!showHostsPopup);
+                }}
+                style={{
+                  cursor: "pointer",
+                  textDecoration: "underline dotted",
+                  fontWeight: 600,
+                  color: t.heroText ? "#ffffff" : t.textPrimary,
+                  transition: "opacity 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = "0.8";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "1";
+                }}
+              >
+                {event.coHosts.length} others
+              </span>
+              {showHostsPopup && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    marginTop: "8px",
+                    backgroundColor: "rgba(20, 20, 25, 0.95)",
+                    backdropFilter: "blur(14px)",
+                    WebkitBackdropFilter: "blur(14px)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+                    zIndex: 50,
+                    width: "max-content",
+                    minWidth: "160px",
+                    maxWidth: "240px",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      color: "rgba(255, 255, 255, 0.4)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                      paddingBottom: "4px",
+                      marginBottom: "2px",
+                    }}
+                  >
+                    Co-Hosts
+                  </div>
+                  {event.coHosts.map((ch) => {
+                    const name = ch.displayName || ch.user.name || ch.user.email;
+                    return (
+                      <div
+                        key={ch.id}
+                        style={{
+                          fontSize: "13px",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            backgroundColor: t.accent,
+                            color: "#ffffff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {name[0].toUpperCase()}
+                        </div>
+                        <span
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </span>
+          )}
+          {isHost && (
+            <a
+              href={`/e/${event.slug}/settings?section=hosts`}
+              style={{
+                marginLeft: "4px",
+                color: t.heroText ? "rgba(255,255,255,0.5)" : t.textMuted,
+                display: "inline-flex",
+                alignItems: "center",
+              }}
+              title="Host settings"
+            >
+              <Settings size={13} />
+            </a>
+          )}
+        </div>
       </div>
 
       {/* ── Cover image ── */}

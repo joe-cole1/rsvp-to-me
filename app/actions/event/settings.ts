@@ -8,7 +8,8 @@ import { logSafe } from "@/lib/logger";
 import { tzLocalToUtc } from "@/lib/utils";
 import { SaveEventSettingsSchema } from "@/lib/schemas";
 import bcrypt from "bcryptjs";
-import { assertHostOrCohost } from "./shared";
+import { getSession } from "@/lib/session";
+import { assertHost, assertHostOrCohost } from "./shared";
 
 // ── Inline field edits ─────────────────────────────────────────────────────────
 
@@ -135,6 +136,19 @@ export async function saveEventSettings(
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHostOrCohost(eventId);
+
+  const session = await getSession();
+  const isOwner = event.hostId === session?.userId || session?.role === "ADMIN";
+  if (!isOwner && settings.hostDisplayName !== undefined) {
+    const currentEvent = await db.event.findUnique({
+      where: { id: eventId },
+      select: { hostDisplayName: true },
+    });
+    if (settings.hostDisplayName !== currentEvent?.hostDisplayName) {
+      throw new Error("Forbidden: Only the host can change host display name");
+    }
+  }
+
   // SEC-20: validate against an explicit allow-list before spreading into the
   // update, so unknown keys (status, slug, hostId, …) can't be mass-assigned.
   const { password, rsvpDeadline, ...rest } = SaveEventSettingsSchema.parse(settings);
@@ -263,7 +277,7 @@ export async function deleteEvent(eventId: string) {
     select: { id: true, slug: true, status: true },
   });
   if (!event) throw new Error("Event not found");
-  await assertHostOrCohost(eventId);
+  await assertHost(eventId);
   if (event.status === "DELETED") throw new Error("Event is already deleted");
 
   // Hard-delete all guest data before tombstoning (GDPR: purpose no longer exists)

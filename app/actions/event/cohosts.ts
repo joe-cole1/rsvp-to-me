@@ -87,11 +87,15 @@ export async function addCoHost(eventId: string, email: string) {
 export async function removeCoHost(cohostId: string) {
   const cohost = await db.eventCoHost.findUnique({
     where: { id: cohostId },
-    select: { eventId: true, event: { select: { slug: true } } },
+    select: { userId: true, eventId: true, event: { select: { slug: true } } },
   });
   if (!cohost) throw new Error("Forbidden");
-  // Deliberately host-only: co-host management stays with the original host.
-  await assertHost(cohost.eventId);
+
+  const session = await getSession();
+  const isRemovingSelf = session && session.userId === cohost.userId;
+  if (!isRemovingSelf) {
+    await assertHost(cohost.eventId);
+  }
   await db.eventCoHost.delete({ where: { id: cohostId } });
   revalidatePath(`/e/${cohost.event.slug}/settings`);
 }
@@ -99,11 +103,15 @@ export async function removeCoHost(cohostId: string) {
 export async function updateCoHostDisplayName(cohostId: string, displayName: string | null) {
   const cohost = await db.eventCoHost.findUnique({
     where: { id: cohostId },
-    select: { eventId: true, event: { select: { slug: true } } },
+    select: { userId: true, eventId: true, event: { select: { slug: true } } },
   });
   if (!cohost) throw new Error("Forbidden");
-  // Deliberately host-only: co-host management stays with the original host.
-  await assertHost(cohost.eventId);
+
+  const session = await getSession();
+  const isSelf = session && session.userId === cohost.userId;
+  if (!isSelf) {
+    await assertHost(cohost.eventId);
+  }
   await db.eventCoHost.update({
     where: { id: cohostId },
     data: { displayName: displayName ? displayName.trim() : null },

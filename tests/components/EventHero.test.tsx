@@ -65,6 +65,7 @@ const baseEvent = {
   pendingRsvps: [],
   activityEvents: [],
   polls: [],
+  coHosts: [],
 } as unknown as EventData;
 
 const mockSetEvent = vi.fn();

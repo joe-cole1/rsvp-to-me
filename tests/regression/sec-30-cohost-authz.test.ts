@@ -23,6 +23,7 @@ const {
   mockInfoSectionUpdate,
   mockEventCoHostFindUnique,
   mockEventCoHostDelete,
+  mockEventCoHostUpdate,
   mockTransaction,
   mockGetSession,
 } = vi.hoisted(() => ({
@@ -32,6 +33,7 @@ const {
   mockInfoSectionUpdate: vi.fn(),
   mockEventCoHostFindUnique: vi.fn(),
   mockEventCoHostDelete: vi.fn(),
+  mockEventCoHostUpdate: vi.fn(),
   mockTransaction: vi.fn(),
   mockGetSession: vi.fn(),
 }));
@@ -49,6 +51,7 @@ vi.mock("@/lib/db", () => {
       eventCoHost: {
         findUnique: mockEventCoHostFindUnique,
         delete: mockEventCoHostDelete,
+        update: mockEventCoHostUpdate,
         deleteMany: mockDeleteMany,
       },
       activityEvent: { create: vi.fn().mockResolvedValue({}), deleteMany: mockDeleteMany },
@@ -82,6 +85,7 @@ import {
   updateInfoSection,
   removeCoHost,
   deleteEvent,
+  updateCoHostDisplayName,
 } from "@/app/actions/event";
 
 const HOST_ID = "host-1";
@@ -151,6 +155,7 @@ describe("SEC-30: destructive owner actions stay host-only", () => {
   it("co-host cannot remove another co-host", async () => {
     asCohost();
     mockEventCoHostFindUnique.mockResolvedValue({
+      userId: "another-cohost-user",
       eventId: EVENT_ID,
       event: { slug: "party" },
     });
@@ -158,12 +163,46 @@ describe("SEC-30: destructive owner actions stay host-only", () => {
     expect(mockEventCoHostDelete).not.toHaveBeenCalled();
   });
 
-  it("co-host can delete the event", async () => {
+  it("co-host can remove themselves", async () => {
     asCohost();
-    mockTransaction.mockResolvedValue([{ success: true }]);
-    const result = await deleteEvent(EVENT_ID);
-    expect(result).toEqual({ success: true });
-    expect(mockTransaction).toHaveBeenCalled();
+    mockEventCoHostFindUnique.mockResolvedValue({
+      userId: COHOST_ID,
+      eventId: EVENT_ID,
+      event: { slug: "party" },
+    });
+    await removeCoHost("ch-1");
+    expect(mockEventCoHostDelete).toHaveBeenCalledWith({ where: { id: "ch-1" } });
+  });
+
+  it("co-host can update their own display name", async () => {
+    asCohost();
+    mockEventCoHostFindUnique.mockResolvedValue({
+      userId: COHOST_ID,
+      eventId: EVENT_ID,
+      event: { slug: "party" },
+    });
+    await updateCoHostDisplayName("ch-1", "New Name");
+    expect(mockEventCoHostUpdate).toHaveBeenCalledWith({
+      where: { id: "ch-1" },
+      data: { displayName: "New Name" },
+    });
+  });
+
+  it("co-host cannot update another co-host's display name", async () => {
+    asCohost();
+    mockEventCoHostFindUnique.mockResolvedValue({
+      userId: "another-cohost-user",
+      eventId: EVENT_ID,
+      event: { slug: "party" },
+    });
+    await expect(updateCoHostDisplayName("ch-1", "New Name")).rejects.toThrow("Forbidden");
+    expect(mockEventCoHostUpdate).not.toHaveBeenCalled();
+  });
+
+  it("co-host cannot delete the event", async () => {
+    asCohost();
+    await expect(deleteEvent(EVENT_ID)).rejects.toThrow("Forbidden");
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
   it("a non-co-host stranger cannot delete the event", async () => {
