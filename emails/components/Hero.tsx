@@ -1,4 +1,3 @@
-import { Heading, Img, Section, Text } from "@react-email/components";
 import type { EmailTheme } from "@/lib/email-theme";
 
 /**
@@ -21,65 +20,91 @@ export function Hero({
 }) {
   const coverUrl = showCoverImage ? theme.coverImageUrl : undefined;
   return (
-    <Section
+    <table
+      align="center"
+      width="100%"
+      border={0}
+      cellPadding="0"
+      cellSpacing="0"
+      role="presentation"
       style={{
         backgroundColor: theme.heroFallback,
         backgroundImage: theme.heroGradient,
         backgroundSize: "cover",
       }}
     >
-      {coverUrl ? (
-        <Img
-          src={coverUrl}
-          alt=""
-          width="600"
-          style={{ width: "100%", maxHeight: "260px", objectFit: "cover", display: "block" }}
-        />
-      ) : null}
-      <Section className="email-hero" style={{ padding: "28px 32px 26px" }}>
-        {kicker ? (
-          <Text
-            style={{
-              margin: "0 0 6px",
-              fontSize: "13px",
-              fontWeight: "600",
-              letterSpacing: "1px",
-              textTransform: "uppercase" as const,
-              color: theme.heroText,
-              opacity: 0.85,
-            }}
-          >
-            {kicker}
-          </Text>
-        ) : null}
-        <Heading
-          as="h1"
-          style={{
-            margin: 0,
-            fontFamily: theme.headingFont,
-            fontWeight: theme.headingWeight,
-            textTransform: theme.headingTransform as "uppercase" | "none",
-            fontSize: "28px",
-            lineHeight: "34px",
-            color: theme.heroText,
-            textShadow: theme.heroTextShadow,
-          }}
-        >
-          {title}
-        </Heading>
-        {subtitle ? (
-          <Text
-            style={{
-              margin: "8px 0 0",
-              fontSize: "15px",
-              color: theme.heroText,
-              opacity: 0.9,
-            }}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
-      </Section>
-    </Section>
+      <tbody>
+        <tr>
+          <td>
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt=""
+                width="600"
+                style={{ width: "100%", maxHeight: "260px", objectFit: "cover", display: "block" }}
+              />
+            ) : null}
+            <table
+              align="center"
+              width="100%"
+              border={0}
+              cellPadding="0"
+              cellSpacing="0"
+              role="presentation"
+              className="email-hero"
+              style={{ padding: "28px 32px 26px" }}
+            >
+              <tbody>
+                <tr>
+                  <td>
+                    {kicker ? (
+                      <p
+                        style={{
+                          margin: "0 0 6px",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase" as const,
+                          color: theme.heroText,
+                          opacity: 0.85,
+                        }}
+                      >
+                        {kicker}
+                      </p>
+                    ) : null}
+                    <h1
+                      style={{
+                        margin: 0,
+                        fontFamily: theme.headingFont,
+                        fontWeight: theme.headingWeight,
+                        textTransform: theme.headingTransform as "uppercase" | "none",
+                        fontSize: "28px",
+                        lineHeight: "34px",
+                        color: theme.heroText,
+                        textShadow: theme.heroTextShadow,
+                      }}
+                    >
+                      {title}
+                    </h1>
+                    {subtitle ? (
+                      <p
+                        style={{
+                          margin: "8px 0 0",
+                          fontSize: "15px",
+                          color: theme.heroText,
+                          opacity: 0.9,
+                        }}
+                      >
+                        {subtitle}
+                      </p>
+                    ) : null}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }

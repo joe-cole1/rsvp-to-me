@@ -1,4 +1,3 @@
-import { Section, Text } from "@react-email/components";
 import { EmailLayout } from "../components/EmailLayout";
 import { Hero } from "../components/Hero";
 import { EmailButton } from "../components/EmailButton";
@@ -26,39 +25,73 @@ export function CoHostInviteEmail({ theme, event, hostName, inviteUrl }: CoHostI
         subtitle={subtitle}
         showCoverImage={false}
       />
-      <Section className="email-content" style={{ padding: "24px 32px 30px" }}>
-        <Text
-          className="dm-text-primary"
-          style={{
-            margin: "0",
-            fontSize: "15px",
-            lineHeight: "24px",
-            color: theme.textPrimary,
-          }}
-        >
-          {`${hostName} has invited you to co-host their event, ${event.title}. As a co-host, you will be able to edit the event page, manage the guest list, and send updates.`}
-        </Text>
+      <table
+        align="center"
+        width="100%"
+        border={0}
+        cellPadding="0"
+        cellSpacing="0"
+        role="presentation"
+        className="email-content"
+        style={{ padding: "24px 32px 30px" }}
+      >
+        <tbody>
+          <tr>
+            <td>
+              <p
+                className="dm-text-primary"
+                style={{
+                  margin: "0",
+                  fontSize: "15px",
+                  lineHeight: "24px",
+                  color: theme.textPrimary,
+                }}
+              >
+                {`${hostName} has invited you to co-host their event, ${event.title}. As a co-host, you will be able to edit the event page, manage the guest list, and send updates.`}
+              </p>
 
-        <DetailsCard theme={theme} event={event} showMapLink={true} showCalendarLinks={false} />
+              <DetailsCard
+                theme={theme}
+                event={event}
+                showMapLink={true}
+                showCalendarLinks={false}
+              />
 
-        <Section style={{ margin: "26px 0 0", textAlign: "center" as const }}>
-          <EmailButton theme={theme} href={inviteUrl} variant="primary">
-            Co-Host This Event
-          </EmailButton>
-        </Section>
+              <table
+                align="center"
+                width="100%"
+                border={0}
+                cellPadding="0"
+                cellSpacing="0"
+                role="presentation"
+                style={{ margin: "26px 0 0", textAlign: "center" as const }}
+              >
+                <tbody>
+                  <tr>
+                    <td>
+                      <EmailButton theme={theme} href={inviteUrl} variant="primary">
+                        Co-Host This Event
+                      </EmailButton>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-        <Text
-          className="dm-text-muted"
-          style={{
-            margin: "24px 0 0",
-            fontSize: "12px",
-            color: theme.textMuted,
-            textAlign: "center" as const,
-          }}
-        >
-          If you weren&apos;t expecting this, you can safely ignore or delete this email.
-        </Text>
-      </Section>
+              <p
+                className="dm-text-muted"
+                style={{
+                  margin: "24px 0 0",
+                  fontSize: "12px",
+                  color: theme.textMuted,
+                  textAlign: "center" as const,
+                }}
+              >
+                If you weren&apos;t expecting this, you can safely ignore or delete this email.
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </EmailLayout>
   );
 }
