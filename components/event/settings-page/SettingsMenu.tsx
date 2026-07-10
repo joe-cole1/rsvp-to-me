@@ -18,15 +18,13 @@ export function SettingsMenu({
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       {(
         [
-          ...(isOwner
-            ? [
-                {
-                  id: "hosts" as const,
-                  title: "👥 Hosts & Co-hosts",
-                  desc: "Manage who can edit this event",
-                },
-              ]
-            : []),
+          {
+            id: "hosts" as const,
+            title: "👥 Hosts & Co-hosts",
+            desc: isOwner
+              ? "Manage who can edit this event"
+              : "View hosts and manage your co-host profile",
+          },
           {
             id: "privacy",
             title: "🔒 Display Options",

@@ -933,7 +933,7 @@ export function SettingsPage({
               t={t}
               emailEnabled={channelConfig.email}
             />
-            <DangerZonePanel eventId={event.id} t={t} S={S} />
+            {isOwner && <DangerZonePanel eventId={event.id} t={t} S={S} />}
           </div>
         )}
 
@@ -967,7 +967,7 @@ export function SettingsPage({
         )}
 
         {/* ── Hosts ── */}
-        {activeSection === "hosts" && isOwner && (
+        {activeSection === "hosts" && (
           <HostsPanel
             event={event}
             coHosts={coHosts}
@@ -985,6 +985,8 @@ export function SettingsPage({
             S={S}
             pendingInvitations={pendingInvitations}
             handleCancelInvitation={handleCancelInvitation}
+            isOwner={isOwner}
+            sessionUser={sessionUser}
           />
         )}
 

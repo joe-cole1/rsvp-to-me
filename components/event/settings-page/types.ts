@@ -1,6 +1,7 @@
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export type SessionUser = {
+  id: string;
   email: string;
   name: string | null;
   avatarUrl: string | null;
@@ -64,6 +65,8 @@ export type PotluckItemEntry = {
 export type EventInput = {
   id: string;
   slug: string;
+  hostId: string;
+  host: { id: string; name: string | null; email: string };
   commentsEnabled: boolean;
   plusOneAllowed: boolean;
   plusOneMax: number;

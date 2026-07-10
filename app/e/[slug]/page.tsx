@@ -20,7 +20,14 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       theme: true,
       infoSections: { orderBy: { order: "asc" } },
       rsvpFields: { orderBy: { order: "asc" } },
-      coHosts: { select: { userId: true } },
+      coHosts: {
+        select: {
+          id: true,
+          userId: true,
+          displayName: true,
+          user: { select: { name: true, email: true } },
+        },
+      },
       rsvps: {
         where: { approved: true, status: { not: "INVITED" } },
         select: {

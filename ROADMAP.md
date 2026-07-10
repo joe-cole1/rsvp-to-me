@@ -118,7 +118,7 @@ _A log of completed capabilities._
 
 ### Host & Co-host Event Deletion
 
-- [x] **Host & Co-host Event Deletion**: Add a "Delete Event" button to the Display Options settings panel (Danger Zone). Render a confirmation modal/prompt warning that this action is permanent and cannot be undone. Create a `deleteEvent` server action that validates `assertHostOrCohost` and deletes the event. Tests: `tests/regression/sec-30-cohost-authz.test.ts`.
+- [x] **Host Event Deletion**: Add a "Delete Event" button to the Display Options settings panel (Danger Zone) for the main host. Render a confirmation modal/prompt warning that this action is permanent and cannot be undone. Create a `deleteEvent` server action that validates `assertHost` and deletes the event. Tests: `tests/regression/sec-30-cohost-authz.test.ts`.
 
 ### Cover Image Variable Aspect Ratio
 
