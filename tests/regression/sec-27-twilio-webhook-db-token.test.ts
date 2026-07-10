@@ -9,28 +9,28 @@
 //
 // Fix: resolve the token via the shared resolveTwilioAuthToken() (DB config
 // first, then env). This test sets NO env token, configures the token only in
-// the (mocked) DB, and asserts a correctly-signed request is accepted.
+// the (mocked) DB config map, and asserts a correctly-signed request is accepted.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import crypto from "crypto";
 
-const { mockSystemConfigFindUnique, mockInvitationFindMany } = vi.hoisted(() => ({
-  mockSystemConfigFindUnique: vi.fn(),
+const { mockGetSystemConfigMap, mockInvitationFindMany } = vi.hoisted(() => ({
+  mockGetSystemConfigMap: vi.fn(),
   mockInvitationFindMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
-    systemConfig: {
-      findUnique: mockSystemConfigFindUnique,
-      findMany: vi.fn().mockResolvedValue([]),
-    },
     invitation: { findMany: mockInvitationFindMany },
     rSVP: { findUnique: vi.fn(), count: vi.fn(), update: vi.fn() },
   },
 }));
-vi.mock("@/lib/config", () => ({ isChannelEnabled: vi.fn().mockResolvedValue(true) }));
+
+vi.mock("@/lib/config", () => ({
+  isChannelEnabled: vi.fn().mockResolvedValue(true),
+  getSystemConfigMap: mockGetSystemConfigMap,
+}));
 
 import { POST } from "@/app/api/webhooks/twilio/route";
 
@@ -58,12 +58,12 @@ describe("SEC-27: Twilio webhook validates against the DB-configured token", () 
   const DB_TOKEN = "db-only-twilio-token";
 
   beforeEach(() => {
-    mockSystemConfigFindUnique.mockReset();
+    mockGetSystemConfigMap.mockReset();
     mockInvitationFindMany.mockReset();
     // The whole point: NO env token — Twilio is configured only in the DB.
     delete process.env.TWILIO_AUTH_TOKEN;
     // Plaintext stored value → decryptConfig returns it unchanged (no colons).
-    mockSystemConfigFindUnique.mockResolvedValue({ key: "twilio_auth_token", value: DB_TOKEN });
+    mockGetSystemConfigMap.mockResolvedValue({ twilio_auth_token: DB_TOKEN });
     mockInvitationFindMany.mockResolvedValue([]); // no pending invitations → 200 twiml
   });
 

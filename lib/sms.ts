@@ -1,5 +1,4 @@
 import twilio from "twilio";
-import { db } from "@/lib/db";
 import { decryptConfig } from "./crypto";
 import { isChannelEnabled, getSystemConfigMap } from "./config";
 
@@ -22,14 +21,10 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
  * single `findUnique`.
  */
 export async function resolveTwilioAuthToken(configMap?: Record<string, string>): Promise<string> {
-  if (configMap) {
-    const stored = configMap.twilio_auth_token;
-    if (stored) return decryptConfig(stored);
-    return process.env.TWILIO_AUTH_TOKEN || "";
-  }
   try {
-    const config = await db.systemConfig.findUnique({ where: { key: "twilio_auth_token" } });
-    if (config?.value) return decryptConfig(config.value);
+    const map = configMap || (await getSystemConfigMap());
+    const stored = map.twilio_auth_token;
+    if (stored) return decryptConfig(stored);
   } catch (err) {
     console.error("[sms] Failed to read Twilio auth token from DB, falling back to env:", err);
   }
@@ -86,8 +81,11 @@ export async function testSmsConfig(
     });
     return { success: true };
   } catch (err: unknown) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    return { success: false, error: `Twilio error: ${errMsg}` };
+    console.error("[sms:config-test] Twilio test SMS failed:", err);
+    return {
+      success: false,
+      error: "Twilio request failed. Verify your Account SID, Auth Token, and Phone number.",
+    };
   }
 }
 

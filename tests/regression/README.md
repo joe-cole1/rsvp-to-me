@@ -39,3 +39,5 @@ For every bug fix merged to main:
 | `l4b-invite-friend-swallowed-error.test.ts`          | `inviteFriendAsGuest` activity-log failure swallowed by bare `.catch()`                                            | L-4b     |
 | `sec-34-event-access-gates.test.ts`                  | PRIVATE/password gate bypass on calendar.ics / guests / rsvp routes + guest RSVP editToken/PII leak in RSC payload | SEC-34   |
 | `cohost-invite-reorder.test.ts`                      | Test co-host invitation flow and event info section widget reordering actions                                      | CH-REORD |
+| `sec-14-admin-error-sanitization.test.ts`            | Surfacing raw SMTP/Twilio configuration errors to the admin UI (information disclosure)                            | SEC-14   |
+| `sec-7-ssrf-ip-hardening.test.ts`                    | SSRF URL validation bypasses via loopback and private subnets                                                      | SEC-7    |
