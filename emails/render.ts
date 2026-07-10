@@ -1,4 +1,3 @@
-import { renderToStaticMarkup } from "react-dom/server";
 import { convert } from "html-to-text";
 import type * as React from "react";
 
@@ -6,6 +5,7 @@ import type * as React from "react";
 export async function renderEmail(
   element: React.ReactElement
 ): Promise<{ html: string; text: string }> {
+  const { renderToStaticMarkup } = await import("react-dom/server");
   const rawHtml = renderToStaticMarkup(element);
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">${rawHtml}`;
 
