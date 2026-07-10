@@ -143,7 +143,9 @@ describe("lib/sms.ts", () => {
         phone: "+15559999999",
       });
       expect(res.success).toBe(false);
-      expect(res.error).toBe("Twilio request failed. Verify your Account SID, Auth Token, and Phone number.");
+      expect(res.error).toBe(
+        "Twilio request failed. Verify your Account SID, Auth Token, and Phone number."
+      );
     });
 
     it("sendMagicLinkSms sends correct body", async () => {

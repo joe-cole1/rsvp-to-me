@@ -298,7 +298,9 @@ describe("lib/email.ts", () => {
         cloudflare: {},
       });
       expect(res.success).toBe(false);
-      expect(res.error).toBe("SMTP connection failed. Check your host, port, credentials, and network settings.");
+      expect(res.error).toBe(
+        "SMTP connection failed. Check your host, port, credentials, and network settings."
+      );
       expect(mockSendMail).not.toHaveBeenCalled();
     });
 
@@ -312,7 +314,9 @@ describe("lib/email.ts", () => {
         cloudflare: {},
       });
       expect(res.success).toBe(false);
-      expect(res.error).toBe("SMTP connection failed. Check your host, port, credentials, and network settings.");
+      expect(res.error).toBe(
+        "SMTP connection failed. Check your host, port, credentials, and network settings."
+      );
       expect(mockVerify).toHaveBeenCalled();
       expect(mockSendMail).toHaveBeenCalled();
     });
@@ -357,7 +361,9 @@ describe("lib/email.ts", () => {
         cloudflare: { url: "https://worker.example.com", secret: "secret" },
       });
       expect(res.success).toBe(false);
-      expect(res.error).toBe("Cloudflare Worker request failed. Verify your Worker URL and Secret.");
+      expect(res.error).toBe(
+        "Cloudflare Worker request failed. Verify your Worker URL and Secret."
+      );
     });
 
     it("handles Cloudflare Worker connection/fetch error", async () => {
@@ -370,7 +376,9 @@ describe("lib/email.ts", () => {
         cloudflare: { url: "https://worker.example.com", secret: "secret" },
       });
       expect(res.success).toBe(false);
-      expect(res.error).toBe("Failed to connect to Cloudflare Worker. Check your network connection and Worker URL.");
+      expect(res.error).toBe(
+        "Failed to connect to Cloudflare Worker. Check your network connection and Worker URL."
+      );
     });
 
     it("rejects invalid or unsafe Cloudflare Worker URLs (SSRF mitigation)", async () => {
@@ -434,7 +442,9 @@ describe("lib/email.ts", () => {
         cloudflare: { accountId: "db-account-id", apiToken: "db-api-token" },
       });
       expect(res.success).toBe(false);
-      expect(res.error).toBe("Cloudflare REST API request failed. Verify your Account ID, API Token, and sender configuration.");
+      expect(res.error).toBe(
+        "Cloudflare REST API request failed. Verify your Account ID, API Token, and sender configuration."
+      );
     });
   });
 });
