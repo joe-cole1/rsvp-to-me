@@ -1,4 +1,3 @@
-import { Button } from "@react-email/components";
 import type { EmailTheme } from "@/lib/email-theme";
 
 /**
@@ -36,8 +35,8 @@ export function EmailButton({
           padding: "11px 25px",
         };
   return (
-    <Button href={href} style={style}>
+    <a href={href} target="_blank" rel="noopener noreferrer" style={style}>
       {children}
-    </Button>
+    </a>
   );
 }

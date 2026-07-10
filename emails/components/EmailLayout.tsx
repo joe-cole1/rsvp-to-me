@@ -1,4 +1,3 @@
-import { Body, Container, Head, Html, Preview, Section, Text } from "@react-email/components";
 import type { EmailTheme } from "@/lib/email-theme";
 import type * as React from "react";
 
@@ -33,14 +32,13 @@ export function EmailLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Html lang="en">
-      <Head>
+    <html lang="en">
+      <head>
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
         <style>{responsiveStyles}</style>
-      </Head>
-      <Preview>{preview}</Preview>
-      <Body
+      </head>
+      <body
         className="email-canvas"
         style={{
           margin: 0,
@@ -49,29 +47,80 @@ export function EmailLayout({
           fontFamily: theme.bodyFont,
         }}
       >
-        <Container style={{ maxWidth: "600px", margin: "0 auto", padding: "24px 12px" }}>
-          <Section
-            className="email-card"
-            style={{
-              backgroundColor: theme.bodyBg,
-              borderRadius: "16px",
-              overflow: "hidden",
-              border: `1px solid ${theme.cardBorder}`,
-            }}
+        <div
+          style={{
+            display: "none",
+            overflow: "hidden",
+            lineHeight: "1px",
+            opacity: 0,
+            maxHeight: 0,
+            maxWidth: 0,
+          }}
+        >
+          {preview}
+        </div>
+        <div style={{ maxWidth: "600px", margin: "0 auto", padding: "24px 12px" }}>
+          <table
+            align="center"
+            width="100%"
+            border={0}
+            cellPadding="0"
+            cellSpacing="0"
+            role="presentation"
           >
-            {children}
-          </Section>
-          <Section style={{ padding: "16px 24px 0", textAlign: "center" as const }}>
-            {footer}
-            <Text
-              className="dm-text-muted"
-              style={{ margin: "8px 0 0", fontSize: "12px", color: theme.textMuted }}
-            >
-              Sent with RSVP to Me
-            </Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
+            <tbody>
+              <tr>
+                <td>
+                  <table
+                    align="center"
+                    width="100%"
+                    border={0}
+                    cellPadding="0"
+                    cellSpacing="0"
+                    role="presentation"
+                    className="email-card"
+                    style={{
+                      backgroundColor: theme.bodyBg,
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      border: `1px solid ${theme.cardBorder}`,
+                    }}
+                  >
+                    <tbody>
+                      <tr>
+                        <td>{children}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <table
+                    align="center"
+                    width="100%"
+                    border={0}
+                    cellPadding="0"
+                    cellSpacing="0"
+                    role="presentation"
+                    style={{ padding: "16px 24px 0", textAlign: "center" as const }}
+                  >
+                    <tbody>
+                      <tr>
+                        <td>
+                          {footer}
+                          <p
+                            className="dm-text-muted"
+                            style={{ margin: "8px 0 0", fontSize: "12px", color: theme.textMuted }}
+                          >
+                            Sent with RSVP to Me
+                          </p>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </body>
+    </html>
   );
 }

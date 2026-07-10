@@ -1,12 +1,21 @@
-import { render } from "@react-email/render";
+import { renderToStaticMarkup } from "react-dom/server";
+import { convert } from "html-to-text";
 import type * as React from "react";
 
 /** Render a template to both HTML and a plain-text alternative part. */
 export async function renderEmail(
   element: React.ReactElement
 ): Promise<{ html: string; text: string }> {
-  const html = await render(element);
-  const text = await render(element, { plainText: true });
+  const rawHtml = renderToStaticMarkup(element);
+  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">${rawHtml}`;
+
+  const text = convert(rawHtml, {
+    selectors: [
+      { selector: "img", format: "skip" },
+      { selector: "a", options: { hideLinkHrefIfSameAsText: true } },
+    ],
+  });
+
   return { html, text };
 }
 

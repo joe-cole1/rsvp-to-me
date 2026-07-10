@@ -4,9 +4,6 @@ const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
-  // Keep react-email packages out of the server-action bundle: @react-email/render
-  // imports react-dom/server, which the App Router bundler rejects when inlined.
-  serverExternalPackages: ["@react-email/render", "@react-email/components"],
   async headers() {
     const disableHsts =
       process.env.DISABLE_HSTS === "true" ||
