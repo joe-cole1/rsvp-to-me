@@ -53,8 +53,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 ### ⚙️ Refactoring & Clean Code
 
-- **[CLEAN-01] Consolidated System Config Loading**: Reading the system configuration (`db.systemConfig.findMany()`) is implemented 5 different times, duplicating mapping loops in `lib/sms.ts`, `lib/email.ts`, and `app/actions/admin.ts`.
-  - _Recommended Fix_: Add a `getSystemConfigMap()` helper inside `lib/config.ts` (wrapped with React `cache()`) and reuse it codebase-wide.
 - **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
   - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
 
@@ -72,7 +70,6 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard.
 - **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.
 - **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
-- **[SEC-14] Information disclosure in auth/admin error responses** _(deferred — low risk for personal-event scale)_: `testEmailConfigAction` / `testSmsConfigAction` in `app/actions/admin.ts` surface raw provider error messages; these are admin-only so blast radius is minimal, but verbose errors could leak infrastructure details. (Part (a) resolved: email/phone enumeration via magic link error codes eliminated).
 - **Local `scripts/preflight.sh` full E2E fails on `auth.e2e.ts › magic link verify → dashboard`** _(discovered 2026-07-04, local-CI tooling PR)_: the ephemeral Redis the script starts (`127.0.0.1:56399`) isn't reachable by the app server during E2E (log shows persistent `[redis] Error … Redis error`), so the magic-link/rate-limit path fails-closed and the `/dashboard` redirect never happens. Fails identically on `main` locally but **passes in GitHub CI**, so it's an ephemeral-Redis reachability gap in the local harness, not an app bug. Fix: add a Redis-readiness wait (mirroring the `pg_isready` loop) and verify the server resolves `REDIS_URL` to the mapped port.
 
 ---
@@ -80,6 +77,12 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Security & Cleanup Hardening (Batch [a27054])
+
+- [x] **Information Disclosure ([SEC-14])**: Sanitized raw error messages returned by SMTP and Twilio configuration test actions, logging connection details on the server while presenting safe, user-friendly messages to the admin client.
+- [x] **Consolidated System Config Loading ([CLEAN-01])**: Consolidated all system configuration retrieval codebase-wide to utilize the React `cache`-deduplicated `getSystemConfigMap()` utility, and optimized `resolveTwilioAuthToken` to avoid duplicate database queries during webhook signature checks.
+- [x] **SSRF IP Hardening ([SEC-7])**: Hardened `isSafeWorkerUrl` to exhaustively parse and block loopback subnets (`127.0.0.0/8`, `0.0.0.0/8`, etc.), unique local / link-local IPv6 ranges, and IPv4-mapped IPv6 loopback/private subnets.
 
 ### Security Hardening & Edge Cases (Audit Batch)
 

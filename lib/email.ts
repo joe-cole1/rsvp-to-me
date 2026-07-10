@@ -38,27 +38,100 @@ async function templateCopy(id: TemplateId, vars: Record<string, string | undefi
 const statusLabel = (status: "GOING" | "MAYBE" | "NO"): RsvpStatusLabel =>
   status === "GOING" ? "Going" : status === "MAYBE" ? "Maybe" : "Can't Go";
 
-function isSafeWorkerUrl(urlStr: string): boolean {
+export function isSafeWorkerUrl(urlStr: string): boolean {
   try {
     const parsed = new URL(urlStr);
     if (parsed.protocol !== "https:") {
       return false;
     }
     const host = parsed.hostname.toLowerCase();
-    // Block localhost, loopback, private networks, and link-local metadata addresses
-    if (
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host === "[::1]" ||
-      host === "0.0.0.0" ||
-      host.endsWith(".local") ||
-      host.startsWith("10.") ||
-      host.startsWith("192.168.") ||
-      host.startsWith("169.254.") ||
-      /^(172\.(1[6-9]|2[0-9]|3[0-1]))\./.test(host)
-    ) {
+
+    // Block localhost and .local domains
+    if (host === "localhost" || host.endsWith(".local")) {
       return false;
     }
+
+    // Helper to check if an IPv4 octet list is private/loopback
+    const isPrivateIpv4Octets = (o1: number, o2: number, o3: number, o4: number): boolean => {
+      if (o1 > 255 || o2 > 255 || o3 > 255 || o4 > 255) return true; // Invalid format treated as unsafe
+
+      // 127.0.0.0/8 (Loopback)
+      if (o1 === 127) return true;
+      // 0.0.0.0/8 (Broadcast/Local)
+      if (o1 === 0) return true;
+      // 10.0.0.0/8 (Private Class A)
+      if (o1 === 10) return true;
+      // 172.16.0.0/12 (Private Class B)
+      if (o1 === 172 && o2 >= 16 && o2 <= 31) return true;
+      // 192.168.0.0/16 (Private Class C)
+      if (o1 === 192 && o2 === 168) return true;
+      // 169.254.0.0/16 (Link-local)
+      if (o1 === 169 && o2 === 254) return true;
+      // 100.64.0.0/10 (Carrier-grade NAT)
+      if (o1 === 100 && o2 >= 64 && o2 <= 127) return true;
+      // 198.18.0.0/15 (Benchmark testing)
+      if (o1 === 198 && o2 >= 18 && o2 <= 19) return true;
+
+      return false;
+    };
+
+    const isPrivateIpv4 = (ip: string): boolean => {
+      const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+      if (!match) return false;
+      const [, o1, o2, o3, o4] = match.map(Number);
+      return isPrivateIpv4Octets(o1, o2, o3, o4);
+    };
+
+    // Check if hostname is raw IPv4
+    if (/^[0-9.]+$/.test(host)) {
+      if (isPrivateIpv4(host)) return false;
+    }
+
+    // Check if hostname is raw IPv6
+    if (host.includes(":")) {
+      // Remove enclosing brackets if present
+      const cleanIpv6 = host.replace(/[\[\]]/g, "");
+
+      // Check for IPv4-mapped IPv6 (e.g. ::ffff:192.168.1.1 or ::ffff:7f00:1)
+      if (cleanIpv6.startsWith("::ffff:")) {
+        const ipv4Part = cleanIpv6.substring(7);
+        if (ipv4Part.includes(".")) {
+          if (isPrivateIpv4(ipv4Part)) return false;
+        } else if (ipv4Part.includes(":")) {
+          const parts = ipv4Part.split(":");
+          if (parts.length === 2) {
+            const part1 = parts[0].padStart(4, "0");
+            const part2 = parts[1].padStart(4, "0");
+            const o1 = parseInt(part1.substring(0, 2), 16);
+            const o2 = parseInt(part1.substring(2, 4), 16);
+            const o3 = parseInt(part2.substring(0, 2), 16);
+            const o4 = parseInt(part2.substring(2, 4), 16);
+            if (isPrivateIpv4Octets(o1, o2, o3, o4)) return false;
+          }
+        }
+      }
+
+      // IPv6 Loopback: ::1
+      if (cleanIpv6 === "::1" || cleanIpv6 === "0:0:0:0:0:0:0:1" || cleanIpv6 === "::") {
+        return false;
+      }
+
+      // Unique Local Addresses (ULA): fc00::/7
+      if (cleanIpv6.startsWith("fc") || cleanIpv6.startsWith("fd")) {
+        return false;
+      }
+
+      // Link-Local Addresses: fe80::/10
+      if (
+        cleanIpv6.startsWith("fe8") ||
+        cleanIpv6.startsWith("fe9") ||
+        cleanIpv6.startsWith("fea") ||
+        cleanIpv6.startsWith("feb")
+      ) {
+        return false;
+      }
+    }
+
     return true;
   } catch {
     return false;
@@ -595,17 +668,20 @@ export async function testEmailConfig(
       });
       if (!res.ok) {
         const errorText = await res.text();
+        console.error("[email:config-test] Cloudflare REST API error:", res.status, errorText);
         return {
           success: false,
-          error: `Cloudflare REST API returned status ${res.status}: ${errorText || "No response body"}`,
+          error:
+            "Cloudflare REST API request failed. Verify your Account ID, API Token, and sender configuration.",
         };
       }
       return { success: true };
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[email:config-test] Cloudflare REST API connection failed:", err);
       return {
         success: false,
-        error: `Failed to connect to Cloudflare REST API: ${errMsg}`,
+        error:
+          "Failed to connect to Cloudflare REST API. Check your network connection and API endpoint.",
       };
     }
   }
@@ -634,17 +710,19 @@ export async function testEmailConfig(
       });
       if (!res.ok) {
         const errorText = await res.text();
+        console.error("[email:config-test] Cloudflare Worker error:", res.status, errorText);
         return {
           success: false,
-          error: `Cloudflare Worker returned status ${res.status}: ${errorText || "No response body"}`,
+          error: "Cloudflare Worker request failed. Verify your Worker URL and Secret.",
         };
       }
       return { success: true };
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[email:config-test] Cloudflare Worker connection failed:", err);
       return {
         success: false,
-        error: `Failed to connect to Cloudflare Worker: ${errMsg}`,
+        error:
+          "Failed to connect to Cloudflare Worker. Check your network connection and Worker URL.",
       };
     }
   }
@@ -675,10 +753,10 @@ export async function testEmailConfig(
 
       return { success: true };
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[email:config-test] SMTP connection/send failed:", err);
       return {
         success: false,
-        error: `SMTP error: ${errMsg}`,
+        error: "SMTP connection failed. Check your host, port, credentials, and network settings.",
       };
     }
   }

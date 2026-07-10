@@ -15,6 +15,7 @@ import { sendWelcomeEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/auth";
 import { EMAIL_TEMPLATE_META, TEMPLATE_IDS, type TemplateId } from "@/emails/registry";
 import { assertAdmin } from "@/lib/auth-guards";
+import { getSystemConfigMap } from "@/lib/config";
 
 export async function getAdminStats() {
   await assertAdmin();
@@ -213,11 +214,7 @@ export async function revokeInviteCode(id: string) {
 export async function getSystemConfig() {
   await assertAdmin();
 
-  const configs = await db.systemConfig.findMany();
-  const configMap: Record<string, string> = {};
-  for (const c of configs) {
-    configMap[c.key] = c.value;
-  }
+  const configMap = { ...(await getSystemConfigMap()) };
 
   // Ensure default for open_registration
   if (!configMap.hasOwnProperty("open_registration")) {

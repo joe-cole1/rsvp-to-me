@@ -17,12 +17,14 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const { mockFindUnique } = vi.hoisted(() => ({ mockFindUnique: vi.fn() }));
-
-vi.mock("@/lib/db", () => ({
-  db: { systemConfig: { findUnique: mockFindUnique, findMany: vi.fn().mockResolvedValue([]) } },
+const { mockGetSystemConfigMap } = vi.hoisted(() => ({
+  mockGetSystemConfigMap: vi.fn(),
 }));
-vi.mock("@/lib/config", () => ({ isChannelEnabled: vi.fn().mockResolvedValue(true) }));
+
+vi.mock("@/lib/config", () => ({
+  isChannelEnabled: vi.fn().mockResolvedValue(true),
+  getSystemConfigMap: mockGetSystemConfigMap,
+}));
 
 import { resolveTwilioAuthToken } from "@/lib/sms";
 import { encryptConfig, decryptConfig } from "@/lib/crypto";
@@ -31,7 +33,7 @@ describe("SEC-26: Twilio auth token decryption", () => {
   const origEnv = process.env.TWILIO_AUTH_TOKEN;
 
   beforeEach(() => {
-    mockFindUnique.mockReset();
+    mockGetSystemConfigMap.mockReset();
     delete process.env.TWILIO_AUTH_TOKEN;
   });
 
@@ -50,13 +52,13 @@ describe("SEC-26: Twilio auth token decryption", () => {
     await expect(resolveTwilioAuthToken({ twilio_auth_token: encrypted })).resolves.toBe(real);
 
     // Via the DB path (as the webhook calls it).
-    mockFindUnique.mockResolvedValue({ key: "twilio_auth_token", value: encrypted });
+    mockGetSystemConfigMap.mockResolvedValue({ twilio_auth_token: encrypted });
     await expect(resolveTwilioAuthToken()).resolves.toBe(real);
   });
 
   it("falls back to the env var when no DB value is set", async () => {
     process.env.TWILIO_AUTH_TOKEN = "env-token";
-    mockFindUnique.mockResolvedValue(null);
+    mockGetSystemConfigMap.mockResolvedValue({});
     await expect(resolveTwilioAuthToken()).resolves.toBe("env-token");
     await expect(resolveTwilioAuthToken({})).resolves.toBe("env-token");
   });
