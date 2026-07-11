@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { describe, it, expect, beforeEach } from "vitest";
+import { render, fireEvent } from "@testing-library/react";
 import React from "react";
 import { ParticleLayer } from "@/components/event/event-page/ParticleLayer";
 import { EFFECT_DENSITIES, getEffectById } from "@/lib/effects";
@@ -8,6 +8,9 @@ import { EFFECT_DENSITIES, getEffectById } from "@/lib/effects";
 const TINT = ["#a855f7", "#7c3aed", "#1e40af", "#ffffff"];
 
 describe("ParticleLayer", () => {
+  beforeEach(() => {
+    window.localStorage.removeItem("rsvp:hide-effects");
+  });
   it("renders nothing when no effect is configured", () => {
     const { container } = render(<ParticleLayer config={null} tintColors={TINT} />);
     expect(container.querySelector(".rsvp-effect-layer")).toBeNull();
@@ -85,6 +88,44 @@ describe("ParticleLayer", () => {
 
     expect(positionsAfter).toEqual(positionsBefore);
     expect(colorAfter).not.toBe(colorBefore);
+  });
+
+  it("lets a viewer hide effects via the toggle and persists the choice", () => {
+    const { container } = render(
+      <ParticleLayer
+        config={{ effectId: "snow", density: "medium", speed: "gentle" }}
+        tintColors={TINT}
+      />
+    );
+    const toggle = container.querySelector(".rsvp-effect-toggle")!;
+    expect(toggle.textContent).toContain("Hide effects");
+    expect(container.querySelector(".rsvp-effect-layer")).not.toBeNull();
+
+    fireEvent.click(toggle);
+    expect(container.querySelector(".rsvp-effect-layer")).toBeNull();
+    expect(container.querySelector(".rsvp-effect-toggle")!.textContent).toContain("Show effects");
+    expect(window.localStorage.getItem("rsvp:hide-effects")).toBe("1");
+
+    fireEvent.click(container.querySelector(".rsvp-effect-toggle")!);
+    expect(container.querySelector(".rsvp-effect-layer")).not.toBeNull();
+    expect(window.localStorage.getItem("rsvp:hide-effects")).toBe("0");
+  });
+
+  it("respects a stored hide preference on mount", () => {
+    window.localStorage.setItem("rsvp:hide-effects", "1");
+    const { container } = render(
+      <ParticleLayer
+        config={{ effectId: "snow", density: "medium", speed: "gentle" }}
+        tintColors={TINT}
+      />
+    );
+    expect(container.querySelector(".rsvp-effect-layer")).toBeNull();
+    expect(container.querySelector(".rsvp-effect-toggle")!.textContent).toContain("Show effects");
+  });
+
+  it("renders no toggle when the event has no effect", () => {
+    const { container } = render(<ParticleLayer config={null} tintColors={TINT} />);
+    expect(container.querySelector(".rsvp-effect-toggle")).toBeNull();
   });
 
   it("uses float mode for beer (rising toast, not falling mugs)", () => {

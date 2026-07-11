@@ -240,7 +240,7 @@ These presets populate the theme picker that hosts see when customizing an event
 - `EventTheme` now stores four host-editable fields beyond colors: `fontId` (heading font), and `effectId` / `effectDensity` / `effectSpeed` (the animated background layer). `ThemePreset` stores `fontId` only — **effects are never part of a preset**; they are purely per-event and default to off.
 - Valid values are validated server-side against the registries in `lib/fonts.ts` and `lib/effects.ts`. To add a font or an effect set, extend those registries (fonts also need a loader entry in `app/fonts.ts`; effect sets need SVG sprites under `public/effects/<set>/`).
 - **Email degradation:** custom fonts degrade to an email-safe stack declared per font in `lib/fonts.ts`; effects are web-only and never render in email. See `lib/email-theme.ts` for the contract.
-- Effects respect the guest's `prefers-reduced-motion` setting automatically (the layer is hidden via CSS).
+- Effects respect the guest's `prefers-reduced-motion` setting automatically (the layer is hidden via CSS). Independently of that, every viewer gets an on-page "✨ Hide effects" toggle whose choice persists in their browser's `localStorage` (`rsvp:hide-effects`) — no server state involved.
 
 ---
 

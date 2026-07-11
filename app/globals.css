@@ -73,7 +73,9 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rsvp-effect-layer {
+  /* The layer is already hidden, so the show/hide toggle has nothing to do */
+  .rsvp-effect-layer,
+  .rsvp-effect-toggle {
     display: none;
   }
 }
