@@ -96,6 +96,7 @@ export type EventInput = {
     effectId?: string | null;
     effectDensity?: string | null;
     effectSpeed?: string | null;
+    effectSize?: number | null;
   } | null;
   reminderSettings: {
     emailWeekBefore: boolean;
@@ -176,6 +177,7 @@ export interface ThemeExtrasOverrides {
   effectId?: string | null;
   effectDensity?: string | null;
   effectSpeed?: string | null;
+  effectSize?: number | null;
 }
 
 export type SettingsSection =

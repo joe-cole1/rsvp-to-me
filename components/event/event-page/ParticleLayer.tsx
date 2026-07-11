@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { EFFECT_DENSITIES, EFFECT_SPEEDS, getEffectById, type EffectConfig } from "@/lib/effects";
+import {
+  EFFECT_DENSITIES,
+  EFFECT_SPEEDS,
+  EFFECT_SIZE_MIN,
+  EFFECT_SIZE_MAX,
+  DEFAULT_EFFECT_SIZE,
+  getEffectById,
+  type EffectConfig,
+} from "@/lib/effects";
 
 // Browser-local viewer preference: lets any guest hide the animation layer
 // without an OS-level prefers-reduced-motion setting. "1" = hidden.
@@ -29,6 +37,10 @@ function buildParticles(config: EffectConfig): Particle[] {
   if (!set) return [];
   const count = EFFECT_DENSITIES[config.density].count;
   const { minS, maxS } = EFFECT_SPEEDS[config.speed];
+  const sizeMultiplier = Math.min(
+    EFFECT_SIZE_MAX,
+    Math.max(EFFECT_SIZE_MIN, config.size ?? DEFAULT_EFFECT_SIZE)
+  );
   const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
   return Array.from({ length: count }, (_, i) => {
@@ -36,7 +48,7 @@ function buildParticles(config: EffectConfig): Particle[] {
     return {
       sprite: set.sprites[i % set.sprites.length],
       leftPct: rand(-2, 100),
-      sizePx: set.baseSizePx * rand(0.6, 1.4),
+      sizePx: set.baseSizePx * sizeMultiplier * rand(0.6, 1.4),
       travelS,
       // Negative delay pre-populates the sky mid-animation on load
       delayS: -rand(0, travelS),
@@ -68,6 +80,7 @@ export function ParticleLayer({
   const effectId = config?.effectId ?? null;
   const density = config?.density ?? null;
   const speed = config?.speed ?? null;
+  const size = config?.size ?? DEFAULT_EFFECT_SIZE;
   const set = getEffectById(effectId);
 
   // Tint colors are deliberately NOT a dependency: particles resolve their
@@ -76,8 +89,8 @@ export function ParticleLayer({
   const particles = useMemo<Particle[] | null>(() => {
     if (!isClient || !effectId || !density || !speed) return null;
     if (!getEffectById(effectId)) return null;
-    return buildParticles({ effectId, density, speed } as EffectConfig);
-  }, [isClient, effectId, density, speed]);
+    return buildParticles({ effectId, density, speed, size } as EffectConfig);
+  }, [isClient, effectId, density, speed, size]);
 
   // Viewer preference — safe as a lazy initializer: the component renders
   // nothing until isClient flips, so hydration markup never depends on it.

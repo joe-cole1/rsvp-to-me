@@ -5,7 +5,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
 import { type BaseTheme, resolveTheme, getSortedPresets, getDefaultCardOpacity } from "@/lib/theme";
-import { DEFAULT_EFFECT_DENSITY, DEFAULT_EFFECT_SPEED } from "@/lib/effects";
+import { DEFAULT_EFFECT_DENSITY, DEFAULT_EFFECT_SPEED, DEFAULT_EFFECT_SIZE } from "@/lib/effects";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -92,6 +92,9 @@ export function SettingsPage({
   );
   const [effectSpeed, setEffectSpeed] = useState<string>(
     event.theme?.effectSpeed ?? DEFAULT_EFFECT_SPEED
+  );
+  const [effectSize, setEffectSize] = useState<number>(
+    event.theme?.effectSize ?? DEFAULT_EFFECT_SIZE
   );
   const [themeSearch, setThemeSearch] = useState("");
   const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">(
@@ -285,6 +288,7 @@ export function SettingsPage({
             effectDensity:
               extras?.effectDensity !== undefined ? extras.effectDensity : effectDensity,
             effectSpeed: extras?.effectSpeed !== undefined ? extras.effectSpeed : effectSpeed,
+            effectSize: extras?.effectSize !== undefined ? extras.effectSize : effectSize,
           }
         );
         setSaveStatus("SAVED");
@@ -986,6 +990,8 @@ export function SettingsPage({
             setEffectDensity={setEffectDensity}
             effectSpeed={effectSpeed}
             setEffectSpeed={setEffectSpeed}
+            effectSize={effectSize}
+            setEffectSize={setEffectSize}
             triggerSaveTheme={triggerSaveTheme}
             t={t}
           />

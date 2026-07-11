@@ -12,6 +12,8 @@ import { FONT_OPTIONS, getFontById } from "@/lib/fonts";
 import {
   EFFECT_DENSITIES,
   EFFECT_SPEEDS,
+  EFFECT_SIZE_MIN,
+  EFFECT_SIZE_MAX,
   getSortedEffectSets,
   type EffectDensity,
   type EffectSpeed,
@@ -49,6 +51,8 @@ export function ThemePanel({
   setEffectDensity,
   effectSpeed,
   setEffectSpeed,
+  effectSize,
+  setEffectSize,
   triggerSaveTheme,
   t,
 }: {
@@ -83,6 +87,8 @@ export function ThemePanel({
   setEffectDensity: React.Dispatch<React.SetStateAction<string>>;
   effectSpeed: string;
   setEffectSpeed: React.Dispatch<React.SetStateAction<string>>;
+  effectSize: number;
+  setEffectSize: React.Dispatch<React.SetStateAction<number>>;
   triggerSaveTheme: (
     newBase: BaseTheme,
     newFrom: string,
@@ -888,6 +894,45 @@ export function ThemePanel({
                     {EFFECT_SPEEDS[s].label}
                   </button>
                 ))}
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: "180px" }}>
+              <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>Size</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <input
+                  type="range"
+                  min={EFFECT_SIZE_MIN}
+                  max={EFFECT_SIZE_MAX}
+                  step={0.5}
+                  value={effectSize}
+                  onChange={(e) => {
+                    setEffectSize(parseFloat(e.target.value));
+                  }}
+                  onMouseUp={(e) => {
+                    const val = parseFloat((e.target as HTMLInputElement).value);
+                    triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
+                      effectSize: val,
+                    });
+                  }}
+                  onTouchEnd={(e) => {
+                    const val = parseFloat((e.target as HTMLInputElement).value);
+                    triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
+                      effectSize: val,
+                    });
+                  }}
+                  style={{ flex: 1, accentColor: t.accent }}
+                />
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: t.textSecondary,
+                    minWidth: "36px",
+                    textAlign: "right",
+                  }}
+                >
+                  {effectSize}×
+                </span>
               </div>
             </div>
           </div>

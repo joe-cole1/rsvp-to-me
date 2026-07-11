@@ -1581,6 +1581,7 @@ describe("saveEventTheme", () => {
         effectId: null,
         effectDensity: null,
         effectSpeed: null,
+        effectSize: null,
       },
     });
   });
@@ -1591,6 +1592,7 @@ describe("saveEventTheme", () => {
       effectId: "confetti",
       effectDensity: "dense",
       effectSpeed: "lively",
+      effectSize: 4.5,
     });
     expect(mockEventThemeUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1599,6 +1601,7 @@ describe("saveEventTheme", () => {
           effectId: "confetti",
           effectDensity: "dense",
           effectSpeed: "lively",
+          effectSize: 4.5,
         }),
       })
     );
@@ -1619,6 +1622,14 @@ describe("saveEventTheme", () => {
         effectDensity: "extreme",
       })
     ).rejects.toThrow("Invalid effect density");
+    // Size multiplier must stay within 1-10 (and be a real number)
+    for (const badSize of [0.5, 11, NaN]) {
+      await expect(
+        saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000", null, null, {
+          effectSize: badSize,
+        })
+      ).rejects.toThrow("Invalid effect size");
+    }
     expect(mockEventThemeUpsert).not.toHaveBeenCalled();
   });
 });

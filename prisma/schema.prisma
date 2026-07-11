@@ -201,6 +201,7 @@ model EventTheme {
   effectId        String? // animated background set from lib/effects.ts; null = none
   effectDensity   String? // sparse | medium | dense
   effectSpeed     String? // gentle | medium | lively
+  effectSize      Float? // sprite size multiplier 1-10; null = 1 (current default size)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

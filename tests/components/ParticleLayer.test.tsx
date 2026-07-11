@@ -128,6 +128,39 @@ describe("ParticleLayer", () => {
     expect(container.querySelector(".rsvp-effect-toggle")).toBeNull();
   });
 
+  it("scales sprites by the size multiplier (default 1x, max 10x)", () => {
+    const base = getEffectById("autumn-leaves")!.baseSizePx;
+    const widthsFor = (size?: number) => {
+      const { container, unmount } = render(
+        <ParticleLayer
+          config={{ effectId: "autumn-leaves", density: "sparse", speed: "gentle", size }}
+          tintColors={TINT}
+        />
+      );
+      const widths = [...container.querySelectorAll("img")].map((img) =>
+        parseFloat(img.getAttribute("width")!)
+      );
+      unmount();
+      return widths;
+    };
+    // No size (legacy config) = the set's designed size, randomized ±40%
+    for (const w of widthsFor(undefined)) {
+      expect(w).toBeGreaterThanOrEqual(base * 0.6);
+      expect(w).toBeLessThanOrEqual(base * 1.4);
+    }
+    for (const w of widthsFor(10)) {
+      expect(w).toBeGreaterThanOrEqual(base * 10 * 0.6);
+      expect(w).toBeLessThanOrEqual(base * 10 * 1.4);
+    }
+    // Out-of-range values are clamped, never trusted blindly
+    for (const w of widthsFor(9999)) {
+      expect(w).toBeLessThanOrEqual(base * 10 * 1.4);
+    }
+    for (const w of widthsFor(0.01)) {
+      expect(w).toBeGreaterThanOrEqual(base * 0.6);
+    }
+  });
+
   it("uses float mode for beer (rising toast, not falling mugs)", () => {
     const { container } = render(
       <ParticleLayer
