@@ -29,7 +29,9 @@ Everything else — date and time, theme, RSVP rules, visibility, polls, and pot
 
 ## Themes
 
-Choose a base look from the theme picker:
+The **Settings → Theme** section is organized into three tabs: **🎨 Theme** (presets and custom colors), **✨ Effects** (the animated background layer), and **🔤 Font** (your heading font).
+
+On the **Theme** tab, choose a base look from the theme picker:
 
 - **Dark & Moody** — deep background with high-contrast text.
 - **Soft & Dreamy** — pastel tones and gentle contrast.
@@ -43,13 +45,13 @@ A color picker sets the accent color used for buttons, links, and highlights.
 
 ### Heading Font
 
-Under **Settings → Theme → Customize colors** you can pick a **heading font** for your event's title and section headings. Twelve fonts are available across four moods — elegant serifs (Playfair Display, DM Serif Display, Lora), poster styles (Bebas Neue, Righteous, Fredoka), scripts (Pacifico, Dancing Script, Caveat), and modern sans-serifs (Roboto, Space Grotesk, Outfit) — plus **Theme default**, which keeps each base look's built-in typography. Some presets apply a matching font automatically; you can always override it.
+On the **Font** tab under **Settings → Theme** you can pick a **heading font**, applied to your event's title and section headings (and nothing else — body text stays in the standard font for readability). Twelve fonts are available across four moods — elegant serifs (Playfair Display, DM Serif Display, Lora), poster styles (Bebas Neue, Righteous, Fredoka), scripts (Pacifico, Dancing Script, Caveat), and modern sans-serifs (Roboto, Space Grotesk, Outfit) — plus **Theme default**, which keeps each base look's built-in typography. Some presets apply a matching font automatically; you can always override it.
 
 Fonts are bundled with the app — nothing is loaded from external services, and guests only download a font if your event actually uses it.
 
 ### Effects (Animated Backgrounds)
 
-The **Effect** picker in **Settings → Theme** adds an optional layer of gently drifting motifs behind your page — falling autumn leaves, floating balloons, rising fireworks, drifting turkeys, snow, confetti, and more (19 sets in all, including a beer toast 🍺).
+The **Effects** tab in **Settings → Theme** adds an optional layer of gently drifting motifs behind your page — falling autumn leaves, floating balloons, rising fireworks, drifting turkeys, snow, confetti, and more (19 sets in all, including a beer toast 🍺).
 
 - **Off by default.** Effects are purely opt-in and fully independent of your theme — put turkeys on a St. Patrick's theme if that's your party.
 - **Density** (Sparse / Medium / Dense) controls how many motifs float around; **Speed** (Gentle / Medium / Lively) controls how fast.
