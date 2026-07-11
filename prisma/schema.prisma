@@ -197,6 +197,10 @@ model EventTheme {
   coverImageUrl   String?
   appliedPresetId String?
   cardOpacity     Float?
+  fontId          String? // heading font id from lib/fonts.ts; null = base default
+  effectId        String? // animated background set from lib/effects.ts; null = none
+  effectDensity   String? // sparse | medium | dense
+  effectSpeed     String? // gentle | medium | lively
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
@@ -220,6 +224,7 @@ model ThemePreset {
   sortOrder        Int       @default(0)
   month            Int?
   cardOpacity      Float?
+  fontId           String? // heading font id from lib/fonts.ts; null = base default
   createdAt        DateTime  @default(now())
   originalSnapshot Json?
   defaultSnapshot  Json?

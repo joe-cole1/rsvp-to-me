@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import type { BaseTheme } from "@/lib/theme";
+import { isValidFontId } from "@/lib/fonts";
+import { isValidEffectId, isValidEffectDensity, isValidEffectSpeed } from "@/lib/effects";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -78,6 +80,13 @@ export async function saveEventLocation(
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 
+export interface ThemeExtras {
+  fontId?: string | null;
+  effectId?: string | null;
+  effectDensity?: string | null;
+  effectSpeed?: string | null;
+}
+
 export async function saveEventTheme(
   eventId: string,
   baseTheme: BaseTheme,
@@ -85,9 +94,16 @@ export async function saveEventTheme(
   gradientTo: string,
   accentColor: string,
   presetId?: string | null,
-  cardOpacity?: number | null
+  cardOpacity?: number | null,
+  extras?: ThemeExtras
 ) {
   const event = await assertHostOrCohost(eventId);
+  if (extras) {
+    if (!isValidFontId(extras.fontId)) throw new Error("Unknown font");
+    if (!isValidEffectId(extras.effectId)) throw new Error("Unknown effect");
+    if (!isValidEffectDensity(extras.effectDensity)) throw new Error("Invalid effect density");
+    if (!isValidEffectSpeed(extras.effectSpeed)) throw new Error("Invalid effect speed");
+  }
   await db.eventTheme.upsert({
     where: { eventId },
     update: {
@@ -97,6 +113,12 @@ export async function saveEventTheme(
       accentColor,
       ...(presetId !== undefined ? { appliedPresetId: presetId } : {}),
       ...(cardOpacity !== undefined ? { cardOpacity } : {}),
+      ...(extras && extras.fontId !== undefined ? { fontId: extras.fontId } : {}),
+      ...(extras && extras.effectId !== undefined ? { effectId: extras.effectId } : {}),
+      ...(extras && extras.effectDensity !== undefined
+        ? { effectDensity: extras.effectDensity }
+        : {}),
+      ...(extras && extras.effectSpeed !== undefined ? { effectSpeed: extras.effectSpeed } : {}),
     },
     create: {
       eventId,
@@ -106,6 +128,10 @@ export async function saveEventTheme(
       accentColor,
       appliedPresetId: presetId ?? null,
       cardOpacity: cardOpacity ?? null,
+      fontId: extras?.fontId ?? null,
+      effectId: extras?.effectId ?? null,
+      effectDensity: extras?.effectDensity ?? null,
+      effectSpeed: extras?.effectSpeed ?? null,
     },
   });
   revalidatePath(`/e/${event.slug}`);
@@ -260,7 +286,7 @@ export async function saveReminderSettings(
   revalidatePath(`/e/${event.slug}/settings`);
 }
 
-// ── Public theme preset fetch (for ThemePicker / SettingsPage) ────────────────
+// ── Public theme preset fetch (for the SettingsPage theme builder) ────────────
 
 export async function getActiveThemePresets() {
   return db.themePreset.findMany({

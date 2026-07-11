@@ -28,3 +28,54 @@ body {
 select {
   color-scheme: dark;
 }
+
+/* ── Animated background effects (ParticleLayer) ─────────────────────────────
+   GPU-only properties (transform, opacity) so the drift stays at 60fps without
+   layout or paint work. Outer node travels the viewport; inner node handles
+   sway/wobble + rotation; the sprite itself twinkles (float mode only). */
+
+@keyframes rsvp-effect-fall {
+  from {
+    transform: translate3d(0, -12vh, 0);
+  }
+  to {
+    transform: translate3d(0, 112vh, 0);
+  }
+}
+
+@keyframes rsvp-effect-float {
+  from {
+    transform: translate3d(0, 112vh, 0);
+  }
+  to {
+    transform: translate3d(0, -12vh, 0);
+  }
+}
+
+@keyframes rsvp-effect-sway {
+  from {
+    transform: translate3d(calc(var(--sway, 30px) * -1), 0, 0) rotate(calc(var(--spin, 40deg) * -1));
+  }
+  to {
+    transform: translate3d(var(--sway, 30px), 0, 0) rotate(var(--spin, 40deg));
+  }
+}
+
+@keyframes rsvp-effect-twinkle {
+  from {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The layer is already hidden, so the show/hide toggle has nothing to do */
+  .rsvp-effect-layer,
+  .rsvp-effect-toggle {
+    display: none;
+  }
+}

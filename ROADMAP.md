@@ -10,6 +10,8 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🛠️ Bug / Fix
 
+- **RSVP Flow Confirmation Race Condition**: A guest submitting a new RSVP (without email/phone) transiently sees the "RSVP updated!" success screen instead of "You're in!" due to Next.js's Server Action page refresh. When the action completes, the URL is updated with the new `token` client-side, but the Server Action automatically triggers a page refresh, prompting Next.js to re-request the RSC payload with the new `token` URL parameter. On the server, `RsvpPage` reads this token and passes `existingRsvp` to the client `RsvpFlow` component, raising its `isEdit` flag to `true` and swapping the header text to "RSVP updated!". Fix by tracking a client-side `justCreated` flag that overrides the header check during the initial mount. _(Discovered during the [89d70d] themes E2E audit.)_
+
 ### 🔒 Backend / Security / DevOps
 
 ---
@@ -46,13 +48,14 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Post-Event Photo Upload Prompt (low priority)**: After an event ends, prompt guests to upload or share their photos. Removed from Auto-Reminders settings as an unimplemented stub; the full feature would integrate with a dedicated photo-sharing section and optionally link to external album services (see Priority 2).
 - **White-Label Options**: Add system settings allowing hosts/admins to white-label the application (custom logo, website name, custom branding colors).
 - **One-Click Bookmark for Magic Links**: Provide hosts with a quick button/shortcut to bookmark their magic link RSVP sessions, keeping them logged in across devices.
-- **Rich Theme Presets**: Expand the theme builder with custom typography (from Google Fonts), vibrant gradients, and dynamic layout choices.
 - **Custom Cover Images**: Enable host upload cropping and stock image selection templates.
-- **Seasonal Themes**: Support seasonal themes featuring animated backgrounds (e.g., falling leaves for autumn, turkeys for Thanksgiving).
+- **Custom Effect Upload**: Let admins (and eventually hosts) upload their own effect sprite sets for the animated background layer, Partiful-style — the registry in `lib/effects.ts` currently requires a code change to add a set.
+- **Interactive Effect Particles (cursor physics)**: Make drifting motifs react to pointer movement/taps (repulsion force). Requires per-frame JS positioning (rAF or canvas) — a second rendering mode alongside the pure-CSS layer, which was deliberately chosen for battery/perf. Icebox until the effect system warrants a physics tier. _(Suggested in the [89d70d] post-PR code audit.)_
 - **Unified Guest Updates**: Modify the update notification checkbox to "Notify guests" (sending via email or SMS, depending on which contact method the guest signed up with).
 
 ### ⚙️ Refactoring & Clean Code
 
+- **Scoped CSS custom properties for event theming**: `resolveTheme()` produces a ~35-token JS object consumed as inline styles throughout the event components. An alternative is projecting those tokens as CSS custom properties (`--theme-accent`, …) on a wrapper element so components use plain CSS/Tailwind arbitrary values instead of `t.*` props. Note the JS object must remain regardless — `resolveEmailTheme()` derives the email palette from it server-side — so this is an additional projection layer, and a large cross-cutting refactor with zero user-visible change. Icebox until a concrete need (e.g. per-section theme overrides) justifies it. _(Suggested in the [89d70d] post-PR code audit.)_
 - **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
   - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
 
@@ -77,6 +80,13 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Rich Theme Presets & Seasonal Animated Themes (Batch [89d70d])
+
+- [x] **Rich Theme Presets — custom typography**: Curated registry of 12 Google Fonts (`lib/fonts.ts` + loaders in `app/fonts.ts`), self-hosted at build time via `next/font/google` (`preload: false`) — no runtime Google requests, offline-safe. Hosts pick a heading font in Settings → Theme; admins can attach a default font to any preset in the Theme Manager. `EventTheme.fontId` / `ThemePreset.fontId` added with server-side registry validation; emails degrade to per-font email-safe stacks in `resolveEmailTheme()`.
+- [x] **Rich Theme Presets — vibrant gradients**: Loosened `resolveTheme()` saturation clamps (DARK page-bg caps 20/16/12 → 36/30/24, brighter orb glows; SOFT page tint cap 20 → 34) and added 8 vivid presets (Miami Vice, Tropical Punch, Aurora, Ultraviolet, Citrus Pop, Flamingo, Blue Raspberry, Grape Soda) with matching font defaults.
+- [x] **Theme cleanup — dead code + DRY defaults**: Deleted the orphaned `components/event/ThemePicker.tsx` (unimported since theme editing moved into `settings-page/ThemePanel.tsx`; had drifted behind the live panel) and extracted the card-opacity default fallback into a shared `getDefaultCardOpacity(base)` helper in `lib/theme.ts`, now used by `resolveTheme()`, SettingsPage state init, ThemePanel handlers, and the admin ThemePresetModal.
+- [x] **Seasonal Themes — animated background effects**: Partiful-style DOM/CSS particle layer (`ParticleLayer.tsx`) — GPU-composited keyframes, randomized per-particle duration/delay/scale/sway, two motion modes (fall + float/twinkle), `prefers-reduced-motion` hides the layer. 19 effect sets with 56 hand-authored SVG sprites under `public/effects/` (leaves, turkeys, snow, snowflakes, hearts, Halloween, shamrocks, blossoms, Easter, winter holidays, presents, sun & palms, football, fireworks, stars, balloons, bubbles, confetti, beer); confetti/balloons tint from the theme palette via CSS masks. Effects are host-opt-in only (default None, never part of a preset), stored as `EventTheme.effectId/effectDensity/effectSpeed` with registry validation, seasonal-proximity sorting in the picker, and explicit no-op email degradation. This retires the long-stubbed `decorationVariant` hidden-div in `BackgroundDecorations.tsx`.
 
 ### Security & Cleanup Hardening (Batch [a27054])
 

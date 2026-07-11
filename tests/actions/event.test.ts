@@ -1577,8 +1577,49 @@ describe("saveEventTheme", () => {
         accentColor: "#ff0000",
         appliedPresetId: null,
         cardOpacity: null,
+        fontId: null,
+        effectId: null,
+        effectDensity: null,
+        effectSpeed: null,
       },
     });
+  });
+
+  it("persists font and effect extras and validates them against the registries", async () => {
+    await saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000", null, null, {
+      fontId: "playfair",
+      effectId: "confetti",
+      effectDensity: "dense",
+      effectSpeed: "lively",
+    });
+    expect(mockEventThemeUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          fontId: "playfair",
+          effectId: "confetti",
+          effectDensity: "dense",
+          effectSpeed: "lively",
+        }),
+      })
+    );
+
+    mockEventThemeUpsert.mockClear();
+    await expect(
+      saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000", null, null, {
+        fontId: "papyrus",
+      })
+    ).rejects.toThrow("Unknown font");
+    await expect(
+      saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000", null, null, {
+        effectId: "lasers",
+      })
+    ).rejects.toThrow("Unknown effect");
+    await expect(
+      saveEventTheme(EVENT_ID, "DARK", "#7c3aed", "#1e40af", "#ff0000", null, null, {
+        effectDensity: "extreme",
+      })
+    ).rejects.toThrow("Invalid effect density");
+    expect(mockEventThemeUpsert).not.toHaveBeenCalled();
   });
 });
 

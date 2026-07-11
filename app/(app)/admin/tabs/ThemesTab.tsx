@@ -70,6 +70,7 @@ export function ThemesTab({
                 seasonal: false,
                 month: null,
                 cardOpacity: null,
+                fontId: null,
               })
             }
             style={{
@@ -201,6 +202,7 @@ export function ThemesTab({
                           seasonal: preset.seasonal,
                           month: preset.month ?? null,
                           cardOpacity: preset.cardOpacity ?? null,
+                          fontId: preset.fontId ?? null,
                         };
                         setThemePresetForm(vals);
                         setThemePresetOriginal(vals);

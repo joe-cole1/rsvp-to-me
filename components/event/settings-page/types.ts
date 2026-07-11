@@ -92,6 +92,10 @@ export type EventInput = {
     coverImageUrl: string | null;
     appliedPresetId?: string | null;
     cardOpacity?: number | null;
+    fontId?: string | null;
+    effectId?: string | null;
+    effectDensity?: string | null;
+    effectSpeed?: string | null;
   } | null;
   reminderSettings: {
     emailWeekBefore: boolean;
@@ -149,6 +153,7 @@ export type ThemeSnapObj = {
   seasonal: boolean;
   month?: number | null;
   cardOpacity?: number | null;
+  fontId?: string | null;
 };
 
 export type DbThemePreset = {
@@ -162,8 +167,16 @@ export type DbThemePreset = {
   seasonal?: boolean | null;
   month?: number | null;
   cardOpacity?: number | null;
+  fontId?: string | null;
   defaultSnapshot?: unknown;
 };
+
+export interface ThemeExtrasOverrides {
+  fontId?: string | null;
+  effectId?: string | null;
+  effectDensity?: string | null;
+  effectSpeed?: string | null;
+}
 
 export type SettingsSection =
   | "theme"

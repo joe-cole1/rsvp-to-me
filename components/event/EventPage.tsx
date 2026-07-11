@@ -32,6 +32,8 @@ import { buildStyles } from "./event-page/styles";
 import { GuestInviteFriendCard } from "./event-page/GuestInviteFriendCard";
 import { ActivityFeed } from "./event-page/ActivityFeed";
 import { BackgroundDecorations } from "./event-page/BackgroundDecorations";
+import { ParticleLayer } from "./event-page/ParticleLayer";
+import type { EffectConfig } from "@/lib/effects";
 import { EventHero } from "./event-page/EventHero";
 import { GuestListSection } from "./event-page/GuestListSection";
 import { GuestSharingCard } from "./event-page/GuestSharingCard";
@@ -48,6 +50,7 @@ export function EventPage({
   event: initial,
   isHost,
   theme,
+  effect = null,
   coverUploadEnabled = false,
   guestRsvp = null,
   sessionUser = null,
@@ -56,6 +59,7 @@ export function EventPage({
   event: EventData;
   isHost: boolean;
   theme: ResolvedTheme;
+  effect?: EffectConfig | null;
   coverUploadEnabled?: boolean;
   guestRsvp?: GuestRsvp | null;
   sessionUser?: {
@@ -798,6 +802,10 @@ export function EventPage({
       />
 
       <BackgroundDecorations t={t} />
+      <ParticleLayer
+        config={effect}
+        tintColors={[t.accent, t.gradientFrom, t.gradientTo, "#ffffff"]}
+      />
 
       <div style={S.container}>
         <EventHero
