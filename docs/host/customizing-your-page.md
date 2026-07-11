@@ -53,6 +53,7 @@ The **Effect** picker in **Settings → Theme** adds an optional layer of gently
 
 - **Off by default.** Effects are purely opt-in and fully independent of your theme — put turkeys on a St. Patrick's theme if that's your party.
 - **Density** (Sparse / Medium / Dense) controls how many motifs float around; **Speed** (Gentle / Medium / Lively) controls how fast.
+- **Size** is a slider from **1×** (each set's designed size, the default) up to **10×** for oversized statement motifs — think giant snowflakes drifting past. Each motif still varies a little around the chosen size so the layer keeps its organic feel.
 - Seasonal effects near your current date sort to the front of the picker as suggestions — nothing is ever applied automatically.
 - Confetti and balloons tint themselves to match your theme's colors.
 - Guests who have "reduce motion" enabled in their device accessibility settings see a calm, static page — the animation layer hides itself automatically.

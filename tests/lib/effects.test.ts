@@ -5,11 +5,15 @@ import {
   EFFECT_SETS,
   EFFECT_DENSITIES,
   EFFECT_SPEEDS,
+  EFFECT_SIZE_MIN,
+  EFFECT_SIZE_MAX,
+  DEFAULT_EFFECT_SIZE,
   getEffectById,
   getSortedEffectSets,
   isValidEffectId,
   isValidEffectDensity,
   isValidEffectSpeed,
+  isValidEffectSize,
 } from "@/lib/effects";
 
 describe("effects registry", () => {
@@ -57,6 +61,20 @@ describe("effects registry", () => {
     expect(isValidEffectDensity("extreme")).toBe(false);
     expect(isValidEffectSpeed("lively")).toBe(true);
     expect(isValidEffectSpeed("ludicrous")).toBe(false);
+  });
+
+  it("size multiplier floor is the set's designed size, ceiling is 10x", () => {
+    expect(EFFECT_SIZE_MIN).toBe(1);
+    expect(EFFECT_SIZE_MAX).toBe(10);
+    expect(DEFAULT_EFFECT_SIZE).toBe(EFFECT_SIZE_MIN);
+    expect(isValidEffectSize(null)).toBe(true); // legacy rows: no stored size
+    expect(isValidEffectSize(EFFECT_SIZE_MIN)).toBe(true);
+    expect(isValidEffectSize(5.5)).toBe(true);
+    expect(isValidEffectSize(EFFECT_SIZE_MAX)).toBe(true);
+    expect(isValidEffectSize(0.5)).toBe(false);
+    expect(isValidEffectSize(10.5)).toBe(false);
+    expect(isValidEffectSize(NaN)).toBe(false);
+    expect(isValidEffectSize(Infinity)).toBe(false);
   });
 
   it("getEffectById resolves ids and returns null otherwise", () => {

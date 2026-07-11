@@ -5,6 +5,7 @@ import { resolveTheme } from "@/lib/theme";
 import {
   DEFAULT_EFFECT_DENSITY,
   DEFAULT_EFFECT_SPEED,
+  DEFAULT_EFFECT_SIZE,
   type EffectConfig,
   type EffectDensity,
   type EffectSpeed,
@@ -208,6 +209,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         effectId: event.theme.effectId,
         density: (event.theme.effectDensity as EffectDensity) ?? DEFAULT_EFFECT_DENSITY,
         speed: (event.theme.effectSpeed as EffectSpeed) ?? DEFAULT_EFFECT_SPEED,
+        size: event.theme.effectSize ?? DEFAULT_EFFECT_SIZE,
       }
     : null;
 

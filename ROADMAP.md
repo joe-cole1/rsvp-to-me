@@ -14,6 +14,8 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🔒 Backend / Security / DevOps
 
+- **`scripts/preflight.sh` fails at the Prettier step in the primary dev clone**: `npx prettier --check .` exits non-zero with `EACCES: permission denied, scandir 'pg_data/18/docker'` — the dev Postgres bind mount (`./pg_data:/var/lib/postgresql` in `docker-compose.yml`) is owned by the container user with mode `700`, and Prettier's directory expansion errors on it even though `pg_data/` is listed in `.prettierignore`. Postgres itself requires the `700` permissions, so the directory can't simply be opened up. Workaround: run preflight from a clean temporary worktree (no `pg_data/`). Proper fix candidates: move the dev DB to a named Docker volume instead of a repo-relative bind mount, or scope the Prettier check to explicit top-level targets. _(Hit during [c58f78] effect-size work; out of scope there.)_
+
 ---
 
 ## 🟡 Medium Priority

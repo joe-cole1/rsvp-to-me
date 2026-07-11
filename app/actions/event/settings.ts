@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import type { BaseTheme } from "@/lib/theme";
 import { isValidFontId } from "@/lib/fonts";
-import { isValidEffectId, isValidEffectDensity, isValidEffectSpeed } from "@/lib/effects";
+import {
+  isValidEffectId,
+  isValidEffectDensity,
+  isValidEffectSpeed,
+  isValidEffectSize,
+} from "@/lib/effects";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -85,6 +90,7 @@ export interface ThemeExtras {
   effectId?: string | null;
   effectDensity?: string | null;
   effectSpeed?: string | null;
+  effectSize?: number | null;
 }
 
 export async function saveEventTheme(
@@ -103,6 +109,7 @@ export async function saveEventTheme(
     if (!isValidEffectId(extras.effectId)) throw new Error("Unknown effect");
     if (!isValidEffectDensity(extras.effectDensity)) throw new Error("Invalid effect density");
     if (!isValidEffectSpeed(extras.effectSpeed)) throw new Error("Invalid effect speed");
+    if (!isValidEffectSize(extras.effectSize)) throw new Error("Invalid effect size");
   }
   await db.eventTheme.upsert({
     where: { eventId },
@@ -119,6 +126,7 @@ export async function saveEventTheme(
         ? { effectDensity: extras.effectDensity }
         : {}),
       ...(extras && extras.effectSpeed !== undefined ? { effectSpeed: extras.effectSpeed } : {}),
+      ...(extras && extras.effectSize !== undefined ? { effectSize: extras.effectSize } : {}),
     },
     create: {
       eventId,
@@ -132,6 +140,7 @@ export async function saveEventTheme(
       effectId: extras?.effectId ?? null,
       effectDensity: extras?.effectDensity ?? null,
       effectSpeed: extras?.effectSpeed ?? null,
+      effectSize: extras?.effectSize ?? null,
     },
   });
   revalidatePath(`/e/${event.slug}`);

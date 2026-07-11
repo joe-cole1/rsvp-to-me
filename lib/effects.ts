@@ -51,6 +51,14 @@ export const EFFECT_SPEEDS: Record<EffectSpeed, { label: string; minS: number; m
 export const DEFAULT_EFFECT_DENSITY: EffectDensity = "medium";
 export const DEFAULT_EFFECT_SPEED: EffectSpeed = "medium";
 
+/**
+ * Sprite size multiplier applied on top of each set's baseSizePx.
+ * 1 = the set's designed size (the floor); 10 = ten times larger.
+ */
+export const EFFECT_SIZE_MIN = 1;
+export const EFFECT_SIZE_MAX = 10;
+export const DEFAULT_EFFECT_SIZE = EFFECT_SIZE_MIN;
+
 export const EFFECT_SETS: EffectSet[] = [
   // ── Classics (year-round) ──
   {
@@ -323,11 +331,17 @@ export function isValidEffectSpeed(s: string | null | undefined): boolean {
   return s == null || s in EFFECT_SPEEDS;
 }
 
+export function isValidEffectSize(n: number | null | undefined): boolean {
+  return n == null || (Number.isFinite(n) && n >= EFFECT_SIZE_MIN && n <= EFFECT_SIZE_MAX);
+}
+
 /** Effect configuration as stored on EventTheme */
 export interface EffectConfig {
   effectId: string;
   density: EffectDensity;
   speed: EffectSpeed;
+  /** Sprite size multiplier (1-10); omitted = 1 */
+  size?: number;
 }
 
 /**
