@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Settings } from "lucide-react";
+import { FileText, Pencil, Settings } from "lucide-react";
 import { InlineEdit } from "./InlineEdit";
 import { DateEdit } from "./DateEdit";
 import { LocationEdit } from "./LocationEdit";
@@ -431,7 +431,7 @@ export function EventHero({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ fontSize: "16px" }}>📝</span>
+            <FileText size={16} style={{ color: t.accent }} />
             <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>Description</span>
           </div>
           {isHost && (

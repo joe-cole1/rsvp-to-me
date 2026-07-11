@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings } from "lucide-react";
+import { BarChart3, Settings } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { EventPageStyles } from "./styles";
@@ -50,8 +50,8 @@ export function PollsSection({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "16px" }}>📊</span>
-              <span style={{ fontWeight: 700 }}>Polls</span>
+              <BarChart3 size={16} style={{ color: t.accent }} />
+              <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>Polls</span>
             </div>
             {isHost && (
               <a

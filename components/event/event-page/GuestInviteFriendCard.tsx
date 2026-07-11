@@ -1,6 +1,6 @@
 "use client";
 
-import {} from "lucide-react";
+import { Mail } from "lucide-react";
 import { useState, useTransition } from "react";
 import { inviteFriendAsGuest } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
@@ -49,8 +49,15 @@ export function GuestInviteFriendCard({
   return (
     <div style={cardStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
-        <span style={{ fontSize: "16px" }}>✉️</span>
-        <span style={{ fontWeight: 700, fontSize: "14.5px", color: t.textPrimary }}>
+        <Mail size={16} style={{ color: t.accent }} />
+        <span
+          style={{
+            fontWeight: 700,
+            fontSize: "14.5px",
+            color: t.textPrimary,
+            fontFamily: t.headingFont,
+          }}
+        >
           Invite a friend
         </span>
       </div>
