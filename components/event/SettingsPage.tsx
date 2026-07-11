@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useMemo } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
-import { type BaseTheme, resolveTheme, getSortedPresets } from "@/lib/theme";
+import { type BaseTheme, resolveTheme, getSortedPresets, getDefaultCardOpacity } from "@/lib/theme";
 import { DEFAULT_EFFECT_DENSITY, DEFAULT_EFFECT_SPEED } from "@/lib/effects";
 import {
   saveEventSettings,
@@ -80,8 +80,7 @@ export function SettingsPage({
   const [gradientTo, setGradientTo] = useState(event.theme?.gradientTo ?? "#1e40af");
   const [accent, setAccent] = useState(event.theme?.accentColor ?? "#a855f7");
   const [cardOpacity, setCardOpacity] = useState<number>(
-    event.theme?.cardOpacity ??
-      (event.theme?.baseTheme === "DARK" ? 0.5 : event.theme?.baseTheme === "SOFT" ? 0.85 : 0.8)
+    event.theme?.cardOpacity ?? getDefaultCardOpacity(event.theme?.baseTheme)
   );
   const [themePresetId, setThemePresetId] = useState<string | null>(
     event.theme?.appliedPresetId ?? null

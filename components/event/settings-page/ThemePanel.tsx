@@ -1,7 +1,13 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, type ResolvedTheme } from "@/lib/theme";
+import {
+  ACCENT_PRESETS,
+  BASE_THEMES,
+  getDefaultCardOpacity,
+  type BaseTheme,
+  type ResolvedTheme,
+} from "@/lib/theme";
 import { FONT_OPTIONS, getFontById } from "@/lib/fonts";
 import {
   EFFECT_DENSITIES,
@@ -119,12 +125,7 @@ export function ThemePanel({
         const savedTo = event.theme?.gradientTo ?? "#1e40af";
         const savedAccent = event.theme?.accentColor ?? "#a855f7";
         const savedOpacity =
-          event.theme?.cardOpacity ??
-          (event.theme?.baseTheme === "DARK"
-            ? 0.5
-            : event.theme?.baseTheme === "SOFT"
-              ? 0.85
-              : 0.8);
+          event.theme?.cardOpacity ?? getDefaultCardOpacity(event.theme?.baseTheme);
         const savedFontId = event.theme?.fontId ?? null;
         const hasChanged =
           base !== savedBase ||
@@ -226,12 +227,7 @@ export function ThemePanel({
                 type="button"
                 onClick={() => {
                   const defaultOpacity =
-                    presetDefault.cardOpacity ??
-                    (presetDefault.base === "DARK"
-                      ? 0.5
-                      : presetDefault.base === "SOFT"
-                        ? 0.85
-                        : 0.8);
+                    presetDefault.cardOpacity ?? getDefaultCardOpacity(presetDefault.base);
                   const defaultFontId = presetDefault.fontId ?? null;
                   setBase(presetDefault.base);
                   setGradientFrom(presetDefault.gradientFrom);
@@ -291,8 +287,7 @@ export function ThemePanel({
             <button
               key={p.id}
               onClick={() => {
-                const defaultOpacity =
-                  p.cardOpacity ?? (p.base === "DARK" ? 0.5 : p.base === "SOFT" ? 0.85 : 0.8);
+                const defaultOpacity = p.cardOpacity ?? getDefaultCardOpacity(p.base);
                 const presetFontId = p.fontId ?? null;
                 setBase(p.base);
                 setGradientFrom(p.gradientFrom);

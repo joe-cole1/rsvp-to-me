@@ -601,6 +601,16 @@ export function hex2hsl(hex: string) {
 
 // ── resolveTheme ──────────────────────────────────────────────────────────────
 
+/**
+ * Default card opacity per base vibe. Single source of truth for every UI
+ * fallback (theme builder state, preset application, admin preset modal) and
+ * for resolveTheme() itself. Accepts null/undefined and mirrors the historic
+ * behavior of treating an unknown base as BOLD (0.8).
+ */
+export function getDefaultCardOpacity(base: BaseTheme | null | undefined): number {
+  return base === "DARK" ? 0.5 : base === "SOFT" ? 0.85 : 0.8;
+}
+
 export function resolveTheme(
   base: BaseTheme,
   gradientFrom: string,
@@ -618,6 +628,8 @@ export function resolveTheme(
 
   // Custom heading font (lib/fonts.ts); null → each base's default below
   const customHeadingFont = getHeadingFontValue(fontId);
+
+  const resolvedCardOpacity = cardOpacity ?? getDefaultCardOpacity(base);
 
   if (base === "DARK") {
     // Use hue/saturation from gradient inputs; clamp lightness very dark (8/11/7%).
@@ -644,8 +656,8 @@ export function resolveTheme(
       accentBg: `rgba(${accentRgb},0.15)`,
       accentBorder: `rgba(${accentRgb},0.3)`,
       accentShadow: `0 0 24px rgba(${accentRgb},0.35)`,
-      cardBg: `hsla(${h1},${Math.min(s1, 15)}%,10%,${cardOpacity ?? 0.5})`,
-      cardBgAlpha: cardOpacity ?? 0.5,
+      cardBg: `hsla(${h1},${Math.min(s1, 15)}%,10%,${resolvedCardOpacity})`,
+      cardBgAlpha: resolvedCardOpacity,
       cardBorder: `hsla(${h1},${Math.min(s1, 20)}%,20%,0.4)`,
       cardRadius: "20px",
       cardShadow: "none",
@@ -687,8 +699,8 @@ export function resolveTheme(
       accentBg: `rgba(${accentRgb},0.18)`,
       accentBorder: `rgba(${accentRgb},0.35)`,
       accentShadow: `0 4px 20px rgba(${accentRgb},0.3)`,
-      cardBg: `rgba(255,255,255,${cardOpacity ?? 0.85})`,
-      cardBgAlpha: cardOpacity ?? 0.85,
+      cardBg: `rgba(255,255,255,${resolvedCardOpacity})`,
+      cardBgAlpha: resolvedCardOpacity,
       cardBorder: `hsla(${h1},${Math.min(s1, 15)}%,85%,0.5)`,
       cardRadius: "24px",
       cardShadow: "0 4px 24px rgba(0,0,0,0.06)",
@@ -728,8 +740,8 @@ export function resolveTheme(
     accentBg: `rgba(${accentRgb},0.12)`,
     accentBorder: `rgba(${accentRgb},0.25)`,
     accentShadow: "none",
-    cardBg: `rgba(255,255,255,${cardOpacity ?? 0.8})`,
-    cardBgAlpha: cardOpacity ?? 0.8,
+    cardBg: `rgba(255,255,255,${resolvedCardOpacity})`,
+    cardBgAlpha: resolvedCardOpacity,
     cardBorder: "rgba(255,255,255,0.55)",
     cardRadius: "24px",
     cardShadow: "0 8px 40px rgba(0,0,0,0.18)",

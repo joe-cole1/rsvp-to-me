@@ -1,6 +1,12 @@
 "use client";
 
-import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";
+import {
+  APP_SHELL,
+  BASE_THEMES,
+  ACCENT_PRESETS,
+  getDefaultCardOpacity,
+  resolveTheme,
+} from "@/lib/theme";
 import { FONT_OPTIONS, FONT_CATEGORY_LABELS, getFontById } from "@/lib/fonts";
 import type { AdminThemePreset, ThemePresetFormState, ThemeSnapObj } from "./types";
 
@@ -581,12 +587,7 @@ export function ThemePresetModal({
 
               {/* Card opacity */}
               {(() => {
-                const defaultOp =
-                  themePresetForm.base === "DARK"
-                    ? 0.5
-                    : themePresetForm.base === "SOFT"
-                      ? 0.85
-                      : 0.8;
+                const defaultOp = getDefaultCardOpacity(themePresetForm.base);
                 const currentOp = themePresetForm.cardOpacity ?? defaultOp;
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

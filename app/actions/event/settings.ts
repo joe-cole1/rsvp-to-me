@@ -286,7 +286,7 @@ export async function saveReminderSettings(
   revalidatePath(`/e/${event.slug}/settings`);
 }
 
-// ── Public theme preset fetch (for ThemePicker / SettingsPage) ────────────────
+// ── Public theme preset fetch (for the SettingsPage theme builder) ────────────
 
 export async function getActiveThemePresets() {
   return db.themePreset.findMany({
