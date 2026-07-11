@@ -64,6 +64,7 @@ async function main() {
         accentColor: p.accentColor,
         seasonal: p.seasonal ?? false,
         month: p.month ?? null,
+        fontId: p.fontId ?? null,
         sortOrder: i,
       },
       create: {
@@ -76,6 +77,7 @@ async function main() {
         accentColor: p.accentColor,
         seasonal: p.seasonal ?? false,
         month: p.month ?? null,
+        fontId: p.fontId ?? null,
         active: true,
         sortOrder: i,
         originalSnapshot: {
@@ -87,6 +89,7 @@ async function main() {
           accentColor: p.accentColor,
           seasonal: p.seasonal ?? false,
           month: p.month ?? null,
+          fontId: p.fontId ?? null,
         },
         defaultSnapshot: {
           name: p.name,
@@ -97,6 +100,7 @@ async function main() {
           accentColor: p.accentColor,
           seasonal: p.seasonal ?? false,
           month: p.month ?? null,
+          fontId: p.fontId ?? null,
         },
       },
     });

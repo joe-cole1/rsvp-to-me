@@ -16,6 +16,12 @@
  *   - glass cards, blur, orbs/blobs, shadows, animations → dropped (static /
  *     solid equivalents); a future background-image capability should map to a
  *     bulletproof hero `background-image` with the same solid fallback
+ *   - custom heading fonts (EventTheme.fontId) → the font's declared
+ *     `emailStack` from lib/fonts.ts (web fonts don't load in email; the
+ *     `var(--font-*)` value from resolveTheme() must never reach an email)
+ *   - animated background effects (EventTheme.effectId/Density/Speed) →
+ *     dropped entirely; effects are a web-only capability with no email
+ *     equivalent
  *   - anything undeclared is IGNORED — email rendering must never break
  *     because a new web-theme token was added.
  * The preset-sweep test (tests/lib/email-preset-sweep.test.tsx) enforces this
@@ -30,6 +36,7 @@ import {
   hex2hsl,
   resolveTheme,
 } from "./theme";
+import { getFontById } from "./fonts";
 
 export type EmailThemeInput = {
   baseTheme: BaseTheme;
@@ -37,6 +44,7 @@ export type EmailThemeInput = {
   gradientTo: string;
   accentColor: string;
   coverImageUrl?: string | null;
+  fontId?: string | null;
 };
 
 export interface EmailTheme {
@@ -124,8 +132,11 @@ export function resolveEmailTheme(input?: EmailThemeInput | null): EmailTheme {
   const gradientTo = input?.gradientTo ?? dark.defaultGradientTo;
   const accentColor = input?.accentColor ?? dark.defaultAccent;
 
-  // Single source of truth: the web theme engine.
+  // Single source of truth: the web theme engine. fontId is deliberately NOT
+  // passed — its web value is a var(--font-*) reference that email clients
+  // cannot resolve; the email equivalent comes from the registry below.
   const t = resolveTheme(base, gradientFrom, gradientTo, accentColor);
+  const customFont = getFontById(input?.fontId);
 
   const fromHsl = hex2hsl(gradientFrom);
 
@@ -160,7 +171,8 @@ export function resolveEmailTheme(input?: EmailThemeInput | null): EmailTheme {
     heroText,
     heroTextShadow,
     coverImageUrl: input?.coverImageUrl ? absoluteUrl(input.coverImageUrl) : undefined,
-    headingFont: t.headingFont === "inherit" ? EMAIL_BODY_FONT : t.headingFont,
+    headingFont:
+      customFont?.emailStack ?? (t.headingFont === "inherit" ? EMAIL_BODY_FONT : t.headingFont),
     bodyFont: EMAIL_BODY_FONT,
     headingWeight: base === "BOLD" ? "900" : "700",
     headingTransform: base === "BOLD" ? "uppercase" : "none",

@@ -715,6 +715,7 @@ export default function AdminClient({
           seasonal: themePresetForm.seasonal,
           month: themePresetForm.month ?? null,
           cardOpacity: themePresetForm.cardOpacity ?? null,
+          fontId: themePresetForm.fontId ?? null,
         });
         setThemePresets((prev) =>
           prev.map((p) => (p.id === themePresetForm.id ? { ...p, ...themePresetForm } : p))
@@ -731,6 +732,7 @@ export default function AdminClient({
           seasonal: themePresetForm.seasonal,
           month: themePresetForm.month ?? null,
           cardOpacity: themePresetForm.cardOpacity ?? null,
+          fontId: themePresetForm.fontId ?? null,
         });
         setThemePresets((prev) => [...prev, created as AdminThemePreset]);
         setFeedback({ type: "success", message: "Preset created." });
@@ -769,6 +771,7 @@ export default function AdminClient({
         seasonal: themePresetForm.seasonal,
         month: themePresetForm.month ?? null,
         cardOpacity: themePresetForm.cardOpacity ?? null,
+        fontId: themePresetForm.fontId ?? null,
       };
       setThemePresets((prev) =>
         prev.map((p) => (p.id === themePresetForm.id ? { ...p, defaultSnapshot: snap } : p))

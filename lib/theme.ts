@@ -1,3 +1,5 @@
+import { getHeadingFontValue } from "@/lib/fonts";
+
 export type BaseTheme = "DARK" | "SOFT" | "BOLD";
 
 // Single source of truth for the app shell (non-event pages: dashboard, auth, home)
@@ -73,6 +75,7 @@ export interface ThemePreset {
   accentColor: string;
   seasonal?: boolean;
   month?: number; // 1-12; drives date-proximity sort for seasonal presets
+  fontId?: string; // heading font from lib/fonts.ts; undefined = base theme default
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -196,6 +199,87 @@ export const THEME_PRESETS: ThemePreset[] = [
     gradientTo: "#6366f1",
     accentColor: "#0d9488",
   },
+  // Vivid presets
+  {
+    id: "miami-vice",
+    name: "Miami Vice",
+    emoji: "🌴",
+    base: "BOLD",
+    gradientFrom: "#f472b6",
+    gradientTo: "#22d3ee",
+    accentColor: "#ec4899",
+    fontId: "righteous",
+  },
+  {
+    id: "tropical-punch",
+    name: "Tropical Punch",
+    emoji: "🍹",
+    base: "BOLD",
+    gradientFrom: "#f59e0b",
+    gradientTo: "#dc2626",
+    accentColor: "#ea580c",
+    fontId: "fredoka",
+  },
+  {
+    id: "aurora",
+    name: "Aurora",
+    emoji: "🌌",
+    base: "DARK",
+    gradientFrom: "#22d3ee",
+    gradientTo: "#a855f7",
+    accentColor: "#34d399",
+    fontId: "space-grotesk",
+  },
+  {
+    id: "ultraviolet",
+    name: "Ultraviolet",
+    emoji: "🔮",
+    base: "DARK",
+    gradientFrom: "#7c3aed",
+    gradientTo: "#db2777",
+    accentColor: "#c084fc",
+    fontId: "outfit",
+  },
+  {
+    id: "citrus-pop",
+    name: "Citrus Pop",
+    emoji: "🍋",
+    base: "BOLD",
+    gradientFrom: "#facc15",
+    gradientTo: "#84cc16",
+    accentColor: "#ca8a04",
+    fontId: "fredoka",
+  },
+  {
+    id: "flamingo",
+    name: "Flamingo",
+    emoji: "🦩",
+    base: "SOFT",
+    gradientFrom: "#fb7185",
+    gradientTo: "#fdba74",
+    accentColor: "#f43f5e",
+    fontId: "pacifico",
+  },
+  {
+    id: "blue-raspberry",
+    name: "Blue Raspberry",
+    emoji: "🧊",
+    base: "BOLD",
+    gradientFrom: "#2563eb",
+    gradientTo: "#06b6d4",
+    accentColor: "#0ea5e9",
+    fontId: "bebas",
+  },
+  {
+    id: "grape-soda",
+    name: "Grape Soda",
+    emoji: "🍇",
+    base: "BOLD",
+    gradientFrom: "#7c3aed",
+    gradientTo: "#c026d3",
+    accentColor: "#a21caf",
+    fontId: "righteous",
+  },
   // Seasonal
   {
     id: "valentines",
@@ -207,6 +291,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accentColor: "#e11d48",
     seasonal: true,
     month: 2,
+    fontId: "dancing-script",
   },
   {
     id: "st-patricks",
@@ -328,6 +413,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accentColor: "#fbbf24",
     seasonal: true,
     month: 12,
+    fontId: "lora",
   },
   {
     id: "winter",
@@ -350,6 +436,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accentColor: "#fbbf24",
     seasonal: true,
     month: 12,
+    fontId: "playfair",
   },
 ];
 
@@ -519,7 +606,8 @@ export function resolveTheme(
   gradientFrom: string,
   gradientTo: string,
   accentColor: string,
-  cardOpacity?: number | null
+  cardOpacity?: number | null,
+  fontId?: string | null
 ): ResolvedTheme {
   const { r: aR, g: aG, b: aB } = hex2rgb(accentColor);
   const accentRgb = `${aR},${aG},${aB}`;
@@ -528,11 +616,15 @@ export function resolveTheme(
   const { h: h1, s: s1, l: l1 } = hex2hsl(gradientFrom);
   const { h: h2, s: s2, l: l2 } = hex2hsl(gradientTo);
 
+  // Custom heading font (lib/fonts.ts); null → each base's default below
+  const customHeadingFont = getHeadingFontValue(fontId);
+
   if (base === "DARK") {
-    // Use hue/saturation from gradient inputs; clamp lightness very dark (8/11/7%)
-    // Slightly brighter than before (was 5/7/4%)
-    const pageBg = `linear-gradient(135deg, hsl(${h1},${Math.min(s1, 20)}%,8%) 0%, hsl(${h2},${Math.min(s2, 16)}%,11%) 50%, hsl(${h1},${Math.min(s1, 12)}%,7%) 100%)`;
-    // Orb glows: ensure minimum lightness so they're visible on the dark bg (0.18/0.12, was 0.12/0.08)
+    // Use hue/saturation from gradient inputs; clamp lightness very dark (8/11/7%).
+    // Saturation caps were 20/16/12 — raised so vivid gradient picks read as
+    // rich color instead of near-grey.
+    const pageBg = `linear-gradient(135deg, hsl(${h1},${Math.min(s1, 36)}%,8%) 0%, hsl(${h2},${Math.min(s2, 30)}%,11%) 50%, hsl(${h1},${Math.min(s1, 24)}%,7%) 100%)`;
+    // Orb glows: ensure minimum lightness so they're visible on the dark bg (0.22/0.16, was 0.18/0.12)
     const glowL1 = Math.max(l1, 55);
     const glowL2 = Math.max(l2, 55);
     return {
@@ -540,12 +632,12 @@ export function resolveTheme(
       gradientTo,
       pageBg,
       pageDecoration: "dark-orbs",
-      pageDecorationBg1: `radial-gradient(circle, hsla(${h1},${s1}%,${glowL1}%,0.18) 0%, transparent 70%)`,
-      pageDecorationBg2: `radial-gradient(circle, hsla(${h2},${s2}%,${glowL2}%,0.12) 0%, transparent 70%)`,
+      pageDecorationBg1: `radial-gradient(circle, hsla(${h1},${s1}%,${glowL1}%,0.22) 0%, transparent 70%)`,
+      pageDecorationBg2: `radial-gradient(circle, hsla(${h2},${s2}%,${glowL2}%,0.16) 0%, transparent 70%)`,
       textPrimary: "#ffffff",
       textSecondary: "#a1a1aa",
       textMuted: "#71717a",
-      headingFont: "inherit",
+      headingFont: customHeadingFont ?? "inherit",
       accent: accentColor,
       accentRgb,
       accentFg,
@@ -573,8 +665,9 @@ export function resolveTheme(
   }
 
   if (base === "SOFT") {
-    // Page bg: very light tint from gradientFrom hue; blobs use the actual colors
-    const pageBg = `hsl(${h1},${Math.min(s1, 20)}%,97.5%)`;
+    // Page bg: very light tint from gradientFrom hue; blobs use the actual colors.
+    // Saturation cap 20→34 so vivid pastels tint the page visibly.
+    const pageBg = `hsl(${h1},${Math.min(s1, 34)}%,97%)`;
     const blobL1 = Math.min(l1, 82);
     const blobL2 = Math.min(l2, 82);
     return {
@@ -582,12 +675,12 @@ export function resolveTheme(
       gradientTo,
       pageBg,
       pageDecoration: "soft-blobs",
-      pageDecorationBg1: `radial-gradient(circle, hsla(${h1},${s1}%,${blobL1}%,0.55) 0%, transparent 70%)`,
-      pageDecorationBg2: `radial-gradient(circle, hsla(${h2},${s2}%,${blobL2}%,0.4) 0%, transparent 70%)`,
+      pageDecorationBg1: `radial-gradient(circle, hsla(${h1},${s1}%,${blobL1}%,0.62) 0%, transparent 70%)`,
+      pageDecorationBg2: `radial-gradient(circle, hsla(${h2},${s2}%,${blobL2}%,0.46) 0%, transparent 70%)`,
       textPrimary: "#1c1917",
       textSecondary: "#44403c",
       textMuted: "#87807b",
-      headingFont: "Georgia, 'Times New Roman', serif",
+      headingFont: customHeadingFont ?? "Georgia, 'Times New Roman', serif",
       accent: accentColor,
       accentRgb,
       accentFg,
@@ -626,7 +719,7 @@ export function resolveTheme(
     textPrimary: "#0a0a0a",
     textSecondary: "#52525b",
     textMuted: "#333333",
-    headingFont: "inherit",
+    headingFont: customHeadingFont ?? "inherit",
     heroText: "#ffffff",
     heroTextShadow: "0 1px 4px rgba(0,0,0,0.3)",
     accent: accentColor,

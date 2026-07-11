@@ -2,6 +2,13 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
+import {
+  DEFAULT_EFFECT_DENSITY,
+  DEFAULT_EFFECT_SPEED,
+  type EffectConfig,
+  type EffectDensity,
+  type EffectSpeed,
+} from "@/lib/effects";
 import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
 import { AppShell } from "@/components/ui/AppShell";
@@ -192,8 +199,17 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     event.theme?.gradientFrom ?? "#7c3aed",
     event.theme?.gradientTo ?? "#1e40af",
     event.theme?.accentColor ?? "#a855f7",
-    event.theme?.cardOpacity
+    event.theme?.cardOpacity,
+    event.theme?.fontId
   );
+
+  const effect: EffectConfig | null = event.theme?.effectId
+    ? {
+        effectId: event.theme.effectId,
+        density: (event.theme.effectDensity as EffectDensity) ?? DEFAULT_EFFECT_DENSITY,
+        speed: (event.theme.effectSpeed as EffectSpeed) ?? DEFAULT_EFFECT_SPEED,
+      }
+    : null;
 
   const channelConfig = await getChannelConfig();
 
@@ -202,6 +218,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       event={{ ...event, pendingRsvps } as Parameters<typeof EventPage>[0]["event"]}
       isHost={!!isHost}
       theme={theme}
+      effect={effect}
       coverUploadEnabled={true}
       guestRsvp={guestRsvp ?? null}
       sessionUser={sessionUser}

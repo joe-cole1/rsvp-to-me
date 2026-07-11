@@ -41,7 +41,24 @@ Your site's administrator may publish additional **theme presets** that also app
 
 A color picker sets the accent color used for buttons, links, and highlights.
 
-Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
+### Heading Font
+
+Under **Settings → Theme → Customize colors** you can pick a **heading font** for your event's title and section headings. Twelve fonts are available across four moods — elegant serifs (Playfair Display, DM Serif Display, Lora), poster styles (Bebas Neue, Righteous, Fredoka), scripts (Pacifico, Dancing Script, Caveat), and modern sans-serifs (Roboto, Space Grotesk, Outfit) — plus **Theme default**, which keeps each base look's built-in typography. Some presets apply a matching font automatically; you can always override it.
+
+Fonts are bundled with the app — nothing is loaded from external services, and guests only download a font if your event actually uses it.
+
+### Effects (Animated Backgrounds)
+
+The **Effect** picker in **Settings → Theme** adds an optional layer of gently drifting motifs behind your page — falling autumn leaves, floating balloons, rising fireworks, drifting turkeys, snow, confetti, and more (19 sets in all, including a beer toast 🍺).
+
+- **Off by default.** Effects are purely opt-in and fully independent of your theme — put turkeys on a St. Patrick's theme if that's your party.
+- **Density** (Sparse / Medium / Dense) controls how many motifs float around; **Speed** (Gentle / Medium / Lively) controls how fast.
+- Seasonal effects near your current date sort to the front of the picker as suggestions — nothing is ever applied automatically.
+- Confetti and balloons tint themselves to match your theme's colors.
+- Guests who have "reduce motion" enabled in their device accessibility settings see a calm, static page — the animation layer hides itself automatically.
+- Effects appear on the event page only; **emails always stay static** by design.
+
+Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
 
 ---
 

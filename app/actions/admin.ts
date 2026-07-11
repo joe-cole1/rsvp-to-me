@@ -15,6 +15,7 @@ import { sendWelcomeEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/auth";
 import { EMAIL_TEMPLATE_META, TEMPLATE_IDS, type TemplateId } from "@/emails/registry";
 import { assertAdmin } from "@/lib/auth-guards";
+import { isValidFontId } from "@/lib/fonts";
 import { getSystemConfigMap } from "@/lib/config";
 
 export async function getAdminStats() {
@@ -662,8 +663,10 @@ export async function createThemePreset(data: {
   seasonal: boolean;
   month?: number | null;
   cardOpacity?: number | null;
+  fontId?: string | null;
 }) {
   await assertAdmin();
+  if (!isValidFontId(data.fontId)) throw new Error("Unknown font");
   const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
   const snapshot = {
     name: data.name,
@@ -675,6 +678,7 @@ export async function createThemePreset(data: {
     seasonal: data.seasonal,
     month: data.month ?? null,
     cardOpacity: data.cardOpacity ?? null,
+    fontId: data.fontId ?? null,
   };
   const preset = await db.themePreset.create({
     data: {
@@ -702,6 +706,7 @@ export async function saveThemePresetDefault(id: string) {
     seasonal: preset.seasonal,
     month: preset.month ?? null,
     cardOpacity: preset.cardOpacity ?? null,
+    fontId: preset.fontId ?? null,
   };
   await db.themePreset.update({ where: { id }, data: { defaultSnapshot: snapshot } });
   revalidatePath("/admin");
@@ -721,9 +726,11 @@ export async function updateThemePreset(
     sortOrder: number;
     month: number | null;
     cardOpacity: number | null;
+    fontId: string | null;
   }>
 ) {
   await assertAdmin();
+  if ("fontId" in data && !isValidFontId(data.fontId)) throw new Error("Unknown font");
   await db.themePreset.update({ where: { id }, data });
   revalidatePath("/admin");
   return { success: true };

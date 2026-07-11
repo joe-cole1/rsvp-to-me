@@ -5,6 +5,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
 import { type BaseTheme, resolveTheme, getSortedPresets } from "@/lib/theme";
+import { DEFAULT_EFFECT_DENSITY, DEFAULT_EFFECT_SPEED } from "@/lib/effects";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -36,6 +37,7 @@ import type {
   SessionUser,
   SettingsOverrides,
   SettingsSection,
+  ThemeExtrasOverrides,
 } from "./settings-page/types";
 import { formatOptionsForTextarea, serializeOptionsForDb } from "./settings-page/helpers";
 import { buildStyles } from "./settings-page/styles";
@@ -83,6 +85,14 @@ export function SettingsPage({
   );
   const [themePresetId, setThemePresetId] = useState<string | null>(
     event.theme?.appliedPresetId ?? null
+  );
+  const [fontId, setFontId] = useState<string | null>(event.theme?.fontId ?? null);
+  const [effectId, setEffectId] = useState<string | null>(event.theme?.effectId ?? null);
+  const [effectDensity, setEffectDensity] = useState<string>(
+    event.theme?.effectDensity ?? DEFAULT_EFFECT_DENSITY
+  );
+  const [effectSpeed, setEffectSpeed] = useState<string>(
+    event.theme?.effectSpeed ?? DEFAULT_EFFECT_SPEED
   );
   const [themeSearch, setThemeSearch] = useState("");
   const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">(
@@ -255,7 +265,8 @@ export function SettingsPage({
     newTo: string,
     newAccent: string,
     presetId?: string | null,
-    newCardOpacity?: number
+    newCardOpacity?: number,
+    extras?: ThemeExtrasOverrides
   ) => {
     setSaveStatus("SAVING");
     setErr(null);
@@ -268,7 +279,14 @@ export function SettingsPage({
           newTo,
           newAccent,
           presetId !== undefined ? presetId : themePresetId,
-          newCardOpacity !== undefined ? newCardOpacity : cardOpacity
+          newCardOpacity !== undefined ? newCardOpacity : cardOpacity,
+          {
+            fontId: extras?.fontId !== undefined ? extras.fontId : fontId,
+            effectId: extras?.effectId !== undefined ? extras.effectId : effectId,
+            effectDensity:
+              extras?.effectDensity !== undefined ? extras.effectDensity : effectDensity,
+            effectSpeed: extras?.effectSpeed !== undefined ? extras.effectSpeed : effectSpeed,
+          }
         );
         setSaveStatus("SAVED");
       } catch {
@@ -782,7 +800,7 @@ export function SettingsPage({
   };
 
   // Resolve theme using state
-  const t = resolveTheme(base, gradientFrom, gradientTo, accent, cardOpacity);
+  const t = resolveTheme(base, gradientFrom, gradientTo, accent, cardOpacity, fontId);
 
   const S = buildStyles(t);
 
@@ -961,6 +979,14 @@ export function SettingsPage({
             setCardOpacity={setCardOpacity}
             themePresetId={themePresetId}
             setThemePresetId={setThemePresetId}
+            fontId={fontId}
+            setFontId={setFontId}
+            effectId={effectId}
+            setEffectId={setEffectId}
+            effectDensity={effectDensity}
+            setEffectDensity={setEffectDensity}
+            effectSpeed={effectSpeed}
+            setEffectSpeed={setEffectSpeed}
             triggerSaveTheme={triggerSaveTheme}
             t={t}
           />

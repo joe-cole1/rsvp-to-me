@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_SHELL, BASE_THEMES, ACCENT_PRESETS, resolveTheme } from "@/lib/theme";
+import { FONT_OPTIONS, FONT_CATEGORY_LABELS, getFontById } from "@/lib/fonts";
 import type { AdminThemePreset, ThemePresetFormState, ThemeSnapObj } from "./types";
 
 export function ThemePresetModal({
@@ -66,7 +67,8 @@ export function ThemePresetModal({
                   themePresetForm.accentColor !== defSnap.accentColor ||
                   themePresetForm.seasonal !== defSnap.seasonal ||
                   themePresetForm.month !== (defSnap.month ?? null) ||
-                  (themePresetForm.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null));
+                  (themePresetForm.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null) ||
+                  (themePresetForm.fontId ?? null) !== (defSnap.fontId ?? null));
               const origDiffersFromDefault =
                 origSnap &&
                 defSnap &&
@@ -78,7 +80,8 @@ export function ThemePresetModal({
                   origSnap.accentColor !== defSnap.accentColor ||
                   origSnap.seasonal !== defSnap.seasonal ||
                   (origSnap.month ?? null) !== (defSnap.month ?? null) ||
-                  (origSnap.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null));
+                  (origSnap.cardOpacity ?? null) !== (defSnap.cardOpacity ?? null) ||
+                  (origSnap.fontId ?? null) !== (defSnap.fontId ?? null));
               const formDiffersFromOriginal =
                 origSnap &&
                 (themePresetForm.name !== origSnap.name ||
@@ -89,7 +92,8 @@ export function ThemePresetModal({
                   themePresetForm.accentColor !== origSnap.accentColor ||
                   themePresetForm.seasonal !== origSnap.seasonal ||
                   themePresetForm.month !== (origSnap.month ?? null) ||
-                  (themePresetForm.cardOpacity ?? null) !== (origSnap.cardOpacity ?? null));
+                  (themePresetForm.cardOpacity ?? null) !== (origSnap.cardOpacity ?? null) ||
+                  (themePresetForm.fontId ?? null) !== (origSnap.fontId ?? null));
               return (
                 <div
                   style={{
@@ -521,6 +525,60 @@ export function ThemePresetModal({
                 )}
               </div>
 
+              {/* Heading font */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: APP_SHELL.textSecondary,
+                  }}
+                >
+                  HEADING FONT
+                </label>
+                <select
+                  value={themePresetForm.fontId ?? ""}
+                  onChange={(e) =>
+                    setThemePresetForm((f) => f && { ...f, fontId: e.target.value || null })
+                  }
+                  style={{
+                    backgroundColor: APP_SHELL.inputBg,
+                    border: `1px solid ${APP_SHELL.inputBorder}`,
+                    borderRadius: "8px",
+                    padding: "8px 10px",
+                    fontSize: "14px",
+                    color: APP_SHELL.textPrimary,
+                    outline: "none",
+                  }}
+                >
+                  <option value="">Theme default</option>
+                  {FONT_OPTIONS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.label} ({FONT_CATEGORY_LABELS[f.category]})
+                    </option>
+                  ))}
+                </select>
+                {themePresetForm.fontId && (
+                  <div
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      backgroundColor: APP_SHELL.inputBg,
+                      border: `1px solid ${APP_SHELL.inputBorder}`,
+                      color: APP_SHELL.textPrimary,
+                      fontFamily: (() => {
+                        const f = getFontById(themePresetForm.fontId);
+                        return f ? `var(${f.cssVar}), ${f.fallback}` : "inherit";
+                      })(),
+                      fontSize: "18px",
+                      textAlign: "center",
+                    }}
+                  >
+                    You&rsquo;re Invited!
+                  </div>
+                )}
+              </div>
+
               {/* Card opacity */}
               {(() => {
                 const defaultOp =
@@ -697,7 +755,8 @@ export function ThemePresetModal({
                       themePresetForm.accentColor !== themePresetOriginal.accentColor ||
                       themePresetForm.seasonal !== themePresetOriginal.seasonal ||
                       themePresetForm.month !== themePresetOriginal.month ||
-                      themePresetForm.cardOpacity !== themePresetOriginal.cardOpacity;
+                      themePresetForm.cardOpacity !== themePresetOriginal.cardOpacity ||
+                      (themePresetForm.fontId ?? null) !== (themePresetOriginal.fontId ?? null);
                     return isDirty ? (
                       <button
                         type="button"

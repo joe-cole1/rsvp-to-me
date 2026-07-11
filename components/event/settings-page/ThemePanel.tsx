@@ -2,7 +2,15 @@
 
 import { Check } from "lucide-react";
 import { ACCENT_PRESETS, BASE_THEMES, type BaseTheme, type ResolvedTheme } from "@/lib/theme";
-import type { DbThemePreset, EventInput, ThemeSnapObj } from "./types";
+import { FONT_OPTIONS, getFontById } from "@/lib/fonts";
+import {
+  EFFECT_DENSITIES,
+  EFFECT_SPEEDS,
+  getSortedEffectSets,
+  type EffectDensity,
+  type EffectSpeed,
+} from "@/lib/effects";
+import type { DbThemePreset, EventInput, ThemeExtrasOverrides, ThemeSnapObj } from "./types";
 import { Label, Section } from "./ui";
 
 export function ThemePanel({
@@ -27,6 +35,14 @@ export function ThemePanel({
   setCardOpacity,
   themePresetId,
   setThemePresetId,
+  fontId,
+  setFontId,
+  effectId,
+  setEffectId,
+  effectDensity,
+  setEffectDensity,
+  effectSpeed,
+  setEffectSpeed,
   triggerSaveTheme,
   t,
 }: {
@@ -53,16 +69,26 @@ export function ThemePanel({
   setCardOpacity: React.Dispatch<React.SetStateAction<number>>;
   themePresetId: string | null;
   setThemePresetId: React.Dispatch<React.SetStateAction<string | null>>;
+  fontId: string | null;
+  setFontId: React.Dispatch<React.SetStateAction<string | null>>;
+  effectId: string | null;
+  setEffectId: React.Dispatch<React.SetStateAction<string | null>>;
+  effectDensity: string;
+  setEffectDensity: React.Dispatch<React.SetStateAction<string>>;
+  effectSpeed: string;
+  setEffectSpeed: React.Dispatch<React.SetStateAction<string>>;
   triggerSaveTheme: (
     newBase: BaseTheme,
     newFrom: string,
     newTo: string,
     newAccent: string,
     presetId?: string | null,
-    newCardOpacity?: number
+    newCardOpacity?: number,
+    extras?: ThemeExtrasOverrides
   ) => void;
   t: ResolvedTheme;
 }) {
+  const sortedEffectSets = getSortedEffectSets();
   return (
     <Section title="Theme" t={t}>
       {/* Search */}
@@ -99,12 +125,14 @@ export function ThemePanel({
             : event.theme?.baseTheme === "SOFT"
               ? 0.85
               : 0.8);
+        const savedFontId = event.theme?.fontId ?? null;
         const hasChanged =
           base !== savedBase ||
           gradientFrom !== savedFrom ||
           gradientTo !== savedTo ||
           accent !== savedAccent ||
-          cardOpacity !== savedOpacity;
+          cardOpacity !== savedOpacity ||
+          fontId !== savedFontId;
         const appliedPreset = themePresetId
           ? themePresets.find((p) => p.id === themePresetId)
           : null;
@@ -115,7 +143,8 @@ export function ThemePanel({
             gradientFrom !== presetDefault.gradientFrom ||
             gradientTo !== presetDefault.gradientTo ||
             accent !== presetDefault.accentColor ||
-            (presetDefault.cardOpacity != null && cardOpacity !== presetDefault.cardOpacity));
+            (presetDefault.cardOpacity != null && cardOpacity !== presetDefault.cardOpacity) ||
+            fontId !== (presetDefault.fontId ?? null));
         return (
           <>
             <div
@@ -164,13 +193,15 @@ export function ThemePanel({
                     setGradientTo(savedTo);
                     setAccent(savedAccent);
                     setCardOpacity(savedOpacity);
+                    setFontId(savedFontId);
                     triggerSaveTheme(
                       savedBase,
                       savedFrom,
                       savedTo,
                       savedAccent,
                       undefined,
-                      savedOpacity
+                      savedOpacity,
+                      { fontId: savedFontId }
                     );
                   }}
                   style={{
@@ -201,18 +232,21 @@ export function ThemePanel({
                       : presetDefault.base === "SOFT"
                         ? 0.85
                         : 0.8);
+                  const defaultFontId = presetDefault.fontId ?? null;
                   setBase(presetDefault.base);
                   setGradientFrom(presetDefault.gradientFrom);
                   setGradientTo(presetDefault.gradientTo);
                   setAccent(presetDefault.accentColor);
                   setCardOpacity(defaultOpacity);
+                  setFontId(defaultFontId);
                   triggerSaveTheme(
                     presetDefault.base,
                     presetDefault.gradientFrom,
                     presetDefault.gradientTo,
                     presetDefault.accentColor,
                     themePresetId,
-                    defaultOpacity
+                    defaultOpacity,
+                    { fontId: defaultFontId }
                   );
                 }}
                 style={{
@@ -259,11 +293,13 @@ export function ThemePanel({
               onClick={() => {
                 const defaultOpacity =
                   p.cardOpacity ?? (p.base === "DARK" ? 0.5 : p.base === "SOFT" ? 0.85 : 0.8);
+                const presetFontId = p.fontId ?? null;
                 setBase(p.base);
                 setGradientFrom(p.gradientFrom);
                 setGradientTo(p.gradientTo);
                 setAccent(p.accentColor);
                 setCardOpacity(defaultOpacity);
+                setFontId(presetFontId);
                 setThemePresetId(p.id);
                 triggerSaveTheme(
                   p.base,
@@ -271,7 +307,8 @@ export function ThemePanel({
                   p.gradientTo,
                   p.accentColor,
                   p.id,
-                  defaultOpacity
+                  defaultOpacity,
+                  { fontId: presetFontId }
                 );
               }}
               style={{
@@ -424,6 +461,88 @@ export function ThemePanel({
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Heading font */}
+            <div style={{ marginBottom: "14px" }}>
+              <Label t={t}>Heading Font</Label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))",
+                  gap: "6px",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setFontId(null);
+                    triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
+                      fontId: null,
+                    });
+                  }}
+                  style={{
+                    padding: "9px 6px",
+                    borderRadius: "10px",
+                    border: `2px solid ${fontId === null ? t.accent : t.inputBorder}`,
+                    background: fontId === null ? t.accentBg : t.inputBg,
+                    color: t.textPrimary,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Theme default
+                </button>
+                {FONT_OPTIONS.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      setFontId(f.id);
+                      triggerSaveTheme(
+                        base,
+                        gradientFrom,
+                        gradientTo,
+                        accent,
+                        undefined,
+                        undefined,
+                        { fontId: f.id }
+                      );
+                    }}
+                    title={f.label}
+                    style={{
+                      padding: "9px 6px",
+                      borderRadius: "10px",
+                      border: `2px solid ${fontId === f.id ? t.accent : t.inputBorder}`,
+                      background: fontId === f.id ? t.accentBg : t.inputBg,
+                      color: t.textPrimary,
+                      fontSize: "14px",
+                      fontFamily: `var(${f.cssVar}), ${f.fallback}`,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              {fontId && getFontById(fontId) && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    background: t.inputBg,
+                    border: `1px solid ${t.inputBorder}`,
+                    color: t.textPrimary,
+                    fontFamily: t.headingFont,
+                    fontSize: "20px",
+                    textAlign: "center",
+                  }}
+                >
+                  You&rsquo;re Invited!
+                </div>
+              )}
             </div>
 
             {/* Background colors */}
@@ -619,6 +738,161 @@ export function ThemePanel({
                   : cardOpacity > 0.92
                     ? "Near-solid cards"
                     : "Balanced transparency"}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Effect (animated background) ── */}
+      <div style={{ marginBottom: "12px" }}>
+        <Label t={t}>Effect</Label>
+        <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "8px" }}>
+          Optional floating motifs behind your event page. Off by default — mix any effect with any
+          theme.
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))",
+            gap: "7px",
+            maxHeight: "240px",
+            overflowY: "auto",
+          }}
+        >
+          <button
+            onClick={() => {
+              setEffectId(null);
+              triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
+                effectId: null,
+              });
+            }}
+            style={{
+              padding: "10px 4px",
+              borderRadius: "10px",
+              border: `2px solid ${effectId === null ? t.accent : t.inputBorder}`,
+              background: effectId === null ? t.accentBg : t.inputBg,
+              color: t.textPrimary,
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            <span style={{ fontSize: "18px" }}>🚫</span>
+            <span style={{ fontSize: "10px", fontWeight: 600 }}>None</span>
+          </button>
+          {sortedEffectSets.map((e) => (
+            <button
+              key={e.id}
+              onClick={() => {
+                setEffectId(e.id);
+                triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
+                  effectId: e.id,
+                });
+              }}
+              title={e.name}
+              style={{
+                padding: "10px 4px",
+                borderRadius: "10px",
+                border: `2px solid ${effectId === e.id ? t.accent : t.inputBorder}`,
+                background: effectId === e.id ? t.accentBg : t.inputBg,
+                color: t.textPrimary,
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <span style={{ fontSize: "18px" }}>{e.emoji}</span>
+              <span
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                }}
+              >
+                {e.name}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {effectId && (
+          <div style={{ marginTop: "10px", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>
+                Density
+              </div>
+              <div style={{ display: "flex", gap: "6px" }}>
+                {(Object.keys(EFFECT_DENSITIES) as EffectDensity[]).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => {
+                      setEffectDensity(d);
+                      triggerSaveTheme(
+                        base,
+                        gradientFrom,
+                        gradientTo,
+                        accent,
+                        undefined,
+                        undefined,
+                        { effectDensity: d }
+                      );
+                    }}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: `1px solid ${effectDensity === d ? t.accent : t.inputBorder}`,
+                      background: effectDensity === d ? t.accentBg : "transparent",
+                      color: effectDensity === d ? t.accent : t.textMuted,
+                    }}
+                  >
+                    {EFFECT_DENSITIES[d].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>Speed</div>
+              <div style={{ display: "flex", gap: "6px" }}>
+                {(Object.keys(EFFECT_SPEEDS) as EffectSpeed[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      setEffectSpeed(s);
+                      triggerSaveTheme(
+                        base,
+                        gradientFrom,
+                        gradientTo,
+                        accent,
+                        undefined,
+                        undefined,
+                        { effectSpeed: s }
+                      );
+                    }}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: `1px solid ${effectSpeed === s ? t.accent : t.inputBorder}`,
+                      background: effectSpeed === s ? t.accentBg : "transparent",
+                      color: effectSpeed === s ? t.accent : t.textMuted,
+                    }}
+                  >
+                    {EFFECT_SPEEDS[s].label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
