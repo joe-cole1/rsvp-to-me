@@ -41,3 +41,5 @@ For every bug fix merged to main:
 | `cohost-invite-reorder.test.ts`                      | Test co-host invitation flow and event info section widget reordering actions                                      | CH-REORD |
 | `sec-14-admin-error-sanitization.test.ts`            | Surfacing raw SMTP/Twilio configuration errors to the admin UI (information disclosure)                            | SEC-14   |
 | `sec-7-ssrf-ip-hardening.test.ts`                    | SSRF URL validation bypasses via loopback and private subnets                                                      | SEC-7    |
+| `sec-35-signin-enumeration-shared-ip.test.ts`        | Sign-in leaked account existence (success vs. auth_failed) + shared loopback IP bucket locked out all sign-ins     | SEC-35   |
+| `sec-36-invite-guest-activity-log.test.ts`           | Host/co-host `inviteGuest` issuance wrote no ActivityEvent — invite blasts were unattributable                     | SEC-36   |

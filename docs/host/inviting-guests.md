@@ -33,6 +33,8 @@ Invited guests appear on your guest list with an **Invited** status until they r
 
 The invitations table tracks when each invite was sent and whether the guest has responded yet, so you can follow up with anyone who hasn't.
 
+Each batch of invites you send also shows up in the event's **activity feed**, attributed to whoever sent it. On a shared event this gives you and your co-hosts a clear record of who invited how many people and when.
+
 ---
 
 ## Let Guests Invite Friends
