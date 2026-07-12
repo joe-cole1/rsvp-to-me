@@ -58,15 +58,21 @@ _Note on Themed Templates:_ Every event email (invite, RSVP confirmation, approv
 
 ## What Happens Without Email Configured
 
-If no email settings are configured in `.env` or the Admin Panel, the application defaults to **console logging**. Magic links and message bodies are written to the container's standard output instead of being sent.
+If no email settings are configured in `.env` or the Admin Panel, the application falls back to **console logging** instead of sending.
 
-You can retrieve magic links for testing by running:
+**In development** (`NODE_ENV` not `production`), the full message — recipient, subject, and body, including magic links — is written to standard output so you can grab a sign-in link locally:
 
 ```bash
 docker compose logs app | grep -i "magic link"
 ```
 
-_Note:_ This fallback is great for local development but is not suitable for production.
+**In production**, the fallback deliberately does **not** write recipients, message bodies, or magic-link/RSVP tokens to the logs — those are live credentials and must not sit in log storage. Instead it logs only a generic warning that no transport is configured:
+
+```
+[email:dev] No email transport configured — message not sent. Configure SMTP or a Cloudflare provider.
+```
+
+_Note:_ The console fallback is for local development only. A production deployment **must** configure a real email provider (SMTP or Cloudflare) — otherwise magic-link sign-in and all notifications silently fail to send.
 
 ---
 

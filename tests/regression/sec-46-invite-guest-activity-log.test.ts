@@ -1,4 +1,4 @@
-// SEC-36 — Host/co-host invite issuance was not attributed in the activity log.
+// SEC-46 — Host/co-host invite issuance was not attributed in the activity log.
 //
 // Bug (found 2026-07, STRIDE threat model of the auth/invite flows —
 // Repudiation): inviteGuest fanned out email/SMS invites but, unlike the
@@ -72,7 +72,7 @@ import { inviteGuest } from "@/app/actions/event";
 
 const EVENT_ID = "evt-1";
 
-describe("SEC-36: inviteGuest writes an attributed activity-log entry", () => {
+describe("SEC-46: inviteGuest writes an attributed activity-log entry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSession.mockResolvedValue({ userId: "host-1", email: "alice@x.com", role: "HOST" });

@@ -327,7 +327,18 @@ async function send(opts: MailOpts) {
 
   const transport = getSmtpTransport(config.smtp);
   if (!transport) {
-    console.log("[email:dev]", { to: resolvedTo, subject: opts.subject, html: opts.html });
+    // Console fallback when no transport is configured. The rendered HTML can
+    // contain live credentials (magic-link tokens, per-RSVP editTokens), so
+    // only dump the full payload in development. In production a mis-config
+    // must not write sign-in links or recipient addresses into the logs — log
+    // just enough to signal that delivery was skipped.
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "[email:dev] No email transport configured — message not sent. Configure SMTP or a Cloudflare provider."
+      );
+    } else {
+      console.log("[email:dev]", { to: resolvedTo, subject: opts.subject, html: opts.html });
+    }
     return;
   }
   return transport.sendMail({

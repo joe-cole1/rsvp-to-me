@@ -29,7 +29,7 @@ import { headers } from "next/headers";
  * limiter becomes a single shared bucket across all clients. Callers that would
  * otherwise self-DoS on a shared bucket (e.g. the sign-in limiter, which would
  * lock out every user at once) should consult this and fall back to their
- * per-identifier limit instead. See SEC-35.
+ * per-identifier limit instead. See SEC-45.
  */
 export function isTrustedIpConfigured(): boolean {
   return !!process.env.TRUSTED_IP_HEADER;

@@ -22,7 +22,7 @@ export async function sendMagicLinkAction(
   }
   const identifier = parseResult.data.identifier;
 
-  // SEC-35: only apply the per-IP limiter when a trusted proxy IP is configured.
+  // SEC-45: only apply the per-IP limiter when a trusted proxy IP is configured.
   // Without one, getClientIp() collapses to loopback and this becomes a single
   // shared bucket across ALL clients — 20 sign-in attempts anywhere would lock
   // every user out. The per-identifier limiter below is the real protection in
@@ -51,7 +51,7 @@ export async function sendMagicLinkAction(
   const isPhone = looksLikePhone(identifier);
   const link = await createMagicLink(identifier, redirect);
 
-  // SEC-35: never reveal whether an account exists. When createMagicLink returns
+  // SEC-40: never reveal whether an account exists. When createMagicLink returns
   // null (no user for this identifier) we send nothing but return the SAME
   // success response as a real send — otherwise the sign-in screen renders a
   // distinct "sign-in failed" state for unknown identifiers, letting an attacker

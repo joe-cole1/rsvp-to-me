@@ -1,15 +1,15 @@
-// SEC-35 — Host sign-in flow: account enumeration + shared-bucket self-DoS.
+// SEC-40 / SEC-45 — Host sign-in flow: account enumeration + shared-bucket self-DoS.
 //
 // Bugs (found 2026-07, STRIDE threat model of the auth/invite flows):
 //
-//   1. Information disclosure: sendMagicLinkAction returned `auth_failed` (which
+//   1. [SEC-40] Information disclosure: sendMagicLinkAction returned `auth_failed` (which
 //      the sign-in screen renders as a distinct "sign-in failed" state) when the
 //      identifier had no account, but `success` when it did. The differential
 //      let an attacker enumerate which emails/phones are registered. SEC-14a had
 //      unified the error CODE but still branched success vs. failure on account
 //      existence.
 //
-//   2. Denial of service: the per-IP limiter used getClientIp(), which collapses
+//   2. [SEC-45] Denial of service: the per-IP limiter used getClientIp(), which collapses
 //      to loopback ("127.0.0.1") whenever no TRUSTED_IP_HEADER is configured (the
 //      default). That made `ip:127.0.0.1:magic-link` a single global bucket —
 //      20 sign-in attempts anywhere locked out EVERY user for 10 minutes.
@@ -52,7 +52,7 @@ afterEach(() => {
   delete process.env.TRUSTED_IP_HEADER;
 });
 
-describe("SEC-35: no account enumeration on sign-in", () => {
+describe("SEC-40: no account enumeration on sign-in", () => {
   it("returns the same success response for an unknown identifier and sends nothing", async () => {
     mocks.mockCreateMagicLink.mockResolvedValue(null); // no user
 
@@ -76,7 +76,7 @@ describe("SEC-35: no account enumeration on sign-in", () => {
   });
 });
 
-describe("SEC-35: no shared-bucket sign-in lockout", () => {
+describe("SEC-45: no shared-bucket sign-in lockout", () => {
   it("does not consult a global loopback IP bucket when no trusted proxy is configured", async () => {
     mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=abc");
 

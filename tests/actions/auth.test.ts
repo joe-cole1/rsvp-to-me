@@ -39,7 +39,7 @@ import { sendMagicLinkAction, registerHostAction } from "@/app/actions/auth";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.mockRateLimit.mockResolvedValue({ success: true });
-  // SEC-35: the per-IP sign-in limiter only runs when a trusted proxy IP is
+  // SEC-45: the per-IP sign-in limiter only runs when a trusted proxy IP is
   // configured. Default it on here so the two-tier (IP then identifier) tests
   // below exercise both limiters; individual tests override as needed.
   process.env.TRUSTED_IP_HEADER = "x-forwarded-for";
@@ -70,7 +70,7 @@ describe("sendMagicLinkAction", () => {
     expect(result.error).toContain("Too many sign-in requests for this email/phone");
   });
 
-  it("skips the shared per-IP limiter when no trusted proxy is configured (SEC-35)", async () => {
+  it("skips the shared per-IP limiter when no trusted proxy is configured (SEC-45)", async () => {
     // Without TRUSTED_IP_HEADER, getClientIp() collapses to loopback, so an
     // IP-keyed limiter would be one global bucket that self-DoSes all sign-ins.
     // The action must fall through to the identifier limiter only.
@@ -85,7 +85,7 @@ describe("sendMagicLinkAction", () => {
     expect(mocks.mockRateLimit).toHaveBeenCalledWith("id:user@example.com:magic-link", 5, 600);
   });
 
-  it("returns success and sends nothing when user is not found (no enumeration, SEC-35)", async () => {
+  it("returns success and sends nothing when user is not found (no enumeration, SEC-40)", async () => {
     mocks.mockCreateMagicLink.mockResolvedValue(null);
 
     const result = await sendMagicLinkAction("notfound@example.com");
@@ -195,10 +195,10 @@ describe("registerHostAction", () => {
       expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:9.9.9.9:magic-link", 20, 600);
     });
 
-    it("skips the per-IP limiter entirely when only spoofable headers are present (SEC-22 + SEC-35)", async () => {
+    it("skips the per-IP limiter entirely when only spoofable headers are present (SEC-22 + SEC-45)", async () => {
       // Spoofable forwarding headers must NOT be trusted by default. Rather than
       // collapse to a single shared loopback bucket (which self-DoSes all
-      // sign-ins), SEC-35 skips the per-IP limiter outright when no
+      // sign-ins), SEC-45 skips the per-IP limiter outright when no
       // TRUSTED_IP_HEADER is set — only the identifier limiter runs.
       mocks.mockHeadersGet.mockImplementation((h: string) => {
         if (h === "cf-connecting-ip") return "8.8.8.8";
