@@ -23,6 +23,18 @@ import { headers } from "next/headers";
  * slug) that protect the sensitive flows still apply. Operators behind a proxy
  * should set `TRUSTED_IP_HEADER` to restore per-client granularity.
  */
+/**
+ * Whether a trusted source of the client IP is configured. When false,
+ * `getClientIp()` collapses every request to loopback, so any IP-keyed rate
+ * limiter becomes a single shared bucket across all clients. Callers that would
+ * otherwise self-DoS on a shared bucket (e.g. the sign-in limiter, which would
+ * lock out every user at once) should consult this and fall back to their
+ * per-identifier limit instead. See SEC-45.
+ */
+export function isTrustedIpConfigured(): boolean {
+  return !!process.env.TRUSTED_IP_HEADER;
+}
+
 export async function getClientIp(): Promise<string> {
   const headersList = await headers();
 

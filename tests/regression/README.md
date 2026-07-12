@@ -43,3 +43,5 @@ For every bug fix merged to main:
 | `sec-7-ssrf-ip-hardening.test.ts`                    | SSRF URL validation bypasses via loopback and private subnets                                                         | SEC-7     |
 | `sec-32-33-host-only-event-data-leak.test.ts`        | Host/co-host emails + hidden guest list shipped in event-page RSC payload; GUESTS_ONLY guest list reachable by anyone | SEC-32/33 |
 | `sec-35-email-console-fallback-prod-leak.test.ts`    | Email console fallback logged magic-link/edit tokens + recipient in production                                        | SEC-35    |
+| `sec-40-45-signin-enumeration-shared-ip.test.ts`     | Sign-in leaked account existence (success vs. auth_failed) + shared loopback IP bucket locked out all sign-ins        | SEC-40/45 |
+| `sec-46-invite-guest-activity-log.test.ts`           | Host/co-host `inviteGuest` issuance wrote no ActivityEvent — invite blasts were unattributable                        | SEC-46    |

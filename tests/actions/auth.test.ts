@@ -39,6 +39,10 @@ import { sendMagicLinkAction, registerHostAction } from "@/app/actions/auth";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.mockRateLimit.mockResolvedValue({ success: true });
+  // SEC-45: the per-IP sign-in limiter only runs when a trusted proxy IP is
+  // configured. Default it on here so the two-tier (IP then identifier) tests
+  // below exercise both limiters; individual tests override as needed.
+  process.env.TRUSTED_IP_HEADER = "x-forwarded-for";
 });
 
 describe("sendMagicLinkAction", () => {
@@ -66,13 +70,30 @@ describe("sendMagicLinkAction", () => {
     expect(result.error).toContain("Too many sign-in requests for this email/phone");
   });
 
-  it("returns auth_failed and sends no email when user is not found", async () => {
+  it("skips the shared per-IP limiter when no trusted proxy is configured (SEC-45)", async () => {
+    // Without TRUSTED_IP_HEADER, getClientIp() collapses to loopback, so an
+    // IP-keyed limiter would be one global bucket that self-DoSes all sign-ins.
+    // The action must fall through to the identifier limiter only.
+    delete process.env.TRUSTED_IP_HEADER;
+    mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=abc");
+
+    const result = await sendMagicLinkAction("user@example.com");
+
+    expect(result.success).toBe(true);
+    // Only the identifier limiter is consulted — no ip:*:magic-link key.
+    expect(mocks.mockRateLimit).toHaveBeenCalledTimes(1);
+    expect(mocks.mockRateLimit).toHaveBeenCalledWith("id:user@example.com:magic-link", 5, 600);
+  });
+
+  it("returns success and sends nothing when user is not found (no enumeration, SEC-40)", async () => {
     mocks.mockCreateMagicLink.mockResolvedValue(null);
 
     const result = await sendMagicLinkAction("notfound@example.com");
-    expect(result.success).toBe(false);
-    expect(result.error).toBe("auth_failed");
+    // Same response as a real send — must NOT reveal the account is absent.
+    expect(result.success).toBe(true);
+    expect(result.error).toBeUndefined();
     expect(mocks.mockSendMagicLinkEmail).not.toHaveBeenCalled();
+    expect(mocks.mockSendMagicLinkSms).not.toHaveBeenCalled();
   });
 
   it("returns auth_failed when email delivery throws an error", async () => {
@@ -174,9 +195,11 @@ describe("registerHostAction", () => {
       expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:9.9.9.9:magic-link", 20, 600);
     });
 
-    it("ignores cf-connecting-ip / x-real-ip / x-forwarded-for without TRUSTED_IP_HEADER (SEC-22)", async () => {
-      // Spoofable forwarding headers must NOT be trusted by default — otherwise a
-      // client rotating them defeats the per-IP limiter. IP collapses to loopback.
+    it("skips the per-IP limiter entirely when only spoofable headers are present (SEC-22 + SEC-45)", async () => {
+      // Spoofable forwarding headers must NOT be trusted by default. Rather than
+      // collapse to a single shared loopback bucket (which self-DoSes all
+      // sign-ins), SEC-45 skips the per-IP limiter outright when no
+      // TRUSTED_IP_HEADER is set — only the identifier limiter runs.
       mocks.mockHeadersGet.mockImplementation((h: string) => {
         if (h === "cf-connecting-ip") return "8.8.8.8";
         if (h === "x-real-ip") return "7.7.7.7";
@@ -184,7 +207,8 @@ describe("registerHostAction", () => {
         return null;
       });
       await sendMagicLinkAction("test@example.com");
-      expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:127.0.0.1:magic-link", 20, 600);
+      expect(mocks.mockRateLimit).not.toHaveBeenCalledWith("ip:127.0.0.1:magic-link", 20, 600);
+      expect(mocks.mockRateLimit).toHaveBeenCalledWith("id:test@example.com:magic-link", 5, 600);
     });
 
     it("uses the LAST hop of a trusted X-Forwarded-For chain (SEC-22)", async () => {

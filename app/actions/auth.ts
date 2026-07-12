@@ -5,7 +5,7 @@ import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
 import { SendMagicLinkSchema, RegisterHostSchema } from "@/lib/schemas";
 import { rateLimit } from "@/lib/rateLimit";
-import { getClientIp } from "@/lib/clientIp";
+import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 
 function looksLikePhone(s: string): boolean {
   return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
@@ -21,15 +21,22 @@ export async function sendMagicLinkAction(
     return { success: false, error: "Invalid email or phone number format." };
   }
   const identifier = parseResult.data.identifier;
-  const ip = await getClientIp();
 
-  // Rate limit by IP: max 20 per 10 minutes
-  const ipLimit = await rateLimit(`ip:${ip}:magic-link`, 20, 600);
-  if (!ipLimit.success) {
-    return {
-      success: false,
-      error: "Too many sign-in requests from this IP. Please try again later.",
-    };
+  // SEC-45: only apply the per-IP limiter when a trusted proxy IP is configured.
+  // Without one, getClientIp() collapses to loopback and this becomes a single
+  // shared bucket across ALL clients — 20 sign-in attempts anywhere would lock
+  // every user out. The per-identifier limiter below is the real protection in
+  // that mode (as documented in lib/clientIp.ts); a proxy deployment sets
+  // TRUSTED_IP_HEADER to restore per-client granularity.
+  if (isTrustedIpConfigured()) {
+    const ip = await getClientIp();
+    const ipLimit = await rateLimit(`ip:${ip}:magic-link`, 20, 600);
+    if (!ipLimit.success) {
+      return {
+        success: false,
+        error: "Too many sign-in requests from this IP. Please try again later.",
+      };
+    }
   }
 
   // Rate limit by identifier: max 5 per 10 minutes
@@ -44,8 +51,14 @@ export async function sendMagicLinkAction(
   const isPhone = looksLikePhone(identifier);
   const link = await createMagicLink(identifier, redirect);
 
+  // SEC-40: never reveal whether an account exists. When createMagicLink returns
+  // null (no user for this identifier) we send nothing but return the SAME
+  // success response as a real send — otherwise the sign-in screen renders a
+  // distinct "sign-in failed" state for unknown identifiers, letting an attacker
+  // enumerate registered emails/phones. This refines SEC-14a, which unified the
+  // error CODE but still branched success vs. failure on account existence.
   if (!link) {
-    return { success: false, error: "auth_failed" };
+    return { success: true };
   }
 
   try {

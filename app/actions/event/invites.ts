@@ -186,6 +186,18 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
     throw new Error(`Failed to send invites: ${errors.join("; ")}`);
   }
 
+  // SEC-46: attribute host/co-host invite issuance in the activity log. Without
+  // this, invites sent via inviteGuest were the only invite path with no audit
+  // trail (inviteFriendAsGuest already logs), leaving co-host-driven invite
+  // blasts unattributable. Fire-and-forget with logSafe, matching addRSVP.
+  const hostLabel = session.email?.split("@")[0] ?? "A host";
+  logActivity(
+    eventId,
+    "guest_invite",
+    `${hostLabel} invited ${invited.length} guest${invited.length === 1 ? "" : "s"}`,
+    hostLabel
+  ).catch(logSafe("inviteGuest"));
+
   return {
     success: true,
     emailOrPhone: invited.join(", "),
