@@ -36,6 +36,72 @@ export type SerializedGuestRsvp = {
   user: { avatarUrl: string | null } | null;
 };
 
+/** The event's guest-list visibility setting. */
+export type GuestListVisibility = "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
+
+/** How the current viewer relates to the event, for guest-list gating. */
+export type GuestListViewer = {
+  isHost: boolean;
+  /** Logged-in user who already has an RSVP on this event. */
+  isLoggedInGuest: boolean;
+  /** Presented a valid per-RSVP editToken for this event. */
+  hasValidToken: boolean;
+};
+
+/**
+ * SEC-33: authorize access to the dedicated `/e/[slug]/guests` full guest-list
+ * page. Hosts/co-hosts/admins always see it. `GUESTS_ONLY` additionally admits
+ * the event's own guests — a logged-in guest with an RSVP or a valid token —
+ * but never an anonymous visitor. `HOST_ONLY` is hosts only. `ALL` is anyone
+ * who already cleared the visibility/password gate.
+ *
+ * Callers must run the `resolveEventAccess` gate first; this only layers the
+ * guest-list-visibility rule on top of an already-granted viewer.
+ */
+export function canViewGuestListPage(
+  guestListVis: GuestListVisibility | string,
+  { isHost, isLoggedInGuest, hasValidToken }: GuestListViewer
+): boolean {
+  if (isHost) return true;
+  if (guestListVis === "HOST_ONLY") return false;
+  if (guestListVis === "GUESTS_ONLY") return isLoggedInGuest || hasValidToken;
+  return true; // "ALL"
+}
+
+/**
+ * SEC-32: minimal structural shape of the fields `stripHostOnlyEventData`
+ * touches. Kept generic so the huge Prisma event payload passed to the event
+ * page's Client Component satisfies it structurally.
+ */
+type StrippableEvent = {
+  guestListVis: GuestListVisibility | string;
+  host: { email: string | null };
+  coHosts: { user: { email: string | null } }[];
+  rsvps: unknown[];
+};
+
+/**
+ * SEC-32: remove host-only data before an event object is serialized into the
+ * RSC payload of the public event page (a Client Component boundary — every
+ * field ships to anyone who can load the page, not just what the UI renders).
+ * For non-hosts:
+ *   - null out host/co-host email (contact-info PII, only ever a display
+ *     fallback behind name/displayName — never meant to reach guests);
+ *   - empty the approved guest list whenever the guest-list visibility gate
+ *     would hide it in the UI (`guestListVis !== "ALL"`), so hidden rows aren't
+ *     shipped behind a render-only guard.
+ * Hosts get the object unchanged.
+ */
+export function stripHostOnlyEventData<E extends StrippableEvent>(event: E, isHost: boolean): E {
+  if (isHost) return event;
+  return {
+    ...event,
+    host: { ...event.host, email: null },
+    coHosts: event.coHosts.map((ch) => ({ ...ch, user: { ...ch.user, email: null } })),
+    rsvps: event.guestListVis === "ALL" ? event.rsvps : [],
+  } as E;
+}
+
 /**
  * Serialize an RSVP row for the guest-list client component, stripping
  * host-only fields when `isHost` is false. `note` stays visible to everyone

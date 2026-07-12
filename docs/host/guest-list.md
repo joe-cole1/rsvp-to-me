@@ -27,8 +27,10 @@ Filter the list by status to focus on what matters:
 Choose how much guests can see in Settings:
 
 - **Everyone can see** — any visitor can view the list.
-- **Going guests only** — only guests marked Going can see it.
+- **Going guests only** — visible to your guests (anyone who has RSVP'd or opened their personal invite link) and to you and your co-hosts. Anonymous visitors who just have the link can't see it.
 - **Host only** — hidden from guests; visible to you and your co-hosts.
+
+This setting is enforced on the server, not just hidden in the page — with **Going guests only** or **Host only**, the restricted list is never sent to a browser that shouldn't see it, including on the dedicated guest-list page at `/e/[slug]/guests`.
 
 If your event is **Private** or password-protected, the guest list is gated the same way as the event page — a visitor who hasn't been let in can't reach it, regardless of the setting above.
 

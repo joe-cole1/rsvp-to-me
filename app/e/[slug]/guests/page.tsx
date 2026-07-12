@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
-import { serializeGuestRsvp } from "@/lib/guestList";
+import { serializeGuestRsvp, canViewGuestListPage } from "@/lib/guestList";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -10,6 +10,10 @@ import ProfileDropdown from "@/components/ui/ProfileDropdown";
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const { slug } = await props.params;
+  const token =
+    typeof (await props.searchParams).token === "string"
+      ? ((await props.searchParams).token as string)
+      : undefined;
 
   const event = await db.event.findUnique({
     where: { slug },
@@ -34,10 +38,16 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
 
   // Enforce the same visibility/password gate as the event page — a PRIVATE or
   // password-protected event must not expose its guest list to anonymous visitors.
-  const { sessionUser, isHost, decision } = await resolveEventAccess(event, slug);
+  const { sessionUser, isHost, isLoggedInGuest, hasValidToken, decision } =
+    await resolveEventAccess(event, slug, { token });
   if (decision !== "granted") redirect(`/e/${slug}`);
 
-  if (event.guestListVis === "HOST_ONLY" && !isHost) redirect(`/e/${slug}`);
+  // SEC-33: layer the guest-list-visibility setting on top of the access gate.
+  // HOST_ONLY → hosts only; GUESTS_ONLY → hosts + the event's own guests, never
+  // anonymous visitors (who can still be "granted" on a PUBLIC event).
+  if (!canViewGuestListPage(event.guestListVis, { isHost, isLoggedInGuest, hasValidToken })) {
+    redirect(`/e/${slug}`);
+  }
 
   // Fetch invitations that haven't turned into RSVPs yet (host-only data)
   const pendingInvitations = isHost

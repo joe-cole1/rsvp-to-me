@@ -14,6 +14,7 @@ import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
 import { AppShell } from "@/components/ui/AppShell";
 import { getChannelConfig } from "@/lib/config";
+import { stripHostOnlyEventData } from "@/lib/guestList";
 
 export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const { slug } = await props.params;
@@ -215,9 +216,16 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   const channelConfig = await getChannelConfig();
 
+  // SEC-32: the event object is passed into a Client Component, so every field
+  // is serialized into the RSC payload and readable by anyone who can load the
+  // page — not just what the UI visibly renders. Strip host-only data (co-host/
+  // host emails; the guest list when the visibility gate hides it) for non-host
+  // viewers before it crosses the client boundary.
+  const eventForClient = stripHostOnlyEventData({ ...event, pendingRsvps }, !!isHost);
+
   return (
     <EventPage
-      event={{ ...event, pendingRsvps } as Parameters<typeof EventPage>[0]["event"]}
+      event={eventForClient as Parameters<typeof EventPage>[0]["event"]}
       isHost={!!isHost}
       theme={theme}
       effect={effect}
