@@ -29,7 +29,7 @@ Fill in the basics:
 Pick the kind of location that fits your event:
 
 - **Physical** — a street address.
-- **Virtual** — a link to Google Meet, Zoom, or any video service.
+- **Virtual** — a link to Google Meet, Zoom, or any video service. Only regular web links (`http://` or `https://`) are accepted; if you paste a bare link like `zoom.us/j/123`, `https://` is added for you.
 - **TBD** — shows "Location TBD" until you decide.
 
 You can change the location (or switch types) at any time.

@@ -13,7 +13,7 @@ import {
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { tzLocalToUtc } from "@/lib/utils";
-import { SaveEventSettingsSchema } from "@/lib/schemas";
+import { SaveEventSettingsSchema, HttpUrlSchema } from "@/lib/schemas";
 import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
 import { assertHost, assertHostOrCohost } from "./shared";
@@ -30,6 +30,9 @@ const ALLOWED_FIELDS = new Set([
 
 export async function saveEventField(eventId: string, field: string, value: string) {
   if (!ALLOWED_FIELDS.has(field)) throw new Error("Field not allowed");
+  // SEC-36: the virtual link renders into a guest-facing <a href> — only
+  // http(s) may be persisted (blocks javascript:/data: URIs).
+  if (field === "virtualUrl" && value) value = HttpUrlSchema.parse(value);
   const event = await assertHostOrCohost(eventId);
   await db.event.update({ where: { id: eventId }, data: { [field]: value || null } });
   const fieldTypes: Record<string, string> = {
@@ -64,6 +67,8 @@ export async function saveEventLocation(
     virtualUrl: string | null;
   }
 ) {
+  // SEC-36: see saveEventField.
+  const virtualUrl = data.virtualUrl ? HttpUrlSchema.parse(data.virtualUrl) : null;
   const event = await assertHostOrCohost(eventId);
   await db.event.update({
     where: { id: eventId },
@@ -71,7 +76,7 @@ export async function saveEventLocation(
       locationType: data.locationType,
       locationName: data.locationName || null,
       locationAddress: data.locationAddress || null,
-      virtualUrl: data.virtualUrl || null,
+      virtualUrl,
     },
   });
   const locDetail = (() => {

@@ -82,4 +82,5 @@ Upload a cover photo to set the mood:
 Info sections show short, scannable details — parking, dress code, links — as chips on your event page.
 
 - **Icons:** choose from a set (shirt, utensils, parking, link, phone, and more).
+- **Links:** only regular web links (`http://` or `https://`) are accepted; a bare link like `example.com/page` gets `https://` added for you.
 - **Ordering:** drag and drop chips to reorder them.

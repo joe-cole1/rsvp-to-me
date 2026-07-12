@@ -131,6 +131,53 @@ describe("RsvpFlow — new RSVP", () => {
   });
 });
 
+// Regression (ROADMAP "RSVP Flow Confirmation Race Condition", found during the
+// [89d70d] themes E2E audit): after a successful *create*, the Server Action's
+// automatic page refresh re-requests the RSC payload with the new ?token= URL,
+// so the server passes `existingRsvp` down and the still-mounted RsvpFlow
+// flipped `isEdit` to true — transiently swapping the "You're in!" success
+// heading to "RSVP updated!". The `justCreated` flag pins the create heading
+// for the RSVP created in this mount. The rerender below simulates the RSC
+// refresh delivering the new props.
+describe("RsvpFlow — confirmation heading race (create → RSC refresh)", () => {
+  it("keeps 'You're in!' when existingRsvp arrives after a create", async () => {
+    mockAddRSVP.mockResolvedValue({ success: true, id: "rsvp-1", editToken: "tok-abc" });
+
+    const { rerender } = render(
+      <RsvpFlow event={baseEvent} theme={testTheme} initialStatus="GOING" sessionUser={null} />
+    );
+    fireEvent.change(screen.getByPlaceholderText("Your name (required)"), {
+      target: { value: "Alice" },
+    });
+    fireEvent.click(screen.getByText("Confirm RSVP"));
+    await waitFor(() => {
+      expect(screen.getByText("You're in!")).toBeInTheDocument();
+    });
+
+    rerender(
+      <RsvpFlow
+        event={baseEvent}
+        theme={testTheme}
+        initialStatus="GOING"
+        sessionUser={null}
+        existingRsvp={{
+          id: "rsvp-1",
+          editToken: "tok-abc",
+          guestName: "Alice",
+          status: "GOING" as const,
+          plusOneCount: 0,
+          note: null,
+          plusOneGuests: [],
+          answers: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText("You're in!")).toBeInTheDocument();
+    expect(screen.queryByText("RSVP updated!")).not.toBeInTheDocument();
+  });
+});
+
 describe("RsvpFlow — edit mode", () => {
   const existingRsvp = {
     id: "rsvp-1",

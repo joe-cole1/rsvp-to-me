@@ -141,7 +141,19 @@ describe("GET /auth/verify", () => {
     });
   });
 
-  it("uses request host header for redirect destination", async () => {
+  // SEC-41: the configured canonical origin wins over the request Host header;
+  // the header is only a fallback for installs without NEXT_PUBLIC_APP_URL.
+  it("uses NEXT_PUBLIC_APP_URL for redirect destination, ignoring the Host header", async () => {
+    mockFindUniqueMagicToken.mockResolvedValue(null);
+    const req = new NextRequest("http://attacker.example.com/auth/verify?token=any-token", {
+      headers: { host: "attacker.example.com" },
+    });
+    const res = await GET(req);
+    expect(res.headers.get("location")).toContain("http://localhost:3000");
+  });
+
+  it("falls back to the request host header when NEXT_PUBLIC_APP_URL is unset", async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
     mockFindUniqueMagicToken.mockResolvedValue(null);
     const req = new NextRequest("http://rsvp.thecolefam.com/auth/verify?token=any-token", {
       headers: { host: "rsvp.thecolefam.com" },

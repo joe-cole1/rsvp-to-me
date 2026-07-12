@@ -9,9 +9,14 @@ import { hashToken } from "@/lib/hash";
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const rawRedirect = request.nextUrl.searchParams.get("redirect");
+  // SEC-41: prefer the configured canonical origin — deriving it from the
+  // request Host / x-forwarded-proto headers is a redirect/link-poisoning
+  // vector behind proxies that don't pin Host. Header fallback is for dev
+  // installs that never set NEXT_PUBLIC_APP_URL.
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
   const host = request.headers.get("host") || "localhost:3000";
   const protocol = request.headers.get("x-forwarded-proto") || "http";
-  const origin = `${protocol}://${host}`;
+  const origin = configuredOrigin || `${protocol}://${host}`;
 
   const redirectWithNoReferrer = (url: string) => {
     const res = NextResponse.redirect(url);

@@ -241,6 +241,8 @@ const BASE_EVENT = {
   startAt: new Date("2026-12-01T20:00:00Z"),
   locationName: "My House",
   host: { name: "Joe" },
+  // SEC-38: addRSVP validates answer keys against the event's own question ids
+  rsvpFields: [{ id: "field-1" }],
 };
 
 beforeEach(() => {

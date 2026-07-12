@@ -13,6 +13,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/clientIp";
 import { withEventCapacityLock } from "@/lib/capacityLock";
 import bcrypt from "bcryptjs";
+import { getSession } from "@/lib/session";
 import { assertHostOrCohost } from "./shared";
 
 export async function verifyEventPassword(
@@ -58,8 +59,24 @@ export async function verifyEventPassword(
 
 // ── RSVP ──────────────────────────────────────────────────────────────────────
 
+// SEC-37/38 tightened the RSVP schemas, and a rejected value is now a realistic
+// guest typo (junk email, over-long answer) rather than only a crafted payload —
+// so surface it as the inline `{ success: false, error }` shape RsvpFlow renders
+// instead of a thrown ZodError the form can't catch.
+function rsvpValidationError(issues: { path: PropertyKey[] }[]): string {
+  const fields = new Set(issues.flatMap((i) => i.path.map(String)));
+  if (fields.has("guestEmail")) return "Please enter a valid email address.";
+  if (fields.has("guestPhone")) return "Please enter a valid phone number.";
+  if (fields.has("answers")) return "One of your answers is too long (2000 characters max).";
+  return "Invalid RSVP data.";
+}
+
 export async function addRSVP(rawInput: unknown) {
-  const data = AddRsvpSchema.parse(rawInput);
+  const parsed = AddRsvpSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
+  }
+  const data = parsed.data;
 
   // SEC-23: addRSVP is callable by anyone on PUBLIC/UNLISTED events, upserts a
   // User from the supplied address, and fans out a confirmation email/SMS to
@@ -94,6 +111,7 @@ export async function addRSVP(rawInput: unknown) {
       virtualUrl: true,
       theme: true,
       host: { select: { name: true, email: true } },
+      rsvpFields: { select: { id: true } },
     },
   });
   if (!event) return { success: false, error: "Event not found" };
@@ -176,9 +194,12 @@ export async function addRSVP(rawInput: unknown) {
   const rsvp = locked.rsvp;
 
   if (data.answers && Object.keys(data.answers).length > 0) {
+    // SEC-38: only this event's question ids may be written — a crafted call
+    // could otherwise attach answers to another event's rsvpFieldId.
+    const validFieldIds = new Set(event.rsvpFields.map((f) => f.id));
     await db.rSVPAnswer.createMany({
       data: Object.entries(data.answers)
-        .filter(([, v]) => typeof v === "string" && v.trim())
+        .filter(([k, v]) => validFieldIds.has(k) && typeof v === "string" && v.trim())
         .map(([rsvpFieldId, value]) => ({ rsvpId: rsvp.id, rsvpFieldId, value: value as string })),
     });
   }
@@ -235,10 +256,23 @@ export async function addRSVP(rawInput: unknown) {
 // ── RSVP edit (guest) ─────────────────────────────────────────────────────────
 
 export async function updateRSVP(editToken: string, rawInput: unknown) {
-  const data = UpdateRsvpSchema.parse(rawInput);
+  const parsed = UpdateRsvpSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
+  }
+  const data = parsed.data;
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
-    include: { event: { select: { slug: true, capacity: true, rsvpDeadline: true } } },
+    include: {
+      event: {
+        select: {
+          slug: true,
+          capacity: true,
+          rsvpDeadline: true,
+          rsvpFields: { select: { id: true } },
+        },
+      },
+    },
   });
   if (!rsvp) return { success: false, error: "RSVP not found" };
 
@@ -287,9 +321,11 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
   }
 
   if (data.answers && Object.keys(data.answers).length > 0) {
+    // SEC-38: same event-scoped field-id check as addRSVP.
+    const validFieldIds = new Set(rsvp.event.rsvpFields.map((f) => f.id));
     await Promise.all(
       Object.entries(data.answers)
-        .filter(([, v]) => typeof v === "string" && v.trim())
+        .filter(([k, v]) => validFieldIds.has(k) && typeof v === "string" && v.trim())
         .map(([rsvpFieldId, value]) =>
           db.rSVPAnswer.upsert({
             where: { rsvpId_rsvpFieldId: { rsvpId: rsvp.id, rsvpFieldId } },
@@ -314,11 +350,16 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
 }
 
 export async function deleteRsvpAsHost(rsvpId: string) {
+  // SEC-42: no existence oracle — unauthenticated callers get "Unauthorized"
+  // before any lookup, and a missing id throws the same "Forbidden" as an
+  // unauthorized one (matching the info-section actions).
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: { event: { select: { id: true, slug: true } } },
   });
-  if (!rsvp) throw new Error("Not found");
+  if (!rsvp) throw new Error("Forbidden");
   await assertHostOrCohost(rsvp.event.id);
   await db.rSVP.delete({ where: { id: rsvpId } });
   logActivity(rsvp.event.id, "rsvp_delete", `${rsvp.guestName}'s RSVP was removed`).catch(
@@ -332,6 +373,9 @@ export async function deleteRsvpAsHost(rsvpId: string) {
 // ── RSVP approval ─────────────────────────────────────────────────────────────
 
 export async function approveRsvp(rsvpId: string, message?: string) {
+  // SEC-42: see deleteRsvpAsHost.
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
@@ -345,7 +389,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
       },
     },
   });
-  if (!rsvp) throw new Error("Not found");
+  if (!rsvp) throw new Error("Forbidden");
   await assertHostOrCohost(rsvp.eventId);
 
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
@@ -373,6 +417,9 @@ export async function approveRsvp(rsvpId: string, message?: string) {
 }
 
 export async function declineRsvp(rsvpId: string, message?: string) {
+  // SEC-42: see deleteRsvpAsHost.
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
@@ -386,7 +433,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
       },
     },
   });
-  if (!rsvp) throw new Error("Not found");
+  if (!rsvp) throw new Error("Forbidden");
   await assertHostOrCohost(rsvp.eventId);
 
   if (rsvp.guestEmail) {
