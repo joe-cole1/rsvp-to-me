@@ -45,3 +45,9 @@ For every bug fix merged to main:
 | `sec-35-email-console-fallback-prod-leak.test.ts`    | Email console fallback logged magic-link/edit tokens + recipient in production                                        | SEC-35    |
 | `sec-40-45-signin-enumeration-shared-ip.test.ts`     | Sign-in leaked account existence (success vs. auth_failed) + shared loopback IP bucket locked out all sign-ins        | SEC-40/45 |
 | `sec-46-invite-guest-activity-log.test.ts`           | Host/co-host `inviteGuest` issuance wrote no ActivityEvent — invite blasts were unattributable                        | SEC-46    |
+| `sec-36-url-protocol-validation.test.ts`             | Host-supplied virtual link / info-section URLs stored a `javascript:`/`data:` URI rendered into guest `<a href>`      | SEC-36    |
+| `sec-37-rsvp-contact-format.test.ts`                 | `guestEmail`/`guestPhone` accepted as any string — junk User upserts + skewed `linkRsvpsToUser` matching              | SEC-37    |
+| `sec-38-answers-validation.test.ts`                  | RSVP questionnaire answers had no length cap and keys weren't verified against the event's own questions              | SEC-38    |
+| `sec-41-verify-host-header-origin.test.ts`           | Magic-link verify built redirect origin from the request Host header (redirect/link-poisoning behind proxies)         | SEC-41    |
+| `sec-42-rsvp-existence-oracle.test.ts`               | Host RSVP actions threw "Not found" before authz, letting any caller probe which RSVP ids exist                       | SEC-42    |
+| `../components/RsvpFlow.test.tsx` (race describe)    | New-RSVP success screen transiently swapped to "RSVP updated!" after the Server Action RSC refresh                    | RSVP race |

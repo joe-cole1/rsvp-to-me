@@ -144,6 +144,11 @@ export function RsvpFlow({
       : {}
   );
   const [done, setDone] = useState(false);
+  // After a create, the Server Action's automatic page refresh re-requests the
+  // RSC payload with the new ?token= URL, so `existingRsvp` arrives on the next
+  // render and flips `isEdit` while the success screen is showing. This flag
+  // pins the "You're in!" heading for the RSVP created in this mount.
+  const [justCreated, setJustCreated] = useState(false);
   const [savedEditToken, setSavedEditToken] = useState(existingRsvp?.editToken ?? "");
   const [linkCopied, setLinkCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -216,6 +221,7 @@ export function RsvpFlow({
           setError(result.error ?? "Something went wrong");
           return;
         }
+        setJustCreated(true);
         if (result.editToken) {
           setSavedEditToken(result.editToken);
           if (typeof window !== "undefined") {
@@ -377,7 +383,7 @@ export function RsvpFlow({
             {status === "GOING" ? "🎉" : status === "MAYBE" ? "🤔" : "😔"}
           </div>
           <h2 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>
-            {isEdit
+            {isEdit && !justCreated
               ? "RSVP updated!"
               : status === "GOING"
                 ? "You're in!"

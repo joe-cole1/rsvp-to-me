@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+// SEC-36: host-supplied URLs (event virtual link, info-section links) are
+// rendered into guest-facing <a href>, so a javascript:/data: URI would execute
+// in the guest's browser on click. Only http(s) may be persisted. A bare
+// "zoom.us/j/…" paste (no scheme at all) is auto-prefixed with https:// so the
+// common host workflow keeps working; anything with an explicit non-http
+// scheme is rejected.
+export const HttpUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(1000)
+  .transform((v) => (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(v) ? v : `https://${v}`))
+  .refine((v) => /^https?:\/\//i.test(v), "URL must start with http:// or https://");
+
+// SEC-37: mirrors the host invite-flow validation (app/actions/event/invites.ts)
+// so RSVP contact info can't pollute the User table with junk identities.
+export const GuestPhoneRegex = /^\+?[0-9\s\-().]{7,}$/;
+
 export const SendMagicLinkSchema = z.object({
   identifier: z.string().trim().min(3).max(100),
 });
@@ -36,20 +54,24 @@ export const CreateEventSchema = z.object({
   locationType: z.enum(["PHYSICAL", "VIRTUAL", "TBD"]).default("PHYSICAL"),
   locationName: z.string().trim().max(200).optional().nullable(),
   locationAddress: z.string().trim().max(500).optional().nullable(),
-  virtualUrl: z.string().trim().max(1000).optional().nullable(),
+  virtualUrl: HttpUrlSchema.optional().nullable().or(z.literal("")),
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).default("UNLISTED"),
 });
 
 export const AddRsvpSchema = z.object({
   eventId: z.string().trim().min(1),
   guestName: z.string().trim().min(1).max(100),
-  guestEmail: z.string().trim().toLowerCase().max(100).optional().or(z.literal("")),
-  guestPhone: z.string().trim().max(30).optional().or(z.literal("")),
+  // SEC-37: format-validated — guestEmail becomes a User upsert key and a mail
+  // recipient in addRSVP; guestPhone is normalized into a User lookup key.
+  guestEmail: z.string().trim().toLowerCase().email().max(100).optional().or(z.literal("")),
+  guestPhone: z.string().trim().regex(GuestPhoneRegex).max(30).optional().or(z.literal("")),
   status: z.enum(["GOING", "MAYBE", "NO"]),
   plusOneCount: z.number().int().min(0).max(10).default(0),
   plusOneGuestNames: z.array(z.string().trim().max(100)).optional(),
   note: z.string().trim().max(1000).optional(),
-  answers: z.record(z.string(), z.string()).optional(),
+  // SEC-38: cap answer length (parity with note/comment caps); keys are further
+  // validated against the event's own rsvpFields in addRSVP/updateRSVP.
+  answers: z.record(z.string().max(100), z.string().max(2000)).optional(),
 });
 
 // SEC-20: explicit allow-list for `saveEventSettings`. Server actions do not
@@ -81,5 +103,6 @@ export const UpdateRsvpSchema = z.object({
   plusOneCount: z.number().int().min(0).max(10).default(0),
   plusOneGuestNames: z.array(z.string().trim().max(100)).optional(),
   note: z.string().trim().max(1000).optional(),
-  answers: z.record(z.string(), z.string()).optional(),
+  // SEC-38: same caps as AddRsvpSchema.
+  answers: z.record(z.string().max(100), z.string().max(2000)).optional(),
 });

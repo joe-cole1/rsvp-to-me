@@ -4,9 +4,17 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
+import { HttpUrlSchema } from "@/lib/schemas";
 import { assertHostOrCohost } from "./shared";
 
 // ── Info sections ──────────────────────────────────────────────────────────────
+
+// SEC-36: section links render into guest-facing <a href>; only http(s) URLs
+// may be persisted (blocks javascript:/data: URIs from a malicious host).
+function parseSectionUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return HttpUrlSchema.parse(url);
+}
 
 export async function addInfoSection(data: {
   eventId: string;
@@ -23,7 +31,7 @@ export async function addInfoSection(data: {
       type: data.type,
       title: data.title,
       content: data.content,
-      url: data.url,
+      url: parseSectionUrl(data.url),
       order: data.order,
     },
   });
@@ -53,7 +61,7 @@ export async function updateInfoSection(
       ...(data.type !== undefined && { type: data.type }),
       ...(data.title !== undefined && { title: data.title }),
       content: data.content,
-      url: data.url || null,
+      url: parseSectionUrl(data.url),
     },
   });
   const editPreview = data.content.slice(0, 60) + (data.content.length > 60 ? "…" : "");
