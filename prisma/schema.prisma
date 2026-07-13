@@ -121,6 +121,10 @@ model Event {
   guestSharingEnabled    Boolean      @default(true)
   guestsCanInvite        Boolean      @default(false)
 
+  // Host notifications — "New RSVP" alerts to the host and co-hosts
+  hostAlertEmail Boolean @default(true)
+  hostAlertSms   Boolean @default(false)
+
   // Feature flags
   commentsEnabled      Boolean @default(true)
   maybeEnabled         Boolean @default(true)

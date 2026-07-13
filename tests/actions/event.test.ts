@@ -162,6 +162,7 @@ vi.mock("@/lib/email", () => ({
   sendBlastEmail: vi.fn().mockResolvedValue(undefined),
   sendEventInviteEmail: vi.fn().mockResolvedValue(undefined),
   sendApprovalEmail: mockSendApprovalEmail,
+  sendHostRsvpAlertEmail: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/sms", () => ({
   sendRsvpConfirmationSms: vi.fn().mockResolvedValue(undefined),
@@ -169,6 +170,7 @@ vi.mock("@/lib/sms", () => ({
   sendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
   sendEventInviteSms: vi.fn().mockResolvedValue(undefined),
   sendApprovalSms: mockSendApprovalSms,
+  sendHostRsvpAlertSms: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({

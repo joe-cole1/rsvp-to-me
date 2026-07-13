@@ -24,6 +24,11 @@ export function RsvpOptionsPanel({
   setRsvpDeadline,
   allowEditAfterDeadline,
   setAllowEditAfterDeadline,
+  hostAlertEmail,
+  setHostAlertEmail,
+  hostAlertSms,
+  setHostAlertSms,
+  channelConfig,
   triggerSaveSettings,
   t,
   S,
@@ -46,6 +51,11 @@ export function RsvpOptionsPanel({
   setRsvpDeadline: React.Dispatch<React.SetStateAction<string>>;
   allowEditAfterDeadline: boolean;
   setAllowEditAfterDeadline: React.Dispatch<React.SetStateAction<boolean>>;
+  hostAlertEmail: boolean;
+  setHostAlertEmail: React.Dispatch<React.SetStateAction<boolean>>;
+  hostAlertSms: boolean;
+  setHostAlertSms: React.Dispatch<React.SetStateAction<boolean>>;
+  channelConfig: { email: boolean; sms: boolean };
   triggerSaveSettings: (overrides: SettingsOverrides) => void;
   t: ResolvedTheme;
   S: SettingsPageStyles;
@@ -124,6 +134,49 @@ export function RsvpOptionsPanel({
           }}
           t={t}
         />
+      </div>
+      <div
+        style={{
+          borderTop: `1px solid ${t.cardBorder}`,
+          margin: "16px -20px 16px -20px",
+          padding: "16px 20px 0 20px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "12px",
+            fontWeight: 700,
+            textTransform: "none",
+            color: t.textMuted,
+            marginBottom: "12px",
+            letterSpacing: "0.02em",
+          }}
+        >
+          Notification Settings
+        </div>
+        <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "12px" }}>
+          New-RSVP alerts go to you and your co-hosts.
+        </div>
+        <Toggle
+          label="Email me when a guest RSVPs"
+          value={hostAlertEmail}
+          onChange={(val) => {
+            setHostAlertEmail(val);
+            triggerSaveSettings({ hostAlertEmail: val });
+          }}
+          t={t}
+        />
+        {channelConfig.sms && (
+          <Toggle
+            label="Text me when a guest RSVPs"
+            value={hostAlertSms}
+            onChange={(val) => {
+              setHostAlertSms(val);
+              triggerSaveSettings({ hostAlertSms: val });
+            }}
+            t={t}
+          />
+        )}
       </div>
       <Toggle
         label="Show RSVP timestamps"

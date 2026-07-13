@@ -84,6 +84,8 @@ export type EventInput = {
   showTimestamps: boolean;
   passwordHash: string | null;
   hostDisplayName: string | null;
+  hostAlertEmail: boolean;
+  hostAlertSms: boolean;
   theme: {
     baseTheme: "DARK" | "SOFT" | "BOLD";
     gradientFrom: string;
@@ -132,6 +134,8 @@ export interface SettingsOverrides {
   guestSharingEnabled?: boolean;
   guestsCanInvite?: boolean;
   hostDisplayName?: string | null;
+  hostAlertEmail?: boolean;
+  hostAlertSms?: boolean;
 }
 
 export interface ReminderOverrides {

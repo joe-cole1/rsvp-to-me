@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { sendRsvpConfirmationEmail, sendApprovalEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendApprovalSms } from "@/lib/sms";
+import { sendRsvpConfirmationEmail, sendApprovalEmail, sendHostRsvpAlertEmail } from "@/lib/email";
+import { sendRsvpConfirmationSms, sendApprovalSms, sendHostRsvpAlertSms } from "@/lib/sms";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { AddRsvpSchema, UpdateRsvpSchema } from "@/lib/schemas";
@@ -110,7 +110,10 @@ export async function addRSVP(rawInput: unknown) {
       locationAddress: true,
       virtualUrl: true,
       theme: true,
-      host: { select: { name: true, email: true } },
+      hostAlertEmail: true,
+      hostAlertSms: true,
+      host: { select: { name: true, email: true, phone: true } },
+      coHosts: { select: { user: { select: { email: true, phone: true } } } },
       rsvpFields: { select: { id: true } },
     },
   });
@@ -247,6 +250,46 @@ export async function addRSVP(rawInput: unknown) {
       status: data.status,
       editToken: rsvp.editToken,
     }).catch(logSafe("addRSVP"));
+  }
+
+  // Host "New RSVP" alerts — fire-and-forget so a notification failure never
+  // blocks the guest's RSVP. Per-event toggles gate each channel; the email
+  // alert is intentionally immune to the guest email_enabled channel toggle
+  // (see Guest Messaging Channel Toggles, PR #181) while the SMS alert stays
+  // behind sms_enabled inside sendHostRsvpAlertSms.
+  if (event.hostAlertEmail || event.hostAlertSms) {
+    const recipients = [event.host, ...event.coHosts.map((c) => c.user)];
+    const alertBase = {
+      guestName: data.guestName,
+      status: data.status,
+      plusOneCount: data.plusOneCount,
+      note: data.note || null,
+      eventTitle: event.title,
+      eventSlug: event.slug,
+    };
+    (async () => {
+      const counts = await db.rSVP.groupBy({
+        by: ["status"],
+        where: { eventId: data.eventId, status: { in: ["GOING", "MAYBE", "NO"] } },
+        _count: { _all: true },
+      });
+      const countFor = (status: string) =>
+        counts.find((c) => c.status === status)?._count._all ?? 0;
+      for (const recipient of recipients) {
+        if (event.hostAlertEmail && recipient.email) {
+          sendHostRsvpAlertEmail(recipient.email, {
+            ...alertBase,
+            goingCount: countFor("GOING"),
+            maybeCount: countFor("MAYBE"),
+            noCount: countFor("NO"),
+            theme: event.theme,
+          }).catch(logSafe("addRSVP"));
+        }
+        if (event.hostAlertSms && recipient.phone) {
+          sendHostRsvpAlertSms(recipient.phone, alertBase).catch(logSafe("addRSVP"));
+        }
+      }
+    })().catch(logSafe("addRSVP"));
   }
 
   revalidatePath(`/e/${event.slug}`);

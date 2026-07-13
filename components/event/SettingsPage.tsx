@@ -117,6 +117,8 @@ export function SettingsPage({
     event.allowEditAfterDeadline
   );
   const [hostDisplayName, setHostDisplayName] = useState(event.hostDisplayName || "");
+  const [hostAlertEmail, setHostAlertEmail] = useState(event.hostAlertEmail);
+  const [hostAlertSms, setHostAlertSms] = useState(event.hostAlertSms);
 
   // ── Display & Privacy State ──
   const [commentsEnabled, setCommentsEnabled] = useState(event.commentsEnabled);
@@ -351,6 +353,9 @@ export function SettingsPage({
         overrides.hostDisplayName !== undefined
           ? overrides.hostDisplayName
           : hostDisplayName || null,
+      hostAlertEmail:
+        overrides.hostAlertEmail !== undefined ? overrides.hostAlertEmail : hostAlertEmail,
+      hostAlertSms: overrides.hostAlertSms !== undefined ? overrides.hostAlertSms : hostAlertSms,
     };
     startTransition(async () => {
       try {
@@ -1042,6 +1047,11 @@ export function SettingsPage({
             setRsvpDeadline={setRsvpDeadline}
             allowEditAfterDeadline={allowEditAfterDeadline}
             setAllowEditAfterDeadline={setAllowEditAfterDeadline}
+            hostAlertEmail={hostAlertEmail}
+            setHostAlertEmail={setHostAlertEmail}
+            hostAlertSms={hostAlertSms}
+            setHostAlertSms={setHostAlertSms}
+            channelConfig={channelConfig}
             triggerSaveSettings={triggerSaveSettings}
             t={t}
             S={S}

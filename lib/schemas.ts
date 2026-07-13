@@ -96,6 +96,8 @@ export const SaveEventSettingsSchema = z.object({
   guestSharingEnabled: z.boolean().optional(),
   guestsCanInvite: z.boolean().optional(),
   hostDisplayName: z.string().trim().max(100).nullable().optional(),
+  hostAlertEmail: z.boolean().optional(),
+  hostAlertSms: z.boolean().optional(),
 });
 
 export const UpdateRsvpSchema = z.object({
