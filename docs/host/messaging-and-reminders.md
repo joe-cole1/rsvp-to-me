@@ -22,6 +22,19 @@ Send a message to your guests at any time from the event's host controls:
 
 ---
 
+## New-RSVP Alerts
+
+Get notified the moment someone responds. When a guest RSVPs to your event, you — and any co-hosts — receive a **"New RSVP" alert** with the guest's name, their status (Going / Maybe / Can't Go), any plus-ones and note, and your event's running Going / Maybe / Can't-Go totals.
+
+Control these under **Settings → RSVP Options → Notification Settings**:
+
+- **Email me when a guest RSVPs** — on by default.
+- **Text me when a guest RSVPs** — off by default, and shown only when texting is enabled on your site.
+
+These alerts are for hosts and co-hosts only; they're separate from the confirmation your guest receives, and they keep working even if your site's guest email notifications are turned off.
+
+---
+
 ## Automated Reminders
 
 RSVP to Me automatically reminds guests as the event approaches. Each reminder can be toggled on or off in the event's Settings:

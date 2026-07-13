@@ -173,6 +173,8 @@ export async function saveEventSettings(
     guestSharingEnabled?: boolean;
     guestsCanInvite?: boolean;
     hostDisplayName?: string | null;
+    hostAlertEmail?: boolean;
+    hostAlertSms?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHostOrCohost(eventId);

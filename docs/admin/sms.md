@@ -42,7 +42,7 @@ Without SMS configured, the app works entirely through email. With Twilio connec
 | **Event Update Blasts**         | Send immediate text notifications to all Going/Maybe guests.                                                     |
 | **Automated Reminders**         | Schedule text reminders 7 days, 1 day, or N hours before the event.                                              |
 
-Each user can control their own notification preferences (Email vs SMS) in their Profile. Hosts can also toggle each notification type individually per event under **Event Settings → RSVP Options → Notification Settings**.
+Each user can control their own notification preferences (Email vs SMS) in their Profile. Hosts can toggle their own **New RSVP** alerts (email and, when SMS is enabled, text) per event under **Event Settings → RSVP Options → Notification Settings** — the text alert defaults off. Host RSVP alerts go to the host and every co-host.
 
 ---
 

@@ -22,7 +22,7 @@ _Functional improvements, layout adjustments, and secondary features that can be
 
 ### 🛠️ Bug / Fix
 
-- **Host new-RSVP alert email is not wired up**: `sendHostRsvpAlertEmail` (and its SMS twin `sendHostRsvpAlertSms`) exist and now have a styled, previewable template, but nothing calls them — hosts do **not** actually receive a "New RSVP" email/SMS when a guest RSVPs, despite the notification toggles implying they do. The initial migration also carries orphaned `Event` columns (`hostAlertEmail`, `rsvpConfirmEmail`, …) that no longer exist in `schema.prisma` (schema drift). Wire the alert into `addRSVP` (respecting the per-event host-alert toggles) and reconcile or remove the stale columns. _(Discovered during the 2026-07 email-template rebuild.)_
+_None currently open._
 
 ### 🎨 UI / UX / Feature
 
@@ -98,6 +98,14 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Host New-RSVP Alert Notifications (Batch [de9262])
+
+- [x] **Host RSVP alerts wired into `addRSVP`**: `sendHostRsvpAlertEmail`/`sendHostRsvpAlertSms` shipped with styled, previewable templates but had **no call site** — hosts never received a "New RSVP" alert despite the notification UI implying they did. `addRSVP` (`app/actions/event/rsvp.ts`) now fans the alert out to the host **and every co-host** after the RSVP write, fire-and-forget via `.catch(logSafe("addRSVP"))` so a notification failure never blocks the guest's RSVP. The event `select` was extended with the toggles, `host.phone`, `coHosts.user.{email,phone}`, and the existing `theme` (themed at send time), plus a single `groupBy` for the Going/Maybe/Can't-Go tallies the email shows.
+- [x] **Channel-toggle contract preserved**: the email alert is intentionally **immune** to the site-wide guest `email_enabled` toggle (operators still get their own alerts); the SMS alert stays behind `sms_enabled` inside `sendHostRsvpAlertSms` (PR #181 contract).
+- [x] **Schema drift reconciled**: re-added the two `Event` columns the wiring needs — `hostAlertEmail` (default **true**) and `hostAlertSms` (default **false**) — in `prisma/schema.prisma` with new migration `20260713012101_add_host_rsvp_alert_toggles`. The other four columns dropped by `20260705102712` (`rsvpConfirm*`, `approvalNotify*`) stay dropped (unused).
+- [x] **Per-event toggle UI**: new **Notification Settings** sub-section in `RsvpOptionsPanel.tsx` (under **Settings → RSVP Options**, matching the location the docs already advertised) — "Email me when a guest RSVPs" (always shown) and "Text me when a guest RSVPs" (shown only when SMS is enabled). Plumbed through `SaveEventSettingsSchema`, `saveEventSettings`, and the settings-page state/types.
+- [x] Regression test: `tests/regression/host-rsvp-alert-wiring.test.ts` (alerts fire to host + co-hosts with correct args; suppressed when toggles off; recipients without a channel address skipped; guest RSVP never fails on a rejected alert send). Docs: `docs/admin/email.md`, `docs/admin/sms.md`, `docs/host/messaging-and-reminders.md`.
 
 ### OWASP Deferred Validation Fixes & RSVP Confirmation Race (Batch [5a25a3])
 

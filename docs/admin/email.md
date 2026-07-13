@@ -37,20 +37,21 @@ RSVP to Me sends email notifications for passwordless logins (magic links), gues
 
 Email dispatches are triggered by the following application events:
 
-| Trigger                                            | Recipients                                            |
-| -------------------------------------------------- | ----------------------------------------------------- |
-| User requests login link                           | The requesting user (magic link)                      |
-| Host invites guests                                | The invited guests                                    |
-| Guest submits an RSVP                              | The guest (confirmation)                              |
-| Host approves/declines a pending RSVP              | The approved/declined guest                           |
-| Host sends an event update blast                   | All Going and Maybe guests (if notify is selected)    |
-| Automated reminder (7 days, 1 day, N hours before) | All Going and Maybe guests with notifications enabled |
-| Nudge for unresponded guests                       | Invited guests who have not responded yet             |
-| Profile email change verification                  | The user's new email address                          |
+| Trigger                                            | Recipients                                                     |
+| -------------------------------------------------- | -------------------------------------------------------------- |
+| User requests login link                           | The requesting user (magic link)                               |
+| Host invites guests                                | The invited guests                                             |
+| Guest submits an RSVP                              | The guest (confirmation)                                       |
+| Guest submits an RSVP (host alert)                 | The host and co-hosts (when the host-alert email toggle is on) |
+| Host approves/declines a pending RSVP              | The approved/declined guest                                    |
+| Host sends an event update blast                   | All Going and Maybe guests (if notify is selected)             |
+| Automated reminder (7 days, 1 day, N hours before) | All Going and Maybe guests with notifications enabled          |
+| Nudge for unresponded guests                       | Invited guests who have not responded yet                      |
+| Profile email change verification                  | The user's new email address                                   |
 
 _Note on Reminders:_ The in-process cron scheduler checks every 15 minutes to trigger due reminders. Each reminder type is sent exactly once per user per event.
 
-_Note on Notification Toggles:_ Hosts can control which guest-facing emails fire on a per-event basis under **Event Settings → RSVP Options**. A host **new-RSVP alert** email template ships and can be previewed, but it is **not yet wired to fire** on guest RSVPs (tracked in `ROADMAP.md`).
+_Note on Host RSVP Alerts:_ When a guest RSVPs, the host and every co-host receive a **"New RSVP" alert** email summarizing the response (guest name, status, plus-ones, note) plus the current Going/Maybe/Can't-Go tallies. This is controlled per event by the **Email me when a guest RSVPs** toggle under **Event Settings → RSVP Options → Notification Settings** — new events default it **on** (a matching **Text me when a guest RSVPs** toggle defaults **off** and appears only when SMS is enabled, backed by the `Event.hostAlertEmail` / `Event.hostAlertSms` columns). Host alerts are **not** affected by the site-wide guest-email channel toggle — an operator who turns off guest email notifications will still receive their own new-RSVP alerts (the SMS alert does respect the site-wide SMS toggle).
 
 _Note on Themed Templates:_ Every event email (invite, RSVP confirmation, approval, update/reminder) is styled from that event's theme — see [Themed Email Templates](#themed-email-templates) below.
 
