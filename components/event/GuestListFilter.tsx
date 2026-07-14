@@ -133,6 +133,7 @@ export function GuestListFilter({
           .some((value) => value!.toLowerCase().includes(normalizedSearch))
       )
     : invited;
+  const showInvited = isHost && (filter === "ALL" || filter === "INVITED");
 
   const chips: { key: Filter; label: string; count: number }[] = [
     { key: "ALL", label: "All", count: allRsvps.length + (isHost ? invited.length : 0) },
@@ -524,7 +525,9 @@ export function GuestListFilter({
         ))}
       </div>
 
-      {displayedRsvps.length === 0 && filter !== "INVITED" ? (
+      {displayedRsvps.length === 0 &&
+      (!showInvited || displayedInvited.length === 0) &&
+      filter !== "INVITED" ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted }}>
           No one here yet.
         </div>
@@ -794,7 +797,7 @@ export function GuestListFilter({
             </div>
           ))}
 
-          {filter === "INVITED" &&
+          {showInvited &&
             displayedInvited.map((inv) => (
               <div
                 key={inv.id}

@@ -20,6 +20,7 @@ directly to RSVP settings.
 
 Filter the list by status to focus on what matters:
 
+- **All** — everyone associated with the event, including invited guests who have not responded
 - **Going**, **Maybe**, **No**
 - **Invited** — invited but not yet responded
 - **Awaiting Approval** — pending your approve/decline
