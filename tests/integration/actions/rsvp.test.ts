@@ -158,6 +158,29 @@ describe("addRSVP — real DB integration", () => {
     expect(rsvps[0].responded).toBe(true);
   });
 
+  // Regression: an older invite could exist without an rsvpId. When the guest
+  // later submitted the RSVP form, that orphaned history row stayed visible as
+  // a second, unanswered guest-list card.
+  it("links an unlinked email invitation when its guest RSVPs manually", async () => {
+    const host = await seedHost();
+    const event = await seedEvent(host.id);
+    const invitation = await db.invitation.create({
+      data: { eventId: event.id, sentTo: "alice@example.com", channel: "EMAIL" },
+    });
+
+    const result = await addRSVP({
+      eventId: event.id,
+      guestName: "Alice",
+      guestEmail: "alice@example.com",
+      status: "GOING",
+    });
+    if (!result.success) throw new Error("Expected success");
+
+    const updatedInvitation = await db.invitation.findUnique({ where: { id: invitation.id } });
+    expect(updatedInvitation?.rsvpId).toBe(result.id);
+    expect(await db.rSVP.count({ where: { eventId: event.id } })).toBe(1);
+  });
+
   it("returns error for non-existent event", async () => {
     const result = await addRSVP({
       eventId: "does-not-exist",

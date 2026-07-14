@@ -6,6 +6,7 @@ import {
   addWalkIn,
   approveRsvp,
   checkInRsvp,
+  deleteInvitationAsHost,
   declineRsvp,
   deleteRsvpAsHost,
   inviteGuest,
@@ -78,6 +79,7 @@ export function GuestListFilter({
   const [pending, setPending] = useState(initialPending);
   const [invited, setInvited] = useState(initialInvited);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingInvitationId, setDeletingInvitationId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
   const [invitationMessage, setInvitationMessage] = useState<string | null>(null);
@@ -249,6 +251,18 @@ export function GuestListFilter({
       if (result.success) {
         setInvited((prev) => prev.filter((inv) => inv.id !== id));
       }
+    });
+  };
+
+  const handleDeleteInvitation = (invitationId: string) => {
+    if (!confirm("Remove this invitation? This cannot be undone.")) return;
+    setDeletingInvitationId(invitationId);
+    startTransition(async () => {
+      const result = await deleteInvitationAsHost(invitationId);
+      if (result.success) {
+        setInvited((prev) => prev.filter((inv) => inv.id !== invitationId));
+      }
+      setDeletingInvitationId(null);
     });
   };
 
@@ -943,6 +957,7 @@ export function GuestListFilter({
                 style={{
                   ...cardStyle,
                   alignItems: "flex-start",
+                  opacity: deletingInvitationId === inv.id ? 0.5 : 1,
                   border:
                     highlightedId === inv.id
                       ? `2px solid ${t.accent}`
@@ -1116,6 +1131,25 @@ export function GuestListFilter({
                           Remove
                         </button>
                       </>
+                    )}
+                    {!inv.rsvpId && (
+                      <button
+                        onClick={() => handleDeleteInvitation(inv.id)}
+                        disabled={deletingInvitationId === inv.id}
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          padding: "4px 10px",
+                          background: "rgba(239,68,68,0.1)",
+                          border: "1px solid rgba(239,68,68,0.2)",
+                          borderRadius: "8px",
+                          color: "#f87171",
+                          cursor: deletingInvitationId === inv.id ? "wait" : "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Remove
+                      </button>
                     )}
                   </div>
                 )}

@@ -57,3 +57,4 @@ For every bug fix merged to main:
 | `preflight-e2e-process-group-cleanup.test.ts`        | Full preflight killed only npm, leaving an orphaned Next.js server listening on port 3001                             | 019f61f9  |
 | `guest-list-all-includes-invited.test.tsx`           | Guest-list All filter counted invited guests but rendered only guests who had responded                               | 019f6231  |
 | `guest-check-in-all-statuses.test.tsx`               | Invited/declined guests had no check-in control, and existing-RSVP walk-ins were not checked in                       | 033460e0  |
+| `orphaned-invitation-removal.test.tsx`               | An unlinked invitation could outlive a manual RSVP as an undeletable unanswered guest-list card                       | 019f62a4  |

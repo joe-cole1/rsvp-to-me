@@ -46,7 +46,9 @@ is checked in instead of creating a duplicate.
 
 Unanswered invitees also have a **Resend invite** action. It sends a fresh invitation through the
 original email or SMS destination while retaining the normal delivery validation, rate limits, and
-activity history.
+activity history. If an older invitation record is no longer connected to an RSVP, you can remove
+that invitation history without removing the guest's RSVP; a later RSVP with the same email or
+phone reconnects the invitation automatically.
 
 Check-in changes appear immediately on the device making them. Other open host devices see the
 latest attendance after refreshing.

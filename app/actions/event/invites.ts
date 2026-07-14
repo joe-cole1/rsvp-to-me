@@ -205,6 +205,25 @@ export async function inviteGuest(eventId: string, emailOrPhone: string) {
   };
 }
 
+export async function deleteInvitationAsHost(invitationId: string) {
+  // Match RSVP deletion's SEC-42 pattern: authenticate before looking up the
+  // caller-supplied id, then make missing and unauthorized records indistinct.
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  const invitation = await db.invitation.findUnique({
+    where: { id: invitationId },
+    include: { event: { select: { id: true, slug: true } } },
+  });
+  if (!invitation) throw new Error("Forbidden");
+  await assertHostOrCohost(invitation.event.id);
+  if (invitation.rsvpId) throw new Error("Forbidden");
+
+  await db.invitation.delete({ where: { id: invitation.id } });
+  revalidatePath(`/e/${invitation.event.slug}/guests`);
+  revalidatePath(`/e/${invitation.event.slug}`);
+  return { success: true as const };
+}
+
 export async function inviteFriendAsGuest(
   eventId: string,
   editToken: string,
