@@ -230,7 +230,7 @@ When the variable is unset, every caller gets the minimal body. Requests with a 
 - **Default**: `"false"`
 - **Type**: Boolean string (`"true"` or `"false"`)
 
-**What it does:** If set to `"true"` and the database is completely empty on startup, the application runs a seed script creating 20 test users, 10 sample events (drafts, past, and upcoming), comments, polls, check-ins, and potlucks.
+**What it does:** If set to `"true"` and the database is completely empty on startup, the application runs a seed script creating 20 test guests and 10 comprehensive sample events. The fixtures cover draft, published, cancelled, past, and upcoming events; all location and visibility modes; password protection; RSVP deadlines, approval, invited/unresponded guests, capacity, plus-ones, and all questionnaire field types; email/SMS invitation history; co-hosts and pending co-host invitations; guest-list privacy; polls, comments, potlucks, updates, reminders, activity, regular check-ins, and walk-ins; and representative theme presets, heading fonts, animated effects, and effect controls.
 
 > **Warning:** Turn this off (`"false"`) before inviting real guests to avoid cluttering your dashboard with fake test data.
 
