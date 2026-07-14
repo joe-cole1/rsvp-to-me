@@ -49,6 +49,19 @@ npm run dev
 Visit `http://localhost:3000`. The Next.js dev server watches source files, so
 restart it only after a dependency or environment change.
 
+When a branch changes `package.json` or `package-lock.json`, reconcile the
+installed dependency tree with:
+
+```bash
+scripts/dev-sync.sh --deps
+```
+
+The repository overrides `esbuild` to patched version 0.28.1 to prevent the
+Windows development-server path traversal described in
+[GHSA-g7r4-m6w7-qqqr](https://github.com/advisories/GHSA-g7r4-m6w7-qqqr).
+Keep that constraint in place while any transitive dependency can otherwise
+resolve to a vulnerable version.
+
 ## Reset disposable development data
 
 This command permanently deletes the **local development** Postgres and Redis
