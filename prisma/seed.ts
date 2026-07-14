@@ -1,24 +1,55 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { db } from "../lib/db";
 import { UserModel, EventModel, RSVPFieldModel, RSVPModel } from "../app/generated/prisma/models";
 import { THEME_PRESETS } from "../lib/theme";
+import {
+  DEFAULT_EFFECT_SIZE,
+  isValidEffectDensity,
+  isValidEffectId,
+  isValidEffectSize,
+  isValidEffectSpeed,
+  type EffectDensity,
+  type EffectSpeed,
+} from "../lib/effects";
+import { isValidFontId } from "../lib/fonts";
 
 interface EventTemplate {
   title: string;
   description: string;
   startAt: Date;
+  endAt?: Date;
+  timezone?: string;
   locationType: "PHYSICAL" | "VIRTUAL" | "TBD";
   locationName?: string;
   locationAddress?: string;
   virtualUrl?: string;
   capacity?: number;
+  rsvpDeadline?: Date;
+  allowEditAfterDeadline?: boolean;
+  approvalRequired?: boolean;
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "CANCELLED";
+  guestListVis?: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
+  guestSharingEnabled?: boolean;
+  guestsCanInvite?: boolean;
+  hostAlertEmail?: boolean;
+  hostAlertSms?: boolean;
+  showTimestamps?: boolean;
+  password?: string;
+  hostDisplayName?: string;
   theme: {
     baseTheme: "DARK" | "SOFT" | "BOLD";
     gradientFrom: string;
     gradientTo: string;
     accentColor: string;
+    appliedPresetId?: string;
+    cardOpacity?: number;
+    fontId?: string;
+    effectId?: string;
+    effectDensity?: EffectDensity;
+    effectSpeed?: EffectSpeed;
+    effectSize?: number;
   };
   plusOneAllowed: boolean;
   plusOneMax?: number;
@@ -27,6 +58,11 @@ interface EventTemplate {
   maybeEnabled: boolean;
   questionnaireEnabled: boolean;
   cohost?: boolean;
+  pendingCohostInvite?: boolean;
+  invitedCount?: number;
+  walkIn?: boolean;
+  polls?: boolean;
+  updateBlast?: boolean;
   infoSections?: { type: string; content: string; order: number }[];
   potluck?: { label: string; quantity: number }[];
 }
@@ -39,6 +75,62 @@ function slugify(title: string): string {
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 50);
+}
+
+function assertRichSeedCoverage(eventTemplates: EventTemplate[]) {
+  const requirements: Record<string, boolean> = {
+    "approval-required event": eventTemplates.some((event) => event.approvalRequired),
+    "invited/unresponded guests": eventTemplates.some((event) => (event.invitedCount ?? 0) > 0),
+    "custom heading fonts": eventTemplates.some((event) => event.theme.fontId),
+    "animated theme effects": eventTemplates.some((event) => event.theme.effectId),
+    "effect controls": eventTemplates.some(
+      (event) =>
+        event.theme.effectDensity !== undefined &&
+        event.theme.effectSpeed !== undefined &&
+        event.theme.effectSize !== undefined
+    ),
+    polls: eventTemplates.some((event) => event.polls),
+    potluck: eventTemplates.some((event) => event.potluck?.length),
+    questionnaires: eventTemplates.some((event) => event.questionnaireEnabled),
+    "event update blasts": eventTemplates.some((event) => event.updateBlast),
+    "pending co-host invitations": eventTemplates.some((event) => event.pendingCohostInvite),
+    "cancelled events": eventTemplates.some((event) => event.status === "CANCELLED"),
+    "RSVP deadlines": eventTemplates.some((event) => event.rsvpDeadline),
+    "private password gates": eventTemplates.some(
+      (event) => event.visibility === "PRIVATE" && event.password
+    ),
+    "all location modes": new Set(eventTemplates.map((event) => event.locationType)).size === 3,
+    "all visibility modes": new Set(eventTemplates.map((event) => event.visibility)).size === 3,
+    "all guest-list privacy modes":
+      new Set(eventTemplates.map((event) => event.guestListVis ?? "ALL")).size === 3,
+    "walk-in check-ins": eventTemplates.some((event) => event.walkIn),
+  };
+
+  const missing = Object.entries(requirements)
+    .filter(([, covered]) => !covered)
+    .map(([requirement]) => requirement);
+  if (missing.length > 0) {
+    throw new Error(`Rich seed is missing documented scenarios: ${missing.join(", ")}`);
+  }
+
+  const presetIds = new Set(THEME_PRESETS.map((preset) => preset.id));
+  for (const event of eventTemplates) {
+    const { theme } = event;
+    if (theme.appliedPresetId && !presetIds.has(theme.appliedPresetId)) {
+      throw new Error(`Invalid seed theme preset: ${theme.appliedPresetId}`);
+    }
+    if (!isValidFontId(theme.fontId)) throw new Error(`Invalid seed font: ${theme.fontId}`);
+    if (!isValidEffectId(theme.effectId)) throw new Error(`Invalid seed effect: ${theme.effectId}`);
+    if (!isValidEffectDensity(theme.effectDensity)) {
+      throw new Error(`Invalid seed effect density: ${theme.effectDensity}`);
+    }
+    if (!isValidEffectSpeed(theme.effectSpeed)) {
+      throw new Error(`Invalid seed effect speed: ${theme.effectSpeed}`);
+    }
+    if (!isValidEffectSize(theme.effectSize)) {
+      throw new Error(`Invalid seed effect size: ${theme.effectSize}`);
+    }
+  }
 }
 
 async function main() {
@@ -166,9 +258,9 @@ async function main() {
   });
 
   // 2. Create pool of 20 guest users
-  const guestUsersData = [
-    { email: "guest1@test.com", name: "Alice Smith" },
-    { email: "guest2@test.com", name: "Bob Jones" },
+  const guestUsersData: { email: string; phone?: string; name: string }[] = [
+    { email: "guest1@test.com", phone: "+15550000001", name: "Alice Smith" },
+    { email: "guest2@test.com", phone: "+15550000002", name: "Bob Jones" },
     { email: "guest3@test.com", name: "Charlie Brown" },
     { email: "guest4@test.com", name: "Diana Prince" },
     { email: "guest5@test.com", name: "Ethan Hunt" },
@@ -196,6 +288,7 @@ async function main() {
       update: {},
       create: {
         email: data.email,
+        phone: data.phone,
         name: data.name,
         role: "GUEST",
       },
@@ -206,13 +299,15 @@ async function main() {
   const now = new Date();
 
   // 3. Generate 10 diverse events
-  const eventTemplates = [
+  const eventTemplates: EventTemplate[] = [
     // PAST EVENTS
     {
       title: "Wine Tasting & Cheese Night",
       description:
         "A cozy evening tasting local wines paired with artisanal cheeses. Dress code is smart casual.",
       startAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+      endAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000),
+      timezone: "America/Los_Angeles",
       locationType: "PHYSICAL" as const,
       locationName: "Primary Host's Dining Room",
       locationAddress: "123 Vineyard Lane, Napa Valley, CA",
@@ -223,12 +318,23 @@ async function main() {
         gradientFrom: "#fda4af",
         gradientTo: "#f0abfc",
         accentColor: "#d946ef",
+        appliedPresetId: "rose-cloud",
+        cardOpacity: 0.82,
+        fontId: "playfair",
+        effectId: "hearts",
+        effectDensity: "sparse" as const,
+        effectSpeed: "gentle" as const,
+        effectSize: 2,
       }, // magenta
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
       maybeEnabled: true,
       questionnaireEnabled: false,
+      showTimestamps: false,
+      polls: true,
+      updateBlast: true,
+      walkIn: true,
       infoSections: [
         { type: "shirt", content: "Smart casual / cozy attire", order: 1 },
         {
@@ -252,11 +358,18 @@ async function main() {
         gradientFrom: "#164e63",
         gradientTo: "#1e3a5f",
         accentColor: "#06b6d4",
+        appliedPresetId: "deep-sea",
+        fontId: "space-grotesk",
+        effectId: "stars",
+        effectDensity: "dense" as const,
+        effectSpeed: "lively" as const,
+        effectSize: 1,
       }, // cyan
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: false,
       questionnaireEnabled: false,
+      guestListVis: "GUESTS_ONLY" as const,
     },
     {
       title: "Spontaneous Coffee Hangout",
@@ -264,18 +377,27 @@ async function main() {
       startAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
       locationType: "TBD" as const,
       visibility: "PRIVATE" as const,
-      status: "PUBLISHED" as const,
+      status: "CANCELLED" as const,
+      guestsCanInvite: true,
+      guestListVis: "HOST_ONLY" as const,
+      guestSharingEnabled: false,
+      password: "coffee-friends-only",
       theme: {
         baseTheme: "BOLD" as const,
         gradientFrom: "#f97316",
         gradientTo: "#ec4899",
         accentColor: "#f97316",
+        appliedPresetId: "sunset",
+        cardOpacity: 0.65,
+        fontId: "caveat",
       }, // orange
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: false,
       maybeEnabled: true,
       questionnaireEnabled: false,
+      hostDisplayName: "Your Neighborhood Coffee Crew",
+      invitedCount: 2,
     },
     // PRESENT/UPCOMING EVENTS
     {
@@ -288,11 +410,18 @@ async function main() {
       locationAddress: "456 Sunny Meadow Lane, Austin, TX",
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
+      approvalRequired: true,
       theme: {
         baseTheme: "SOFT" as const,
         gradientFrom: "#bbf7d0",
         gradientTo: "#a5f3fc",
         accentColor: "#10b981",
+        appliedPresetId: "summer",
+        fontId: "fredoka",
+        effectId: "sun-palms",
+        effectDensity: "medium" as const,
+        effectSpeed: "medium" as const,
+        effectSize: 3,
       }, // emerald
       plusOneAllowed: true,
       plusOneMax: 2,
@@ -301,6 +430,10 @@ async function main() {
       maybeEnabled: true,
       questionnaireEnabled: true,
       cohost: true, // cohost cohost@test.com
+      invitedCount: 3,
+      pendingCohostInvite: true,
+      polls: true,
+      updateBlast: true,
       infoSections: [
         { type: "shirt", content: "Swimwear, sunglasses, sunscreen!", order: 1 },
         {
@@ -330,11 +463,20 @@ async function main() {
       capacity: 50,
       visibility: "PUBLIC" as const,
       status: "PUBLISHED" as const,
+      rsvpDeadline: new Date(now.getTime() + 12 * 60 * 60 * 1000),
+      allowEditAfterDeadline: true,
       theme: {
         baseTheme: "BOLD" as const,
         gradientFrom: "#7c3aed",
         gradientTo: "#ec4899",
         accentColor: "#8b5cf6",
+        appliedPresetId: "ultraviolet",
+        cardOpacity: 0.72,
+        fontId: "righteous",
+        effectId: "confetti",
+        effectDensity: "dense" as const,
+        effectSpeed: "lively" as const,
+        effectSize: 4,
       }, // violet
       plusOneAllowed: true,
       plusOneMax: 1,
@@ -342,6 +484,8 @@ async function main() {
       commentsEnabled: true,
       maybeEnabled: true,
       questionnaireEnabled: true,
+      invitedCount: 2,
+      hostAlertSms: true,
     },
     {
       title: "Weekly Team Sync",
@@ -357,11 +501,18 @@ async function main() {
         gradientFrom: "#334155",
         gradientTo: "#0f172a",
         accentColor: "#64748b",
+        appliedPresetId: "obsidian",
+        fontId: "roboto",
+        effectId: "bubbles",
+        effectDensity: "sparse" as const,
+        effectSpeed: "gentle" as const,
+        effectSize: DEFAULT_EFFECT_SIZE,
       }, // slate
       plusOneAllowed: false,
       commentsEnabled: true,
       maybeEnabled: true,
       questionnaireEnabled: false,
+      hostAlertEmail: false,
     },
     {
       title: "Friday Pizza Social",
@@ -377,12 +528,19 @@ async function main() {
         gradientFrom: "#fecdd3",
         gradientTo: "#fda4af",
         accentColor: "#f43f5e",
+        appliedPresetId: "flamingo",
+        fontId: "pacifico",
+        effectId: "beer",
+        effectDensity: "medium" as const,
+        effectSpeed: "medium" as const,
+        effectSize: 2.5,
       }, // rose
       plusOneAllowed: true,
       plusOneMax: 3,
       commentsEnabled: true,
       maybeEnabled: true,
       questionnaireEnabled: false,
+      invitedCount: 2,
     },
     // FUTURE EVENTS
     {
@@ -400,6 +558,12 @@ async function main() {
         gradientFrom: "#9a3412",
         gradientTo: "#1c1917",
         accentColor: "#ea580c",
+        appliedPresetId: "halloween",
+        fontId: "bebas",
+        effectId: "halloween",
+        effectDensity: "dense" as const,
+        effectSpeed: "lively" as const,
+        effectSize: 5,
       }, // orange
       plusOneAllowed: true,
       plusOneMax: 2,
@@ -407,6 +571,7 @@ async function main() {
       maybeEnabled: true,
       questionnaireEnabled: false,
       cohost: true, // cohost cohost@test.com
+      polls: true,
       infoSections: [
         {
           type: "shirt",
@@ -432,12 +597,20 @@ async function main() {
         gradientFrom: "#eab308",
         gradientTo: "#f97316",
         accentColor: "#eab308",
+        appliedPresetId: "new-years",
+        cardOpacity: 0.88,
+        fontId: "dancing-script",
+        effectId: "fireworks",
+        effectDensity: "dense" as const,
+        effectSpeed: "medium" as const,
+        effectSize: 6,
       }, // yellow/gold
       plusOneAllowed: true,
       plusOneMax: 1,
       commentsEnabled: true,
       maybeEnabled: true,
       questionnaireEnabled: false,
+      updateBlast: true,
     },
     {
       title: "Spring Picnic",
@@ -452,14 +625,23 @@ async function main() {
         gradientFrom: "#ccfbf1",
         gradientTo: "#a5f3fc",
         accentColor: "#14b8a6",
+        appliedPresetId: "spring",
+        fontId: "lora",
+        effectId: "blossoms",
+        effectDensity: "sparse" as const,
+        effectSpeed: "gentle" as const,
+        effectSize: 1.5,
       }, // teal
       plusOneAllowed: true,
       plusOneMax: 2,
       commentsEnabled: true,
       maybeEnabled: true,
       questionnaireEnabled: false,
+      invitedCount: 1,
     },
   ];
+
+  assertRichSeedCoverage(eventTemplates);
 
   for (const temp of eventTemplates) {
     const slug = slugify(temp.title);
@@ -469,20 +651,33 @@ async function main() {
         title: temp.title,
         description: temp.description,
         startAt: temp.startAt,
+        endAt: temp.endAt,
+        timezone: temp.timezone ?? "America/New_York",
         locationType: temp.locationType,
         locationName: temp.locationName,
         locationAddress: temp.locationAddress,
         virtualUrl: temp.virtualUrl,
         capacity: temp.capacity,
+        rsvpDeadline: temp.rsvpDeadline,
+        allowEditAfterDeadline: temp.allowEditAfterDeadline ?? false,
+        approvalRequired: temp.approvalRequired ?? false,
         visibility: temp.visibility,
         hostId: host.id,
         status: temp.status,
+        guestListVis: temp.guestListVis ?? "ALL",
+        guestSharingEnabled: temp.guestSharingEnabled ?? true,
+        guestsCanInvite: temp.guestsCanInvite ?? false,
+        hostAlertEmail: temp.hostAlertEmail ?? true,
+        hostAlertSms: temp.hostAlertSms ?? false,
         plusOneAllowed: temp.plusOneAllowed,
         plusOneMax: temp.plusOneMax ?? 1,
         plusOneNamesRequired: temp.plusOneNamesRequired ?? false,
         commentsEnabled: temp.commentsEnabled,
         maybeEnabled: temp.maybeEnabled,
         questionnaireEnabled: temp.questionnaireEnabled,
+        showTimestamps: temp.showTimestamps ?? true,
+        passwordHash: temp.password ? await bcrypt.hash(temp.password, 10) : null,
+        hostDisplayName: temp.hostDisplayName,
         createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // Created 30 days ago
       },
     });
@@ -495,6 +690,13 @@ async function main() {
         gradientFrom: temp.theme.gradientFrom,
         gradientTo: temp.theme.gradientTo,
         accentColor: temp.theme.accentColor,
+        appliedPresetId: temp.theme.appliedPresetId,
+        cardOpacity: temp.theme.cardOpacity,
+        fontId: temp.theme.fontId,
+        effectId: temp.theme.effectId,
+        effectDensity: temp.theme.effectDensity,
+        effectSpeed: temp.theme.effectSpeed,
+        effectSize: temp.theme.effectSize,
       },
     });
 
@@ -518,6 +720,17 @@ async function main() {
         data: {
           eventId: event.id,
           userId: cohost.id,
+        },
+      });
+    }
+
+    if (temp.pendingCohostInvite) {
+      await db.coHostInvitation.create({
+        data: {
+          eventId: event.id,
+          email: "future-cohost@test.com",
+          token: `seed-cohost-${event.slug}`,
+          expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
         },
       });
     }
@@ -549,11 +762,67 @@ async function main() {
       }
     }
 
+    if (temp.updateBlast) {
+      await db.eventUpdate.create({
+        data: {
+          eventId: event.id,
+          body: "Seeded event update: details have been refreshed. Check the event page for more information.",
+          notifyGuests: true,
+          createdAt: new Date(event.createdAt.getTime() + 20 * 60 * 60 * 1000),
+        },
+      });
+    }
+
+    if (temp.polls) {
+      await seedPolls(event, guests);
+    }
+
     // Seed RSVPs, comments, checkins, potluck claims, etc.
     await seedRsvpsAndRelatedData(event, temp, guests);
   }
 
   console.log("Rich test data seeding complete!");
+}
+
+async function seedPolls(event: EventModel, guests: UserModel[]) {
+  const poll = await db.poll.create({
+    data: {
+      eventId: event.id,
+      question: "Which activity should we add?",
+      multiChoice: true,
+      allowGuestsToAdd: true,
+      hideVoters: false,
+      options: {
+        create: [
+          { text: "Photo booth" },
+          { text: "Trivia", creatorName: guests[0].name },
+          { text: "Dance contest" },
+        ],
+      },
+    },
+    include: { options: true },
+  });
+
+  for (let i = 0; i < poll.options.length; i++) {
+    await db.pollVote.create({
+      data: {
+        pollId: poll.id,
+        pollOptionId: poll.options[i].id,
+        voterName: guests[i].name ?? `Guest ${i + 1}`,
+        userId: guests[i].id,
+      },
+    });
+  }
+
+  await db.poll.create({
+    data: {
+      eventId: event.id,
+      question: "Which start time works best?",
+      locked: true,
+      hideVoters: true,
+      options: { create: [{ text: "6:00 PM" }, { text: "7:00 PM" }] },
+    },
+  });
 }
 
 async function seedRsvpsAndRelatedData(
@@ -597,7 +866,26 @@ async function seedRsvpsAndRelatedData(
         order: 2,
       },
     });
-    rsvpFields = [field1, field2];
+    const field3 = await db.rSVPField.create({
+      data: {
+        eventId: event.id,
+        label: "Which activities interest you?",
+        fieldType: "CHECKBOX",
+        required: false,
+        options: JSON.stringify(["Games", "Dancing", "Conversation", "Photos"]),
+        order: 3,
+      },
+    });
+    const field4 = await db.rSVPField.create({
+      data: {
+        eventId: event.id,
+        label: "Anything else the host should know?",
+        fieldType: "TEXTAREA",
+        required: false,
+        order: 4,
+      },
+    });
+    rsvpFields = [field1, field2, field3, field4];
   }
 
   // Get existing potluck items for claiming
@@ -657,7 +945,7 @@ async function seedRsvpsAndRelatedData(
         guestEmail: guestUser.email,
         status,
         plusOneCount,
-        approved: true,
+        approved: !(eventTemp.approvalRequired && i < 2),
         responded: true,
         note,
         userId: guestUser.id,
@@ -700,6 +988,24 @@ async function seedRsvpsAndRelatedData(
           },
         });
       }
+
+      await db.rSVPAnswer.create({
+        data: {
+          rsvpId: rsvp.id,
+          rsvpFieldId: rsvpFields[2].id,
+          value: JSON.stringify(i % 2 === 0 ? ["Games", "Photos"] : ["Conversation"]),
+        },
+      });
+
+      if (i % 3 === 0) {
+        await db.rSVPAnswer.create({
+          data: {
+            rsvpId: rsvp.id,
+            rsvpFieldId: rsvpFields[3].id,
+            value: "Please save me a seat near the entrance.",
+          },
+        });
+      }
     }
 
     // Potluck Item claim
@@ -739,7 +1045,13 @@ async function seedRsvpsAndRelatedData(
 
     // Check-ins for past events (checked in near startAt)
     const isPast = event.startAt.getTime() < now.getTime();
-    if (isPast && status === "GOING" && i % 5 !== 4) {
+    if (
+      isPast &&
+      event.status !== "CANCELLED" &&
+      status === "GOING" &&
+      rsvp.approved &&
+      i % 5 !== 4
+    ) {
       await db.checkIn.create({
         data: {
           eventId: event.id,
@@ -749,6 +1061,66 @@ async function seedRsvpsAndRelatedData(
         },
       });
     }
+  }
+
+  const invitedGuests = guests.slice(numGuests, numGuests + (eventTemp.invitedCount ?? 0));
+  for (let i = 0; i < invitedGuests.length; i++) {
+    const guestUser = invitedGuests[i];
+    const channel = i % 2 === 0 ? "EMAIL" : "SMS";
+    const rsvp = await db.rSVP.create({
+      data: {
+        eventId: event.id,
+        guestName: guestUser.name ?? "Invited Guest",
+        guestEmail: guestUser.email,
+        guestPhone: channel === "SMS" ? `+15550100${String(numGuests + i).padStart(3, "0")}` : null,
+        status: "INVITED",
+        approved: true,
+        responded: false,
+        userId: guestUser.id,
+        createdAt: new Date(event.createdAt.getTime() + (numGuests + i + 1) * 60 * 60 * 1000),
+      },
+    });
+    rsvps.push(rsvp);
+
+    await db.invitation.create({
+      data: {
+        eventId: event.id,
+        sentTo:
+          channel === "EMAIL"
+            ? (guestUser.email ?? "invited@test.com")
+            : (rsvp.guestPhone ?? "+15550100000"),
+        channel,
+        rsvpId: rsvp.id,
+        sentAt: new Date(rsvp.createdAt.getTime() + 5 * 60 * 1000),
+      },
+    });
+  }
+
+  if (eventTemp.walkIn) {
+    const walkIn = await db.rSVP.create({
+      data: {
+        eventId: event.id,
+        guestName: "Morgan Walk-In",
+        status: "GOING",
+        plusOneCount: 1,
+        approved: true,
+        responded: true,
+        note: "Added at the door by the host.",
+        createdAt: new Date(event.startAt.getTime() + 10 * 60 * 1000),
+      },
+    });
+    rsvps.push(walkIn);
+    await db.plusOneGuest.create({
+      data: { rsvpId: walkIn.id, name: "Morgan's Guest", order: 0 },
+    });
+    await db.checkIn.create({
+      data: {
+        eventId: event.id,
+        rsvpId: walkIn.id,
+        checkedInAt: new Date(event.startAt.getTime() + 10 * 60 * 1000),
+        checkedInBy: "host@test.com",
+      },
+    });
   }
 
   // Create threaded comments
@@ -808,6 +1180,30 @@ async function seedRsvpsAndRelatedData(
         actorName: "Primary Host",
         detail: `added info section details`,
         createdAt: new Date(event.createdAt.getTime() + 10 * 60 * 1000),
+      },
+    });
+  }
+
+  if ((eventTemp.invitedCount ?? 0) > 0) {
+    await db.activityEvent.create({
+      data: {
+        eventId: event.id,
+        type: "invite_sent",
+        actorName: "Primary Host",
+        detail: `invited ${eventTemp.invitedCount} guests by email and SMS`,
+        createdAt: new Date(event.createdAt.getTime() + 15 * 60 * 1000),
+      },
+    });
+  }
+
+  if (eventTemp.updateBlast) {
+    await db.activityEvent.create({
+      data: {
+        eventId: event.id,
+        type: "update_sent",
+        actorName: "Primary Host",
+        detail: "sent an event update to Going and Maybe guests",
+        createdAt: new Date(event.createdAt.getTime() + 20 * 60 * 60 * 1000),
       },
     });
   }
