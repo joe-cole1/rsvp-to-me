@@ -55,3 +55,4 @@ For every bug fix merged to main:
 | `host-rsvp-alert-wiring.test.ts`                     | `sendHostRsvpAlertEmail`/`sendHostRsvpAlertSms` had no call site — hosts never got "New RSVP" alerts despite the docs | [de9262]  |
 | `guest-list-host-empty-visibility.test.tsx`          | Empty events hid the main-page Guests card and its management shortcuts from hosts                                    | 113b4f76  |
 | `preflight-e2e-process-group-cleanup.test.ts`        | Full preflight killed only npm, leaving an orphaned Next.js server listening on port 3001                             | 019f61f9  |
+| `guest-list-all-includes-invited.test.tsx`           | Guest-list All filter counted invited guests but rendered only guests who had responded                               | 019f6231  |
