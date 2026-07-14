@@ -32,15 +32,21 @@ list to **Arrived** or **Not arrived** parties.
 
 ## Event Check-In and Walk-Ins
 
-Approved **Going** and **Maybe** parties have a **Check in** button. A check-in covers the primary
+Every RSVP record has a **Check in** button, including guests who have not replied, answered
+**Can't make it**, or are awaiting approval. This lets the host accept walk-ins and last-minute
+changes of plan at the door without changing the guest's RSVP first. A check-in covers the primary
 guest and every plus-one on that RSVP. The attendance summary updates immediately with both party
 progress and total people arrived. Use **Undo check-in** and confirm inline if you tapped the wrong
 party; checking the party in again records a new arrival time.
 
 Use **+ Add walk-in** when someone arrives without an RSVP. Enter their name, total party size, and
 optionally an enabled email or SMS contact. The host-only action creates an approved Going RSVP and
-checks the party in without sending a message. If the contact matches an existing RSVP, the guest
-list opens that record instead of creating a duplicate.
+checks the party in without sending a message. If the contact matches an existing RSVP, that party
+is checked in instead of creating a duplicate.
+
+Unanswered invitees also have a **Resend invite** action. It sends a fresh invitation through the
+original email or SMS destination while retaining the normal delivery validation, rate limits, and
+activity history.
 
 Check-in changes appear immediately on the device making them. Other open host devices see the
 latest attendance after refreshing.

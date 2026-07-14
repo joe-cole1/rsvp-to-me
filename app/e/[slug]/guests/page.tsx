@@ -249,11 +249,19 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
                     // RSVPs with INVITED status (host pre-invited, awaiting response)
                     ...invitedRsvps.map((r) => ({
                       id: r.id,
+                      rsvpId: r.id,
                       sentTo: r.guestEmail || r.guestPhone || r.guestName,
                       channel: (r.guestEmail ? "EMAIL" : "SMS") as "EMAIL" | "SMS",
                       sentAt: r.createdAt.toISOString(),
                       guestName: r.guestName,
                       editToken: r.editToken,
+                      plusOneCount: r.plusOneCount,
+                      checkIn: r.checkIn
+                        ? {
+                            checkedInAt: r.checkIn.checkedInAt.toISOString(),
+                            checkedInBy: r.checkIn.checkedInBy,
+                          }
+                        : null,
                     })),
                     // Invitation records with no linked RSVP (blast tracking)
                     ...pendingInvitations.map((inv) => ({
