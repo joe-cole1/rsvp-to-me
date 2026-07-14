@@ -95,8 +95,8 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - New and existing RSVP flows use `app/e/[slug]/rsvp/page.tsx` and
   `components/rsvp/`.
 - Event mutations are split by domain under `app/actions/event/`: RSVP,
-  settings, invitations, co-hosts, polls, potluck, comments, blasts, custom
-  questions, and email previews/tests.
+  check-ins/walk-ins, settings, invitations, co-hosts, polls, potluck, comments,
+  blasts, custom questions, and email previews/tests.
 - Shared validation belongs in `lib/schemas.ts`; shared authorization belongs
   in `lib/auth-guards.ts` or `lib/eventAccess.ts`.
 - Capacity-sensitive RSVP writes use `lib/capacityLock.ts`.
@@ -176,6 +176,7 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 | ------------------------ | ------------------------------------------ | ----------------------------------------------------------------- |
 | Public event rendering   | `app/e/[slug]/page.tsx`                    | `components/event/`, `lib/eventAccess.ts`, theme helpers          |
 | RSVP behavior            | `app/actions/event/rsvp.ts`                | `components/rsvp/`, `lib/schemas.ts`, capacity/access helpers     |
+| Guest check-in           | `app/actions/event/checkins.ts`            | guest-list route/component, `CheckIn`, activity/privacy helpers   |
 | Host event settings      | `app/actions/event/settings.ts`            | `components/event/settings-page/`, `prisma/schema.prisma`         |
 | Dashboard                | `app/actions/event/dashboard.ts`           | `components/dashboard/`, `app/(app)/dashboard/`                   |
 | Authentication/session   | `app/actions/auth.ts`, `app/auth/`         | `lib/auth.ts`, `lib/session.ts`, `lib/session-user.ts`            |

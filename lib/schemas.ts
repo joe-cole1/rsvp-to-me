@@ -108,3 +108,11 @@ export const UpdateRsvpSchema = z.object({
   // SEC-38: same caps as AddRsvpSchema.
   answers: z.record(z.string().max(100), z.string().max(2000)).optional(),
 });
+
+export const AddWalkInSchema = z.object({
+  eventId: z.string().trim().min(1),
+  guestName: z.string().trim().min(1).max(100),
+  totalPartySize: z.number().int().min(1).max(11).default(1),
+  guestEmail: z.string().trim().toLowerCase().email().max(100).optional().or(z.literal("")),
+  guestPhone: z.string().trim().regex(GuestPhoneRegex).max(30).optional().or(z.literal("")),
+});

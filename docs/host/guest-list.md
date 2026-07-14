@@ -20,6 +20,26 @@ Filter the list by status to focus on what matters:
 - **Invited** — invited but not yet responded
 - **Awaiting Approval** — pending your approve/decline
 
+Hosts and co-hosts can also search by guest name, email, phone, or named plus-one and filter the
+list to **Arrived** or **Not arrived** parties.
+
+---
+
+## Event Check-In and Walk-Ins
+
+Approved **Going** and **Maybe** parties have a **Check in** button. A check-in covers the primary
+guest and every plus-one on that RSVP. The attendance summary updates immediately with both party
+progress and total people arrived. Use **Undo check-in** and confirm inline if you tapped the wrong
+party; checking the party in again records a new arrival time.
+
+Use **+ Add walk-in** when someone arrives without an RSVP. Enter their name, total party size, and
+optionally an enabled email or SMS contact. The host-only action creates an approved Going RSVP and
+checks the party in without sending a message. If the contact matches an existing RSVP, the guest
+list opens that record instead of creating a duplicate.
+
+Check-in changes appear immediately on the device making them. Other open host devices see the
+latest attendance after refreshing.
+
 ---
 
 ## Who Can See the Guest List
@@ -48,6 +68,12 @@ A separate toggle controls whether guests' names appear on the public event page
 
 Download your guest list as a spreadsheet for check-in lists, name tags, or your own records. The export includes these columns:
 
-**Name, Email, RSVP Status, Plus-Ones, Approved, RSVP Date.**
+The export includes every RSVP record with these columns:
+
+**Name, Email, Phone, Status, Plus Ones, Approved, event-local RSVP Date, event-local Check-In
+Time, one column per questionnaire field, RSVP Date (UTC), and Check-In Time (UTC).**
+
+Questionnaire columns follow the configured order. Missing answers and check-ins are blank, and
+duplicate question labels are numbered so spreadsheet headers stay unique.
 
 > Co-hosts and admins can download the export too.

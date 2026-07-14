@@ -79,13 +79,13 @@ If you already have one active Admin account, you can promote other users:
 
 The **Overview** tab shows a snapshot of your installation:
 
-| Stat             | What it counts                                              |
-| ---------------- | ----------------------------------------------------------- |
-| **Total Users**  | All registered guest, host, and admin accounts.             |
-| **Total Events** | Every event page created (published and cancelled).         |
-| **Total RSVPs**  | The sum of all RSVPs submitted by guests across all events. |
-| **Check-ins**    | Total guest check-in records stored in the database.        |
-| **Invite Codes** | The number of active host-registration invite codes.        |
+| Stat             | What it counts                                                |
+| ---------------- | ------------------------------------------------------------- |
+| **Total Users**  | All registered guest, host, and admin accounts.               |
+| **Total Events** | Every event page created (published and cancelled).           |
+| **Total RSVPs**  | The sum of all RSVPs submitted by guests across all events.   |
+| **Check-ins**    | Active whole-party check-ins recorded from event guest lists. |
+| **Invite Codes** | The number of active host-registration invite codes.          |
 
 ---
 
@@ -147,6 +147,7 @@ Search for events by title, slug, or the host's email, and filter by status.
 
 - View any event's details and guest list, and delete events that violate your rules.
 - Admins do not edit event details from inside the Admin Panel. Instead, when an Admin opens a public event page, their permissions supersede the host checks — so they can use the inline editor, manage comments, edit potlucks, and moderate RSVPs exactly like the host.
+- Admins can use the host guest-list check-in, undo, walk-in, search, attendance summary, and CSV export controls. These actions are attributed in the host-only activity feed.
 
 ---
 

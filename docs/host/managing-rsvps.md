@@ -54,6 +54,12 @@ You can set an optional **RSVP deadline** on your event under Settings → RSVP.
   - Existing guests cannot edit their RSVP from their unique edit link unless the **Allow guests to edit RSVPs after deadline** option is enabled in settings. If disabled, their edit links will be hidden/gated.
   - Hosts and co-hosts are exempt from these deadline restrictions and can manage RSVPs at any time.
 
+The event's scheduled start is a final guest cutoff. Once `startAt` is reached, guests cannot submit
+a new RSVP or change an existing one, even when post-deadline editing is enabled. A guest opening
+their private edit link sees a read-only summary and instructions to contact the host. Hosts,
+co-hosts, and admins can continue editing responses at any time. If the event is rescheduled into the
+future, guest RSVP access automatically reopens under the normal deadline rules.
+
 ---
 
 ## Custom Questionnaires
@@ -70,7 +76,9 @@ Answers appear with each guest and are included in the [CSV export](guest-list.m
 
 ## Guest Edit Links
 
-Guests don't need an account to change their RSVP. Every confirmation email includes a private link unique to that guest; clicking it lets them update their status or answers at any time. If a guest loses their link, see the [FAQ](faq.md).
+Guests don't need an account to change their RSVP. Every confirmation email includes a private link
+unique to that guest; clicking it lets them update their status or answers until the event starts. If
+a guest loses their link, see the [FAQ](faq.md).
 
 ---
 

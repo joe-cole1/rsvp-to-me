@@ -72,7 +72,9 @@ const EVENT = {
   approvalRequired: false,
   rsvpDeadline: null,
   capacity: 2,
-  startAt: new Date(),
+  // Keep the fixture ahead of the event-start RSVP lock so this regression
+  // reaches the capacity critical section it is intended to exercise.
+  startAt: new Date("2099-01-01T00:00:00.000Z"),
   locationName: null,
   host: { name: "Host", email: "host@example.com" },
 };

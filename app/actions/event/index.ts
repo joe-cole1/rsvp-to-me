@@ -7,10 +7,12 @@ export {
   verifyEventPassword,
   addRSVP,
   updateRSVP,
+  updateRsvpAsHost,
   deleteRsvpAsHost,
   approveRsvp,
   declineRsvp,
 } from "./rsvp";
+export { checkInRsvp, undoCheckIn, addWalkIn } from "./checkins";
 export {
   addRsvpField,
   updateRsvpField,

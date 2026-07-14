@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addRSVP, updateRSVP } from "@/app/actions/event";
+import { addRSVP, updateRSVP, updateRsvpAsHost } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { Check } from "lucide-react";
 import { AppNavLogo } from "@/components/ui/AppNav";
@@ -112,6 +112,8 @@ export function RsvpFlow({
   returnPath,
   sessionUser,
   channelConfig = { email: true, sms: true },
+  organizerOverride = false,
+  readOnlyReason,
 }: {
   event: EventData;
   theme: ResolvedTheme;
@@ -120,6 +122,8 @@ export function RsvpFlow({
   returnPath?: string;
   sessionUser?: SessionUser | null;
   channelConfig?: { email: boolean; sms: boolean };
+  organizerOverride?: boolean;
+  readOnlyReason?: string;
 }) {
   const t = theme;
   const isEdit = !!existingRsvp;
@@ -194,13 +198,16 @@ export function RsvpFlow({
     startTransition(async () => {
       setError(null);
       if (isEdit && existingRsvp) {
-        const result = await updateRSVP(existingRsvp.editToken, {
+        const input = {
           status,
           plusOneCount,
           plusOneGuestNames,
           note: note.trim() || undefined,
           answers,
-        });
+        };
+        const result = organizerOverride
+          ? await updateRsvpAsHost(existingRsvp.id, input)
+          : await updateRSVP(existingRsvp.editToken, input);
         if (!result.success) {
           setError(result.error ?? "Something went wrong");
           return;
@@ -350,6 +357,80 @@ export function RsvpFlow({
       }}
     />
   );
+
+  if (readOnlyReason && existingRsvp) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: t.pageBg,
+          color: t.textPrimary,
+          fontFamily: "inherit",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "77px 24px 24px",
+          position: "relative",
+          overflowX: "hidden",
+        }}
+      >
+        {renderNav()}
+        {renderDecorations()}
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "440px",
+            background: t.cardBg,
+            border: `1px solid ${t.cardBorder}`,
+            borderRadius: t.cardRadius,
+            padding: "28px 24px",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <div style={{ fontSize: "36px", marginBottom: "12px" }}>🔒</div>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>
+            RSVP editing is closed
+          </h1>
+          <p style={{ color: t.textSecondary, fontSize: "14px", lineHeight: 1.6 }}>
+            {readOnlyReason}
+          </p>
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "16px",
+              background: t.inputBg,
+              border: `1px solid ${t.inputBorder}`,
+              borderRadius: "12px",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>{existingRsvp.guestName}</div>
+            <div style={{ color: t.textSecondary, marginTop: "4px", fontSize: "14px" }}>
+              {STATUS_LABELS[existingRsvp.status]} · Party of {1 + existingRsvp.plusOneCount}
+            </div>
+            {existingRsvp.note && (
+              <p style={{ color: t.textMuted, fontSize: "13px", margin: "10px 0 0" }}>
+                {existingRsvp.note}
+              </p>
+            )}
+          </div>
+          <a
+            href={`/e/${event.slug}?token=${existingRsvp.editToken}`}
+            style={{
+              display: "block",
+              textAlign: "center",
+              marginTop: "20px",
+              color: t.accent,
+              textDecoration: "none",
+              fontWeight: 700,
+            }}
+          >
+            Return to event
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // ── Done screen ────────────────────────────────────────────────────────
   if (done) {

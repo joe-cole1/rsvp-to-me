@@ -118,6 +118,9 @@ export async function addRSVP(rawInput: unknown) {
     },
   });
   if (!event) return { success: false, error: "Event not found" };
+  if (event.startAt <= new Date()) {
+    return { success: false, error: "RSVPs are closed because this event has started" };
+  }
   if (event.rsvpDeadline && event.rsvpDeadline < new Date())
     return { success: false, error: "RSVP deadline has passed" };
 
@@ -307,17 +310,23 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
     include: {
+      checkIn: { select: { id: true } },
       event: {
         select: {
           slug: true,
           capacity: true,
           rsvpDeadline: true,
+          startAt: true,
           rsvpFields: { select: { id: true } },
         },
       },
     },
   });
   if (!rsvp) return { success: false, error: "RSVP not found" };
+
+  if (rsvp.event.startAt <= new Date()) {
+    return { success: false, error: "RSVPs are closed because this event has started" };
+  }
 
   // SEC-21(b): a token-holding guest could previously flip to GOING after the
   // deadline or past capacity — a capacity-bypass cousin of SEC-12. Re-validate
@@ -379,6 +388,16 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
     );
   }
 
+  if (data.status === "NO" && rsvp.checkIn) {
+    await db.checkIn.deleteMany({ where: { rsvpId: rsvp.id, eventId: rsvp.eventId } });
+    logActivity(
+      rsvp.eventId,
+      "check_in_undo",
+      `automatically undid check-in for ${rsvp.guestName} after an RSVP status change`,
+      rsvp.guestName
+    ).catch(logSafe("updateRSVP"));
+  }
+
   const statusText =
     data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
   logActivity(
@@ -390,6 +409,83 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
 
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true, rsvpId: rsvp.id };
+}
+
+export async function updateRsvpAsHost(rsvpId: string, rawInput: unknown) {
+  const parsed = UpdateRsvpSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
+  }
+  const data = parsed.data;
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  const rsvp = await db.rSVP.findUnique({
+    where: { id: rsvpId },
+    include: {
+      checkIn: { select: { id: true } },
+      event: { select: { id: true, slug: true, rsvpFields: { select: { id: true } } } },
+    },
+  });
+  if (!rsvp) throw new Error("Forbidden");
+  await assertHostOrCohost(rsvp.eventId);
+
+  await db.rSVP.update({
+    where: { id: rsvp.id },
+    data: {
+      status: data.status,
+      plusOneCount: data.status === "GOING" ? data.plusOneCount : 0,
+      responded: true,
+      ...(data.note !== undefined && { note: data.note || null }),
+    },
+  });
+
+  if (data.plusOneGuestNames !== undefined) {
+    await db.plusOneGuest.deleteMany({ where: { rsvpId: rsvp.id } });
+    if (data.status === "GOING" && data.plusOneGuestNames.length > 0) {
+      await db.plusOneGuest.createMany({
+        data: data.plusOneGuestNames
+          .filter((name) => name.trim())
+          .map((name, order) => ({ rsvpId: rsvp.id, name: name.trim(), order })),
+      });
+    }
+  }
+
+  if (data.answers && Object.keys(data.answers).length > 0) {
+    const validFieldIds = new Set(rsvp.event.rsvpFields.map((field) => field.id));
+    await Promise.all(
+      Object.entries(data.answers)
+        .filter(([id, value]) => validFieldIds.has(id) && typeof value === "string" && value.trim())
+        .map(([rsvpFieldId, value]) =>
+          db.rSVPAnswer.upsert({
+            where: { rsvpId_rsvpFieldId: { rsvpId: rsvp.id, rsvpFieldId } },
+            create: { rsvpId: rsvp.id, rsvpFieldId, value: value as string },
+            update: { value: value as string },
+          })
+        )
+    );
+  }
+
+  if (data.status === "NO" && rsvp.checkIn) {
+    await db.checkIn.deleteMany({ where: { rsvpId: rsvp.id, eventId: rsvp.eventId } });
+    logActivity(
+      rsvp.eventId,
+      "check_in_undo",
+      `automatically undid check-in for ${rsvp.guestName} after an RSVP status change`,
+      session.email
+    ).catch(logSafe("updateRsvpAsHost"));
+  }
+
+  const statusText =
+    data.status === "GOING" ? "going" : data.status === "MAYBE" ? "maybe" : "not going";
+  logActivity(
+    rsvp.eventId,
+    "rsvp_update",
+    `updated ${rsvp.guestName} to ${statusText}`,
+    session.email
+  ).catch(logSafe("updateRsvpAsHost"));
+  revalidatePath(`/e/${rsvp.event.slug}/guests`);
+  revalidatePath(`/e/${rsvp.event.slug}`);
+  return { success: true as const, rsvpId: rsvp.id };
 }
 
 export async function deleteRsvpAsHost(rsvpId: string) {

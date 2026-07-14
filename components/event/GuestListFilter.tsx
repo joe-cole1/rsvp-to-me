@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { deleteRsvpAsHost, approveRsvp, declineRsvp } from "@/app/actions/event";
+import {
+  addWalkIn,
+  approveRsvp,
+  checkInRsvp,
+  declineRsvp,
+  deleteRsvpAsHost,
+  undoCheckIn,
+} from "@/app/actions/event";
 import Image from "next/image";
 
 type RSVPAnswer = { label: string; value: string };
@@ -20,6 +27,7 @@ type RSVP = {
   plusOneGuests: string[];
   editToken: string;
   user?: { avatarUrl: string | null } | null;
+  checkIn: { checkedInAt: string; checkedInBy: string | null } | null;
 };
 
 type InvitedGuest = {
@@ -31,7 +39,8 @@ type InvitedGuest = {
   editToken?: string;
 };
 
-type Filter = "ALL" | "GOING" | "MAYBE" | "NO" | "INVITED" | "PENDING";
+type Filter =
+  "ALL" | "CHECKED_IN" | "NOT_CHECKED_IN" | "GOING" | "MAYBE" | "NO" | "INVITED" | "PENDING";
 
 export function GuestListFilter({
   going: initialGoing,
@@ -40,7 +49,10 @@ export function GuestListFilter({
   pending: initialPending = [],
   invited: initialInvited,
   isHost,
+  eventId,
   slug,
+  timezone,
+  channelConfig,
   t,
 }: {
   going: RSVP[];
@@ -49,7 +61,10 @@ export function GuestListFilter({
   pending?: RSVP[];
   invited: InvitedGuest[];
   isHost: boolean;
+  eventId: string;
   slug: string;
+  timezone: string;
+  channelConfig: { email: boolean; sms: boolean };
   t: ResolvedTheme;
 }) {
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -59,6 +74,16 @@ export function GuestListFilter({
   const [pending, setPending] = useState(initialPending);
   const [invited, setInvited] = useState(initialInvited);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
+  const [checkInPendingId, setCheckInPendingId] = useState<string | null>(null);
+  const [undoConfirmId, setUndoConfirmId] = useState<string | null>(null);
+  const [showWalkIn, setShowWalkIn] = useState(false);
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInPartySize, setWalkInPartySize] = useState(1);
+  const [walkInEmail, setWalkInEmail] = useState("");
+  const [walkInPhone, setWalkInPhone] = useState("");
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const statusLabel = (s: string) =>
@@ -73,21 +98,54 @@ export function GuestListFilter({
     s === "GOING" ? t.badgeText : s === "MAYBE" ? t.textSecondary : t.textMuted;
 
   const allRsvps = [...going, ...maybe, ...no];
-  const displayedRsvps =
+  const eligibleRsvps = [...going, ...maybe];
+  const checkedInRsvps = eligibleRsvps.filter((r) => r.checkIn);
+  const checkedInPeople = checkedInRsvps.reduce((sum, r) => sum + 1 + r.plusOneCount, 0);
+  const expectedPeople = eligibleRsvps.reduce((sum, r) => sum + 1 + r.plusOneCount, 0);
+  const baseDisplayedRsvps =
     filter === "ALL"
       ? allRsvps
-      : filter === "GOING"
-        ? going
-        : filter === "MAYBE"
-          ? maybe
-          : filter === "NO"
-            ? no
-            : filter === "PENDING"
-              ? pending
-              : [];
+      : filter === "CHECKED_IN"
+        ? checkedInRsvps
+        : filter === "NOT_CHECKED_IN"
+          ? eligibleRsvps.filter((r) => !r.checkIn)
+          : filter === "GOING"
+            ? going
+            : filter === "MAYBE"
+              ? maybe
+              : filter === "NO"
+                ? no
+                : filter === "PENDING"
+                  ? pending
+                  : [];
+  const normalizedSearch = search.trim().toLowerCase();
+  const displayedRsvps = normalizedSearch
+    ? baseDisplayedRsvps.filter((r) =>
+        [r.guestName, r.guestEmail, r.guestPhone, ...r.plusOneGuests]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(normalizedSearch))
+      )
+    : baseDisplayedRsvps;
+  const displayedInvited = normalizedSearch
+    ? invited.filter((guest) =>
+        [guest.guestName, guest.sentTo]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(normalizedSearch))
+      )
+    : invited;
 
   const chips: { key: Filter; label: string; count: number }[] = [
     { key: "ALL", label: "All", count: allRsvps.length + (isHost ? invited.length : 0) },
+    ...(isHost
+      ? [
+          { key: "CHECKED_IN" as Filter, label: "Arrived", count: checkedInRsvps.length },
+          {
+            key: "NOT_CHECKED_IN" as Filter,
+            label: "Not arrived",
+            count: eligibleRsvps.length - checkedInRsvps.length,
+          },
+        ]
+      : []),
     ...(isHost
       ? [{ key: "PENDING" as Filter, label: "Pending Approval", count: pending.length }]
       : []),
@@ -178,8 +236,277 @@ export function GuestListFilter({
     });
   };
 
+  const updateRsvp = (rsvpId: string, updater: (rsvp: RSVP) => RSVP) => {
+    const update = (list: RSVP[]) =>
+      list.map((rsvp) => (rsvp.id === rsvpId ? updater(rsvp) : rsvp));
+    setGoing(update);
+    setMaybe(update);
+    setNo(update);
+    setPending(update);
+  };
+
+  const handleCheckIn = (rsvp: RSVP) => {
+    const optimisticCheckIn = { checkedInAt: new Date().toISOString(), checkedInBy: null };
+    setAttendanceError(null);
+    setCheckInPendingId(rsvp.id);
+    updateRsvp(rsvp.id, (item) => ({ ...item, checkIn: optimisticCheckIn }));
+    startTransition(async () => {
+      try {
+        const result = await checkInRsvp(rsvp.id);
+        if (!result.success) throw new Error(result.error);
+        updateRsvp(rsvp.id, (item) => ({
+          ...item,
+          checkIn: {
+            checkedInAt: new Date(result.checkIn.checkedInAt).toISOString(),
+            checkedInBy: result.checkIn.checkedInBy,
+          },
+        }));
+      } catch (error) {
+        updateRsvp(rsvp.id, (item) => ({ ...item, checkIn: rsvp.checkIn }));
+        setAttendanceError(
+          error instanceof Error ? error.message : "Unable to check in this party."
+        );
+      } finally {
+        setCheckInPendingId(null);
+      }
+    });
+  };
+
+  const handleUndoCheckIn = (rsvp: RSVP) => {
+    if (undoConfirmId !== rsvp.id) {
+      setUndoConfirmId(rsvp.id);
+      return;
+    }
+    setUndoConfirmId(null);
+    setAttendanceError(null);
+    setCheckInPendingId(rsvp.id);
+    updateRsvp(rsvp.id, (item) => ({ ...item, checkIn: null }));
+    startTransition(async () => {
+      try {
+        await undoCheckIn(rsvp.id);
+      } catch (error) {
+        updateRsvp(rsvp.id, (item) => ({ ...item, checkIn: rsvp.checkIn }));
+        setAttendanceError(error instanceof Error ? error.message : "Unable to undo check-in.");
+      } finally {
+        setCheckInPendingId(null);
+      }
+    });
+  };
+
+  const handleAddWalkIn = () => {
+    startTransition(async () => {
+      setAttendanceError(null);
+      try {
+        const result = await addWalkIn({
+          eventId,
+          guestName: walkInName,
+          totalPartySize: walkInPartySize,
+          guestEmail: walkInEmail,
+          guestPhone: walkInPhone,
+        });
+        if (!result.success) throw new Error(result.error);
+        setShowWalkIn(false);
+        setWalkInName("");
+        setWalkInPartySize(1);
+        setWalkInEmail("");
+        setWalkInPhone("");
+        if (result.kind === "existing") {
+          setFilter(!result.approved ? "PENDING" : result.status === "INVITED" ? "INVITED" : "ALL");
+          setSearch(result.guestName);
+          setHighlightedId(result.rsvpId);
+          return;
+        }
+        setFilter("ALL");
+        const newRsvp: RSVP = {
+          ...result.rsvp,
+          status: "GOING",
+          createdAt: new Date(result.rsvp.createdAt).toISOString(),
+          answers: [],
+          plusOneGuests: [],
+          user: null,
+          checkIn: {
+            checkedInAt: new Date(result.checkIn.checkedInAt).toISOString(),
+            checkedInBy: result.checkIn.checkedInBy,
+          },
+        };
+        setGoing((current) => [...current, newRsvp]);
+        setSearch(newRsvp.guestName);
+        setHighlightedId(newRsvp.id);
+      } catch (error) {
+        setAttendanceError(error instanceof Error ? error.message : "Unable to add this walk-in.");
+      }
+    });
+  };
+
   return (
     <>
+      {isHost && (
+        <div
+          style={{
+            background: t.cardBg,
+            border: `1px solid ${t.cardBorder}`,
+            borderRadius: "14px",
+            padding: "16px",
+            marginBottom: "16px",
+          }}
+        >
+          <div style={{ fontWeight: 800, fontSize: "15px" }}>Event attendance</div>
+          <div style={{ color: t.textSecondary, fontSize: "13px", marginTop: "4px" }}>
+            {checkedInRsvps.length} of {eligibleRsvps.length} parties · {checkedInPeople} of{" "}
+            {expectedPeople} people arrived
+          </div>
+          <div style={{ display: "flex", gap: "8px", marginTop: "14px", flexWrap: "wrap" }}>
+            <input
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setHighlightedId(null);
+              }}
+              placeholder="Search name, email, phone…"
+              aria-label="Search guest list"
+              style={{
+                flex: "1 1 220px",
+                minWidth: 0,
+                padding: "9px 11px",
+                borderRadius: "8px",
+                border: `1px solid ${t.inputBorder}`,
+                background: t.inputBg,
+                color: t.textPrimary,
+                fontFamily: "inherit",
+              }}
+            />
+            <a
+              href={`/e/${slug}/guests.csv`}
+              style={{
+                padding: "9px 12px",
+                borderRadius: "8px",
+                border: `1px solid ${t.cardBorder}`,
+                color: t.textSecondary,
+                textDecoration: "none",
+                fontSize: "13px",
+                fontWeight: 700,
+              }}
+            >
+              Download CSV
+            </a>
+            <button
+              onClick={() => setShowWalkIn((value) => !value)}
+              style={{
+                padding: "9px 12px",
+                borderRadius: "8px",
+                border: "none",
+                background: t.accent,
+                color: t.accentFg,
+                fontFamily: "inherit",
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {showWalkIn ? "Cancel" : "+ Add walk-in"}
+            </button>
+          </div>
+          {showWalkIn && (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleAddWalkIn();
+              }}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: "8px",
+                marginTop: "12px",
+                paddingTop: "12px",
+                borderTop: `1px solid ${t.cardBorder}`,
+              }}
+            >
+              <input
+                required
+                maxLength={100}
+                value={walkInName}
+                onChange={(event) => setWalkInName(event.target.value)}
+                placeholder="Guest name"
+                aria-label="Walk-in guest name"
+                style={{
+                  padding: "9px",
+                  borderRadius: "8px",
+                  border: `1px solid ${t.inputBorder}`,
+                }}
+              />
+              <input
+                required
+                type="number"
+                min={1}
+                max={11}
+                value={walkInPartySize}
+                onChange={(event) => setWalkInPartySize(Number(event.target.value))}
+                aria-label="Total party size"
+                title="Total party size"
+                style={{
+                  padding: "9px",
+                  borderRadius: "8px",
+                  border: `1px solid ${t.inputBorder}`,
+                }}
+              />
+              {channelConfig.email && (
+                <input
+                  type="email"
+                  maxLength={100}
+                  value={walkInEmail}
+                  onChange={(event) => setWalkInEmail(event.target.value)}
+                  placeholder="Email (optional)"
+                  aria-label="Walk-in email"
+                  style={{
+                    padding: "9px",
+                    borderRadius: "8px",
+                    border: `1px solid ${t.inputBorder}`,
+                  }}
+                />
+              )}
+              {channelConfig.sms && (
+                <input
+                  type="tel"
+                  maxLength={30}
+                  value={walkInPhone}
+                  onChange={(event) => setWalkInPhone(event.target.value)}
+                  placeholder="Phone (optional)"
+                  aria-label="Walk-in phone"
+                  style={{
+                    padding: "9px",
+                    borderRadius: "8px",
+                    border: `1px solid ${t.inputBorder}`,
+                  }}
+                />
+              )}
+              <button
+                type="submit"
+                disabled={isPending || !walkInName.trim()}
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: t.accent,
+                  color: t.accentFg,
+                  fontWeight: 700,
+                  cursor: isPending ? "wait" : "pointer",
+                }}
+              >
+                {isPending ? "Adding…" : "Add and check in"}
+              </button>
+            </form>
+          )}
+          {attendanceError && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{ color: "#f87171", fontSize: "12px", marginTop: "10px" }}
+            >
+              {attendanceError}
+            </div>
+          )}
+        </div>
+      )}
       <div
         style={{
           display: "flex",
@@ -204,7 +531,15 @@ export function GuestListFilter({
       ) : (
         <>
           {displayedRsvps.map((r) => (
-            <div key={r.id} style={{ ...cardStyle, opacity: deletingId === r.id ? 0.5 : 1 }}>
+            <div
+              key={r.id}
+              style={{
+                ...cardStyle,
+                opacity: deletingId === r.id ? 0.5 : 1,
+                border:
+                  highlightedId === r.id ? `2px solid ${t.accent}` : `1px solid ${t.cardBorder}`,
+              }}
+            >
               <div
                 style={{
                   width: "38px",
@@ -257,6 +592,20 @@ export function GuestListFilter({
                   >
                     {statusLabel(r.status)}
                   </span>
+                  {r.checkIn && (
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: "99px",
+                        background: t.accentBg,
+                        color: t.accent,
+                      }}
+                    >
+                      ✓ Arrived
+                    </span>
+                  )}
                 </div>
                 {r.note && (
                   <p
@@ -323,6 +672,16 @@ export function GuestListFilter({
                     hour: "numeric",
                     minute: "2-digit",
                   })}
+                  {r.checkIn && (
+                    <>
+                      {" · Checked in "}
+                      {new Intl.DateTimeFormat("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        timeZone: timezone,
+                      }).format(new Date(r.checkIn.checkedInAt))}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -370,6 +729,31 @@ export function GuestListFilter({
                   <div
                     style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}
                   >
+                    {(r.status === "GOING" || r.status === "MAYBE") && (
+                      <button
+                        onClick={() => (r.checkIn ? handleUndoCheckIn(r) : handleCheckIn(r))}
+                        disabled={checkInPendingId === r.id}
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          padding: "5px 10px",
+                          background: r.checkIn ? t.inputBg : t.accent,
+                          border: r.checkIn ? `1px solid ${t.cardBorder}` : "none",
+                          borderRadius: "8px",
+                          color: r.checkIn ? t.textSecondary : t.accentFg,
+                          cursor: checkInPendingId === r.id ? "wait" : "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {checkInPendingId === r.id
+                          ? "Saving…"
+                          : r.checkIn
+                            ? undoConfirmId === r.id
+                              ? "Confirm undo"
+                              : "Undo check-in"
+                            : "Check in"}
+                      </button>
+                    )}
                     <a
                       href={`/e/${slug}/rsvp?token=${r.editToken}&return=guests`}
                       style={{
@@ -411,8 +795,18 @@ export function GuestListFilter({
           ))}
 
           {filter === "INVITED" &&
-            invited.map((inv) => (
-              <div key={inv.id} style={{ ...cardStyle, alignItems: "flex-start" }}>
+            displayedInvited.map((inv) => (
+              <div
+                key={inv.id}
+                style={{
+                  ...cardStyle,
+                  alignItems: "flex-start",
+                  border:
+                    highlightedId === inv.id
+                      ? `2px solid ${t.accent}`
+                      : `1px solid ${t.cardBorder}`,
+                }}
+              >
                 <div
                   style={{
                     width: "38px",
@@ -514,7 +908,7 @@ export function GuestListFilter({
               </div>
             ))}
 
-          {filter === "INVITED" && invited.length === 0 && (
+          {filter === "INVITED" && displayedInvited.length === 0 && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted }}>
               No pending invites.
             </div>
