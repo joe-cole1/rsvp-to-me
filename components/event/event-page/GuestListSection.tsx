@@ -1,6 +1,6 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { Settings, Users } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { EventPageStyles } from "./styles";
@@ -33,7 +33,7 @@ export function GuestListSection({
   return (
     <>
       {/* ── Guest List ── */}
-      {(event.guestListVis === "ALL" || isHost) && event.rsvps.length > 0 && (
+      {(isHost || (event.guestListVis === "ALL" && event.rsvps.length > 0)) && (
         <div style={S.card}>
           <div
             style={{
@@ -49,12 +49,29 @@ export function GuestListSection({
                 Guests ({event.rsvps.length})
               </span>
             </div>
-            <a
-              href={`/e/${event.slug}/guests`}
-              style={{ fontSize: "13px", color: t.accent, textDecoration: "none", opacity: 0.85 }}
-            >
-              View all →
-            </a>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <a
+                href={`/e/${event.slug}/guests`}
+                style={{
+                  fontSize: "13px",
+                  color: t.accent,
+                  textDecoration: "none",
+                  opacity: 0.85,
+                }}
+              >
+                View all →
+              </a>
+              {isHost && (
+                <a
+                  href={`/e/${event.slug}/settings?section=rsvp`}
+                  aria-label="RSVP settings"
+                  title="RSVP settings"
+                  style={{ color: t.textMuted, display: "flex", alignItems: "center" }}
+                >
+                  <Settings size={13} />
+                </a>
+              )}
+            </div>
           </div>
           {going.length > 0 && (
             <div style={{ marginBottom: maybe.length > 0 || no.length > 0 ? "14px" : 0 }}>

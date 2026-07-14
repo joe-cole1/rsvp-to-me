@@ -10,6 +10,10 @@ order: 70
 
 The guest list (at `/e/[slug]/guests`) is where you see who's coming and manage everyone in one place.
 
+The **Guests** card on your event page is always visible to you and your co-hosts, even before the
+first RSVP arrives. Use **View all →** to open the full guest list, or use the settings cog to jump
+directly to RSVP settings.
+
 ---
 
 ## Filters
