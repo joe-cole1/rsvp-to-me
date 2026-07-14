@@ -209,7 +209,9 @@ docker compose exec -T postgres psql -U postgres -d rsvp_db < ./data/backups/pre
 
 ### Step 2: Pin the Previous Image Version
 
-Open your `docker-compose.yml` or `docker-compose.postgres.yml` file and edit the image tag to reference the specific previous release version (e.g. `v1.2.0` instead of `latest`):
+Open the Compose file used by your deployment and edit the application image
+tag to reference the specific previous release version (for example, `v1.2.0`
+instead of `latest`):
 
 ```yaml
 services:

@@ -2,8 +2,14 @@
   "name": "rsvp-to-me",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.23.1 <23",
+    "npm": ">=10.9.0 <11"
+  },
   "scripts": {
     "dev": "next dev",
+    "dev:sync": "bash scripts/dev-sync.sh",
+    "dev:reset": "bash scripts/dev-reset.sh",
     "build": "next build",
     "start": "prisma migrate deploy && next start",
     "lint": "eslint",

@@ -20,18 +20,32 @@ Steps: `npm ci` → `npm audit` → Prettier `--check` → ESLint → Prisma gen
 migrate → unit + integration + component tests → `next build` → (E2E: start server,
 `wait-on` health, `playwright test`).
 
+### `dev-sync.sh` and `dev-reset.sh` — local services
+
+Run `scripts/dev-sync.sh` after switching branches to start and health-check the
+local Postgres and Redis containers, regenerate Prisma, apply migrations, and
+seed baseline data. Pass `--deps` after cloning or changing dependencies.
+
+`scripts/dev-reset.sh --confirm` deletes only the disposable local named volumes
+for Postgres and Redis, then recreates and reseeds them. It must never be used
+against a production deployment.
+
 ### `ship.sh` — one-shot commit + push + PR
 
 Runs `preflight.sh`, and **only if everything passes** commits, pushes, and opens the PR.
 Nothing reaches GitHub unless it's green locally.
 
 ```bash
-scripts/ship.sh "<commit message>" [--label <label>] [--base <branch>] [--fast] [--draft]
+scripts/ship.sh "<commit message>" [options] --pr-body-file <path> -- <reviewed files...>
 
 # examples
-scripts/ship.sh "[abc123] fix(auth): tighten session check" --label bug
-scripts/ship.sh "[abc123] chore: add local CI scripts" --label chore --fast
+scripts/ship.sh "fix(auth): tighten session check" --label bug --pr-body-file /tmp/pr.md -- app/auth.ts
+scripts/ship.sh "chore: update local tooling" --label chore --fast --pr-body-file /tmp/pr.md -- scripts/dev-sync.sh
 ```
+
+The PR body file must contain `## Summary`, `## Verification`, and
+`## Documentation` headings. The script rejects unsupported release labels,
+pre-existing staged work, and unreviewed tracked or untracked changes.
 
 ### One-time WSL setup
 

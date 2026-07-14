@@ -13,13 +13,22 @@
 #
 set -Eeuo pipefail
 
-# ---- Load Node (nvm) so this works from any shell, interactive or not --------
+# ---- Load the repository's Node version in interactive/noninteractive shells -
+cd "$(git rev-parse --show-toplevel)"
+
+# Codex/Desktop-launched WSL shells can inherit Windows temp paths. Keep Node
+# tooling on the native WSL filesystem for reliability and performance.
+export TMPDIR=/tmp
+export TMP=/tmp
+export TEMP=/tmp
+
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 # shellcheck disable=SC1091
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1 || true
-command -v node >/dev/null 2>&1 || { echo "✗ node not found — run: nvm install 22" >&2; exit 1; }
-
-cd "$(git rev-parse --show-toplevel)"
+if command -v nvm >/dev/null 2>&1; then
+  nvm use --silent >/dev/null || { echo "✗ Node from .nvmrc is unavailable — run: nvm install" >&2; exit 1; }
+fi
+command -v node >/dev/null 2>&1 || { echo "✗ node not found — run: nvm install" >&2; exit 1; }
 
 FAST=0
 [ "${1:-}" = "--fast" ] && FAST=1
@@ -30,6 +39,7 @@ REDIS_NAME=preflight-redis
 PG_PORT=55432
 REDIS_PORT=56399
 E2E_PORT=3001
+E2E_OUTPUT_DIR="${TMPDIR}/rsvp-preflight-playwright"
 SERVER_PID=""
 
 cleanup() {
@@ -82,7 +92,16 @@ step "Audit dependencies (npm audit --audit-level=high)"
 npm audit --audit-level=high
 
 step "Prettier — format check"
-npx prettier --check .
+# Check existing tracked and non-ignored candidate files rather than recursively
+# walking the repository. Docker volume directories can be unreadable to the WSL
+# user before Prettier applies .prettierignore, while deleted tracked paths must
+# not be passed to Prettier at all.
+while IFS= read -r -d '' file; do
+  if [ -e "$file" ]; then
+    printf '%s\0' "$file"
+  fi
+done < <(git ls-files -co --exclude-standard -z) \
+  | xargs -0 -r npx prettier --check --ignore-unknown
 
 step "ESLint"
 npm run lint
@@ -137,6 +156,6 @@ step "E2E — ensuring Playwright Chromium is installed"
 npx playwright install chromium >/dev/null
 
 step "E2E — Playwright tests"
-PLAYWRIGHT_BASE_URL="http://localhost:${E2E_PORT}" npm run test:e2e
+PLAYWRIGHT_BASE_URL="http://localhost:${E2E_PORT}" npm run test:e2e -- --output "$E2E_OUTPUT_DIR"
 
 ok "PREFLIGHT PASSED — full CI parity ✅"

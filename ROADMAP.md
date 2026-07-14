@@ -12,7 +12,7 @@ _Immediate attention items. High impact bugs, critical security gaps, and essent
 
 ### 🔒 Backend / Security / DevOps
 
-- **`scripts/preflight.sh` fails at the Prettier step in the primary dev clone**: `npx prettier --check .` exits non-zero with `EACCES: permission denied, scandir 'pg_data/18/docker'` — the dev Postgres bind mount (`./pg_data:/var/lib/postgresql` in `docker-compose.yml`) is owned by the container user with mode `700`, and Prettier's directory expansion errors on it even though `pg_data/` is listed in `.prettierignore`. Postgres itself requires the `700` permissions, so the directory can't simply be opened up. Workaround: run preflight from a clean temporary worktree (no `pg_data/`). Proper fix candidates: move the dev DB to a named Docker volume instead of a repo-relative bind mount, or scope the Prettier check to explicit top-level targets. _(Hit during [c58f78] effect-size work; out of scope there.)_
+_None currently open._
 
 ---
 
@@ -65,12 +65,14 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 
 ### ⚙️ Refactoring & Clean Code
 
+- **Scope Next.js element lint rules away from React Email markup**: `emails/components/EmailLayout.tsx` intentionally emits an email-document `<head>`, and `emails/components/Hero.tsx` intentionally uses a raw `<img>` for email-client compatibility. Next's `@next/next/no-head-element` and `@next/next/no-img-element` rules currently report one warning each even though `next/head` and `next/image` are not appropriate inside generated email HTML. Add a narrowly scoped ESLint override or documented local suppression for the React Email subtree; do not weaken these rules for application pages. _(Observed during local workflow preflight, 2026-07.)_
 - **Scoped CSS custom properties for event theming**: `resolveTheme()` produces a ~35-token JS object consumed as inline styles throughout the event components. An alternative is projecting those tokens as CSS custom properties (`--theme-accent`, …) on a wrapper element so components use plain CSS/Tailwind arbitrary values instead of `t.*` props. Note the JS object must remain regardless — `resolveEmailTheme()` derives the email palette from it server-side — so this is an additional projection layer, and a large cross-cutting refactor with zero user-visible change. Icebox until a concrete need (e.g. per-section theme overrides) justifies it. _(Suggested in the [89d70d] post-PR code audit.)_
 - **[CLEAN-02] Shared Authorization Guards**: Route handlers (like `guests.csv` and backups download) hand-roll authorization checks (e.g. `session.role !== "ADMIN"` or mapping co-hosts inline) instead of reusing the `assertHost`, `assertHostOrCohost`, and `assertAdmin` helpers from action files.
   - _Recommended Fix_: Move `assertHost`, `assertHostOrCohost`, and `assertAdmin` into a single shared utility module (`lib/auth-guards.ts` or `lib/auth.ts`) and import them in both routes and actions.
 
 ### 🔒 Backend / Security / DevOps
 
+- **Low-severity transitive `esbuild` advisory in React Email tooling**: `npm audit` reports [GHSA-g7r4-m6w7-qqqr](https://github.com/advisories/GHSA-g7r4-m6w7-qqqr) through `@react-email/ui` (`esbuild` 0.27.3–0.28.0), allowing development-server file reads on Windows. Production runtime exposure is low because this dependency is development/email-preview tooling and the primary development server runs in WSL, but upgrade `@react-email/ui`/its transitive `esbuild` once a compatible fix is available and verify email previews/templates afterward. _(Observed during local workflow preflight, 2026-07.)_
 - **[SEC-39] Activity feed does not respect `guestListVis`**: SEC-32 ([cd6748]) now strips the structured guest list from the non-host RSC payload when `guestListVis !== "ALL"`, but the public activity feed (`components/event/event-page/ActivityFeed.tsx`) still renders `rsvp_new`/`rsvp_update`/`rsvp_delete`/`guest_invite` entries — which carry attendee names (and RSVP-note text in `detail`) — to any viewer regardless of the guest-list visibility setting. A host who sets the guest list to HOST_ONLY/GUESTS_ONLY still leaks attendee identities via the activity feed. Deliberately **not** changed in the [cd6748] fix because the activity feed is an intentional guest-facing feature and suppressing RSVP entries is a product/UX decision. _Fix candidate_: filter RSVP-identity-revealing activity types from the feed (and payload) when the viewer can't see the guest list. _(Discovered during the [cd6748] OWASP audit.)_
 - **[SEC-40] Magic-link account enumeration** — ✅ **Resolved** (see Completed Milestones → _Auth & Invite-Flow Hardening_): `sendMagicLinkAction` now returns a uniform `{ success: true }` response whether or not the identifier exists.
 - **[SEC-43] `ENCRYPTION_KEY` falls back to `SESSION_SECRET` (key reuse)**: `getEncryptionKey()` in `lib/crypto.ts:7` derives the AES-256-GCM config-encryption key from `process.env.ENCRYPTION_KEY || process.env.SESSION_SECRET`, so an install that never sets `ENCRYPTION_KEY` reuses the session-sealing secret for a second, unrelated cryptographic purpose. Low severity (single-tenant self-host, high-entropy secret) but purpose-separated keys are the correct posture. _Fix_: require a dedicated `ENCRYPTION_KEY` (with a documented migration), or derive per-purpose subkeys via HKDF. Related to **SEC-8**. _(Discovered during the [cd6748] OWASP audit.)_
@@ -91,13 +93,20 @@ _Aesthetic branding, advanced webhooks, automation, and long-term ideas (Icebox)
 - **Admin Diagnostic Log Viewer**: Expose recent email dispatch diagnostic logs directly in the `/admin` settings dashboard.
 - **SMTP Handshake Sandbox**: Allow interactive port and SSL handshake verification inside the dashboard.
 - **Custom Domain Workers**: Enhance `isSafeWorkerUrl()` to support verified custom domains mapped to workers without triggering SSRF warnings.
-- **Local `scripts/preflight.sh` full E2E fails on `auth.e2e.ts › magic link verify → dashboard`** _(discovered 2026-07-04, local-CI tooling PR)_: the ephemeral Redis the script starts (`127.0.0.1:56399`) isn't reachable by the app server during E2E (log shows persistent `[redis] Error … Redis error`), so the magic-link/rate-limit path fails-closed and the `/dashboard` redirect never happens. Fails identically on `main` locally but **passes in GitHub CI**, so it's an ephemeral-Redis reachability gap in the local harness, not an app bug. Fix: add a Redis-readiness wait (mirroring the `pg_isready` loop) and verify the server resolves `REDIS_URL` to the mapped port.
 
 ---
 
 ## ✅ Completed Milestones
 
 _A log of completed capabilities._
+
+### Local Development & Repository Workflow Hardening
+
+- [x] **Unreadable Docker volume / Prettier failure resolved**: WSL development now stores PostgreSQL and Redis in Docker-managed named volumes instead of container-owned repository bind directories. `scripts/preflight.sh` checks only existing tracked/non-ignored files, so ignored runtime directories and intentionally deleted paths cannot break Prettier discovery.
+- [x] **Reproducible WSL toolchain and services**: Added `.nvmrc`, compatible Node/npm engine metadata, LF/editor rules, Redis readiness, opt-in `npm ci`, a guarded local data reset, and noninteractive-shell normalization for nvm and WSL temporary paths.
+- [x] **Reliable local full E2E**: Playwright output is isolated under native WSL `/tmp`, avoiding stale root-owned artifacts from the retired Docker E2E helper. The full local CI-parity run now passes all six Playwright scenarios, including the formerly failing Redis-backed magic-link verification flow.
+- [x] **Safer Codex shipping workflow**: Shipping formats and stages only reviewed paths, validates the release label and structured PR body, rejects pre-existing staged/unreviewed work, and preserves the single explicit approval gate.
+- [x] **Durable architecture map and repository cleanup**: Added `ARCHITECTURE.md` with subsystem and change-routing guidance, removed stale agent/audit artifacts and unreferenced starter/mockup files, and consolidated obsolete deployment/test helpers.
 
 ### Host New-RSVP Alert Notifications (Batch [de9262])
 

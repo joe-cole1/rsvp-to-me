@@ -92,7 +92,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
           # Explicit protection to discard accidental dot folder modifications
-          git checkout HEAD -- .github/ .claude/ 2>/dev/null || true
+          git checkout HEAD -- .github/ 2>/dev/null || true
           
           git add .
           
