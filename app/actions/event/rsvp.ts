@@ -71,6 +71,34 @@ function rsvpValidationError(issues: { path: PropertyKey[] }[]): string {
   return "Invalid RSVP data.";
 }
 
+async function linkUnlinkedInvitation(
+  eventId: string,
+  rsvpId: string,
+  guestEmail: string | undefined,
+  guestPhone: string | undefined
+) {
+  // Some older invitations have no RSVP link. Once the invitee responds through
+  // the public RSVP form, attach that history row to their RSVP so it no longer
+  // appears as a separate unanswered invite in the host guest list.
+  if (guestEmail) {
+    await db.invitation.updateMany({
+      where: {
+        eventId,
+        rsvpId: null,
+        channel: "EMAIL",
+        sentTo: { equals: guestEmail, mode: "insensitive" },
+      },
+      data: { rsvpId },
+    });
+  } else if (guestPhone) {
+    const normalizedPhone = guestPhone.trim().replace(/[\s\-().]/g, "");
+    await db.invitation.updateMany({
+      where: { eventId, rsvpId: null, channel: "SMS", sentTo: normalizedPhone },
+      data: { rsvpId },
+    });
+  }
+}
+
 export async function addRSVP(rawInput: unknown) {
   const parsed = AddRsvpSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -198,6 +226,13 @@ export async function addRSVP(rawInput: unknown) {
 
   if (locked.atCapacity) return { success: false, error: "Event is at capacity" };
   const rsvp = locked.rsvp;
+
+  await linkUnlinkedInvitation(
+    data.eventId,
+    rsvp.id,
+    data.guestEmail || undefined,
+    data.guestPhone || undefined
+  );
 
   if (data.answers && Object.keys(data.answers).length > 0) {
     // SEC-38: only this event's question ids may be written — a crafted call
