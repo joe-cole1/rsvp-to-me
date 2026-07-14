@@ -16,6 +16,9 @@ set -Eeuo pipefail
 # ---- Load the repository's Node version in interactive/noninteractive shells -
 cd "$(git rev-parse --show-toplevel)"
 
+# shellcheck source=scripts/lib/preflight-process-group.sh
+. scripts/lib/preflight-process-group.sh
+
 # Codex/Desktop-launched WSL shells can inherit Windows temp paths. Keep Node
 # tooling on the native WSL filesystem for reliability and performance.
 export TMPDIR=/tmp
@@ -41,14 +44,20 @@ REDIS_PORT=56399
 E2E_PORT=3001
 E2E_OUTPUT_DIR="${TMPDIR}/rsvp-preflight-playwright"
 SERVER_PID=""
+SERVER_PGID=""
 
 cleanup() {
-  ec=$?
-  [ -n "$SERVER_PID" ] && kill "$SERVER_PID" >/dev/null 2>&1 || true
+  local ec=$?
+  trap - EXIT INT TERM
+  if [ -n "$SERVER_PID" ] && [ -n "$SERVER_PGID" ]; then
+    preflight_terminate_process_group "$SERVER_PID" "$SERVER_PGID" || true
+  fi
   docker rm -f "$PG_NAME" "$REDIS_NAME" >/dev/null 2>&1 || true
-  exit $ec
+  exit "$ec"
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:${PG_PORT}/rsvp_test"
 export REDIS_URL="redis://127.0.0.1:${REDIS_PORT}"
@@ -148,9 +157,28 @@ step "E2E — seeding ephemeral database"
 SEED_TEST_DATA=true npm run db:seed
 
 step "E2E — starting app server"
-npm start >/tmp/preflight-server.log 2>&1 &
+preflight_assert_port_available "$E2E_PORT"
+command -v setsid >/dev/null 2>&1 || {
+  echo "✗ Cannot isolate the E2E server because the 'setsid' command is unavailable." >&2
+  exit 1
+}
+setsid npm start >/tmp/preflight-server.log 2>&1 &
 SERVER_PID=$!
-npx wait-on "http://localhost:${E2E_PORT}/api/health" --timeout 120000
+SERVER_PGID="$SERVER_PID"
+if ! captured_pgid="$(preflight_capture_process_group "$SERVER_PID")"; then
+  exit 1
+fi
+SERVER_PGID="$captured_pgid"
+if ! npx wait-on "http://localhost:${E2E_PORT}/api/health" --timeout 120000; then
+  echo "✗ E2E server failed to become healthy. Server log:" >&2
+  tail -n 50 /tmp/preflight-server.log >&2 || true
+  exit 1
+fi
+if ! preflight_process_group_alive "$SERVER_PGID"; then
+  echo "✗ E2E server process group exited during startup. Server log:" >&2
+  tail -n 50 /tmp/preflight-server.log >&2 || true
+  exit 1
+fi
 
 step "E2E — ensuring Playwright Chromium is installed"
 npx playwright install chromium >/dev/null

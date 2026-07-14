@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { PUBLIC_EVENT_SLUG } from "./fixtures";
 
-const EVENT_SLUG = "e2e-test-event";
+const EVENT_SLUG = PUBLIC_EVENT_SLUG;
 
 test.describe("Guest RSVP flow", () => {
   test("guest can RSVP to a public event without logging in", async ({ page }) => {
@@ -43,5 +44,18 @@ test.describe("Guest RSVP flow", () => {
     await page.getByText("Maybe").click();
     await page.getByRole("button", { name: "Update RSVP" }).click();
     await expect(page.getByText("RSVP updated!")).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("guest name is required before RSVP submission", async ({ page }) => {
+    await page.goto(`/e/${EVENT_SLUG}/rsvp?status=GOING`);
+    await expect(page.getByRole("button", { name: "Confirm RSVP" })).toBeDisabled();
+    await page.getByPlaceholder("Your name (required)").fill("   ");
+    await expect(page.getByRole("button", { name: "Confirm RSVP" })).toBeDisabled();
+  });
+
+  test("invalid edit token does not expose an RSVP", async ({ page }) => {
+    const response = await page.goto(`/e/${EVENT_SLUG}/rsvp?token=invalid-edit-token`);
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("button", { name: "Update RSVP" })).toHaveCount(0);
   });
 });
