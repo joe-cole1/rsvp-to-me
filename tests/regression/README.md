@@ -53,3 +53,4 @@ For every bug fix merged to main:
 | `ghsa-g7r4-m6w7-qqqr-esbuild-traversal.test.ts`      | GHSA-g7r4-m6w7-qqqr: vulnerable esbuild dev servers allowed arbitrary reads through Windows backslash traversal       | GHSA      |
 | `../components/RsvpFlow.test.tsx` (race describe)    | New-RSVP success screen transiently swapped to "RSVP updated!" after the Server Action RSC refresh                    | RSVP race |
 | `host-rsvp-alert-wiring.test.ts`                     | `sendHostRsvpAlertEmail`/`sendHostRsvpAlertSms` had no call site — hosts never got "New RSVP" alerts despite the docs | [de9262]  |
+| `guest-list-host-empty-visibility.test.tsx`          | Empty events hid the main-page Guests card and its management shortcuts from hosts                                    | 113b4f76  |
