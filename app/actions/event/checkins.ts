@@ -42,23 +42,12 @@ async function getAuthorizedRsvp(rsvpId: string): Promise<{
   return { session, rsvp };
 }
 
-function isEligible(rsvp: Pick<EligibleRsvp, "approved" | "status">): boolean {
-  return rsvp.approved && (rsvp.status === "GOING" || rsvp.status === "MAYBE");
-}
-
 function isUniqueConflict(error: unknown): boolean {
   return !!error && typeof error === "object" && "code" in error && error.code === "P2002";
 }
 
 export async function checkInRsvp(rsvpId: string) {
   const { session, rsvp } = await getAuthorizedRsvp(rsvpId);
-  if (!isEligible(rsvp)) {
-    return {
-      success: false as const,
-      error: "Only approved Going or Maybe RSVPs can be checked in.",
-    };
-  }
-
   const existing = await db.checkIn.findUnique({ where: { rsvpId } });
   if (existing) return { success: true as const, checkIn: existing, alreadyCheckedIn: true };
 
@@ -141,13 +130,45 @@ export async function addWalkIn(rawInput: unknown) {
       };
     }
     if (matches[0]) {
+      const matchedRsvp = matches[0];
+      let checkIn = await db.checkIn.findUnique({ where: { rsvpId: matchedRsvp.id } });
+      let alreadyCheckedIn = Boolean(checkIn);
+      if (!checkIn) {
+        try {
+          checkIn = await db.checkIn.create({
+            data: {
+              eventId: data.eventId,
+              rsvpId: matchedRsvp.id,
+              checkedInBy: session.email,
+            },
+          });
+        } catch (error) {
+          if (!isUniqueConflict(error)) throw error;
+          checkIn = await db.checkIn.findUnique({ where: { rsvpId: matchedRsvp.id } });
+          if (!checkIn) throw error;
+          alreadyCheckedIn = true;
+        }
+      }
+
+      if (!alreadyCheckedIn) {
+        logActivity(
+          data.eventId,
+          "check_in",
+          `checked in ${matchedRsvp.guestName}`,
+          session.email
+        ).catch(logSafe("addWalkInExisting"));
+      }
+      revalidatePath(`/e/${event.slug}/guests`);
+      revalidatePath(`/e/${event.slug}`);
       return {
         success: true as const,
         kind: "existing" as const,
-        rsvpId: matches[0].id,
-        guestName: matches[0].guestName,
-        status: matches[0].status,
-        approved: matches[0].approved,
+        rsvpId: matchedRsvp.id,
+        guestName: matchedRsvp.guestName,
+        status: matchedRsvp.status,
+        approved: matchedRsvp.approved,
+        checkIn,
+        alreadyCheckedIn,
       };
     }
   }

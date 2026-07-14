@@ -56,3 +56,4 @@ For every bug fix merged to main:
 | `guest-list-host-empty-visibility.test.tsx`          | Empty events hid the main-page Guests card and its management shortcuts from hosts                                    | 113b4f76  |
 | `preflight-e2e-process-group-cleanup.test.ts`        | Full preflight killed only npm, leaving an orphaned Next.js server listening on port 3001                             | 019f61f9  |
 | `guest-list-all-includes-invited.test.tsx`           | Guest-list All filter counted invited guests but rendered only guests who had responded                               | 019f6231  |
+| `guest-check-in-all-statuses.test.tsx`               | Invited/declined guests had no check-in control, and existing-RSVP walk-ins were not checked in                       | 033460e0  |

@@ -93,11 +93,20 @@ describe("event check-in actions", () => {
     });
   });
 
-  it("rejects an ineligible RSVP without writing", async () => {
+  it("checks in a guest regardless of RSVP status", async () => {
     mocks.rsvpFindUnique.mockResolvedValue({ ...eligibleRsvp, status: "NO" });
+    mocks.checkInCreate.mockResolvedValue({
+      id: "check-no",
+      eventId: "event-1",
+      rsvpId: "rsvp-1",
+      checkedInAt: new Date("2026-07-14T20:00:00Z"),
+      checkedInBy: "host@example.com",
+    });
 
-    await expect(checkInRsvp("rsvp-1")).resolves.toMatchObject({ success: false });
-    expect(mocks.checkInCreate).not.toHaveBeenCalled();
+    await expect(checkInRsvp("rsvp-1")).resolves.toMatchObject({ success: true });
+    expect(mocks.checkInCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ rsvpId: "rsvp-1" }),
+    });
   });
 
   it("undoes idempotently and records activity only when a row existed", async () => {
@@ -127,6 +136,14 @@ describe("event check-in actions", () => {
         approved: false,
       },
     ]);
+    const checkIn = {
+      id: "check-existing",
+      eventId: "event-1",
+      rsvpId: "existing-1",
+      checkedInAt: new Date("2026-07-14T20:00:00Z"),
+      checkedInBy: "host@example.com",
+    };
+    mocks.checkInCreate.mockResolvedValue(checkIn);
 
     await expect(
       addWalkIn({
@@ -142,8 +159,17 @@ describe("event check-in actions", () => {
       guestName: "Existing Guest",
       status: "MAYBE",
       approved: false,
+      checkIn,
+      alreadyCheckedIn: false,
     });
     expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.checkInCreate).toHaveBeenCalledWith({
+      data: {
+        eventId: "event-1",
+        rsvpId: "existing-1",
+        checkedInBy: "host@example.com",
+      },
+    });
   });
 
   it("creates and checks in a walk-in party without sending notifications", async () => {
