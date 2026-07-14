@@ -4,17 +4,47 @@ import fs from "fs";
 import path from "path";
 import { sealData } from "iron-session";
 import { Pool } from "pg";
+import bcrypt from "bcryptjs";
+import {
+  AUTH_STATE_PATH,
+  E2E_HOST_EMAIL,
+  MAGIC_TOKEN_PATH,
+  PASSWORD_EVENT_PASSWORD,
+  PASSWORD_EVENT_SLUG,
+  PRIVATE_EVENT_SLUG,
+  PUBLIC_EVENT_SLUG,
+} from "./fixtures";
 
 // Inline constants to avoid importing lib/session.ts (which imports next/headers)
 const COOKIE_NAME = "rsvp-session";
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
-const E2E_HOST_EMAIL = "e2e-host@test.internal";
-const E2E_EVENT_SLUG = "e2e-test-event";
-const AUTH_STATE_PATH = path.join(__dirname, "fixtures", "auth-state.json");
-
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
+}
+
+async function seedEvent(
+  pool: Pool,
+  hostId: string,
+  fixture: {
+    slug: string;
+    title: string;
+    visibility: "PUBLIC" | "PRIVATE";
+    passwordHash?: string;
+  }
+) {
+  await pool.query(
+    `INSERT INTO "Event" (id, slug, title, status, visibility, "passwordHash", "startAt", timezone, "locationType", "hostId", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, 'PUBLISHED'::"EventStatus", $4::"Visibility", $5, '2030-12-01T20:00:00Z', 'America/New_York', 'PHYSICAL'::"LocationType", $6, now(), now())`,
+    [
+      randomUUID(),
+      fixture.slug,
+      fixture.title,
+      fixture.visibility,
+      fixture.passwordHash ?? null,
+      hostId,
+    ]
+  );
 }
 
 function getPassword(): string {
@@ -35,15 +65,7 @@ export default async function globalSetup() {
 
   try {
     // 1. Clean up any stale E2E test data first to guarantee clean slate
-    await pool.query(
-      `DELETE FROM "RSVP" WHERE "eventId" IN (SELECT id FROM "Event" WHERE slug = $1)`,
-      [E2E_EVENT_SLUG]
-    );
-    await pool.query(
-      `DELETE FROM "Comment" WHERE "eventId" IN (SELECT id FROM "Event" WHERE slug = $1)`,
-      [E2E_EVENT_SLUG]
-    );
-    await pool.query(`DELETE FROM "Event" WHERE slug = $1`, [E2E_EVENT_SLUG]);
+    await pool.query(`DELETE FROM "Event" WHERE slug LIKE 'e2e-%'`);
     await pool.query(`DELETE FROM "User" WHERE email = $1`, [E2E_HOST_EMAIL]);
 
     // 2. Upsert host user
@@ -56,14 +78,23 @@ export default async function globalSetup() {
     );
     const hostId = userRes.rows[0].id;
 
-    // 3. Upsert test event
-    const eventId = randomUUID();
-    await pool.query(
-      `INSERT INTO "Event" (id, slug, title, status, visibility, "startAt", timezone, "locationType", "hostId", "createdAt", "updatedAt")
-       VALUES ($1, $2, 'E2E Test Event', 'PUBLISHED'::"EventStatus", 'PUBLIC'::"Visibility", '2030-12-01T20:00:00Z', 'America/New_York', 'PHYSICAL'::"LocationType", $3, now(), now())
-       ON CONFLICT (slug) DO UPDATE SET title = 'E2E Test Event', status = 'PUBLISHED'::"EventStatus", visibility = 'PUBLIC'::"Visibility"`,
-      [eventId, E2E_EVENT_SLUG, hostId]
-    );
+    // 3. Seed independent public/access-control fixtures for parallel specs.
+    await seedEvent(pool, hostId, {
+      slug: PUBLIC_EVENT_SLUG,
+      title: "E2E Test Event",
+      visibility: "PUBLIC",
+    });
+    await seedEvent(pool, hostId, {
+      slug: PRIVATE_EVENT_SLUG,
+      title: "E2E Private Event",
+      visibility: "PRIVATE",
+    });
+    await seedEvent(pool, hostId, {
+      slug: PASSWORD_EVENT_SLUG,
+      title: "E2E Password Event",
+      visibility: "PUBLIC",
+      passwordHash: await bcrypt.hash(PASSWORD_EVENT_PASSWORD, 10),
+    });
 
     // 4. Create a DB session and seal it into a cookie
     const sessionId = randomUUID();
@@ -100,7 +131,7 @@ export default async function globalSetup() {
           },
         ],
         origins: [],
-        _e2e: { hostId, hostEmail: E2E_HOST_EMAIL, eventSlug: E2E_EVENT_SLUG },
+        _e2e: { hostId, hostEmail: E2E_HOST_EMAIL, eventSlug: PUBLIC_EVENT_SLUG },
       })
     );
 
@@ -117,7 +148,7 @@ export default async function globalSetup() {
       [randomUUID(), hostId, hashed, new Date(Date.now() + 15 * 60 * 1000).toISOString()]
     );
 
-    fs.writeFileSync(path.join(__dirname, "fixtures", "magic-token.txt"), rawToken);
+    fs.writeFileSync(MAGIC_TOKEN_PATH, rawToken);
   } finally {
     await pool.end();
   }

@@ -20,6 +20,19 @@ Steps: `npm ci` → `npm audit` → Prettier `--check` → ESLint → Prisma gen
 migrate → unit + integration + component tests → `next build` → (E2E: start server,
 `wait-on` health, `playwright test`).
 
+Full preflight requires port 3001 to be free before E2E startup. It refuses to
+continue if another listener is present, so the health check cannot accept a
+stale application instance. The E2E app runs in its own process group, which is
+terminated on success, failure, `SIGINT`, or `SIGTERM`; this cleanup is scoped to
+the preflight-owned group and does not stop the development server on port 3000.
+
+The Playwright suite exercises magic-link authentication and sign-out, anonymous
+route protection, public/private/password event access, RSVP creation, validation
+and token editing, calendar/CSV access boundaries, and authenticated host event
+creation, dashboard, event-page, and settings flows. Its global setup seeds
+independent deterministic fixtures so specs remain safe under parallel workers
+and retries.
+
 ### `dev-sync.sh` and `dev-reset.sh` — local services
 
 Run `scripts/dev-sync.sh` after switching branches to start and health-check the

@@ -49,6 +49,17 @@ npm run dev
 Visit `http://localhost:3000`. The Next.js dev server watches source files, so
 restart it only after a dependency or environment change.
 
+The full `scripts/preflight.sh` check uses port 3001 for its temporary E2E app.
+That port must be free before the E2E phase starts; preflight exits with a clear
+error if another listener is present. Its temporary npm/Next.js process group is
+stopped on every exit path without affecting the normal development server on
+port 3000.
+
+The full check's Playwright coverage includes authentication and sign-out,
+event-access gates, RSVP create/edit/validation behavior, protected exports, and
+authenticated host creation and settings flows. E2E setup recreates deterministic
+`e2e-*` fixtures on each run, and teardown removes them afterward.
+
 When a branch changes `package.json` or `package-lock.json`, reconcile the
 installed dependency tree with:
 
