@@ -15,7 +15,15 @@ describe("lib/docs.ts", () => {
   it("loads admin docs from docs/admin with frontmatter", async () => {
     const docs = await loadDocs("admin");
     const slugs = docs.map((d) => d.slug).sort();
-    expect(slugs).toEqual(["admin", "configuration", "email", "installation", "sms", "upgrading"]);
+    expect(slugs).toEqual([
+      "admin",
+      "configuration",
+      "email",
+      "installation",
+      "local-development",
+      "sms",
+      "upgrading",
+    ]);
     for (const doc of docs) {
       expect(doc.audience).toBe("admin");
       expect(doc.title.length).toBeGreaterThan(0);

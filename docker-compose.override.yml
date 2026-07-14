@@ -7,7 +7,22 @@ services:
   postgres:
     ports:
       - "127.0.0.1:5432:5432"
+    volumes:
+      - dev-postgres-data:/var/lib/postgresql
 
   redis:
     ports:
       - "127.0.0.1:6379:6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required - set a strong value in .env}
+    volumes:
+      - dev-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dev-postgres-data:
+  dev-redis-data:

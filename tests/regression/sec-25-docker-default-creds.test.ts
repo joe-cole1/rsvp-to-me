@@ -24,7 +24,6 @@ const COMPOSE_FILES = [
   "docker-compose.yml",
   "docker-compose.release.yml",
   "docker-compose.dev.yml",
-  "docker-compose.postgres.yml",
 ];
 
 function composeContents(): Array<{ file: string; content: string }> {
