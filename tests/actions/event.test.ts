@@ -50,6 +50,7 @@ const {
   mockRsvpAnswerUpsert,
   mockPlusOneGuestDeleteMany,
   mockThemePresetFindMany,
+  mockCheckInDeleteMany,
 } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
   mockEventUpdate: vi.fn(),
@@ -96,6 +97,7 @@ const {
   mockRsvpAnswerUpsert: vi.fn(),
   mockPlusOneGuestDeleteMany: vi.fn(),
   mockThemePresetFindMany: vi.fn(),
+  mockCheckInDeleteMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -151,6 +153,7 @@ vi.mock("@/lib/db", () => ({
       createMany: mockPlusOneGuestCreateMany,
       deleteMany: mockPlusOneGuestDeleteMany,
     },
+    checkIn: { deleteMany: mockCheckInDeleteMany },
     themePreset: { findMany: mockThemePresetFindMany },
   },
 }));
@@ -191,6 +194,7 @@ import {
   saveEventLocation,
   addRSVP,
   updateRSVP,
+  updateRsvpAsHost,
   addComment,
   saveEventSettings,
   approveRsvp,
@@ -425,6 +429,21 @@ describe("addRSVP", () => {
     expect(result.success).toBe(true);
   });
 
+  it("closes new guest RSVPs once the event starts", async () => {
+    mockEventFindUnique.mockResolvedValue({
+      ...BASE_EVENT,
+      startAt: new Date("2020-01-01T00:00:00Z"),
+    });
+
+    await expect(
+      addRSVP({ eventId: EVENT_ID, guestName: "Alice", status: "GOING", plusOneCount: 0 })
+    ).resolves.toEqual({
+      success: false,
+      error: "RSVPs are closed because this event has started",
+    });
+    expect(mockRsvpCreate).not.toHaveBeenCalled();
+  });
+
   it("returns error when event is at capacity for GOING", async () => {
     mockEventFindUnique.mockResolvedValue({ ...BASE_EVENT, capacity: 10 });
     mockRsvpCount.mockResolvedValue(10);
@@ -486,9 +505,71 @@ describe("updateRSVP", () => {
     expect(result).toEqual({ success: false, error: "RSVP not found" });
   });
 
+  it("closes guest edits once the event starts", async () => {
+    mockRsvpFindUnique.mockResolvedValue({
+      id: "rsvp-1",
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      checkIn: null,
+      event: {
+        slug: EVENT_SLUG,
+        capacity: null,
+        rsvpDeadline: null,
+        startAt: new Date("2020-01-01T00:00:00Z"),
+        rsvpFields: [],
+      },
+    });
+
+    await expect(updateRSVP(EDIT_TOKEN, { status: "NO", plusOneCount: 0 })).resolves.toEqual({
+      success: false,
+      error: "RSVPs are closed because this event has started",
+    });
+    expect(mockRsvpUpdate).not.toHaveBeenCalled();
+  });
+
   it("revalidates the event page", async () => {
     await updateRSVP(EDIT_TOKEN, { status: "GOING", plusOneCount: 0 });
     expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
+  });
+});
+
+describe("updateRsvpAsHost", () => {
+  beforeEach(() => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    mockRsvpFindUnique.mockResolvedValue({
+      id: "rsvp-1",
+      eventId: EVENT_ID,
+      guestName: "Alice",
+      status: "GOING",
+      checkIn: { id: "check-1" },
+      event: { id: EVENT_ID, slug: EVENT_SLUG, rsvpFields: [] },
+    });
+    mockRsvpUpdate.mockResolvedValue({});
+    mockCheckInDeleteMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("lets an organizer update after guest gates and clears attendance when changed to No", async () => {
+    const result = await updateRsvpAsHost("rsvp-1", { status: "NO", plusOneCount: 0 });
+
+    expect(result).toEqual({ success: true, rsvpId: "rsvp-1" });
+    expect(mockRsvpUpdate).toHaveBeenCalledWith({
+      where: { id: "rsvp-1" },
+      data: { status: "NO", plusOneCount: 0, responded: true },
+    });
+    expect(mockCheckInDeleteMany).toHaveBeenCalledWith({
+      where: { rsvpId: "rsvp-1", eventId: EVENT_ID },
+    });
+  });
+
+  it("requires authentication before looking up an RSVP", async () => {
+    mockGetSession.mockResolvedValue(null);
+
+    await expect(updateRsvpAsHost("rsvp-1", { status: "GOING", plusOneCount: 0 })).rejects.toThrow(
+      "Unauthorized"
+    );
+    expect(mockRsvpFindUnique).not.toHaveBeenCalled();
   });
 });
 

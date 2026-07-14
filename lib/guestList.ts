@@ -19,6 +19,7 @@ export type GuestListRsvpInput = {
   plusOneGuests: { name: string }[];
   editToken: string;
   user: { avatarUrl: string | null } | null;
+  checkIn?: { checkedInAt: Date; checkedInBy: string | null } | null;
 };
 
 export type SerializedGuestRsvp = {
@@ -34,6 +35,7 @@ export type SerializedGuestRsvp = {
   plusOneGuests: string[];
   editToken: string;
   user: { avatarUrl: string | null } | null;
+  checkIn: { checkedInAt: string; checkedInBy: string | null } | null;
 };
 
 /** The event's guest-list visibility setting. */
@@ -78,6 +80,7 @@ type StrippableEvent = {
   host: { email: string | null };
   coHosts: { user: { email: string | null } }[];
   rsvps: unknown[];
+  activityEvents?: { type: string }[];
 };
 
 /**
@@ -99,6 +102,16 @@ export function stripHostOnlyEventData<E extends StrippableEvent>(event: E, isHo
     host: { ...event.host, email: null },
     coHosts: event.coHosts.map((ch) => ({ ...ch, user: { ...ch.user, email: null } })),
     rsvps: event.guestListVis === "ALL" ? event.rsvps : [],
+    ...(event.activityEvents
+      ? {
+          activityEvents: event.activityEvents.filter(
+            (activity) =>
+              activity.type !== "check_in" &&
+              activity.type !== "check_in_undo" &&
+              activity.type !== "walk_in"
+          ),
+        }
+      : {}),
   } as E;
 }
 
@@ -121,5 +134,9 @@ export function serializeGuestRsvp(r: GuestListRsvpInput, isHost: boolean): Seri
     plusOneGuests: r.plusOneGuests.map((g) => g.name),
     editToken: isHost ? r.editToken : "",
     user: r.user,
+    checkIn:
+      isHost && r.checkIn
+        ? { checkedInAt: r.checkIn.checkedInAt.toISOString(), checkedInBy: r.checkIn.checkedInBy }
+        : null,
   };
 }

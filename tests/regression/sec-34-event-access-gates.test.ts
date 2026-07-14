@@ -168,6 +168,7 @@ describe("SEC-34: serializeGuestRsvp strips host-only fields for non-hosts", () 
     plusOneGuests: [{ name: "Bob" }],
     editToken: "secret-edit-token",
     user: { avatarUrl: null },
+    checkIn: { checkedInAt: new Date("2026-07-04T20:00:00.000Z"), checkedInBy: "host@example.com" },
   };
 
   it("omits editToken, email, phone, and answers for a non-host", () => {
@@ -176,6 +177,7 @@ describe("SEC-34: serializeGuestRsvp strips host-only fields for non-hosts", () 
     expect(out.guestEmail).toBeNull();
     expect(out.guestPhone).toBeNull();
     expect(out.answers).toEqual([]);
+    expect(out.checkIn).toBeNull();
     // Public fields survive.
     expect(out.guestName).toBe("Alice");
     expect(out.note).toBe("Can't wait!");
@@ -188,5 +190,9 @@ describe("SEC-34: serializeGuestRsvp strips host-only fields for non-hosts", () 
     expect(out.guestEmail).toBe("alice@example.com");
     expect(out.guestPhone).toBe("+15550001111");
     expect(out.answers).toEqual([{ label: "Diet", value: "Vegan" }]);
+    expect(out.checkIn).toEqual({
+      checkedInAt: "2026-07-04T20:00:00.000Z",
+      checkedInBy: "host@example.com",
+    });
   });
 });

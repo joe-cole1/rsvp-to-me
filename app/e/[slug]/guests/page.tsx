@@ -7,6 +7,7 @@ import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { AppNavLogo } from "@/components/ui/AppNav";
 import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import { getChannelConfig } from "@/lib/config";
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const { slug } = await props.params;
@@ -28,6 +29,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
           },
           plusOneGuests: { orderBy: { order: "asc" } },
           user: { select: { avatarUrl: true } },
+          checkIn: { select: { checkedInAt: true, checkedInBy: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -57,6 +59,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
         orderBy: { sentAt: "desc" },
       })
     : [];
+  const channelConfig = isHost ? await getChannelConfig() : { email: false, sms: false };
 
   const t = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
@@ -262,7 +265,10 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
                 : []
             }
             isHost={isHost}
+            eventId={event.id}
             slug={slug}
+            timezone={event.timezone}
+            channelConfig={channelConfig}
             t={t}
           />
         )}

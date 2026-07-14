@@ -37,6 +37,12 @@ function sampleEvent(guestListVis: string) {
       { id: "rsvp-1", guestName: "Alice" },
       { id: "rsvp-2", guestName: "Bob" },
     ],
+    activityEvents: [
+      { type: "check_in", detail: "checked in Alice" },
+      { type: "check_in_undo", detail: "undid check-in for Alice" },
+      { type: "walk_in", detail: "added and checked in Bob" },
+      { type: "event_date", detail: "changed the date" },
+    ],
   };
 }
 
@@ -66,6 +72,12 @@ describe("SEC-32: stripHostOnlyEventData scrubs the non-host RSC payload", () =>
     expect(out.host.email).toBe("host@example.com");
     expect(out.coHosts[0].user.email).toBe("cohost@example.com");
     expect(out.rsvps).toHaveLength(2);
+    expect(out.activityEvents).toHaveLength(4);
+  });
+
+  it("strips host-only attendance activity for non-host viewers", () => {
+    const out = stripHostOnlyEventData(sampleEvent("ALL"), false);
+    expect(out.activityEvents).toEqual([{ type: "event_date", detail: "changed the date" }]);
   });
 });
 

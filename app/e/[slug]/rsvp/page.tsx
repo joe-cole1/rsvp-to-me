@@ -41,13 +41,18 @@ export default async function RsvpPage({ params, searchParams }: Props) {
   // Gate RSVPs after deadline
   const isOrganizer =
     !!sessionUser &&
-    (event.hostId === sessionUser.id || event.coHosts.some((ch) => ch.userId === sessionUser.id));
+    (sessionUser.role === "ADMIN" ||
+      event.hostId === sessionUser.id ||
+      event.coHosts.some((ch) => ch.userId === sessionUser.id));
 
   const deadline = event.rsvpDeadline ? new Date(event.rsvpDeadline) : null;
   const now = new Date();
   const deadlinePassed = deadline ? deadline < now : false;
+  const eventStarted = event.startAt <= now;
 
-  if (deadlinePassed && !isOrganizer) {
+  if (eventStarted && !isOrganizer && !token) redirect(`/e/${slug}`);
+
+  if (deadlinePassed && !eventStarted && !isOrganizer) {
     const isEditAllowed = !!token && event.allowEditAfterDeadline;
     if (!isEditAllowed) {
       redirect(`/e/${slug}`);
@@ -114,6 +119,12 @@ export default async function RsvpPage({ params, searchParams }: Props) {
         returnPath={returnTo === "guests" ? `/e/${slug}/guests` : undefined}
         sessionUser={sessionUser}
         channelConfig={channelConfig}
+        organizerOverride={isOrganizer}
+        readOnlyReason={
+          eventStarted && !isOrganizer
+            ? "This event has started, so guests can no longer change their RSVP. Contact the host if your response needs to be updated."
+            : undefined
+        }
       />
     );
   }

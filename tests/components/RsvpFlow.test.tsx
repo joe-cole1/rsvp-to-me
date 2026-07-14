@@ -3,14 +3,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { testTheme } from "./helpers/theme";
 
-const { mockAddRSVP, mockUpdateRSVP } = vi.hoisted(() => ({
+const { mockAddRSVP, mockUpdateRSVP, mockUpdateRsvpAsHost } = vi.hoisted(() => ({
   mockAddRSVP: vi.fn(),
   mockUpdateRSVP: vi.fn(),
+  mockUpdateRsvpAsHost: vi.fn(),
 }));
 
 vi.mock("@/app/actions/event", () => ({
   addRSVP: mockAddRSVP,
   updateRSVP: mockUpdateRSVP,
+  updateRsvpAsHost: mockUpdateRsvpAsHost,
 }));
 
 import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
@@ -232,5 +234,40 @@ describe("RsvpFlow — edit mode", () => {
     await waitFor(() => {
       expect(screen.getByText("RSVP updated!")).toBeInTheDocument();
     });
+  });
+
+  it("renders a read-only summary after event-start locking", () => {
+    render(
+      <RsvpFlow
+        event={baseEvent}
+        theme={testTheme}
+        existingRsvp={existingRsvp}
+        sessionUser={null}
+        readOnlyReason="This event has started, so guests can no longer change their RSVP."
+      />
+    );
+
+    expect(screen.getByText("RSVP editing is closed")).toBeInTheDocument();
+    expect(screen.getByText("Going · Party of 1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Update RSVP" })).not.toBeInTheDocument();
+  });
+
+  it("uses the authenticated organizer update action in override mode", async () => {
+    mockUpdateRsvpAsHost.mockResolvedValue({ success: true });
+    render(
+      <RsvpFlow
+        event={baseEvent}
+        theme={testTheme}
+        existingRsvp={existingRsvp}
+        sessionUser={null}
+        organizerOverride
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Update RSVP" }));
+    await waitFor(() =>
+      expect(mockUpdateRsvpAsHost).toHaveBeenCalledWith("rsvp-1", expect.any(Object))
+    );
+    expect(mockUpdateRSVP).not.toHaveBeenCalled();
   });
 });

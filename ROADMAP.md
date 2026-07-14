@@ -26,8 +26,6 @@ _None currently open._
 
 ### 🎨 UI / UX / Feature
 
-- **Guest Check-In flow**: The `CheckIn` model exists and the admin Overview counts check-ins, but there is **no host-facing check-in feature** — no server action to mark a guest checked-in and no guest-list UI/button. Build the missing flow: a check-in toggle/action gated to host/cohost, real-time counts on the guest list, and an "undo" — then re-document it. _(Discovered during the 2026-06 docs accuracy pass.)_
-- **Richer CSV export**: `app/e/[slug]/guests.csv/route.ts` currently exports only Name, Email, Status, Plus Ones, Approved, RSVP Date. Extend the export to include guest phone, questionnaire answers (one column per question), and check-in time once check-in exists. _(Discovered during the 2026-06 docs accuracy pass.)_
 - **Post-Event Photo Sharing**: Build a dedicated post-event photo section to link to shared albums (Google Photos, Apple Photos, Immich, etc.).
 
 ### 🔒 Backend / Security / DevOps
@@ -107,6 +105,13 @@ _A log of completed capabilities._
 - [x] **Reliable local full E2E**: Playwright output is isolated under native WSL `/tmp`, avoiding stale root-owned artifacts from the retired Docker E2E helper. The full local CI-parity run now passes all six Playwright scenarios, including the formerly failing Redis-backed magic-link verification flow.
 - [x] **Safer Codex shipping workflow**: Shipping formats and stages only reviewed paths, validates the release label and structured PR body, rejects pre-existing staged/unreviewed work, and preserves the single explicit approval gate.
 - [x] **Durable architecture map and repository cleanup**: Added `ARCHITECTURE.md` with subsystem and change-routing guidance, removed stale agent/audit artifacts and unreferenced starter/mockup files, and consolidated obsolete deployment/test helpers.
+
+### Guest Check-In, Walk-Ins & Rich Export (Batch [aab75f5b])
+
+- [x] **Host-facing whole-party check-in**: Approved Going/Maybe parties can be checked in or undone by hosts, co-hosts, and admins from the guest list. Host-only search, Arrived/Not arrived filters, optimistic controls, event-time display, and party/people progress make the page usable at the door; other devices converge on refresh.
+- [x] **Host-added walk-ins**: An expandable form creates an approved Going RSVP and immediate check-in from a required name, total party size, and optional enabled contact fields. It bypasses guest deadline/capacity gates, sends no notification, and opens an existing matching RSVP instead of duplicating it.
+- [x] **Richer CSV export**: The authorized download now includes phone, event-ordered questionnaire columns, event-local RSVP/check-in times, and final UTC reference columns for every RSVP. Duplicate question labels are numbered and all dynamic cells/headers retain spreadsheet-formula neutralization.
+- [x] **Event-start RSVP immutability**: Guest creation and editing close at the current event start; token holders receive a read-only summary, rescheduling into the future reopens access, and authenticated organizers retain an explicit override path. Attendance activity is stripped from guest payloads, and changing an arrived guest to No automatically clears the active check-in.
 
 ### Host New-RSVP Alert Notifications (Batch [de9262])
 

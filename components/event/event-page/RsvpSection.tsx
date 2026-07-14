@@ -73,8 +73,9 @@ export function RsvpSection({
             const deadline = event.rsvpDeadline ? new Date(event.rsvpDeadline) : null;
             const now = new Date();
             const deadlinePassed = deadline ? deadline < now : false;
+            const eventStarted = new Date(event.startAt) <= now;
 
-            if (deadlinePassed && !rsvpDone) {
+            if ((eventStarted || deadlinePassed) && !rsvpDone) {
               return (
                 <div style={{ textAlign: "center", padding: "12px 0" }}>
                   <div style={{ fontSize: "36px", marginBottom: "8px" }}>🔒</div>
@@ -89,7 +90,9 @@ export function RsvpSection({
                     RSVPs Closed
                   </div>
                   <div style={{ fontSize: "12px", color: t.textMuted }}>
-                    The deadline to RSVP for this event has passed.
+                    {eventStarted
+                      ? "This event has started. Contact the host if you need to change your RSVP."
+                      : "The deadline to RSVP for this event has passed."}
                   </div>
                 </div>
               );
@@ -108,19 +111,21 @@ export function RsvpSection({
                         ? "Marked as maybe"
                         : "Can't make it"}
                   </div>
-                  {guestEditToken && (!deadlinePassed || event.allowEditAfterDeadline) && (
-                    <a
-                      href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
-                      style={{
-                        fontSize: "13px",
-                        color: t.accent,
-                        textDecoration: "none",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Edit my RSVP →
-                    </a>
-                  )}
+                  {guestEditToken &&
+                    !eventStarted &&
+                    (!deadlinePassed || event.allowEditAfterDeadline) && (
+                      <a
+                        href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
+                        style={{
+                          fontSize: "13px",
+                          color: t.accent,
+                          textDecoration: "none",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Edit my RSVP →
+                      </a>
+                    )}
                 </div>
               );
             }
