@@ -5,6 +5,18 @@ scripts in this repository are the source of truth for repeatable commands.
 
 ## 1. Start an editing task
 
+Assign the task one eight-character lowercase hexadecimal tag. Prefer the first
+eight characters of the Codex task UUID. If the ID is unavailable, generate a
+tag once, rename the Codex task to start with `[<tag>]`, and keep that same tag
+for the task's branch, commits, and PR:
+
+```bash
+openssl rand -hex 4
+```
+
+Do not regenerate the tag after work begins. Its value is the searchable link
+between the Codex conversation and the GitHub artifacts.
+
 ```bash
 git status --short --branch
 ```
@@ -13,13 +25,23 @@ If the tree is dirty, stop and ask the user how to proceed. Do not stash or
 reset it automatically.
 
 ```bash
-git fetch origin
+git fetch --prune origin
 ```
 
-From a clean tree, create one branch from the latest remote main:
+Return to local main and update it without creating a merge commit:
 
 ```bash
-git switch -c codex/<label>-<topic> origin/main
+git switch main
+```
+
+```bash
+git pull --ff-only
+```
+
+From a clean, synchronized main, create one branch from the latest remote main:
+
+```bash
+git switch -c codex/<label>-<tag>-<topic> origin/main
 ```
 
 Allowed labels are `feature`, `ui/ux`, `bug`, `refactor`, `performance`,
@@ -99,7 +121,7 @@ and 56399 and never touch the dev database.
 
 Show the user the files, diff summary, validation results, proposed commit
 message, label, and PR summary. Wait for one explicit approval such as
-`ship it`.
+`ship it`. Prefix the commit message and PR title with the task's `[<tag>]`.
 
 Use `scripts/ship.sh` with only the reviewed files after `--`:
 
@@ -124,3 +146,32 @@ gh pr checks <pr-number> --watch
 
 If a check fails, reproduce it locally when practical, make a focused fix,
 re-run the relevant preflight, and obtain approval before shipping the update.
+
+## 7. Clean up after merge
+
+After the PR merges, return the single clone to a clean, synchronized `main`:
+
+```bash
+git switch main
+```
+
+```bash
+git pull --ff-only
+```
+
+Delete the merged local feature branch with Git's safe deletion mode:
+
+```bash
+git branch -d codex/<label>-<tag>-<topic>
+```
+
+Never use `git branch -D` by default. If `-d` refuses deletion, preserve the
+branch until its work is merged or the user deliberately decides how to retain
+or discard it. Keep other local branches only when they contain active or
+deliberately preserved work.
+
+Finally, remove stale remote-tracking references:
+
+```bash
+git fetch --prune origin
+```

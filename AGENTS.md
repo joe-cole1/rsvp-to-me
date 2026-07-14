@@ -5,13 +5,18 @@
 - Work in the single WSL-native clone at `~/projects/rsvp-to-me`. Run Git, Node,
   npm, Prisma, and test commands natively in WSL; Docker Desktop runs only
   Postgres and Redis for development.
-- Before any task that edits files, run `git status --short --branch` and
-  `git fetch origin`. If the tree contains changes you did not create for the
-  active task, stop, report the files, and ask how to proceed.
+- Before any new task that edits files, run `git status --short --branch`,
+  `git fetch --prune origin`, `git switch main`, and `git pull --ff-only`. If
+  the tree contains changes you did not create for the active task, stop,
+  report the files, and ask how to proceed.
 - Never automatically stash, discard, reset, force-push, or overwrite changes.
   This includes adopting GitHub conflict resolutions; ask first.
+- Give every editing task one eight-character lowercase hexadecimal task tag.
+  Prefer the first eight characters of the Codex task UUID; if that ID is not
+  available, generate a tag once with `openssl rand -hex 4`. Rename the Codex
+  task to start with `[<tag>]`, and never regenerate the tag during that task.
 - For an editing task with a clean tree, create a branch from `origin/main`:
-  `codex/<label>-<short-topic>`. Never commit directly to `main`.
+  `codex/<label>-<tag>-<short-topic>`. Never commit directly to `main`.
 - Read-only work, reviews, and planning do not require a new branch.
 - Present an implementation plan and wait for approval before editing source,
   scripts, documentation, or configuration.
@@ -83,6 +88,9 @@
 
 - Before shipping, show the exact files, concise diff summary, verification
   results, proposed commit message, release label, and PR summary.
+- Prefix every commit message and PR title with the task's `[<tag>]`. Using the
+  same tag in the Codex task title, branch, commits, and PR makes each artifact
+  searchable from the others.
 - One explicit user approval (for example, `ship it`) authorizes staging the
   reviewed files, committing, pushing the current feature branch, and opening
   one PR. Do not commit, push, or open a PR without that approval.
@@ -96,6 +104,11 @@
 - Use `scripts/ship.sh` with the reviewed paths after `--`; it runs preflight,
   stages only those paths, applies safety checks, commits, pushes, and opens the
   labeled PR.
+- After a PR merges, return this single clone to its resting state: switch to
+  `main`, fast-forward it with `git pull --ff-only`, delete the merged local
+  feature branch with `git branch -d <branch>`, and run
+  `git fetch --prune origin`. Never use `git branch -D` by default; preserve
+  any branch that contains active or deliberately retained work.
 
 ## Project reference
 
