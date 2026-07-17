@@ -24,8 +24,7 @@ import {
 } from "@/app/actions/event";
 import { HostBar } from "./HostBar";
 import QRCode from "qrcode";
-import ProfileDropdown from "@/components/ui/ProfileDropdown";
-import { AppNavLogo } from "@/components/ui/AppNav";
+import { AppTopNav } from "@/components/ui/AppNav";
 import type { EventData, GuestRsvp } from "./event-page/types";
 import { compressImage, resolveIconKey, ICON_SET } from "./event-page/helpers";
 import { buildStyles } from "./event-page/styles";
@@ -782,24 +781,7 @@ export function EventPage({
         }
       `}</style>
       {/* ── Top nav ── */}
-      <AppNavLogo
-        href={sessionUser ? "/dashboard" : "/"}
-        trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 200,
-          height: "52px",
-          padding: "0 16px",
-          background: "rgba(0,0,0,0.45)",
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-          color: "#ffffff",
-        }}
-      />
+      <AppTopNav user={sessionUser} variant="event-overlay" />
 
       <BackgroundDecorations t={t} />
       <ParticleLayer

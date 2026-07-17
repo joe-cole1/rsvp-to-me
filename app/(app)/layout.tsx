@@ -1,6 +1,5 @@
 import { APP_SHELL } from "@/lib/theme";
-import { AppNavLogo } from "@/components/ui/AppNav";
-import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import { AppTopNav } from "@/components/ui/AppNav";
 import { getSessionUser } from "@/lib/session-user";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,10 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         fontFamily: "inherit",
       }}
     >
-      <AppNavLogo
-        href="/dashboard"
-        trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
-      />
+      <AppTopNav user={sessionUser} />
       {children}
     </div>
   );

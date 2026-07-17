@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import React from "react";
 import { ParticleLayer } from "@/components/event/event-page/ParticleLayer";
 import { EFFECT_DENSITIES, getEffectById } from "@/lib/effects";
+import { setEffectsHidden } from "@/lib/effect-visibility";
 
 const TINT = ["#a855f7", "#7c3aed", "#1e40af", "#ffffff"];
 
@@ -90,23 +91,20 @@ describe("ParticleLayer", () => {
     expect(colorAfter).not.toBe(colorBefore);
   });
 
-  it("lets a viewer hide effects via the toggle and persists the choice", () => {
+  it("reacts to the shared viewer preference and persists the choice", () => {
     const { container } = render(
       <ParticleLayer
         config={{ effectId: "snow", density: "medium", speed: "gentle" }}
         tintColors={TINT}
       />
     );
-    const toggle = container.querySelector(".rsvp-effect-toggle")!;
-    expect(toggle.textContent).toContain("Hide effects");
     expect(container.querySelector(".rsvp-effect-layer")).not.toBeNull();
 
-    fireEvent.click(toggle);
+    act(() => setEffectsHidden(true));
     expect(container.querySelector(".rsvp-effect-layer")).toBeNull();
-    expect(container.querySelector(".rsvp-effect-toggle")!.textContent).toContain("Show effects");
     expect(window.localStorage.getItem("rsvp:hide-effects")).toBe("1");
 
-    fireEvent.click(container.querySelector(".rsvp-effect-toggle")!);
+    act(() => setEffectsHidden(false));
     expect(container.querySelector(".rsvp-effect-layer")).not.toBeNull();
     expect(window.localStorage.getItem("rsvp:hide-effects")).toBe("0");
   });
@@ -120,10 +118,9 @@ describe("ParticleLayer", () => {
       />
     );
     expect(container.querySelector(".rsvp-effect-layer")).toBeNull();
-    expect(container.querySelector(".rsvp-effect-toggle")!.textContent).toContain("Show effects");
   });
 
-  it("renders no toggle when the event has no effect", () => {
+  it("does not own a separate effects toggle", () => {
     const { container } = render(<ParticleLayer config={null} tintColors={TINT} />);
     expect(container.querySelector(".rsvp-effect-toggle")).toBeNull();
   });

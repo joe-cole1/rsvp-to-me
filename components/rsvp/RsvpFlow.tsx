@@ -4,8 +4,7 @@ import { useState, useTransition } from "react";
 import { addRSVP, updateRSVP, updateRsvpAsHost } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { Check } from "lucide-react";
-import { AppNavLogo } from "@/components/ui/AppNav";
-import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import { AppTopNav } from "@/components/ui/AppNav";
 
 type SessionUser = {
   email: string;
@@ -337,26 +336,7 @@ export function RsvpFlow({
     return null;
   };
 
-  const renderNav = () => (
-    <AppNavLogo
-      href="/dashboard"
-      trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 200,
-        background: "rgba(15,15,20,0.9)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        color: "#ffffff",
-        padding: "0 16px",
-        height: "53px",
-      }}
-    />
-  );
+  const renderNav = () => <AppTopNav user={sessionUser ?? null} variant="fixed" />;
 
   if (readOnlyReason && existingRsvp) {
     return (
