@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { redisGet, redisSet, redisDel, isRedisEnabled } from "@/lib/redis";
 import { logSafe } from "./logger";
-import { promoteInitialAdmin } from "@/lib/admin-promotion";
 
 export interface SessionData {
   userId: string;
@@ -139,16 +138,6 @@ export async function getSession(): Promise<SessionData | null> {
       session.role = dbSession.user.role as "HOST" | "ADMIN" | "GUEST";
     }
 
-    if (session.role !== "ADMIN") {
-      const promoted = await promoteInitialAdmin(session.userId, session.email);
-      if (promoted) {
-        session.role = "ADMIN";
-        // Evict cache to pick up updated role
-        if (isRedisEnabled()) {
-          await redisDel(cacheKey);
-        }
-      }
-    }
     return session;
   } catch {
     return null;

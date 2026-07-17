@@ -51,6 +51,8 @@ For every bug fix merged to main:
 | `sec-41-verify-host-header-origin.test.ts`           | Magic-link verify built redirect origin from the request Host header (redirect/link-poisoning behind proxies)         | SEC-41    |
 | `sec-42-rsvp-existence-oracle.test.ts`               | Host RSVP actions threw "Not found" before authz, letting any caller probe which RSVP ids exist                       | SEC-42    |
 | `ghsa-g7r4-m6w7-qqqr-esbuild-traversal.test.ts`      | GHSA-g7r4-m6w7-qqqr: vulnerable esbuild dev servers allowed arbitrary reads through Windows backslash traversal       | GHSA      |
+| `sec-39-activity-feed-guest-privacy.test.ts`         | Hidden guest names and RSVP note/detail text leaked through activity rows in the event-page RSC payload               | SEC-39    |
+| `sec-48-initial-admin-login-only.test.ts`            | INITIAL_ADMIN_EMAIL promotion ran from ordinary sessions and non-LOGIN authentication paths                           | SEC-48    |
 | `../components/RsvpFlow.test.tsx` (race describe)    | New-RSVP success screen transiently swapped to "RSVP updated!" after the Server Action RSC refresh                    | RSVP race |
 | `host-rsvp-alert-wiring.test.ts`                     | `sendHostRsvpAlertEmail`/`sendHostRsvpAlertSms` had no call site — hosts never got "New RSVP" alerts despite the docs | [de9262]  |
 | `guest-list-host-empty-visibility.test.tsx`          | Empty events hid the main-page Guests card and its management shortcuts from hosts                                    | 113b4f76  |

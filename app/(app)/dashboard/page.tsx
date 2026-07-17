@@ -4,21 +4,12 @@ import { getDashboardEvents, getDashboardActivity, getDashboardInvites } from "@
 import { isOpenRegistrationActive } from "@/lib/auth";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { getSessionUser } from "@/lib/session-user";
-import { promoteInitialAdmin } from "@/lib/admin-promotion";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const sessionUser = await getSessionUser();
   if (!sessionUser) redirect("/auth/sign-in");
-
-  // Auto-promote INITIAL_ADMIN_EMAIL to ADMIN role on first login if no admin exists
-  if (sessionUser.role !== "ADMIN") {
-    const promoted = await promoteInitialAdmin(sessionUser.id, sessionUser.email);
-    if (promoted) {
-      sessionUser.role = "ADMIN";
-    }
-  }
 
   const events = await getDashboardEvents();
   const invites = await getDashboardInvites();

@@ -81,7 +81,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 1. `app/actions/auth.ts` validates sign-in/registration input and calls
    `lib/auth.ts` to create or verify magic-link tokens.
 2. Verification route handlers under `app/auth/` create encrypted session
-   cookies through `lib/session.ts`.
+   cookies through `lib/session.ts`. `INITIAL_ADMIN_EMAIL` bootstrap promotion
+   belongs exclusively to successful `LOGIN` magic-token verification in
+   `lib/auth.ts` and `app/auth/verify/route.ts`; session reads and non-LOGIN
+   verification flows must never promote roles.
 3. `lib/session-user.ts` wraps the current-user lookup in `React.cache()` for
    Server Component reuse.
 4. Host and administrator mutations must use guards from `lib/auth-guards.ts`.

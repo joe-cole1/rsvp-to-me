@@ -132,7 +132,7 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
 
   let role = user.role;
   if (role !== "ADMIN") {
-    const promoted = await promoteInitialAdmin(user.id, user.email ?? user.phone ?? "");
+    const promoted = await promoteInitialAdmin(user.id, user.email);
     if (promoted) {
       role = "ADMIN";
     }

@@ -149,7 +149,9 @@ You must set at least these variables before launching:
    - _CLI (Windows PowerShell):_ Run `[Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Max 256) }))`.
    - _Web:_ Generate it via [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32).
 4. **`NEXT_PUBLIC_APP_URL`**: The public URL that users and guests will visit (e.g. `https://rsvp.yourdomain.com`). No trailing slash.
-5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Logging in with this email for the first time automatically promotes your account to Administrator (only if there are no existing admins in the database).
+5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Successfully verifying a sign-in magic link for
+   this email promotes the account to Administrator only when no administrator exists. Registration,
+   existing sessions, profile links, and co-host invitations cannot trigger bootstrap promotion.
 6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). The `.env.example` placeholder (`CHANGE_THIS_TO_A_STRONG_RANDOM_CODE`) is rejected at startup in production — replace it with a strong value (e.g. `openssl rand -hex 8`).
 
 > **Warning:** Your `.env` file contains sensitive passwords and secrets. Never commit it to a public repository. Ensure it is added to your `.gitignore` file.
@@ -231,7 +233,8 @@ docker compose -f docker-compose.dev.yml up --build -d
      ```bash
      docker compose logs app | grep "magic link"
      ```
-4. Once logged in, go to the `/admin` URL in your browser to confirm you have access to the Admin Panel.
+4. The promotion occurs only when that valid sign-in link is verified. Once logged in, go to the
+   `/admin` URL in your browser to confirm you have access to the Admin Panel.
 
 ---
 
@@ -375,4 +378,6 @@ Ensure `INITIAL_ADMIN_EMAIL="your-email@domain.com"` is set in `.env`, then run:
 docker compose restart app
 ```
 
-Log out of the application, then log back in using that email address to re-trigger the Admin promotion logic.
+Log out of the application, request a fresh sign-in link for that email address, and open the link
+to re-trigger the Admin promotion logic. Merely restoring or browsing with an existing session does
+not trigger bootstrap promotion.

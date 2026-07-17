@@ -83,8 +83,17 @@ type StrippableEvent = {
   activityEvents?: { type: string }[];
 };
 
+const RSVP_IDENTITY_ACTIVITY_TYPES = new Set([
+  "rsvp_new",
+  "rsvp_update",
+  "rsvp_delete",
+  "guest_invite",
+]);
+
+const ATTENDANCE_ACTIVITY_TYPES = new Set(["check_in", "check_in_undo", "walk_in"]);
+
 /**
- * SEC-32: remove host-only data before an event object is serialized into the
+ * SEC-32 / SEC-39: remove restricted data before an event object is serialized into the
  * RSC payload of the public event page (a Client Component boundary — every
  * field ships to anyone who can load the page, not just what the UI renders).
  * For non-hosts:
@@ -93,10 +102,17 @@ type StrippableEvent = {
  *   - empty the approved guest list whenever the guest-list visibility gate
  *     would hide it in the UI (`guestListVis !== "ALL"`), so hidden rows aren't
  *     shipped behind a render-only guard.
+ *   - remove RSVP identity activity whenever the same viewer cannot see the
+ *     guest list, and always remove host-only attendance activity.
  * Hosts get the object unchanged.
  */
-export function stripHostOnlyEventData<E extends StrippableEvent>(event: E, isHost: boolean): E {
-  if (isHost) return event;
+export function stripHostOnlyEventData<E extends StrippableEvent>(
+  event: E,
+  viewer: GuestListViewer
+): E {
+  if (viewer.isHost) return event;
+
+  const canViewRsvpIdentity = canViewGuestListPage(event.guestListVis, viewer);
   return {
     ...event,
     host: { ...event.host, email: null },
@@ -106,9 +122,8 @@ export function stripHostOnlyEventData<E extends StrippableEvent>(event: E, isHo
       ? {
           activityEvents: event.activityEvents.filter(
             (activity) =>
-              activity.type !== "check_in" &&
-              activity.type !== "check_in_undo" &&
-              activity.type !== "walk_in"
+              !ATTENDANCE_ACTIVITY_TYPES.has(activity.type) &&
+              (canViewRsvpIdentity || !RSVP_IDENTITY_ACTIVITY_TYPES.has(activity.type))
           ),
         }
       : {}),

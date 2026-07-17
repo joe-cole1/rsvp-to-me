@@ -46,9 +46,15 @@ function sampleEvent(guestListVis: string) {
   };
 }
 
+const anonymousViewer: GuestListViewer = {
+  isHost: false,
+  isLoggedInGuest: false,
+  hasValidToken: false,
+};
+
 describe("SEC-32: stripHostOnlyEventData scrubs the non-host RSC payload", () => {
   it("nulls host and co-host emails for a non-host viewer", () => {
-    const out = stripHostOnlyEventData(sampleEvent("ALL"), false);
+    const out = stripHostOnlyEventData(sampleEvent("ALL"), anonymousViewer);
     expect(out.host.email).toBeNull();
     expect(out.coHosts[0].user.email).toBeNull();
     // Display names survive so the UI still renders.
@@ -56,19 +62,22 @@ describe("SEC-32: stripHostOnlyEventData scrubs the non-host RSC payload", () =>
   });
 
   it("keeps the guest list for a non-host when guestListVis is ALL", () => {
-    const out = stripHostOnlyEventData(sampleEvent("ALL"), false);
+    const out = stripHostOnlyEventData(sampleEvent("ALL"), anonymousViewer);
     expect(out.rsvps).toHaveLength(2);
   });
 
   it("empties the guest list for a non-host when the list is not public", () => {
     for (const vis of ["GUESTS_ONLY", "HOST_ONLY"]) {
-      const out = stripHostOnlyEventData(sampleEvent(vis), false);
+      const out = stripHostOnlyEventData(sampleEvent(vis), anonymousViewer);
       expect(out.rsvps).toEqual([]);
     }
   });
 
   it("leaves everything intact for a host", () => {
-    const out = stripHostOnlyEventData(sampleEvent("HOST_ONLY"), true);
+    const out = stripHostOnlyEventData(sampleEvent("HOST_ONLY"), {
+      ...anonymousViewer,
+      isHost: true,
+    });
     expect(out.host.email).toBe("host@example.com");
     expect(out.coHosts[0].user.email).toBe("cohost@example.com");
     expect(out.rsvps).toHaveLength(2);
@@ -76,7 +85,7 @@ describe("SEC-32: stripHostOnlyEventData scrubs the non-host RSC payload", () =>
   });
 
   it("strips host-only attendance activity for non-host viewers", () => {
-    const out = stripHostOnlyEventData(sampleEvent("ALL"), false);
+    const out = stripHostOnlyEventData(sampleEvent("ALL"), anonymousViewer);
     expect(out.activityEvents).toEqual([{ type: "event_date", detail: "changed the date" }]);
   });
 });
