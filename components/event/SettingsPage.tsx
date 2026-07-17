@@ -2,8 +2,7 @@
 
 import { useState, useTransition, useEffect, useMemo } from "react";
 import { ArrowLeft, Check } from "lucide-react";
-import { AppNavLogo } from "@/components/ui/AppNav";
-import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import { AppTopNav } from "@/components/ui/AppNav";
 import { type BaseTheme, resolveTheme, getSortedPresets, getDefaultCardOpacity } from "@/lib/theme";
 import { DEFAULT_EFFECT_DENSITY, DEFAULT_EFFECT_SPEED, DEFAULT_EFFECT_SIZE } from "@/lib/effects";
 import {
@@ -822,24 +821,7 @@ export function SettingsPage({
       <SettingsDecorations t={t} />
 
       {/* ── Global nav ── */}
-      <AppNavLogo
-        href="/dashboard"
-        trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 200,
-          background: "rgba(15,15,20,0.9)",
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          color: "#ffffff",
-          padding: "0 16px",
-          height: "53px",
-        }}
-      />
+      <AppTopNav user={sessionUser} variant="fixed" />
 
       {/* ── Settings sub-nav ── */}
       <div style={S.header}>

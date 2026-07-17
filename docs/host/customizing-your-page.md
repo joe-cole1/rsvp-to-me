@@ -59,7 +59,7 @@ The **Effects** tab in **Settings → Theme** adds an optional layer of gently d
 - Seasonal effects near your current date sort to the front of the picker as suggestions — nothing is ever applied automatically.
 - Confetti and balloons tint themselves to match your theme's colors.
 - Guests who have "reduce motion" enabled in their device accessibility settings see a calm, static page — the animation layer hides itself automatically.
-- Every visitor also gets a small **"✨ Hide effects"** pill in the corner of the page, so anyone who finds the animation distracting can turn it off for themselves. The choice is remembered in their browser and doesn't affect anyone else.
+- Every visitor can choose **"✨ Hide effects"** from the menu in the top bar, so anyone who finds the animation distracting can turn it off for themselves. Signed-in visitors open the menu from their profile picture; signed-out visitors use the circular hamburger button. The choice is remembered in their browser and doesn't affect anyone else.
 - Effects appear on the event page only; **emails always stay static** by design.
 
 Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.

@@ -5,8 +5,7 @@ import { resolveEventAccess } from "@/lib/eventAccess";
 import { serializeGuestRsvp, canViewGuestListPage } from "@/lib/guestList";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
-import { AppNavLogo } from "@/components/ui/AppNav";
-import ProfileDropdown from "@/components/ui/ProfileDropdown";
+import { AppTopNav } from "@/components/ui/AppNav";
 import { getChannelConfig } from "@/lib/config";
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
@@ -95,24 +94,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
         overflowX: "hidden",
       }}
     >
-      <AppNavLogo
-        href="/dashboard"
-        trailing={sessionUser ? <ProfileDropdown user={sessionUser} /> : undefined}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 200,
-          background: "rgba(15,15,20,0.9)",
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          color: "#ffffff",
-          padding: "0 16px",
-          height: "53px",
-        }}
-      />
+      <AppTopNav user={sessionUser} variant="fixed" />
       {/* Background decorations */}
       {t.pageDecoration === "dark-orbs" && (
         <>

@@ -58,6 +58,8 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - `app/layout.tsx` is the root HTML/layout boundary.
 - `app/(app)/layout.tsx` supplies shared navigation and the cached session user
   for authenticated application pages.
+- `components/ui/AppNav.tsx` owns the shared top-bar variants and composes the
+  signed-in profile or signed-out viewer menu from `components/ui/ProfileDropdown.tsx`.
 - `app/page.tsx` is the public landing page.
 - `app/e/[slug]/page.tsx` is the main public event page.
 - `app/(app)/dashboard/page.tsx` is the host dashboard.
