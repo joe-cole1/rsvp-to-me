@@ -3,7 +3,6 @@
 import { db } from "@/lib/db";
 import { getSession, destroySession } from "@/lib/session";
 import { getSessionUser } from "@/lib/session-user";
-import { promoteInitialAdmin } from "@/lib/admin-promotion";
 import { scheduleUserDeletion, cancelUserDeletion } from "@/lib/account-deletion";
 import { randomBytes } from "crypto";
 import { sendMagicLinkEmail } from "@/lib/email";
@@ -159,13 +158,6 @@ export async function getUserProfile() {
       deletionScheduledAt: true,
     },
   });
-
-  if (user && user.role !== "ADMIN") {
-    const promoted = await promoteInitialAdmin(user.id, user.email ?? "");
-    if (promoted) {
-      user.role = "ADMIN";
-    }
-  }
 
   return user;
 }

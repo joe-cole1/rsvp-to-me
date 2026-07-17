@@ -183,11 +183,17 @@ When the variable is unset, every caller gets the minimal body. Requests with a 
 
 - **Required**: Recommended for initial setup
 - **Default**: _(none)_
-- **Type**: Email address string (case-sensitive)
+- **Type**: Email address string
 
-**What it does:** Designated email address to bootstrap the admin account. When a user registers or logs in with this exact email, they are automatically granted the `ADMIN` role _if and only if there are currently no active administrators in the system_.
+**What it does:** Designated email address to bootstrap the admin account. The matching user is
+granted the `ADMIN` role _if and only if_ they successfully verify a `LOGIN` magic link and there are
+currently no active administrators in the system. Email matching is normalized for case and
+surrounding whitespace. Registration, ordinary session access, dashboard/profile reads, profile
+change links, and co-host invitation acceptance do not run bootstrap promotion.
 
-> **Note:** The email must be entered in lowercase. Once your admin account is active, you can promote other users to `ADMIN` from the Admin Panel itself, making this setting redundant. This also prevents anyone who gets access to the `INITIAL_ADMIN_EMAIL` address from escalating their privileges once an admin already exists.
+> **Note:** Once your admin account is active, you can promote other users to `ADMIN` from the Admin
+> Panel itself, making this setting redundant. The existing-admin check also prevents anyone who
+> later gets access to the `INITIAL_ADMIN_EMAIL` inbox from using bootstrap promotion.
 
 ---
 
@@ -451,7 +457,7 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 | `HEALTH_CHECK_TOKEN`           | No              | _(none)_            | Token for the `x-health-token` header that unlocks the detailed `/api/health` body (migration state).           |
 | `ENCRYPTION_KEY`               | No              | _(falls back)_      | Encryption key for database-stored credentials.                                                                 |
 | `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                                                         |
-| `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email address promoted to Admin on first login if no other admins exist.                                        |
+| `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email promoted after verified LOGIN magic-link use if no other admins exist.                                    |
 | `OPEN_REGISTRATION`            | No              | `"false"`           | If `"true"`, allows host signups without invite codes.                                                          |
 | `HOST_INVITE_CODE`             | Yes (if closed) | `"letmein"`         | Code required by new hosts to register.                                                                         |
 | `SEED_TEST_DATA`               | No              | `"false"`           | If `"true"`, seeds mock test events on first run.                                                               |

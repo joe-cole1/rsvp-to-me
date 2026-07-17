@@ -10,8 +10,6 @@ const mocks = vi.hoisted(() => ({
   mockSessionFindUnique: vi.fn(),
   mockSessionDelete: vi.fn(),
   mockSessionFindMany: vi.fn(),
-  mockUserCount: vi.fn().mockResolvedValue(0),
-  mockUserUpdate: vi.fn(),
   mockIsRedisEnabled: vi.fn().mockReturnValue(false),
   mockRedisGet: vi.fn().mockResolvedValue(null),
   mockRedisSet: vi.fn(),
@@ -38,10 +36,6 @@ vi.mock("@/lib/db", () => ({
       findUnique: mocks.mockSessionFindUnique,
       delete: mocks.mockSessionDelete,
       findMany: mocks.mockSessionFindMany,
-    },
-    user: {
-      count: mocks.mockUserCount,
-      update: mocks.mockUserUpdate,
     },
   },
 }));
@@ -152,7 +146,7 @@ describe("getSession", () => {
     expect(result?.role).toBe("ADMIN");
   });
 
-  it("promotes initial admin email user to ADMIN in getSession", async () => {
+  it("does not promote the initial admin email during an ordinary session read", async () => {
     process.env.INITIAL_ADMIN_EMAIL = "admin@example.com";
     mocks.mockCookiesGet.mockReturnValue({ value: "sealed-value" });
     mocks.mockUnsealData.mockResolvedValue({
@@ -167,15 +161,8 @@ describe("getSession", () => {
       expiresAt: new Date(Date.now() + 1000 * 600),
       user: { role: "HOST" },
     });
-    mocks.mockUserCount.mockResolvedValue(0);
-    mocks.mockUserUpdate.mockResolvedValue({ id: "user-1", role: "ADMIN" });
-
     const result = await getSession();
-    expect(result?.role).toBe("ADMIN");
-    expect(mocks.mockUserUpdate).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: { role: "ADMIN" },
-    });
+    expect(result?.role).toBe("HOST");
     delete process.env.INITIAL_ADMIN_EMAIL;
   });
 

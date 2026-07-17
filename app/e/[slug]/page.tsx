@@ -107,15 +107,12 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
 
   if (event.status === "CANCELLED") notFound();
 
-  const { sessionUser, isHost, loggedInUserRsvp, decision } = await resolveEventAccess(
-    event,
-    slug,
-    {
+  const { sessionUser, isHost, hasValidToken, isLoggedInGuest, loggedInUserRsvp, decision } =
+    await resolveEventAccess(event, slug, {
       token,
       isPreview,
       admin: searchParams?.admin === "1",
-    }
-  );
+    });
 
   if (decision === "password") {
     // Password is a valid access path — show the entry form.
@@ -221,7 +218,10 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   // page — not just what the UI visibly renders. Strip host-only data (co-host/
   // host emails; the guest list when the visibility gate hides it) for non-host
   // viewers before it crosses the client boundary.
-  const eventForClient = stripHostOnlyEventData({ ...event, pendingRsvps }, !!isHost);
+  const eventForClient = stripHostOnlyEventData(
+    { ...event, pendingRsvps },
+    { isHost: !!isHost, isLoggedInGuest, hasValidToken }
+  );
 
   return (
     <EventPage

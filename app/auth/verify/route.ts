@@ -5,6 +5,7 @@ import { linkRsvpsToUser, isSafeRedirect } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { isRedisEnabled, redisSet } from "@/lib/redis";
 import { hashToken } from "@/lib/hash";
+import { promoteInitialAdmin } from "@/lib/admin-promotion";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -45,6 +46,11 @@ export async function GET(request: NextRequest) {
     return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
   }
 
+  let role = user.role;
+  if (role !== "ADMIN" && (await promoteInitialAdmin(user.id, user.email))) {
+    role = "ADMIN";
+  }
+
   // Link any matching RSVPs dynamically on sign-in
   await linkRsvpsToUser(user.id);
 
@@ -69,7 +75,7 @@ export async function GET(request: NextRequest) {
       id: sessionId,
       userId: user.id,
       expiresAt: expiresAt.toISOString(),
-      userRole: user.role,
+      userRole: role,
     };
     await redisSet(cacheKey, JSON.stringify(cacheValue), SESSION_TTL);
   }
@@ -77,7 +83,7 @@ export async function GET(request: NextRequest) {
   const sealed = await sealSession({
     userId: user.id,
     email: user.email ?? user.phone ?? "",
-    role: user.role as "HOST" | "ADMIN" | "GUEST",
+    role: role as "HOST" | "ADMIN" | "GUEST",
     sessionId, // Crucial: Include sessionId so getSession() validates it successfully
   });
 

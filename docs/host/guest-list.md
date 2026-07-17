@@ -65,6 +65,11 @@ Choose how much guests can see in Settings:
 
 This setting is enforced on the server, not just hidden in the page — with **Going guests only** or **Host only**, the restricted list is never sent to a browser that shouldn't see it, including on the dedicated guest-list page at `/e/[slug]/guests`.
 
+RSVP activity follows the same privacy setting. New, changed, deleted, and invited-guest activity
+entries can include a guest's name or RSVP note, so the server omits those entire entries whenever
+the viewer cannot see the guest list. Check-in, undo, and walk-in activity remains organizer-only
+regardless of the guest-list setting.
+
 If your event is **Private** or password-protected, the guest list is gated the same way as the event page — a visitor who hasn't been let in can't reach it, regardless of the setting above.
 
 **Guests' personal details stay private.** Even when the list is visible to guests, contact information (email, phone) and the per-guest edit links are shown **only to you and your co-hosts**. Guests see names and RSVP status, never each other's contact details or private questionnaire answers.

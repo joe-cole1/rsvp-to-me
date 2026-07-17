@@ -68,10 +68,16 @@ If your site administrator has disabled both email and SMS, the messaging panel 
 
 ## Activity Log
 
-The **activity log** is a host-only timeline on your event management page. It records:
+The **activity feed** is a timeline on your event page. It records:
 
 - New RSVPs and status changes
 - New comments and replies
 - Poll activity (votes, new options, locking)
 - Potluck claims and releases
 - Invitations and update blasts you've sent
+
+Guest-facing RSVP identity entries follow **Settings → RSVP Options → guest-list visibility**:
+everyone can see them for a public guest list, only authenticated event guests or valid personal
+invite-link holders can see them for **Going guests only**, and only hosts/co-hosts/admins can see
+them for **Host only**. The server removes restricted entries—including guest names and RSVP note
+text—before sending the page. Check-in, check-in undo, and walk-in activity is always organizer-only.

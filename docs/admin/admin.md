@@ -61,7 +61,12 @@ INITIAL_ADMIN_EMAIL="youraddress@domain.com"
 docker compose restart app
 ```
 
-The first time you sign in using this email, your account is automatically promoted to `ADMIN` (provided there are currently no other administrators in the system). This is a bootstrap mechanism for first-time installation.
+The first time you complete sign-in by opening a valid `LOGIN` magic link for this email, your
+account is automatically promoted to `ADMIN` (provided there are currently no other administrators
+in the system). This is a bootstrap mechanism for first-time installation. Registration, an
+existing session, dashboard/profile access, profile-change links, and co-host invitation acceptance
+cannot trigger this promotion; request and verify a fresh sign-in magic link when bootstrapping or
+recovering the initial administrator.
 
 ### Method 2: Promotion via the Admin Panel
 

@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 
 /**
  * Promotes a user to ADMIN if their email matches INITIAL_ADMIN_EMAIL
- * and there are currently no active ADMINs in the system.
+ * and there are currently no active ADMINs in the system. Callers must invoke
+ * this only after successfully verifying a LOGIN magic token.
  * Returns true if promotion happened, false otherwise.
  */
 export async function promoteInitialAdmin(userId: string, email?: string | null): Promise<boolean> {
