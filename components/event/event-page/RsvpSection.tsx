@@ -39,8 +39,10 @@ export function RsvpSection({
 }) {
   const slotRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const rafIdRef = useRef<number | null>(null);
   const [isFloating, setIsFloating] = useState(false);
   const [cardHeight, setCardHeight] = useState(0);
+  const [dockedHeight, setDockedHeight] = useState(0);
 
   const now = new Date();
   const deadline = event.rsvpDeadline ? new Date(event.rsvpDeadline) : null;
@@ -76,7 +78,10 @@ export function RsvpSection({
       if (!slot || !card) return;
 
       const measuredHeight = card.offsetHeight || card.getBoundingClientRect().height;
-      if (measuredHeight > 0) setCardHeight(measuredHeight);
+      if (measuredHeight > 0) {
+        setCardHeight(measuredHeight);
+        if (!isFloating) setDockedHeight(measuredHeight);
+      }
 
       const slotRect = slot.getBoundingClientRect();
       const dockingLine = window.innerHeight - FLOATING_BOTTOM_GAP - measuredHeight;
@@ -84,8 +89,16 @@ export function RsvpSection({
       setIsFloating(!slotIsDocked);
     };
 
+    const onScroll = () => {
+      if (rafIdRef.current !== null) return;
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        updatePosition();
+      });
+    };
+
     updatePosition();
-    window.addEventListener("scroll", updatePosition, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", updatePosition);
 
     const resizeObserver =
@@ -93,11 +106,12 @@ export function RsvpSection({
     if (cardRef.current) resizeObserver?.observe(cardRef.current);
 
     return () => {
-      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", updatePosition);
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
       resizeObserver?.disconnect();
     };
-  }, [shouldFloat]);
+  }, [shouldFloat, isFloating]);
 
   if (isHost) return null;
 
@@ -106,6 +120,7 @@ export function RsvpSection({
   const SummaryIcon = !rsvpApproved ? Clock3 : summary?.icon;
   const summaryColor = !rsvpApproved ? "#f59e0b" : summary?.color;
   const floating = shouldFloat && isFloating;
+  const reservedHeight = Math.max(cardHeight, dockedHeight);
 
   return (
     <div
@@ -113,7 +128,8 @@ export function RsvpSection({
       data-rsvp-slot
       style={{
         display: "flow-root",
-        minHeight: floating && cardHeight > 0 ? `${cardHeight + 16}px` : undefined,
+        minHeight:
+          floating && reservedHeight > 0 ? `${reservedHeight + (rsvpDone ? 0 : 16)}px` : undefined,
       }}
     >
       <div
@@ -158,7 +174,11 @@ export function RsvpSection({
                   style={{ color: summaryColor, flexShrink: 0 }}
                 />
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: "14px", lineHeight: 1.25 }}>
+                  <div
+                    role="heading"
+                    aria-level={2}
+                    style={{ fontWeight: 700, fontSize: "14px", lineHeight: 1.25 }}
+                  >
                     {rsvpApproved ? summary.label : "RSVP received"}
                   </div>
                   {!rsvpApproved && (
