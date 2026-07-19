@@ -59,7 +59,7 @@ export function PotluckSection({
             >
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <UtensilsCrossed size={16} style={{ color: t.accent }} />
-                <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>What to Bring</span>
+                <span style={{ fontWeight: 700 }}>What to Bring</span>
               </div>
               {isHost && (
                 <a

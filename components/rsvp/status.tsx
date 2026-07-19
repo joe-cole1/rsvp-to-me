@@ -24,6 +24,7 @@ export function RsvpStatusChoice({
   href,
   onClick,
   disabled = false,
+  compact = false,
 }: {
   status: RsvpResponseStatus;
   theme: ResolvedTheme;
@@ -31,30 +32,32 @@ export function RsvpStatusChoice({
   href?: string;
   onClick?: () => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const style: React.CSSProperties = {
     flex: 1,
-    padding: "14px 8px",
+    minHeight: compact ? "44px" : undefined,
+    padding: compact ? "8px 6px" : "14px 8px",
     border: active ? "1px solid transparent" : `1px solid ${t.inputBorder}`,
     borderRadius: t.btnRadius,
     cursor: disabled ? "not-allowed" : "pointer",
     fontFamily: "inherit",
-    fontSize: "13px",
+    fontSize: compact ? "12px" : "13px",
     fontWeight: 700,
     background: active ? t.accent : t.inputBg,
     color: active ? t.accentFg : t.textSecondary,
     boxShadow: active ? t.accentShadow : "none",
     textDecoration: "none",
     display: "flex",
-    flexDirection: "column",
+    flexDirection: compact ? "row" : "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: "5px",
+    gap: compact ? "4px" : "5px",
     opacity: disabled ? 0.6 : 1,
   };
   const content = (
     <>
-      <span aria-hidden="true" style={{ fontSize: "22px" }}>
+      <span aria-hidden="true" style={{ fontSize: compact ? "17px" : "22px" }}>
         {RSVP_STATUS_EMOJIS[status]}
       </span>
       {RSVP_STATUS_LABELS[status]}

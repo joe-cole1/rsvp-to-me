@@ -167,7 +167,7 @@ When the variable is unset, every caller gets the minimal body. Requests with a 
 - **Default**: _(none)_
 - **Type**: URL string (no trailing slash)
 
-**What it does:** The public address where users visit the app. It is used to build invite links, confirmation links, and magic sign-in links sent via email/SMS. It is also the canonical origin for the redirects issued by the magic-link verification endpoint — when set, the app ignores the request `Host` header for those redirects (a link-poisoning safeguard behind reverse proxies); when unset, the `Host` header is used as a fallback, so production deploys should always set it.
+**What it does:** The public address where users visit the app. It is used to build invite links, confirmation links, magic sign-in links sent via email/SMS, canonical event-page metadata, and absolute social-preview image URLs. It is also the canonical origin for the redirects issued by the magic-link verification endpoint — when set, the app ignores the request `Host` header for those redirects (a link-poisoning safeguard behind reverse proxies); when unset, the `Host` header is used as a fallback, so production deploys should always set it.
 
 **Examples:**
 

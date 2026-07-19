@@ -52,7 +52,7 @@ export function PollsSection({
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <BarChart3 size={16} style={{ color: t.accent }} />
-              <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>Polls</span>
+              <span style={{ fontWeight: 700 }}>Polls</span>
             </div>
             {isHost && (
               <a

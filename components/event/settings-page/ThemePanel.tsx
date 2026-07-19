@@ -106,7 +106,7 @@ export function ThemePanel({
   const [activeTab, setActiveTab] = useState<"theme" | "effects" | "font">("theme");
   return (
     <Section title="Theme" t={t}>
-      {/* Sub-tabs: color presets / animated effects / heading font */}
+      {/* Sub-tabs: color presets / animated effects / event-title font */}
       <div style={{ display: "flex", gap: "6px", marginBottom: "14px" }}>
         {(
           [
@@ -921,13 +921,13 @@ export function ThemePanel({
         </div>
       )}
 
-      {/* ── Heading font ── */}
+      {/* ── Event title font ── */}
       {activeTab === "font" && (
         <div style={{ marginBottom: "12px" }}>
-          <Label t={t}>Heading Font</Label>
+          <Label t={t}>Event Title Font</Label>
           <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "8px" }}>
-            Applied to your event title and section headings. Some theme presets pick a matching
-            font automatically — choose one here to override it.
+            Applied only to your main event title. Some theme presets pick a matching font
+            automatically — choose one here to override it.
           </div>
           <div
             style={{

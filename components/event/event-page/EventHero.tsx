@@ -432,7 +432,7 @@ export function EventHero({
             <FileText size={16} style={{ color: t.accent }} />
             <h2
               id="event-description-heading"
-              style={{ margin: 0, fontSize: "16px", fontWeight: 700, fontFamily: t.headingFont }}
+              style={{ margin: 0, fontSize: "16px", fontWeight: 700 }}
             >
               Description
             </h2>

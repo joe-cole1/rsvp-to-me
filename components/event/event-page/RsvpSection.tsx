@@ -1,9 +1,24 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { CalendarCheck, CircleCheck, CircleHelp, CircleX, Clock3 } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
 import { RSVP_RESPONSE_STATUSES, RsvpStatusChoice } from "@/components/rsvp/status";
+
+const FLOATING_BOTTOM_GAP = 12;
+
+type SubmittedStatus = "GOING" | "MAYBE" | "NO";
+
+const RESPONSE_SUMMARIES: Record<
+  SubmittedStatus,
+  { label: string; icon: typeof CircleCheck; color: string }
+> = {
+  GOING: { label: "You’re going", icon: CircleCheck, color: "#22c55e" },
+  MAYBE: { label: "Marked as maybe", icon: CircleHelp, color: "#f59e0b" },
+  NO: { label: "Can’t make it", icon: CircleX, color: "#ef4444" },
+};
 
 export function RsvpSection({
   event,
@@ -12,6 +27,7 @@ export function RsvpSection({
   guestEditToken,
   rsvpStatus,
   rsvpDone,
+  rsvpApproved,
 }: {
   event: EventData;
   t: ResolvedTheme;
@@ -19,7 +35,13 @@ export function RsvpSection({
   guestEditToken: string | null;
   rsvpStatus: "GOING" | "MAYBE" | "NO" | "INVITED" | null;
   rsvpDone: boolean;
+  rsvpApproved: boolean;
 }) {
+  const slotRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isFloating, setIsFloating] = useState(false);
+  const [cardHeight, setCardHeight] = useState(0);
+
   const now = new Date();
   const deadline = event.rsvpDeadline ? new Date(event.rsvpDeadline) : null;
   const deadlinePassed = deadline ? deadline < now : false;
@@ -39,38 +61,160 @@ export function RsvpSection({
             ? "today"
             : "deadline passed";
 
+  const unansweredWindowOpen = !eventStarted && !deadlinePassed;
+  const responseWindowOpen = !eventStarted && (!deadlinePassed || event.allowEditAfterDeadline);
+  const shouldFloat =
+    !isHost && ((!rsvpDone && unansweredWindowOpen) || (rsvpDone && responseWindowOpen));
+  const canEdit = rsvpDone && !!guestEditToken && responseWindowOpen;
+
+  useEffect(() => {
+    if (!shouldFloat) return;
+
+    const updatePosition = () => {
+      const slot = slotRef.current;
+      const card = cardRef.current;
+      if (!slot || !card) return;
+
+      const measuredHeight = card.offsetHeight || card.getBoundingClientRect().height;
+      if (measuredHeight > 0) setCardHeight(measuredHeight);
+
+      const slotRect = slot.getBoundingClientRect();
+      const dockingLine = window.innerHeight - FLOATING_BOTTOM_GAP - measuredHeight;
+      const slotIsDocked = slotRect.top <= dockingLine && slotRect.bottom > 0;
+      setIsFloating(!slotIsDocked);
+    };
+
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, { passive: true });
+    window.addEventListener("resize", updatePosition);
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
+    if (cardRef.current) resizeObserver?.observe(cardRef.current);
+
+    return () => {
+      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("resize", updatePosition);
+      resizeObserver?.disconnect();
+    };
+  }, [shouldFloat]);
+
+  if (isHost) return null;
+
+  const submittedStatus = rsvpDone && rsvpStatus && rsvpStatus !== "INVITED" ? rsvpStatus : null;
+  const summary = submittedStatus ? RESPONSE_SUMMARIES[submittedStatus] : null;
+  const SummaryIcon = !rsvpApproved ? Clock3 : summary?.icon;
+  const summaryColor = !rsvpApproved ? "#f59e0b" : summary?.color;
+  const floating = shouldFloat && isFloating;
+
   return (
-    <>
-      {/* ── RSVP Section ── */}
-      {!isHost && (
-        <EventCard theme={t} aria-labelledby="event-rsvp-heading">
-          <h2
-            id="event-rsvp-heading"
-            style={{
-              fontSize: "17px",
-              fontWeight: 700,
-              marginBottom: event.rsvpDeadline ? "6px" : "16px",
-              fontFamily: t.headingFont,
-            }}
-          >
-            Are you coming?
-          </h2>
-          {deadline && (
+    <div
+      ref={slotRef}
+      data-rsvp-slot
+      style={{
+        display: "flow-root",
+        minHeight: floating && cardHeight > 0 ? `${cardHeight + 16}px` : undefined,
+      }}
+    >
+      <div
+        ref={cardRef}
+        data-rsvp-floating={floating ? "true" : "false"}
+        style={
+          floating
+            ? {
+                position: "fixed",
+                zIndex: 60,
+                left: "50%",
+                bottom: "calc(12px + env(safe-area-inset-bottom))",
+                transform: "translateX(-50%)",
+                width: "calc(100vw - 32px)",
+                maxWidth: "408px",
+              }
+            : undefined
+        }
+      >
+        <EventCard
+          theme={t}
+          aria-labelledby="event-rsvp-heading"
+          style={{
+            padding: rsvpDone ? "14px 16px" : floating ? "12px 14px" : "24px",
+            marginBottom: floating ? 0 : "16px",
+          }}
+        >
+          {summary && SummaryIcon ? (
             <div
+              id="event-rsvp-heading"
               style={{
-                fontSize: "12px",
-                color: deadlinePassed ? "#f87171" : t.textMuted,
-                marginBottom: "16px",
-                fontWeight: deadlinePassed ? 600 : 400,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
               }}
             >
-              RSVPs requested no later than {deadlineDate} · {deadlineCountdown}
+              <div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0 }}>
+                <SummaryIcon
+                  data-rsvp-status-icon={rsvpApproved ? submittedStatus : "PENDING"}
+                  size={19}
+                  style={{ color: summaryColor, flexShrink: 0 }}
+                />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: "14px", lineHeight: 1.25 }}>
+                    {rsvpApproved ? summary.label : "RSVP received"}
+                  </div>
+                  {!rsvpApproved && (
+                    <div style={{ color: t.textMuted, fontSize: "11px", marginTop: "2px" }}>
+                      Awaiting host approval
+                    </div>
+                  )}
+                </div>
+              </div>
+              {canEdit && (
+                <a
+                  href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
+                  style={{
+                    color: t.accent,
+                    flexShrink: 0,
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                  }}
+                >
+                  Edit my RSVP
+                </a>
+              )}
             </div>
-          )}
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginBottom: event.rsvpDeadline ? "6px" : floating ? "8px" : "16px",
+                }}
+              >
+                <CalendarCheck size={16} style={{ color: t.accent, flexShrink: 0 }} />
+                <h2
+                  id="event-rsvp-heading"
+                  style={{ fontSize: "17px", fontWeight: 700, margin: 0 }}
+                >
+                  Are you going?
+                </h2>
+              </div>
+              {deadline && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: deadlinePassed ? "#f87171" : t.textMuted,
+                    marginBottom: "16px",
+                    fontWeight: deadlinePassed ? 600 : 400,
+                  }}
+                >
+                  RSVPs requested no later than {deadlineDate} · {deadlineCountdown}
+                </div>
+              )}
 
-          {(() => {
-            if ((eventStarted || deadlinePassed) && !rsvpDone) {
-              return (
+              {(eventStarted || deadlinePassed) && !rsvpDone ? (
                 <div style={{ textAlign: "center", padding: "12px 0" }}>
                   <div style={{ fontSize: "36px", marginBottom: "8px" }}>🔒</div>
                   <div
@@ -89,58 +233,25 @@ export function RsvpSection({
                       : "The deadline to RSVP for this event has passed."}
                   </div>
                 </div>
-              );
-            }
-
-            if (rsvpDone) {
-              return (
-                <div style={{ textAlign: "center", padding: "12px 0" }}>
-                  <div style={{ fontSize: "40px", marginBottom: "8px" }}>
-                    {rsvpStatus === "GOING" ? "🎉" : rsvpStatus === "MAYBE" ? "🤔" : "😔"}
-                  </div>
-                  <div style={{ fontWeight: 700, marginBottom: "12px" }}>
-                    {rsvpStatus === "GOING"
-                      ? "You're going!"
-                      : rsvpStatus === "MAYBE"
-                        ? "Marked as maybe"
-                        : "Can't make it"}
-                  </div>
-                  {guestEditToken &&
-                    !eventStarted &&
-                    (!deadlinePassed || event.allowEditAfterDeadline) && (
-                      <a
-                        href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
-                        style={{
-                          fontSize: "13px",
-                          color: t.accent,
-                          textDecoration: "none",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Edit my RSVP →
-                      </a>
-                    )}
+              ) : (
+                <div style={{ display: "flex", gap: floating ? "6px" : "10px" }}>
+                  {RSVP_RESPONSE_STATUSES.filter(
+                    (status) => status !== "MAYBE" || event.maybeEnabled
+                  ).map((status) => (
+                    <RsvpStatusChoice
+                      key={status}
+                      status={status}
+                      theme={t}
+                      compact={floating}
+                      href={`/e/${event.slug}/rsvp?status=${status}${guestEditToken ? `&token=${guestEditToken}` : ""}`}
+                    />
+                  ))}
                 </div>
-              );
-            }
-
-            return null;
-          })() || (
-            <div style={{ display: "flex", gap: "10px" }}>
-              {RSVP_RESPONSE_STATUSES.filter((s) => s !== "MAYBE" || event.maybeEnabled).map(
-                (s) => (
-                  <RsvpStatusChoice
-                    key={s}
-                    status={s}
-                    theme={t}
-                    href={`/e/${event.slug}/rsvp?status=${s}${guestEditToken ? `&token=${guestEditToken}` : ""}`}
-                  />
-                )
               )}
-            </div>
+            </>
           )}
         </EventCard>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
