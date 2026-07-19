@@ -17,6 +17,15 @@ const eslintConfig = defineConfig([
     "pg_data/**",
     "redis_data/**",
   ]),
+  // React Email renders complete email-client HTML. These Next.js application
+  // rules do not apply to its required document <head> and raw <img> markup.
+  {
+    files: ["emails/**/*.tsx"],
+    rules: {
+      "@next/next/no-head-element": "off",
+      "@next/next/no-img-element": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
