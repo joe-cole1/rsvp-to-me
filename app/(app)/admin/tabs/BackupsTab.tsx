@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_SHELL } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
 import type { BackupFile } from "./types";
 
 const BACKUP_PRESETS = [
@@ -43,9 +44,7 @@ export function BackupsTab({
       {/* Section 1: Backup settings */}
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "24px",
           display: "flex",
           flexDirection: "column",
@@ -215,9 +214,7 @@ export function BackupsTab({
       {/* Section 2: Manual Trigger */}
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "24px",
           display: "flex",
           justifyContent: "space-between",
@@ -272,9 +269,7 @@ export function BackupsTab({
       {/* Section 3: Backup List */}
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "24px",
           display: "flex",
           flexDirection: "column",

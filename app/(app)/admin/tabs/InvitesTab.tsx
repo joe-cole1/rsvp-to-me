@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_SHELL } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
 import type { AdminInviteCode } from "./types";
 
 export function InvitesTab({
@@ -39,9 +40,7 @@ export function InvitesTab({
       {/* Open Host Registration */}
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "24px",
         }}
       >
@@ -101,9 +100,7 @@ export function InvitesTab({
       {config.open_registration === "true" ? (
         <div
           style={{
-            backgroundColor: APP_SHELL.cardBg,
-            border: `1px solid ${APP_SHELL.cardBorder}`,
-            borderRadius: APP_SHELL.cardRadius,
+            ...appCardStyle,
             padding: "32px",
             textAlign: "center",
           }}
@@ -131,9 +128,7 @@ export function InvitesTab({
             onSubmit={handleCreateCode}
             className="grid grid-cols-1 sm:grid-cols-2 gap-5"
             style={{
-              backgroundColor: APP_SHELL.cardBg,
-              border: `1px solid ${APP_SHELL.cardBorder}`,
-              borderRadius: APP_SHELL.cardRadius,
+              ...appCardStyle,
               padding: "24px",
             }}
           >
@@ -298,9 +293,7 @@ export function InvitesTab({
           {/* List */}
           <div
             style={{
-              backgroundColor: APP_SHELL.cardBg,
-              border: `1px solid ${APP_SHELL.cardBorder}`,
-              borderRadius: APP_SHELL.cardRadius,
+              ...appCardStyle,
               overflowX: "auto",
             }}
           >

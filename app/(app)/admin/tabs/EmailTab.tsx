@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import { APP_SHELL } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
 import { EmailTemplatesSection } from "./EmailTemplatesSection";
 
 function CollapsibleSection({
@@ -27,9 +28,7 @@ function CollapsibleSection({
           alignItems: "center",
           justifyContent: "space-between",
           gap: "12px",
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "16px 24px",
           cursor: "pointer",
           textAlign: "left",
@@ -220,9 +219,7 @@ function extractRawEmail(fromStr) {
         {/* Guest Email Channel Toggle */}
         <div
           style={{
-            backgroundColor: APP_SHELL.cardBg,
-            border: `1px solid ${APP_SHELL.cardBorder}`,
-            borderRadius: APP_SHELL.cardRadius,
+            ...appCardStyle,
             padding: "24px",
           }}
         >
@@ -285,9 +282,7 @@ function extractRawEmail(fromStr) {
         {/* Section 2: Server Configuration & Email Delivery */}
         <div
           style={{
-            backgroundColor: APP_SHELL.cardBg,
-            border: `1px solid ${APP_SHELL.cardBorder}`,
-            borderRadius: APP_SHELL.cardRadius,
+            ...appCardStyle,
             padding: "24px",
             display: "flex",
             flexDirection: "column",
@@ -1363,9 +1358,7 @@ function extractRawEmail(fromStr) {
       >
         <div
           style={{
-            backgroundColor: APP_SHELL.cardBg,
-            border: `1px solid ${APP_SHELL.cardBorder}`,
-            borderRadius: APP_SHELL.cardRadius,
+            ...appCardStyle,
             padding: "24px",
           }}
         >

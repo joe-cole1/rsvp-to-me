@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { APP_SHELL } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
 import type { DashboardEvent, DashboardInvite, DashboardActivity } from "@/app/actions/event";
 
 export interface DashboardGridItem {
@@ -415,9 +416,7 @@ export function DashboardClient({
               style={{
                 textAlign: "center",
                 padding: "60px 20px",
-                background: APP_SHELL.cardBg,
-                border: `1px solid ${APP_SHELL.cardBorder}`,
-                borderRadius: APP_SHELL.cardRadius,
+                ...appCardStyle,
               }}
             >
               <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
@@ -501,9 +500,7 @@ export function DashboardClient({
         >
           <div
             style={{
-              background: APP_SHELL.cardBg,
-              border: `1px solid ${APP_SHELL.cardBorder}`,
-              borderRadius: APP_SHELL.cardRadius,
+              ...appCardStyle,
               padding: "24px",
               position: "sticky",
               top: "24px",

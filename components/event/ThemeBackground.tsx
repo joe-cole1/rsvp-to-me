@@ -1,14 +1,12 @@
-"use client";
-
 import type { ResolvedTheme } from "@/lib/theme";
 
-export function BackgroundDecorations({ t }: { t: ResolvedTheme }) {
+export function ThemeBackground({ theme: t }: { theme: ResolvedTheme }) {
   return (
     <>
-      {/* Background decorations */}
       {t.pageDecoration === "dark-orbs" && (
         <>
           <div
+            aria-hidden="true"
             style={{
               position: "fixed",
               top: "-20%",
@@ -23,6 +21,7 @@ export function BackgroundDecorations({ t }: { t: ResolvedTheme }) {
             }}
           />
           <div
+            aria-hidden="true"
             style={{
               position: "fixed",
               bottom: "10%",
@@ -41,6 +40,7 @@ export function BackgroundDecorations({ t }: { t: ResolvedTheme }) {
       {t.pageDecoration === "soft-blobs" && (
         <>
           <div
+            aria-hidden="true"
             style={{
               position: "fixed",
               top: "-10%",
@@ -55,6 +55,7 @@ export function BackgroundDecorations({ t }: { t: ResolvedTheme }) {
             }}
           />
           <div
+            aria-hidden="true"
             style={{
               position: "fixed",
               bottom: "20%",
@@ -72,19 +73,17 @@ export function BackgroundDecorations({ t }: { t: ResolvedTheme }) {
       )}
       {t.pageDecoration === "bold-hero" && (
         <div
+          aria-hidden="true"
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            inset: 0,
             background: t.pageDecorationBg1,
             zIndex: 0,
           }}
         />
       )}
       {t.decorationVariant && (
-        <div data-decoration-variant={t.decorationVariant} style={{ display: "none" }} />
+        <div aria-hidden="true" data-decoration-variant={t.decorationVariant} hidden />
       )}
     </>
   );

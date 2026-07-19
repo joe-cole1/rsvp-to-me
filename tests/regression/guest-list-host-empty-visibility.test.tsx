@@ -11,7 +11,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { GuestListSection } from "@/components/event/event-page/GuestListSection";
-import { buildStyles } from "@/components/event/event-page/styles";
 import type { EventData } from "@/components/event/event-page/types";
 import { testTheme } from "@/tests/components/helpers/theme";
 
@@ -27,7 +26,6 @@ function renderGuestList(event: EventData, isHost: boolean) {
       event={event}
       renderAvatar={(name) => <span>{name[0]}</span>}
       t={testTheme}
-      S={buildStyles(testTheme)}
       isHost={isHost}
       going={[]}
       maybe={[]}

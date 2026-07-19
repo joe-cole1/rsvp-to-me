@@ -4,7 +4,6 @@ import { render, fireEvent } from "@testing-library/react";
 import React from "react";
 import { ThemePanel } from "@/components/event/settings-page/ThemePanel";
 import { GuestSharingCard } from "@/components/event/event-page/GuestSharingCard";
-import { buildStyles } from "@/components/event/event-page/styles";
 import { testTheme } from "./helpers/theme";
 import type { EventInput } from "@/components/event/settings-page/types";
 import type { EventData } from "@/components/event/event-page/types";
@@ -112,7 +111,6 @@ describe("ThemePanel tabs", () => {
 describe("section titles use the theme heading font", () => {
   it("GuestSharingCard title picks up t.headingFont", () => {
     const t = { ...testTheme, headingFont: "'Test Heading Font', serif" };
-    const S = buildStyles(t);
     const event = {
       slug: "test-party",
       guestSharingEnabled: true,
@@ -122,7 +120,6 @@ describe("section titles use the theme heading font", () => {
       <GuestSharingCard
         event={event}
         t={t}
-        S={S}
         isHost={false}
         eventLinkCopied={false}
         setEventLinkCopied={noop}

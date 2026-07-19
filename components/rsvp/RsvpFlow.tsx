@@ -5,6 +5,14 @@ import { addRSVP, updateRSVP, updateRsvpAsHost } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { Check } from "lucide-react";
 import { AppTopNav } from "@/components/ui/AppNav";
+import { ThemeBackground } from "@/components/event/ThemeBackground";
+import {
+  RSVP_RESPONSE_STATUSES,
+  RSVP_STATUS_EMOJIS,
+  RSVP_STATUS_LABELS,
+  RsvpStatusChoice,
+  type RsvpResponseStatus,
+} from "./status";
 
 type SessionUser = {
   email: string;
@@ -36,43 +44,6 @@ const parseOptions = (optionsStr: string | null): string[] => {
     .map((s) => s.trim())
     .filter(Boolean);
 };
-
-const STATUS_LABELS = { GOING: "Going", MAYBE: "Maybe", NO: "Can't go" } as const;
-const STATUS_EMOJIS = { GOING: "🎉", MAYBE: "🤔", NO: "😔" } as const;
-
-function StatusButton({
-  s,
-  active,
-  t,
-  onClick,
-}: {
-  s: "GOING" | "MAYBE" | "NO";
-  active: boolean;
-  t: ResolvedTheme;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1,
-        padding: "14px 8px",
-        border: active ? "none" : `1px solid ${t.inputBorder}`,
-        borderRadius: t.btnRadius,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: "13px",
-        fontWeight: 700,
-        background: active ? t.accent : t.inputBg,
-        color: active ? t.accentFg : t.textSecondary,
-        boxShadow: active ? t.accentShadow : "none",
-      }}
-    >
-      <div style={{ fontSize: "22px", marginBottom: "5px" }}>{STATUS_EMOJIS[s]}</div>
-      {STATUS_LABELS[s]}
-    </button>
-  );
-}
 
 type EventData = {
   id: string;
@@ -128,7 +99,7 @@ export function RsvpFlow({
   const isEdit = !!existingRsvp;
 
   const [step, setStep] = useState(1);
-  const [status, setStatus] = useState<"GOING" | "MAYBE" | "NO">(
+  const [status, setStatus] = useState<RsvpResponseStatus>(
     initialStatus ?? existingRsvp?.status ?? "GOING"
   );
   const [name, setName] = useState(existingRsvp?.guestName ?? "");
@@ -249,93 +220,6 @@ export function RsvpFlow({
     timeZone: event.timezone,
   });
 
-  const renderDecorations = () => {
-    if (t.pageDecoration === "dark-orbs") {
-      return (
-        <>
-          <div
-            style={{
-              position: "fixed",
-              top: "-20%",
-              left: "30%",
-              width: "600px",
-              height: "600px",
-              borderRadius: "50%",
-              background: t.pageDecorationBg1,
-              filter: "blur(40px)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: "fixed",
-              bottom: "10%",
-              right: "-10%",
-              width: "400px",
-              height: "400px",
-              borderRadius: "50%",
-              background: t.pageDecorationBg2,
-              filter: "blur(40px)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          />
-        </>
-      );
-    }
-    if (t.pageDecoration === "soft-blobs") {
-      return (
-        <>
-          <div
-            style={{
-              position: "fixed",
-              top: "-10%",
-              right: "-10%",
-              width: "500px",
-              height: "500px",
-              borderRadius: "50%",
-              background: t.pageDecorationBg1,
-              filter: "blur(60px)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: "fixed",
-              bottom: "20%",
-              left: "-5%",
-              width: "400px",
-              height: "400px",
-              borderRadius: "50%",
-              background: t.pageDecorationBg2,
-              filter: "blur(60px)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          />
-        </>
-      );
-    }
-    if (t.pageDecoration === "bold-hero") {
-      return (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: t.pageDecorationBg1,
-            zIndex: 0,
-          }}
-        />
-      );
-    }
-    return null;
-  };
-
   const renderNav = () => <AppTopNav user={sessionUser ?? null} variant="fixed" />;
 
   if (readOnlyReason && existingRsvp) {
@@ -355,7 +239,7 @@ export function RsvpFlow({
         }}
       >
         {renderNav()}
-        {renderDecorations()}
+        <ThemeBackground theme={t} />
         <div
           style={{
             width: "100%",
@@ -386,7 +270,7 @@ export function RsvpFlow({
           >
             <div style={{ fontWeight: 700 }}>{existingRsvp.guestName}</div>
             <div style={{ color: t.textSecondary, marginTop: "4px", fontSize: "14px" }}>
-              {STATUS_LABELS[existingRsvp.status]} · Party of {1 + existingRsvp.plusOneCount}
+              {RSVP_STATUS_LABELS[existingRsvp.status]} · Party of {1 + existingRsvp.plusOneCount}
             </div>
             {existingRsvp.note && (
               <p style={{ color: t.textMuted, fontSize: "13px", margin: "10px 0 0" }}>
@@ -430,7 +314,7 @@ export function RsvpFlow({
         }}
       >
         {renderNav()}
-        {renderDecorations()}
+        <ThemeBackground theme={t} />
         <div
           style={{
             width: "100%",
@@ -440,9 +324,7 @@ export function RsvpFlow({
             zIndex: 1,
           }}
         >
-          <div style={{ fontSize: "52px", marginBottom: "16px" }}>
-            {status === "GOING" ? "🎉" : status === "MAYBE" ? "🤔" : "😔"}
-          </div>
+          <div style={{ fontSize: "52px", marginBottom: "16px" }}>{RSVP_STATUS_EMOJIS[status]}</div>
           <h2 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>
             {isEdit && !justCreated
               ? "RSVP updated!"
@@ -727,7 +609,7 @@ export function RsvpFlow({
     return (
       <div style={S.page}>
         {renderNav()}
-        {renderDecorations()}
+        <ThemeBackground theme={t} />
         <div style={S.header}>
           <a
             href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`}
@@ -770,21 +652,17 @@ export function RsvpFlow({
           {/* Status buttons */}
           <div style={{ ...S.group }}>
             <div style={{ display: "flex", gap: "10px" }}>
-              <StatusButton
-                s="GOING"
-                active={status === "GOING"}
-                t={t}
-                onClick={() => setStatus("GOING")}
-              />
-              {event.maybeEnabled && (
-                <StatusButton
-                  s="MAYBE"
-                  active={status === "MAYBE"}
-                  t={t}
-                  onClick={() => setStatus("MAYBE")}
+              {RSVP_RESPONSE_STATUSES.filter(
+                (responseStatus) => responseStatus !== "MAYBE" || event.maybeEnabled
+              ).map((responseStatus) => (
+                <RsvpStatusChoice
+                  key={responseStatus}
+                  status={responseStatus}
+                  active={status === responseStatus}
+                  theme={t}
+                  onClick={() => setStatus(responseStatus)}
                 />
-              )}
-              <StatusButton s="NO" active={status === "NO"} t={t} onClick={() => setStatus("NO")} />
+              ))}
             </div>
           </div>
 
@@ -949,7 +827,7 @@ export function RsvpFlow({
   return (
     <div style={S.page}>
       {renderNav()}
-      {renderDecorations()}
+      <ThemeBackground theme={t} />
       <div style={S.header}>
         <button
           onClick={() => setStep(1)}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ResolvedTheme } from "@/lib/theme";
+import { EventCard } from "@/components/event/event-page/EventCard";
 
 // ── Shared UI primitives ───────────────────────────────────────────────────────
 
@@ -83,21 +84,16 @@ export function Section({
   t: ResolvedTheme;
 }) {
   return (
-    <div
+    <EventCard
+      theme={t}
       style={{
-        background: t.cardBg,
-        border: `1px solid ${t.cardBorder}`,
-        borderRadius: t.cardRadius,
         padding: "20px",
-        marginBottom: "16px",
-        boxShadow: t.cardShadow,
-        backdropFilter: "blur(12px)",
       }}
     >
       <h2 style={{ fontSize: "15px", fontWeight: 700, color: t.textPrimary, marginBottom: "20px" }}>
         {title}
       </h2>
       {children}
-    </div>
+    </EventCard>
   );
 }

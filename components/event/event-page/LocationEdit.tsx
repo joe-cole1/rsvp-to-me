@@ -6,6 +6,7 @@ import { saveEventLocation } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { LocationType } from "./types";
 import { buildMapUrl } from "./helpers";
+import { LocationFields } from "@/components/event/LocationFields";
 
 // ── Location inline editor ────────────────────────────────────────────────────
 
@@ -124,37 +125,6 @@ export function LocationEdit({
   const editCardStyle: React.CSSProperties = isHost
     ? { ...cardStyle, cursor: "pointer" }
     : cardStyle;
-
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1,
-    padding: "8px 4px",
-    background: active ? t.accent : t.inputBg,
-    color: active ? t.accentFg : t.textSecondary,
-    border: active ? "none" : `1px solid ${t.inputBorder}`,
-    borderRadius: "8px",
-    fontFamily: "inherit",
-    fontSize: "12px",
-    fontWeight: 600,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "4px",
-  });
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: "10px",
-    background: t.inputBg,
-    border: `1px solid ${t.inputBorder}`,
-    color: t.textPrimary,
-    fontFamily: "inherit",
-    fontSize: "14px",
-    outline: "none",
-    boxSizing: "border-box",
-  };
 
   const hasLocation =
     initialType === "TBD" ||
@@ -322,95 +292,17 @@ export function LocationEdit({
             boxShadow: t.cardShadow || "0 20px 60px rgba(0,0,0,0.6)",
           }}
         >
-          {/* Type tabs */}
-          <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
-            {(["PHYSICAL", "VIRTUAL", "TBD"] as LocationType[]).map((lt) => (
-              <button key={lt} style={tabStyle(type === lt)} onClick={() => setType(lt)}>
-                {lt === "PHYSICAL" ? "📍 Physical" : lt === "VIRTUAL" ? "💻 Virtual" : "📅 TBD"}
-              </button>
-            ))}
-          </div>
-
-          {type === "PHYSICAL" && (
-            <>
-              <div style={{ marginBottom: "10px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    textTransform: "none",
-                    letterSpacing: "0.02em",
-                    color: t.textMuted,
-                    marginBottom: "6px",
-                  }}
-                >
-                  Name
-                </label>
-                <input
-                  style={inputStyle}
-                  placeholder="Venue or place name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div style={{ marginBottom: "14px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    textTransform: "none",
-                    letterSpacing: "0.02em",
-                    color: t.textMuted,
-                    marginBottom: "6px",
-                  }}
-                >
-                  Address{" "}
-                  <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
-                    (optional)
-                  </span>
-                </label>
-                <input
-                  style={inputStyle}
-                  placeholder="123 Main St, City"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          {type === "VIRTUAL" && (
-            <div style={{ marginBottom: "14px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  textTransform: "none",
-                  letterSpacing: "0.02em",
-                  color: t.textMuted,
-                  marginBottom: "6px",
-                }}
-              >
-                Link
-              </label>
-              <input
-                style={inputStyle}
-                placeholder="https://zoom.us/j/..."
-                type="url"
-                value={vUrl}
-                onChange={(e) => setVUrl(e.target.value)}
-              />
-            </div>
-          )}
-
-          {type === "TBD" && (
-            <p style={{ fontSize: "13px", color: t.textMuted, marginBottom: "14px" }}>
-              We&apos;ll show &quot;To Be Determined (TBD)&quot; to guests until details are added.
-            </p>
-          )}
+          <LocationFields
+            value={{ type, name, address, virtualUrl: vUrl }}
+            onChange={(location) => {
+              setType(location.type);
+              setName(location.name);
+              setAddress(location.address);
+              setVUrl(location.virtualUrl);
+            }}
+            theme={t}
+            compact
+          />
 
           <div style={{ display: "flex", gap: "8px" }}>
             <button

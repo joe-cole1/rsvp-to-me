@@ -2,6 +2,7 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { APP_SHELL } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
 
 export function SmsTab({
   config,
@@ -43,9 +44,7 @@ export function SmsTab({
       {/* Guest SMS Channel Toggle */}
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "24px",
         }}
       >
@@ -107,9 +106,7 @@ export function SmsTab({
 
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "24px",
           display: "flex",
           flexDirection: "column",

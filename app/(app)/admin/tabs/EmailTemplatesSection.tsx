@@ -13,6 +13,7 @@ import {
 } from "@/app/actions/admin";
 import type { EmailTemplateMeta, TemplateId } from "@/emails/registry";
 import type { TemplateToggleKey } from "@/emails/types";
+import { appInputStyle } from "@/components/ui/AppPrimitives";
 
 type TemplateEntry = {
   meta: EmailTemplateMeta;
@@ -29,15 +30,8 @@ const TOGGLE_LABELS: Record<TemplateToggleKey, string> = {
 const BASES = ["DARK", "SOFT", "BOLD"] as const;
 
 const inputStyle: React.CSSProperties = {
-  width: "100%",
-  backgroundColor: APP_SHELL.inputBg,
-  border: `1px solid ${APP_SHELL.inputBorder}`,
-  borderRadius: APP_SHELL.inputRadius,
-  padding: "10px 14px",
-  color: APP_SHELL.textPrimary,
+  ...appInputStyle,
   fontSize: "13px",
-  outline: "none",
-  boxSizing: "border-box",
 };
 
 const labelStyle: React.CSSProperties = {

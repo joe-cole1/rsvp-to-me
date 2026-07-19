@@ -4,6 +4,7 @@ import { BarChart3, Settings } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
 
 export function PollsSection({
   event,
@@ -40,7 +41,7 @@ export function PollsSection({
     <>
       {/* ── Polls Section ── */}
       {event.polls && event.polls.length > 0 && (
-        <div id="polls" style={{ ...S.card, marginBottom: "16px" }}>
+        <EventCard id="polls" theme={t}>
           <div
             style={{
               display: "flex",
@@ -347,7 +348,7 @@ export function PollsSection({
               );
             })}
           </div>
-        </div>
+        </EventCard>
       )}
     </>
   );

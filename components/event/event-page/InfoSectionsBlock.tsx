@@ -6,6 +6,7 @@ import { getIconItem, getPlaceholder, ICON_SET, PRESET_CHIPS } from "./helpers";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
 
 export function InfoSectionsBlock({
   event,
@@ -62,16 +63,7 @@ export function InfoSectionsBlock({
     <>
       {/* ── Info sections ── */}
       {event.infoSections.length > 0 && (
-        <div
-          style={{
-            background: t.cardBg,
-            border: `1px solid ${t.cardBorder}`,
-            borderRadius: t.cardRadius,
-            backdropFilter: "blur(12px)",
-            marginBottom: "16px",
-            overflow: "hidden",
-          }}
-        >
+        <EventCard theme={t} flush>
           {event.infoSections.map((sec, i) => {
             const item = getIconItem(sec.type);
             const Icon = item.icon;
@@ -247,7 +239,7 @@ export function InfoSectionsBlock({
               </div>
             );
           })}
-        </div>
+        </EventCard>
       )}
 
       {/* ── Undo delete toast ── */}
@@ -294,7 +286,7 @@ export function InfoSectionsBlock({
       {/* ── Add info section (host only) ── */}
       {isHost &&
         (addingSection ? (
-          <div style={{ ...S.card, marginBottom: "24px" }}>
+          <EventCard theme={t} style={{ marginBottom: "24px" }}>
             <IconPicker
               selected={sectionDraft.iconKey}
               onSelect={(key) => setSectionDraft((d) => ({ ...d, iconKey: key }))}
@@ -332,7 +324,7 @@ export function InfoSectionsBlock({
                 Cancel
               </button>
             </div>
-          </div>
+          </EventCard>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "24px" }}>
             {PRESET_CHIPS.filter((p) => !event.infoSections.some((s) => s.type === p.key)).map(
