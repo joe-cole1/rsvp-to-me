@@ -95,6 +95,7 @@ describe("ThemePanel tabs", () => {
     expect(getByText("Theme default")).toBeTruthy();
     expect(getByText("Playfair Display")).toBeTruthy();
     expect(getByText("You’re Invited!")).toBeTruthy();
+    expect(getByText("Event Title Font")).toBeTruthy();
     expect(queryByText("Density")).toBeNull();
     expect(queryByText("Customize colors")).toBeNull();
   });
@@ -108,8 +109,8 @@ describe("ThemePanel tabs", () => {
   });
 });
 
-describe("section titles use the theme heading font", () => {
-  it("GuestSharingCard title picks up t.headingFont", () => {
+describe("event page font scope", () => {
+  it("GuestSharingCard title keeps the base font instead of t.headingFont", () => {
     const t = { ...testTheme, headingFont: "'Test Heading Font', serif" };
     const event = {
       slug: "test-party",
@@ -127,6 +128,6 @@ describe("section titles use the theme heading font", () => {
       />
     );
     const title = getByText("Share this event");
-    expect(title.style.fontFamily).toContain("Test Heading Font");
+    expect(title.style.fontFamily).toBe("");
   });
 });

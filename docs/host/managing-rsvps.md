@@ -10,6 +10,8 @@ order: 60
 
 Everything about how guests respond — and how you control it — lives in your event's **Settings** and on the [guest list](guest-list.md).
 
+On the guest-facing event page, the RSVP card stays at the bottom of the screen while responses are open, then docks into its normal place as the guest reaches it. After responding, the card becomes a small Going, Maybe, Can't make it, or Awaiting approval summary with an edit link when changes are allowed. It stops floating once the response window closes or the event starts.
+
 ---
 
 ## RSVP Statuses

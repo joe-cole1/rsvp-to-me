@@ -99,6 +99,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 
 - Event reads begin in `app/e/[slug]/page.tsx` and render through
   `components/event/EventPage.tsx` plus `components/event/event-page/`.
+- Event link metadata is built by `lib/event-social.ts`; `app/e/[slug]/layout.tsx`
+  supplies the privacy-safe fallback used by not-found routes, while the
+  colocated `opengraph-image.tsx` and `twitter-image.tsx` routes render
+  privacy-gated social artwork from current event data.
 - Event-themed routes share their background through
   `components/event/ThemeBackground.tsx`; public event sections use
   `components/event/event-page/EventCard.tsx` as their semantic surface.

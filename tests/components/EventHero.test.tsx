@@ -168,4 +168,35 @@ describe("EventHero", () => {
     expect(coverContainer?.style.height).toBe("auto");
     expect(coverContainer?.style.aspectRatio).toContain("1.7777777777777777");
   });
+
+  it("applies the theme font to the event title but not the Description section heading", () => {
+    const detailsRef = React.createRef<HTMLSpanElement>();
+    const titleRef = React.createRef<HTMLSpanElement>();
+    const fileInputRef = React.createRef<HTMLInputElement>();
+    const customFontTheme = { ...testTheme, headingFont: "'Test Heading Font', serif" };
+
+    render(
+      <EventHero
+        event={baseEvent}
+        setEvent={mockSetEvent}
+        detailsRef={detailsRef}
+        titleRef={titleRef}
+        fileInputRef={fileInputRef}
+        renderAvatar={(name) => <div>{name[0]}</div>}
+        isUploading={false}
+        isPending={false}
+        t={customFontTheme}
+        save={mockSave}
+        uploadStatus="idle"
+        handleCoverRemove={mockHandleCoverRemove}
+        handleCoverUpload={mockHandleCoverUpload}
+        coverStyle={{}}
+        isHost={false}
+        coverUploadEnabled={false}
+      />
+    );
+
+    expect(screen.getByText("Test Party").style.fontFamily).toContain("Test Heading Font");
+    expect(screen.getByRole("heading", { name: "Description" }).style.fontFamily).toBe("");
+  });
 });

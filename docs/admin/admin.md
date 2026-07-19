@@ -244,7 +244,7 @@ These presets populate the theme picker that hosts see when customizing an event
 
 ### Theme Typography & Effects (schema notes)
 
-- The host-facing **Settings → Theme** section is split into three tabs — **Theme** (presets + custom colors), **Effects** (picker with Density/Speed/Size controls), and **Font** — all saving to the same `EventTheme` row. The heading font is applied only to the event title and section headings on the event page.
+- The host-facing **Settings → Theme** section is split into three tabs — **Theme** (presets + custom colors), **Effects** (picker with Density/Speed/Size controls), and **Font** — all saving to the same `EventTheme` row. The selected font is applied only to the main event title; section headings and body text retain the standard UI font.
 
 - `EventTheme` now stores five host-editable fields beyond colors: `fontId` (heading font), and `effectId` / `effectDensity` / `effectSpeed` / `effectSize` (the animated background layer). `effectSize` is a sprite size multiplier from `1` (each set's designed size — the default; `NULL` on legacy rows means the same) to `10`. `ThemePreset` stores `fontId` only — **effects are never part of a preset**; they are purely per-event and default to off.
 - Valid values are validated server-side against the registries in `lib/fonts.ts` and `lib/effects.ts` (`effectSize` against the `EFFECT_SIZE_MIN`/`EFFECT_SIZE_MAX` bounds there). To add a font or an effect set, extend those registries (fonts also need a loader entry in `app/fonts.ts`; effect sets need SVG sprites under `public/effects/<set>/`).

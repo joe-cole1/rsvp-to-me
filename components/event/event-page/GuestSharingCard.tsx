@@ -35,9 +35,7 @@ export function GuestSharingCard({
         >
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Megaphone size={16} style={{ color: t.accent }} />
-            <span style={{ fontWeight: 700, fontSize: "14px", fontFamily: t.headingFont }}>
-              Share this event
-            </span>
+            <span style={{ fontWeight: 700, fontSize: "14px" }}>Share this event</span>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
             <button

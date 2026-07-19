@@ -44,6 +44,8 @@ Privacy and password protection cover the **whole event**, not just the main pag
 - The **RSVP form** (nobody can respond without being let in).
 - The **Add to Calendar** (`.ics`) download link used in your invite emails.
 
+Link previews follow the same privacy boundary. Published Public and Unlisted events can show their title, description, date, cover, and theme when their link is shared to social or messaging apps. Private, password-protected, draft, cancelled, or deleted events expose only a generic event-invitation preview. Unlisted previews work for people who receive the direct link, but remain excluded from search indexing.
+
 A visitor gets through only if they are a host or co-host, an invited guest opening their personal link, or someone who has already entered the password. Everyone else is turned away consistently across all of these — so a Private event's details, guest list, and calendar file can't be pulled up by guessing the address.
 
 ---

@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
@@ -15,14 +17,10 @@ import { PasswordGate } from "@/components/event/PasswordGate";
 import { AppShell } from "@/components/ui/AppShell";
 import { getChannelConfig } from "@/lib/config";
 import { stripHostOnlyEventData } from "@/lib/guestList";
+import { buildEventSocialMetadata } from "@/lib/event-social";
 
-export default async function EventRoute(props: PageProps<"/e/[slug]">) {
-  const { slug } = await props.params;
-  const searchParams = await props.searchParams;
-  const isPreview = searchParams?.preview === "1";
-  const token = searchParams?.token as string | undefined;
-
-  const event = await db.event.findUnique({
+const getEventPageData = cache((slug: string) =>
+  db.event.findUnique({
     where: { slug },
     include: {
       host: { select: { id: true, name: true, email: true, avatarUrl: true } },
@@ -85,7 +83,22 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         },
       },
     },
-  });
+  })
+);
+
+export async function generateMetadata(props: PageProps<"/e/[slug]">): Promise<Metadata> {
+  const { slug } = await props.params;
+  const event = await getEventPageData(slug);
+  return buildEventSocialMetadata(event, slug);
+}
+
+export default async function EventRoute(props: PageProps<"/e/[slug]">) {
+  const { slug } = await props.params;
+  const searchParams = await props.searchParams;
+  const isPreview = searchParams?.preview === "1";
+  const token = searchParams?.token as string | undefined;
+
+  const event = await getEventPageData(slug);
 
   if (!event) notFound();
 

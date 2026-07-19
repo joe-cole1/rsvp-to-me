@@ -61,10 +61,17 @@ export function InlineEdit({
       style: {
         ...style,
         outline: "none",
-        background: "transparent",
+        background: multiline ? "rgba(127, 127, 127, 0.08)" : "transparent",
         width: "100%",
-        border: "none",
-        resize: "none" as const,
+        border: multiline ? "1px solid rgba(127, 127, 127, 0.22)" : "none",
+        borderRadius: multiline ? "8px" : undefined,
+        boxSizing: "border-box" as const,
+        fieldSizing: multiline ? ("content" as const) : undefined,
+        minHeight: multiline ? "10rem" : undefined,
+        maxHeight: multiline ? "min(60dvh, 480px)" : undefined,
+        overflowY: multiline ? ("auto" as const) : undefined,
+        padding: multiline ? "8px 10px" : undefined,
+        resize: multiline ? ("vertical" as const) : ("none" as const),
         fontFamily: "inherit",
         fontSize: "inherit",
         fontWeight: "inherit",
@@ -74,7 +81,7 @@ export function InlineEdit({
       className,
     };
     return multiline ? (
-      <textarea rows={4} {...(shared as React.TextareaHTMLAttributes<HTMLTextAreaElement>)} />
+      <textarea rows={6} {...(shared as React.TextareaHTMLAttributes<HTMLTextAreaElement>)} />
     ) : (
       <input {...(shared as React.InputHTMLAttributes<HTMLInputElement>)} />
     );

@@ -11,7 +11,7 @@ test.describe("Guest RSVP flow", () => {
     });
 
     // Click the Going button to enter RSVP flow
-    await page.getByText("Going").first().click();
+    await page.getByRole("link", { name: "Going", exact: true }).click();
     await page.waitForURL(`**/e/${EVENT_SLUG}/rsvp**`);
 
     // Fill in name

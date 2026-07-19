@@ -43,9 +43,7 @@ export function GuestListSection({
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <Users size={16} style={{ color: t.accent }} />
-              <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>
-                Guests ({event.rsvps.length})
-              </span>
+              <span style={{ fontWeight: 700 }}>Guests ({event.rsvps.length})</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <a

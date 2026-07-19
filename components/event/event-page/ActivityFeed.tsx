@@ -93,7 +93,7 @@ export function ActivityFeed({
         <EventCard theme={t}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
             <MessageSquare size={16} style={{ color: t.accent }} />
-            <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>Activity</span>
+            <span style={{ fontWeight: 700 }}>Activity</span>
           </div>
 
           {/* Compose area — top of card */}

@@ -46,7 +46,6 @@ export function GuestInviteFriendCard({
             fontWeight: 700,
             fontSize: "14.5px",
             color: t.textPrimary,
-            fontFamily: t.headingFont,
           }}
         >
           Invite a friend

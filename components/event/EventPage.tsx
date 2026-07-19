@@ -840,6 +840,7 @@ export function EventPage({
           guestEditToken={guestEditToken}
           rsvpStatus={rsvpStatus}
           rsvpDone={rsvpDone}
+          rsvpApproved={guestRsvp?.approved ?? true}
         />
 
         <PendingApprovalsCard
