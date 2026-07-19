@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_SHELL } from "@/lib/theme";
+import { AppInput, appCardStyle } from "@/components/ui/AppPrimitives";
 import type { AdminEvent } from "./types";
 
 export function EventsTab({
@@ -16,29 +17,17 @@ export function EventsTab({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <input
+      <AppInput
         type="text"
         placeholder="Search events by title, slug, or host details..."
         value={eventSearch}
         onChange={(e) => handleEventSearch(e.target.value)}
-        style={{
-          width: "100%",
-          backgroundColor: APP_SHELL.inputBg,
-          border: `1px solid ${APP_SHELL.inputBorder}`,
-          borderRadius: APP_SHELL.inputRadius,
-          padding: "12px 16px",
-          color: APP_SHELL.textPrimary,
-          fontSize: "14px",
-          outline: "none",
-          boxSizing: "border-box",
-        }}
+        style={{ padding: "12px 16px" }}
       />
 
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           overflowX: "auto",
         }}
       >

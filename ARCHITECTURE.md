@@ -60,6 +60,8 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   for authenticated application pages.
 - `components/ui/AppNav.tsx` owns the shared top-bar variants and composes the
   signed-in profile or signed-out viewer menu from `components/ui/ProfileDropdown.tsx`.
+- `components/ui/AppPrimitives.tsx` owns app-shell cards, form controls, alerts,
+  and feedback styling; `components/ui/Dialog.tsx` owns accessible modal behavior.
 - `app/page.tsx` is the public landing page.
 - `app/e/[slug]/page.tsx` is the main public event page.
 - `app/(app)/dashboard/page.tsx` is the host dashboard.
@@ -97,8 +99,12 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 
 - Event reads begin in `app/e/[slug]/page.tsx` and render through
   `components/event/EventPage.tsx` plus `components/event/event-page/`.
+- Event-themed routes share their background through
+  `components/event/ThemeBackground.tsx`; public event sections use
+  `components/event/event-page/EventCard.tsx` as their semantic surface.
 - New and existing RSVP flows use `app/e/[slug]/rsvp/page.tsx` and
-  `components/rsvp/`.
+  `components/rsvp/`; RSVP response labels and controls are centralized in
+  `components/rsvp/status.tsx`.
 - Event mutations are split by domain under `app/actions/event/`: RSVP,
   check-ins/walk-ins, settings, invitations, co-hosts, polls, potluck, comments,
   blasts, custom questions, and email previews/tests.

@@ -3,13 +3,12 @@
 import { Settings, Users } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
 
 export function GuestListSection({
   event,
   renderAvatar,
   t,
-  S,
   isHost,
   going,
   maybe,
@@ -23,7 +22,6 @@ export function GuestListSection({
     customStyle?: React.CSSProperties
   ) => React.ReactNode;
   t: ResolvedTheme;
-  S: EventPageStyles;
   isHost: boolean;
   going: EventData["rsvps"];
   maybe: EventData["rsvps"];
@@ -34,7 +32,7 @@ export function GuestListSection({
     <>
       {/* ── Guest List ── */}
       {(isHost || (event.guestListVis === "ALL" && event.rsvps.length > 0)) && (
-        <div style={S.card}>
+        <EventCard theme={t}>
           <div
             style={{
               display: "flex",
@@ -212,7 +210,7 @@ export function GuestListSection({
               </div>
             </div>
           )}
-        </div>
+        </EventCard>
       )}
     </>
   );

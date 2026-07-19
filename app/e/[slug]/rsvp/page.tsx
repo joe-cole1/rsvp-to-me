@@ -74,6 +74,24 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     event.theme?.fontId
   );
 
+  const rsvpEvent = {
+    id: event.id,
+    slug: event.slug,
+    title: event.title,
+    startAt: event.startAt,
+    endAt: event.endAt,
+    timezone: event.timezone,
+    locationName: event.locationName,
+    plusOneAllowed: event.plusOneAllowed,
+    plusOneMax: event.plusOneMax,
+    plusOneNamesRequired: event.plusOneNamesRequired,
+    maybeEnabled: event.maybeEnabled,
+    questionnaireEnabled: event.questionnaireEnabled,
+    rsvpFields: event.rsvpFields,
+    polls: event.polls,
+    potluckItems: event.potluckItems,
+  };
+
   // Edit flow — token provided
   if (token) {
     const rsvp = await db.rSVP.findUnique({
@@ -87,23 +105,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
 
     return (
       <RsvpFlow
-        event={{
-          id: event.id,
-          slug: event.slug,
-          title: event.title,
-          startAt: event.startAt,
-          endAt: event.endAt,
-          timezone: event.timezone,
-          locationName: event.locationName,
-          plusOneAllowed: event.plusOneAllowed,
-          plusOneMax: event.plusOneMax,
-          plusOneNamesRequired: event.plusOneNamesRequired,
-          maybeEnabled: event.maybeEnabled,
-          questionnaireEnabled: event.questionnaireEnabled,
-          rsvpFields: event.rsvpFields,
-          polls: event.polls,
-          potluckItems: event.potluckItems,
-        }}
+        event={rsvpEvent}
         theme={theme}
         existingRsvp={{
           id: rsvp.id,
@@ -134,23 +136,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
 
   return (
     <RsvpFlow
-      event={{
-        id: event.id,
-        slug: event.slug,
-        title: event.title,
-        startAt: event.startAt,
-        endAt: event.endAt,
-        timezone: event.timezone,
-        locationName: event.locationName,
-        plusOneAllowed: event.plusOneAllowed,
-        plusOneMax: event.plusOneMax,
-        plusOneNamesRequired: event.plusOneNamesRequired,
-        maybeEnabled: event.maybeEnabled,
-        questionnaireEnabled: event.questionnaireEnabled,
-        rsvpFields: event.rsvpFields,
-        polls: event.polls,
-        potluckItems: event.potluckItems,
-      }}
+      event={rsvpEvent}
       theme={theme}
       initialStatus={initialStatus}
       sessionUser={sessionUser}

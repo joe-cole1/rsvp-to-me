@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_SHELL } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
 import type { AdminThemePreset, ThemePresetFormState } from "./types";
 
 export function ThemesTab({
@@ -21,9 +22,7 @@ export function ThemesTab({
       {/* Header card */}
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           padding: "24px",
         }}
       >

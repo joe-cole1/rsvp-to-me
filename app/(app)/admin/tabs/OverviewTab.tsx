@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_SHELL } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
 import type { AdminStats } from "./types";
 
 export function OverviewTab({ initialStats }: { initialStats: AdminStats }) {
@@ -36,9 +37,7 @@ export function OverviewTab({ initialStats }: { initialStats: AdminStats }) {
           <div
             key={idx}
             style={{
-              backgroundColor: APP_SHELL.cardBg,
-              border: `1px solid ${APP_SHELL.cardBorder}`,
-              borderRadius: APP_SHELL.cardRadius,
+              ...appCardStyle,
               padding: "24px",
               position: "relative",
               overflow: "hidden",

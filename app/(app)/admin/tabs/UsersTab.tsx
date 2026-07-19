@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_SHELL } from "@/lib/theme";
+import { AppInput, appCardStyle, appInputStyle } from "@/components/ui/AppPrimitives";
 import type { AdminUser } from "./types";
 
 export function UsersTab({
@@ -37,22 +38,12 @@ export function UsersTab({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-        <input
+        <AppInput
           type="text"
           placeholder="Search users by name, email, or phone..."
           value={userSearch}
           onChange={(e) => handleUserSearch(e.target.value)}
-          style={{
-            flex: "1 1 200px",
-            backgroundColor: APP_SHELL.inputBg,
-            border: `1px solid ${APP_SHELL.inputBorder}`,
-            borderRadius: APP_SHELL.inputRadius,
-            padding: "12px 16px",
-            color: APP_SHELL.textPrimary,
-            fontSize: "14px",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
+          style={{ flex: "1 1 200px", padding: "12px 16px" }}
         />
 
         {/* Role Filter */}
@@ -60,13 +51,9 @@ export function UsersTab({
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value as "ALL" | "HOST" | "GUEST" | "ADMIN")}
           style={{
-            backgroundColor: APP_SHELL.inputBg,
-            border: `1px solid ${APP_SHELL.inputBorder}`,
-            color: APP_SHELL.textPrimary,
-            borderRadius: APP_SHELL.inputRadius,
+            ...appInputStyle,
+            width: "auto",
             padding: "12px 16px",
-            fontSize: "14px",
-            outline: "none",
             cursor: "pointer",
             minWidth: "130px",
             colorScheme: "dark",
@@ -85,13 +72,9 @@ export function UsersTab({
             setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED")
           }
           style={{
-            backgroundColor: APP_SHELL.inputBg,
-            border: `1px solid ${APP_SHELL.inputBorder}`,
-            color: APP_SHELL.textPrimary,
-            borderRadius: APP_SHELL.inputRadius,
+            ...appInputStyle,
+            width: "auto",
             padding: "12px 16px",
-            fontSize: "14px",
-            outline: "none",
             cursor: "pointer",
             minWidth: "160px",
             colorScheme: "dark",
@@ -123,9 +106,7 @@ export function UsersTab({
 
       <div
         style={{
-          backgroundColor: APP_SHELL.cardBg,
-          border: `1px solid ${APP_SHELL.cardBorder}`,
-          borderRadius: APP_SHELL.cardRadius,
+          ...appCardStyle,
           overflowX: "auto",
         }}
       >

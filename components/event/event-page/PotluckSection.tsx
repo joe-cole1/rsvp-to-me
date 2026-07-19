@@ -4,6 +4,7 @@ import { Settings, UtensilsCrossed } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
 
 export function PotluckSection({
   event,
@@ -46,7 +47,7 @@ export function PotluckSection({
       {(isHost || rsvpStatus === "GOING") &&
         event.potluckItems &&
         event.potluckItems.length > 0 && (
-          <div id="potluck" style={{ ...S.card, marginBottom: "16px" }}>
+          <EventCard id="potluck" theme={t}>
             <div
               style={{
                 display: "flex",
@@ -252,7 +253,7 @@ export function PotluckSection({
                 );
               })}
             </div>
-          </div>
+          </EventCard>
         )}
     </>
   );

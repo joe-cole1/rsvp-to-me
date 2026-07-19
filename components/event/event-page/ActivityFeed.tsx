@@ -15,6 +15,7 @@ import { timeAgo } from "./helpers";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
 
 export function ActivityFeed({
   event,
@@ -89,7 +90,7 @@ export function ActivityFeed({
     <>
       {/* ── Activity (updates + comments unified) ── */}
       {(event.commentsEnabled || event.updates.length > 0 || isHost) && (
-        <div style={S.card}>
+        <EventCard theme={t}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
             <MessageSquare size={16} style={{ color: t.accent }} />
             <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>Activity</span>
@@ -702,7 +703,7 @@ export function ActivityFeed({
               </div>
             );
           })()}
-        </div>
+        </EventCard>
       )}
     </>
   );

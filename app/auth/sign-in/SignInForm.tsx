@@ -5,18 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { sendMagicLinkAction } from "@/app/actions/auth";
 import { AppShell } from "@/components/ui/AppShell";
 import { APP_SHELL } from "@/lib/theme";
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  background: APP_SHELL.inputBg,
-  border: `1px solid ${APP_SHELL.inputBorder}`,
-  borderRadius: APP_SHELL.inputRadius,
-  color: APP_SHELL.textPrimary,
-  fontSize: "15px",
-  outline: "none",
-  boxSizing: "border-box",
-};
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  FormField,
+  InlineAlert,
+} from "@/components/ui/AppPrimitives";
 
 function looksLikePhone(s: string): boolean {
   return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
@@ -26,19 +21,9 @@ function TokenError() {
   const searchParams = useSearchParams();
   if (searchParams.get("error") !== "invalid-token") return null;
   return (
-    <div
-      style={{
-        background: "rgba(239,68,68,0.15)",
-        border: "1px solid rgba(239,68,68,0.3)",
-        borderRadius: "10px",
-        padding: "10px 14px",
-        marginBottom: "20px",
-        color: "#fca5a5",
-        fontSize: "13px",
-      }}
-    >
+    <InlineAlert style={{ marginBottom: "20px" }}>
       That link has expired or already been used. Request a new one below.
-    </div>
+    </InlineAlert>
   );
 }
 
@@ -93,14 +78,7 @@ export default function SignInForm({
           </p>
         </div>
 
-        <div
-          style={{
-            background: APP_SHELL.cardBg,
-            border: `1px solid ${APP_SHELL.cardBorder}`,
-            borderRadius: APP_SHELL.authCardRadius,
-            padding: "32px",
-          }}
-        >
+        <AppCard style={{ borderRadius: APP_SHELL.authCardRadius, padding: "32px" }}>
           <Suspense>
             <TokenError />
           </Suspense>
@@ -182,65 +160,30 @@ export default function SignInForm({
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: "20px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    textTransform: "none",
-                    letterSpacing: "0.02em",
-                    color: APP_SHELL.textMuted,
-                    marginBottom: "8px",
-                  }}
-                >
-                  Email or phone number
-                </label>
-                <input
+              <FormField label="Email or phone number" style={{ marginBottom: "20px" }}>
+                <AppInput
                   type="text"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="you@example.com or +1 555 000 0000"
-                  style={inputStyle}
+                  style={{ padding: "12px 14px", fontSize: "15px" }}
                 />
-              </div>
+              </FormField>
 
-              {error && (
-                <div
-                  style={{
-                    background: "rgba(239,68,68,0.15)",
-                    border: "1px solid rgba(239,68,68,0.3)",
-                    borderRadius: "10px",
-                    padding: "10px 14px",
-                    marginBottom: "16px",
-                    color: "#fca5a5",
-                    fontSize: "13px",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
+              {error && <InlineAlert>{error}</InlineAlert>}
 
-              <button
+              <AppButton
                 type="submit"
                 disabled={loading}
                 style={{
                   width: "100%",
                   padding: "13px",
-                  background: APP_SHELL.accent,
-                  color: APP_SHELL.textPrimary,
-                  border: "none",
-                  borderRadius: APP_SHELL.btnRadius,
                   fontSize: "15px",
-                  fontWeight: 700,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                  fontFamily: "inherit",
                 }}
               >
                 {loading ? "Sending…" : "Send magic link"}
-              </button>
+              </AppButton>
 
               <div style={{ textAlign: "center", marginTop: "20px" }}>
                 <a
@@ -253,7 +196,7 @@ export default function SignInForm({
               </div>
             </form>
           )}
-        </div>
+        </AppCard>
       </div>
     </AppShell>
   );

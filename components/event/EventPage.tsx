@@ -26,11 +26,12 @@ import { HostBar } from "./HostBar";
 import QRCode from "qrcode";
 import { AppTopNav } from "@/components/ui/AppNav";
 import type { EventData, GuestRsvp } from "./event-page/types";
-import { compressImage, resolveIconKey, ICON_SET } from "./event-page/helpers";
+import { resolveIconKey, ICON_SET } from "./event-page/helpers";
+import { compressImage } from "@/lib/client-image";
 import { buildStyles } from "./event-page/styles";
 import { GuestInviteFriendCard } from "./event-page/GuestInviteFriendCard";
 import { ActivityFeed } from "./event-page/ActivityFeed";
-import { BackgroundDecorations } from "./event-page/BackgroundDecorations";
+import { ThemeBackground } from "./ThemeBackground";
 import { ParticleLayer } from "./event-page/ParticleLayer";
 import type { EffectConfig } from "@/lib/effects";
 import { EventHero } from "./event-page/EventHero";
@@ -313,7 +314,7 @@ export function EventPage({
     setIsUploading(true);
     try {
       setUploadStatus("compressing");
-      const compressed = await compressImage(file);
+      const compressed = await compressImage(file, { maxWidth: 1600, maxHeight: 900 });
       setUploadStatus("uploading");
       const form = new FormData();
       form.append("file", compressed);
@@ -783,7 +784,7 @@ export function EventPage({
       {/* ── Top nav ── */}
       <AppTopNav user={sessionUser} variant="event-overlay" />
 
-      <BackgroundDecorations t={t} />
+      <ThemeBackground theme={t} />
       <ParticleLayer
         config={effect}
         tintColors={[t.accent, t.gradientFrom, t.gradientTo, "#ffffff"]}
@@ -804,7 +805,6 @@ export function EventPage({
           uploadStatus={uploadStatus}
           handleCoverRemove={handleCoverRemove}
           handleCoverUpload={handleCoverUpload}
-          S={S}
           coverStyle={coverStyle}
           isHost={isHost}
           coverUploadEnabled={coverUploadEnabled}
@@ -836,7 +836,6 @@ export function EventPage({
         <RsvpSection
           event={event}
           t={t}
-          S={S}
           isHost={isHost}
           guestEditToken={guestEditToken}
           rsvpStatus={rsvpStatus}
@@ -848,7 +847,6 @@ export function EventPage({
           renderAvatar={renderAvatar}
           isPending={isPending}
           t={t}
-          S={S}
           isHost={isHost}
           setActiveApproval={setActiveApproval}
         />
@@ -856,7 +854,6 @@ export function EventPage({
         <GuestSharingCard
           event={event}
           t={t}
-          S={S}
           isHost={isHost}
           eventLinkCopied={eventLinkCopied}
           setEventLinkCopied={setEventLinkCopied}
@@ -912,7 +909,6 @@ export function EventPage({
           event={event}
           renderAvatar={renderAvatar}
           t={t}
-          S={S}
           isHost={isHost}
           going={going}
           maybe={maybe}

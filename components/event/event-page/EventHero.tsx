@@ -7,7 +7,7 @@ import { DateEdit } from "./DateEdit";
 import { LocationEdit } from "./LocationEdit";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
 
 export function EventHero({
   event,
@@ -23,7 +23,6 @@ export function EventHero({
   uploadStatus,
   handleCoverRemove,
   handleCoverUpload,
-  S,
   coverStyle,
   isHost,
   coverUploadEnabled,
@@ -45,7 +44,6 @@ export function EventHero({
   uploadStatus: "idle" | "compressing" | "uploading";
   handleCoverRemove: () => Promise<void>;
   handleCoverUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  S: EventPageStyles;
   coverStyle: React.CSSProperties;
   isHost: boolean;
   coverUploadEnabled: boolean;
@@ -421,7 +419,7 @@ export function EventHero({
       />
 
       {/* ── Description ── */}
-      <div style={{ ...S.card, marginBottom: "16px" }}>
+      <EventCard theme={t} aria-labelledby="event-description-heading">
         <div
           style={{
             display: "flex",
@@ -432,7 +430,12 @@ export function EventHero({
         >
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <FileText size={16} style={{ color: t.accent }} />
-            <span style={{ fontWeight: 700, fontFamily: t.headingFont }}>Description</span>
+            <h2
+              id="event-description-heading"
+              style={{ margin: 0, fontSize: "16px", fontWeight: 700, fontFamily: t.headingFont }}
+            >
+              Description
+            </h2>
           </div>
           {isHost && (
             <Pencil
@@ -457,7 +460,7 @@ export function EventHero({
           }}
           isHost={isHost}
         />
-      </div>
+      </EventCard>
     </>
   );
 }

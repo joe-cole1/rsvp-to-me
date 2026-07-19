@@ -3,12 +3,11 @@
 import { Check, Megaphone } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
 
 export function GuestSharingCard({
   event,
   t,
-  S,
   isHost,
   eventLinkCopied,
   setEventLinkCopied,
@@ -16,7 +15,6 @@ export function GuestSharingCard({
 }: {
   event: EventData;
   t: ResolvedTheme;
-  S: EventPageStyles;
   isHost: boolean;
   eventLinkCopied: boolean;
   setEventLinkCopied: React.Dispatch<React.SetStateAction<boolean>>;
@@ -26,9 +24,9 @@ export function GuestSharingCard({
     <>
       {/* ── Guest Sharing Card ── */}
       {!isHost && event.guestSharingEnabled && event.visibility !== "PRIVATE" && (
-        <div
+        <EventCard
+          theme={t}
           style={{
-            ...S.card,
             display: "flex",
             flexDirection: "column",
             gap: "12px",
@@ -93,7 +91,7 @@ export function GuestSharingCard({
               <span>📱</span> Show QR Code
             </button>
           </div>
-        </div>
+        </EventCard>
       )}
     </>
   );

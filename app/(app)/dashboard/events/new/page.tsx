@@ -4,51 +4,20 @@ import { createEvent } from "@/app/actions/createEvent";
 import LocationSelector from "@/components/event/LocationSelector";
 import { APP_SHELL } from "@/lib/theme";
 import { getSessionUser } from "@/lib/session-user";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  FormField,
+  appInputStyle,
+} from "@/components/ui/AppPrimitives";
 
 export const metadata: Metadata = { title: "New Event" };
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 14px",
-  background: APP_SHELL.inputBg,
-  border: `1px solid ${APP_SHELL.inputBorder}`,
-  borderRadius: APP_SHELL.inputRadius,
-  color: APP_SHELL.textPrimary,
-  fontSize: "14px",
-  outline: "none",
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-  colorScheme: "dark",
-};
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: "14px" }}>
-      <label
-        style={{
-          display: "block",
-          fontSize: "12px",
-          fontWeight: 700,
-          textTransform: "none",
-          letterSpacing: "0.02em",
-          color: APP_SHELL.textMuted,
-          marginBottom: "6px",
-        }}
-      >
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div
+    <AppCard
       style={{
-        background: APP_SHELL.cardBg,
-        border: `1px solid ${APP_SHELL.cardBorder}`,
-        borderRadius: APP_SHELL.cardRadius,
         padding: "20px",
         marginBottom: "14px",
       }}
@@ -66,7 +35,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
         {title}
       </h2>
       {children}
-    </div>
+    </AppCard>
   );
 }
 
@@ -78,30 +47,30 @@ export default async function NewEventPage() {
     <div style={{ maxWidth: "480px", margin: "0 auto", padding: "32px 16px 80px" }}>
       <form action={createEvent}>
         <Card title="Event Details">
-          <Field label="Event name *">
-            <input name="title" required placeholder="Wine Night at Jane's" style={inputStyle} />
-          </Field>
-          <Field label="Description">
+          <FormField label="Event name *" style={{ marginBottom: "14px" }}>
+            <AppInput name="title" required placeholder="Wine Night at Jane's" />
+          </FormField>
+          <FormField label="Description" style={{ marginBottom: "14px" }}>
             <textarea
               name="description"
               placeholder="Come hang out! Bring a bottle to share."
               rows={3}
-              style={{ ...inputStyle, resize: "vertical" }}
+              style={{ ...appInputStyle, resize: "vertical" }}
             />
-          </Field>
+          </FormField>
         </Card>
 
         <Card title="Date & Time">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Field label="Date *">
-              <input name="startDate" type="date" required style={inputStyle} />
-            </Field>
-            <Field label="Time *">
-              <input name="startTime" type="time" required style={inputStyle} />
-            </Field>
+            <FormField label="Date *" style={{ marginBottom: "14px" }}>
+              <AppInput name="startDate" type="date" required />
+            </FormField>
+            <FormField label="Time *" style={{ marginBottom: "14px" }}>
+              <AppInput name="startTime" type="time" required />
+            </FormField>
           </div>
-          <Field label="Timezone">
-            <select name="timezone" style={inputStyle}>
+          <FormField label="Timezone" style={{ marginBottom: "14px" }}>
+            <select name="timezone" style={appInputStyle}>
               <option value="America/New_York">Eastern (ET)</option>
               <option value="America/Chicago">Central (CT)</option>
               <option value="America/Denver">Mountain (MT)</option>
@@ -113,7 +82,7 @@ export default async function NewEventPage() {
               <option value="Asia/Tokyo">Tokyo (JST)</option>
               <option value="Australia/Sydney">Sydney (AEST)</option>
             </select>
-          </Field>
+          </FormField>
         </Card>
 
         <Card title="Location">
@@ -162,23 +131,16 @@ export default async function NewEventPage() {
           </div>
         </Card>
 
-        <button
+        <AppButton
           type="submit"
           style={{
             width: "100%",
             padding: "15px",
-            background: APP_SHELL.accent,
-            color: APP_SHELL.textPrimary,
-            border: "none",
-            borderRadius: APP_SHELL.btnRadius,
             fontSize: "16px",
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
           }}
         >
           Create Event →
-        </button>
+        </AppButton>
       </form>
     </div>
   );

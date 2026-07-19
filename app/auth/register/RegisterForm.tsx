@@ -4,39 +4,13 @@ import { useState } from "react";
 import { registerHostAction } from "@/app/actions/auth";
 import { AppShell } from "@/components/ui/AppShell";
 import { APP_SHELL } from "@/lib/theme";
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  background: APP_SHELL.inputBg,
-  border: `1px solid ${APP_SHELL.inputBorder}`,
-  borderRadius: APP_SHELL.inputRadius,
-  color: APP_SHELL.textPrimary,
-  fontSize: "15px",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: "16px" }}>
-      <label
-        style={{
-          display: "block",
-          fontSize: "12px",
-          fontWeight: 700,
-          textTransform: "none",
-          letterSpacing: "0.02em",
-          color: APP_SHELL.textMuted,
-          marginBottom: "8px",
-        }}
-      >
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  FormField,
+  InlineAlert,
+} from "@/components/ui/AppPrimitives";
 
 export default function RegisterForm({ openRegistration }: { openRegistration: boolean }) {
   const [name, setName] = useState("");
@@ -77,14 +51,7 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
           <p style={{ color: APP_SHELL.textSecondary, fontSize: "15px" }}>Create an account</p>
         </div>
 
-        <div
-          style={{
-            background: APP_SHELL.cardBg,
-            border: `1px solid ${APP_SHELL.cardBorder}`,
-            borderRadius: APP_SHELL.authCardRadius,
-            padding: "32px",
-          }}
-        >
+        <AppCard style={{ borderRadius: APP_SHELL.authCardRadius, padding: "32px" }}>
           {submitted ? (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>🎊</div>
@@ -126,74 +93,52 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <Field label="Your name">
-                <input
+              <FormField label="Your name">
+                <AppInput
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Smith"
-                  style={inputStyle}
+                  style={{ padding: "12px 14px", fontSize: "15px" }}
                 />
-              </Field>
-              <Field label="Email address">
-                <input
+              </FormField>
+              <FormField label="Email address">
+                <AppInput
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  style={inputStyle}
+                  style={{ padding: "12px 14px", fontSize: "15px" }}
                 />
-              </Field>
+              </FormField>
               {!openRegistration && (
-                <Field label="Invite code">
-                  <input
+                <FormField label="Invite code">
+                  <AppInput
                     type="text"
                     required
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     placeholder="Enter your invite code"
-                    style={inputStyle}
+                    style={{ padding: "12px 14px", fontSize: "15px" }}
                   />
-                </Field>
+                </FormField>
               )}
 
-              {error && (
-                <div
-                  style={{
-                    background: "rgba(239,68,68,0.15)",
-                    border: "1px solid rgba(239,68,68,0.3)",
-                    borderRadius: "10px",
-                    padding: "10px 14px",
-                    marginBottom: "16px",
-                    color: "#fca5a5",
-                    fontSize: "13px",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
+              {error && <InlineAlert>{error}</InlineAlert>}
 
-              <button
+              <AppButton
                 type="submit"
                 disabled={loading}
                 style={{
                   width: "100%",
                   padding: "13px",
-                  background: APP_SHELL.accent,
-                  color: APP_SHELL.textPrimary,
-                  border: "none",
-                  borderRadius: APP_SHELL.btnRadius,
                   fontSize: "15px",
-                  fontWeight: 700,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                  fontFamily: "inherit",
                 }}
               >
                 {loading ? "Creating account…" : "Create account"}
-              </button>
+              </AppButton>
 
               <div style={{ textAlign: "center", marginTop: "20px" }}>
                 <a
@@ -206,7 +151,7 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
               </div>
             </form>
           )}
-        </div>
+        </AppCard>
       </div>
     </AppShell>
   );

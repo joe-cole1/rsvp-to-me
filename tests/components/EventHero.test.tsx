@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { testTheme } from "./helpers/theme";
-import { buildStyles } from "@/components/event/event-page/styles";
 import { EventHero } from "@/components/event/event-page/EventHero";
 import React from "react";
 import type { EventData } from "@/components/event/event-page/types";
@@ -80,7 +79,6 @@ describe("EventHero", () => {
   });
 
   it("renders with default height when there is no cover image", () => {
-    const S = buildStyles(testTheme);
     const detailsRef = React.createRef<HTMLSpanElement>();
     const titleRef = React.createRef<HTMLSpanElement>();
     const fileInputRef = React.createRef<HTMLInputElement>();
@@ -100,7 +98,6 @@ describe("EventHero", () => {
         uploadStatus="idle"
         handleCoverRemove={mockHandleCoverRemove}
         handleCoverUpload={mockHandleCoverUpload}
-        S={S}
         coverStyle={{}}
         isHost={true}
         coverUploadEnabled={true}
@@ -125,7 +122,6 @@ describe("EventHero", () => {
         coverImageUrl: "https://example.com/cover.jpg",
       },
     };
-    const S = buildStyles(testTheme);
     const detailsRef = React.createRef<HTMLSpanElement>();
     const titleRef = React.createRef<HTMLSpanElement>();
     const fileInputRef = React.createRef<HTMLInputElement>();
@@ -145,7 +141,6 @@ describe("EventHero", () => {
         uploadStatus="idle"
         handleCoverRemove={mockHandleCoverRemove}
         handleCoverUpload={mockHandleCoverUpload}
-        S={S}
         coverStyle={{}}
         isHost={true}
         coverUploadEnabled={true}

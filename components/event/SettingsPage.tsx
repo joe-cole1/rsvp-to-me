@@ -40,7 +40,7 @@ import type {
 } from "./settings-page/types";
 import { formatOptionsForTextarea, serializeOptionsForDb } from "./settings-page/helpers";
 import { buildStyles } from "./settings-page/styles";
-import { SettingsDecorations } from "./settings-page/SettingsDecorations";
+import { ThemeBackground } from "./ThemeBackground";
 import { SettingsMenu } from "./settings-page/SettingsMenu";
 import { ThemePanel } from "./settings-page/ThemePanel";
 import { HostsPanel } from "./settings-page/HostsPanel";
@@ -818,7 +818,7 @@ export function SettingsPage({
           to { transform: rotate(360deg); }
         }
       `}</style>
-      <SettingsDecorations t={t} />
+      <ThemeBackground theme={t} />
 
       {/* ── Global nav ── */}
       <AppTopNav user={sessionUser} variant="fixed" />

@@ -2,12 +2,12 @@
 
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
+import { EventCard } from "./EventCard";
+import { RSVP_RESPONSE_STATUSES, RsvpStatusChoice } from "@/components/rsvp/status";
 
 export function RsvpSection({
   event,
   t,
-  S,
   isHost,
   guestEditToken,
   rsvpStatus,
@@ -15,18 +15,37 @@ export function RsvpSection({
 }: {
   event: EventData;
   t: ResolvedTheme;
-  S: EventPageStyles;
   isHost: boolean;
   guestEditToken: string | null;
   rsvpStatus: "GOING" | "MAYBE" | "NO" | "INVITED" | null;
   rsvpDone: boolean;
 }) {
+  const now = new Date();
+  const deadline = event.rsvpDeadline ? new Date(event.rsvpDeadline) : null;
+  const deadlinePassed = deadline ? deadline < now : false;
+  const eventStarted = new Date(event.startAt) <= now;
+  const deadlineDate = deadline?.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const deadlineDays = deadline
+    ? Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const deadlineCountdown =
+    deadlineDays === null
+      ? null
+      : deadlineDays > 1
+        ? `${deadlineDays} days remaining`
+        : deadlineDays === 1
+          ? "1 day remaining"
+          : deadlineDays === 0
+            ? "today"
+            : "deadline passed";
+
   return (
     <>
       {/* ── RSVP Section ── */}
       {!isHost && (
-        <div style={S.card}>
+        <EventCard theme={t} aria-labelledby="event-rsvp-heading">
           <h2
+            id="event-rsvp-heading"
             style={{
               fontSize: "17px",
               fontWeight: 700,
@@ -36,45 +55,20 @@ export function RsvpSection({
           >
             Are you coming?
           </h2>
-          {event.rsvpDeadline &&
-            (() => {
-              const deadline = new Date(event.rsvpDeadline);
-              const now = new Date();
-              const deadlinePassed = deadline < now;
-              const diffMs = deadline.getTime() - now.getTime();
-              const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-              const dateStr = deadline.toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-              });
-              const countdownStr =
-                diffDays > 1
-                  ? `${diffDays} days remaining`
-                  : diffDays === 1
-                    ? "1 day remaining"
-                    : diffDays === 0
-                      ? "today"
-                      : "deadline passed";
-              return (
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: deadlinePassed ? "#f87171" : t.textMuted,
-                    marginBottom: "16px",
-                    fontWeight: deadlinePassed ? 600 : 400,
-                  }}
-                >
-                  RSVPs requested no later than {dateStr} · {countdownStr}
-                </div>
-              );
-            })()}
+          {deadline && (
+            <div
+              style={{
+                fontSize: "12px",
+                color: deadlinePassed ? "#f87171" : t.textMuted,
+                marginBottom: "16px",
+                fontWeight: deadlinePassed ? 600 : 400,
+              }}
+            >
+              RSVPs requested no later than {deadlineDate} · {deadlineCountdown}
+            </div>
+          )}
 
           {(() => {
-            const deadline = event.rsvpDeadline ? new Date(event.rsvpDeadline) : null;
-            const now = new Date();
-            const deadlinePassed = deadline ? deadline < now : false;
-            const eventStarted = new Date(event.startAt) <= now;
-
             if ((eventStarted || deadlinePassed) && !rsvpDone) {
               return (
                 <div style={{ textAlign: "center", padding: "12px 0" }}>
@@ -133,39 +127,19 @@ export function RsvpSection({
             return null;
           })() || (
             <div style={{ display: "flex", gap: "10px" }}>
-              {(["GOING", "MAYBE", "NO"] as const)
-                .filter((s) => s !== "MAYBE" || event.maybeEnabled)
-                .map((s) => (
-                  <a
+              {RSVP_RESPONSE_STATUSES.filter((s) => s !== "MAYBE" || event.maybeEnabled).map(
+                (s) => (
+                  <RsvpStatusChoice
                     key={s}
+                    status={s}
+                    theme={t}
                     href={`/e/${event.slug}/rsvp?status=${s}${guestEditToken ? `&token=${guestEditToken}` : ""}`}
-                    style={{
-                      flex: 1,
-                      padding: "14px 8px",
-                      border: `1px solid ${t.inputBorder}`,
-                      borderRadius: t.btnRadius,
-                      fontFamily: "inherit",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      background: t.inputBg,
-                      color: t.textSecondary,
-                      textDecoration: "none",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontSize: "22px" }}>
-                      {s === "GOING" ? "🎉" : s === "MAYBE" ? "🤔" : "😔"}
-                    </span>
-                    {s === "GOING" ? "Going" : s === "MAYBE" ? "Maybe" : "Can't go"}
-                  </a>
-                ))}
+                  />
+                )
+              )}
             </div>
           )}
-        </div>
+        </EventCard>
       )}
     </>
   );

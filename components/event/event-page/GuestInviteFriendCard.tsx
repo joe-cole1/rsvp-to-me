@@ -4,6 +4,7 @@ import { Mail } from "lucide-react";
 import { useState, useTransition } from "react";
 import { inviteFriendAsGuest } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
+import { EventCard } from "./EventCard";
 
 export function GuestInviteFriendCard({
   eventId,
@@ -36,18 +37,8 @@ export function GuestInviteFriendCard({
     });
   };
 
-  const cardStyle: React.CSSProperties = {
-    background: t.cardBg,
-    border: `1px solid ${t.cardBorder}`,
-    borderRadius: t.cardRadius,
-    padding: "20px",
-    boxShadow: t.cardShadow,
-    backdropFilter: "blur(12px)",
-    marginBottom: "16px",
-  };
-
   return (
-    <div style={cardStyle}>
+    <EventCard theme={t}>
       <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
         <Mail size={16} style={{ color: t.accent }} />
         <span
@@ -118,6 +109,6 @@ export function GuestInviteFriendCard({
           ✕ ${errorMsg}
         </div>
       )}
-    </div>
+    </EventCard>
   );
 }
