@@ -65,6 +65,7 @@ export type PotluckItemEntry = {
 export type EventInput = {
   id: string;
   slug: string;
+  title: string;
   hostId: string;
   host: { id: string; name: string | null; email: string };
   commentsEnabled: boolean;

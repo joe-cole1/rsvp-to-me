@@ -41,6 +41,8 @@ import type {
 import { formatOptionsForTextarea, serializeOptionsForDb } from "./settings-page/helpers";
 import { buildStyles } from "./settings-page/styles";
 import { ThemeBackground } from "./ThemeBackground";
+import { ParticleLayer } from "./event-page/ParticleLayer";
+import type { EffectConfig, EffectDensity, EffectSpeed } from "@/lib/effects";
 import { SettingsMenu } from "./settings-page/SettingsMenu";
 import { ThemePanel } from "./settings-page/ThemePanel";
 import { HostsPanel } from "./settings-page/HostsPanel";
@@ -809,6 +811,16 @@ export function SettingsPage({
   // Resolve theme using state
   const t = resolveTheme(base, gradientFrom, gradientTo, accent, cardOpacity, fontId);
 
+  const activeEffect = useMemo<EffectConfig | null>(() => {
+    if (!effectId) return null;
+    return {
+      effectId,
+      density: (effectDensity as EffectDensity) || DEFAULT_EFFECT_DENSITY,
+      speed: (effectSpeed as EffectSpeed) || DEFAULT_EFFECT_SPEED,
+      size: effectSize ?? DEFAULT_EFFECT_SIZE,
+    };
+  }, [effectId, effectDensity, effectSpeed, effectSize]);
+
   const S = buildStyles(t);
 
   return (
@@ -819,6 +831,10 @@ export function SettingsPage({
         }
       `}</style>
       <ThemeBackground theme={t} />
+      <ParticleLayer
+        config={activeEffect}
+        tintColors={[t.accent, t.gradientFrom, t.gradientTo, "#ffffff"]}
+      />
 
       {/* ── Global nav ── */}
       <AppTopNav user={sessionUser} variant="fixed" />

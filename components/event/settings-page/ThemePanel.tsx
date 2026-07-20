@@ -15,6 +15,9 @@ import {
   EFFECT_SPEEDS,
   EFFECT_SIZE_MIN,
   EFFECT_SIZE_MAX,
+  DEFAULT_EFFECT_DENSITY,
+  DEFAULT_EFFECT_SPEED,
+  DEFAULT_EFFECT_SIZE,
   getSortedEffectSets,
   type EffectDensity,
   type EffectSpeed,
@@ -167,13 +170,21 @@ export function ThemePanel({
             const savedOpacity =
               event.theme?.cardOpacity ?? getDefaultCardOpacity(event.theme?.baseTheme);
             const savedFontId = event.theme?.fontId ?? null;
+            const savedEffectId = event.theme?.effectId ?? null;
+            const savedEffectDensity = event.theme?.effectDensity ?? DEFAULT_EFFECT_DENSITY;
+            const savedEffectSpeed = event.theme?.effectSpeed ?? DEFAULT_EFFECT_SPEED;
+            const savedEffectSize = event.theme?.effectSize ?? DEFAULT_EFFECT_SIZE;
             const hasChanged =
               base !== savedBase ||
               gradientFrom !== savedFrom ||
               gradientTo !== savedTo ||
               accent !== savedAccent ||
               cardOpacity !== savedOpacity ||
-              fontId !== savedFontId;
+              fontId !== savedFontId ||
+              effectId !== savedEffectId ||
+              effectDensity !== savedEffectDensity ||
+              effectSpeed !== savedEffectSpeed ||
+              effectSize !== savedEffectSize;
             const appliedPreset = themePresetId
               ? themePresets.find((p) => p.id === themePresetId)
               : null;
@@ -235,6 +246,10 @@ export function ThemePanel({
                         setAccent(savedAccent);
                         setCardOpacity(savedOpacity);
                         setFontId(savedFontId);
+                        setEffectId(savedEffectId);
+                        setEffectDensity(savedEffectDensity);
+                        setEffectSpeed(savedEffectSpeed);
+                        setEffectSize(savedEffectSize);
                         triggerSaveTheme(
                           savedBase,
                           savedFrom,
@@ -242,7 +257,13 @@ export function ThemePanel({
                           savedAccent,
                           undefined,
                           savedOpacity,
-                          { fontId: savedFontId }
+                          {
+                            fontId: savedFontId,
+                            effectId: savedEffectId,
+                            effectDensity: savedEffectDensity,
+                            effectSpeed: savedEffectSpeed,
+                            effectSize: savedEffectSize,
+                          }
                         );
                       }}
                       style={{
@@ -983,23 +1004,35 @@ export function ThemePanel({
               </button>
             ))}
           </div>
-          {fontId && getFontById(fontId) && (
-            <div
+          <div
+            style={{
+              marginTop: "8px",
+              padding: "16px 12px",
+              borderRadius: "10px",
+              background: t.inputBg,
+              border: `1px solid ${t.inputBorder}`,
+              textAlign: "center",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <h1
               style={{
-                marginTop: "8px",
-                padding: "10px 12px",
-                borderRadius: "10px",
-                background: t.inputBg,
-                border: `1px solid ${t.inputBorder}`,
-                color: t.textPrimary,
+                fontSize: "28px",
+                fontWeight: 900,
+                letterSpacing: "-0.02em",
                 fontFamily: t.headingFont,
-                fontSize: "20px",
+                color: t.heroText ?? t.textPrimary,
+                textShadow: t.heroTextShadow,
+                margin: 0,
                 textAlign: "center",
+                wordBreak: "break-word",
               }}
             >
-              You&rsquo;re Invited!
-            </div>
-          )}
+              {event.title || "You\u2019re Invited!"}
+            </h1>
+          </div>
         </div>
       )}
     </Section>

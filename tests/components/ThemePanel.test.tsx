@@ -12,6 +12,7 @@ const noop = vi.fn();
 
 function renderPanel(overrides: Partial<React.ComponentProps<typeof ThemePanel>> = {}) {
   const event = {
+    title: "Summer Gala",
     theme: {
       baseTheme: "DARK",
       gradientFrom: "#7c3aed",
@@ -89,12 +90,12 @@ describe("ThemePanel tabs", () => {
     expect(slider.max).toBe("10");
   });
 
-  it("Font tab shows the font grid and live preview", () => {
+  it("Font tab shows the font grid and live preview using event title", () => {
     const { getByText, queryByText } = renderPanel();
     fireEvent.click(getByText("🔤 Font"));
     expect(getByText("Theme default")).toBeTruthy();
     expect(getByText("Playfair Display")).toBeTruthy();
-    expect(getByText("You’re Invited!")).toBeTruthy();
+    expect(getByText("Summer Gala")).toBeTruthy();
     expect(getByText("Event Title Font")).toBeTruthy();
     expect(queryByText("Density")).toBeNull();
     expect(queryByText("Customize colors")).toBeNull();
