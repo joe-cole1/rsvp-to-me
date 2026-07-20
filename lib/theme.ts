@@ -405,7 +405,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: "winter-holidays",
-    name: "Winter Holidays",
+    name: "Christmas",
     emoji: "🎄",
     base: "DARK",
     gradientFrom: "#166534",

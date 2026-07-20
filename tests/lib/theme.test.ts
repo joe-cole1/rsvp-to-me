@@ -108,7 +108,7 @@ describe("Theme Resolution", () => {
       const nov = new Date("2026-11-01");
       const presets = [
         seasonal("valentines", "Valentine's Day", 2),
-        seasonal("winter-holidays", "Winter Holidays", 12),
+        seasonal("winter-holidays", "Christmas", 12),
       ];
       const result = getSortedPresets(presets, nov);
       expect(result[0].id).toBe("winter-holidays"); // 1 month away
