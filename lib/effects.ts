@@ -242,7 +242,7 @@ export const EFFECT_SETS: EffectSet[] = [
   },
   {
     id: "winter-holidays",
-    name: "Winter Holidays",
+    name: "Christmas",
     emoji: "🎄",
     mode: "fall",
     seasonal: true,
