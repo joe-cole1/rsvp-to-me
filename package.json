@@ -75,7 +75,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@react-email/ui": "^6.6.9",
+    "@react-email/ui": "^6.9.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
