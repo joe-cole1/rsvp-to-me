@@ -101,6 +101,16 @@
   `tests`, or `chore`.
 - Check for an existing open PR on the branch before committing or pushing more
   work. Do not update it without explicit user direction.
+- Treat `gh auth status` as diagnostic rather than conclusive: it can report a
+  stale token from `hosts.yml` even while another credential source is handling
+  live GitHub requests. If it reports an authentication failure, do not stop or
+  ask the user to reauthenticate yet. Run `gh api user --jq .login`, retry the
+  intended read-only repository operation once (for example `gh pr list`,
+  `gh pr view`, or `gh repo view`), and retry outside the sandbox when the first
+  failure could be network isolation. If the live identity and repository calls
+  succeed, continue normally. Ask the user to repair authentication only after
+  the live checks still fail with authentication errors; do not start an
+  interactive `gh auth refresh` or `gh auth login` without explicit permission.
 - Use `scripts/ship.sh` with the reviewed paths after `--`; it runs preflight,
   stages only those paths, applies safety checks, commits, pushes, and opens the
   labeled PR.
