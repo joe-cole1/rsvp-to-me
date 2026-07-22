@@ -141,11 +141,10 @@ _What this does:_
   docker compose logs -f app
   ```
 
-The application image runs as the fixed non-root UID/GID `10001:10001`. Before
-`docker compose up -d`, existing Linux and WSL installations whose `./data`
-directory was created by root must run
-`sudo chown -R 10001:10001 ./data` once. Docker Desktop manages macOS and
-Windows bind mount permissions without `chown`.
+The image automatically repairs ownership in the mapped `./data` directory when
+it starts, including files written by older root-running releases. It then drops
+permanently to UID/GID `10001:10001` before migrations, backups, seeding, or the
+web server run. No host-side `chown` step is required during an upgrade.
 
 The image also includes the exact patched Sharp/libvips runtime used to produce
 responsive cover and avatar variants. Source installations must use `npm ci`

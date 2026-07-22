@@ -161,14 +161,15 @@ the full preflight.
 
 ## Deployment and development files
 
-| File                          | Intended use                                                                                                            |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `Dockerfile`                  | Multi-stage production application image.                                                                               |
-| `docker-compose.yml`          | Full locally built self-hosted stack.                                                                                   |
-| `docker-compose.override.yml` | WSL development override: disables the app service, binds service ports to loopback, and uses disposable named volumes. |
-| `docker-compose.release.yml`  | Self-hosting from the published GHCR image.                                                                             |
-| `docker-compose.dev.yml`      | Build the current `main` branch directly from GitHub.                                                                   |
-| `worker/wrangler.toml`        | Cloudflare Worker deployment configuration.                                                                             |
+| File                           | Intended use                                                                                                            |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `Dockerfile`                   | Multi-stage production application image.                                                                               |
+| `scripts/docker-entrypoint.sh` | Repairs `/app/data` bind-mount ownership, then drops permanently to the application UID before startup.                 |
+| `docker-compose.yml`           | Full locally built self-hosted stack.                                                                                   |
+| `docker-compose.override.yml`  | WSL development override: disables the app service, binds service ports to loopback, and uses disposable named volumes. |
+| `docker-compose.release.yml`   | Self-hosting from the published GHCR image.                                                                             |
+| `docker-compose.dev.yml`       | Build the current `main` branch directly from GitHub.                                                                   |
+| `worker/wrangler.toml`         | Cloudflare Worker deployment configuration.                                                                             |
 
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
 compatible Node/npm range. Repository scripts normalize WSL temporary paths,

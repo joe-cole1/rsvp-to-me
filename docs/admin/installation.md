@@ -161,25 +161,10 @@ You must set at least these variables before launching:
 ## Step 4 — Start the Application
 
 The application process runs as the fixed non-root user and group `10001:10001`.
-Prepare its persistent data directory before the first start:
-
-- **Linux or WSL:**
-  ```bash
-  mkdir -p data
-  sudo chown -R 10001:10001 data
-  ```
-- **macOS with Docker Desktop:**
-  ```bash
-  mkdir -p data
-  ```
-- **Windows with Docker Desktop:**
-  ```powershell
-  New-Item -ItemType Directory -Force data
-  ```
-
-Docker Desktop manages permissions for macOS and Windows bind mounts. On Linux,
-including WSL-native Linux paths, `/app/data` must remain writable by UID/GID
-10001 so uploads and database backups continue working.
+No host-side ownership setup is required. On startup, the container creates the
+required folders in the `./data` bind mount, repairs ownership left by older
+images when necessary, and drops privileges before running migrations or any
+application code.
 
 From inside your `rsvp-to-me` directory, start the containers:
 
@@ -263,10 +248,10 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 By default, the application uses a **bind mount** — a Docker feature that links a folder on your host machine to a folder inside the container so the data survives restarts and upgrades. Here, the local `./data` directory is linked to `/app/data` inside the containers.
 
-The container runs as UID/GID `10001:10001`, rather than root. If an existing
-Linux installation reports `EACCES` or "permission denied" while uploading or
-backing up, restore the expected ownership with
-`sudo chown -R 10001:10001 ./data` and restart the app container.
+The startup entrypoint automatically keeps this mapped directory writable by
+the application account. Its narrowly scoped ownership bootstrap runs before
+the entrypoint permanently drops to UID/GID `10001:10001`; migrations, uploads,
+backups, and the web server never run as root.
 
 Your data is stored in these paths:
 
