@@ -162,9 +162,9 @@ You must set at least these variables before launching:
 
 The application process runs as the fixed non-root user and group `10001:10001`.
 No host-side ownership setup is required. On startup, the container creates the
-required folders in the `./data` bind mount, repairs ownership left by older
-images when necessary, and drops privileges before running migrations or any
-application code.
+required `./data/uploads` and `./data/backups` folders, repairs ownership left by
+older images within those two application-owned bind mounts, and drops
+privileges before running migrations or any application code.
 
 From inside your `rsvp-to-me` directory, start the containers:
 
@@ -246,12 +246,18 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 ## Understanding Your Data & Backups
 
-By default, the application uses a **bind mount** — a Docker feature that links a folder on your host machine to a folder inside the container so the data survives restarts and upgrades. Here, the local `./data` directory is linked to `/app/data` inside the containers.
+By default, the application uses **bind mounts** — a Docker feature that links
+folders on your host machine to folders inside the container so data survives
+restarts and upgrades. The samples map `./data/uploads` and `./data/backups` to
+the corresponding application paths. PostgreSQL and Redis keep their own
+separate bind mounts.
 
-The startup entrypoint automatically keeps this mapped directory writable by
-the application account. Its narrowly scoped ownership bootstrap runs before
-the entrypoint permanently drops to UID/GID `10001:10001`; migrations, uploads,
-backups, and the web server never run as root.
+The startup entrypoint automatically keeps only the mapped uploads and backups
+directories writable by the application account. It never recursively changes
+arbitrary siblings under `/app/data`, so a custom layout can safely keep
+`pg_data`, `redis_data`, uploads, and backups beneath one host parent. The
+entrypoint permanently drops to UID/GID `10001:10001` before migrations,
+uploads, backups, or the web server run.
 
 Your data is stored in these paths:
 

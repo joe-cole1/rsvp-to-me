@@ -164,7 +164,7 @@ the full preflight.
 | File                           | Intended use                                                                                                            |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | `Dockerfile`                   | Multi-stage production application image.                                                                               |
-| `scripts/docker-entrypoint.sh` | Repairs `/app/data` bind-mount ownership, then drops permanently to the application UID before startup.                 |
+| `scripts/docker-entrypoint.sh` | Repairs only the uploads/backups bind mounts, then drops permanently to the application UID before startup.             |
 | `docker-compose.yml`           | Full locally built self-hosted stack.                                                                                   |
 | `docker-compose.override.yml`  | WSL development override: disables the app service, binds service ports to loopback, and uses disposable named volumes. |
 | `docker-compose.release.yml`   | Self-hosting from the published GHCR image.                                                                             |

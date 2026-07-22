@@ -11,22 +11,27 @@ export PATH
 app_user=nextjs
 app_group=nodejs
 data_dir=/app/data
+uploads_dir=$data_dir/uploads
+backups_dir=$data_dir/backups
 
 prepare_data_directory() {
-  mkdir -p "$data_dir/uploads" "$data_dir/backups/pre-migration"
+  mkdir -p "$uploads_dir" "$backups_dir/pre-migration"
 
-  # Do not follow symlinks or cross into nested mounts while running as root.
-  # The ownership filter makes repeat starts inexpensive for correctly owned
-  # installations while automatically repairing data from older root images.
-  if ! find "$data_dir" -xdev \( ! -user "$app_user" -o ! -group "$app_group" \) \
-    -exec chown -h "$app_user:$app_group" '{}' +; then
-    echo >&2 "[entrypoint] Could not normalize all ownership under $data_dir."
-  fi
+  # Only these application-owned paths may be repaired. Start each traversal at
+  # its bind mount, do not follow symlinks, and do not cross nested mounts. In
+  # particular, never traverse arbitrary siblings beneath /app/data: operators
+  # may keep PostgreSQL, Redis, or other service data under the same host parent.
+  for managed_dir in "$uploads_dir" "$backups_dir"; do
+    if ! find "$managed_dir" -xdev \( ! -user "$app_user" -o ! -group "$app_group" \) \
+      -exec chown -h "$app_user:$app_group" '{}' +; then
+      echo >&2 "[entrypoint] Could not normalize ownership under $managed_dir."
+      exit 1
+    fi
+  done
 
   if ! su-exec "$app_user:$app_group" sh -c \
-    'test -w "$1" && test -w "$1/uploads" && test -w "$1/backups/pre-migration"' \
-    sh "$data_dir"; then
-    echo >&2 "[entrypoint] $data_dir is not writable by UID/GID 10001:10001."
+    'test -w "$1" && test -w "$2/pre-migration"' sh "$uploads_dir" "$backups_dir"; then
+    echo >&2 "[entrypoint] Upload and backup storage must be writable by UID/GID 10001:10001."
     echo >&2 "[entrypoint] Check the bind mount and host filesystem permissions."
     exit 1
   fi

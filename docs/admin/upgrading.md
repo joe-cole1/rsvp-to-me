@@ -141,10 +141,12 @@ _What this does:_
   docker compose logs -f app
   ```
 
-The image automatically repairs ownership in the mapped `./data` directory when
-it starts, including files written by older root-running releases. It then drops
-permanently to UID/GID `10001:10001` before migrations, backups, seeding, or the
-web server run. No host-side `chown` step is required during an upgrade.
+The image automatically repairs ownership in the mapped `./data/uploads` and
+`./data/backups` directories when it starts, including files written by older
+root-running releases. It never traverses arbitrary siblings under `/app/data`.
+The entrypoint then drops permanently to UID/GID `10001:10001` before
+migrations, backups, seeding, or the web server run. No host-side `chown` step is
+required during an upgrade.
 
 The image also includes the exact patched Sharp/libvips runtime used to produce
 responsive cover and avatar variants. Source installations must use `npm ci`
