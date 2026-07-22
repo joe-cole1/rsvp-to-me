@@ -14,7 +14,7 @@ export function buildStyles(t: ResolvedTheme) {
       overflowX: "hidden" as const,
     },
     container: {
-      maxWidth: "480px",
+      maxWidth: "600px",
       margin: "0 auto",
       padding: "110px 16px 80px",
       position: "relative" as const,

@@ -31,8 +31,7 @@ import { compressImage } from "@/lib/client-image";
 import { buildStyles } from "./event-page/styles";
 import { GuestInviteFriendCard } from "./event-page/GuestInviteFriendCard";
 import { ActivityFeed } from "./event-page/ActivityFeed";
-import { ThemeBackground } from "./ThemeBackground";
-import { ParticleLayer } from "./event-page/ParticleLayer";
+import { EventAtmosphere } from "./EventAtmosphere";
 import type { EffectConfig } from "@/lib/effects";
 import { EventHero } from "./event-page/EventHero";
 import { GuestListSection } from "./event-page/GuestListSection";
@@ -774,11 +773,7 @@ export function EventPage({
       {/* ── Top nav ── */}
       <AppTopNav user={sessionUser} variant="event-overlay" />
 
-      <ThemeBackground theme={t} />
-      <ParticleLayer
-        config={effect}
-        tintColors={[t.accent, t.gradientFrom, t.gradientTo, "#ffffff"]}
-      />
+      <EventAtmosphere theme={t} effect={effect} />
 
       <div style={S.container}>
         <EventHero

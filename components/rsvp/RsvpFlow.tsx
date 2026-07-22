@@ -5,7 +5,8 @@ import { addRSVP, updateRSVP, updateRsvpAsHost } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { Check } from "lucide-react";
 import { AppTopNav } from "@/components/ui/AppNav";
-import { ThemeBackground } from "@/components/event/ThemeBackground";
+import { EventAtmosphere } from "@/components/event/EventAtmosphere";
+import type { EffectConfig } from "@/lib/effects";
 import {
   RSVP_RESPONSE_STATUSES,
   RSVP_STATUS_EMOJIS,
@@ -77,6 +78,7 @@ type ExistingRsvp = {
 export function RsvpFlow({
   event,
   theme,
+  effect = null,
   initialStatus,
   existingRsvp,
   returnPath,
@@ -87,6 +89,7 @@ export function RsvpFlow({
 }: {
   event: EventData;
   theme: ResolvedTheme;
+  effect?: EffectConfig | null;
   initialStatus?: "GOING" | "MAYBE" | "NO";
   existingRsvp?: ExistingRsvp;
   returnPath?: string;
@@ -239,7 +242,7 @@ export function RsvpFlow({
         }}
       >
         {renderNav()}
-        <ThemeBackground theme={t} />
+        <EventAtmosphere theme={t} effect={effect} />
         <div
           style={{
             width: "100%",
@@ -314,7 +317,7 @@ export function RsvpFlow({
         }}
       >
         {renderNav()}
-        <ThemeBackground theme={t} />
+        <EventAtmosphere theme={t} effect={effect} />
         <div
           style={{
             width: "100%",
@@ -531,13 +534,13 @@ export function RsvpFlow({
     } as React.CSSProperties,
     header: {
       padding: "70px 20px 0",
-      maxWidth: "540px",
+      maxWidth: "600px",
       margin: "0 auto",
       position: "relative",
       zIndex: 1,
     } as React.CSSProperties,
     body: {
-      maxWidth: "540px",
+      maxWidth: "600px",
       margin: "0 auto",
       padding: "24px 20px 0",
       position: "relative",
@@ -609,7 +612,7 @@ export function RsvpFlow({
     return (
       <div style={S.page}>
         {renderNav()}
-        <ThemeBackground theme={t} />
+        <EventAtmosphere theme={t} effect={effect} />
         <div style={S.header}>
           <a
             href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`}
@@ -827,7 +830,7 @@ export function RsvpFlow({
   return (
     <div style={S.page}>
       {renderNav()}
-      <ThemeBackground theme={t} />
+      <EventAtmosphere theme={t} effect={effect} />
       <div style={S.header}>
         <button
           onClick={() => setStep(1)}

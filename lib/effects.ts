@@ -344,6 +344,35 @@ export interface EffectConfig {
   size?: number;
 }
 
+export interface StoredEffectConfig {
+  effectId?: string | null;
+  effectDensity?: string | null;
+  effectSpeed?: string | null;
+  effectSize?: number | null;
+}
+
+/** Resolve persisted theme fields into the shared web effect configuration. */
+export function resolveEffectConfig(
+  source: StoredEffectConfig | null | undefined
+): EffectConfig | null {
+  const effectId = source?.effectId;
+  if (!effectId || !getEffectById(effectId)) return null;
+
+  const density = source.effectDensity;
+  const speed = source.effectSpeed;
+  const size = source.effectSize;
+
+  return {
+    effectId,
+    density:
+      density && isValidEffectDensity(density)
+        ? (density as EffectDensity)
+        : DEFAULT_EFFECT_DENSITY,
+    speed: speed && isValidEffectSpeed(speed) ? (speed as EffectSpeed) : DEFAULT_EFFECT_SPEED,
+    size: size != null && isValidEffectSize(size) ? size : DEFAULT_EFFECT_SIZE,
+  };
+}
+
 /**
  * Sort for the effect picker: seasonal sets nearest the current month first
  * (same date-proximity logic as theme presets), then year-round classics.

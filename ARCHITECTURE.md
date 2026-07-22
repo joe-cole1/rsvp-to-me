@@ -103,8 +103,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   supplies the privacy-safe fallback used by not-found routes, while the
   colocated `opengraph-image.tsx` and `twitter-image.tsx` routes render
   privacy-gated social artwork from current event data.
-- Event-themed routes share their background through
-  `components/event/ThemeBackground.tsx`; public event sections use
+- Access-granted event routes share their background and animated effects through
+  `components/event/EventAtmosphere.tsx`, which composes `ThemeBackground` and
+  `ParticleLayer`; persisted effect fields resolve through
+  `lib/effects.ts#resolveEffectConfig`. Public event sections use
   `components/event/event-page/EventCard.tsx` as their semantic surface.
 - New and existing RSVP flows use `app/e/[slug]/rsvp/page.tsx` and
   `components/rsvp/`; RSVP response labels and controls are centralized in

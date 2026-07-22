@@ -10,6 +10,8 @@ order: 30
 
 Make your event page feel like _your_ event. Open your event while signed in to access the host controls.
 
+Event pages use a responsive, single-column layout that grows to 600px on larger screens while retaining comfortable side gutters on phones. The event settings, RSVP form, guest list, and theme previews follow the same width and atmosphere so the experience stays consistent as hosts and guests move between them.
+
 ---
 
 ## Inline Editing
@@ -62,7 +64,7 @@ The **Effects** tab in **Settings → Theme** adds an optional layer of gently d
 - Confetti and balloons tint themselves to match your theme's colors.
 - Guests who have "reduce motion" enabled in their device accessibility settings see a calm, static page — the animation layer hides itself automatically.
 - Every visitor can choose **"✨ Hide effects"** from the menu in the top bar, so anyone who finds the animation distracting can turn it off for themselves. Signed-in visitors open the menu from their profile picture; signed-out visitors use the circular hamburger button. The choice is remembered in their browser and doesn't affect anyone else.
-- Effects appear on the event page only; **emails always stay static** by design.
+- Effects follow guests and hosts across the event page, RSVP form, guest list, and event settings. **Emails always stay static** by design.
 
 Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
 

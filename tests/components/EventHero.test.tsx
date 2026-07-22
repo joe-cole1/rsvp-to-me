@@ -150,7 +150,7 @@ describe("EventHero", () => {
     expect(coverContainer).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Test Party cover" })).toHaveAttribute(
       "sizes",
-      "(max-width: 480px) calc(100vw - 32px), 448px"
+      "(max-width: 600px) calc(100vw - 32px), 568px"
     );
 
     // Initially height should be 260px

@@ -4,14 +4,7 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
-import {
-  DEFAULT_EFFECT_DENSITY,
-  DEFAULT_EFFECT_SPEED,
-  DEFAULT_EFFECT_SIZE,
-  type EffectConfig,
-  type EffectDensity,
-  type EffectSpeed,
-} from "@/lib/effects";
+import { resolveEffectConfig } from "@/lib/effects";
 import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
 import { AppShell } from "@/components/ui/AppShell";
@@ -215,14 +208,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     event.theme?.fontId
   );
 
-  const effect: EffectConfig | null = event.theme?.effectId
-    ? {
-        effectId: event.theme.effectId,
-        density: (event.theme.effectDensity as EffectDensity) ?? DEFAULT_EFFECT_DENSITY,
-        speed: (event.theme.effectSpeed as EffectSpeed) ?? DEFAULT_EFFECT_SPEED,
-        size: event.theme.effectSize ?? DEFAULT_EFFECT_SIZE,
-      }
-    : null;
+  const effect = resolveEffectConfig(event.theme);
 
   const channelConfig = await getChannelConfig();
 

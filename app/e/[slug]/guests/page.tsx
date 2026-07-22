@@ -6,8 +6,9 @@ import { serializeGuestRsvp, canViewGuestListPage } from "@/lib/guestList";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { AppTopNav } from "@/components/ui/AppNav";
-import { ThemeBackground } from "@/components/event/ThemeBackground";
+import { EventAtmosphere } from "@/components/event/EventAtmosphere";
 import { getChannelConfig } from "@/lib/config";
+import { resolveEffectConfig } from "@/lib/effects";
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const { slug } = await props.params;
@@ -69,6 +70,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     event.theme?.cardOpacity,
     event.theme?.fontId
   );
+  const effect = resolveEffectConfig(event.theme);
 
   const approvedRsvps = event.rsvps.filter((r) => r.approved && r.status !== "INVITED");
   const pendingRsvps = event.rsvps.filter((r) => !r.approved && r.status !== "INVITED");
@@ -96,7 +98,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
       }}
     >
       <AppTopNav user={sessionUser} variant="fixed" />
-      <ThemeBackground theme={t} />
+      <EventAtmosphere theme={t} effect={effect} />
 
       <div
         style={{

@@ -14,6 +14,7 @@ import {
   isValidEffectDensity,
   isValidEffectSpeed,
   isValidEffectSize,
+  resolveEffectConfig,
 } from "@/lib/effects";
 
 describe("effects registry", () => {
@@ -81,6 +82,36 @@ describe("effects registry", () => {
     expect(getEffectById("thanksgiving")?.name).toBe("Thanksgiving");
     expect(getEffectById(null)).toBeNull();
     expect(getEffectById("nope")).toBeNull();
+  });
+
+  it("resolves stored effect fields with shared defaults and rejects unknown effects", () => {
+    expect(resolveEffectConfig(null)).toBeNull();
+    expect(resolveEffectConfig({ effectId: "lasers" })).toBeNull();
+    expect(resolveEffectConfig({ effectId: "confetti" })).toEqual({
+      effectId: "confetti",
+      density: "medium",
+      speed: "medium",
+      size: 1,
+    });
+    expect(
+      resolveEffectConfig({
+        effectId: "snow",
+        effectDensity: "sparse",
+        effectSpeed: "gentle",
+        effectSize: 4,
+      })
+    ).toEqual({ effectId: "snow", density: "sparse", speed: "gentle", size: 4 });
+  });
+
+  it("falls back safely when persisted effect options are invalid", () => {
+    expect(
+      resolveEffectConfig({
+        effectId: "snow",
+        effectDensity: "extreme",
+        effectSpeed: "ludicrous",
+        effectSize: 99,
+      })
+    ).toEqual({ effectId: "snow", density: "medium", speed: "medium", size: 1 });
   });
 
   it("sorts seasonal sets by month proximity, classics after", () => {

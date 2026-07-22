@@ -327,7 +327,7 @@ export function EventHero({
               alt={`${event.title} cover`}
               fill
               priority
-              sizes="(max-width: 480px) calc(100vw - 32px), 448px"
+              sizes="(max-width: 600px) calc(100vw - 32px), 568px"
               style={{ objectFit: "cover" }}
             />
           )}
