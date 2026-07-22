@@ -90,3 +90,24 @@ production deployment.
 Run Git, npm, Prisma, tests, and Docker commands from WSL for this repository.
 Mixing Windows Git with WSL Git can create misleading line-ending and executable
 permission changes in the shared working tree.
+
+### GitHub CLI authentication checks
+
+`gh auth status` can report a stale token stored in `hosts.yml` even when a
+different credential source is successfully authenticating live GitHub
+requests. Treat that output as a troubleshooting hint, not proof that GitHub
+access is unavailable.
+
+Before refreshing credentials, verify the active identity and retry the intended
+read-only repository operation:
+
+```bash
+gh api user --jq .login
+gh repo view --json nameWithOwner,defaultBranchRef
+gh pr list --head "$(git branch --show-current)" --state open
+```
+
+If those live calls succeed, no authentication repair is needed. If a call
+fails because a sandbox or restricted shell blocks the network, retry it with
+normal network access. Run `gh auth refresh` or `gh auth login` only after the
+live identity and repository checks continue to fail with authentication errors.
