@@ -287,8 +287,8 @@ export default function ProfileClient({
                     <NextImage
                       src={avatarUrl}
                       alt="Avatar"
-                      unoptimized
                       fill
+                      sizes="80px"
                       style={{
                         objectFit: "cover",
                       }}

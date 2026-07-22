@@ -697,8 +697,8 @@ export function GuestListFilter({
                   <Image
                     src={r.user.avatarUrl}
                     alt={r.guestName}
-                    unoptimized
                     fill
+                    sizes="38px"
                     style={{
                       objectFit: "cover",
                     }}

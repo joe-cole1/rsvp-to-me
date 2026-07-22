@@ -44,11 +44,11 @@ Before you begin, you need:
 
 RSVP to Me runs as a set of Docker containers defined in `docker-compose.yml`:
 
-| Container  | Purpose                                                                                                                                                                                       |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app`      | The main web server. It handles webpage rendering, guest RSVPs, comment boards, and admin actions. It also runs the in-process cron scheduler for reminders and backups. Runs on port `3000`. |
-| `postgres` | PostgreSQL 18 database — stores all users, events, RSVPs, and application data. Reachable only by the other containers on the internal Docker network — it is **not** exposed on a host port. |
-| `redis`    | Redis — session caching, rate limiting, and distributed cron locking. Internal-only, like `postgres` — no host port is exposed.                                                               |
+| Container  | Purpose                                                                                                                                                                                                                      |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app`      | The main web server. It handles webpage rendering, responsive image optimization, guest RSVPs, comment boards, and admin actions. It also runs the in-process cron scheduler for reminders and backups. Runs on port `3000`. |
+| `postgres` | PostgreSQL 18 database — stores all users, events, RSVPs, and application data. Reachable only by the other containers on the internal Docker network — it is **not** exposed on a host port.                                |
+| `redis`    | Redis — session caching, rate limiting, and distributed cron locking. Internal-only, like `postgres` — no host port is exposed.                                                                                              |
 
 ---
 
@@ -160,6 +160,27 @@ You must set at least these variables before launching:
 
 ## Step 4 — Start the Application
 
+The application process runs as the fixed non-root user and group `10001:10001`.
+Prepare its persistent data directory before the first start:
+
+- **Linux or WSL:**
+  ```bash
+  mkdir -p data
+  sudo chown -R 10001:10001 data
+  ```
+- **macOS with Docker Desktop:**
+  ```bash
+  mkdir -p data
+  ```
+- **Windows with Docker Desktop:**
+  ```powershell
+  New-Item -ItemType Directory -Force data
+  ```
+
+Docker Desktop manages permissions for macOS and Windows bind mounts. On Linux,
+including WSL-native Linux paths, `/app/data` must remain writable by UID/GID
+10001 so uploads and database backups continue working.
+
 From inside your `rsvp-to-me` directory, start the containers:
 
 ```bash
@@ -241,6 +262,11 @@ docker compose -f docker-compose.dev.yml up --build -d
 ## Understanding Your Data & Backups
 
 By default, the application uses a **bind mount** — a Docker feature that links a folder on your host machine to a folder inside the container so the data survives restarts and upgrades. Here, the local `./data` directory is linked to `/app/data` inside the containers.
+
+The container runs as UID/GID `10001:10001`, rather than root. If an existing
+Linux installation reports `EACCES` or "permission denied" while uploading or
+backing up, restore the expected ownership with
+`sudo chown -R 10001:10001 ./data` and restart the app container.
 
 Your data is stored in these paths:
 

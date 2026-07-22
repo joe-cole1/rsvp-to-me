@@ -996,8 +996,8 @@ function EventCard({
             <Image
               src={coverUrl}
               alt={item.title}
-              unoptimized
               fill
+              sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 1000px) 50vw, 33vw"
               style={{
                 objectFit: "cover",
               }}
@@ -1294,7 +1294,7 @@ function AvatarBubble({
       }}
     >
       {avatarUrl ? (
-        <Image src={avatarUrl} alt={name} unoptimized fill style={{ objectFit: "cover" }} />
+        <Image src={avatarUrl} alt={name} fill sizes="18px" style={{ objectFit: "cover" }} />
       ) : (
         initial
       )}

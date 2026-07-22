@@ -60,3 +60,5 @@ For every bug fix merged to main:
 | `guest-list-all-includes-invited.test.tsx`           | Guest-list All filter counted invited guests but rendered only guests who had responded                               | 019f6231  |
 | `guest-check-in-all-statuses.test.tsx`               | Invited/declined guests had no check-in control, and existing-RSVP walk-ins were not checked in                       | 033460e0  |
 | `orphaned-invitation-removal.test.tsx`               | An unlinked invitation could outlive a manual RSVP as an undeletable unanswered guest-list card                       | 019f62a4  |
+| `docker-runtime-hardening.test.ts`                   | Production image ran as root, used floating bases, included curl, and deployed migrations twice                       | 019f869e  |
+| `ghsa-f88m-g3jw-g9cj-sharp-libvips.test.ts`          | Next.js, React Email UI, and Miniflare constrained Sharp to vulnerable 0.34.x after the patched 0.35 release          | 019f869e  |

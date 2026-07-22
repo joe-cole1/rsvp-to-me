@@ -59,7 +59,7 @@ function AvatarBubble({
       }}
     >
       {avatarUrl ? (
-        <Image src={avatarUrl} alt={name} unoptimized fill style={{ objectFit: "cover" }} />
+        <Image src={avatarUrl} alt={name} fill sizes="18px" style={{ objectFit: "cover" }} />
       ) : (
         initial
       )}
@@ -244,8 +244,8 @@ export default async function Home() {
                           <Image
                             src={coverUrl}
                             alt={event.title}
-                            unoptimized
                             fill
+                            sizes="(max-width: 560px) calc(100vw - 48px), (max-width: 1100px) 50vw, 33vw"
                             style={{ objectFit: "cover" }}
                           />
                         )}

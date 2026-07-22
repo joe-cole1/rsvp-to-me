@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import NextImage from "next/image";
 import { FileText, Pencil, Settings } from "lucide-react";
 import { InlineEdit } from "./InlineEdit";
 import { DateEdit } from "./DateEdit";
@@ -23,7 +24,6 @@ export function EventHero({
   uploadStatus,
   handleCoverRemove,
   handleCoverUpload,
-  coverStyle,
   isHost,
   coverUploadEnabled,
 }: {
@@ -44,7 +44,6 @@ export function EventHero({
   uploadStatus: "idle" | "compressing" | "uploading";
   handleCoverRemove: () => Promise<void>;
   handleCoverUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  coverStyle: React.CSSProperties;
   isHost: boolean;
   coverUploadEnabled: boolean;
 }) {
@@ -299,7 +298,9 @@ export function EventHero({
       {(event.theme?.coverImageUrl || isHost) && (
         <div
           style={{
-            ...coverStyle,
+            background: event.theme?.coverImageUrl
+              ? "transparent"
+              : `linear-gradient(135deg, ${t.accent} 0%, #ec4899 100%)`,
             width: "100%",
             height: containerHeight,
             aspectRatio: containerAspectRatio,
@@ -320,6 +321,16 @@ export function EventHero({
                   : "none",
           }}
         >
+          {event.theme?.coverImageUrl && (
+            <NextImage
+              src={event.theme.coverImageUrl}
+              alt={`${event.title} cover`}
+              fill
+              priority
+              sizes="(max-width: 480px) calc(100vw - 32px), 448px"
+              style={{ objectFit: "cover" }}
+            />
+          )}
           {!event.theme?.coverImageUrl && <span style={{ fontSize: "72px" }}>🎉</span>}
           {isHost && coverUploadEnabled && (
             <div
@@ -329,6 +340,7 @@ export function EventHero({
                 right: "12px",
                 display: "flex",
                 gap: "6px",
+                zIndex: 1,
               }}
             >
               <button

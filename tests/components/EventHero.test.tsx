@@ -98,7 +98,6 @@ describe("EventHero", () => {
         uploadStatus="idle"
         handleCoverRemove={mockHandleCoverRemove}
         handleCoverUpload={mockHandleCoverUpload}
-        coverStyle={{}}
         isHost={true}
         coverUploadEnabled={true}
       />
@@ -119,7 +118,7 @@ describe("EventHero", () => {
       ...baseEvent,
       theme: {
         ...baseEvent.theme!,
-        coverImageUrl: "https://example.com/cover.jpg",
+        coverImageUrl: "/api/uploads/cover.jpg",
       },
     };
     const detailsRef = React.createRef<HTMLSpanElement>();
@@ -141,7 +140,6 @@ describe("EventHero", () => {
         uploadStatus="idle"
         handleCoverRemove={mockHandleCoverRemove}
         handleCoverUpload={mockHandleCoverUpload}
-        coverStyle={{}}
         isHost={true}
         coverUploadEnabled={true}
       />
@@ -150,6 +148,10 @@ describe("EventHero", () => {
     const coverButton = screen.getByText("📷 Cover");
     const coverContainer = coverButton.parentElement?.parentElement;
     expect(coverContainer).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Test Party cover" })).toHaveAttribute(
+      "sizes",
+      "(max-width: 480px) calc(100vw - 32px), 448px"
+    );
 
     // Initially height should be 260px
     expect(coverContainer?.style.height).toBe("260px");
@@ -190,7 +192,6 @@ describe("EventHero", () => {
         uploadStatus="idle"
         handleCoverRemove={mockHandleCoverRemove}
         handleCoverUpload={mockHandleCoverUpload}
-        coverStyle={{}}
         isHost={false}
         coverUploadEnabled={false}
       />
