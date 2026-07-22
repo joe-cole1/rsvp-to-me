@@ -32,8 +32,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
 # postgresql-client supplies pg_dump for pre-migration, scheduled, and manual
-# backups. The health check uses Node's built-in fetch, so curl is unnecessary.
-RUN apk add --no-cache libc6-compat postgresql-client && \
+# backups. su-exec drops the bootstrap process to the unprivileged application
+# account without leaving a shell or supervisor running as root.
+RUN apk add --no-cache libc6-compat postgresql-client su-exec && \
     addgroup --system --gid 10001 nodejs && \
     adduser --system --uid 10001 --ingroup nodejs nextjs
 
@@ -52,14 +53,18 @@ COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/README.md ./README.md
 
 RUN mkdir -p /app/data /app/.next/cache && \
-    chown -R nextjs:nodejs /app/data /app/.next/cache
+    chown -R nextjs:nodejs /app/data /app/.next/cache && \
+    chmod 0555 /app/scripts/docker-entrypoint.sh
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+  CMD ["su-exec", "nextjs:nodejs", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
 
-USER 10001:10001
+# The entrypoint needs root only to repair bind-mount ownership. It immediately
+# execs the command as 10001:10001 before migrations or application code run.
+USER 0:0
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 
 # The startup shell exits after the migration/seed steps and exec replaces it
 # with Next.js, leaving the application process to receive signals directly.

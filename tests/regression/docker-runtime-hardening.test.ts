@@ -13,6 +13,7 @@ import { join } from "path";
 const REPO_ROOT = join(__dirname, "..", "..");
 const dockerfile = readFileSync(join(REPO_ROOT, "Dockerfile"), "utf8");
 const dockerignore = readFileSync(join(REPO_ROOT, ".dockerignore"), "utf8");
+const entrypoint = readFileSync(join(REPO_ROOT, "scripts", "docker-entrypoint.sh"), "utf8");
 const runner = dockerfile.split(/FROM\s+\$\{NODE_IMAGE\}\s+AS\s+runner/)[1] ?? "";
 
 describe("Docker production image hardening", () => {
@@ -22,18 +23,21 @@ describe("Docker production image hardening", () => {
     expect(dockerfile).not.toMatch(/^FROM\s+node:[^@\s]+\s/m);
   });
 
-  it("runs the final application as the fixed non-root account", () => {
+  it("drops the final application to the fixed non-root account", () => {
     expect(runner).toMatch(/addgroup --system --gid 10001 nodejs/);
     expect(runner).toMatch(/adduser --system --uid 10001 --ingroup nodejs nextjs/);
-    expect(runner).toMatch(/^USER 10001:10001$/m);
-    const commandOffset = runner.search(/^CMD \[/m);
-    expect(commandOffset).toBeGreaterThan(-1);
-    expect(runner.indexOf("USER 10001:10001")).toBeLessThan(commandOffset);
+    expect(runner).toMatch(/^USER 0:0$/m);
+    expect(runner).toMatch(/^ENTRYPOINT \["\/app\/scripts\/docker-entrypoint\.sh"\]$/m);
+    expect(entrypoint).toMatch(/exec su-exec "\$app_user:\$app_group" "\$@"/);
+    expect(runner).toMatch(
+      /CMD \["su-exec", "nextjs:nodejs", "node", "-e", "fetch\('http:\/\/127\.0\.0\.1:3000\/api\/health'/
+    );
   });
 
   it("keeps required backup tooling but removes the unused download client", () => {
     const apkInstruction = runner.match(/RUN apk add --no-cache[^\n]*/)?.[0] ?? "";
     expect(apkInstruction).toContain("postgresql-client");
+    expect(apkInstruction).toContain("su-exec");
     expect(apkInstruction).not.toMatch(/\bcurl\b/);
   });
 
