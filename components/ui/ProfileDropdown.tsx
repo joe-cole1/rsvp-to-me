@@ -148,8 +148,8 @@ export default function ProfileDropdown({ user }: { user: DropdownUser | null })
             <Image
               src={user.avatarUrl}
               alt={displayName}
-              unoptimized
               fill
+              sizes="36px"
               style={{ objectFit: "cover" }}
             />
           </span>

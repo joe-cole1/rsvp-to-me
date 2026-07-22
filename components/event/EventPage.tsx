@@ -131,8 +131,8 @@ export function EventPage({
           <NextImage
             src={url}
             alt={name}
-            unoptimized
             fill
+            sizes="48px"
             style={{
               objectFit: "cover",
             }}
@@ -755,16 +755,6 @@ export function EventPage({
 
   const S = buildStyles(t);
 
-  // ── Cover ────────────────────────────────────────────────────────────────────
-
-  const coverStyle: React.CSSProperties = event.theme?.coverImageUrl
-    ? {
-        backgroundImage: `url(${event.theme.coverImageUrl})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }
-    : { background: `linear-gradient(135deg, ${t.accent} 0%, #ec4899 100%)` };
-
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
@@ -805,7 +795,6 @@ export function EventPage({
           uploadStatus={uploadStatus}
           handleCoverRemove={handleCoverRemove}
           handleCoverUpload={handleCoverUpload}
-          coverStyle={coverStyle}
           isHost={isHost}
           coverUploadEnabled={coverUploadEnabled}
         />

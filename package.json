@@ -60,6 +60,7 @@
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "sharp": "0.35.3",
     "tailwind-merge": "^3.6.0",
     "twilio": "^6.0.2",
     "zod": "^4.4.3"
@@ -68,7 +69,8 @@
     "postcss": "^8.5.15",
     "@hono/node-server": "1.19.14",
     "js-yaml": "^4.2.0",
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "sharp": "$sharp"
   },
   "lint-staged": {
     "*.{ts,tsx}": "prettier --write"

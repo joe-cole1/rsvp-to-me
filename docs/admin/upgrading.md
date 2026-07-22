@@ -141,6 +141,18 @@ _What this does:_
   docker compose logs -f app
   ```
 
+The application image runs as the fixed non-root UID/GID `10001:10001`. Before
+`docker compose up -d`, existing Linux and WSL installations whose `./data`
+directory was created by root must run
+`sudo chown -R 10001:10001 ./data` once. Docker Desktop manages macOS and
+Windows bind mount permissions without `chown`.
+
+The image also includes the exact patched Sharp/libvips runtime used to produce
+responsive cover and avatar variants. Source installations must use `npm ci`
+from the checked-in lockfile; do not remove the Sharp override or independently
+downgrade it, because Next.js and development tools may otherwise resolve the
+vulnerable 0.34.x line.
+
 ---
 
 ## Database Migrations
