@@ -144,7 +144,7 @@ export function RsvpSection({
                 bottom: "calc(12px + env(safe-area-inset-bottom))",
                 transform: "translateX(-50%)",
                 width: "calc(100vw - 32px)",
-                maxWidth: "408px",
+                maxWidth: "568px",
               }
             : undefined
         }

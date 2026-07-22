@@ -4,7 +4,12 @@ import { useState, useTransition, useEffect, useMemo } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { AppTopNav } from "@/components/ui/AppNav";
 import { type BaseTheme, resolveTheme, getSortedPresets, getDefaultCardOpacity } from "@/lib/theme";
-import { DEFAULT_EFFECT_DENSITY, DEFAULT_EFFECT_SPEED, DEFAULT_EFFECT_SIZE } from "@/lib/effects";
+import {
+  DEFAULT_EFFECT_DENSITY,
+  DEFAULT_EFFECT_SPEED,
+  DEFAULT_EFFECT_SIZE,
+  resolveEffectConfig,
+} from "@/lib/effects";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -40,9 +45,7 @@ import type {
 } from "./settings-page/types";
 import { formatOptionsForTextarea, serializeOptionsForDb } from "./settings-page/helpers";
 import { buildStyles } from "./settings-page/styles";
-import { ThemeBackground } from "./ThemeBackground";
-import { ParticleLayer } from "./event-page/ParticleLayer";
-import type { EffectConfig, EffectDensity, EffectSpeed } from "@/lib/effects";
+import { EventAtmosphere } from "./EventAtmosphere";
 import { SettingsMenu } from "./settings-page/SettingsMenu";
 import { ThemePanel } from "./settings-page/ThemePanel";
 import { HostsPanel } from "./settings-page/HostsPanel";
@@ -811,15 +814,16 @@ export function SettingsPage({
   // Resolve theme using state
   const t = resolveTheme(base, gradientFrom, gradientTo, accent, cardOpacity, fontId);
 
-  const activeEffect = useMemo<EffectConfig | null>(() => {
-    if (!effectId) return null;
-    return {
-      effectId,
-      density: (effectDensity as EffectDensity) || DEFAULT_EFFECT_DENSITY,
-      speed: (effectSpeed as EffectSpeed) || DEFAULT_EFFECT_SPEED,
-      size: effectSize ?? DEFAULT_EFFECT_SIZE,
-    };
-  }, [effectId, effectDensity, effectSpeed, effectSize]);
+  const activeEffect = useMemo(
+    () =>
+      resolveEffectConfig({
+        effectId,
+        effectDensity,
+        effectSpeed,
+        effectSize,
+      }),
+    [effectId, effectDensity, effectSpeed, effectSize]
+  );
 
   const S = buildStyles(t);
 
@@ -830,11 +834,7 @@ export function SettingsPage({
           to { transform: rotate(360deg); }
         }
       `}</style>
-      <ThemeBackground theme={t} />
-      <ParticleLayer
-        config={activeEffect}
-        tintColors={[t.accent, t.gradientFrom, t.gradientTo, "#ffffff"]}
-      />
+      <EventAtmosphere theme={t} effect={activeEffect} />
 
       {/* ── Global nav ── */}
       <AppTopNav user={sessionUser} variant="fixed" />

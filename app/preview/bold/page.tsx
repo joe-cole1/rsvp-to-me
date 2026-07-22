@@ -25,7 +25,7 @@ export default function BoldPreview() {
         }}
       />
 
-      <div className="relative z-10 max-w-lg mx-auto px-4 pt-10 pb-12">
+      <div className="relative z-10 max-w-[600px] mx-auto px-4 pt-10 pb-12">
         {/* Cover card */}
         <div
           className="w-full rounded-3xl mb-0 flex items-center justify-center overflow-hidden"

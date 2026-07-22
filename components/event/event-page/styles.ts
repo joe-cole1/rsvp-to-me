@@ -15,7 +15,7 @@ export function buildStyles(t: ResolvedTheme) {
     container: {
       position: "relative" as const,
       zIndex: 1,
-      maxWidth: "440px",
+      maxWidth: "600px",
       margin: "0 auto",
       padding: "96px 16px 160px",
     },

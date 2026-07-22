@@ -5,6 +5,7 @@ import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
 import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
 import { getChannelConfig } from "@/lib/config";
+import { resolveEffectConfig } from "@/lib/effects";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -73,6 +74,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     event.theme?.cardOpacity,
     event.theme?.fontId
   );
+  const effect = resolveEffectConfig(event.theme);
 
   const rsvpEvent = {
     id: event.id,
@@ -107,6 +109,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
       <RsvpFlow
         event={rsvpEvent}
         theme={theme}
+        effect={effect}
         existingRsvp={{
           id: rsvp.id,
           editToken: rsvp.editToken,
@@ -138,6 +141,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     <RsvpFlow
       event={rsvpEvent}
       theme={theme}
+      effect={effect}
       initialStatus={initialStatus}
       sessionUser={sessionUser}
       channelConfig={channelConfig}

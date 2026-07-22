@@ -41,7 +41,7 @@ export default function DarkPreview() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-lg mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-[600px] mx-auto px-4 py-12">
         {/* Cover image placeholder */}
         <div
           className="w-full rounded-2xl mb-8 flex items-center justify-center"

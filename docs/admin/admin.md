@@ -152,6 +152,8 @@ Search for events by title, slug, or the host's email, and filter by status.
 
 - View any event's details and guest list, and delete events that violate your rules.
 - Admins do not edit event details from inside the Admin Panel. Instead, when an Admin opens a public event page, their permissions supersede the host checks — so they can use the inline editor, manage comments, edit potlucks, and moderate RSVPs exactly like the host.
+- Public event pages and their related settings and RSVP screens use a responsive, single-column layout capped at 600px; compact authentication, confirmation, and modal surfaces remain narrower by design.
+- After access is granted, the public event page, RSVP form, guest list, and event settings share the host-selected background effect. Password/private gates, dashboards, exports, social images, and emails remain static and do not expose or animate event effects.
 - Admins can use the host guest-list check-in, undo, walk-in, invitation resend, search, attendance summary, and CSV export controls. Check-in is available for every RSVP status, including no-reply, Can't make it, and awaiting-approval guests. These actions are attributed in the host-only activity feed.
 - The guest list's **All** filter includes both RSVP responses and invited guests who have not responded.
 

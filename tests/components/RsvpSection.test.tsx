@@ -105,6 +105,9 @@ describe("RsvpSection", () => {
     expect((container.querySelector("[data-rsvp-slot]") as HTMLElement).style.minHeight).toBe(
       "156px"
     );
+    expect((container.querySelector("[data-rsvp-floating]") as HTMLElement).style.maxWidth).toBe(
+      "568px"
+    );
     expect(screen.getByRole("link", { name: /Going/ }).style.minHeight).toBe("44px");
     expect(screen.getByRole("link", { name: /Going/ }).style.flexDirection).toBe("row");
   });

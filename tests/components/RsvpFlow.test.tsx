@@ -47,6 +47,29 @@ describe("RsvpFlow — new RSVP", () => {
     expect(screen.getByText("Can't go")).toBeInTheDocument();
   });
 
+  it("uses the shared 600px event width for the RSVP flow", () => {
+    render(
+      <RsvpFlow event={baseEvent} theme={testTheme} initialStatus="GOING" sessionUser={null} />
+    );
+
+    const heading = screen.getByRole("heading", { name: "Test Party" });
+    expect(heading.parentElement?.parentElement?.style.maxWidth).toBe("600px");
+  });
+
+  it("carries the event effect into the RSVP flow", () => {
+    const { container } = render(
+      <RsvpFlow
+        event={baseEvent}
+        theme={testTheme}
+        effect={{ effectId: "confetti", density: "sparse", speed: "gentle" }}
+        initialStatus="GOING"
+        sessionUser={null}
+      />
+    );
+
+    expect(container.querySelector('[data-effect-id="confetti"]')).toBeTruthy();
+  });
+
   it("does not render Maybe button when maybeEnabled is false", () => {
     render(
       <RsvpFlow
@@ -87,8 +110,14 @@ describe("RsvpFlow — new RSVP", () => {
   it("shows confirmation screen after successful RSVP submission", async () => {
     mockAddRSVP.mockResolvedValue({ success: true, id: "rsvp-1", editToken: "tok-abc" });
 
-    render(
-      <RsvpFlow event={baseEvent} theme={testTheme} initialStatus="GOING" sessionUser={null} />
+    const { container } = render(
+      <RsvpFlow
+        event={baseEvent}
+        theme={testTheme}
+        effect={{ effectId: "confetti", density: "sparse", speed: "gentle" }}
+        initialStatus="GOING"
+        sessionUser={null}
+      />
     );
     fireEvent.change(screen.getByPlaceholderText("Your name (required)"), {
       target: { value: "Alice" },
@@ -98,6 +127,7 @@ describe("RsvpFlow — new RSVP", () => {
     await waitFor(() => {
       expect(screen.getByText("You're in!")).toBeInTheDocument();
     });
+    expect(container.querySelector('[data-effect-id="confetti"]')).toBeTruthy();
   });
 
   it("shows inline error when addRSVP returns failure", async () => {
@@ -237,10 +267,11 @@ describe("RsvpFlow — edit mode", () => {
   });
 
   it("renders a read-only summary after event-start locking", () => {
-    render(
+    const { container } = render(
       <RsvpFlow
         event={baseEvent}
         theme={testTheme}
+        effect={{ effectId: "confetti", density: "sparse", speed: "gentle" }}
         existingRsvp={existingRsvp}
         sessionUser={null}
         readOnlyReason="This event has started, so guests can no longer change their RSVP."
@@ -250,6 +281,7 @@ describe("RsvpFlow — edit mode", () => {
     expect(screen.getByText("RSVP editing is closed")).toBeInTheDocument();
     expect(screen.getByText("Going · Party of 1")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Update RSVP" })).not.toBeInTheDocument();
+    expect(container.querySelector('[data-effect-id="confetti"]')).toBeTruthy();
   });
 
   it("uses the authenticated organizer update action in override mode", async () => {
