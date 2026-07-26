@@ -50,6 +50,7 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 | `scripts/`      | Development sync/reset, preflight, shipping, migration, and E2E utilities.                                                     |
 | `.github/`      | CI, releases, and dependency automation.                                                                                       |
 | `perf/`         | Manual performance scenarios and notes.                                                                                        |
+| `vendor/`       | Temporary, repository-owned compatibility packages for audited dependencies; each package must name its removal issue.         |
 
 ## Entry points and shared boundaries
 
