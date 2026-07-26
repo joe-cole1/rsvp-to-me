@@ -73,6 +73,20 @@ Windows development-server path traversal described in
 Keep that constraint in place while any transitive dependency can otherwise
 resolve to a vulnerable version.
 
+Other security overrides keep React Email on the application's patched Next.js
+16 release, raise PostCSS to its patched release line, and constrain Prisma's
+development tooling to patched `find-my-way` and Valibot versions.
+
+ESLint 9 still resolves `minimatch` 3, whose legacy callable
+`brace-expansion` API is incompatible with the named export in the only patched
+release. `vendor/brace-expansion-compat/` temporarily exposes both interfaces
+while delegating expansion to the official patched package. The root `.npmrc`
+sets `install-links=true` so npm installs that local adapter as a regular
+package rather than a depth-relative symlink. Do not remove the adapter,
+override, or npm setting independently. Weekly Dependabot updates and
+[issue #546](https://github.com/joe-cole1/rsvp-to-me/issues/546) track the
+upstream releases and coordinated removal checklist.
+
 ## Reset disposable development data
 
 This command permanently deletes the **local development** Postgres and Redis
