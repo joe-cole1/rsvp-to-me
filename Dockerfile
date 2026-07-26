@@ -7,7 +7,8 @@ ARG NODE_IMAGE=node:22.23.1-alpine3.24@sha256:16e22a550f3863206a3f701448c45f7912
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
-COPY package*.json ./
+COPY package*.json .npmrc ./
+COPY vendor/brace-expansion-compat ./vendor/brace-expansion-compat
 RUN npm ci
 
 FROM ${NODE_IMAGE} AS builder

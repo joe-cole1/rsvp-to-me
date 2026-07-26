@@ -63,4 +63,5 @@ For every bug fix merged to main:
 | `orphaned-invitation-removal.test.tsx`               | An unlinked invitation could outlive a manual RSVP as an undeletable unanswered guest-list card                       | 019f62a4  |
 | `docker-runtime-hardening.test.ts`                   | Production image ran as root, used floating bases, included curl, and deployed migrations twice                       | 019f869e  |
 | `docker-bind-mount-bootstrap.test.ts`                | Bind-mount repair traversed sibling PostgreSQL and Redis data instead of only app-owned storage                       | 019f869e  |
+| `docker-vendored-dependency-context.test.ts`         | Docker dependency stage omitted `.npmrc` and the vendored package required by a file-based npm override               | 3eb8bbf7  |
 | `ghsa-f88m-g3jw-g9cj-sharp-libvips.test.ts`          | Next.js, React Email UI, and Miniflare constrained Sharp to vulnerable 0.34.x after the patched 0.35 release          | 019f869e  |
