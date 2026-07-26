@@ -86,4 +86,10 @@ a guest loses their link, see the [FAQ](faq.md).
 
 ## Anti-Abuse
 
-To prevent spam and runaway messaging costs, RSVP submissions are rate-limited per client IP (both overall and per event). Real guests won't notice — the limits are far above normal use — but automated bursts of fake RSVPs are throttled before any confirmation email or text is sent.
+When the site administrator enables bot protection, every new or edited RSVP must pass an
+interaction-only security check before it is saved. The same protection applies when a host or
+co-host edits an RSVP or records a walk-in, because organizer accounts can also be abused. Most
+legitimate users see no prompt.
+
+RSVP submissions are also rate-limited per client IP (both overall and per event). Together these
+controls throttle automated fake RSVPs before any confirmation email or text is sent.

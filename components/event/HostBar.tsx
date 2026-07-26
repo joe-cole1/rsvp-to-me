@@ -6,6 +6,7 @@ import type { ResolvedTheme } from "@/lib/theme";
 import { sendBlast, sendSmsBlast, saveEventSettings, inviteGuest } from "@/app/actions/event";
 import Image from "next/image";
 import QRCode from "qrcode";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
 
@@ -74,13 +75,16 @@ export function HostBar({
     null
   );
   const [copiedLink, setCopiedLink] = useState(false);
+  const { runWithCaptcha } = useCaptcha();
 
   const handleSendInvite = async () => {
     if (!inviteInput.trim() || invitePending) return;
     setInvitePending(true);
     setInviteStatus(null);
     try {
-      const result = await inviteGuest(eventId, inviteInput.trim());
+      const result = await runWithCaptcha("host_invite", () =>
+        inviteGuest(eventId, inviteInput.trim())
+      );
       if (result.success) {
         setInviteStatus({ success: true, message: `Invite sent to ${result.emailOrPhone}!` });
         setInviteInput("");
@@ -117,7 +121,9 @@ export function HostBar({
     setVisibilityPending(true);
     setVisibility(next);
     try {
-      await saveEventSettings(eventId, { visibility: next });
+      await runWithCaptcha("event_settings", () =>
+        saveEventSettings(eventId, { visibility: next })
+      );
     } catch {
       setVisibility(prev);
     } finally {
@@ -143,7 +149,9 @@ export function HostBar({
 
     try {
       if (sendEmail) {
-        const r = await sendBlast(eventId, messageText.trim(), recipientFilters);
+        const r = await runWithCaptcha("message_send", () =>
+          sendBlast(eventId, messageText.trim(), recipientFilters)
+        );
         if (r.success) {
           successCount++;
           emailStatus =
@@ -153,7 +161,9 @@ export function HostBar({
         }
       }
       if (sendSms) {
-        const r = await sendSmsBlast(eventId, messageText.trim(), recipientFilters);
+        const r = await runWithCaptcha("message_send", () =>
+          sendSmsBlast(eventId, messageText.trim(), recipientFilters)
+        );
         if (r.success) {
           successCount++;
           smsStatus =

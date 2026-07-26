@@ -9,6 +9,7 @@ import { getChannelConfig } from "@/lib/config";
 import { normalizePhone } from "@/lib/auth";
 import { AddWalkInSchema } from "@/lib/schemas";
 import { assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 type EligibleRsvp = {
   id: string;
@@ -95,6 +96,7 @@ export async function undoCheckIn(rsvpId: string) {
 export async function addWalkIn(rawInput: unknown) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  await assertCaptcha("walkin_create");
   const parsed = AddWalkInSchema.safeParse(rawInput);
   if (!parsed.success) {
     return { success: false as const, error: "Please check the walk-in details and try again." };

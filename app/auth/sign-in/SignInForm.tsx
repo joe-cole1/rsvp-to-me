@@ -12,6 +12,7 @@ import {
   FormField,
   InlineAlert,
 } from "@/components/ui/AppPrimitives";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 function looksLikePhone(s: string): boolean {
   return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
@@ -39,6 +40,7 @@ export default function SignInForm({
   const [authFailed, setAuthFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { runWithCaptcha } = useCaptcha();
 
   const isPhone = looksLikePhone(identifier);
 
@@ -47,7 +49,14 @@ export default function SignInForm({
     setError(null);
     setAuthFailed(false);
     setLoading(true);
-    const result = await sendMagicLinkAction(identifier, redirect);
+    let result;
+    try {
+      result = await runWithCaptcha("signin", () => sendMagicLinkAction(identifier, redirect));
+    } catch (reason) {
+      setLoading(false);
+      setError(reason instanceof Error ? reason.message : "Security check failed.");
+      return;
+    }
     setLoading(false);
     if (result.error === "auth_failed") {
       setAuthFailed(true);

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import { saveEventDates } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { formatDate, formatTime, toDateTimeLocal, tzLocalToUtcClient } from "./helpers";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 // ── Date/time inline editor ────────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ export function DateEdit({
   const [endTime, setEndTime] = useState("");
   const [isPending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const { runWithCaptcha } = useCaptcha();
 
   useEffect(() => {
     if (!open && !calOpen) return;
@@ -132,7 +134,7 @@ export function DateEdit({
     const startVal = `${startDate}T${startTime}`;
     const endVal = endDate && endTime ? `${endDate}T${endTime}` : "";
     startTransition(async () => {
-      await saveEventDates(eventId, startVal, endVal || null);
+      await runWithCaptcha("event_edit", () => saveEventDates(eventId, startVal, endVal || null));
       onSave(
         tzLocalToUtcClient(startVal, timezone),
         endVal ? tzLocalToUtcClient(endVal, timezone) : null

@@ -14,6 +14,7 @@ import {
   RsvpStatusChoice,
   type RsvpResponseStatus,
 } from "./status";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 type SessionUser = {
   email: string;
@@ -130,6 +131,7 @@ export function RsvpFlow({
   const [linkCopied, setLinkCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { runWithCaptcha } = useCaptcha();
 
   const hasQuestionnaire = status !== "NO" && event.rsvpFields.length > 0;
   const maxStep = hasQuestionnaire ? 2 : 1;
@@ -170,49 +172,57 @@ export function RsvpFlow({
   const submit = () => {
     startTransition(async () => {
       setError(null);
-      if (isEdit && existingRsvp) {
-        const input = {
-          status,
-          plusOneCount,
-          plusOneGuestNames,
-          note: note.trim() || undefined,
-          answers,
-        };
-        const result = organizerOverride
-          ? await updateRsvpAsHost(existingRsvp.id, input)
-          : await updateRSVP(existingRsvp.editToken, input);
-        if (!result.success) {
-          setError(result.error ?? "Something went wrong");
-          return;
-        }
-      } else {
-        const result = await addRSVP({
-          eventId: event.id,
-          guestName: name.trim(),
-          guestEmail: email.trim() || undefined,
-          guestPhone: phone.trim() || undefined,
-          status,
-          plusOneCount,
-          plusOneGuestNames,
-          note: note.trim() || undefined,
-          answers,
-        });
-        if (!result.success) {
-          setError(result.error ?? "Something went wrong");
-          return;
-        }
-        setJustCreated(true);
-        if (result.editToken) {
-          setSavedEditToken(result.editToken);
-          if (typeof window !== "undefined") {
-            const url = new URL(window.location.href);
-            url.searchParams.set("token", result.editToken);
-            url.searchParams.delete("status");
-            window.history.replaceState({}, "", url.toString());
+      try {
+        if (isEdit && existingRsvp) {
+          const input = {
+            status,
+            plusOneCount,
+            plusOneGuestNames,
+            note: note.trim() || undefined,
+            answers,
+          };
+          const result = await runWithCaptcha("rsvp_edit", () =>
+            organizerOverride
+              ? updateRsvpAsHost(existingRsvp.id, input)
+              : updateRSVP(existingRsvp.editToken, input)
+          );
+          if (!result.success) {
+            setError(result.error ?? "Something went wrong");
+            return;
+          }
+        } else {
+          const result = await runWithCaptcha("rsvp_create", () =>
+            addRSVP({
+              eventId: event.id,
+              guestName: name.trim(),
+              guestEmail: email.trim() || undefined,
+              guestPhone: phone.trim() || undefined,
+              status,
+              plusOneCount,
+              plusOneGuestNames,
+              note: note.trim() || undefined,
+              answers,
+            })
+          );
+          if (!result.success) {
+            setError(result.error ?? "Something went wrong");
+            return;
+          }
+          setJustCreated(true);
+          if (result.editToken) {
+            setSavedEditToken(result.editToken);
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              url.searchParams.set("token", result.editToken);
+              url.searchParams.delete("status");
+              window.history.replaceState({}, "", url.toString());
+            }
           }
         }
+        setDone(true);
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : "Something went wrong");
       }
-      setDone(true);
     });
   };
 

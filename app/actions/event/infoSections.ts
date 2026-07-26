@@ -6,6 +6,7 @@ import { logActivity, iconLabel } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { HttpUrlSchema } from "@/lib/schemas";
 import { assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── Info sections ──────────────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ export async function addInfoSection(data: {
   order: number;
 }) {
   const event = await assertHostOrCohost(data.eventId);
+  await assertCaptcha("event_content");
   const section = await db.eventInfoSection.create({
     data: {
       eventId: data.eventId,
@@ -55,6 +57,7 @@ export async function updateInfoSection(
   });
   if (!section) throw new Error("Forbidden");
   await assertHostOrCohost(section.eventId);
+  await assertCaptcha("event_content");
   await db.eventInfoSection.update({
     where: { id: sectionId },
     data: {

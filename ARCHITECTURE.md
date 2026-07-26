@@ -95,6 +95,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
    `lib/eventAccess.ts`.
 6. Guests edit an RSVP through its edit token; do not substitute host sessions
    or publicly visible RSVP fields for that authority.
+7. User-content create/edit mutations call `assertCaptcha()` from `lib/captcha.ts`.
+   Turnstile tokens are action-bound, consumed from the `rsvp-turnstile` cookie,
+   and verified server-side. Only administrators bypass this boundary; authenticated
+   hosts and co-hosts remain protected.
 
 ### Event and RSVP flow
 
@@ -117,6 +121,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   blasts, custom questions, and email previews/tests.
 - Shared validation belongs in `lib/schemas.ts`; shared authorization belongs
   in `lib/auth-guards.ts` or `lib/eventAccess.ts`.
+- Client submissions request fresh Turnstile tokens through
+  `components/ui/CaptchaProvider.tsx`; server actions and upload routes enforce
+  them through `lib/captcha.ts`. Deletes and low-risk state toggles are outside
+  this user-content boundary.
 - Capacity-sensitive RSVP writes use `lib/capacityLock.ts`.
 
 ### Themes, effects, and email
@@ -200,6 +208,7 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 | Dashboard                | `app/actions/event/dashboard.ts`           | `components/dashboard/`, `app/(app)/dashboard/`                   |
 | Authentication/session   | `app/actions/auth.ts`, `app/auth/`         | `lib/auth.ts`, `lib/session.ts`, `lib/session-user.ts`            |
 | Authorization            | `lib/auth-guards.ts`, `lib/eventAccess.ts` | relevant action/route and regression tests                        |
+| Bot protection           | `lib/captcha.ts`, `lib/captcha-types.ts`   | `components/ui/CaptchaProvider.tsx`, protected action/route calls |
 | Email templates/delivery | `emails/`, `lib/email.ts`                  | `lib/email-theme.ts`, `lib/email-settings.ts`, admin/host docs    |
 | SMS/Twilio               | `lib/sms.ts`                               | Twilio webhook, admin actions, SMS docs                           |
 | Admin panel              | `app/(app)/admin/`                         | `app/actions/admin.ts`, config/backup/email services              |

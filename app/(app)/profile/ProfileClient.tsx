@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/AppPrimitives";
 import { Dialog } from "@/components/ui/Dialog";
 import { compressImage } from "@/lib/client-image";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 interface ProfileData {
   id: string;
@@ -45,6 +46,7 @@ export default function ProfileClient({
   initialProfile: ProfileData;
   channelConfig?: { email: boolean; sms: boolean };
 }) {
+  const { runWithCaptcha } = useCaptcha();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -132,19 +134,23 @@ export default function ProfileClient({
       const form = new FormData();
       form.append("file", compressed);
 
-      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const res = await runWithCaptcha("image_upload", () =>
+        fetch("/api/upload", { method: "POST", body: form })
+      );
       if (!res.ok) throw new Error(await res.text());
 
       const { url } = (await res.json()) as { url: string };
       setAvatarUrl(url);
 
       // Save avatarUrl immediately to profile
-      await updateProfileSettings({
-        name,
-        avatarUrl: url,
-        email: initialProfile.email || undefined,
-        phone: initialProfile.phone || undefined,
-      });
+      await runWithCaptcha("profile_edit", () =>
+        updateProfileSettings({
+          name,
+          avatarUrl: url,
+          email: initialProfile.email || undefined,
+          phone: initialProfile.phone || undefined,
+        })
+      );
 
       setFeedback({ type: "success", message: "Avatar updated successfully!" });
     } catch (err) {
@@ -164,12 +170,14 @@ export default function ProfileClient({
 
     startTransition(async () => {
       try {
-        const result = await updateProfileSettings({
-          name,
-          avatarUrl,
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-        });
+        const result = await runWithCaptcha("profile_edit", () =>
+          updateProfileSettings({
+            name,
+            avatarUrl,
+            email: email.trim() || undefined,
+            phone: phone.trim() || undefined,
+          })
+        );
 
         if (result.success) {
           if (result.messages && result.messages.length > 0) {

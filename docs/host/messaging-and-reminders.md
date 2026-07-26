@@ -20,6 +20,10 @@ Send a message to your guests at any time from the event's host controls:
 - **Delivery channels:** send by **Email**, **SMS**, or both (only the channels enabled on your site appear).
 - **Log:** every blast is recorded in the event's [activity log](#activity-log).
 
+When the site administrator enables bot protection, sending a blast, publishing an event update, or
+sending a test email requires an interaction-only security check. This also applies to hosts and
+co-hosts so a compromised or abusive organizer account cannot be used to spam guests.
+
 ---
 
 ## New-RSVP Alerts

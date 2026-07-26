@@ -20,6 +20,7 @@ All configurable settings for **RSVP to Me** live in a single `.env` file in the
    - [SESSION_SECRET](#session_secret)
    - [ENCRYPTION_KEY](#encryption_key)
    - [NEXT_PUBLIC_APP_URL](#next_public_app_url)
+   - [Cloudflare Turnstile](#cloudflare-turnstile)
    - [INITIAL_ADMIN_EMAIL](#initial_admin_email)
    - [OPEN_REGISTRATION](#open_registration)
    - [HOST_INVITE_CODE](#host_invite_code)
@@ -124,6 +125,34 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 **Rate-limited surfaces:** magic-link sign-in (per identifier: 5 per 10 minutes always; per client IP: 20 per 10 minutes **only when `TRUSTED_IP_HEADER` is set**), host registration, RSVP submission (per client IP: 15 per 10 minutes; per event + client IP: 8 per 10 minutes), password-gated event unlock (10 attempts per event + client IP per 10 minutes), host guest invites (max 200 recipients per request; per client IP: 15/hour; per host + event: 10/hour), and guest-to-guest invites on private events (per client IP: 30/hour; per inviting guest: 10 per 10 minutes burst and 20 per day). Setting this header correctly behind a proxy ensures these limits track the real client rather than the proxy IP.
 
 > **No account enumeration (SEC-40):** The sign-in screen shows the same "check your inbox" confirmation whether or not the identifier has an account — it never reveals which emails or phone numbers are registered. Self-hosters diagnosing a missing link should check the mail/SMS logs (look for `[auth:magic-link-fallback]`) rather than the on-screen state.
+
+---
+
+### Cloudflare Turnstile
+
+- **Required**: No, but strongly recommended for internet-facing installations
+- **Default**: Disabled when both values are empty
+- **Type**: Cloudflare Turnstile site key and secret key
+
+```env
+TURNSTILE_SITE_KEY="your-site-key"
+TURNSTILE_SECRET_KEY="your-secret-key"
+```
+
+Create a **Managed** Turnstile widget in Cloudflare and restrict it to the hostname in
+`NEXT_PUBLIC_APP_URL`. Set both variables together; a partial configuration fails protected
+submissions closed.
+
+When enabled, Turnstile protects user-submitted create and edit operations across public guest,
+host, and co-host pathways. This includes authentication, event creation and editing, RSVPs and
+comments, invitations, messages, uploads, and profile changes. Each submission requires a fresh,
+single-use token. Routine state toggles such as check-in, poll voting, potluck claiming, notification
+preferences, reordering, and deletes are not challenged. Administrators bypass Turnstile; hosts and
+co-hosts do not.
+
+The widget uses Cloudflare's interaction-only Managed mode, so most legitimate users see no prompt.
+The application still validates every token server-side, including its action and hostname. Never
+expose `TURNSTILE_SECRET_KEY` to the browser.
 
 ---
 
@@ -454,6 +483,8 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 | `BACKUP_KEEP_COUNT`            | No              | `7`                 | Maximum number of backup files to retain before rotating.                                                       |
 | `SESSION_SECRET`               | Yes             | _(none)_            | Random string (32+ chars) for signing session cookies.                                                          |
 | `TRUSTED_IP_HEADER`            | No              | _(none)_            | Trusted proxy header for client IP (e.g. CF-Connecting-IP). Unset = headers not trusted; set it behind a proxy. |
+| `TURNSTILE_SITE_KEY`           | No              | _(none)_            | Public key for a Cloudflare Turnstile Managed widget; set with the secret key to enable protection.             |
+| `TURNSTILE_SECRET_KEY`         | No              | _(none)_            | Server-only Turnstile verification key; set with the site key and never expose it publicly.                     |
 | `HEALTH_CHECK_TOKEN`           | No              | _(none)_            | Token for the `x-health-token` header that unlocks the detailed `/api/health` body (migration state).           |
 | `ENCRYPTION_KEY`               | No              | _(falls back)_      | Encryption key for database-stored credentials.                                                                 |
 | `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                                                         |

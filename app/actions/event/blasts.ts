@@ -7,11 +7,13 @@ import { sendSmsBlast as smsSendBlast } from "@/lib/sms";
 import { logSafe } from "@/lib/logger";
 import { buildRsvpStatusFilter, type BlastStatusFilter } from "@/lib/blastFilters";
 import { assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── Message blast ──────────────────────────────────────────────────────────────
 
 export async function sendBlast(eventId: string, message: string, filters: BlastStatusFilter[]) {
   await assertHostOrCohost(eventId);
+  await assertCaptcha("message_send");
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -74,6 +76,7 @@ export async function sendBlast(eventId: string, message: string, filters: Blast
 
 export async function sendSmsBlast(eventId: string, message: string, filters: BlastStatusFilter[]) {
   await assertHostOrCohost(eventId);
+  await assertCaptcha("message_send");
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -130,6 +133,7 @@ export async function sendSmsBlast(eventId: string, message: string, filters: Bl
 
 export async function addEventUpdate(eventId: string, body: string, notifyGuests: boolean) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("event_update");
   const update = await db.eventUpdate.create({ data: { eventId, body, notifyGuests } });
   if (notifyGuests) {
     const rsvps = await db.rSVP.findMany({

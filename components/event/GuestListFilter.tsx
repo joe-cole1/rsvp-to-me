@@ -13,6 +13,7 @@ import {
   undoCheckIn,
 } from "@/app/actions/event";
 import Image from "next/image";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 type RSVPAnswer = { label: string; value: string };
 
@@ -93,6 +94,7 @@ export function GuestListFilter({
   const [walkInPhone, setWalkInPhone] = useState("");
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { runWithCaptcha } = useCaptcha();
 
   const statusLabel = (s: string) =>
     s === "GOING"
@@ -226,7 +228,7 @@ export function GuestListFilter({
 
   const handleApprove = (rsvpId: string) => {
     startTransition(async () => {
-      const res = await approveRsvp(rsvpId);
+      const res = await runWithCaptcha("rsvp_moderation", () => approveRsvp(rsvpId));
       if (res.success) {
         const approvedItem = pending.find((r) => r.id === rsvpId);
         if (approvedItem) {
@@ -269,7 +271,7 @@ export function GuestListFilter({
   const handleDecline = (rsvpId: string) => {
     if (!confirm("Decline and remove this RSVP request?")) return;
     startTransition(async () => {
-      const res = await declineRsvp(rsvpId);
+      const res = await runWithCaptcha("rsvp_moderation", () => declineRsvp(rsvpId));
       if (res.success) {
         setPending((prev) => prev.filter((r) => r.id !== rsvpId));
       }
@@ -394,7 +396,9 @@ export function GuestListFilter({
     setResendPendingId(guest.id);
     startTransition(async () => {
       try {
-        const result = await inviteGuest(eventId, guest.sentTo);
+        const result = await runWithCaptcha("host_invite", () =>
+          inviteGuest(eventId, guest.sentTo)
+        );
         setInvitationMessage(
           result.errors?.length
             ? `Invite resent with a warning: ${result.errors.join("; ")}`
@@ -412,13 +416,15 @@ export function GuestListFilter({
     startTransition(async () => {
       setAttendanceError(null);
       try {
-        const result = await addWalkIn({
-          eventId,
-          guestName: walkInName,
-          totalPartySize: walkInPartySize,
-          guestEmail: walkInEmail,
-          guestPhone: walkInPhone,
-        });
+        const result = await runWithCaptcha("walkin_create", () =>
+          addWalkIn({
+            eventId,
+            guestName: walkInName,
+            totalPartySize: walkInPartySize,
+            guestEmail: walkInEmail,
+            guestPhone: walkInPhone,
+          })
+        );
         if (!result.success) throw new Error(result.error);
         setShowWalkIn(false);
         setWalkInName("");

@@ -7,10 +7,12 @@ import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { AddCommentSchema } from "@/lib/schemas";
 import { findApprovedGuestByToken } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── Comments ──────────────────────────────────────────────────────────────────
 export async function addComment(rawInput: unknown) {
   const data = AddCommentSchema.parse(rawInput);
+  await assertCaptcha("comment");
 
   // Load the event once — reused for the comments-enabled gate and the SEC-17
   // host/co-host relationship check below.

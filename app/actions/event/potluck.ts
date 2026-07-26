@@ -6,11 +6,13 @@ import { getSession } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { assertHostOrCohost, findApprovedGuestByToken } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── Potluck ───────────────────────────────────────────────────────────────────
 
 export async function addPotluckItem(eventId: string, label: string, quantity: number = 1) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("potluck_manage");
   const item = await db.potluckItem.create({ data: { eventId, label, quantity } });
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: item.id };

@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { verifyEventPassword } from "@/app/actions/event";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 export function PasswordGate({ slug }: { slug: string }) {
   const [pw, setPw] = useState("");
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { runWithCaptcha } = useCaptcha();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +18,9 @@ export function PasswordGate({ slug }: { slug: string }) {
     setError(false);
     setLoading(true);
     try {
-      const res = await verifyEventPassword(slug, pw.trim());
+      const res = await runWithCaptcha("event_password", () =>
+        verifyEventPassword(slug, pw.trim())
+      );
       if (res.success) {
         router.refresh();
       } else {
