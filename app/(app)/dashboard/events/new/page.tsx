@@ -11,6 +11,7 @@ import {
   FormField,
   appInputStyle,
 } from "@/components/ui/AppPrimitives";
+import { CaptchaForm } from "@/components/ui/CaptchaForm";
 
 export const metadata: Metadata = { title: "New Event" };
 
@@ -45,7 +46,7 @@ export default async function NewEventPage() {
 
   return (
     <div style={{ maxWidth: "480px", margin: "0 auto", padding: "32px 16px 80px" }}>
-      <form action={createEvent}>
+      <CaptchaForm action={createEvent} captchaAction="event_create">
         <Card title="Event Details">
           <FormField label="Event name *" style={{ marginBottom: "14px" }}>
             <AppInput name="title" required placeholder="Wine Night at Jane's" />
@@ -141,7 +142,7 @@ export default async function NewEventPage() {
         >
           Create Event →
         </AppButton>
-      </form>
+      </CaptchaForm>
     </div>
   );
 }

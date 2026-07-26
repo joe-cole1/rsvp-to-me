@@ -17,6 +17,7 @@ import { HostRsvpAlertEmail } from "@/emails/templates/HostRsvpAlertEmail";
 import { formatEventDateTime } from "@/lib/calendar";
 import { sendRenderedEmail } from "@/lib/email";
 import { assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -152,6 +153,7 @@ export async function sendEventEmailTest(eventId: string, templateId: TemplateId
   if (!session?.email) {
     return { success: false as const, error: "Your account has no email address." };
   }
+  await assertCaptcha("email_test");
   const limit = await rateLimit(`event-email-test:${session.userId}`, 10, 3600);
   if (!limit.success) {
     return { success: false as const, error: "Too many test emails. Try again later." };

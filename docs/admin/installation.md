@@ -156,6 +156,22 @@ You must set at least these variables before launching:
 
 > **Warning:** Your `.env` file contains sensitive passwords and secrets. Never commit it to a public repository. Ensure it is added to your `.gitignore` file.
 
+### Recommended: Enable Bot Protection
+
+For an internet-facing installation, create a **Managed** widget under Cloudflare Turnstile, add the
+hostname from `NEXT_PUBLIC_APP_URL`, and copy both credentials into `.env`:
+
+```env
+TURNSTILE_SITE_KEY="your-site-key"
+TURNSTILE_SECRET_KEY="your-secret-key"
+```
+
+Turnstile is optional so local and private installations can run without Cloudflare. Leaving both
+values empty disables it. Setting only one value causes protected submissions to fail, so always
+configure or remove the pair together. See the
+[Configuration Reference](./configuration.md#cloudflare-turnstile) for the protected operations and
+administrator bypass behavior.
+
 ---
 
 ## Step 4 — Start the Application

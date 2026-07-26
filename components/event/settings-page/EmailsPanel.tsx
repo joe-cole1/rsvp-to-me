@@ -9,6 +9,7 @@ import {
   getEventEmailTemplates,
 } from "@/app/actions/event";
 import { Label, Section } from "./ui";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 type EventTemplateOption = { id: string; label: string; description: string };
 
@@ -22,6 +23,7 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
   );
   const [status, setStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const { runWithCaptcha } = useCaptcha();
 
   useEffect(() => {
     getEventEmailTemplates()
@@ -49,13 +51,12 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
     setSending(true);
     setStatus(null);
     try {
-      const res = await sendEventEmailTest(
-        eventId,
-        selectedId as Parameters<typeof sendEventEmailTest>[1]
+      const res = await runWithCaptcha("email_test", () =>
+        sendEventEmailTest(eventId, selectedId as Parameters<typeof sendEventEmailTest>[1])
       );
       setStatus(res.success ? `Test sent to ${res.sentTo}` : (res.error ?? "Send failed"));
-    } catch {
-      setStatus("Send failed");
+    } catch (reason) {
+      setStatus(reason instanceof Error ? reason.message : "Send failed");
     } finally {
       setSending(false);
     }

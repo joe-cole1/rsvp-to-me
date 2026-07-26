@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { inviteFriendAsGuest } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 export function GuestInviteFriendCard({
   eventId,
@@ -19,6 +20,7 @@ export function GuestInviteFriendCard({
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const { runWithCaptcha } = useCaptcha();
 
   const handleSend = () => {
     const val = target.trim();
@@ -26,13 +28,20 @@ export function GuestInviteFriendCard({
     setStatus("idle");
     setErrorMsg("");
     startTransition(async () => {
-      const res = await inviteFriendAsGuest(eventId, guestToken, val);
-      if (res.success) {
-        setStatus("success");
-        setTarget("");
-      } else {
+      try {
+        const res = await runWithCaptcha("guest_invite", () =>
+          inviteFriendAsGuest(eventId, guestToken, val)
+        );
+        if (res.success) {
+          setStatus("success");
+          setTarget("");
+          return;
+        }
         setStatus("error");
         setErrorMsg(res.error ?? "Failed to send invitation");
+      } catch (reason) {
+        setStatus("error");
+        setErrorMsg(reason instanceof Error ? reason.message : "Security check failed");
       }
     });
   };
@@ -105,7 +114,7 @@ export function GuestInviteFriendCard({
       )}
       {status === "error" && (
         <div style={{ fontSize: "12.5px", color: "#f87171", fontWeight: 600, marginTop: "8px" }}>
-          ✕ ${errorMsg}
+          ✕ {errorMsg}
         </div>
       )}
     </EventCard>

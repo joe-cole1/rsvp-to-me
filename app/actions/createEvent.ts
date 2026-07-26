@@ -7,6 +7,7 @@ import { getSessionUser } from "@/lib/session-user";
 import { generateUniqueSlug } from "@/lib/slug";
 import { tzLocalToUtc } from "@/lib/utils";
 import { CreateEventSchema } from "@/lib/schemas";
+import { assertCaptcha } from "@/lib/captcha";
 
 export async function createEvent(formData: FormData) {
   const session = await getSession();
@@ -33,6 +34,7 @@ export async function createEvent(formData: FormData) {
   };
 
   const parsed = CreateEventSchema.parse(rawInput);
+  await assertCaptcha("event_create");
 
   const startAt = tzLocalToUtc(`${parsed.startDate}T${parsed.startTime}`, parsed.timezone);
   const slug = await generateUniqueSlug(parsed.title);

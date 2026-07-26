@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── RSVP Fields ───────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ export async function addRsvpField(
   }
 ) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("rsvp_field");
   const field = await db.rSVPField.create({
     data: {
       eventId,
@@ -42,6 +44,7 @@ export async function updateRsvpField(
   });
   if (!field) throw new Error("Forbidden");
   await assertHostOrCohost(field.eventId);
+  await assertCaptcha("rsvp_field");
   await db.rSVPField.update({
     where: { id: fieldId },
     data: {

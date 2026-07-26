@@ -15,11 +15,13 @@ import { withEventCapacityLock } from "@/lib/capacityLock";
 import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
 import { assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 export async function verifyEventPassword(
   slug: string,
   rawPassword: string
 ): Promise<{ success: boolean; error?: string }> {
+  await assertCaptcha("event_password");
   // SEC-19: throttle online brute-force of password-gated events. bcrypt slows
   // each guess but without an attempt cap an attacker can still grind a weak
   // password. Limit to 10 attempts per slug+IP per 10 minutes.
@@ -105,6 +107,7 @@ export async function addRSVP(rawInput: unknown) {
     return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
   }
   const data = parsed.data;
+  await assertCaptcha("rsvp_create");
 
   // SEC-23: addRSVP is callable by anyone on PUBLIC/UNLISTED events, upserts a
   // User from the supplied address, and fans out a confirmation email/SMS to
@@ -342,6 +345,7 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
     return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
   }
   const data = parsed.data;
+  await assertCaptcha("rsvp_edit");
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
     include: {
@@ -454,6 +458,7 @@ export async function updateRsvpAsHost(rsvpId: string, rawInput: unknown) {
   const data = parsed.data;
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  await assertCaptcha("rsvp_edit");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
@@ -550,6 +555,7 @@ export async function approveRsvp(rsvpId: string, message?: string) {
   // SEC-42: see deleteRsvpAsHost.
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  await assertCaptcha("rsvp_moderation");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
@@ -594,6 +600,7 @@ export async function declineRsvp(rsvpId: string, message?: string) {
   // SEC-42: see deleteRsvpAsHost.
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  await assertCaptcha("rsvp_moderation");
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {

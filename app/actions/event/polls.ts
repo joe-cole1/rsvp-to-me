@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { assertHostOrCohost, findApprovedGuestByToken } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── Polls ──────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ export async function createPoll(
   hideVoters: boolean = false
 ) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("poll_manage");
   if (!question.trim()) throw new Error("Question cannot be empty");
 
   const cleanOptions = options.map((o) => o.trim()).filter((o) => o.length > 0);
@@ -184,6 +186,7 @@ export async function addPollOption(
   guestEditToken?: string
 ) {
   if (!text.trim()) throw new Error("Option text cannot be empty");
+  await assertCaptcha("poll_option");
 
   const poll = await db.poll.findUnique({
     where: { id: pollId },
@@ -254,6 +257,7 @@ export async function updatePollSettings(
     hideVoters?: boolean;
   }
 ) {
+  await assertCaptcha("poll_manage");
   const poll = await db.poll.findUnique({
     where: { id: pollId },
     select: { eventId: true, question: true },

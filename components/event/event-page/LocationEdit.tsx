@@ -7,6 +7,7 @@ import type { ResolvedTheme } from "@/lib/theme";
 import type { LocationType } from "./types";
 import { buildMapUrl } from "./helpers";
 import { LocationFields } from "@/components/event/LocationFields";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 // ── Location inline editor ────────────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ export function LocationEdit({
   const [vUrl, setVUrl] = useState(initialVirtualUrl ?? "");
   const [isPending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const { runWithCaptcha } = useCaptcha();
 
   useEffect(() => {
     if (!open && !menuOpen) return;
@@ -92,12 +94,14 @@ export function LocationEdit({
 
   const save = () => {
     startTransition(async () => {
-      await saveEventLocation(eventId, {
-        locationType: type,
-        locationName: type === "PHYSICAL" ? name || null : null,
-        locationAddress: type === "PHYSICAL" ? address || null : null,
-        virtualUrl: type === "VIRTUAL" ? vUrl || null : null,
-      });
+      await runWithCaptcha("event_edit", () =>
+        saveEventLocation(eventId, {
+          locationType: type,
+          locationName: type === "PHYSICAL" ? name || null : null,
+          locationAddress: type === "PHYSICAL" ? address || null : null,
+          virtualUrl: type === "VIRTUAL" ? vUrl || null : null,
+        })
+      );
       onSave({
         locationType: type,
         locationName: type === "PHYSICAL" ? name || null : null,

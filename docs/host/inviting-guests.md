@@ -27,7 +27,7 @@ From the guest management area you can send invitations directly:
 
 Invited guests appear on your guest list with an **Invited** status until they respond.
 
-> **Sending limits:** You can invite up to **200 recipients per request** (paste more than that and it'll ask you to split into batches), and there's an hourly cap on how many invite batches you can send per event. These limits are generous for normal use — they exist only to prevent spam and runaway texting costs if an account is misused.
+> **Anti-abuse:** You can invite up to **200 recipients per request** (paste more than that and it'll ask you to split into batches), and there's an hourly cap on how many invite batches you can send per event. When your administrator enables bot protection, each host, co-host, or guest invitation submission also receives an interaction-only security check. These controls prevent spam and runaway texting costs if an account is misused.
 
 ### Invitation History
 

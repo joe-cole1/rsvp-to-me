@@ -17,6 +17,7 @@ import { SaveEventSettingsSchema, HttpUrlSchema } from "@/lib/schemas";
 import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
 import { assertHost, assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── Inline field edits ─────────────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ export async function saveEventField(eventId: string, field: string, value: stri
   // http(s) may be persisted (blocks javascript:/data: URIs).
   if (field === "virtualUrl" && value) value = HttpUrlSchema.parse(value);
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("event_edit");
   await db.event.update({ where: { id: eventId }, data: { [field]: value || null } });
   const fieldTypes: Record<string, string> = {
     title: "event_title",
@@ -70,6 +72,7 @@ export async function saveEventLocation(
   // SEC-36: see saveEventField.
   const virtualUrl = data.virtualUrl ? HttpUrlSchema.parse(data.virtualUrl) : null;
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("event_edit");
   await db.event.update({
     where: { id: eventId },
     data: {
@@ -109,6 +112,7 @@ export async function saveEventTheme(
   extras?: ThemeExtras
 ) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("event_theme");
   if (extras) {
     if (!isValidFontId(extras.fontId)) throw new Error("Unknown font");
     if (!isValidEffectId(extras.effectId)) throw new Error("Unknown effect");
@@ -178,6 +182,7 @@ export async function saveEventSettings(
   }
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("event_settings");
 
   const session = await getSession();
   const isOwner = event.hostId === session?.userId || session?.role === "ADMIN";
@@ -225,6 +230,7 @@ export async function saveEventDates(
   endAt: string | null
 ) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("event_edit");
   const evt = await db.event.findUnique({ where: { id: eventId }, select: { timezone: true } });
   if (!evt) throw new Error("Event not found");
   await db.event.update({
@@ -264,6 +270,7 @@ export async function saveEventDates(
 
 export async function saveCoverImage(eventId: string, url: string) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("image_assign");
   await db.eventTheme.upsert({
     where: { eventId },
     update: { coverImageUrl: url },
@@ -294,6 +301,7 @@ export async function saveReminderSettings(
   }
 ) {
   const event = await assertHostOrCohost(eventId);
+  await assertCaptcha("event_settings");
   await db.eventReminderSettings.upsert({
     where: { eventId },
     update: settings,

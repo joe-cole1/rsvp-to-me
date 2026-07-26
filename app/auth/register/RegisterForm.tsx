@@ -11,6 +11,7 @@ import {
   FormField,
   InlineAlert,
 } from "@/components/ui/AppPrimitives";
+import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 export default function RegisterForm({ openRegistration }: { openRegistration: boolean }) {
   const [name, setName] = useState("");
@@ -19,12 +20,22 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { runWithCaptcha } = useCaptcha();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const result = await registerHostAction(email, name, openRegistration ? "" : code);
+    let result;
+    try {
+      result = await runWithCaptcha("register", () =>
+        registerHostAction(email, name, openRegistration ? "" : code)
+      );
+    } catch (reason) {
+      setLoading(false);
+      setError(reason instanceof Error ? reason.message : "Security check failed.");
+      return;
+    }
     setLoading(false);
     if (result.success) {
       setSubmitted(true);

@@ -7,11 +7,13 @@ import { getSession } from "@/lib/session";
 import { hashToken } from "@/lib/hash";
 import { sendCoHostInviteEmail } from "@/lib/email";
 import { assertHost, assertHostOrCohost } from "./shared";
+import { assertCaptcha } from "@/lib/captcha";
 
 // ── Co-hosts ──────────────────────────────────────────────────────────────────
 
 export async function addCoHost(eventId: string, email: string) {
   await assertHost(eventId);
+  await assertCaptcha("cohost_manage");
   const session = await getSession();
 
   const normalizedEmail = email.toLowerCase().trim();
@@ -106,6 +108,7 @@ export async function updateCoHostDisplayName(cohostId: string, displayName: str
     select: { userId: true, eventId: true, event: { select: { slug: true } } },
   });
   if (!cohost) throw new Error("Forbidden");
+  await assertCaptcha("cohost_manage");
 
   const session = await getSession();
   const isSelf = session && session.userId === cohost.userId;

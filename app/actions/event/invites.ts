@@ -11,10 +11,12 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/clientIp";
 import { assertHostOrCohost } from "./shared";
 import { normalizePhone } from "@/lib/auth";
+import { assertCaptcha } from "@/lib/captcha";
 
 export async function inviteGuest(eventId: string, emailOrPhone: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  await assertCaptcha("host_invite");
   const event = await assertHostOrCohost(eventId);
 
   const entries = emailOrPhone
@@ -229,6 +231,7 @@ export async function inviteFriendAsGuest(
   editToken: string,
   emailOrPhone: string
 ): Promise<{ success: boolean; error?: string }> {
+  await assertCaptcha("guest_invite");
   // SEC-18: this action is authorized only by a guest editToken yet fans out to
   // SMTP/Twilio, so with no throttling a single token can drive unlimited
   // email/SMS to arbitrary recipients (spam/phishing under our sending
