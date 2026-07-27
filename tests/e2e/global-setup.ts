@@ -56,7 +56,7 @@ function getPassword(): string {
 }
 
 export default async function globalSetup() {
-  execSync("npx prisma migrate deploy", {
+  execSync("npx prisma db push", {
     stdio: "inherit",
     env: { ...process.env },
   });

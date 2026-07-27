@@ -17,11 +17,11 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+global.ResizeObserver = class {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+} as unknown as typeof ResizeObserver;
 
 // Stub Next.js runtime APIs
 vi.mock("next/navigation", () => ({
