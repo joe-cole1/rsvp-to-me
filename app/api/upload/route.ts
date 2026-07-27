@@ -3,7 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { randomUUID } from "crypto";
 import path from "path";
 import { getSession } from "@/lib/session";
-import { assertCaptcha } from "@/lib/captcha";
+import { assertCaptcha, CaptchaVerificationError } from "@/lib/captcha";
 
 const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
 const MAX_SIZE = 8 * 1024 * 1024; // 8MB
@@ -65,7 +65,14 @@ export async function POST(request: NextRequest) {
   if (!session || (session.role !== "HOST" && session.role !== "ADMIN")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  await assertCaptcha("image_upload");
+  try {
+    await assertCaptcha("image_upload");
+  } catch (error) {
+    if (error instanceof CaptchaVerificationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Captcha verification failed." }, { status: 400 });
+  }
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
