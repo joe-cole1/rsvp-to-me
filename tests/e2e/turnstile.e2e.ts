@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { PUBLIC_EVENT_SLUG } from "./fixtures";
 
 test.describe("Cloudflare Turnstile E2E Verification", () => {
-  test("sign-in form processes submission cleanly under Turnstile provider", async ({ page }) => {
+  test("sign-in form processes submission cleanly under CaptchaProvider", async ({ page }) => {
     await page.goto("/auth/sign-in");
     await expect(page.getByText(/sign in with a magic link/i)).toBeVisible();
     await page.getByRole("textbox").fill("turnstile-e2e@test.internal");
