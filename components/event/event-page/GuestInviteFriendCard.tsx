@@ -29,8 +29,8 @@ export function GuestInviteFriendCard({
     setErrorMsg("");
     startTransition(async () => {
       try {
-        const res = await runWithCaptcha("guest_invite", () =>
-          inviteFriendAsGuest(eventId, guestToken, val)
+        const res = await runWithCaptcha("guest_invite", (token) =>
+          inviteFriendAsGuest(eventId, guestToken, val, token)
         );
         if (res.success) {
           setStatus("success");

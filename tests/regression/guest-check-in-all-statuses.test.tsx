@@ -8,7 +8,7 @@
 // resend unanswered invitations from the same guest card.
 
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { testTheme } from "@/tests/components/helpers/theme";
 
@@ -88,7 +88,7 @@ describe("guest check-in for every RSVP status", () => {
     expect(within(invitedCard!).getByRole("button", { name: "Resend invite" })).not.toBeNull();
   });
 
-  it("resends an unanswered invitation through the existing invite action", () => {
+  it("resends an unanswered invitation through the existing invite action", async () => {
     mocks.inviteGuest.mockResolvedValue({ success: true, emailOrPhone: invited.sentTo });
     render(
       <GuestListFilter
@@ -106,6 +106,8 @@ describe("guest check-in for every RSVP status", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Resend invite" }));
-    expect(mocks.inviteGuest).toHaveBeenCalledWith("event-1", "invited@example.com");
+    await waitFor(() =>
+      expect(mocks.inviteGuest).toHaveBeenCalledWith("event-1", "invited@example.com", null)
+    );
   });
 });

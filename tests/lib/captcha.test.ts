@@ -1,18 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  cookieGet: vi.fn(),
-  cookieDelete: vi.fn(),
   getSession: vi.fn(),
   getClientIp: vi.fn(),
   isTrustedIpConfigured: vi.fn(),
-}));
-
-vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockResolvedValue({
-    get: mocks.cookieGet,
-    delete: mocks.cookieDelete,
-  }),
 }));
 
 vi.mock("@/lib/session", () => ({
@@ -62,7 +53,6 @@ beforeEach(() => {
     email: "host@example.com",
     role: "HOST",
   });
-  mocks.cookieGet.mockReturnValue({ value: "valid-token" });
   mocks.isTrustedIpConfigured.mockReturnValue(false);
   mocks.getClientIp.mockResolvedValue("203.0.113.10");
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -82,7 +72,7 @@ afterEach(() => {
 describe("Turnstile verification", () => {
   it("is disabled only when both keys are absent", async () => {
     expect(getCaptchaSiteKey()).toBeNull();
-    await expect(assertCaptcha("comment")).resolves.toBeUndefined();
+    await expect(assertCaptcha("comment", undefined)).resolves.toBeUndefined();
     expect(mocks.getSession).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -90,7 +80,9 @@ describe("Turnstile verification", () => {
   it("rejects partial configuration for non-admin users", async () => {
     process.env.TURNSTILE_SITE_KEY = "site-key";
 
-    await expect(assertCaptcha("comment")).rejects.toBeInstanceOf(CaptchaVerificationError);
+    await expect(assertCaptcha("comment", undefined)).rejects.toBeInstanceOf(
+      CaptchaVerificationError
+    );
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -102,17 +94,16 @@ describe("Turnstile verification", () => {
       role: "ADMIN",
     });
 
-    await expect(assertCaptcha("comment")).resolves.toBeUndefined();
+    await expect(assertCaptcha("comment", undefined)).resolves.toBeUndefined();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it("validates and consumes an action-bound token", async () => {
+  it("validates an explicit action-bound token", async () => {
     enableCaptcha();
     vi.mocked(global.fetch).mockResolvedValue(siteverifyResponse() as unknown as Response);
 
-    await expect(assertCaptcha("comment")).resolves.toBeUndefined();
+    await expect(assertCaptcha("comment", "valid-token")).resolves.toBeUndefined();
 
-    expect(mocks.cookieDelete).toHaveBeenCalledWith("rsvp-turnstile");
     const [, init] = vi.mocked(global.fetch).mock.calls[0];
     const body = init?.body as FormData;
     expect(body.get("secret")).toBe("secret-key");
@@ -125,7 +116,7 @@ describe("Turnstile verification", () => {
     mocks.isTrustedIpConfigured.mockReturnValue(true);
     vi.mocked(global.fetch).mockResolvedValue(siteverifyResponse() as unknown as Response);
 
-    await assertCaptcha("comment");
+    await assertCaptcha("comment", "valid-token");
 
     const body = vi.mocked(global.fetch).mock.calls[0][1]?.body as FormData;
     expect(body.get("remoteip")).toBe("203.0.113.10");
@@ -133,19 +124,23 @@ describe("Turnstile verification", () => {
 
   it("rejects missing, cross-action, and wrong-hostname tokens", async () => {
     enableCaptcha();
-    mocks.cookieGet.mockReturnValueOnce(undefined);
-    await expect(assertCaptcha("comment")).rejects.toBeInstanceOf(CaptchaVerificationError);
+    await expect(assertCaptcha("comment", undefined)).rejects.toBeInstanceOf(
+      CaptchaVerificationError
+    );
 
-    mocks.cookieGet.mockReturnValue({ value: "valid-token" });
     vi.mocked(global.fetch).mockResolvedValueOnce(
       siteverifyResponse({ action: "rsvp_create" }) as unknown as Response
     );
-    await expect(assertCaptcha("comment")).rejects.toBeInstanceOf(CaptchaVerificationError);
+    await expect(assertCaptcha("comment", "valid-token")).rejects.toBeInstanceOf(
+      CaptchaVerificationError
+    );
 
     vi.mocked(global.fetch).mockResolvedValueOnce(
       siteverifyResponse({ hostname: "attacker.example" }) as unknown as Response
     );
-    await expect(assertCaptcha("comment")).rejects.toBeInstanceOf(CaptchaVerificationError);
+    await expect(assertCaptcha("comment", "valid-token")).rejects.toBeInstanceOf(
+      CaptchaVerificationError
+    );
   });
 
   it("retries Siteverify once with the same idempotency key", async () => {
@@ -154,7 +149,7 @@ describe("Turnstile verification", () => {
       .mockRejectedValueOnce(new Error("temporary outage"))
       .mockResolvedValueOnce(siteverifyResponse() as unknown as Response);
 
-    await expect(assertCaptcha("comment")).resolves.toBeUndefined();
+    await expect(assertCaptcha("comment", "valid-token")).resolves.toBeUndefined();
 
     const first = vi.mocked(global.fetch).mock.calls[0][1]?.body as FormData;
     const second = vi.mocked(global.fetch).mock.calls[1][1]?.body as FormData;

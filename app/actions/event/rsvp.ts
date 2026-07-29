@@ -19,9 +19,10 @@ import { assertCaptcha } from "@/lib/captcha";
 
 export async function verifyEventPassword(
   slug: string,
-  rawPassword: string
+  rawPassword: string,
+  captchaToken?: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  await assertCaptcha("event_password");
+  await assertCaptcha("event_password", captchaToken);
   // SEC-19: throttle online brute-force of password-gated events. bcrypt slows
   // each guess but without an attempt cap an attacker can still grind a weak
   // password. Limit to 10 attempts per slug+IP per 10 minutes.
@@ -101,13 +102,13 @@ async function linkUnlinkedInvitation(
   }
 }
 
-export async function addRSVP(rawInput: unknown) {
+export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
   const parsed = AddRsvpSchema.safeParse(rawInput);
   if (!parsed.success) {
     return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
   }
   const data = parsed.data;
-  await assertCaptcha("rsvp_create");
+  await assertCaptcha("rsvp_create", captchaToken);
 
   // SEC-23: addRSVP is callable by anyone on PUBLIC/UNLISTED events, upserts a
   // User from the supplied address, and fans out a confirmation email/SMS to
@@ -339,13 +340,17 @@ export async function addRSVP(rawInput: unknown) {
 
 // ── RSVP edit (guest) ─────────────────────────────────────────────────────────
 
-export async function updateRSVP(editToken: string, rawInput: unknown) {
+export async function updateRSVP(
+  editToken: string,
+  rawInput: unknown,
+  captchaToken?: string | null
+) {
   const parsed = UpdateRsvpSchema.safeParse(rawInput);
   if (!parsed.success) {
     return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
   }
   const data = parsed.data;
-  await assertCaptcha("rsvp_edit");
+  await assertCaptcha("rsvp_edit", captchaToken);
   const rsvp = await db.rSVP.findUnique({
     where: { editToken },
     include: {
@@ -450,7 +455,11 @@ export async function updateRSVP(editToken: string, rawInput: unknown) {
   return { success: true, rsvpId: rsvp.id };
 }
 
-export async function updateRsvpAsHost(rsvpId: string, rawInput: unknown) {
+export async function updateRsvpAsHost(
+  rsvpId: string,
+  rawInput: unknown,
+  captchaToken?: string | null
+) {
   const parsed = UpdateRsvpSchema.safeParse(rawInput);
   if (!parsed.success) {
     return { success: false as const, error: rsvpValidationError(parsed.error.issues) };
@@ -458,7 +467,7 @@ export async function updateRsvpAsHost(rsvpId: string, rawInput: unknown) {
   const data = parsed.data;
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  await assertCaptcha("rsvp_edit");
+  await assertCaptcha("rsvp_edit", captchaToken);
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
@@ -551,11 +560,11 @@ export async function deleteRsvpAsHost(rsvpId: string) {
 
 // ── RSVP approval ─────────────────────────────────────────────────────────────
 
-export async function approveRsvp(rsvpId: string, message?: string) {
+export async function approveRsvp(rsvpId: string, message?: string, captchaToken?: string | null) {
   // SEC-42: see deleteRsvpAsHost.
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  await assertCaptcha("rsvp_moderation");
+  await assertCaptcha("rsvp_moderation", captchaToken);
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {
@@ -596,11 +605,11 @@ export async function approveRsvp(rsvpId: string, message?: string) {
   return { success: true };
 }
 
-export async function declineRsvp(rsvpId: string, message?: string) {
+export async function declineRsvp(rsvpId: string, message?: string, captchaToken?: string | null) {
   // SEC-42: see deleteRsvpAsHost.
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  await assertCaptcha("rsvp_moderation");
+  await assertCaptcha("rsvp_moderation", captchaToken);
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
     include: {

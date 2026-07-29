@@ -10,9 +10,14 @@ import { assertCaptcha } from "@/lib/captcha";
 
 // ── Potluck ───────────────────────────────────────────────────────────────────
 
-export async function addPotluckItem(eventId: string, label: string, quantity: number = 1) {
+export async function addPotluckItem(
+  eventId: string,
+  label: string,
+  quantity: number = 1,
+  captchaToken?: string | null
+) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("potluck_manage");
+  await assertCaptcha("potluck_manage", captchaToken);
   const item = await db.potluckItem.create({ data: { eventId, label, quantity } });
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: item.id };

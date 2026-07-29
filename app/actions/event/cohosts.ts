@@ -11,9 +11,9 @@ import { assertCaptcha } from "@/lib/captcha";
 
 // ── Co-hosts ──────────────────────────────────────────────────────────────────
 
-export async function addCoHost(eventId: string, email: string) {
+export async function addCoHost(eventId: string, email: string, captchaToken?: string | null) {
   await assertHost(eventId);
-  await assertCaptcha("cohost_manage");
+  await assertCaptcha("cohost_manage", captchaToken);
   const session = await getSession();
 
   const normalizedEmail = email.toLowerCase().trim();
@@ -102,13 +102,17 @@ export async function removeCoHost(cohostId: string) {
   revalidatePath(`/e/${cohost.event.slug}/settings`);
 }
 
-export async function updateCoHostDisplayName(cohostId: string, displayName: string | null) {
+export async function updateCoHostDisplayName(
+  cohostId: string,
+  displayName: string | null,
+  captchaToken?: string | null
+) {
   const cohost = await db.eventCoHost.findUnique({
     where: { id: cohostId },
     select: { userId: true, eventId: true, event: { select: { slug: true } } },
   });
   if (!cohost) throw new Error("Forbidden");
-  await assertCaptcha("cohost_manage");
+  await assertCaptcha("cohost_manage", captchaToken);
 
   const session = await getSession();
   const isSelf = session && session.userId === cohost.userId;

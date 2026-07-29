@@ -29,5 +29,5 @@ export const CAPTCHA_ACTIONS = [
 
 export type CaptchaAction = (typeof CAPTCHA_ACTIONS)[number];
 
-export const CAPTCHA_COOKIE_NAME = "rsvp-turnstile";
+export const CAPTCHA_RESPONSE_FIELD = "cf-turnstile-response";
 export const CAPTCHA_ERROR_MESSAGE = "We couldn't verify that you're human. Please try again.";

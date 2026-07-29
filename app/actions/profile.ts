@@ -11,15 +11,18 @@ import { revalidatePath } from "next/cache";
 import { hashToken } from "@/lib/hash";
 import { assertCaptcha } from "@/lib/captcha";
 
-export async function updateProfileSettings(data: {
-  name: string;
-  avatarUrl?: string | null;
-  email?: string;
-  phone?: string;
-}) {
+export async function updateProfileSettings(
+  data: {
+    name: string;
+    avatarUrl?: string | null;
+    email?: string;
+    phone?: string;
+  },
+  captchaToken?: string | null
+) {
   const sessionUser = await getSessionUser();
   if (!sessionUser) throw new Error("Unauthorized");
-  await assertCaptcha("profile_edit");
+  await assertCaptcha("profile_edit", captchaToken);
 
   const user = await db.user.findUnique({ where: { id: sessionUser.id } });
   if (!user) throw new Error("User not found");

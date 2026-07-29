@@ -148,12 +148,16 @@ export async function getEventEmailPreview(eventId: string, templateId: Template
 }
 
 /** Send a sample of an event email to the signed-in host/co-host. */
-export async function sendEventEmailTest(eventId: string, templateId: TemplateId) {
+export async function sendEventEmailTest(
+  eventId: string,
+  templateId: TemplateId,
+  captchaToken?: string | null
+) {
   const session = await getSession();
   if (!session?.email) {
     return { success: false as const, error: "Your account has no email address." };
   }
-  await assertCaptcha("email_test");
+  await assertCaptcha("email_test", captchaToken);
   const limit = await rateLimit(`event-email-test:${session.userId}`, 10, 3600);
   if (!limit.success) {
     return { success: false as const, error: "Too many test emails. Try again later." };

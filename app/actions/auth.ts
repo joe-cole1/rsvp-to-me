@@ -14,7 +14,8 @@ function looksLikePhone(s: string): boolean {
 
 export async function sendMagicLinkAction(
   rawIdentifier: string,
-  redirect?: string
+  redirect?: string,
+  captchaToken?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   // Validate input
   const parseResult = SendMagicLinkSchema.safeParse({ identifier: rawIdentifier });
@@ -22,7 +23,7 @@ export async function sendMagicLinkAction(
     return { success: false, error: "Invalid email or phone number format." };
   }
   const identifier = parseResult.data.identifier;
-  await assertCaptcha("signin");
+  await assertCaptcha("signin", captchaToken);
 
   // SEC-45: only apply the per-IP limiter when a trusted proxy IP is configured.
   // Without one, getClientIp() collapses to loopback and this becomes a single
@@ -81,7 +82,8 @@ export async function sendMagicLinkAction(
 export async function registerHostAction(
   rawEmail: string,
   rawName: string,
-  rawInviteCode: string
+  rawInviteCode: string,
+  captchaToken?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   // Validate input
   const parseResult = RegisterHostSchema.safeParse({
@@ -94,7 +96,7 @@ export async function registerHostAction(
   }
 
   const { email, name, inviteCode } = parseResult.data;
-  await assertCaptcha("register");
+  await assertCaptcha("register", captchaToken);
   const ip = await getClientIp();
 
   // Rate limit registration by IP: max 3 per hour

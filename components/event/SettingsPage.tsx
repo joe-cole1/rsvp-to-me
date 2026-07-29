@@ -282,7 +282,7 @@ export function SettingsPage({
     setErr(null);
     startTransition(async () => {
       try {
-        await runWithCaptcha("event_theme", () =>
+        await runWithCaptcha("event_theme", (token) =>
           saveEventTheme(
             event.id,
             newBase,
@@ -298,7 +298,8 @@ export function SettingsPage({
                 extras?.effectDensity !== undefined ? extras.effectDensity : effectDensity,
               effectSpeed: extras?.effectSpeed !== undefined ? extras.effectSpeed : effectSpeed,
               effectSize: extras?.effectSize !== undefined ? extras.effectSize : effectSize,
-            }
+            },
+            token
           )
         );
         setSaveStatus("SAVED");
@@ -367,7 +368,9 @@ export function SettingsPage({
     };
     startTransition(async () => {
       try {
-        const res = await runWithCaptcha("event_settings", () => saveEventSettings(event.id, data));
+        const res = await runWithCaptcha("event_settings", (token) =>
+          saveEventSettings(event.id, data, token)
+        );
         if (res && !res.success) {
           setSaveStatus("ERROR");
           setErr(res.error ?? "Failed to save settings.");
@@ -402,7 +405,9 @@ export function SettingsPage({
     };
     startTransition(async () => {
       try {
-        await runWithCaptcha("event_settings", () => saveReminderSettings(event.id, data));
+        await runWithCaptcha("event_settings", (token) =>
+          saveReminderSettings(event.id, data, token)
+        );
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -417,8 +422,8 @@ export function SettingsPage({
     setCohostError(null);
     startTransition(async () => {
       try {
-        const result = await runWithCaptcha("cohost_manage", () =>
-          addCoHost(event.id, cohostEmail.trim())
+        const result = await runWithCaptcha("cohost_manage", (token) =>
+          addCoHost(event.id, cohostEmail.trim(), token)
         );
         if (!result.success) {
           setCohostError(result.error ?? "Error adding co-host");
@@ -471,8 +476,8 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        await runWithCaptcha("cohost_manage", () =>
-          updateCoHostDisplayName(cohostRecordId, displayName)
+        await runWithCaptcha("cohost_manage", (token) =>
+          updateCoHostDisplayName(cohostRecordId, displayName, token)
         );
         setCoHosts((prev) =>
           prev.map((c) => (c.id === cohostRecordId ? { ...c, displayName } : c))
@@ -493,14 +498,15 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        const result = await runWithCaptcha("poll_manage", () =>
+        const result = await runWithCaptcha("poll_manage", (token) =>
           createPoll(
             event.id,
             question,
             opts,
             newPollMultiChoice,
             newPollAllowGuestsToAdd,
-            newPollHideVoters
+            newPollHideVoters,
+            token
           )
         );
         if (result.success && result.id) {
@@ -565,7 +571,7 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        await runWithCaptcha("poll_manage", () => updatePollSettings(pollId, settings));
+        await runWithCaptcha("poll_manage", (token) => updatePollSettings(pollId, settings, token));
         setPolls((prev) => prev.map((p) => (p.id === pollId ? { ...p, ...settings } : p)));
         setSaveStatus("SAVED");
       } catch {
@@ -581,8 +587,8 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        const result = await runWithCaptcha("poll_option", () =>
-          addPollOption(pollId, optionText, "Host")
+        const result = await runWithCaptcha("poll_option", (token) =>
+          addPollOption(pollId, optionText, "Host", undefined, token)
         );
         if (result.success && result.id) {
           setPolls((prev) =>
@@ -645,8 +651,8 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        const result = await runWithCaptcha("potluck_manage", () =>
-          addPotluckItem(event.id, label, qty)
+        const result = await runWithCaptcha("potluck_manage", (token) =>
+          addPotluckItem(event.id, label, qty, token)
         );
         if (result && result.id) {
           setPotluckItems((prev) => [
@@ -717,14 +723,18 @@ export function SettingsPage({
           newFieldType === "SELECT" || newFieldType === "CHECKBOX"
             ? serializeOptionsForDb(newFieldOptions)
             : undefined;
-        const result = await runWithCaptcha("rsvp_field", () =>
-          addRsvpField(event.id, {
-            label: newFieldLabel.trim(),
-            fieldType: newFieldType,
-            required: newFieldRequired,
-            options: serialized,
-            order: fields.length,
-          })
+        const result = await runWithCaptcha("rsvp_field", (token) =>
+          addRsvpField(
+            event.id,
+            {
+              label: newFieldLabel.trim(),
+              fieldType: newFieldType,
+              required: newFieldRequired,
+              options: serialized,
+              order: fields.length,
+            },
+            token
+          )
         );
         if (result.success) {
           setFields((prev) => [
@@ -762,7 +772,9 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        await runWithCaptcha("rsvp_field", () => updateRsvpField(fieldId, { fieldType }));
+        await runWithCaptcha("rsvp_field", (token) =>
+          updateRsvpField(fieldId, { fieldType }, token)
+        );
         setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, fieldType } : x)));
         setSaveStatus("SAVED");
       } catch {
@@ -775,7 +787,9 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        await runWithCaptcha("rsvp_field", () => updateRsvpField(fieldId, { required }));
+        await runWithCaptcha("rsvp_field", (token) =>
+          updateRsvpField(fieldId, { required }, token)
+        );
         setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, required } : x)));
         setSaveStatus("SAVED");
       } catch {
@@ -790,7 +804,7 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        await runWithCaptcha("rsvp_field", () => updateRsvpField(fieldId, { label }));
+        await runWithCaptcha("rsvp_field", (token) => updateRsvpField(fieldId, { label }, token));
         setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, label } : x)));
         setSaveStatus("SAVED");
       } catch {
@@ -805,7 +819,7 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        await runWithCaptcha("rsvp_field", () => updateRsvpField(fieldId, { options }));
+        await runWithCaptcha("rsvp_field", (token) => updateRsvpField(fieldId, { options }, token));
         setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, options } : x)));
         setSaveStatus("SAVED");
       } catch {

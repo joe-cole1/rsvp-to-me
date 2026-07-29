@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CaptchaProvider, useCaptcha } from "@/components/ui/CaptchaProvider";
-import { CAPTCHA_COOKIE_NAME, CAPTCHA_ERROR_MESSAGE } from "@/lib/captcha-types";
+import { CAPTCHA_ERROR_MESSAGE } from "@/lib/captcha-types";
 
 vi.mock("next/script", async () => {
   const React = await import("react");
@@ -15,7 +15,7 @@ vi.mock("next/script", async () => {
   };
 });
 
-function SubmitButton({ onSubmit }: { onSubmit: () => Promise<void> }) {
+function SubmitButton({ onSubmit }: { onSubmit: (token: string | null) => Promise<void> }) {
   const { runWithCaptcha } = useCaptcha();
   const [error, setError] = useState("");
 
@@ -38,13 +38,12 @@ function SubmitButton({ onSubmit }: { onSubmit: () => Promise<void> }) {
 
 describe("CaptchaProvider", () => {
   beforeEach(() => {
-    document.cookie = `${CAPTCHA_COOKIE_NAME}=; Max-Age=0; Path=/`;
     delete window.turnstile;
   });
 
   it("gets a fresh action-bound token before submitting", async () => {
-    const submit = vi.fn(async () => {
-      expect(document.cookie).toContain(`${CAPTCHA_COOKIE_NAME}=verified-token`);
+    const submit = vi.fn(async (token: string | null) => {
+      expect(token).toBe("verified-token");
     });
     let options: Record<string, unknown> = {};
 
@@ -107,7 +106,9 @@ describe("CaptchaProvider", () => {
   });
 
   it("bypasses Turnstile for administrators", async () => {
-    const submit = vi.fn(async () => undefined);
+    const submit = vi.fn(async (token: string | null) => {
+      expect(token).toBeNull();
+    });
 
     render(
       <CaptchaProvider siteKey="site-key" bypass>
@@ -121,10 +122,71 @@ describe("CaptchaProvider", () => {
     expect(window.turnstile).toBeUndefined();
   });
 
+  it("allows a second action to submit while the first request is still running", async () => {
+    let resolveUpload: (() => void) | undefined;
+    const upload = vi.fn(
+      (token: string | null) =>
+        new Promise<void>((resolve) => {
+          expect(token).toBe("token-image_upload");
+          resolveUpload = resolve;
+        })
+    );
+    const comment = vi.fn(async (token: string | null) => {
+      expect(token).toBe("token-comment");
+    });
+    const optionsByWidget = new Map<string, Record<string, unknown>>();
+    let widgetCount = 0;
+
+    window.turnstile = {
+      render: vi.fn((_container, renderOptions) => {
+        widgetCount += 1;
+        const widgetId = `widget-${widgetCount}`;
+        optionsByWidget.set(widgetId, renderOptions);
+        return widgetId;
+      }),
+      execute: vi.fn((widgetId) => {
+        const options = optionsByWidget.get(widgetId);
+        const action = options?.action as string;
+        (options?.callback as (token: string) => void)(`token-${action}`);
+      }),
+      remove: vi.fn(),
+    };
+
+    function ConcurrentButtons() {
+      const { runWithCaptcha } = useCaptcha();
+
+      return (
+        <>
+          <button type="button" onClick={() => void runWithCaptcha("image_upload", upload)}>
+            Upload
+          </button>
+          <button type="button" onClick={() => void runWithCaptcha("comment", comment)}>
+            Comment
+          </button>
+        </>
+      );
+    }
+
+    render(
+      <CaptchaProvider siteKey="site-key">
+        <ConcurrentButtons />
+      </CaptchaProvider>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Upload" }));
+    await waitFor(() => expect(upload).toHaveBeenCalledOnce());
+
+    fireEvent.click(screen.getByRole("button", { name: "Comment" }));
+    await waitFor(() => expect(comment).toHaveBeenCalledOnce());
+
+    expect(window.turnstile.execute).toHaveBeenCalledTimes(2);
+    resolveUpload?.();
+  });
+
   describe("Cloudflare Turnstile Test Sitekeys", () => {
     it("handles visible pass test sitekey 1x00000000000000000000AA", async () => {
-      const submit = vi.fn(async () => {
-        expect(document.cookie).toContain(`${CAPTCHA_COOKIE_NAME}=XXXX.DUMMY.TOKEN.XXXX`);
+      const submit = vi.fn(async (token: string | null) => {
+        expect(token).toBe("XXXX.DUMMY.TOKEN.XXXX");
       });
       let options: Record<string, unknown> = {};
 

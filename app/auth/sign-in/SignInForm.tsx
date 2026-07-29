@@ -51,7 +51,9 @@ export default function SignInForm({
     setLoading(true);
     let result;
     try {
-      result = await runWithCaptcha("signin", () => sendMagicLinkAction(identifier, redirect));
+      result = await runWithCaptcha("signin", (token) =>
+        sendMagicLinkAction(identifier, redirect, token)
+      );
     } catch (reason) {
       setLoading(false);
       setError(reason instanceof Error ? reason.message : "Security check failed.");

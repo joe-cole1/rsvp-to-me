@@ -151,8 +151,10 @@ preferences, reordering, and deletes are not challenged. Administrators bypass T
 co-hosts do not.
 
 The widget uses Cloudflare's interaction-only Managed mode, so most legitimate users see no prompt.
-The application still validates every token server-side, including its action and hostname. Never
-expose `TURNSTILE_SECRET_KEY` to the browser.
+The application sends each action-bound token directly with the submission that requested it, then
+validates the token server-side, including its action and hostname. This keeps overlapping uploads,
+comments, and other protected operations independent while preserving Cloudflare's single-use token
+requirement. Never expose `TURNSTILE_SECRET_KEY` to the browser.
 
 ---
 

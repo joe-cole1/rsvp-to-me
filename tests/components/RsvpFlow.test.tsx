@@ -298,7 +298,7 @@ describe("RsvpFlow — edit mode", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Update RSVP" }));
     await waitFor(() =>
-      expect(mockUpdateRsvpAsHost).toHaveBeenCalledWith("rsvp-1", expect.any(Object))
+      expect(mockUpdateRsvpAsHost).toHaveBeenCalledWith("rsvp-1", expect.any(Object), null)
     );
     expect(mockUpdateRSVP).not.toHaveBeenCalled();
   });

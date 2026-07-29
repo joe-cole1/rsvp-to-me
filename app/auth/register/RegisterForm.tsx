@@ -28,8 +28,8 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
     setLoading(true);
     let result;
     try {
-      result = await runWithCaptcha("register", () =>
-        registerHostAction(email, name, openRegistration ? "" : code)
+      result = await runWithCaptcha("register", (token) =>
+        registerHostAction(email, name, openRegistration ? "" : code, token)
       );
     } catch (reason) {
       setLoading(false);

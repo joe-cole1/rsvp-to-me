@@ -15,10 +15,11 @@ export async function addRsvpField(
     required: boolean;
     options?: string;
     order: number;
-  }
+  },
+  captchaToken?: string | null
 ) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("rsvp_field");
+  await assertCaptcha("rsvp_field", captchaToken);
   const field = await db.rSVPField.create({
     data: {
       eventId,
@@ -36,7 +37,8 @@ export async function addRsvpField(
 
 export async function updateRsvpField(
   fieldId: string,
-  data: { label?: string; required?: boolean; options?: string; fieldType?: string }
+  data: { label?: string; required?: boolean; options?: string; fieldType?: string },
+  captchaToken?: string | null
 ) {
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
@@ -44,7 +46,7 @@ export async function updateRsvpField(
   });
   if (!field) throw new Error("Forbidden");
   await assertHostOrCohost(field.eventId);
-  await assertCaptcha("rsvp_field");
+  await assertCaptcha("rsvp_field", captchaToken);
   await db.rSVPField.update({
     where: { id: fieldId },
     data: {

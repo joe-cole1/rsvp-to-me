@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import path from "path";
 import { getSession } from "@/lib/session";
 import { assertCaptcha, CaptchaVerificationError } from "@/lib/captcha";
+import { CAPTCHA_RESPONSE_FIELD } from "@/lib/captcha-types";
 
 const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
 const MAX_SIZE = 8 * 1024 * 1024; // 8MB
@@ -65,8 +66,10 @@ export async function POST(request: NextRequest) {
   if (!session || (session.role !== "HOST" && session.role !== "ADMIN")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const formData = await request.formData();
+  const captchaToken = formData.get(CAPTCHA_RESPONSE_FIELD);
   try {
-    await assertCaptcha("image_upload");
+    await assertCaptcha("image_upload", typeof captchaToken === "string" ? captchaToken : null);
   } catch (error) {
     if (error instanceof CaptchaVerificationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -74,7 +77,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Captcha verification failed." }, { status: 400 });
   }
 
-  const formData = await request.formData();
   const file = formData.get("file") as File | null;
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });

@@ -43,6 +43,7 @@ import { PotluckSection } from "./event-page/PotluckSection";
 import { RsvpSection } from "./event-page/RsvpSection";
 import { ShareQrModal } from "./event-page/ShareQrModal";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { CAPTCHA_RESPONSE_FIELD } from "@/lib/captcha-types";
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
@@ -292,7 +293,7 @@ export function EventPage({
   // Saves
   const save = (field: string, value: string) => {
     startTransition(async () => {
-      await runWithCaptcha("event_edit", () => saveEventField(event.id, field, value));
+      await runWithCaptcha("event_edit", (token) => saveEventField(event.id, field, value, token));
       setEvent((e) => ({ ...e, [field]: value }));
     });
   };
@@ -319,12 +320,13 @@ export function EventPage({
       setUploadStatus("uploading");
       const form = new FormData();
       form.append("file", compressed);
-      const res = await runWithCaptcha("image_upload", () =>
-        fetch("/api/upload", { method: "POST", body: form })
-      );
+      const res = await runWithCaptcha("image_upload", (token) => {
+        if (token) form.set(CAPTCHA_RESPONSE_FIELD, token);
+        return fetch("/api/upload", { method: "POST", body: form });
+      });
       if (!res.ok) throw new Error(await res.text());
       const { url } = (await res.json()) as { url: string };
-      await runWithCaptcha("image_assign", () => saveCoverImage(event.id, url));
+      await runWithCaptcha("image_assign", (token) => saveCoverImage(event.id, url, token));
       setEvent((ev) => ({
         ...ev,
         theme: {
@@ -349,13 +351,16 @@ export function EventPage({
   const submitComment = async () => {
     if (!commentText.trim()) return;
     startTransition(async () => {
-      const result = await runWithCaptcha("comment", () =>
-        addComment({
-          eventId: event.id,
-          guestName: selfAuthorName,
-          body: commentText.trim(),
-          guestEditToken: guestEditToken ?? undefined,
-        })
+      const result = await runWithCaptcha("comment", (token) =>
+        addComment(
+          {
+            eventId: event.id,
+            guestName: selfAuthorName,
+            body: commentText.trim(),
+            guestEditToken: guestEditToken ?? undefined,
+          },
+          token
+        )
       );
       if (result.success) {
         setCommentText("");
@@ -382,14 +387,17 @@ export function EventPage({
     const name = selfAuthorName;
 
     startTransition(async () => {
-      const result = await runWithCaptcha("comment", () =>
-        addComment({
-          eventId: event.id,
-          guestName: name,
-          body: replyText.trim(),
-          guestEditToken: guestEditToken ?? undefined,
-          parentId,
-        })
+      const result = await runWithCaptcha("comment", (token) =>
+        addComment(
+          {
+            eventId: event.id,
+            guestName: name,
+            body: replyText.trim(),
+            guestEditToken: guestEditToken ?? undefined,
+            parentId,
+          },
+          token
+        )
       );
 
       if (result.success) {
@@ -425,15 +433,18 @@ export function EventPage({
   const commitInfoSection = async () => {
     if (!sectionDraft.content.trim() && !sectionDraft.url.trim()) return;
     startTransition(async () => {
-      const result = await runWithCaptcha("event_content", () =>
-        addInfoSection({
-          eventId: event.id,
-          type: sectionDraft.iconKey,
-          title: sectionDraft.title.trim() || null,
-          content: sectionDraft.content,
-          url: sectionDraft.url || null,
-          order: event.infoSections.length,
-        })
+      const result = await runWithCaptcha("event_content", (token) =>
+        addInfoSection(
+          {
+            eventId: event.id,
+            type: sectionDraft.iconKey,
+            title: sectionDraft.title.trim() || null,
+            content: sectionDraft.content,
+            url: sectionDraft.url || null,
+            order: event.infoSections.length,
+          },
+          token
+        )
       );
       if (result.success) {
         setEvent((e) => ({
@@ -503,13 +514,17 @@ export function EventPage({
   const commitEditSection = async (id: string) => {
     if (!editDraft.content.trim() && !editDraft.url.trim()) return;
     startTransition(async () => {
-      await runWithCaptcha("event_content", () =>
-        updateInfoSection(id, {
-          type: editDraft.iconKey,
-          title: editDraft.title.trim() || null,
-          content: editDraft.content,
-          url: editDraft.url || null,
-        })
+      await runWithCaptcha("event_content", (token) =>
+        updateInfoSection(
+          id,
+          {
+            type: editDraft.iconKey,
+            title: editDraft.title.trim() || null,
+            content: editDraft.content,
+            url: editDraft.url || null,
+          },
+          token
+        )
       );
       setEvent((e) => ({
         ...e,
@@ -563,8 +578,8 @@ export function EventPage({
     if (!updateDraft.trim() || isPostingUpdate) return;
     setIsPostingUpdate(true);
     try {
-      const result = await runWithCaptcha("event_update", () =>
-        addEventUpdate(event.id, updateDraft.trim(), notifyOnUpdate)
+      const result = await runWithCaptcha("event_update", (token) =>
+        addEventUpdate(event.id, updateDraft.trim(), notifyOnUpdate, token)
       );
       if (result.success) {
         setEvent((e) => ({
@@ -694,8 +709,8 @@ export function EventPage({
 
     startTransition(async () => {
       try {
-        const result = await runWithCaptcha("poll_option", () =>
-          addPollOption(pollId, optionText, voter, guestEditToken ?? undefined)
+        const result = await runWithCaptcha("poll_option", (token) =>
+          addPollOption(pollId, optionText, voter, guestEditToken ?? undefined, token)
         );
         if (result.success) {
           setEvent((e) => {
@@ -733,7 +748,9 @@ export function EventPage({
 
   const handleApprove = (rsvpId: string, message?: string) => {
     startTransition(async () => {
-      const result = await runWithCaptcha("rsvp_moderation", () => approveRsvp(rsvpId, message));
+      const result = await runWithCaptcha("rsvp_moderation", (token) =>
+        approveRsvp(rsvpId, message, token)
+      );
       if (result.success) {
         const pending = event.pendingRsvps.find((r) => r.id === rsvpId);
         setEvent((e) => ({
@@ -759,7 +776,9 @@ export function EventPage({
 
   const handleDecline = (rsvpId: string, message?: string) => {
     startTransition(async () => {
-      const result = await runWithCaptcha("rsvp_moderation", () => declineRsvp(rsvpId, message));
+      const result = await runWithCaptcha("rsvp_moderation", (token) =>
+        declineRsvp(rsvpId, message, token)
+      );
       if (result.success) {
         setEvent((e) => ({ ...e, pendingRsvps: e.pendingRsvps.filter((r) => r.id !== rsvpId) }));
       }
