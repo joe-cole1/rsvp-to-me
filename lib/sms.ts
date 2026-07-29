@@ -1,8 +1,38 @@
-import twilio from "twilio";
 import { decryptConfig } from "./crypto";
 import { isChannelEnabled, getSystemConfigMap } from "./config";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const TWILIO_API_BASE_URL = "https://api.twilio.com/2010-04-01";
+
+async function createTwilioMessage(config: {
+  sid: string;
+  token: string;
+  from: string;
+  to: string;
+  body: string;
+}): Promise<unknown> {
+  const response = await fetch(
+    `${TWILIO_API_BASE_URL}/Accounts/${encodeURIComponent(config.sid)}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${config.sid}:${config.token}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        From: config.from,
+        To: config.to,
+        Body: config.body,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Twilio Messages API returned HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
 
 /**
  * Resolve the Twilio auth token from admin-panel config (encrypted at rest)
@@ -58,8 +88,7 @@ async function send(to: string, body: string) {
     }
     return;
   }
-  const client = twilio(sid, token);
-  return client.messages.create({ from: phone, to, body });
+  return createTwilioMessage({ sid, token, from: phone, to, body });
 }
 
 export async function testSmsConfig(
@@ -73,8 +102,9 @@ export async function testSmsConfig(
     };
   }
   try {
-    const client = twilio(config.sid, config.token);
-    await client.messages.create({
+    await createTwilioMessage({
+      sid: config.sid,
+      token: config.token,
       from: config.phone,
       to: toPhone,
       body: "Test SMS from RSVP to Me. Your SMS configuration is correct!",

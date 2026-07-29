@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const mockCreate = vi.fn().mockResolvedValue({ sid: "SM123" });
-const mockTwilio = vi.fn().mockReturnValue({
-  messages: { create: mockCreate },
-});
-
-vi.mock("twilio", () => ({ default: mockTwilio }));
+const mockFetch = vi.fn();
 
 const mockFindMany = vi.fn();
 vi.mock("@/lib/db", () => ({
@@ -18,16 +13,37 @@ vi.mock("@/lib/db", () => ({
 
 const loadModule = () => import("@/lib/sms");
 
+function successfulTwilioResponse() {
+  return new Response(JSON.stringify({ sid: "SM123" }), {
+    status: 201,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function getTwilioRequest(index = 0) {
+  const [url, init] = mockFetch.mock.calls[index] as [string, RequestInit];
+  return {
+    url,
+    init,
+    form: init.body as URLSearchParams,
+  };
+}
+
 describe("lib/sms.ts", () => {
   beforeEach(() => {
     vi.resetModules();
-    mockCreate.mockClear();
-    mockTwilio.mockClear();
+    mockFetch.mockReset();
+    mockFetch.mockImplementation(() => Promise.resolve(successfulTwilioResponse()));
+    vi.stubGlobal("fetch", mockFetch);
     // Default: SMS channel enabled so tests exercise SMS logic, not the gate
     mockFindMany.mockResolvedValue([{ key: "sms_enabled", value: "true" }]);
     delete process.env.TWILIO_ACCOUNT_SID;
     delete process.env.TWILIO_AUTH_TOKEN;
     delete process.env.TWILIO_PHONE_NUMBER;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   describe("console fallback (no Twilio credentials)", () => {
@@ -45,12 +61,12 @@ describe("lib/sms.ts", () => {
         "[sms:dev]",
         expect.objectContaining({ to: "+15550001111" })
       );
-      expect(mockCreate).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
   });
 
-  describe("Twilio client (credentials set)", () => {
+  describe("Twilio REST API (credentials set)", () => {
     beforeEach(() => {
       process.env.TWILIO_ACCOUNT_SID = "ACtest";
       process.env.TWILIO_AUTH_TOKEN = "authtest";
@@ -63,7 +79,7 @@ describe("lib/sms.ts", () => {
       delete process.env.TWILIO_PHONE_NUMBER;
     });
 
-    it("calls Twilio messages.create with correct params", async () => {
+    it("posts the expected authenticated form to the Twilio Messages API", async () => {
       const { sendRsvpConfirmationSms } = await loadModule();
       await sendRsvpConfirmationSms("+15550001111", {
         guestName: "Alice",
@@ -72,33 +88,37 @@ describe("lib/sms.ts", () => {
         status: "GOING",
         editToken: "tok123",
       });
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "+15550001111",
-          from: "+15559999999",
-          body: expect.stringContaining("Wine Night"),
-        })
-      );
+
+      const { url, init, form } = getTwilioRequest();
+      expect(url).toBe("https://api.twilio.com/2010-04-01/Accounts/ACtest/Messages.json");
+      expect(init.method).toBe("POST");
+      expect(init.headers).toEqual({
+        Authorization: `Basic ${Buffer.from("ACtest:authtest").toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      });
+      expect(form).toBeInstanceOf(URLSearchParams);
+      expect(form.get("To")).toBe("+15550001111");
+      expect(form.get("From")).toBe("+15559999999");
+      expect(form.get("Body")).toContain("Wine Night");
     });
 
     it("sendSmsBlast sends to all numbers and returns count", async () => {
       const { sendSmsBlast } = await loadModule();
-      mockCreate.mockResolvedValue({ sid: "SM123" });
       const count = await sendSmsBlast(["+15550001111", "+15550002222"], {
         eventTitle: "Wine Night",
         eventSlug: "wine-night",
         message: "See you there!",
         hostName: "Bob",
       });
-      expect(mockCreate).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(count).toBe(2);
     });
 
     it("sendSmsBlast still returns count even if some messages fail", async () => {
       const { sendSmsBlast } = await loadModule();
-      mockCreate
-        .mockRejectedValueOnce(new Error("Twilio error"))
-        .mockResolvedValueOnce({ sid: "SM999" });
+      mockFetch
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockResolvedValueOnce(successfulTwilioResponse());
       const count = await sendSmsBlast(["+15550001111", "+15550002222"], {
         eventTitle: "Wine Night",
         eventSlug: "wine-night",
@@ -116,11 +136,10 @@ describe("lib/sms.ts", () => {
         phone: "+15559999999",
       });
       expect(res.success).toBe(true);
-      expect(mockCreate).toHaveBeenCalledWith({
-        from: "+15559999999",
-        to: "+15551112222",
-        body: expect.stringContaining("RSVP to Me"),
-      });
+      const { form } = getTwilioRequest();
+      expect(form.get("From")).toBe("+15559999999");
+      expect(form.get("To")).toBe("+15551112222");
+      expect(form.get("Body")).toContain("RSVP to Me");
     });
 
     it("testSmsConfig returns error if missing config fields", async () => {
@@ -134,9 +153,9 @@ describe("lib/sms.ts", () => {
       expect(res.error).toContain("required");
     });
 
-    it("testSmsConfig returns error if twilio throws", async () => {
+    it("testSmsConfig returns error if Twilio rejects the request", async () => {
+      mockFetch.mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }));
       const { testSmsConfig } = await loadModule();
-      mockCreate.mockRejectedValueOnce(new Error("Twilio API Error"));
       const res = await testSmsConfig("+15551112222", {
         sid: "ACtest",
         token: "authtest",
@@ -151,12 +170,9 @@ describe("lib/sms.ts", () => {
     it("sendMagicLinkSms sends correct body", async () => {
       const { sendMagicLinkSms } = await loadModule();
       await sendMagicLinkSms("+15551112222", "http://magic-link");
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "+15551112222",
-          body: expect.stringContaining("http://magic-link"),
-        })
-      );
+      const { form } = getTwilioRequest();
+      expect(form.get("To")).toBe("+15551112222");
+      expect(form.get("Body")).toContain("http://magic-link");
     });
 
     it("sendApprovalSms sends approved or declined message", async () => {
@@ -166,20 +182,12 @@ describe("lib/sms.ts", () => {
         approved: true,
         message: "Welcome!",
       });
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "+15551112222",
-          body: expect.stringContaining("approved"),
-        })
-      );
+      expect(getTwilioRequest().form.get("To")).toBe("+15551112222");
+      expect(getTwilioRequest().form.get("Body")).toContain("approved");
 
       await sendApprovalSms("+15551112222", { eventTitle: "Wine Night", approved: false });
-      expect(mockCreate).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          to: "+15551112222",
-          body: expect.stringContaining("declined"),
-        })
-      );
+      expect(getTwilioRequest(1).form.get("To")).toBe("+15551112222");
+      expect(getTwilioRequest(1).form.get("Body")).toContain("declined");
     });
   });
 });
