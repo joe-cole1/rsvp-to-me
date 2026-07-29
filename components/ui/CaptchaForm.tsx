@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import { CAPTCHA_ERROR_MESSAGE, type CaptchaAction } from "@/lib/captcha-types";
+import {
+  CAPTCHA_ERROR_MESSAGE,
+  CAPTCHA_RESPONSE_FIELD,
+  type CaptchaAction,
+} from "@/lib/captcha-types";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 export function CaptchaForm({
@@ -23,11 +27,12 @@ export function CaptchaForm({
     const formData = new FormData(event.currentTarget);
     setError(null);
 
-    void runWithCaptcha(captchaAction, () => Promise.resolve(action(formData))).catch(
-      (reason: unknown) => {
-        setError(reason instanceof Error ? reason.message : CAPTCHA_ERROR_MESSAGE);
-      }
-    );
+    void runWithCaptcha(captchaAction, (token) => {
+      if (token) formData.set(CAPTCHA_RESPONSE_FIELD, token);
+      return Promise.resolve(action(formData));
+    }).catch((reason: unknown) => {
+      setError(reason instanceof Error ? reason.message : CAPTCHA_ERROR_MESSAGE);
+    });
   };
 
   return (

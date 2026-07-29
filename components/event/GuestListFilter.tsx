@@ -228,7 +228,9 @@ export function GuestListFilter({
 
   const handleApprove = (rsvpId: string) => {
     startTransition(async () => {
-      const res = await runWithCaptcha("rsvp_moderation", () => approveRsvp(rsvpId));
+      const res = await runWithCaptcha("rsvp_moderation", (token) =>
+        approveRsvp(rsvpId, undefined, token)
+      );
       if (res.success) {
         const approvedItem = pending.find((r) => r.id === rsvpId);
         if (approvedItem) {
@@ -271,7 +273,9 @@ export function GuestListFilter({
   const handleDecline = (rsvpId: string) => {
     if (!confirm("Decline and remove this RSVP request?")) return;
     startTransition(async () => {
-      const res = await runWithCaptcha("rsvp_moderation", () => declineRsvp(rsvpId));
+      const res = await runWithCaptcha("rsvp_moderation", (token) =>
+        declineRsvp(rsvpId, undefined, token)
+      );
       if (res.success) {
         setPending((prev) => prev.filter((r) => r.id !== rsvpId));
       }
@@ -396,8 +400,8 @@ export function GuestListFilter({
     setResendPendingId(guest.id);
     startTransition(async () => {
       try {
-        const result = await runWithCaptcha("host_invite", () =>
-          inviteGuest(eventId, guest.sentTo)
+        const result = await runWithCaptcha("host_invite", (token) =>
+          inviteGuest(eventId, guest.sentTo, token)
         );
         setInvitationMessage(
           result.errors?.length
@@ -416,14 +420,17 @@ export function GuestListFilter({
     startTransition(async () => {
       setAttendanceError(null);
       try {
-        const result = await runWithCaptcha("walkin_create", () =>
-          addWalkIn({
-            eventId,
-            guestName: walkInName,
-            totalPartySize: walkInPartySize,
-            guestEmail: walkInEmail,
-            guestPhone: walkInPhone,
-          })
+        const result = await runWithCaptcha("walkin_create", (token) =>
+          addWalkIn(
+            {
+              eventId,
+              guestName: walkInName,
+              totalPartySize: walkInPartySize,
+              guestEmail: walkInEmail,
+              guestPhone: walkInPhone,
+            },
+            token
+          )
         );
         if (!result.success) throw new Error(result.error);
         setShowWalkIn(false);

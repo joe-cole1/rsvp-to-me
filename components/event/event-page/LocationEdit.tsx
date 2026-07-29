@@ -94,13 +94,17 @@ export function LocationEdit({
 
   const save = () => {
     startTransition(async () => {
-      await runWithCaptcha("event_edit", () =>
-        saveEventLocation(eventId, {
-          locationType: type,
-          locationName: type === "PHYSICAL" ? name || null : null,
-          locationAddress: type === "PHYSICAL" ? address || null : null,
-          virtualUrl: type === "VIRTUAL" ? vUrl || null : null,
-        })
+      await runWithCaptcha("event_edit", (token) =>
+        saveEventLocation(
+          eventId,
+          {
+            locationType: type,
+            locationName: type === "PHYSICAL" ? name || null : null,
+            locationAddress: type === "PHYSICAL" ? address || null : null,
+            virtualUrl: type === "VIRTUAL" ? vUrl || null : null,
+          },
+          token
+        )
       );
       onSave({
         locationType: type,

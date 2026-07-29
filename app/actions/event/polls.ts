@@ -16,10 +16,11 @@ export async function createPoll(
   options: string[],
   multiChoice: boolean,
   allowGuestsToAdd: boolean,
-  hideVoters: boolean = false
+  hideVoters: boolean = false,
+  captchaToken?: string | null
 ) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("poll_manage");
+  await assertCaptcha("poll_manage", captchaToken);
   if (!question.trim()) throw new Error("Question cannot be empty");
 
   const cleanOptions = options.map((o) => o.trim()).filter((o) => o.length > 0);
@@ -183,10 +184,11 @@ export async function addPollOption(
   pollId: string,
   text: string,
   creatorName: string,
-  guestEditToken?: string
+  guestEditToken?: string,
+  captchaToken?: string | null
 ) {
   if (!text.trim()) throw new Error("Option text cannot be empty");
-  await assertCaptcha("poll_option");
+  await assertCaptcha("poll_option", captchaToken);
 
   const poll = await db.poll.findUnique({
     where: { id: pollId },
@@ -255,9 +257,10 @@ export async function updatePollSettings(
     allowGuestsToAdd?: boolean;
     locked?: boolean;
     hideVoters?: boolean;
-  }
+  },
+  captchaToken?: string | null
 ) {
-  await assertCaptcha("poll_manage");
+  await assertCaptcha("poll_manage", captchaToken);
   const poll = await db.poll.findUnique({
     where: { id: pollId },
     select: { eventId: true, question: true },

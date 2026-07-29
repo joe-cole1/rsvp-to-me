@@ -51,8 +51,8 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
     setSending(true);
     setStatus(null);
     try {
-      const res = await runWithCaptcha("email_test", () =>
-        sendEventEmailTest(eventId, selectedId as Parameters<typeof sendEventEmailTest>[1])
+      const res = await runWithCaptcha("email_test", (token) =>
+        sendEventEmailTest(eventId, selectedId as Parameters<typeof sendEventEmailTest>[1], token)
       );
       setStatus(res.success ? `Test sent to ${res.sentTo}` : (res.error ?? "Send failed"));
     } catch (reason) {

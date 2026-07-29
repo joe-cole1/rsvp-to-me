@@ -134,7 +134,9 @@ export function DateEdit({
     const startVal = `${startDate}T${startTime}`;
     const endVal = endDate && endTime ? `${endDate}T${endTime}` : "";
     startTransition(async () => {
-      await runWithCaptcha("event_edit", () => saveEventDates(eventId, startVal, endVal || null));
+      await runWithCaptcha("event_edit", (token) =>
+        saveEventDates(eventId, startVal, endVal || null, token)
+      );
       onSave(
         tzLocalToUtcClient(startVal, timezone),
         endVal ? tzLocalToUtcClient(endVal, timezone) : null

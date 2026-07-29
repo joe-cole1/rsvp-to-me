@@ -93,10 +93,10 @@ export async function undoCheckIn(rsvpId: string) {
   return { success: true as const, wasCheckedIn: deleted.count > 0 };
 }
 
-export async function addWalkIn(rawInput: unknown) {
+export async function addWalkIn(rawInput: unknown, captchaToken?: string | null) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  await assertCaptcha("walkin_create");
+  await assertCaptcha("walkin_create", captchaToken);
   const parsed = AddWalkInSchema.safeParse(rawInput);
   if (!parsed.success) {
     return { success: false as const, error: "Please check the walk-in details and try again." };

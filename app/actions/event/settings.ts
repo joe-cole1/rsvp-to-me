@@ -29,13 +29,18 @@ const ALLOWED_FIELDS = new Set([
   "virtualUrl",
 ]);
 
-export async function saveEventField(eventId: string, field: string, value: string) {
+export async function saveEventField(
+  eventId: string,
+  field: string,
+  value: string,
+  captchaToken?: string | null
+) {
   if (!ALLOWED_FIELDS.has(field)) throw new Error("Field not allowed");
   // SEC-36: the virtual link renders into a guest-facing <a href> — only
   // http(s) may be persisted (blocks javascript:/data: URIs).
   if (field === "virtualUrl" && value) value = HttpUrlSchema.parse(value);
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_edit");
+  await assertCaptcha("event_edit", captchaToken);
   await db.event.update({ where: { id: eventId }, data: { [field]: value || null } });
   const fieldTypes: Record<string, string> = {
     title: "event_title",
@@ -67,12 +72,13 @@ export async function saveEventLocation(
     locationName: string | null;
     locationAddress: string | null;
     virtualUrl: string | null;
-  }
+  },
+  captchaToken?: string | null
 ) {
   // SEC-36: see saveEventField.
   const virtualUrl = data.virtualUrl ? HttpUrlSchema.parse(data.virtualUrl) : null;
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_edit");
+  await assertCaptcha("event_edit", captchaToken);
   await db.event.update({
     where: { id: eventId },
     data: {
@@ -109,10 +115,11 @@ export async function saveEventTheme(
   accentColor: string,
   presetId?: string | null,
   cardOpacity?: number | null,
-  extras?: ThemeExtras
+  extras?: ThemeExtras,
+  captchaToken?: string | null
 ) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_theme");
+  await assertCaptcha("event_theme", captchaToken);
   if (extras) {
     if (!isValidFontId(extras.fontId)) throw new Error("Unknown font");
     if (!isValidEffectId(extras.effectId)) throw new Error("Unknown effect");
@@ -179,10 +186,11 @@ export async function saveEventSettings(
     hostDisplayName?: string | null;
     hostAlertEmail?: boolean;
     hostAlertSms?: boolean;
-  }
+  },
+  captchaToken?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_settings");
+  await assertCaptcha("event_settings", captchaToken);
 
   const session = await getSession();
   const isOwner = event.hostId === session?.userId || session?.role === "ADMIN";
@@ -227,10 +235,11 @@ export async function saveEventSettings(
 export async function saveEventDates(
   eventId: string,
   startAt: string, // "YYYY-MM-DDTHH:MM" in the event's timezone
-  endAt: string | null
+  endAt: string | null,
+  captchaToken?: string | null
 ) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_edit");
+  await assertCaptcha("event_edit", captchaToken);
   const evt = await db.event.findUnique({ where: { id: eventId }, select: { timezone: true } });
   if (!evt) throw new Error("Event not found");
   await db.event.update({
@@ -268,9 +277,9 @@ export async function saveEventDates(
 
 // ── Cover image ────────────────────────────────────────────────────────────────
 
-export async function saveCoverImage(eventId: string, url: string) {
+export async function saveCoverImage(eventId: string, url: string, captchaToken?: string | null) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("image_assign");
+  await assertCaptcha("image_assign", captchaToken);
   await db.eventTheme.upsert({
     where: { eventId },
     update: { coverImageUrl: url },
@@ -298,10 +307,11 @@ export async function saveReminderSettings(
     smsDayBefore: boolean;
     smsHoursBefore: number;
     nudgeUnresponded: boolean;
-  }
+  },
+  captchaToken?: string | null
 ) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_settings");
+  await assertCaptcha("event_settings", captchaToken);
   await db.eventReminderSettings.upsert({
     where: { eventId },
     update: settings,

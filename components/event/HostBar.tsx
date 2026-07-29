@@ -82,8 +82,8 @@ export function HostBar({
     setInvitePending(true);
     setInviteStatus(null);
     try {
-      const result = await runWithCaptcha("host_invite", () =>
-        inviteGuest(eventId, inviteInput.trim())
+      const result = await runWithCaptcha("host_invite", (token) =>
+        inviteGuest(eventId, inviteInput.trim(), token)
       );
       if (result.success) {
         setInviteStatus({ success: true, message: `Invite sent to ${result.emailOrPhone}!` });
@@ -121,8 +121,8 @@ export function HostBar({
     setVisibilityPending(true);
     setVisibility(next);
     try {
-      await runWithCaptcha("event_settings", () =>
-        saveEventSettings(eventId, { visibility: next })
+      await runWithCaptcha("event_settings", (token) =>
+        saveEventSettings(eventId, { visibility: next }, token)
       );
     } catch {
       setVisibility(prev);
@@ -149,8 +149,8 @@ export function HostBar({
 
     try {
       if (sendEmail) {
-        const r = await runWithCaptcha("message_send", () =>
-          sendBlast(eventId, messageText.trim(), recipientFilters)
+        const r = await runWithCaptcha("message_send", (token) =>
+          sendBlast(eventId, messageText.trim(), recipientFilters, token)
         );
         if (r.success) {
           successCount++;
@@ -161,8 +161,8 @@ export function HostBar({
         }
       }
       if (sendSms) {
-        const r = await runWithCaptcha("message_send", () =>
-          sendSmsBlast(eventId, messageText.trim(), recipientFilters)
+        const r = await runWithCaptcha("message_send", (token) =>
+          sendSmsBlast(eventId, messageText.trim(), recipientFilters, token)
         );
         if (r.success) {
           successCount++;

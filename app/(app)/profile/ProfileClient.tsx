@@ -24,6 +24,7 @@ import {
 import { Dialog } from "@/components/ui/Dialog";
 import { compressImage } from "@/lib/client-image";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { CAPTCHA_RESPONSE_FIELD } from "@/lib/captcha-types";
 
 interface ProfileData {
   id: string;
@@ -134,22 +135,26 @@ export default function ProfileClient({
       const form = new FormData();
       form.append("file", compressed);
 
-      const res = await runWithCaptcha("image_upload", () =>
-        fetch("/api/upload", { method: "POST", body: form })
-      );
+      const res = await runWithCaptcha("image_upload", (token) => {
+        if (token) form.set(CAPTCHA_RESPONSE_FIELD, token);
+        return fetch("/api/upload", { method: "POST", body: form });
+      });
       if (!res.ok) throw new Error(await res.text());
 
       const { url } = (await res.json()) as { url: string };
       setAvatarUrl(url);
 
       // Save avatarUrl immediately to profile
-      await runWithCaptcha("profile_edit", () =>
-        updateProfileSettings({
-          name,
-          avatarUrl: url,
-          email: initialProfile.email || undefined,
-          phone: initialProfile.phone || undefined,
-        })
+      await runWithCaptcha("profile_edit", (token) =>
+        updateProfileSettings(
+          {
+            name,
+            avatarUrl: url,
+            email: initialProfile.email || undefined,
+            phone: initialProfile.phone || undefined,
+          },
+          token
+        )
       );
 
       setFeedback({ type: "success", message: "Avatar updated successfully!" });
@@ -170,13 +175,16 @@ export default function ProfileClient({
 
     startTransition(async () => {
       try {
-        const result = await runWithCaptcha("profile_edit", () =>
-          updateProfileSettings({
-            name,
-            avatarUrl,
-            email: email.trim() || undefined,
-            phone: phone.trim() || undefined,
-          })
+        const result = await runWithCaptcha("profile_edit", (token) =>
+          updateProfileSettings(
+            {
+              name,
+              avatarUrl,
+              email: email.trim() || undefined,
+              phone: phone.trim() || undefined,
+            },
+            token
+          )
         );
 
         if (result.success) {

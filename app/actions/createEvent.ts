@@ -8,6 +8,7 @@ import { generateUniqueSlug } from "@/lib/slug";
 import { tzLocalToUtc } from "@/lib/utils";
 import { CreateEventSchema } from "@/lib/schemas";
 import { assertCaptcha } from "@/lib/captcha";
+import { CAPTCHA_RESPONSE_FIELD } from "@/lib/captcha-types";
 
 export async function createEvent(formData: FormData) {
   const session = await getSession();
@@ -34,7 +35,8 @@ export async function createEvent(formData: FormData) {
   };
 
   const parsed = CreateEventSchema.parse(rawInput);
-  await assertCaptcha("event_create");
+  const captchaToken = formData.get(CAPTCHA_RESPONSE_FIELD);
+  await assertCaptcha("event_create", typeof captchaToken === "string" ? captchaToken : null);
 
   const startAt = tzLocalToUtc(`${parsed.startDate}T${parsed.startTime}`, parsed.timezone);
   const slug = await generateUniqueSlug(parsed.title);

@@ -18,8 +18,8 @@ export function PasswordGate({ slug }: { slug: string }) {
     setError(false);
     setLoading(true);
     try {
-      const res = await runWithCaptcha("event_password", () =>
-        verifyEventPassword(slug, pw.trim())
+      const res = await runWithCaptcha("event_password", (token) =>
+        verifyEventPassword(slug, pw.trim(), token)
       );
       if (res.success) {
         router.refresh();

@@ -11,9 +11,14 @@ import { assertCaptcha } from "@/lib/captcha";
 
 // ── Message blast ──────────────────────────────────────────────────────────────
 
-export async function sendBlast(eventId: string, message: string, filters: BlastStatusFilter[]) {
+export async function sendBlast(
+  eventId: string,
+  message: string,
+  filters: BlastStatusFilter[],
+  captchaToken?: string | null
+) {
   await assertHostOrCohost(eventId);
-  await assertCaptcha("message_send");
+  await assertCaptcha("message_send", captchaToken);
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -74,9 +79,14 @@ export async function sendBlast(eventId: string, message: string, filters: Blast
   return { success: true, sent: totalSent };
 }
 
-export async function sendSmsBlast(eventId: string, message: string, filters: BlastStatusFilter[]) {
+export async function sendSmsBlast(
+  eventId: string,
+  message: string,
+  filters: BlastStatusFilter[],
+  captchaToken?: string | null
+) {
   await assertHostOrCohost(eventId);
-  await assertCaptcha("message_send");
+  await assertCaptcha("message_send", captchaToken);
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -131,9 +141,14 @@ export async function sendSmsBlast(eventId: string, message: string, filters: Bl
 
 // ── Event updates ─────────────────────────────────────────────────────────────
 
-export async function addEventUpdate(eventId: string, body: string, notifyGuests: boolean) {
+export async function addEventUpdate(
+  eventId: string,
+  body: string,
+  notifyGuests: boolean,
+  captchaToken?: string | null
+) {
   const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_update");
+  await assertCaptcha("event_update", captchaToken);
   const update = await db.eventUpdate.create({ data: { eventId, body, notifyGuests } });
   if (notifyGuests) {
     const rsvps = await db.rSVP.findMany({

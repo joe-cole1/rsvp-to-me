@@ -17,16 +17,19 @@ function parseSectionUrl(url: string | null | undefined): string | null {
   return HttpUrlSchema.parse(url);
 }
 
-export async function addInfoSection(data: {
-  eventId: string;
-  type: string;
-  title: string | null;
-  content: string;
-  url: string | null;
-  order: number;
-}) {
+export async function addInfoSection(
+  data: {
+    eventId: string;
+    type: string;
+    title: string | null;
+    content: string;
+    url: string | null;
+    order: number;
+  },
+  captchaToken?: string | null
+) {
   const event = await assertHostOrCohost(data.eventId);
-  await assertCaptcha("event_content");
+  await assertCaptcha("event_content", captchaToken);
   const section = await db.eventInfoSection.create({
     data: {
       eventId: data.eventId,
@@ -49,7 +52,8 @@ export async function addInfoSection(data: {
 
 export async function updateInfoSection(
   sectionId: string,
-  data: { type?: string; title?: string | null; content: string; url: string | null }
+  data: { type?: string; title?: string | null; content: string; url: string | null },
+  captchaToken?: string | null
 ) {
   const section = await db.eventInfoSection.findUnique({
     where: { id: sectionId },
@@ -57,7 +61,7 @@ export async function updateInfoSection(
   });
   if (!section) throw new Error("Forbidden");
   await assertHostOrCohost(section.eventId);
-  await assertCaptcha("event_content");
+  await assertCaptcha("event_content", captchaToken);
   await db.eventInfoSection.update({
     where: { id: sectionId },
     data: {

@@ -181,28 +181,31 @@ export function RsvpFlow({
             note: note.trim() || undefined,
             answers,
           };
-          const result = await runWithCaptcha("rsvp_edit", () =>
+          const result = await runWithCaptcha("rsvp_edit", (token) =>
             organizerOverride
-              ? updateRsvpAsHost(existingRsvp.id, input)
-              : updateRSVP(existingRsvp.editToken, input)
+              ? updateRsvpAsHost(existingRsvp.id, input, token)
+              : updateRSVP(existingRsvp.editToken, input, token)
           );
           if (!result.success) {
             setError(result.error ?? "Something went wrong");
             return;
           }
         } else {
-          const result = await runWithCaptcha("rsvp_create", () =>
-            addRSVP({
-              eventId: event.id,
-              guestName: name.trim(),
-              guestEmail: email.trim() || undefined,
-              guestPhone: phone.trim() || undefined,
-              status,
-              plusOneCount,
-              plusOneGuestNames,
-              note: note.trim() || undefined,
-              answers,
-            })
+          const result = await runWithCaptcha("rsvp_create", (token) =>
+            addRSVP(
+              {
+                eventId: event.id,
+                guestName: name.trim(),
+                guestEmail: email.trim() || undefined,
+                guestPhone: phone.trim() || undefined,
+                status,
+                plusOneCount,
+                plusOneGuestNames,
+                note: note.trim() || undefined,
+                answers,
+              },
+              token
+            )
           );
           if (!result.success) {
             setError(result.error ?? "Something went wrong");

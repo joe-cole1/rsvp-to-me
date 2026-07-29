@@ -96,9 +96,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 6. Guests edit an RSVP through its edit token; do not substitute host sessions
    or publicly visible RSVP fields for that authority.
 7. User-content create/edit mutations call `assertCaptcha()` from `lib/captcha.ts`.
-   Turnstile tokens are action-bound, consumed from the `rsvp-turnstile` cookie,
-   and verified server-side. Only administrators bypass this boundary; authenticated
-   hosts and co-hosts remain protected.
+   Turnstile tokens are action-bound, passed directly with the protected mutation,
+   and verified server-side. Never route them through shared browser state such as
+   a cookie. Only administrators bypass this boundary; authenticated hosts and
+   co-hosts remain protected.
 
 ### Event and RSVP flow
 
@@ -122,9 +123,11 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - Shared validation belongs in `lib/schemas.ts`; shared authorization belongs
   in `lib/auth-guards.ts` or `lib/eventAccess.ts`.
 - Client submissions request fresh Turnstile tokens through
-  `components/ui/CaptchaProvider.tsx`; server actions and upload routes enforce
-  them through `lib/captcha.ts`. Deletes and low-risk state toggles are outside
-  this user-content boundary.
+  `components/ui/CaptchaProvider.tsx` and carry each token on that same server
+  action or upload request; server actions and upload routes enforce them through
+  `lib/captcha.ts`. The provider serializes widget execution while allowing
+  already-verified requests for different actions to remain concurrent. Deletes
+  and low-risk state toggles are outside this user-content boundary.
 - Capacity-sensitive RSVP writes use `lib/capacityLock.ts`.
 
 ### Themes, effects, and email

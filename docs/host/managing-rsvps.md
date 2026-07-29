@@ -89,7 +89,8 @@ a guest loses their link, see the [FAQ](faq.md).
 When the site administrator enables bot protection, every new or edited RSVP must pass an
 interaction-only security check before it is saved. The same protection applies when a host or
 co-host edits an RSVP or records a walk-in, because organizer accounts can also be abused. Most
-legitimate users see no prompt.
+legitimate users see no prompt. Separate protected tasks can remain in progress at the same time;
+for example, an image upload does not block an RSVP or comment from passing its own check.
 
 RSVP submissions are also rate-limited per client IP (both overall and per event). Together these
 controls throttle automated fake RSVPs before any confirmation email or text is sent.

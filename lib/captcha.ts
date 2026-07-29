@@ -1,12 +1,7 @@
 import { randomUUID } from "crypto";
-import { cookies } from "next/headers";
 import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { getSession } from "@/lib/session";
-import {
-  CAPTCHA_COOKIE_NAME,
-  CAPTCHA_ERROR_MESSAGE,
-  type CaptchaAction,
-} from "@/lib/captcha-types";
+import { CAPTCHA_ERROR_MESSAGE, type CaptchaAction } from "@/lib/captcha-types";
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const VERIFY_TIMEOUT_MS = 5_000;
@@ -91,7 +86,10 @@ function logFailure(action: CaptchaAction, reason: string, errorCodes?: string[]
   });
 }
 
-export async function assertCaptcha(action: CaptchaAction): Promise<void> {
+export async function assertCaptcha(
+  action: CaptchaAction,
+  token: string | null | undefined
+): Promise<void> {
   const config = readCaptchaConfig();
   if (config.state === "disabled") return;
 
@@ -103,11 +101,7 @@ export async function assertCaptcha(action: CaptchaAction): Promise<void> {
     throw new CaptchaVerificationError();
   }
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get(CAPTCHA_COOKIE_NAME)?.value ?? "";
-  cookieStore.delete(CAPTCHA_COOKIE_NAME);
-
-  if (!token || token.length > 2048) {
+  if (typeof token !== "string" || token.length === 0 || token.length > 2048) {
     logFailure(action, "missing_or_invalid_token");
     throw new CaptchaVerificationError();
   }
