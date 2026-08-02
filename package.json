@@ -83,7 +83,7 @@
     "*.{ts,tsx}": "prettier --write"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@react-email/ui": "^6.9.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.0",
