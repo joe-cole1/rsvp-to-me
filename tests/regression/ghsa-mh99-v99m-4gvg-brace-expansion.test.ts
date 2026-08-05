@@ -27,7 +27,8 @@ const eslintRequire = createRequire(rootRequire.resolve("eslint/package.json"));
 const legacyMinimatch = eslintRequire("minimatch") as LegacyMinimatch;
 const adapter = rootRequire("brace-expansion") as ExpansionAdapter;
 const patched = rootRequire("brace-expansion-patched") as { expand: Expand };
-const modernMinimatchFn = modernMinimatch || (minimatchDefault as unknown as typeof modernMinimatch);
+const modernMinimatchFn =
+  modernMinimatch || (minimatchDefault as unknown as typeof modernMinimatch);
 
 describe("GHSA-mh99-v99m-4gvg brace-expansion compatibility", () => {
   it("preserves legacy and modern minimatch brace matching", () => {
