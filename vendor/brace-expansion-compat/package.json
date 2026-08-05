@@ -1,6 +1,6 @@
 {
   "name": "brace-expansion",
-  "version": "5.0.8",
+  "version": "5.0.9",
   "private": true,
   "description": "Legacy CommonJS adapter for patched brace-expansion",
   "main": "index.cjs",
@@ -13,6 +13,6 @@
     "node": "20 || >=22"
   },
   "dependencies": {
-    "brace-expansion-patched": "npm:brace-expansion@5.0.8"
+    "brace-expansion-patched": "npm:brace-expansion@5.0.9"
   }
 }

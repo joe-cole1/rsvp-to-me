@@ -56,7 +56,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
-    "redis": "^6.1.0",
+    "redis": "^6.2.0",
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
@@ -65,6 +65,10 @@
     "zod": "^4.4.3"
   },
   "overrides": {
+    "fast-uri": "^3.1.5",
+    "socket.io-parser": "^4.2.7",
+    "undici": "^7.28.1",
+    "brace-expansion": "5.0.9",
     "postcss": "^8.5.18",
     "next": "$next",
     "@prisma/dev": {
@@ -92,7 +96,7 @@
     "@types/html-to-text": "^9.0.4",
     "@types/node": "^26",
     "@types/nodemailer": "^8.0.1",
-    "@types/pg": "^8.20.0",
+    "@types/pg": "^8.20.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.10",

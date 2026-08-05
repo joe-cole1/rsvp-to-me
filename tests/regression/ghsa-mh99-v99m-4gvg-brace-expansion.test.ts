@@ -11,7 +11,7 @@
 
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
-import { minimatch as modernMinimatch } from "minimatch";
+import minimatchDefault, { minimatch as modernMinimatch } from "minimatch";
 
 type Expand = (pattern: string) => string[];
 type LegacyMinimatch = {
@@ -27,6 +27,7 @@ const eslintRequire = createRequire(rootRequire.resolve("eslint/package.json"));
 const legacyMinimatch = eslintRequire("minimatch") as LegacyMinimatch;
 const adapter = rootRequire("brace-expansion") as ExpansionAdapter;
 const patched = rootRequire("brace-expansion-patched") as { expand: Expand };
+const modernMinimatchFn = modernMinimatch || (minimatchDefault as unknown as typeof modernMinimatch);
 
 describe("GHSA-mh99-v99m-4gvg brace-expansion compatibility", () => {
   it("preserves legacy and modern minimatch brace matching", () => {
@@ -36,7 +37,7 @@ describe("GHSA-mh99-v99m-4gvg brace-expansion compatibility", () => {
     expect(typeof legacyMinimatch).toBe("function");
     expect(legacyMinimatch.braceExpand(pattern)).toEqual(expected);
     expect(legacyMinimatch("file2.js", pattern)).toBe(true);
-    expect(modernMinimatch("file2.js", pattern)).toBe(true);
+    expect(modernMinimatchFn("file2.js", pattern)).toBe(true);
   });
 
   it("delegates callable and named exports to the patched implementation", () => {
