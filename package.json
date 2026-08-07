@@ -101,7 +101,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.0",
     "fast-check": "^4.9.0",
     "husky": "^9",
     "jsdom": "^30.0.1",
