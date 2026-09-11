@@ -60,7 +60,7 @@
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
