@@ -10,6 +10,8 @@ permissions:
 
 jobs:
   docker:
+    # Defense in depth: repository Actions policy should enforce the same boundary before execution.
+    if: github.actor == github.repository_owner
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
 
