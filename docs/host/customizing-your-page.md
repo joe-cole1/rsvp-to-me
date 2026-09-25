@@ -74,7 +74,7 @@ Your theme isn't just for the event page — the **emails** your guests receive 
 
 Upload a cover photo to set the mood:
 
-- Supported formats: JPEG, PNG, GIF, WebP.
+- Supported formats: JPEG, PNG, GIF, WebP. Use one of these formats when replacing a cover image; AVIF is not a supported upload format.
 - Maximum file size: 8 MB.
 - Large images are automatically resized in your browser (up to 1600×900) before uploading, so uploads stay fast.
 - The server automatically delivers responsive image sizes and modern formats for event covers and profile photos. The original upload remains unchanged for backups and email-client compatibility.

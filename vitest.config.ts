@@ -6,7 +6,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     exclude: ["**/node_modules/**", "tests/components/**", "tests/integration/**", "tests/e2e/**"],
-    setupFiles: ["./tests/setup.ts"],
+    setupFiles: ["./tests/unit-network-guard.ts", "./tests/setup.ts"],
     testTimeout: 30000,
     hookTimeout: 30000,
     coverage: {

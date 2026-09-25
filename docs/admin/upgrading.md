@@ -39,6 +39,48 @@ Your `docker-compose.yml` uses the `latest` tag by default. Running `docker comp
 
 ---
 
+## September 2026 dependency repair
+
+This batch updates Next.js and its ESLint configuration to 16.3.6, Sharp to
+0.35.4 in both the application and the optional email worker, Nodemailer to
+9.1.1, and html-to-text to 10.0.1. It also refreshes vulnerable transitive
+packages. It adds no database migrations or environment variables.
+
+Keep the existing compatibility overrides. Prisma remains on 7.9.1; temporary
+scoped overrides select deepmerge-ts 8.0.1 for `@prisma/config` and mysql2
+3.24.4 for the Prisma CLI. Check Prisma config loading, client generation, and
+migrations before removing those overrides. Issue #603 tracks the remaining
+Prisma deepmerge dependency; #546 tracks the legacy brace-expansion adapter.
+Do not use `npm audit fix --force` to resolve this backlog: its proposed
+Prisma 6 downgrade changes the application's supported major version.
+
+The optional worker's Cloudflare types now match Wrangler's declared version-5
+peer requirement. Reinstall from `worker/package-lock.json` with
+`npm ci --prefix worker` when working on that package. This does not deploy the
+worker or change its email API. The worker handler annotations now use the
+Cloudflare email/request/response types. These annotation changes do not alter
+the transport logic or require a change to the admin copy-and-paste template.
+
+CI runs on pull requests, manual dispatches, and pushes to `main`, so each
+merge receives its own verification run. It audits the root and worker
+packages, and type-checks the tests and worker after the production build.
+Unit tests block unmocked HTTP fetches; provider tests use local mocks rather
+than sending fixture credentials or messages to live services. The SEC-14
+regression now mocks the current REST transport and template-settings lookup. The separate
+Vitest 4.1.11 batch addresses the remaining moderate test-tool advisories.
+
+Before publishing, require passing CI for the merged commit and smoke-test the
+built image: sign-in, event creation, public and protected RSVPs, RSVP editing,
+image uploads, and email delivery. Record the previous image digest and back
+up the database and uploads. This dependency-only batch needs no database
+restore for a routine image rollback; preserve RSVPs received after deployment.
+
+The release workflow still publishes the `latest` image tag for every published
+release. Use an isolated candidate image for staging until separate prerelease
+tags have been implemented. Publish only after QC and approval.
+
+---
+
 ## Before You Upgrade — Back Up Your Data
 
 Always perform a backup before upgrading.

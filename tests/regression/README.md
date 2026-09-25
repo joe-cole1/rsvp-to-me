@@ -67,3 +67,4 @@ For every bug fix merged to main:
 | `ghsa-f88m-g3jw-g9cj-sharp-libvips.test.ts`          | Next.js, React Email UI, and Miniflare constrained Sharp to vulnerable 0.34.x after the patched 0.35 release          | 019f869e  |
 | `issue-549-550-turnstile-concurrency.test.ts`        | Shared Turnstile cookie let overlapping protected actions overwrite or consume each other's single-use token          | #549/550  |
 | `npm-deprecation-warnings.test.ts`                   | Redundant bcryptjs type stubs and the Twilio SDK's transitive scmp dependency emitted clean-install warnings          | c4ca3272  |
+| `dependency-security-baseline.test.ts`               | Vulnerable transitive resolutions stopped CI; scoped Prisma overrides must preserve config loading                    | 3c3227b5  |
