@@ -66,8 +66,11 @@ merge receives its own verification run. It audits the root and worker
 packages, and type-checks the tests and worker after the production build.
 Unit tests block unmocked HTTP fetches; provider tests use local mocks rather
 than sending fixture credentials or messages to live services. The SEC-14
-regression now mocks the current REST transport and template-settings lookup. The separate
-Vitest 4.1.11 batch addresses the remaining moderate test-tool advisories.
+regression now mocks the current REST transport and template-settings lookup.
+Vitest and `@vitest/coverage-v8` are upgraded together to 4.1.11, addressing
+the remaining moderate test-tool advisories. Keep these packages on matching
+versions and verify `npm run test:coverage` when updating the coverage provider.
+This test-tool patch does not change application or worker runtime dependencies.
 
 Before publishing, require passing CI for the merged commit and smoke-test the
 built image: sign-in, event creation, public and protected RSVPs, RSVP editing,

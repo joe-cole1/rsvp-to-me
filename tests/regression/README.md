@@ -14,57 +14,57 @@ For every bug fix merged to main:
 
 ## Index
 
-| File                                                 | Bug description                                                                                                       | Fixed in  |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
-| `sec-11-twilio-xml-injection.test.ts`                | XML injection via unescaped event title/guest name in Twilio TwiML response                                           | SEC-11    |
-| `sec-16-csv-formula-injection.test.ts`               | CSV formula injection via attacker-controlled guest name/email in export                                              | SEC-16    |
-| `sec-19-event-password-rate-limit.test.ts`           | Unbounded brute-force of password-gated events (no attempt cap)                                                       | SEC-19    |
-| `sec-20-save-event-settings-mass-assignment.test.ts` | Mass assignment of arbitrary Event columns via `saveEventSettings`                                                    | SEC-20    |
-| `sec-13-cross-event-parent-comment.test.ts`          | Reply threaded under a parent comment from a different event                                                          | SEC-13    |
-| `sec-17-comment-authz-spoofing.test.ts`              | Authenticated comment authZ bypass + free-form `guestName` impersonation                                              | SEC-17    |
-| `sec-12-rsvp-capacity-race.test.ts`                  | Non-atomic count-then-create capacity check lets concurrent RSVPs overbook                                            | SEC-12    |
-| `sec-21b-updaterspv-capacity-deadline.test.ts`       | `updateRSVP` skipped deadline/capacity re-check (capacity-bypass via token)                                           | SEC-21b   |
-| `sec-18-guest-invite-rate-limit.test.ts`             | Uncapped outbound email/SMS via guest invite (no rate limit / per-RSVP cap)                                           | SEC-18    |
-| `sec-22-client-ip-spoofing.test.ts`                  | Spoofable `X-Forwarded-For` defeated every IP-keyed rate limiter                                                      | SEC-22    |
-| `sec-23-addrsvp-rate-limit.test.ts`                  | Unauthenticated `addRSVP` fan-out to arbitrary email/SMS with no rate limit                                           | SEC-23    |
-| `sec-24-guest-identity-token.test.ts`                | Guest comment/vote/potluck identity spoofable via public `rsvpId` + name                                              | SEC-24    |
-| `sec-29-invite-guest-rate-limit.test.ts`             | Host `inviteGuest` fan-out had no batch cap or rate limit                                                             | SEC-29    |
-| `sec-26-sms-token-decrypt.test.ts`                   | DB-configured Twilio auth token never decrypted (broken `enc:` check)                                                 | SEC-26    |
-| `sec-27-twilio-webhook-db-token.test.ts`             | Twilio inbound webhook validated only against the env token, not DB config                                            | SEC-27    |
-| `sec-25-docker-default-creds.test.ts`                | Compose files shipped weak default DB/Redis passwords + host-exposed 5432                                             | SEC-25    |
-| `sec-31-health-info-leak.test.ts`                    | `/api/health` leaked migration/DB state + timestamp to anonymous callers                                              | SEC-31    |
-| `sec-30-cohost-authz.test.ts`                        | Inconsistent host/co-host authz: co-hosts blocked from documented actions                                             | SEC-30    |
-| `l7-slug-collision-bound.test.ts`                    | `generateUniqueSlug` scanned sequential suffixes in an unbounded query loop                                           | L-7       |
-| `bug-03-admin-mobile-drawer-trigger.test.ts`         | Admin mobile drawer had no trigger — nothing called `setIsDrawerOpen(true)`                                           | BUG-03    |
-| `l4b-invite-friend-swallowed-error.test.ts`          | `inviteFriendAsGuest` activity-log failure swallowed by bare `.catch()`                                               | L-4b      |
-| `sec-34-event-access-gates.test.ts`                  | PRIVATE/password gate bypass on calendar.ics / guests / rsvp routes + guest RSVP editToken/PII leak in RSC payload    | SEC-34    |
-| `cohost-invite-reorder.test.ts`                      | Test co-host invitation flow and event info section widget reordering actions                                         | CH-REORD  |
-| `sec-14-admin-error-sanitization.test.ts`            | Surfacing raw SMTP/Twilio configuration errors to the admin UI (information disclosure)                               | SEC-14    |
-| `sec-7-ssrf-ip-hardening.test.ts`                    | SSRF URL validation bypasses via loopback and private subnets                                                         | SEC-7     |
-| `sec-32-33-host-only-event-data-leak.test.ts`        | Host/co-host emails + hidden guest list shipped in event-page RSC payload; GUESTS_ONLY guest list reachable by anyone | SEC-32/33 |
-| `sec-35-email-console-fallback-prod-leak.test.ts`    | Email console fallback logged magic-link/edit tokens + recipient in production                                        | SEC-35    |
-| `sec-40-45-signin-enumeration-shared-ip.test.ts`     | Sign-in leaked account existence (success vs. auth_failed) + shared loopback IP bucket locked out all sign-ins        | SEC-40/45 |
-| `sec-46-invite-guest-activity-log.test.ts`           | Host/co-host `inviteGuest` issuance wrote no ActivityEvent — invite blasts were unattributable                        | SEC-46    |
-| `sec-36-url-protocol-validation.test.ts`             | Host-supplied virtual link / info-section URLs stored a `javascript:`/`data:` URI rendered into guest `<a href>`      | SEC-36    |
-| `sec-37-rsvp-contact-format.test.ts`                 | `guestEmail`/`guestPhone` accepted as any string — junk User upserts + skewed `linkRsvpsToUser` matching              | SEC-37    |
-| `sec-38-answers-validation.test.ts`                  | RSVP questionnaire answers had no length cap and keys weren't verified against the event's own questions              | SEC-38    |
-| `sec-41-verify-host-header-origin.test.ts`           | Magic-link verify built redirect origin from the request Host header (redirect/link-poisoning behind proxies)         | SEC-41    |
-| `sec-42-rsvp-existence-oracle.test.ts`               | Host RSVP actions threw "Not found" before authz, letting any caller probe which RSVP ids exist                       | SEC-42    |
-| `ghsa-g7r4-m6w7-qqqr-esbuild-traversal.test.ts`      | GHSA-g7r4-m6w7-qqqr: vulnerable esbuild dev servers allowed arbitrary reads through Windows backslash traversal       | GHSA      |
-| `ghsa-mh99-v99m-4gvg-brace-expansion.test.ts`        | GHSA-mh99-v99m-4gvg: patched brace expansion broke the callable API required by ESLint's legacy minimatch tree        | GHSA      |
-| `sec-39-activity-feed-guest-privacy.test.ts`         | Hidden guest names and RSVP note/detail text leaked through activity rows in the event-page RSC payload               | SEC-39    |
-| `sec-48-initial-admin-login-only.test.ts`            | INITIAL_ADMIN_EMAIL promotion ran from ordinary sessions and non-LOGIN authentication paths                           | SEC-48    |
-| `../components/RsvpFlow.test.tsx` (race describe)    | New-RSVP success screen transiently swapped to "RSVP updated!" after the Server Action RSC refresh                    | RSVP race |
-| `host-rsvp-alert-wiring.test.ts`                     | `sendHostRsvpAlertEmail`/`sendHostRsvpAlertSms` had no call site — hosts never got "New RSVP" alerts despite the docs | [de9262]  |
-| `guest-list-host-empty-visibility.test.tsx`          | Empty events hid the main-page Guests card and its management shortcuts from hosts                                    | 113b4f76  |
-| `preflight-e2e-process-group-cleanup.test.ts`        | Full preflight killed only npm, leaving an orphaned Next.js server listening on port 3001                             | 019f61f9  |
-| `guest-list-all-includes-invited.test.tsx`           | Guest-list All filter counted invited guests but rendered only guests who had responded                               | 019f6231  |
-| `guest-check-in-all-statuses.test.tsx`               | Invited/declined guests had no check-in control, and existing-RSVP walk-ins were not checked in                       | 033460e0  |
-| `orphaned-invitation-removal.test.tsx`               | An unlinked invitation could outlive a manual RSVP as an undeletable unanswered guest-list card                       | 019f62a4  |
-| `docker-runtime-hardening.test.ts`                   | Production image ran as root, used floating bases, included curl, and deployed migrations twice                       | 019f869e  |
-| `docker-bind-mount-bootstrap.test.ts`                | Bind-mount repair traversed sibling PostgreSQL and Redis data instead of only app-owned storage                       | 019f869e  |
-| `docker-vendored-dependency-context.test.ts`         | Docker dependency stage omitted `.npmrc` and the vendored package required by a file-based npm override               | 3eb8bbf7  |
-| `ghsa-f88m-g3jw-g9cj-sharp-libvips.test.ts`          | Next.js, React Email UI, and Miniflare constrained Sharp to vulnerable 0.34.x after the patched 0.35 release          | 019f869e  |
-| `issue-549-550-turnstile-concurrency.test.ts`        | Shared Turnstile cookie let overlapping protected actions overwrite or consume each other's single-use token          | #549/550  |
-| `npm-deprecation-warnings.test.ts`                   | Redundant bcryptjs type stubs and the Twilio SDK's transitive scmp dependency emitted clean-install warnings          | c4ca3272  |
-| `dependency-security-baseline.test.ts`               | Vulnerable transitive resolutions stopped CI; scoped Prisma overrides must preserve config loading                    | 3c3227b5  |
+| File                                                 | Bug description                                                                                                       | Fixed in            |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `sec-11-twilio-xml-injection.test.ts`                | XML injection via unescaped event title/guest name in Twilio TwiML response                                           | SEC-11              |
+| `sec-16-csv-formula-injection.test.ts`               | CSV formula injection via attacker-controlled guest name/email in export                                              | SEC-16              |
+| `sec-19-event-password-rate-limit.test.ts`           | Unbounded brute-force of password-gated events (no attempt cap)                                                       | SEC-19              |
+| `sec-20-save-event-settings-mass-assignment.test.ts` | Mass assignment of arbitrary Event columns via `saveEventSettings`                                                    | SEC-20              |
+| `sec-13-cross-event-parent-comment.test.ts`          | Reply threaded under a parent comment from a different event                                                          | SEC-13              |
+| `sec-17-comment-authz-spoofing.test.ts`              | Authenticated comment authZ bypass + free-form `guestName` impersonation                                              | SEC-17              |
+| `sec-12-rsvp-capacity-race.test.ts`                  | Non-atomic count-then-create capacity check lets concurrent RSVPs overbook                                            | SEC-12              |
+| `sec-21b-updaterspv-capacity-deadline.test.ts`       | `updateRSVP` skipped deadline/capacity re-check (capacity-bypass via token)                                           | SEC-21b             |
+| `sec-18-guest-invite-rate-limit.test.ts`             | Uncapped outbound email/SMS via guest invite (no rate limit / per-RSVP cap)                                           | SEC-18              |
+| `sec-22-client-ip-spoofing.test.ts`                  | Spoofable `X-Forwarded-For` defeated every IP-keyed rate limiter                                                      | SEC-22              |
+| `sec-23-addrsvp-rate-limit.test.ts`                  | Unauthenticated `addRSVP` fan-out to arbitrary email/SMS with no rate limit                                           | SEC-23              |
+| `sec-24-guest-identity-token.test.ts`                | Guest comment/vote/potluck identity spoofable via public `rsvpId` + name                                              | SEC-24              |
+| `sec-29-invite-guest-rate-limit.test.ts`             | Host `inviteGuest` fan-out had no batch cap or rate limit                                                             | SEC-29              |
+| `sec-26-sms-token-decrypt.test.ts`                   | DB-configured Twilio auth token never decrypted (broken `enc:` check)                                                 | SEC-26              |
+| `sec-27-twilio-webhook-db-token.test.ts`             | Twilio inbound webhook validated only against the env token, not DB config                                            | SEC-27              |
+| `sec-25-docker-default-creds.test.ts`                | Compose files shipped weak default DB/Redis passwords + host-exposed 5432                                             | SEC-25              |
+| `sec-31-health-info-leak.test.ts`                    | `/api/health` leaked migration/DB state + timestamp to anonymous callers                                              | SEC-31              |
+| `sec-30-cohost-authz.test.ts`                        | Inconsistent host/co-host authz: co-hosts blocked from documented actions                                             | SEC-30              |
+| `l7-slug-collision-bound.test.ts`                    | `generateUniqueSlug` scanned sequential suffixes in an unbounded query loop                                           | L-7                 |
+| `bug-03-admin-mobile-drawer-trigger.test.ts`         | Admin mobile drawer had no trigger — nothing called `setIsDrawerOpen(true)`                                           | BUG-03              |
+| `l4b-invite-friend-swallowed-error.test.ts`          | `inviteFriendAsGuest` activity-log failure swallowed by bare `.catch()`                                               | L-4b                |
+| `sec-34-event-access-gates.test.ts`                  | PRIVATE/password gate bypass on calendar.ics / guests / rsvp routes + guest RSVP editToken/PII leak in RSC payload    | SEC-34              |
+| `cohost-invite-reorder.test.ts`                      | Test co-host invitation flow and event info section widget reordering actions                                         | CH-REORD            |
+| `sec-14-admin-error-sanitization.test.ts`            | Surfacing raw SMTP/Twilio configuration errors to the admin UI (information disclosure)                               | SEC-14              |
+| `sec-7-ssrf-ip-hardening.test.ts`                    | SSRF URL validation bypasses via loopback and private subnets                                                         | SEC-7               |
+| `sec-32-33-host-only-event-data-leak.test.ts`        | Host/co-host emails + hidden guest list shipped in event-page RSC payload; GUESTS_ONLY guest list reachable by anyone | SEC-32/33           |
+| `sec-35-email-console-fallback-prod-leak.test.ts`    | Email console fallback logged magic-link/edit tokens + recipient in production                                        | SEC-35              |
+| `sec-40-45-signin-enumeration-shared-ip.test.ts`     | Sign-in leaked account existence (success vs. auth_failed) + shared loopback IP bucket locked out all sign-ins        | SEC-40/45           |
+| `sec-46-invite-guest-activity-log.test.ts`           | Host/co-host `inviteGuest` issuance wrote no ActivityEvent — invite blasts were unattributable                        | SEC-46              |
+| `sec-36-url-protocol-validation.test.ts`             | Host-supplied virtual link / info-section URLs stored a `javascript:`/`data:` URI rendered into guest `<a href>`      | SEC-36              |
+| `sec-37-rsvp-contact-format.test.ts`                 | `guestEmail`/`guestPhone` accepted as any string — junk User upserts + skewed `linkRsvpsToUser` matching              | SEC-37              |
+| `sec-38-answers-validation.test.ts`                  | RSVP questionnaire answers had no length cap and keys weren't verified against the event's own questions              | SEC-38              |
+| `sec-41-verify-host-header-origin.test.ts`           | Magic-link verify built redirect origin from the request Host header (redirect/link-poisoning behind proxies)         | SEC-41              |
+| `sec-42-rsvp-existence-oracle.test.ts`               | Host RSVP actions threw "Not found" before authz, letting any caller probe which RSVP ids exist                       | SEC-42              |
+| `ghsa-g7r4-m6w7-qqqr-esbuild-traversal.test.ts`      | GHSA-g7r4-m6w7-qqqr: vulnerable esbuild dev servers allowed arbitrary reads through Windows backslash traversal       | GHSA                |
+| `ghsa-mh99-v99m-4gvg-brace-expansion.test.ts`        | GHSA-mh99-v99m-4gvg: patched brace expansion broke the callable API required by ESLint's legacy minimatch tree        | GHSA                |
+| `sec-39-activity-feed-guest-privacy.test.ts`         | Hidden guest names and RSVP note/detail text leaked through activity rows in the event-page RSC payload               | SEC-39              |
+| `sec-48-initial-admin-login-only.test.ts`            | INITIAL_ADMIN_EMAIL promotion ran from ordinary sessions and non-LOGIN authentication paths                           | SEC-48              |
+| `../components/RsvpFlow.test.tsx` (race describe)    | New-RSVP success screen transiently swapped to "RSVP updated!" after the Server Action RSC refresh                    | RSVP race           |
+| `host-rsvp-alert-wiring.test.ts`                     | `sendHostRsvpAlertEmail`/`sendHostRsvpAlertSms` had no call site — hosts never got "New RSVP" alerts despite the docs | [de9262]            |
+| `guest-list-host-empty-visibility.test.tsx`          | Empty events hid the main-page Guests card and its management shortcuts from hosts                                    | 113b4f76            |
+| `preflight-e2e-process-group-cleanup.test.ts`        | Full preflight killed only npm, leaving an orphaned Next.js server listening on port 3001                             | 019f61f9            |
+| `guest-list-all-includes-invited.test.tsx`           | Guest-list All filter counted invited guests but rendered only guests who had responded                               | 019f6231            |
+| `guest-check-in-all-statuses.test.tsx`               | Invited/declined guests had no check-in control, and existing-RSVP walk-ins were not checked in                       | 033460e0            |
+| `orphaned-invitation-removal.test.tsx`               | An unlinked invitation could outlive a manual RSVP as an undeletable unanswered guest-list card                       | 019f62a4            |
+| `docker-runtime-hardening.test.ts`                   | Production image ran as root, used floating bases, included curl, and deployed migrations twice                       | 019f869e            |
+| `docker-bind-mount-bootstrap.test.ts`                | Bind-mount repair traversed sibling PostgreSQL and Redis data instead of only app-owned storage                       | 019f869e            |
+| `docker-vendored-dependency-context.test.ts`         | Docker dependency stage omitted `.npmrc` and the vendored package required by a file-based npm override               | 3eb8bbf7            |
+| `ghsa-f88m-g3jw-g9cj-sharp-libvips.test.ts`          | Next.js, React Email UI, and Miniflare constrained Sharp to vulnerable 0.34.x after the patched 0.35 release          | 019f869e            |
+| `issue-549-550-turnstile-concurrency.test.ts`        | Shared Turnstile cookie let overlapping protected actions overwrite or consume each other's single-use token          | #549/550            |
+| `npm-deprecation-warnings.test.ts`                   | Redundant bcryptjs type stubs and the Twilio SDK's transitive scmp dependency emitted clean-install warnings          | c4ca3272            |
+| `dependency-security-baseline.test.ts`               | Vulnerable transitive resolutions stopped CI; preserve Prisma config loading and the patched Vitest dependency tree   | 3c3227b5 / 027a7053 |

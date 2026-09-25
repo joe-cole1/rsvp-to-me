@@ -2,6 +2,7 @@
 // tests, and the override-cleanup proposal reintroduced unsupported transitive
 // versions. Guard the installed dependency tree and exercise Prisma's real
 // config loader across the scoped deepmerge-ts security override.
+// Vitest's redirect-mock file-read advisory requires the 4.1.11 patch family.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -32,6 +33,9 @@ describe("September dependency security baseline", () => {
     ["nodemailer", "9.1.1"],
     ["js-yaml", "4.3.2"],
     ["joi", "18.2.9"],
+    ["vitest", "4.1.11"],
+    ["@vitest/coverage-v8", "4.1.11"],
+    ["@vitest/mocker", "4.1.11"],
   ])("keeps every %s resolution at or above %s", (name, minimum) => {
     const entries = Object.entries(lock.packages).filter(
       ([path]) => path === `node_modules/${name}` || path.endsWith(`/node_modules/${name}`)
