@@ -72,6 +72,13 @@ the remaining moderate test-tool advisories. Keep these packages on matching
 versions and verify `npm run test:coverage` when updating the coverage provider.
 This test-tool patch does not change application or worker runtime dependencies.
 
+The follow-up UI/test batch updates `lucide-react` to 1.47.0,
+`@testing-library/user-event` to 14.6.6, and `@types/pg` to 8.23.1. The PostgreSQL
+driver and database schema are unchanged. Lucide preserves the icon exports used
+by the app; the Going confirmation's circled checkmark is slightly redrawn.
+Check dashboard controls, RSVP status summaries, and keyboard interactions
+during release QC.
+
 Before publishing, require passing CI for the merged commit and smoke-test the
 built image: sign-in, event creation, public and protected RSVPs, RSVP editing,
 image uploads, and email delivery. Record the previous image digest and back
