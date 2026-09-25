@@ -1,7 +1,16 @@
 // WARNING: If you modify this file, make sure to also update the static worker code template
 // in app/admin/AdminClient.tsx to keep them in sync.
 
-import type { SendEmail, Message, ExportedHandler } from "@cloudflare/workers-types";
+import type {
+  SendEmail,
+  ForwardableEmailMessage,
+  ExportedHandler,
+  Request as WorkerRequest,
+  Response as WorkerResponse,
+} from "@cloudflare/workers-types";
+
+// Cloudflare supplies this global at runtime; keep its extended response type.
+declare const Response: typeof WorkerResponse;
 
 interface Env {
   EMAIL: SendEmail;
@@ -25,7 +34,7 @@ function extractRawEmail(fromStr: string): string {
 }
 
 export default {
-  async email(message: Message, env: Env) {
+  async email(message: ForwardableEmailMessage, env: Env) {
     if (!env.INBOUND_FORWARD_TO) {
       throw new Error("INBOUND_FORWARD_TO environment variable is not set.");
     }
@@ -38,7 +47,7 @@ export default {
     });
   },
 
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: WorkerRequest, env: Env): Promise<WorkerResponse> {
     if (!env.WORKER_API_SECRET) {
       return new Response("Unauthorized: WORKER_API_SECRET environment variable is not set.", {
         status: 401,

@@ -5,6 +5,9 @@
 // constrained Sharp to 0.34.x after Sharp published the patched 0.35 release.
 // The application deliberately overrides that unsupported range and exercises
 // the exact transform operations used by Next's image optimizer.
+// GHSA-rgj7-g3m4-5g8c (2026-09): the libheif fix raises the minimum to
+// 0.35.4. Keep the worker and app aligned without hard-coding the selected
+// version into every assertion, so later security patches remain possible.
 
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -30,8 +33,8 @@ function isPatched(version: string): boolean {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
   if (!match) return false;
 
-  const [, major, minor] = match.map(Number);
-  return major > 0 || minor >= 35;
+  const [, major, minor, patch] = match.map(Number);
+  return major > 0 || minor > 35 || (minor === 35 && patch >= 4);
 }
 
 describe("GHSA-f88m-g3jw-g9cj: patched Sharp/libvips", () => {
@@ -39,9 +42,11 @@ describe("GHSA-f88m-g3jw-g9cj: patched Sharp/libvips", () => {
     const manifest = readJson<PackageManifest>("package.json");
     const workerManifest = readJson<PackageManifest>("worker/package.json");
 
-    expect(manifest.dependencies?.sharp).toBe("0.35.3");
+    const version = manifest.dependencies?.sharp;
+    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(isPatched(version!)).toBe(true);
     expect(manifest.overrides?.sharp).toBe("$sharp");
-    expect(workerManifest.overrides?.sharp).toBe("0.35.3");
+    expect(workerManifest.overrides?.sharp).toBe(version);
   });
 
   it.each(["package-lock.json", "worker/package-lock.json"])(
@@ -64,7 +69,8 @@ describe("GHSA-f88m-g3jw-g9cj: patched Sharp/libvips", () => {
   );
 
   it("supports the transform pipeline used by the Next.js image optimizer", async () => {
-    expect(sharp.versions.sharp).toBe("0.35.3");
+    const manifest = readJson<PackageManifest>("package.json");
+    expect(sharp.versions.sharp).toBe(manifest.dependencies?.sharp);
 
     const source = await sharp({
       create: {

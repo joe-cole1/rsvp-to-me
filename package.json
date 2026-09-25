@@ -44,12 +44,12 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
     "highlight.js": "^11.12.0",
-    "html-to-text": "^10.0.0",
+    "html-to-text": "^10.0.1",
     "iron-session": "^8.0.4",
     "lucide-react": "^1.31.0",
-    "next": "16.3.1",
+    "next": "16.3.6",
     "node-cron": "^4.6.0",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^9.1.1",
     "pg": "^8.23.0",
     "prisma": "^7.9.1",
     "qrcode": "^1.5.4",
@@ -60,12 +60,12 @@
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
   "overrides": {
-    "fast-uri": "^3.1.5",
+    "fast-uri": "^3.1.7",
     "socket.io-parser": "^4.2.7",
     "undici": "^7.28.1",
     "brace-expansion": "5.0.9",
@@ -79,9 +79,15 @@
       "brace-expansion": "file:./vendor/brace-expansion-compat"
     },
     "@hono/node-server": "1.19.14",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^4.3.2",
     "esbuild": "0.28.1",
-    "sharp": "$sharp"
+    "sharp": "$sharp",
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.1"
+    },
+    "prisma": {
+      "mysql2": "3.24.4"
+    }
   },
   "lint-staged": {
     "*.{ts,tsx}": "prettier --write"
@@ -101,7 +107,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9",
-    "eslint-config-next": "16.3.1",
+    "eslint-config-next": "16.3.6",
     "fast-check": "^4.9.0",
     "husky": "^9",
     "jsdom": "^30.0.1",

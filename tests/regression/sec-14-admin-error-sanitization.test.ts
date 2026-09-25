@@ -4,10 +4,13 @@
 //   raw provider error messages (e.g. SMTP socket connection traces, raw Twilio API error messages)
 //   directly to the admin client. This could leak infrastructure details or config shapes.
 //
+// September 2026 QC: replace the obsolete Twilio SDK mock with a fetch mock
+// and isolate the template-settings database read.
+//
 // Fix: testEmailConfig and testSmsConfig log raw error details to the server console,
 //   but return sanitized, high-level user-friendly error messages to the client.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock nodemailer
 const mockVerify = vi.fn();
@@ -21,14 +24,12 @@ vi.mock("nodemailer", () => ({
   },
 }));
 
-// Mock twilio
-const mockMessagesCreate = vi.fn();
-vi.mock("twilio", () => ({
-  default: vi.fn(() => ({
-    messages: {
-      create: mockMessagesCreate,
-    },
-  })),
+// The Twilio SDK was removed; the real transport now uses fetch. Mock that
+// boundary so this regression never posts fixture credentials to Twilio.
+const mockFetch = vi.fn();
+
+vi.mock("@/lib/db", () => ({
+  db: { systemConfig: { findUnique: vi.fn().mockResolvedValue(null) } },
 }));
 
 // Mock react-email render
@@ -50,8 +51,11 @@ describe("SEC-14: Verbose error sanitization in admin test config actions", () =
   beforeEach(() => {
     mockVerify.mockReset();
     mockSendMail.mockReset();
-    mockMessagesCreate.mockReset();
+    mockFetch.mockReset();
+    vi.stubGlobal("fetch", mockFetch);
   });
+
+  afterEach(() => vi.unstubAllGlobals());
 
   it("sanitizes raw SMTP connection and verification errors", async () => {
     // nodemailer verify throws a raw verbose socket connection error
@@ -77,8 +81,8 @@ describe("SEC-14: Verbose error sanitization in admin test config actions", () =
   });
 
   it("sanitizes raw Twilio API error messages", async () => {
-    // Twilio client throws a verbose API exception
-    mockMessagesCreate.mockRejectedValue(
+    // The REST transport throws a verbose provider/network exception.
+    mockFetch.mockRejectedValue(
       new Error(
         "Unable to create record: Authenticity check failed for SID AC12345. Stack trace: TW9981"
       )

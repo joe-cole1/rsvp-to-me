@@ -2,6 +2,8 @@ name: CI
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -90,12 +92,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
           # Explicit protection to discard accidental dot folder modifications
           git checkout HEAD -- .github/ 2>/dev/null || true
-          
+
           git add .
-          
+
           if ! git diff-index --quiet HEAD; then
             if [ "${{ github.ref_name }}" = "main" ]; then
               # RUNNING ON MAIN: Create a side branch and open a PR safely
@@ -123,6 +125,11 @@ jobs:
 
       - name: Audit dependencies
         run: npm audit --audit-level=high
+
+      - name: Install and audit email worker dependencies
+        run: |
+          npm ci --prefix worker
+          npm audit --prefix worker --audit-level=high
 
       - name: Generate Prisma client
         run: npm run db:generate
@@ -168,6 +175,12 @@ jobs:
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
       # ---- E2E -----------------------------------------------------------------
+      - name: Type-check application and tests
+        run: npx tsc --noEmit
+
+      - name: Type-check email worker
+        run: npx tsc --ignoreConfig --noEmit --strict --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM worker/worker.ts
+
       - name: Start Next.js server
         run: npm start &
         env:
