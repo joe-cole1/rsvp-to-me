@@ -18,6 +18,8 @@ On the guest-facing event page, the RSVP card stays at the bottom of the screen 
 
 Guests respond **Going**, **Maybe**, or **No**. You can turn off the **Maybe** option per event if you only want a yes/no.
 
+The guest's Going confirmation uses a green circled checkmark beside its status label.
+
 ---
 
 ## Approval
