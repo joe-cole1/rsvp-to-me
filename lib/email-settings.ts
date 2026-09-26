@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { z } from "zod";
+import { maxCodeUnits } from "@/lib/string-length";
 import { db } from "@/lib/db";
 import { EMAIL_TEMPLATE_META, type TemplateId, type TemplateOverrides } from "@/emails/registry";
 
@@ -12,10 +13,10 @@ export const templateOverridesSchema = z
     // Strip CR/LF so edited copy can never inject additional mail headers.
     subject: z
       .string()
-      .max(200)
+      .check(maxCodeUnits(200))
       .transform((s) => s.replace(/[\r\n]+/g, " ").trim())
       .optional(),
-    body: z.string().max(5000).optional(),
+    body: z.string().check(maxCodeUnits(5000)).optional(),
     showCalendarLinks: z.boolean().optional(),
     showMapLink: z.boolean().optional(),
     showHostFlourish: z.boolean().optional(),
