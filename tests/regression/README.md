@@ -49,6 +49,7 @@ For every bug fix merged to main:
 | `sec-37-rsvp-contact-format.test.ts`                 | `guestEmail`/`guestPhone` accepted as any string — junk User upserts + skewed `linkRsvpsToUser` matching              | SEC-37              |
 | `sec-38-answers-validation.test.ts`                  | RSVP questionnaire answers had no length cap and keys weren't verified against the event's own questions              | SEC-38              |
 | `zod-string-length-compat.test.ts`                   | Zod's Unicode length change widened text caps and tightened the sign-in minimum                                       | bab32486            |
+| `release-prerelease-tags.test.ts`                    | Prerelease publication could overwrite stable image aliases through explicit or implicit latest tags                  | f073ceaa            |
 | `sec-41-verify-host-header-origin.test.ts`           | Magic-link verify built redirect origin from the request Host header (redirect/link-poisoning behind proxies)         | SEC-41              |
 | `sec-42-rsvp-existence-oracle.test.ts`               | Host RSVP actions threw "Not found" before authz, letting any caller probe which RSVP ids exist                       | SEC-42              |
 | `ghsa-g7r4-m6w7-qqqr-esbuild-traversal.test.ts`      | GHSA-g7r4-m6w7-qqqr: vulnerable esbuild dev servers allowed arbitrary reads through Windows backslash traversal       | GHSA                |

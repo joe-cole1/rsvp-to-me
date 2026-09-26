@@ -29,9 +29,13 @@ This section gets your **RSVP to Me** installation up and running in a few steps
 
    ```bash
    mkdir rsvp-to-me && cd rsvp-to-me
-   curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/docker-compose.yml
-   curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/.env.example
+   curl -fLO https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/docker-compose.release.yml
+   curl -fLO https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/.env.example
    ```
+
+   Use `docker-compose.release.yml` explicitly even if you cloned the repository.
+   The root `docker-compose.yml` builds from source, and its automatic override
+   is for native development.
 
 2. **Create your configuration file**
    Create a `.env` file by copying the example template:
@@ -46,24 +50,25 @@ This section gets your **RSVP to Me** installation up and running in a few steps
 
 3. **Configure the minimum required values**
    Open the `.env` file in your preferred text editor (like Notepad on Windows or Nano on Linux/Mac) and configure these variables:
-   - `POSTGRES_PASSWORD` and `REDIS_PASSWORD`: Strong passwords for the bundled database and cache containers. Docker Compose uses these to run PostgreSQL/Redis and to build the app's connection URLs. Both are required — there are no default passwords, and `docker compose up` fails fast if either is unset.
+   - `POSTGRES_PASSWORD` and `REDIS_PASSWORD`: Strong passwords for the bundled database and cache containers. Docker Compose uses these to run PostgreSQL/Redis and to build the app's connection URLs. Both are required — there are no default passwords, and `docker compose -f docker-compose.release.yml up` fails fast if either is unset.
    - `SESSION_SECRET`: A secure, random string (at least 32 characters) used to encrypt cookies. You can generate one with the command `openssl rand -base64 32` or via [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32).
    - `NEXT_PUBLIC_APP_URL`: The URL where guests will visit your app (e.g. `http://localhost:3000` or `https://rsvp.yourdomain.com`). No trailing slash.
    - `INITIAL_ADMIN_EMAIL`: Your email address. When you log in with this email, your account is promoted to Administrator.
+   - Configure SMTP or the optional email worker using the [Email Setup Guide](docs/admin/email.md) before your first sign-in. Production images do not print magic links in logs.
    - `HOST_INVITE_CODE`: A code used to restrict host registration to people you know. The example ships an obvious placeholder that the app rejects at startup in production — replace it with a strong value (e.g. `openssl rand -hex 8`).
 
 4. **Start the application**
-   Run the following command in the same directory as your `docker-compose.yml` to pull images and start the services:
+   Run the following command in the same directory as your `docker-compose.release.yml` to pull images and start the services:
 
    ```bash
-   docker compose up -d
+   docker compose -f docker-compose.release.yml up -d
    ```
 
 5. **Verify the container logs**
    Check the web server logs to make sure the app started successfully:
 
    ```bash
-   docker compose logs -f app
+   docker compose -f docker-compose.release.yml logs -f app
    ```
 
    Press `Ctrl+C` to exit the logs view once you see `▲ Next.js ready on http://0.0.0.0:3000`.
@@ -71,7 +76,7 @@ This section gets your **RSVP to Me** installation up and running in a few steps
 6. **Log in and configure Admin Access**
    - Open your browser and navigate to the URL you configured in `NEXT_PUBLIC_APP_URL`.
    - Click **Sign In** and log in using the email address you set in `INITIAL_ADMIN_EMAIL`.
-   - Check your inbox for the login email. Click the link to log in. _(If email is not set up, run `docker compose logs app | grep "magic link"` to extract the login link manually from the container logs)._
+   - Check your inbox for the login email. Click the link to log in.
    - Once logged in, visit `/admin` to verify that you have admin access.
 
 ---

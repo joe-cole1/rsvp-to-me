@@ -12,6 +12,14 @@ Quick answers to the things hosts run into most.
 
 ---
 
+## What changes for hosts in v1.4.1?
+
+This maintenance update preserves event links, RSVP edit links, and existing text
+limits. Your administrator may briefly restart the site during the upgrade.
+Afterward, check an existing event and its guest list. If sign-in, an RSVP, an
+upload, or an email/text fails, share the time and affected event with your
+administrator. You do not need to recreate events or resend invitations.
+
 ## A guest lost their RSVP edit link
 
 Each guest's edit link is unique and arrives in their confirmation email. If they can't find it, ask them to RSVP again with the same email — RSVP to Me recognizes the existing response and updates it rather than creating a duplicate, and a fresh confirmation (with the link) is sent.

@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const sharp = require("sharp");
 const { Client } = require("pg");
 const { createClient } = require("redis");
@@ -40,8 +41,8 @@ async function main() {
     await fs.unlink(probe);
   }
   const backupDir = "/app/data/backups/pre-migration";
-  const backups = (await fs.readdir(backupDir)).filter((file) => file.endsWith(".sql"));
-  assert.ok(backups.length > 0, "Startup must create a pre-migration backup");
+  const backups = (await fs.readdir(backupDir)).filter((file) => file.endsWith(".sql")).sort();
+  assert.ok(backups.length >= 2, "Both startups must create a pre-migration backup");
   for (const backup of backups) {
     assert.ok((await fs.stat(path.join(backupDir, backup))).size > 0);
   }
@@ -56,6 +57,46 @@ async function main() {
       process.env.HOST_INVITE_CODE,
     ]);
     assert.equal(seed.rowCount, 1, "Normal startup must complete seeding");
+
+    const migrations = await db.query(
+      "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name"
+    );
+    assert.ok(migrations.rowCount > 0, "Startup must apply migrations");
+    const restoreUrl = new URL(process.env.DATABASE_URL);
+    assert.equal(restoreUrl.hostname, "postgres");
+    assert.equal(restoreUrl.pathname, "/rsvp_qc");
+    restoreUrl.pathname = "/rsvp_qc_restore";
+    execFileSync(
+      "psql",
+      [
+        "--no-psqlrc",
+        "--set=ON_ERROR_STOP=1",
+        "--dbname",
+        restoreUrl.toString(),
+        "--file",
+        path.join(backupDir, backups.at(-1)),
+      ],
+      { stdio: ["ignore", "ignore", "pipe"], timeout: 60000 }
+    );
+    const restored = new Client({
+      connectionString: restoreUrl.toString(),
+      connectionTimeoutMillis: 5000,
+    });
+    await restored.connect();
+    try {
+      const restoredSeed = await restored.query(
+        'SELECT code FROM "HostInviteCode" WHERE code = $1',
+        [process.env.HOST_INVITE_CODE]
+      );
+      assert.deepEqual(restoredSeed.rows, seed.rows, "Backup must preserve the seeded invite");
+      const restoredMigrations = await restored.query(
+        "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name"
+      );
+      assert.deepEqual(restoredMigrations.rows, migrations.rows);
+      console.log("Backup restore QC passed: seeded invite and migration history preserved");
+    } finally {
+      await restored.end();
+    }
   } finally {
     await db.end();
   }

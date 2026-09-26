@@ -81,5 +81,12 @@ app_id=$(docker run -d --network "$network_id" \
   "$image")
 wait_for_health "$app_id"
 
+# The first startup backs up an empty database. Restart after seeding so the
+# real entrypoint backs up migrated data, then restore into a separate database
+# in this invocation's disposable PostgreSQL container only.
+docker restart "$app_id" >/dev/null
+wait_for_health "$app_id"
+docker exec "$postgres_id" createdb -U postgres rsvp_qc_restore
+
 docker exec -i --user 10001:10001 -e EXPECTED_NODE_ARCH="$expected_arch" \
   "$app_id" node < "$script_dir/container-smoke.cjs"
