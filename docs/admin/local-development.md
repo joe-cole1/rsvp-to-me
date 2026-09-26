@@ -27,6 +27,14 @@ commands from a noninteractive shell, load `$HOME/.nvm/nvm.sh` first. If that
 shell inherited Windows `TEMP` or `TMP`, set `TMPDIR`, `TMP`, and `TEMP` to
 `/tmp` before running Node tooling.
 
+Keep the root `@types/node` dependency on the supported Node 22 major. It now
+uses `^22.20.4`, replacing the Node 26 declarations that could allow APIs absent
+from the deployed runtime. Declaration-package patch numbers do not need to
+match Node's runtime patch number. Dependabot continues checking Node 22 typing
+updates; major typing upgrades require a coordinated runtime change. When
+changing Node's major, review `.nvmrc`, `package.json` engines, the Docker base,
+CI, and the type declarations together, then run type checks and container QC.
+
 Enable Docker Desktop's WSL integration for your Ubuntu distribution. The
 repository's `docker-compose.override.yml` disables the application container,
 publishes Postgres and Redis on loopback-only ports, and stores their local data

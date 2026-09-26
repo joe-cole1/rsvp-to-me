@@ -403,7 +403,18 @@ For an extra layer of offsite protection, you can run a host cron job alongside 
 
 The Node.js runtime is bundled inside the pre-built Docker image, so **self-hosters running via Docker do not need to install or manage Node directly** — a `docker compose pull` always brings the correct runtime.
 
-As of this release, the bundled runtime is **Node.js 22 (active LTS)**, upgraded from Node.js 20 (which reached end-of-life in April 2026). No action is required for Docker-based deployments. If you build the image or run the app from source instead of using the published image, ensure your environment provides **Node.js 22.13 or newer**.
+The bundled runtime is **Node.js 22**. For source installations, use Node
+**22.23.1 or newer within 22.x** and npm **10.9.0 or newer within 10.x**, matching
+`package.json`.
+The repository's `.nvmrc` selects Node 22.23.1.
+
+The final September dependency batch aligns `@types/node` with Node 22 using
+version 22.20.4 and its `undici-types` 6.21.0 dependency. These packages supply
+TypeScript declarations; the Node executable, HTTP runtime dependencies, and
+application behavior are unchanged. Run `npm ci` after pulling this batch and
+verify application/test/worker type checks, CI, and both container architectures.
+Future major Node typing updates are coordinated with the runtime instead of
+being proposed independently by Dependabot.
 
 ---
 

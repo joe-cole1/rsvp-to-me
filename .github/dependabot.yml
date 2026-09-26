@@ -18,6 +18,9 @@ updates:
     ignore:
       - dependency-name: "eslint"
         versions: [">= 10.0.0"]
+      # Upgrade Node's runtime and declaration major together.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       radix-ui:
         patterns: ["@radix-ui/*"]
