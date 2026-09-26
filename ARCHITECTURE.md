@@ -185,6 +185,11 @@ the full preflight.
 | `docker-compose.dev.yml`       | Build the current `main` branch directly from GitHub.                                                                   |
 | `worker/wrangler.toml`         | Cloudflare Worker deployment configuration.                                                                             |
 
+`.github/workflows/release.yml` publishes GHCR images for owner-published
+releases. Both the initial actor and the rerun initiator must be the repository
+owner; package-write permission is scoped to that guarded publishing job.
+Repository Actions execution policies are configured separately from this YAML.
+
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
 compatible Node/npm range. Repository scripts normalize WSL temporary paths,
 load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
