@@ -189,6 +189,10 @@ the full preflight.
 releases. Both the initial actor and the rerun initiator must be the repository
 owner; package-write permission is scoped to that guarded publishing job.
 Repository Actions execution policies are configured separately from this YAML.
+`scripts/release-image-tags.cjs` validates release names and selects exact-version
+tags; only stable releases receive minor-version and `latest` aliases. The
+metadata action's implicit `latest` behavior is disabled. Release-note drafts
+live in `.github/release-notes/` and do not publish releases by themselves.
 
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
 compatible Node/npm range. Repository scripts normalize WSL temporary paths,
@@ -196,16 +200,16 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 
 ## Test map
 
-| Path/config                                                 | Scope                                                                                                            |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `tests/actions/`, `tests/api/`, `tests/auth/`, `tests/lib/` | Fast Vitest unit and route/action tests.                                                                         |
-| `tests/components/`, `vitest.components.config.ts`          | Browser-like component tests.                                                                                    |
-| `tests/integration/`, `vitest.integration.config.ts`        | PostgreSQL-backed integration tests.                                                                             |
-| `tests/e2e/`, `playwright.config.ts`                        | End-to-end public/auth/host flows.                                                                               |
-| `tests/regression/`                                         | Root-cause-specific bug and security regression guards.                                                          |
-| `scripts/preflight.sh`                                      | Local CI orchestration with isolated PostgreSQL/Redis.                                                           |
-| `.github/workflows/container-qc.yml`                        | Builds and smoke-tests production images on AMD64 and ARM64 without publishing.                                  |
-| `scripts/container-smoke.sh`, `scripts/container-smoke.cjs` | Disposable PostgreSQL/Redis container startup, permissions, health, backup, seed, and native image-codec checks. |
+| Path/config                                                 | Scope                                                                                                          |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `tests/actions/`, `tests/api/`, `tests/auth/`, `tests/lib/` | Fast Vitest unit and route/action tests.                                                                       |
+| `tests/components/`, `vitest.components.config.ts`          | Browser-like component tests.                                                                                  |
+| `tests/integration/`, `vitest.integration.config.ts`        | PostgreSQL-backed integration tests.                                                                           |
+| `tests/e2e/`, `playwright.config.ts`                        | End-to-end public/auth/host flows.                                                                             |
+| `tests/regression/`                                         | Root-cause-specific bug and security regression guards.                                                        |
+| `scripts/preflight.sh`                                      | Local CI orchestration with isolated PostgreSQL/Redis.                                                         |
+| `.github/workflows/container-qc.yml`                        | Builds and smoke-tests production images on AMD64 and ARM64 without publishing.                                |
+| `scripts/container-smoke.sh`, `scripts/container-smoke.cjs` | Disposable PostgreSQL/Redis startup, permissions, health, seed, backup restore, and native image-codec checks. |
 
 ## Common change routing
 

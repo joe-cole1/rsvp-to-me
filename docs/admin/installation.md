@@ -42,7 +42,7 @@ Before you begin, you need:
 
 ## What You Are Installing
 
-RSVP to Me runs as a set of Docker containers defined in `docker-compose.yml`:
+RSVP to Me runs as a set of Docker containers defined in `docker-compose.release.yml`:
 
 | Container  | Purpose                                                                                                                                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -94,7 +94,10 @@ docker compose version
 
 ## Step 2 — Get the Files
 
-You need the `docker-compose.yml` and `.env.example` files to deploy.
+You need the `docker-compose.release.yml` and `.env.example` files to deploy.
+Use the explicit `-f docker-compose.release.yml` commands below for either option.
+The root `docker-compose.yml` builds from source, and the automatically loaded
+`docker-compose.override.yml` is for native development and disables the app service.
 
 ### Option A: Clone the Repository (recommended)
 
@@ -112,15 +115,15 @@ Alternatively, create a directory and download the setup files:
 ```bash
 mkdir rsvp-to-me
 cd rsvp-to-me
-curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/.env.example
+curl -fLO https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/docker-compose.release.yml
+curl -fLO https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/.env.example
 ```
 
 ---
 
 ## Step 3 — Configure Your Environment
 
-All configuration is done in a file named `.env` in the same directory as your `docker-compose.yml`.
+All configuration is done in a file named `.env` in the same directory as your `docker-compose.release.yml`.
 
 ### Create the .env File
 
@@ -143,7 +146,7 @@ You must set at least these variables before launching:
 
 1. **`POSTGRES_PASSWORD`**: A secure password for the PostgreSQL database container.
 2. **`REDIS_PASSWORD`**: A secure password for the Redis container.
-   > **These two are enforced.** The compose files ship **no default passwords** — if either variable is missing or empty, `docker compose up` refuses to start and prints an error naming the variable (e.g. `POSTGRES_PASSWORD is required - set a strong value in .env`). The database and cache are also not published on host ports, so they are only reachable by the app container on the internal Docker network.
+   > **These two are enforced.** The compose files ship **no default passwords** — if either variable is missing or empty, `docker compose -f docker-compose.release.yml up` refuses to start and prints an error naming the variable (e.g. `POSTGRES_PASSWORD is required - set a strong value in .env`). The database and cache are also not published on host ports, so they are only reachable by the app container on the internal Docker network.
 3. **`SESSION_SECRET`**: A secure, random string (at least 32 characters) used to encrypt user session cookies.
    - _CLI (Linux/Mac):_ Run `openssl rand -base64 32` to generate a key.
    - _CLI (Windows PowerShell):_ Run `[Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Max 256) }))`.
@@ -185,7 +188,7 @@ privileges before running migrations or any application code.
 From inside your `rsvp-to-me` directory, start the containers:
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.release.yml up -d
 ```
 
 _What this command does:_
@@ -194,18 +197,18 @@ _What this command does:_
 - Runs database migrations automatically on first startup.
 - Launches all containers in the background.
 
-> **Heads up — sample data:** The default `docker-compose.yml` sets `SEED_TEST_DATA: "true"`, so on a **fresh, empty database** the first startup seeds example data (sample users and events) to help you explore the app. If you want a clean production install with no sample data, set `SEED_TEST_DATA` to `"false"` in your `docker-compose.yml` (the included `docker-compose.dev.yml` already uses `"false"`). Seeding is skipped automatically once the database already contains events, so it won't duplicate data on later restarts.
+> **Production data:** Keep `SEED_TEST_DATA="false"` in `.env`, as in the example. The release Compose file does not enable sample data.
 
 Verify the container status:
 
 ```bash
-docker compose ps
+docker compose -f docker-compose.release.yml ps
 ```
 
 Verify that the web app started successfully by checking the logs:
 
 ```bash
-docker compose logs -f app
+docker compose -f docker-compose.release.yml logs -f app
 ```
 
 Press `Ctrl+C` to stop watching the logs (the containers will remain running).
@@ -231,8 +234,8 @@ If you want to run the latest code directly from GitHub without cloning the repo
 ```bash
 # Download just the two files you need
 mkdir rsvp-to-me && cd rsvp-to-me
-curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/docker-compose.dev.yml
-curl -O https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/.env.example
+curl -fLO https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/docker-compose.dev.yml
+curl -fLO https://raw.githubusercontent.com/joe-cole1/rsvp-to-me/main/.env.example
 cp .env.example .env   # fill in your secrets
 
 docker compose -f docker-compose.dev.yml up --build -d
@@ -251,10 +254,7 @@ docker compose -f docker-compose.dev.yml up --build -d
 1. Open your browser and go to the URL you configured in `NEXT_PUBLIC_APP_URL`.
 2. Click **Sign In** and type the email address you put in `INITIAL_ADMIN_EMAIL`.
 3. Check your email inbox for the magic link. Click it to log in.
-   - _Note: If email is not yet configured, extract the link manually from the logs:_
-     ```bash
-     docker compose logs app | grep "magic link"
-     ```
+   - Configure SMTP or the optional email worker using the [Email Setup Guide](./email.md) before the first sign-in. Production images do not print magic links in logs.
 4. The promotion occurs only when that valid sign-in link is verified. Once logged in, go to the
    `/admin` URL in your browser to confirm you have access to the Admin Panel.
 
@@ -296,13 +296,13 @@ With this panel, you can:
 
 Use `pg_dump` via the postgres container to create a backup at any time:
 
-**Backup Command (Linux/Mac/Windows):**
+**Backup command (Linux/macOS shell):**
 
 ```bash
-docker compose exec postgres pg_dump -U postgres rsvp_db > ./data/backups/manual-backup-$(date +%Y%m%d).sql
+docker compose -f docker-compose.release.yml exec -T postgres pg_dump -U postgres rsvp_db > ./data/backups/manual-backup-$(date +%Y%m%d).sql
 ```
 
-> **Caution:** Running `docker compose down -v` deletes all Docker volumes. While RSVP to Me uses a local directory bind mount, running this with custom setups might lead to permanent data loss. Always omit the `-v` flag to protect your data.
+> **Caution:** Running `docker compose -f docker-compose.release.yml down -v` deletes all Docker volumes. While RSVP to Me uses a local directory bind mount, running this with custom setups might lead to permanent data loss. Always omit the `-v` flag to protect your data.
 
 ---
 
@@ -315,14 +315,14 @@ For security, PostgreSQL and Redis are **not published on host ports** — they 
 No network exposure at all — the client runs where the database lives:
 
 ```bash
-docker compose exec postgres psql -U postgres -d rsvp_db
+docker compose -f docker-compose.release.yml exec postgres psql -U postgres -d rsvp_db
 ```
 
 This is also how the backup commands in this guide work.
 
 ### Option B: Loopback-only host port (desktop GUI clients)
 
-If you need a host-reachable port for a GUI client (DBeaver, pgAdmin, TablePlus) on the **same machine**, create a `docker-compose.override.yml` next to your `docker-compose.yml` (Docker Compose merges it automatically; it stays out of the repository):
+If you need a host-reachable port for a GUI client (DBeaver, pgAdmin, TablePlus) on the **same machine**, create a local `docker-compose.tools.yml` next to your `docker-compose.release.yml`:
 
 ```yaml
 services:
@@ -331,11 +331,11 @@ services:
       - "127.0.0.1:5432:5432"
 ```
 
-Then run `docker compose up -d` to apply it. Binding to `127.0.0.1` restores `localhost:5432` for tools on that machine only — the database is still **not** exposed to the network. Never use a bare `"5432:5432"` mapping in production; that publishes the database on all interfaces.
+Then run `docker compose -f docker-compose.release.yml -f docker-compose.tools.yml up -d` to apply it. Explicit release-file commands do not automatically load an override; keep both `-f` arguments when using this optional configuration. Binding to `127.0.0.1` restores `localhost:5432` for tools on that machine only — the database is still **not** exposed to the network. Never use a bare `"5432:5432"` mapping in production; that publishes the database on all interfaces.
 
 ### Option C: Join the stack's Docker network (tools in other containers/stacks)
 
-Containers from other Docker stacks can talk to the database directly by joining this stack's network — no host port needed. The network is named `<project>_default`, where `<project>` is the folder containing your `docker-compose.yml` (confirm with `docker network ls`).
+Containers from other Docker stacks can talk to the database directly by joining this stack's network — no host port needed. The network is named `<project>_default`, where `<project>` is the folder containing your `docker-compose.release.yml` (confirm with `docker network ls`).
 
 In the other stack's compose file, declare the network as external and attach your tool to it:
 
@@ -357,7 +357,7 @@ Or attach an already-running container ad hoc:
 docker network connect rsvp-to-me_default my-db-tool
 ```
 
-The tool can then connect with `postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_db`. If the other stack has its own service named `postgres`, use this stack's full container name instead (e.g. `rsvp-to-me-postgres-1`, from `docker compose ps`) to avoid an ambiguous hostname.
+The tool can then connect with `postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/rsvp_db`. If the other stack has its own service named `postgres`, use this stack's full container name instead (e.g. `rsvp-to-me-postgres-1`, from `docker compose -f docker-compose.release.yml ps`) to avoid an ambiguous hostname.
 
 ---
 
@@ -365,10 +365,10 @@ The tool can then connect with `postgresql://postgres:<POSTGRES_PASSWORD>@postgr
 
 Manage your containers using these CLI commands:
 
-- **`docker compose stop`**: Gracefully stops the running application. Your data remains perfectly safe.
-- **`docker compose start`**: Starts the stopped application.
-- **`docker compose restart`**: Restarts the container (useful after making small modifications).
-- **`docker compose down`**: Stops and removes the application container. The `./data` directory on the host remains intact.
+- **`docker compose -f docker-compose.release.yml stop`**: Gracefully stops the running application. Your data remains perfectly safe.
+- **`docker compose -f docker-compose.release.yml start`**: Starts the stopped application.
+- **`docker compose -f docker-compose.release.yml restart`**: Restarts the container (useful after making small modifications).
+- **`docker compose -f docker-compose.release.yml down`**: Stops and removes the application container. The `./data` directory on the host remains intact.
 
 ---
 
@@ -390,16 +390,16 @@ Recommended reverse proxies:
 
 ### The app won't start
 
-Run `docker compose logs app` to inspect the logs.
+Run `docker compose -f docker-compose.release.yml logs app` to inspect the logs.
 
 - If you see `SESSION_SECRET must be at least 32 characters`, make sure you generated a long random string.
 - If you see `DATABASE_URL is required` or `REDIS_URL is required`, ensure both are set in your `.env` file.
-- If you see connection errors to Postgres or Redis, ensure both containers are healthy: `docker compose ps`.
-- If port `3000` is already in use by another app, open `docker-compose.yml` and change `"3000:3000"` to `"3001:3000"` (or another available port).
+- If you see connection errors to Postgres or Redis, ensure both containers are healthy: `docker compose -f docker-compose.release.yml ps`.
+- If port `3000` is already in use by another app, open `docker-compose.release.yml` and change `"3000:3000"` to `"3001:3000"` (or another available port).
 
 ### I didn't receive a magic link email
 
-1. If you haven't configured SMTP or Cloudflare credentials yet, retrieve the magic link directly from the logs: `docker compose logs app | grep "magic link"`.
+1. Configure SMTP or the optional email worker using the [Email Setup Guide](./email.md). Production images do not print magic links in logs; check provider credentials and delivery logs if a sign-in email is missing.
 2. Check your spam folder.
 3. If configured, go to `/admin` > **System Configuration** > **Send Test Email** to check for configuration errors.
 
@@ -408,7 +408,7 @@ Run `docker compose logs app` to inspect the logs.
 Ensure `INITIAL_ADMIN_EMAIL="your-email@domain.com"` is set in `.env`, then run:
 
 ```bash
-docker compose restart app
+docker compose -f docker-compose.release.yml restart app
 ```
 
 Log out of the application, request a fresh sign-in link for that email address, and open the link

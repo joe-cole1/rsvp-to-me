@@ -39,6 +39,26 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Validate download-only production configuration
+        run: |
+          fixture=$(mktemp -d)
+          trap 'rm -rf "$fixture"' EXIT
+          cp docker-compose.release.yml "$fixture/"
+          cp .env.example "$fixture/.env"
+          docker compose -f "$fixture/docker-compose.release.yml" config --format json > "$fixture/config.json"
+          node - "$fixture/config.json" <<'NODE'
+          const assert = require("node:assert/strict");
+          const { services } = require(process.argv[2]);
+          assert.equal(services.app.image, "ghcr.io/joe-cole1/rsvp-to-me:latest");
+          assert.equal(services.app.build, undefined);
+          assert.equal(services.app.profiles, undefined);
+          assert.equal(services.app.environment.SEED_TEST_DATA, "false");
+          assert.equal(services.app.environment.OPEN_REGISTRATION, "false");
+          assert.equal(services.postgres.ports, undefined);
+          assert.equal(services.redis.ports, undefined);
+          console.log("Download-only production Compose configuration passed");
+          NODE
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
