@@ -14,6 +14,12 @@ The **Guests** card on your event page is always visible to you and your co-host
 first RSVP arrives. Use **View all →** to open the full guest list, or use the settings cog to jump
 directly to RSVP settings.
 
+## Guest Management Preview
+
+> **Screenshot coming soon: Guest management.** A populated host view with attendance totals, status filters, sample guests, and check-in controls.
+
+<!-- Screenshot placeholder: guest-management.png. Replace the blockquote with the supplied desktop screenshot and descriptive alt text. -->
+
 ---
 
 ## Filters

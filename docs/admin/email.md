@@ -61,11 +61,17 @@ _Note on Themed Templates:_ Every event email (invite, RSVP confirmation, approv
 
 If no email settings are configured in `.env` or the Admin Panel, the application falls back to **console logging** instead of sending.
 
-**In development** (`NODE_ENV` not `production`), the full message — recipient, subject, and body, including magic links — is written to standard output so you can grab a sign-in link locally:
+**In development** (`NODE_ENV` not `production`), the full message — recipient, subject, and body, including magic links — is written to standard output so you can grab a sign-in link locally. Sign-in requests also print a dedicated `[auth:magic-link-fallback]` line in development.
+
+For a container-based test setup, read the **app container logs**. For example, if your test app uses the source-build Compose file:
 
 ```bash
-docker compose logs app | grep -i "magic link"
+docker compose -f docker-compose.yml logs --since 10m app
 ```
+
+Use the same Compose file selection as the running test stack, then look for `Magic link for` and the test account's email address. The [sample-data guide](sample-data.md) describes `host@test.com` and the populated demo events.
+
+If you use the optional [native WSL development workflow](local-development.md), the app runs outside Docker: read the terminal running `npm run dev` instead. PostgreSQL and Redis logs do not contain application sign-in links.
 
 **In production**, the fallback deliberately does **not** write recipients, message bodies, or magic-link/RSVP tokens to the logs — those are live credentials and must not sit in log storage. Instead it logs only a generic warning that no transport is configured:
 
@@ -74,6 +80,8 @@ docker compose logs app | grep -i "magic link"
 ```
 
 _Note:_ The console fallback is for local development only. A production deployment **must** configure a real email provider (SMTP or Cloudflare) — otherwise magic-link sign-in and all notifications silently fail to send.
+
+The published image and the repository's Dockerfile both run in production mode. `SEED_TEST_DATA=true` loads sample content; it does not enable development logging or make production magic links appear in container logs.
 
 ---
 

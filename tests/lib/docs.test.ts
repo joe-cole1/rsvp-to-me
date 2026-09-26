@@ -21,6 +21,7 @@ describe("lib/docs.ts", () => {
       "email",
       "installation",
       "local-development",
+      "sample-data",
       "sms",
       "upgrading",
     ]);
