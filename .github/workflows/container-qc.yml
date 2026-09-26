@@ -1,0 +1,73 @@
+name: Container QC
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  container:
+    name: Container (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            node-arch: x64
+            runner: ubuntu-24.04
+            emulated: arm64
+            emulated-machine: aarch64
+          - arch: arm64
+            node-arch: arm64
+            runner: ubuntu-24.04-arm
+            emulated: amd64
+            emulated-machine: x86_64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Check cross-platform emulation
+        env:
+          EMULATED_ARCH: ${{ matrix.emulated }}
+          EXPECTED_MACHINE: ${{ matrix.emulated-machine }}
+        run: |
+          actual=$(docker run --rm --network none --platform "linux/$EMULATED_ARCH" alpine:3.24 uname -m)
+          test "$actual" = "$EXPECTED_MACHINE"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # Native runners keep both real release architectures practical to check
+      # on every PR. The image is loaded only into this disposable runner.
+      - name: Build candidate image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          push: false
+          load: true
+          tags: rsvp-container-qc:local
+          cache-from: type=gha,scope=container-qc-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=container-qc-${{ matrix.arch }}
+
+      - name: Smoke-test candidate image
+        timeout-minutes: 5
+        env:
+          EXPECTED_NODE_ARCH: ${{ matrix.node-arch }}
+        run: bash scripts/container-smoke.sh rsvp-container-qc:local "$EXPECTED_NODE_ARCH"

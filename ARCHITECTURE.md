@@ -191,14 +191,16 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 
 ## Test map
 
-| Path/config                                                 | Scope                                                   |
-| ----------------------------------------------------------- | ------------------------------------------------------- |
-| `tests/actions/`, `tests/api/`, `tests/auth/`, `tests/lib/` | Fast Vitest unit and route/action tests.                |
-| `tests/components/`, `vitest.components.config.ts`          | Browser-like component tests.                           |
-| `tests/integration/`, `vitest.integration.config.ts`        | PostgreSQL-backed integration tests.                    |
-| `tests/e2e/`, `playwright.config.ts`                        | End-to-end public/auth/host flows.                      |
-| `tests/regression/`                                         | Root-cause-specific bug and security regression guards. |
-| `scripts/preflight.sh`                                      | Local CI orchestration with isolated PostgreSQL/Redis.  |
+| Path/config                                                 | Scope                                                                                                            |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `tests/actions/`, `tests/api/`, `tests/auth/`, `tests/lib/` | Fast Vitest unit and route/action tests.                                                                         |
+| `tests/components/`, `vitest.components.config.ts`          | Browser-like component tests.                                                                                    |
+| `tests/integration/`, `vitest.integration.config.ts`        | PostgreSQL-backed integration tests.                                                                             |
+| `tests/e2e/`, `playwright.config.ts`                        | End-to-end public/auth/host flows.                                                                               |
+| `tests/regression/`                                         | Root-cause-specific bug and security regression guards.                                                          |
+| `scripts/preflight.sh`                                      | Local CI orchestration with isolated PostgreSQL/Redis.                                                           |
+| `.github/workflows/container-qc.yml`                        | Builds and smoke-tests production images on AMD64 and ARM64 without publishing.                                  |
+| `scripts/container-smoke.sh`, `scripts/container-smoke.cjs` | Disposable PostgreSQL/Redis container startup, permissions, health, backup, seed, and native image-codec checks. |
 
 ## Common change routing
 
