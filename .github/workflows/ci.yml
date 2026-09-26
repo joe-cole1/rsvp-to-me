@@ -171,8 +171,8 @@ jobs:
       - name: Strict Lint Check
         run: npm run lint
 
-      - name: Unit Tests
-        run: npm test
+      - name: Unit Tests and Coverage
+        run: npm run test:coverage
         env:
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
           NEXT_PUBLIC_APP_URL: http://localhost:3000

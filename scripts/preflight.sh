@@ -121,8 +121,8 @@ npm run db:generate >/dev/null
 step "Database migrations (rsvp_test)"
 npx prisma migrate deploy
 
-step "Unit tests"
-npm test
+step "Unit tests and coverage"
+npm run test:coverage
 
 step "Integration tests"
 npm run test:integration
