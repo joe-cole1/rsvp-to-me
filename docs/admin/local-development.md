@@ -121,6 +121,11 @@ and production container QC on both AMD64 and ARM64; the container checks also
 exercise database seeding through `tsx`. Repeat those checks on `main` after
 the merge before continuing to the next batch.
 
+For updates to `@testing-library/react`, run the complete component suite and
+review event-dispatch or `act()` warnings. For Prettier updates, check formatting
+across tracked files before merging and review any resulting rewrites. A
+formatter patch can change Markdown or embedded template-literal output.
+
 Changes to `jsdom` or `tailwind-merge` also need the component and browser
 suites. Check form validation, dialog interactions, and guest-list behavior;
 the DOM simulation can change while application code stays the same. For
