@@ -52,6 +52,29 @@ docker compose restart
 
 > **Security:** Your `.env` file contains sensitive secrets. Never check it into a git repository.
 
+### Environment loading for commands
+
+Prisma commands, database seeding, startup migrations, and tests use dotenv
+18.0.4 to load `.env` from the project directory. With the default loader
+options, values already supplied by Docker Compose or the shell take precedence
+over values in that file. The existing `.env` and Compose setup needs no changes.
+
+The `dotenv/config` import used by Prisma and seeding still loads the file and
+is quiet by default. Direct `dotenv.config()` calls, including startup
+migrations, write an informational `◇ injected env` message to stderr. Set
+`DOTENV_QUIET=true` in the shell to suppress it, or `DOTENV_QUIET=false` to enable
+the message for imports. The legacy `DOTENV_CONFIG_QUIET` environment variable
+also works.
+
+For custom commands, dotenv 18 removes encrypted `.env.vault` loading through
+`DOTENV_KEY` and the old `dotenv_config_*` command-line arguments. Use the
+documented plain `.env` setup; select a custom file with `DOTENV_PATH` (or
+`DOTENV_CONFIG_PATH`) in the shell or an explicit `config({ path: ... })` call.
+Explicit configuration options take precedence over environment options, and
+`DOTENV_*` names take precedence over their `DOTENV_CONFIG_*` aliases. The
+classic parser remains the default; this project does not enable the optional
+fast parser.
+
 ### Settings Priority
 
 Some configuration fields (email provider settings, registration mode) can also be changed at runtime via the Admin Panel. When a value is set in **both** the `.env` file and the database via the Admin Panel, **the Admin Panel database value takes precedence**.
