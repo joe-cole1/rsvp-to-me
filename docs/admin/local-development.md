@@ -120,6 +120,18 @@ the DOM simulation can change while application code stays the same. For
 class-merging updates, compare existing class combinations and custom
 `className` overrides.
 
+Upgrade the Prisma CLI (`prisma`), `@prisma/client`, and `@prisma/adapter-pg`
+together. Prisma 7.10 continues to load the existing `prisma.config.ts`, including
+the `prisma/postgres-migrations` path; this dependency update does not require a
+config rename or a schema migration. Regenerate the client and run the full
+preflight for database dependency updates. The PostgreSQL integration suite
+checks transaction rollback and constraint errors, while container QC checks
+migration deployment, seeding, health, and pre-migration backups on both
+architectures.
+
+Prisma Studio 7.10 binds to loopback and checks the browser origin. Open it using
+the local `localhost` or `127.0.0.1` URL printed by `npm run db:studio`.
+
 ## Reset disposable development data
 
 This command permanently deletes the **local development** Postgres and Redis
