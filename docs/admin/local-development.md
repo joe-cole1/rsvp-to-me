@@ -107,6 +107,16 @@ coverage provider also share an update group and must stay on matching versions.
 Grouping keeps related changes in one PR but does not replace compatibility
 review, especially for major upgrades.
 
+Zod 4.6.5 uses Unicode code points for built-in string limits, a change introduced
+in 4.5. The application preserves its existing UTF-16 code-unit limits through
+`lib/string-length.ts`, matching JavaScript `String.length` and HTML `maxlength`.
+Use these checks for bounded text in the shared form and email-template schemas;
+keep each field's existing trim/transform order. For Zod updates, run the Unicode
+boundary regression tests and full preflight, including authentication, RSVP
+create/edit, questionnaire validation, URL restrictions, and email-template
+tests. Require CI and both production container checks before merging and again
+on `main` afterward.
+
 React updates also need the component suite and React Email template/preset
 rendering tests: these use the declared runtime packages, while the App Router
 uses Next.js's bundled React build. Run the full browser suite and production
