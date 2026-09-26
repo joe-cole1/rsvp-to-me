@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/.vitest/
 /playwright-report/
 /test-results/
 /tests/e2e/fixtures/auth-state.json

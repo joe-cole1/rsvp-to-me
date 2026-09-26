@@ -107,6 +107,19 @@ coverage provider also share an update group and must stay on matching versions.
 Grouping keeps related changes in one PR but does not replace compatibility
 review, especially for major upgrades.
 
+Vitest and `@vitest/coverage-v8` use 5.0.2, which supports the repository's Node
+22 runtime. Component setup imports `@testing-library/jest-dom/vitest` so its
+runtime matchers and TypeScript declarations attach to Vitest. Keep hoisted
+mock calls at module scope and await asynchronous assertions; Vitest 5 enforces
+both and clears mock call history before each test by default.
+
+CI and both preflight modes run `npm run test:coverage` for the unit suite,
+enforcing the existing thresholds in `vitest.config.ts`: 70% branches and 80%
+statements, functions, and lines. Coverage reports remain in `coverage/`;
+Vitest's other generated reports use the ignored `.vitest/` directory. After
+updates, review the coverage file set as well as percentages, then run the
+separate integration and component suites, type checks, and browser tests.
+
 Zod 4.6.5 uses Unicode code points for built-in string limits, a change introduced
 in 4.5. The application preserves its existing UTF-16 code-unit limits through
 `lib/string-length.ts`, matching JavaScript `String.length` and HTML `maxlength`.
