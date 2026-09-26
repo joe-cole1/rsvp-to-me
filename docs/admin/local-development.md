@@ -107,6 +107,13 @@ coverage provider also share an update group and must stay on matching versions.
 Grouping keeps related changes in one PR but does not replace compatibility
 review, especially for major upgrades.
 
+React updates also need the component suite and React Email template/preset
+rendering tests: these use the declared runtime packages, while the App Router
+uses Next.js's bundled React build. Run the full browser suite and production
+build too, covering RSVP creation/editing, form submission, dialog focus, and
+host navigation. Check application and test types after updating both
+declaration packages.
+
 For patches to development tools such as `tsx`, `@testing-library/user-event`,
 and the React Email CLI, run a clean install and the existing unit, component,
 and type checks. Keep security overrides in place. Before merging, require CI
