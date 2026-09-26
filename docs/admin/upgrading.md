@@ -89,6 +89,39 @@ The release workflow still publishes the `latest` image tag for every published
 release. Use an isolated candidate image for staging until separate prerelease
 tags have been implemented. Publish only after QC and approval.
 
+### Container QC before publishing
+
+The Docker Actions batch pins QEMU 4.4.0, Buildx 4.4.1, and Build/Push 7.4.0.
+The separate **Container QC** workflow runs on pull requests, pushes to `main`,
+and manual dispatches. Require both `Container (amd64)` and `Container (arm64)`
+to pass for the commit being reviewed, alongside the existing CI and CodeQL
+checks. These are review gates; repository branch-protection settings are managed
+separately.
+
+Each job builds the unchanged production Dockerfile on a native runner, loads
+the image locally, and starts it with new disposable PostgreSQL 18 and Redis 8
+containers. It checks the normal migration and seed startup, the image's Docker
+health check, detailed and anonymous health responses, homepage rendering,
+UID/GID 10001 storage access, a nonempty pre-migration backup, Redis connectivity,
+and Sharp JPEG/WebP/AVIF conversions. QEMU is also exercised with a small
+opposite-architecture container. Test data uses an isolated internal network
+and temporary volumes; no existing deployment data is used.
+
+The workflow has read-only repository permissions, no registry login, and
+`push: false`. It neither publishes an image nor deploys anything. Native image
+checks cover both released architectures, but do not exercise the release's
+combined multi-architecture registry push. Keep staging QC for sign-in, RSVP
+flows, uploads, and real email delivery before approving a release. A green
+container check alone is not deployment approval.
+
+To repeat the image checks locally on a Docker-enabled machine:
+
+```bash
+docker build -t rsvp-container-qc:local .
+# Use arm64 instead of x64 on an ARM64 machine.
+bash scripts/container-smoke.sh rsvp-container-qc:local x64
+```
+
 ---
 
 ## Before You Upgrade — Back Up Your Data
