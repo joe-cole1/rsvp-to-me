@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.63.0-noble
+
 echo "=== Ensuring E2E Test Database Exists ==="
 docker exec rsvp-to-me-postgres-1 psql -U postgres -c "CREATE DATABASE rsvp_test;" 2>/dev/null || true
 
@@ -10,5 +12,5 @@ docker run --rm \
   -v "$(pwd)":/app \
   -w /app \
   --env-file .env.e2e \
-  mcr.microsoft.com/playwright:v1.61.1-noble \
+  "$PLAYWRIGHT_IMAGE" \
   bash -c "npx playwright test"
