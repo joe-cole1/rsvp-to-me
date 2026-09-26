@@ -26,3 +26,7 @@ updates:
         patterns: ["@radix-ui/*"]
       prisma:
         patterns: ["prisma", "@prisma/*", "@libsql/*"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      vitest:
+        patterns: ["vitest", "@vitest/*"]

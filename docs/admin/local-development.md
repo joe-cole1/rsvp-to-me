@@ -95,6 +95,25 @@ override, or npm setting independently. Weekly Dependabot updates and
 [issue #546](https://github.com/joe-cole1/rsvp-to-me/issues/546) track the
 upstream releases and coordinated removal checklist.
 
+## Dependency updates
+
+Dependabot checks npm dependencies daily and keeps up to 10 version-update PRs
+open. Additional updates can appear as earlier PRs close, so check the queue
+again after each batch.
+
+React, React DOM, and their declaration packages share one update group; the
+two runtime packages must resolve to exactly the same version. Vitest and its
+coverage provider also share an update group and must stay on matching versions.
+Grouping keeps related changes in one PR but does not replace compatibility
+review, especially for major upgrades.
+
+For patches to development tools such as `tsx`, `@testing-library/user-event`,
+and the React Email CLI, run a clean install and the existing unit, component,
+and type checks. Keep security overrides in place. Before merging, require CI
+and production container QC on both AMD64 and ARM64; the container checks also
+exercise database seeding through `tsx`. Repeat those checks on `main` after
+the merge before continuing to the next batch.
+
 ## Reset disposable development data
 
 This command permanently deletes the **local development** Postgres and Redis
