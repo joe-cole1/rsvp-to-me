@@ -114,6 +114,12 @@ and production container QC on both AMD64 and ARM64; the container checks also
 exercise database seeding through `tsx`. Repeat those checks on `main` after
 the merge before continuing to the next batch.
 
+Changes to `jsdom` or `tailwind-merge` also need the component and browser
+suites. Check form validation, dialog interactions, and guest-list behavior;
+the DOM simulation can change while application code stays the same. For
+class-merging updates, compare existing class combinations and custom
+`className` overrides.
+
 ## Reset disposable development data
 
 This command permanently deletes the **local development** Postgres and Redis
