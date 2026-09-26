@@ -6,12 +6,19 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   docker:
+    # Check both identities: reruns retain the original github.actor.
+    # Repository Actions policies provide a separate pre-execution boundary.
+    if: >-
+      github.actor == github.repository_owner &&
+      github.triggering_actor == github.repository_owner
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout

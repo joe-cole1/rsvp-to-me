@@ -37,6 +37,35 @@ Your `docker-compose.yml` uses the `latest` tag by default. Running `docker comp
 
 > **Note:** Docker does not automatically update running containers. You must manually pull and restart services to run the updated code.
 
+### Who can publish container images
+
+The Release workflow's publishing job requires both `github.actor` (the original
+publisher) and `github.triggering_actor` (the person starting this run or rerun)
+to match `github.repository_owner`, currently `joe-cole1`. Package-write
+permission is granted only to that guarded job.
+
+| Release action                                        | Publishing job                          |
+| ----------------------------------------------------- | --------------------------------------- |
+| Owner publishes a release or reruns their own release | Allowed                                 |
+| Collaborator or bot publishes a release               | Skipped                                 |
+| Collaborator or bot reruns an owner-published release | Skipped                                 |
+| Owner reruns a collaborator- or bot-published release | Skipped; the original actor is retained |
+
+Publishing a GitHub release can therefore succeed while the image job is skipped.
+Check the **Release** workflow result before expecting a new GHCR image. Keep
+release publication and reruns with the owner; a rerun does not change the
+original publisher. A future release tag must include this workflow change.
+Rerunning an old release uses its original commit and cannot adopt a guard that
+was added later on `main`. See GitHub's [context reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context)
+and [rerun behavior](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs).
+
+The YAML guard is separate from GitHub's repository-level execution protections.
+To enforce the same restriction before the workflow starts, configure **Settings
+→ Actions → Policies** for `.github/workflows/release.yml`, allowing the owner
+and the `release` event. Keep CI and Container QC outside that publishing policy.
+Merging this change does not create or modify that setting. See [GitHub's policy
+guide](https://docs.github.com/en/actions/how-tos/administer/control-workflow-execution).
+
 ---
 
 ## September 2026 dependency repair
