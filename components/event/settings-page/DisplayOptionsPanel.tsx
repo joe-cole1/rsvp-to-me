@@ -5,6 +5,8 @@ import type { ResolvedTheme } from "@/lib/theme";
 import type { EventInput, SettingsOverrides } from "./types";
 import type { SettingsPageStyles } from "./styles";
 import { Label, Section, Toggle } from "./ui";
+import { GuestRsvpDisplaySettings } from "./GuestRsvpDisplaySettings";
+import type { GuestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
 
 export function DisplayOptionsPanel({
   commentsEnabled,
@@ -13,6 +15,8 @@ export function DisplayOptionsPanel({
   setGuestSharingEnabled,
   guestListVis,
   setGuestListVis,
+  guestRsvpDisplay,
+  onGuestRsvpDisplayChange,
   visibility,
   setVisibility,
   guestsCanInvite,
@@ -35,6 +39,8 @@ export function DisplayOptionsPanel({
   setGuestSharingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   guestListVis: EventInput["guestListVis"];
   setGuestListVis: React.Dispatch<React.SetStateAction<EventInput["guestListVis"]>>;
+  guestRsvpDisplay: GuestRsvpDisplayFields;
+  onGuestRsvpDisplayChange: (update: Partial<GuestRsvpDisplayFields>) => void;
   visibility: EventInput["visibility"];
   setVisibility: React.Dispatch<React.SetStateAction<EventInput["visibility"]>>;
   guestsCanInvite: boolean;
@@ -106,6 +112,13 @@ export function DisplayOptionsPanel({
           ))}
         </div>
       </div>
+      <GuestRsvpDisplaySettings
+        value={guestRsvpDisplay}
+        onChange={onGuestRsvpDisplayChange}
+        guestListVis={guestListVis}
+        t={t}
+        S={S}
+      />
       <div style={{ marginBottom: "16px" }}>
         <Label t={t}>Event visibility</Label>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

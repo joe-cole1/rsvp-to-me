@@ -14,6 +14,13 @@ import {
 } from "@/app/actions/event";
 import Image from "next/image";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import {
+  GUEST_RSVP_GROUPS,
+  guestCountLabel,
+  resolveGuestRsvpDisplay,
+  showGuestResponseTotal,
+  type GuestRsvpDisplayFields,
+} from "@/lib/guestRsvpDisplay";
 
 type RSVPAnswer = { label: string; value: string };
 
@@ -59,6 +66,7 @@ export function GuestListFilter({
   slug,
   timezone,
   channelConfig,
+  guestRsvpDisplay,
   t,
 }: {
   going: RSVP[];
@@ -71,6 +79,7 @@ export function GuestListFilter({
   slug: string;
   timezone: string;
   channelConfig: { email: boolean; sms: boolean };
+  guestRsvpDisplay?: Partial<GuestRsvpDisplayFields>;
   t: ResolvedTheme;
 }) {
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -95,6 +104,8 @@ export function GuestListFilter({
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { runWithCaptcha } = useCaptcha();
+  const display = resolveGuestRsvpDisplay(guestRsvpDisplay, isHost);
+  const showTotal = showGuestResponseTotal(display);
 
   const statusLabel = (s: string) =>
     s === "GOING"
@@ -136,14 +147,29 @@ export function GuestListFilter({
                 : filter === "PENDING"
                   ? pending
                   : [];
+  const visibleRsvps = isHost
+    ? baseDisplayedRsvps
+    : baseDisplayedRsvps.filter(
+        (r) =>
+          r.status !== "INVITED" &&
+          display[r.status].list !== "HIDDEN" &&
+          (filter !== "ALL" || display[r.status].list === "EXPANDED")
+      );
+  const collapsedGroups =
+    !isHost && filter === "ALL"
+      ? GUEST_RSVP_GROUPS.filter(
+          ({ status }) =>
+            display[status].list === "COLLAPSED" && allRsvps.some((r) => r.status === status)
+        )
+      : [];
   const normalizedSearch = search.trim().toLowerCase();
   const displayedRsvps = normalizedSearch
-    ? baseDisplayedRsvps.filter((r) =>
+    ? visibleRsvps.filter((r) =>
         [r.guestName, r.guestEmail, r.guestPhone, ...r.plusOneGuests]
           .filter(Boolean)
           .some((value) => value!.toLowerCase().includes(normalizedSearch))
       )
-    : baseDisplayedRsvps;
+    : visibleRsvps;
   const attendanceFilteredInvited =
     filter === "CHECKED_IN"
       ? checkedInInvited
@@ -164,8 +190,12 @@ export function GuestListFilter({
       filter === "CHECKED_IN" ||
       filter === "NOT_CHECKED_IN");
 
-  const chips: { key: Filter; label: string; count: number }[] = [
-    { key: "ALL", label: "All", count: allRsvps.length + (isHost ? invited.length : 0) },
+  const chips: { key: Filter; label: string; count: number | string | null }[] = [
+    {
+      key: "ALL",
+      label: "All",
+      count: showTotal ? allRsvps.length + (isHost ? invited.length : 0) : null,
+    },
     ...(isHost
       ? [
           { key: "CHECKED_IN" as Filter, label: "Arrived", count: checkedInParties },
@@ -179,9 +209,16 @@ export function GuestListFilter({
     ...(isHost
       ? [{ key: "PENDING" as Filter, label: "Pending Approval", count: pending.length }]
       : []),
-    { key: "GOING", label: "Going", count: going.length },
-    { key: "MAYBE", label: "Maybe", count: maybe.length },
-    { key: "NO", label: "Can't make it", count: no.length },
+    ...GUEST_RSVP_GROUPS.filter(({ status }) => display[status].list !== "HIDDEN").map(
+      ({ status, label }) => ({
+        key: status,
+        label,
+        count: guestCountLabel(
+          status === "GOING" ? going.length : status === "MAYBE" ? maybe.length : no.length,
+          display[status]
+        ),
+      })
+    ),
     ...(isHost ? [{ key: "INVITED" as Filter, label: "Invited", count: invited.length }] : []),
   ];
 
@@ -663,18 +700,39 @@ export function GuestListFilter({
         }}
       >
         {chips.map(({ key, label, count }) => (
-          <button key={key} onClick={() => setFilter(key)} style={chipStyle(filter === key)}>
+          <button
+            key={key}
+            onClick={() => setFilter(key)}
+            aria-pressed={filter === key}
+            aria-label={
+              count !== null && count !== 0 && count !== "0" ? `${label} ${count}` : label
+            }
+            style={chipStyle(filter === key)}
+          >
             {label}
-            {count > 0 && <span style={{ marginLeft: "5px", opacity: 0.75 }}>{count}</span>}
+            {count !== null && count !== 0 && count !== "0" && (
+              <span style={{ marginLeft: "5px", opacity: 0.75 }}>{count}</span>
+            )}
           </button>
         ))}
       </div>
+
+      {collapsedGroups.length > 0 && (
+        <p style={{ color: t.textMuted, fontSize: "13px", marginBottom: "16px" }}>
+          To see {collapsedGroups.map(({ label }) => `“${label}”`).join(" or ")} names, select that
+          response above.
+        </p>
+      )}
 
       {displayedRsvps.length === 0 &&
       (!showInvited || displayedInvited.length === 0) &&
       filter !== "INVITED" ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted }}>
-          No one here yet.
+          {collapsedGroups.length > 0
+            ? "Choose a response above to open its guest list."
+            : isHost
+              ? "No one here yet."
+              : "No guests to display in this view."}
         </div>
       ) : (
         <>

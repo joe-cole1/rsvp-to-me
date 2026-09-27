@@ -18,6 +18,7 @@ import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
 import { assertHost, assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
+import type { GuestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
 
 // ── Inline field edits ─────────────────────────────────────────────────────────
 
@@ -166,7 +167,7 @@ export async function saveEventTheme(
 
 export async function saveEventSettings(
   eventId: string,
-  settings: {
+  settings: Partial<GuestRsvpDisplayFields> & {
     commentsEnabled?: boolean;
     plusOneAllowed?: boolean;
     plusOneMax?: number;
@@ -227,6 +228,7 @@ export async function saveEventSettings(
   });
   revalidatePath(`/e/${event.slug}`);
   revalidatePath(`/e/${event.slug}/settings`);
+  revalidatePath(`/e/${event.slug}/guests`);
   return { success: true };
 }
 

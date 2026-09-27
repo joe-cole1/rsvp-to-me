@@ -121,6 +121,14 @@ model Event {
   guestSharingEnabled    Boolean      @default(true)
   guestsCanInvite        Boolean      @default(false)
 
+  // Guest-facing presentation only; hosts/co-hosts always see full lists and counts.
+  guestGoingList     GuestListDisplay  @default(EXPANDED)
+  guestGoingCount    GuestCountDisplay @default(EXACT)
+  guestMaybeList     GuestListDisplay  @default(EXPANDED)
+  guestMaybeCount    GuestCountDisplay @default(EXACT)
+  guestDeclinedList  GuestListDisplay  @default(COLLAPSED)
+  guestDeclinedCount GuestCountDisplay @default(HIDDEN)
+
   // Host notifications — "New RSVP" alerts to the host and co-hosts
   hostAlertEmail Boolean @default(true)
   hostAlertSms   Boolean @default(false)
@@ -177,6 +185,18 @@ enum GuestListVis {
   ALL
   GUESTS_ONLY
   HOST_ONLY
+}
+
+enum GuestListDisplay {
+  EXPANDED
+  COLLAPSED
+  HIDDEN
+}
+
+enum GuestCountDisplay {
+  EXACT
+  CAPPED
+  HIDDEN
 }
 
 model EventCoHost {

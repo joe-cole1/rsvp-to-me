@@ -28,7 +28,7 @@ export function SettingsMenu({
           {
             id: "privacy",
             title: "🔒 Display Options",
-            desc: "Guest list visibility, password, and public settings",
+            desc: "Guest list access, guest RSVP display, and event privacy",
           },
           {
             id: "rsvp",
