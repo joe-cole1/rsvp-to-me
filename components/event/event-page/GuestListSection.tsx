@@ -4,6 +4,8 @@ import { Settings, Users } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
+import { GuestRsvpGroup } from "../GuestRsvpGroup";
+import { resolveGuestRsvpDisplay, showGuestResponseTotal } from "@/lib/guestRsvpDisplay";
 
 export function GuestListSection({
   event,
@@ -28,10 +30,13 @@ export function GuestListSection({
   no: EventData["rsvps"];
   totalGoing: number;
 }) {
+  const display = resolveGuestRsvpDisplay(event, isHost);
+  const showTotal = showGuestResponseTotal(display);
+  const hasVisibleRsvps = event.rsvps.some((r) => display[r.status]?.list !== "HIDDEN");
   return (
     <>
       {/* ── Guest List ── */}
-      {(isHost || (event.guestListVis === "ALL" && event.rsvps.length > 0)) && (
+      {(isHost || (event.guestListVis === "ALL" && hasVisibleRsvps)) && (
         <EventCard theme={t}>
           <div
             style={{
@@ -43,7 +48,9 @@ export function GuestListSection({
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <Users size={16} style={{ color: t.accent }} />
-              <span style={{ fontWeight: 700 }}>Guests ({event.rsvps.length})</span>
+              <span style={{ fontWeight: 700 }}>
+                Guests{showTotal ? ` (${event.rsvps.length})` : ""}
+              </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <a
@@ -70,19 +77,7 @@ export function GuestListSection({
             </div>
           </div>
           {going.length > 0 && (
-            <div style={{ marginBottom: maybe.length > 0 || no.length > 0 ? "14px" : 0 }}>
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  textTransform: "none" as const,
-                  letterSpacing: "0.02em",
-                  color: t.textMuted,
-                  marginBottom: "8px",
-                }}
-              >
-                Going · {totalGoing}
-              </div>
+            <GuestRsvpGroup label="Going" count={totalGoing} display={display.GOING} t={t}>
               <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
                 {going.map((r) => (
                   <div
@@ -119,22 +114,10 @@ export function GuestListSection({
                   </div>
                 ))}
               </div>
-            </div>
+            </GuestRsvpGroup>
           )}
           {maybe.length > 0 && (
-            <div style={{ marginBottom: no.length > 0 ? "14px" : 0 }}>
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  textTransform: "none" as const,
-                  letterSpacing: "0.02em",
-                  color: t.textMuted,
-                  marginBottom: "8px",
-                }}
-              >
-                Maybe · {maybe.length}
-              </div>
+            <GuestRsvpGroup label="Maybe" count={maybe.length} display={display.MAYBE} t={t}>
               <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
                 {maybe.map((r) => (
                   <div
@@ -164,22 +147,10 @@ export function GuestListSection({
                   </div>
                 ))}
               </div>
-            </div>
+            </GuestRsvpGroup>
           )}
           {no.length > 0 && (
-            <div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  textTransform: "none" as const,
-                  letterSpacing: "0.02em",
-                  color: t.textMuted,
-                  marginBottom: "8px",
-                }}
-              >
-                Can&apos;t make it · {no.length}
-              </div>
+            <GuestRsvpGroup label="Can't make it" count={no.length} display={display.NO} t={t}>
               <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
                 {no.map((r) => (
                   <div
@@ -206,7 +177,7 @@ export function GuestListSection({
                   </div>
                 ))}
               </div>
-            </div>
+            </GuestRsvpGroup>
           )}
         </EventCard>
       )}

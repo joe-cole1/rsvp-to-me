@@ -1,5 +1,7 @@
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+import type { GuestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
+
 export type SessionUser = {
   id: string;
   email: string;
@@ -62,7 +64,7 @@ export type PotluckItemEntry = {
   claims: PotluckClaimEntry[];
 };
 
-export type EventInput = {
+export type EventInput = Partial<GuestRsvpDisplayFields> & {
   id: string;
   slug: string;
   title: string;
@@ -117,7 +119,7 @@ export type EventInput = {
   potluckItems: PotluckItemEntry[];
 };
 
-export interface SettingsOverrides {
+export interface SettingsOverrides extends Partial<GuestRsvpDisplayFields> {
   commentsEnabled?: boolean;
   plusOneAllowed?: boolean;
   plusOneMax?: number;

@@ -329,6 +329,20 @@ vulnerable 0.34.x line.
 
 RSVP to Me handles database migrations automatically when the container starts. On boot, the `app` container runs a migration script (`scripts/migrate-db.js`) that first takes an automatic pre-migration database snapshot, then applies any new schema updates with `prisma migrate deploy`. If a migration step errors transiently, the script retries a few times with a short backoff before giving up, and surfaces an actionable hint (e.g. a `prisma migrate resolve` command) in the logs for a stuck migration.
 
+### Guest RSVP Display Preferences (#667)
+
+The upgrade containing this feature adds six event presentation fields through
+the `20260927044500_guest_rsvp_display` migration. It preserves expanded lists and
+exact counts for existing events. Events created after the migration default to
+a collapsed Can't make it list with no guest-facing count; Going and Maybe remain
+expanded with exact counts.
+
+Hosts configure these per-event preferences under **Settings → Display Options →
+Guest-facing RSVP display**. Hosts and co-hosts always retain complete lists and
+exact counts. RSVP records, capacity, notifications, and exports are unaffected.
+The existing guest-list visibility controls continue to enforce access; the new
+preferences only change presentation. No environment variable is required.
+
 ### If a Migration Fails
 
 If a migration fails on startup:

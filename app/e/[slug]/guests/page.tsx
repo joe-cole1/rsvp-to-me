@@ -9,6 +9,12 @@ import { AppTopNav } from "@/components/ui/AppNav";
 import { EventAtmosphere } from "@/components/event/EventAtmosphere";
 import { getChannelConfig } from "@/lib/config";
 import { resolveEffectConfig } from "@/lib/effects";
+import {
+  guestCountLabel,
+  guestRsvpDisplayFields,
+  resolveGuestRsvpDisplay,
+  showGuestResponseTotal,
+} from "@/lib/guestRsvpDisplay";
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const { slug } = await props.params;
@@ -81,6 +87,25 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
   const maybe = approvedRsvps.filter((r) => r.status === "MAYBE");
   const no = approvedRsvps.filter((r) => r.status === "NO");
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
+  const display = resolveGuestRsvpDisplay(event, isHost);
+  const countSummary = [
+    showGuestResponseTotal(display)
+      ? `${approvedRsvps.length + (isHost ? pendingRsvps.length : 0)} ${approvedRsvps.length + (isHost ? pendingRsvps.length : 0) === 1 ? "response" : "responses"}`
+      : null,
+    ...(
+      [
+        ["GOING", totalGoing, "going"],
+        ["MAYBE", maybe.length, "maybe"],
+        ["NO", no.length, "can't make it"],
+      ] as const
+    ).map(([status, count, label]) => {
+      const value = guestCountLabel(count, display[status]);
+      return value !== null && (status === "GOING" || count > 0) ? `${value} ${label}` : null;
+    }),
+    isHost && pendingRsvps.length > 0 ? `${pendingRsvps.length} pending approval` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   // Serialize for the client boundary, stripping host-only data (editToken,
   // email, phone, answers) for non-hosts — see lib/guestList.ts for why.
@@ -126,17 +151,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
             ← Back to event
           </Link>
           <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "4px" }}>{event.title}</h1>
-          <p style={{ color: t.textMuted, fontSize: "14px" }}>
-            {[
-              `${approvedRsvps.length + pendingRsvps.length} ${approvedRsvps.length + pendingRsvps.length === 1 ? "response" : "responses"}`,
-              `${totalGoing} going`,
-              maybe.length > 0 ? `${maybe.length} maybe` : null,
-              no.length > 0 ? `${no.length} can't make it` : null,
-              pendingRsvps.length > 0 ? `${pendingRsvps.length} pending approval` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+          <p style={{ color: t.textMuted, fontSize: "14px" }}>{countSummary || "Guest list"}</p>
         </div>
 
         {event.rsvps.length === 0 && pendingInvitations.length === 0 ? (
@@ -181,6 +196,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
                 : []
             }
             isHost={isHost}
+            guestRsvpDisplay={guestRsvpDisplayFields(event)}
             eventId={event.id}
             slug={slug}
             timezone={event.timezone}

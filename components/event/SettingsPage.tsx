@@ -58,6 +58,7 @@ import { PollsPanel } from "./settings-page/PollsPanel";
 import { PotluckPanel } from "./settings-page/PotluckPanel";
 import { EmailsPanel } from "./settings-page/EmailsPanel";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { guestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
 
 export type { SessionUser } from "./settings-page/types";
 
@@ -130,6 +131,7 @@ export function SettingsPage({
   const [commentsEnabled, setCommentsEnabled] = useState(event.commentsEnabled);
   const [guestSharingEnabled, setGuestSharingEnabled] = useState(event.guestSharingEnabled);
   const [guestListVis, setGuestListVis] = useState(event.guestListVis);
+  const [guestRsvpDisplay, setGuestRsvpDisplay] = useState(() => guestRsvpDisplayFields(event));
   const [showTimestamps, setShowTimestamps] = useState(event.showTimestamps);
   const [visibility, setVisibility] = useState(event.visibility);
   const [password, setPassword] = useState("");
@@ -315,6 +317,7 @@ export function SettingsPage({
     setSaveStatus("SAVING");
     setErr(null);
     const data = {
+      ...guestRsvpDisplayFields({ ...guestRsvpDisplay, ...overrides }),
       plusOneAllowed:
         overrides.plusOneAllowed !== undefined ? overrides.plusOneAllowed : plusOneAllowed,
       plusOneMax: overrides.plusOneMax !== undefined ? overrides.plusOneMax : plusOneMax,
@@ -1128,6 +1131,11 @@ export function SettingsPage({
             setGuestSharingEnabled={setGuestSharingEnabled}
             guestListVis={guestListVis}
             setGuestListVis={setGuestListVis}
+            guestRsvpDisplay={guestRsvpDisplay}
+            onGuestRsvpDisplayChange={(update) => {
+              setGuestRsvpDisplay((previous) => ({ ...previous, ...update }));
+              triggerSaveSettings(update);
+            }}
             visibility={visibility}
             setVisibility={setVisibility}
             guestsCanInvite={guestsCanInvite}

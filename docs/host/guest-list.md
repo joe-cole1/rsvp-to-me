@@ -82,9 +82,38 @@ If your event is **Private** or password-protected, the guest list is gated the 
 
 ---
 
-## Showing Guest Names
+## Guest-facing RSVP Display
 
-A separate toggle controls whether guests' names appear on the public event page. When it's off, each guest only sees their own RSVP — useful for privacy-sensitive events.
+Open **Settings → Display Options → Guest-facing RSVP display**, directly below
+**Guest list visibility**. Going, Maybe, and Can't make it each have their own
+group of display controls and an interactive guest preview with example responses.
+
+**These settings affect guests only. Hosts and co-hosts always see complete lists
+and exact counts on the event page and in guest management.**
+
+| Control               | Choice             | What guests see                                                                                                                                    |
+| --------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Guest names           | Show immediately   | Names appear when the page opens.                                                                                                                  |
+| Guest names           | Show after a click | A collapsed heading opens the names. On the full guest list, selecting that response filter reveals them; All starts with only the expanded lists. |
+| Guest names           | Do not display     | That response type, its names, and its count are omitted from guest-facing lists.                                                                  |
+| Count shown to guests | Exact count        | The actual number appears beside the response type.                                                                                                |
+| Count shown to guests | No count           | The response label appears without a number, even after opening the names.                                                                         |
+| Count shown to guests | Limit to 3+        | Available for Can't make it: show 1 or 2, then 3+ for three or more responses, including after opening the list.                                   |
+
+The count control disappears when you choose **Do not display**. Summary totals
+and filter badges follow the same choices; the combined response total is omitted
+when it would reveal a hidden or capped count. Guest names can still be counted
+when a list is opened: these are presentation choices, not additional access rules.
+
+For new events, Going and Maybe start expanded with exact counts. Can't make it
+starts collapsed with no count. Existing events retain expanded lists and exact
+counts until a host changes them.
+
+**Guest list visibility** still decides who may access the list. When it is
+**Host only**, guest display controls are disabled and retain their saved choices
+for later. Changing display settings does not change any RSVP, available RSVP
+buttons, capacity calculation, notification, check-in record, or CSV export.
+Opening a collapsed list never submits or changes a guest's RSVP.
 
 ---
 

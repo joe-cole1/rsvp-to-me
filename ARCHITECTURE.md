@@ -120,6 +120,11 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - New and existing RSVP flows use `app/e/[slug]/rsvp/page.tsx` and
   `components/rsvp/`; RSVP response labels and controls are centralized in
   `components/rsvp/status.tsx`.
+- Guest-facing list/count presentation is resolved by `lib/guestRsvpDisplay.ts`
+  for both the event card and the dedicated guest list. Host/co-host views always
+  resolve to full lists and exact counts. `GuestRsvpDisplaySettings` groups the
+  per-status controls and previews under Display Options. These preferences do
+  not change the access boundary in `lib/guestList.ts` or RSVP collection.
 - Event mutations are split by domain under `app/actions/event/`: RSVP,
   check-ins/walk-ins, settings, invitations, co-hosts, polls, potluck, comments,
   blasts, custom questions, and email previews/tests.

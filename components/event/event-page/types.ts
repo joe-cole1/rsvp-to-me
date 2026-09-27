@@ -1,5 +1,7 @@
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+import type { GuestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
+
 export type PendingRsvp = {
   id: string;
   guestName: string;
@@ -9,7 +11,7 @@ export type PendingRsvp = {
   createdAt: Date;
 };
 
-export type EventData = {
+export type EventData = Partial<GuestRsvpDisplayFields> & {
   id: string;
   slug: string;
   title: string;
