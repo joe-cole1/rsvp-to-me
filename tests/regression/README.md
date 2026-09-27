@@ -16,6 +16,7 @@ For every bug fix merged to main:
 
 | File                                                 | Bug description                                                                                                       | Fixed in            |
 | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `issue-606-docs-images.test.tsx`                     | Repository-relative screenshot URLs did not resolve to local assets in the in-app guides                              | #606                |
 | `sec-11-twilio-xml-injection.test.ts`                | XML injection via unescaped event title/guest name in Twilio TwiML response                                           | SEC-11              |
 | `sec-16-csv-formula-injection.test.ts`               | CSV formula injection via attacker-controlled guest name/email in export                                              | SEC-16              |
 | `sec-19-event-password-rate-limit.test.ts`           | Unbounded brute-force of password-gated events (no attempt cap)                                                       | SEC-19              |

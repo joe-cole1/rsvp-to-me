@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Search, FileText } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
@@ -219,6 +219,13 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeSlug, rehypeHighlight]}
             components={markdownComponents}
+            urlTransform={(url, key, node) => {
+              const safeUrl = defaultUrlTransform(url);
+              // Keep repository-relative images on GitHub and serve them locally in the app.
+              return key === "src" && node.tagName === "img"
+                ? safeUrl.replace(/^(?:\.\.\/)*public\/docs\/images\//, "/docs/images/")
+                : safeUrl;
+            }}
           >
             {activeDoc.content}
           </ReactMarkdown>

@@ -14,6 +14,12 @@ The **Guests** card on your event page is always visible to you and your co-host
 first RSVP arrives. Use **View all →** to open the full guest list, or use the settings cog to jump
 directly to RSVP settings.
 
+## Guest Management Preview
+
+![Wine Night guest management with attendance totals, filters, CSV export, walk-in, and guest check-in controls](../../public/docs/images/guest-management.png)
+
+Track responses and arrivals, check in guests, add walk-ins, and export the guest list from one view.
+
 ---
 
 ## Filters

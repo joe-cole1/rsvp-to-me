@@ -35,6 +35,12 @@ The description editor expands with your text while you type. It starts at a com
 
 The **Settings → Theme** section is organized into three tabs: **🎨 Theme** (presets and custom colors), **✨ Effects** (the animated background layer), and **🔤 Font** (your event title font).
 
+### Theme Customization Preview
+
+![Theme settings showing seasonal and general presets, Theme, Effects, and Font tabs, and custom color controls](../../public/docs/images/theme-customization.png)
+
+Choose a preset, then customize the event's colors, background effects, and title font.
+
 On the **Theme** tab, choose a base look from the theme picker:
 
 - **Dark & Moody** — deep background with high-contrast text.

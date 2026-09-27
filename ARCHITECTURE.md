@@ -67,6 +67,9 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - `app/e/[slug]/page.tsx` is the main public event page.
 - `app/(app)/dashboard/page.tsx` is the host dashboard.
 - `app/(app)/admin/page.tsx` is the administrator entry point.
+- Documentation screenshots live in `public/docs/images/`. `components/docs/DocsPanel.tsx`
+  maps repository-relative Markdown image paths to local `/docs/images/` URLs so
+  GitHub and the in-app guides use the same assets without external image requests.
 
 ### Data and caching
 

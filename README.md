@@ -2,14 +2,63 @@
 
 A beautiful, self-hosted, social-first event and RSVP platform for personal events (house parties, wine nights, dinners). Inspired by Partiful's expressive aesthetic. No payments, no ticketing — just invite links, RSVPs, connection, and social coordination.
 
+[Screenshots](#screenshots) · [Features](#core-features) · [Quick Start](#quick-start) · [Host Guide](docs/host/getting-started.md) · [Admin Guide](docs/admin/installation.md) · [Releases](https://github.com/joe-cole1/rsvp-to-me/releases)
+
+## Screenshots
+
+### Guest event page
+
+![Wine Night guest event page with a cover image and Going, Maybe, and Can't go RSVP choices](public/docs/images/event-guest-view.png)
+
+Guests see a themed invitation and can respond directly from the event page.
+
+### Host dashboard
+
+![Host dashboard showing event filters, a New event card, and the upcoming Wine Night event](public/docs/images/host-dashboard.png)
+
+Hosts can create events, review upcoming gatherings, and track responses from their dashboard.
+
+Explore [guest management](docs/host/guest-list.md#guest-management-preview) and [theme customization](docs/host/customizing-your-page.md#theme-customization-preview) in the host guides.
+
+## How It Works
+
+1. **Create an event:** Set the title, date, time, and location.
+2. **Make it yours:** Choose a theme, add a cover image, and set visibility and RSVP options.
+3. **Invite your guests:** Share the event link or send email and optional SMS invitations.
+4. **Manage the gathering:** Track responses, coordinate food and plans, send updates, and check guests in.
+
+**Hosts** sign in with a magic link. **Guests** can RSVP without creating an account and use their personal edit link to update their response while changes are allowed. Private events still require the appropriate invitation or access. See the [Host Guide](docs/host/getting-started.md) for the full workflow.
+
 ## Core Features
 
-- **Beautiful Themes**: Dark, Soft, and Bold templates with custom accent colors and cover image uploads.
-- **Passwordless Authentication**: Login securely via email or SMS magic links — no passwords to remember.
-- **Guest Coordination**: Threaded comment sections, interactive polls, co-hosts, and potluck claim tracking.
-- **Custom Questionnaires**: Add custom text, select, or checkbox questions directly to the RSVP form.
-- **Automated Reminders**: Schedule email or text reminders for guests 7 days, 1 day, or N hours before the event.
-- **Admin Control Panel**: Manage all users, events, custom invite codes, and system configurations easily.
+### Make each event your own
+
+- **Themes and covers:** Dark, Soft, and Bold base themes, seasonal presets, custom colors, and cover image uploads.
+- **Fonts and effects:** Event-title fonts and optional animated backgrounds, with matching static email styling.
+- **Privacy controls:** Public, unlisted, and private events, password protection, and guest-list visibility settings.
+
+### Keep guests connected
+
+- **Simple RSVPs:** Going, Maybe, or No responses, plus-ones, approval rules, capacity limits, and custom questionnaires.
+- **Shared planning:** Threaded comments, interactive polls, and potluck claims.
+- **Invitations and updates:** Email invitations, automatic reminders, host messages, and optional Twilio SMS.
+
+### Give hosts the tools they need
+
+- **Passwordless access:** Email or optional SMS magic links, plus co-host support.
+- **Guest management:** Search and filter responses, check in parties, add walk-ins, and export the guest list and questionnaire answers to CSV.
+- **Administration:** Manage users, events, host invite codes, and system configuration from the Admin Control Panel.
+
+## Before You Install
+
+| Requirement               | What to expect                                                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Docker and Docker Compose | The release Compose file runs the app with PostgreSQL and Redis; you do not need to install Node.js on the host.                 |
+| A reachable app URL       | Use localhost for a local trial, or a stable URL reachable by your guests for a shared deployment.                               |
+| Email delivery            | Configure SMTP or a supported Cloudflare provider before production sign-in. Production images do not print magic links in logs. |
+| SMS (optional)            | Connect Twilio if you want text-message sign-in, invitations, or updates.                                                        |
+
+For a populated local test instance, see [Sample Data and Screenshots](docs/admin/sample-data.md). It explains the seeded accounts and development sign-in workflow.
 
 ---
 
@@ -85,13 +134,14 @@ This section gets your **RSVP to Me** installation up and running in a few steps
 
 For in-depth explanations of specific features, configurations, and operations, refer to the guides below:
 
-| Guide                                                  | Description                                                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| [Installation Guide](docs/admin/installation.md)       | Full setup walkthrough, Docker setup, data backups, and HTTPS reverse proxies.              |
-| [Configuration Reference](docs/admin/configuration.md) | Comprehensive list and explanation of every environment variable.                           |
-| [Email Setup Guide](docs/admin/email.md)               | Setting up SMTP (Gmail, Outlook, SES, etc.) or Cloudflare Email Routing.                    |
-| [SMS Setup Guide](docs/admin/sms.md)                   | Connecting Twilio to enable text message logins, invitations, and blasts.                   |
-| [Admin Panel Guide](docs/admin/admin.md)               | Managing user accounts, event moderation, custom invite codes, and system configurations.   |
-| [Host Guides](docs/host/)                              | Step-by-step guides for event hosts: creating events, RSVPs, invitations, and more.         |
-| [Safe Upgrading Guide](docs/admin/upgrading.md)        | Instructions on updating to new versions safely without losing any database data.           |
-| [Architecture Map](ARCHITECTURE.md)                    | Developer map of runtime boundaries, subsystems, entry points, and common change locations. |
+| Guide                                                    | Description                                                                                 |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [Installation Guide](docs/admin/installation.md)         | Full setup walkthrough, Docker setup, data backups, and HTTPS reverse proxies.              |
+| [Configuration Reference](docs/admin/configuration.md)   | Comprehensive list and explanation of every environment variable.                           |
+| [Email Setup Guide](docs/admin/email.md)                 | Setting up SMTP (Gmail, Outlook, SES, etc.) or Cloudflare Email Routing.                    |
+| [SMS Setup Guide](docs/admin/sms.md)                     | Connecting Twilio to enable text message logins, invitations, and blasts.                   |
+| [Admin Panel Guide](docs/admin/admin.md)                 | Managing user accounts, event moderation, custom invite codes, and system configurations.   |
+| [Host Guides](docs/host/)                                | Step-by-step guides for event hosts: creating events, RSVPs, invitations, and more.         |
+| [Safe Upgrading Guide](docs/admin/upgrading.md)          | Instructions on updating to new versions safely without losing any database data.           |
+| [Sample Data and Screenshots](docs/admin/sample-data.md) | Seeded test accounts, local sign-in, and the desktop screenshot checklist.                  |
+| [Architecture Map](ARCHITECTURE.md)                      | Developer map of runtime boundaries, subsystems, entry points, and common change locations. |
