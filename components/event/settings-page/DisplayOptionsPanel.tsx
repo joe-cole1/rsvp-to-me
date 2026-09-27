@@ -59,66 +59,6 @@ export function DisplayOptionsPanel({
 }) {
   return (
     <Section title="Display Options" t={t}>
-      <Toggle
-        label="Allow guest comments"
-        value={commentsEnabled}
-        onChange={(val) => {
-          setCommentsEnabled(val);
-          triggerSaveSettings({ commentsEnabled: val });
-        }}
-        t={t}
-      />
-
-      <Toggle
-        label="Allow guest sharing (Copy link & QR code)"
-        value={guestSharingEnabled}
-        onChange={(val) => {
-          setGuestSharingEnabled(val);
-          triggerSaveSettings({ guestSharingEnabled: val });
-        }}
-        t={t}
-      />
-
-      <div style={{ marginBottom: "16px" }}>
-        <Label t={t}>Guest list visibility</Label>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {(
-            [
-              ["ALL", "Everyone can see"],
-              ["GUESTS_ONLY", "Going guests only"],
-              ["HOST_ONLY", "Host only"],
-            ] as const
-          ).map(([val, label]) => (
-            <label
-              key={val}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="radio"
-                checked={guestListVis === val}
-                onChange={() => {
-                  setGuestListVis(val);
-                  triggerSaveSettings({ guestListVis: val });
-                }}
-                style={{ accentColor: t.accent }}
-              />
-              <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-      <GuestRsvpDisplaySettings
-        value={guestRsvpDisplay}
-        onChange={onGuestRsvpDisplayChange}
-        guestListVis={guestListVis}
-        t={t}
-        S={S}
-      />
       <div style={{ marginBottom: "16px" }}>
         <Label t={t}>Event visibility</Label>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -164,7 +104,7 @@ export function DisplayOptionsPanel({
         />
       )}
       {visibility === "PRIVATE" && (
-        <div>
+        <div style={{ marginBottom: "24px" }}>
           <div
             style={{
               display: "flex",
@@ -334,6 +274,69 @@ export function DisplayOptionsPanel({
             ) : null)}
         </div>
       )}
+
+      <Toggle
+        label="Allow guest comments"
+        value={commentsEnabled}
+        onChange={(val) => {
+          setCommentsEnabled(val);
+          triggerSaveSettings({ commentsEnabled: val });
+        }}
+        t={t}
+      />
+
+      <Toggle
+        label="Allow guest sharing (Copy link & QR code)"
+        value={guestSharingEnabled}
+        onChange={(val) => {
+          setGuestSharingEnabled(val);
+          triggerSaveSettings({ guestSharingEnabled: val });
+        }}
+        t={t}
+      />
+
+      <div style={{ marginBottom: "16px" }}>
+        <h3 style={{ fontSize: "14px", fontWeight: 700, marginBottom: "10px" }}>
+          Guest list visibility
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {(
+            [
+              ["ALL", "Everyone can see"],
+              ["GUESTS_ONLY", "Going guests only"],
+              ["HOST_ONLY", "Host only"],
+            ] as const
+          ).map(([val, label]) => (
+            <label
+              key={val}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="radio"
+                checked={guestListVis === val}
+                onChange={() => {
+                  setGuestListVis(val);
+                  triggerSaveSettings({ guestListVis: val });
+                }}
+                style={{ accentColor: t.accent }}
+              />
+              <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      <GuestRsvpDisplaySettings
+        value={guestRsvpDisplay}
+        onChange={onGuestRsvpDisplayChange}
+        guestListVis={guestListVis}
+        t={t}
+        S={S}
+      />
     </Section>
   );
 }
