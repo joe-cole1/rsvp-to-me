@@ -37,9 +37,9 @@ The **Settings → Theme** section is organized into three tabs: **🎨 Theme** 
 
 ### Theme Customization Preview
 
-> **Screenshot coming soon: Theme customization.** The host's theme picker with available presets and customization controls.
+![Theme settings showing seasonal and general presets, Theme, Effects, and Font tabs, and custom color controls](../../public/docs/images/theme-customization.png)
 
-<!-- Screenshot placeholder: theme-customization.png. Replace the blockquote with the supplied desktop screenshot and descriptive alt text. -->
+Choose a preset, then customize the event's colors, background effects, and title font.
 
 On the **Theme** tab, choose a base look from the theme picker:
 

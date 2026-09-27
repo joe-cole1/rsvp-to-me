@@ -16,9 +16,9 @@ directly to RSVP settings.
 
 ## Guest Management Preview
 
-> **Screenshot coming soon: Guest management.** A populated host view with attendance totals, status filters, sample guests, and check-in controls.
+![Wine Night guest management with attendance totals, filters, CSV export, walk-in, and guest check-in controls](../../public/docs/images/guest-management.png)
 
-<!-- Screenshot placeholder: guest-management.png. Replace the blockquote with the supplied desktop screenshot and descriptive alt text. -->
+Track responses and arrivals, check in guests, add walk-ins, and export the guest list from one view.
 
 ---
 

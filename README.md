@@ -8,15 +8,15 @@ A beautiful, self-hosted, social-first event and RSVP platform for personal even
 
 ### Guest event page
 
-> **Screenshot coming soon: Guest event page.** A themed invitation with a cover image, event details, and RSVP controls.
+![Wine Night guest event page with a cover image and Going, Maybe, and Can't go RSVP choices](public/docs/images/event-guest-view.png)
 
-<!-- Screenshot placeholder: event-guest-view.png. Replace the blockquote with the supplied desktop screenshot and descriptive alt text. -->
+Guests see a themed invitation and can respond directly from the event page.
 
 ### Host dashboard
 
-> **Screenshot coming soon: Host dashboard.** Upcoming events with cover images, attendance counts, and host navigation.
+![Host dashboard showing event filters, a New event card, and the upcoming Wine Night event](public/docs/images/host-dashboard.png)
 
-<!-- Screenshot placeholder: host-dashboard.png. Replace the blockquote with the supplied desktop screenshot and descriptive alt text. -->
+Hosts can create events, review upcoming gatherings, and track responses from their dashboard.
 
 Explore [guest management](docs/host/guest-list.md#guest-management-preview) and [theme customization](docs/host/customizing-your-page.md#theme-customization-preview) in the host guides.
 
