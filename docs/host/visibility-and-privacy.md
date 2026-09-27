@@ -8,7 +8,9 @@ order: 40
 
 # Visibility & Privacy
 
-Control who can find and view your event from its **Settings**.
+Control who can find and view your event from **Settings → Display Options**.
+Event visibility appears first, with its private-event options directly below it,
+followed by the guest controls.
 
 ---
 

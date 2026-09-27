@@ -338,7 +338,9 @@ a collapsed Can't make it list with no guest-facing count; Going and Maybe remai
 expanded with exact counts.
 
 Hosts configure these per-event preferences under **Settings → Display Options →
-Guest-facing RSVP display**. Hosts and co-hosts always retain complete lists and
+Guest-facing RSVP display**. Event visibility appears first on that page, and
+Guest list visibility sits directly above the response display controls with a
+matching section heading. Hosts and co-hosts always retain complete lists and
 exact counts. RSVP records, capacity, notifications, and exports are unaffected.
 The existing guest-list visibility controls continue to enforce access; the new
 preferences only change presentation. No environment variable is required.
