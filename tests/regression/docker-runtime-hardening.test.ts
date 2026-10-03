@@ -47,6 +47,13 @@ describe("Docker production image hardening", () => {
     expect(dockerfile).toMatch(/REDIS_URL=redis:\/\/build-placeholder/);
   });
 
+  it("ships production dependencies instead of the build/test dependency tree", () => {
+    expect(dockerfile).toContain("FROM ${NODE_IMAGE} AS prod-deps");
+    expect(dockerfile).toContain("npm ci --omit=dev");
+    expect(runner).toContain("COPY --from=prod-deps /app/node_modules ./node_modules");
+    expect(runner).not.toContain("COPY --from=builder /app/node_modules ./node_modules");
+  });
+
   it("deploys migrations once and execs the long-running process", () => {
     const command = runner.match(/^CMD \[.*$/m)?.[0] ?? "";
     expect(command).toContain("node scripts/migrate-db.js");
