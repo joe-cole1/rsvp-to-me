@@ -16,7 +16,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package*.json .npmrc ./
 COPY vendor/brace-expansion-compat ./vendor/brace-expansion-compat
-RUN npm ci --omit=dev
+RUN npm pkg delete scripts.prepare && npm ci --omit=dev
 
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
