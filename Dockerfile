@@ -11,6 +11,13 @@ COPY package*.json .npmrc ./
 COPY vendor/brace-expansion-compat ./vendor/brace-expansion-compat
 RUN npm ci
 
+FROM ${NODE_IMAGE} AS prod-deps
+WORKDIR /app
+RUN apk add --no-cache libc6-compat
+COPY package*.json .npmrc ./
+COPY vendor/brace-expansion-compat ./vendor/brace-expansion-compat
+RUN npm ci --omit=dev
+
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -40,7 +47,7 @@ RUN apk add --no-cache libc6-compat postgresql-client su-exec && \
     adduser --system --uid 10001 --ingroup nodejs nextjs
 
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
