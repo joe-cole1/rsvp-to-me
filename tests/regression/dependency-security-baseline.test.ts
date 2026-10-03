@@ -12,6 +12,9 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(__dirname, "..", "..");
 type Lock = { packages: Record<string, { version?: string; dev?: boolean }> };
 const lock = JSON.parse(readFileSync(join(ROOT, "package-lock.json"), "utf8")) as Lock;
+const workerLock = JSON.parse(
+  readFileSync(join(ROOT, "worker", "package-lock.json"), "utf8")
+) as Lock;
 const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -53,6 +56,14 @@ describe("September dependency security baseline", () => {
     for (const [path, entry] of entries) {
       expect(atLeast(entry.version ?? "", minimum), `${path}: ${entry.version}`).toBe(true);
     }
+  });
+
+  it("keeps the Cloudflare worker toolchain at the remediated dependency floor", () => {
+    expect(workerLock.packages["node_modules/wrangler"]?.version).toBe("4.147.0");
+    expect(workerLock.packages["node_modules/undici"]?.version).toBe("7.29.1");
+    expect(workerLock.packages["node_modules/@cloudflare/workers-types"]?.version).toBe(
+      "5.20261003.1"
+    );
   });
 
   it("keeps Next.js and eslint-config-next on the same exact patch", () => {
