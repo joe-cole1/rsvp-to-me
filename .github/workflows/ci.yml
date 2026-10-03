@@ -161,6 +161,11 @@ jobs:
       - name: Audit shipped worker dependencies
         run: npm audit --prefix worker --omit=dev --audit-level=high
 
+      - name: Dry-run email worker bundle
+        run: |
+          cd worker
+          npx wrangler deploy --dry-run --outdir /tmp/rsvp-worker-dist
+
       - name: Report build-tool dependency advisories
         continue-on-error: true
         run: |
