@@ -19,7 +19,7 @@ const runner = dockerfile.split(/FROM\s+\$\{NODE_IMAGE\}\s+AS\s+runner/)[1] ?? "
 describe("Docker production image hardening", () => {
   it("pins every build stage to one exact multi-architecture Node image", () => {
     expect(dockerfile).toMatch(/^ARG NODE_IMAGE=node:22\.23\.1-alpine3\.24@sha256:[a-f0-9]{64}$/m);
-    expect(dockerfile.match(/^FROM \$\{NODE_IMAGE\} AS \w+$/gm)).toHaveLength(3);
+    expect(dockerfile.match(/^FROM \$\{NODE_IMAGE\} AS [\w-]+$/gm)).toHaveLength(4);
     expect(dockerfile).not.toMatch(/^FROM\s+node:[^@\s]+\s/m);
   });
 
