@@ -16,9 +16,15 @@ scripts/preflight.sh          # full parity, including Playwright E2E
 scripts/preflight.sh --fast   # everything except E2E (much faster)
 ```
 
-Steps: `npm ci` → `npm audit` → Prettier `--check` → ESLint → Prisma generate +
-migrate → unit + integration + component tests → `next build` → (E2E: start server,
-`wait-on` health, `playwright test`).
+Steps: `npm ci` → blocking production-dependency audits → non-blocking build-tool
+advisory reports → Prettier `--check` → ESLint → Prisma generate + migrate → unit +
+integration + component tests → `next build` → (E2E: start server, `wait-on`
+health, `playwright test`).
+
+The blocking audit covers dependencies that ship with the app or worker. Development
+and build-tool advisories are still printed, but do not fail preflight when upstream
+has not published a patched release. The production image separately installs with
+`npm ci --omit=dev`, so those build-only packages are not copied into the runtime image.
 
 Full preflight requires port 3001 to be free before E2E startup. It refuses to
 continue if another listener is present, so the health check cannot accept a
