@@ -35,7 +35,7 @@ describe("September dependency security baseline", () => {
     ["fast-uri", "3.1.7"],
     ["mysql2", "3.24.4"],
     ["nanoid", "3.3.18"],
-    ["nodemailer", "9.1.1"],
+    ["nodemailer", "10.0.12"],
     ["js-yaml", "4.3.2"],
     ["joi", "18.2.9"],
     ["vitest", "4.1.11"],
@@ -49,6 +49,10 @@ describe("September dependency security baseline", () => {
     for (const [path, entry] of entries) {
       expect(atLeast(entry.version ?? "", minimum), `${path}: ${entry.version}`).toBe(true);
     }
+  });
+
+  it("uses Nodemailer's bundled declarations instead of the legacy DefinitelyTyped package", () => {
+    expect(lock.packages["node_modules/@types/nodemailer"]).toBeUndefined();
   });
 
   it("keeps tsx in the runtime dependency tree for production database seeding", () => {
