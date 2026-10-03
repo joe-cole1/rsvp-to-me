@@ -106,6 +106,12 @@ npm ci --prefix worker
 step "Audit shipped worker dependencies"
 npm audit --prefix worker --omit=dev --audit-level=high
 
+step "Dry-run email worker bundle"
+(
+  cd worker
+  npx wrangler deploy --dry-run --outdir /tmp/rsvp-worker-dist
+)
+
 step "Report build-tool dependency advisories (non-blocking)"
 root_audit_status=0
 worker_audit_status=0
