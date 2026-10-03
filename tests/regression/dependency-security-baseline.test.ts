@@ -10,7 +10,7 @@ import { loadConfigFromFile } from "@prisma/config";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..", "..");
-type Lock = { packages: Record<string, { version?: string }> };
+type Lock = { packages: Record<string, { version?: string; dev?: boolean }> };
 const lock = JSON.parse(readFileSync(join(ROOT, "package-lock.json"), "utf8")) as Lock;
 
 function atLeast(version: string, floor: string): boolean {
@@ -26,6 +26,11 @@ function atLeast(version: string, floor: string): boolean {
 describe("September dependency security baseline", () => {
   it.each([
     ["next", "16.3.6"],
+    ["axios", "1.20.0"],
+    ["brace-expansion", "5.0.12"],
+    ["engine.io", "6.6.10"],
+    ["undici", "8.10.2"],
+    ["wait-on", "9.4.0"],
     ["deepmerge-ts", "8.0.0"],
     ["fast-uri", "3.1.7"],
     ["mysql2", "3.24.4"],
@@ -44,6 +49,12 @@ describe("September dependency security baseline", () => {
     for (const [path, entry] of entries) {
       expect(atLeast(entry.version ?? "", minimum), `${path}: ${entry.version}`).toBe(true);
     }
+  });
+
+  it("keeps tsx in the runtime dependency tree for production database seeding", () => {
+    const tsx = lock.packages["node_modules/tsx"];
+    expect(tsx?.version).toBe("4.23.15");
+    expect(tsx?.dev).not.toBe(true);
   });
 
   it("excludes html-to-text 10.0.0 while allowing the unaffected 9.x renderer", () => {
