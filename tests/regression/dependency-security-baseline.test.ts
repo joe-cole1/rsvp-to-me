@@ -12,6 +12,10 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(__dirname, "..", "..");
 type Lock = { packages: Record<string, { version?: string; dev?: boolean }> };
 const lock = JSON.parse(readFileSync(join(ROOT, "package-lock.json"), "utf8")) as Lock;
+const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+};
 
 function atLeast(version: string, floor: string): boolean {
   if (!/^\d+\.\d+\.\d+$/.test(version)) return false;
@@ -25,7 +29,7 @@ function atLeast(version: string, floor: string): boolean {
 
 describe("September dependency security baseline", () => {
   it.each([
-    ["next", "16.3.6"],
+    ["next", "16.3.7"],
     ["axios", "1.20.0"],
     ["brace-expansion", "5.0.12"],
     ["engine.io", "6.6.10"],
@@ -49,6 +53,11 @@ describe("September dependency security baseline", () => {
     for (const [path, entry] of entries) {
       expect(atLeast(entry.version ?? "", minimum), `${path}: ${entry.version}`).toBe(true);
     }
+  });
+
+  it("keeps Next.js and eslint-config-next on the same exact patch", () => {
+    expect(manifest.dependencies?.next).toBe("16.3.7");
+    expect(manifest.devDependencies?.["eslint-config-next"]).toBe(manifest.dependencies?.next);
   });
 
   it("uses Nodemailer's bundled declarations instead of the legacy DefinitelyTyped package", () => {
