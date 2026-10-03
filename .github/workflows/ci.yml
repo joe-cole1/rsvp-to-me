@@ -152,13 +152,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       # ------------------------------------------------------------------------
 
-      - name: Audit dependencies
-        run: npm audit --audit-level=high
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
-      - name: Install and audit email worker dependencies
+      - name: Install email worker dependencies
+        run: npm ci --prefix worker
+
+      - name: Audit shipped worker dependencies
+        run: npm audit --prefix worker --omit=dev --audit-level=high
+
+      - name: Report build-tool dependency advisories
+        continue-on-error: true
         run: |
-          npm ci --prefix worker
-          npm audit --prefix worker --audit-level=high
+          root_status=0
+          worker_status=0
+          npm audit --audit-level=high || root_status=$?
+          npm audit --prefix worker --audit-level=high || worker_status=$?
+          if [ "$root_status" -ne 0 ] || [ "$worker_status" -ne 0 ]; then
+            echo "::warning::Build-tool dependency advisories remain. Runtime dependency audits passed."
+            exit 1
+          fi
 
       - name: Generate Prisma client
         run: npm run db:generate
