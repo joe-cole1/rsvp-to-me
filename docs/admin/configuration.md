@@ -79,6 +79,26 @@ fast parser.
 
 Some configuration fields (email provider settings, registration mode) can also be changed at runtime via the Admin Panel. When a value is set in **both** the `.env` file and the database via the Admin Panel, **the Admin Panel database value takes precedence**.
 
+### Content Security Policy and request rendering
+
+Each document request receives a fresh, unpredictable script nonce. The
+application puts that same nonce in the request policy used by Next.js and in
+the `Content-Security-Policy` response header, so framework scripts and
+approved inline scripts can run while an injected inline script is rejected.
+Cloudflare Turnstile remains an allowed script source when it is enabled.
+The document base URL is pinned to the app origin so a hostile `<base>` element
+cannot retarget nonce-authorized relative scripts.
+Server-rendered wrappers pass the request nonce through `CaptchaProvider` to the
+Turnstile script so optional bot protection uses the same document nonce.
+Full-page responses use their request nonce; during client navigation, Next's
+trusted loader may load Turnstile using the new response nonce, which
+`strict-dynamic` permits without requiring it to match the original page nonce.
+
+Because HTML and React Server Component responses contain a nonce for one
+request, do not cache or replay those responses in a reverse proxy or CDN.
+Static assets such as files under `public/` and `/_next/` can still use normal
+asset caching.
+
 ---
 
 ## Core Application Settings

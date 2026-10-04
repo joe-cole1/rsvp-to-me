@@ -71,3 +71,4 @@ For every bug fix merged to main:
 | `issue-549-550-turnstile-concurrency.test.ts`        | Shared Turnstile cookie let overlapping protected actions overwrite or consume each other's single-use token          | #549/550            |
 | `npm-deprecation-warnings.test.ts`                   | Redundant bcryptjs type stubs and the Twilio SDK's transitive scmp dependency emitted clean-install warnings          | c4ca3272            |
 | `dependency-security-baseline.test.ts`               | Vulnerable transitive resolutions stopped CI; preserve Prisma config loading and the patched Vitest dependency tree   | 3c3227b5 / 027a7053 |
+| `issue-327-script-csp.test.ts`                       | Inline scripts were permitted by `script-src 'unsafe-inline'`; request nonces were not coupled to rendered HTML       | SEC-9 / #327        |

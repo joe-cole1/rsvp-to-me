@@ -13,13 +13,14 @@ in `AGENTS.md`; implementation procedures belong in `WORKFLOW.md`.
 
 ```text
 Browser
-  -> Next.js 16 App Router (`app/`)
-     -> Server Components and route handlers
-     -> Server Actions (`app/actions/`)
-        -> Prisma singleton (`lib/db.ts`) -> PostgreSQL 18
-        -> Redis helpers (`lib/redis.ts`) -> Redis
-        -> Email/SMS adapters (`lib/email.ts`, `lib/sms.ts`)
-     -> Local uploads/backups (`data/` at runtime)
+  -> Next.js Proxy (`proxy.ts`) for document requests — request-time security headers
+     -> Next.js 16 App Router (`app/`)
+        -> Server Components and route handlers
+        -> Server Actions (`app/actions/`)
+           -> Prisma singleton (`lib/db.ts`) -> PostgreSQL 18
+           -> Redis helpers (`lib/redis.ts`) -> Redis
+           -> Email/SMS adapters (`lib/email.ts`, `lib/sms.ts`)
+        -> Local uploads/backups (`data/` at runtime)
 
 Optional Cloudflare Email Worker (`worker/`)
   <- outbound email requests from the app
@@ -35,6 +36,7 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 | Path            | Responsibility                                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `app/`          | Next.js layouts, pages, route handlers, Server Actions, and generated Prisma client output.                                    |
+| `proxy.ts`      | Request-time document boundary: generates the CSP nonce and forwards the matching policy into Next.js rendering.               |
 | `app/(app)/`    | Shared authenticated application shell for dashboard, profile, help, and admin pages.                                          |
 | `app/e/[slug]/` | Public event, RSVP, guest-list, calendar, CSV, and host-settings routes.                                                       |
 | `app/actions/`  | Primary mutation/query boundary for auth, profiles, administration, and event management.                                      |
@@ -57,6 +59,23 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 ### Application shell and pages
 
 - `app/layout.tsx` is the root HTML/layout boundary.
+- `app/layout.tsx` waits for `connection()` so every document that passes
+  through `proxy.ts` is rendered per request and can receive that request's
+  CSP nonce.
+- `proxy.ts` generates a fresh nonce for document requests, overwrites any
+  client-supplied nonce or CSP request headers, and forwards one matching CSP
+  policy to Next.js and the browser. API and `_next` namespaces use the
+  fallback policy from `next.config.ts`.
+- `lib/csp.ts` is the shared CSP policy source of truth for the request-time
+  nonce policy and the no-nonce fallback. It keeps the existing theme-safe
+  inline styles and Cloudflare Turnstile source in both policies.
+- Server-rendered route wrappers read the request nonce and pass it through
+  `components/ui/CaptchaProvider.tsx` to the Next.js Turnstile `Script`, keeping
+  the optional bot-protection script under the same document policy.
+- Full-document HTML carries its request nonce. During client navigation, Next's
+  trusted loader may load Turnstile using the new response nonce;
+  `strict-dynamic` permits this without requiring it to match the initial
+  document nonce.
 - `app/(app)/layout.tsx` supplies shared navigation and the cached session user
   for authenticated application pages.
 - `components/ui/AppNav.tsx` owns the shared top-bar variants and composes the
@@ -201,6 +220,10 @@ Repository Actions execution policies are configured separately from this YAML.
 tags; only stable releases receive minor-version and `latest` aliases. The
 metadata action's implicit `latest` behavior is disabled. Release-note drafts
 live in `.github/release-notes/` and do not publish releases by themselves.
+
+Document HTML and React Server Component responses contain request-specific CSP
+nonces and must not be cached or replayed by a reverse proxy or CDN. Static
+assets under `public/` and `_next/` may keep ordinary long-lived asset caching.
 
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
 compatible Node/npm range. Repository scripts normalize WSL temporary paths,

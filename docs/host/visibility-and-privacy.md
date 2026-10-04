@@ -12,6 +12,13 @@ Control who can find and view your event from **Settings → Display Options**.
 Event visibility appears first, with its private-event options directly below it,
 followed by the guest controls.
 
+## Browser Page Protection
+
+Event pages receive a fresh security token each time they are opened. It lets
+the page's own scripts run while blocking unexpected inline scripts. This
+protection does not change who can find or view your event; the visibility and
+guest settings below remain the controls for that choice.
+
 ---
 
 ## Visibility Modes
