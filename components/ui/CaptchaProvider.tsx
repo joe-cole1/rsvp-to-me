@@ -46,10 +46,12 @@ async function waitForTurnstile(container: HTMLDivElement | null): Promise<Turns
 export function CaptchaProvider({
   siteKey,
   bypass = false,
+  nonce,
   children,
 }: {
   siteKey: string | null;
   bypass?: boolean;
+  nonce?: string;
   children: ReactNode;
 }) {
   const enabled = !!siteKey && !bypass;
@@ -132,6 +134,7 @@ export function CaptchaProvider({
           <Script
             src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
             strategy="afterInteractive"
+            nonce={nonce}
           />
           <div
             aria-hidden={!interactive}

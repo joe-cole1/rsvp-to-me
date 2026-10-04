@@ -8,9 +8,9 @@ vi.mock("next/script", async () => {
   const React = await import("react");
 
   return {
-    default: function MockScript({ onReady }: { onReady?: () => void }) {
+    default: function MockScript({ onReady, nonce }: { onReady?: () => void; nonce?: string }) {
       React.useEffect(() => onReady?.(), [onReady]);
-      return null;
+      return React.createElement("script", { "data-testid": "turnstile-script", nonce });
     },
   };
 });
@@ -39,6 +39,16 @@ function SubmitButton({ onSubmit }: { onSubmit: (token: string | null) => Promis
 describe("CaptchaProvider", () => {
   beforeEach(() => {
     delete window.turnstile;
+  });
+
+  it("forwards the document nonce to the Turnstile script", () => {
+    render(
+      <CaptchaProvider siteKey="site-key" nonce="request-nonce">
+        <span>Protected content</span>
+      </CaptchaProvider>
+    );
+
+    expect(screen.getByTestId("turnstile-script")).toHaveAttribute("nonce", "request-nonce");
   });
 
   it("gets a fresh action-bound token before submitting", async () => {
