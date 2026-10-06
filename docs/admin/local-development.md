@@ -101,6 +101,26 @@ Dependabot checks npm dependencies daily and keeps up to 10 version-update PRs
 open. Additional updates can appear as earlier PRs close, so check the queue
 again after each batch.
 
+Next.js and `eslint-config-next` share one update group and must stay pinned to
+the same exact release. The regression baseline requires Next.js 16.3.8 or
+later, including every locked Next.js runtime, native compiler, and ESLint
+package. This is a minimum security version, so a coordinated later patch
+does not require changing the test just to accept the new version. Keep the
+patched `source-map-js` 1.2.2 or later resolution when regenerating the lockfile;
+earlier releases fail the production dependency audit.
+
+Roboto is bundled in `app/font-files/` and loaded through `next/font/local`.
+Some Google Fonts responses use extensionless `/l/font?kit=...&skey=...` URLs;
+Next.js 16.3.8 incorrectly splits their query string and reports
+`Can't resolve '@vercel/turbopack-next/internal/font/google/font'`. This is the
+upstream parser defect tracked in
+[Next.js #99114](https://github.com/vercel/next.js/issues/99114), rather than a
+missing npm package or an AMD64-only dependency. The local asset preserves
+Roboto's regular/bold weights, CSS variable, glyph coverage, and lazy loading.
+Turbopack remains the production bundler. The font's source, license, and
+reproduction details are recorded in `app/font-files/README.md`; other Google
+font families still require network access at build time.
+
 React, React DOM, and their declaration packages share one update group; the
 two runtime packages must resolve to exactly the same version. Vitest and its
 coverage provider also share an update group and must stay on matching versions.

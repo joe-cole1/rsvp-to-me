@@ -3,6 +3,9 @@
 // versions. Guard the installed dependency tree and exercise Prisma's real
 // config loader across the scoped deepmerge-ts security override.
 // Vitest's redirect-mock file-read advisory requires the 4.1.11 patch family.
+// October 2026: independent Next.js/ESLint updates broke the exact-patch guard.
+// Keep a security floor while allowing coordinated future patches; also check
+// the lockfile so a manifest-only update cannot leave the old toolchain installed.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,9 +33,10 @@ function atLeast(version: string, floor: string): boolean {
   return true;
 }
 
-describe("September dependency security baseline", () => {
+describe("Dependency security baseline", () => {
   it.each([
-    ["next", "16.3.7"],
+    ["next", "16.3.8"],
+    ["source-map-js", "1.2.2"],
     ["axios", "1.20.0"],
     ["brace-expansion", "5.0.12"],
     ["engine.io", "6.6.10"],
@@ -67,8 +71,22 @@ describe("September dependency security baseline", () => {
   });
 
   it("keeps Next.js and eslint-config-next on the same exact patch", () => {
-    expect(manifest.dependencies?.next).toBe("16.3.7");
-    expect(manifest.devDependencies?.["eslint-config-next"]).toBe(manifest.dependencies?.next);
+    const nextVersion = manifest.dependencies?.next ?? "";
+    expect(nextVersion).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(atLeast(nextVersion, "16.3.8")).toBe(true);
+    expect(manifest.devDependencies?.["eslint-config-next"]).toBe(nextVersion);
+
+    for (const name of ["next", "eslint-config-next", "@next/env", "@next/eslint-plugin-next"]) {
+      expect(lock.packages[`node_modules/${name}`]?.version, name).toBe(nextVersion);
+    }
+
+    const nativeCompilers = Object.entries(lock.packages).filter(([path]) =>
+      path.startsWith("node_modules/@next/swc-")
+    );
+    expect(nativeCompilers.length).toBeGreaterThan(0);
+    for (const [path, entry] of nativeCompilers) {
+      expect(entry.version, path).toBe(nextVersion);
+    }
   });
 
   it("uses Nodemailer's bundled declarations instead of the legacy DefinitelyTyped package", () => {

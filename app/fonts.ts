@@ -1,10 +1,14 @@
-// Build-time self-hosted Google Fonts for event heading typography.
+// Build-time self-hosted fonts for event heading typography.
 //
 // Each loader defines the CSS variable declared in lib/fonts.ts (the pure-data
 // registry — keep the two files in sync). `preload: false` means no <link
 // rel=preload> is emitted; a font's .woff2 only downloads on pages whose CSS
 // actually uses its variable, so guests never pay for fonts their event
 // doesn't use. No runtime requests ever go to Google (self-hosted at build).
+// Roboto is bundled locally because Google's extensionless /l/font URLs break
+// the Next.js 16.3 Google font parser. See font-files/README.md for provenance.
+
+import localFont from "next/font/local";
 
 import {
   Playfair_Display,
@@ -16,7 +20,6 @@ import {
   Pacifico,
   Dancing_Script,
   Caveat,
-  Roboto,
   Space_Grotesk,
   Outfit,
 } from "next/font/google";
@@ -79,10 +82,13 @@ const caveat = Caveat({
   preload: false,
 });
 
-const roboto = Roboto({
+const roboto = localFont({
+  src: "./font-files/roboto-normal.woff2",
   variable: "--font-roboto",
-  subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: "400 700",
+  style: "normal",
+  display: "swap",
+  adjustFontFallback: "Arial",
   preload: false,
 });
 

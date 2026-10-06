@@ -22,6 +22,8 @@ updates:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
     groups:
+      next-toolchain:
+        patterns: ["next", "eslint-config-next"]
       radix-ui:
         patterns: ["@radix-ui/*"]
       prisma:
