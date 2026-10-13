@@ -112,7 +112,7 @@
     "jsdom": "^30.1.2",
     "lint-staged": "^17",
     "prettier": "^3.9.9",
-    "react-email": "^6.11.0",
+    "react-email": "^6.11.1",
     "tailwindcss": "^4",
     "typescript": "^6",
     "vitest": "^5.0.2",
