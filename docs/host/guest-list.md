@@ -142,9 +142,9 @@ Opening a collapsed list never submits or changes a guest's RSVP.
 
 ## CSV Export
 
-Download your guest list as a spreadsheet for check-in lists, name tags, or your own records. The export includes these columns:
-
-The export includes every RSVP record with these columns:
+Download your guest list as a spreadsheet for check-in lists, name tags, or your own records.
+Each download reads the latest stored RSVP records. The export includes every RSVP
+record, regardless of the filters currently shown in the guest list, with these columns:
 
 **Name, Email, Phone, Status, Plus Ones, Approved, event-local RSVP Date, event-local Check-In
 Time, one column per questionnaire field, RSVP Date (UTC), and Check-In Time (UTC).**

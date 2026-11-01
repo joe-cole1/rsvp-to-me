@@ -31,11 +31,19 @@ const nextConfig: NextConfig = {
       });
     }
 
+    const downloadHeaders = [{ key: "Cache-Control", value: "private, no-store" }];
+    const downloadPaths = [
+      "/e/:slug/guests.csv",
+      "/e/:slug/calendar.ics",
+      "/api/admin/backups/:filename",
+    ];
+
     return [
       {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      ...downloadPaths.map((source) => ({ source, headers: downloadHeaders })),
     ];
   },
 };

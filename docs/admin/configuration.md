@@ -99,6 +99,13 @@ request, do not cache or replay those responses in a reverse proxy or CDN.
 Static assets such as files under `public/` and `/_next/` can still use normal
 asset caching.
 
+Dynamic guest CSV (`/e/:slug/guests.csv`), calendar ICS
+(`/e/:slug/calendar.ics`), and admin backup (`/api/admin/backups/:filename`)
+downloads send `Cache-Control: private, no-store`, including denied and missing
+responses. Configure reverse proxies and CDNs to honor these origin headers and
+never store these downloads. Purge any copies already stored by a proxy or CDN
+when applying this policy.
+
 ---
 
 ## Core Application Settings
