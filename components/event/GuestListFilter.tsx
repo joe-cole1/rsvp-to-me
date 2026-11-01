@@ -597,6 +597,10 @@ export function GuestListFilter({
             />
             <a
               href={`/e/${slug}/guests.csv`}
+              onClick={(event) => {
+                // Give every download a unique URL so the browser cannot reuse a stale CSV.
+                event.currentTarget.href = `/e/${slug}/guests.csv?download=${Date.now()}`;
+              }}
               style={{
                 padding: "9px 12px",
                 borderRadius: "8px",
