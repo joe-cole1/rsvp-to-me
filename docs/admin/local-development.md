@@ -127,6 +127,12 @@ coverage provider also share an update group and must stay on matching versions.
 Grouping keeps related changes in one PR but does not replace compatibility
 review, especially for major upgrades.
 
+The Cloudflare worker toolchain uses stable minimum security floors rather than
+exact pins: Wrangler 4.147.0, Undici 7.29.1, and
+`@cloudflare/workers-types` 5.20261003.1 or later. The regression baseline
+rejects missing, malformed, and prerelease versions, while allowing later
+patched lockfile releases.
+
 Vitest and `@vitest/coverage-v8` use 5.0.2, which supports the repository's Node
 22 runtime. Component setup imports `@testing-library/jest-dom/vitest` so its
 runtime matchers and TypeScript declarations attach to Vitest. Keep hoisted
