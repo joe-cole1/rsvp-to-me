@@ -170,9 +170,12 @@ build too, covering RSVP creation/editing, form submission, dialog focus, and
 host navigation. Check application and test types after updating both
 declaration packages.
 
-For patches to development tools such as `tsx`, `@testing-library/user-event`,
+For patches to tools such as `tsx`, `@testing-library/user-event`,
 and the React Email CLI, run a clean install and the existing unit, component,
-and type checks. Keep security overrides in place. Before merging, require CI
+and type checks. `tsx` is a runtime dependency for production seeding and must
+resolve to a stable version at least 4.23.15; compatible patches need no exact
+version assertion. Keep the remaining security overrides in place; patched
+deepmerge-ts now comes from native upstream dependencies. Before merging, require CI
 and production container QC on both AMD64 and ARM64; the container checks also
 exercise database seeding through `tsx`. Repeat those checks on `main` after
 the merge before continuing to the next batch.
