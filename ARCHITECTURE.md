@@ -272,6 +272,9 @@ live in `.github/release-notes/` and do not publish releases by themselves.
 Document HTML and React Server Component responses contain request-specific CSP
 nonces and must not be cached or replayed by a reverse proxy or CDN. Static
 assets under `public/` and `_next/` may keep ordinary long-lived asset caching.
+`next.config.ts` is the source of truth for the `private, no-store` response policy
+on guest CSV, event calendar ICS, and admin backup download paths, including
+denied and missing responses.
 
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
 compatible Node/npm range. Repository scripts normalize WSL temporary paths,

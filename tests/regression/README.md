@@ -16,6 +16,8 @@ October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with up
 
 ## Index
 
+Task `01a197b1` (PR #777 report) adds `download-cache-policy.test.ts` for exact dynamic-download cache rules, security-header preservation, and current RSVP rows on repeated CSV requests.
+
 #749 (`01a15e47`) adds `issue-749-invitation-names.test.ts` for event-scoped invitation names, reviewed send validation, private preview boundaries, safe resends, and token/organizer RSVP name corrections.
 
 #754 (`cb58e723`) adds `issue-754-invited-edit-link.test.tsx`, plus the `invited-first-response-*` and `invitation-composer-qa` cases found while browser-testing #749.
