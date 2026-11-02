@@ -8,6 +8,9 @@
 // The consolidated October batch includes Next's 16.4.1 security fixes and
 // Nodemailer's 10.1.2 hardening. Vitest 5.0.5 preserves Vite's default file-deny
 // rules; its coverage provider requires the exact same runner patch.
+// PR #775 (01a19bc3): exact worker pins rejected newer compatible patched
+// lockfile versions. Enforce stable minimums and exercise both the original
+// baseline and the PR's upgrades so the guard remains a real regression check.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -34,6 +37,38 @@ function atLeast(version: string, floor: string): boolean {
   }
   return true;
 }
+
+const workerDependencyFloors = [
+  { name: "wrangler", minimum: "4.147.0", upgraded: "4.154.0", below: "4.146.0" },
+  { name: "undici", minimum: "7.29.1", upgraded: "7.30.1", below: "7.29.0" },
+  {
+    name: "@cloudflare/workers-types",
+    minimum: "5.20261003.1",
+    upgraded: "5.20261028.1",
+    below: "5.20261003.0",
+  },
+] as const;
+
+type WorkerDependency = (typeof workerDependencyFloors)[number]["name"];
+
+function assertWorkerDependencyFloor(
+  dependency: WorkerDependency,
+  actual: string | undefined
+): void {
+  const requirement = workerDependencyFloors.find(({ name }) => name === dependency);
+  if (!requirement) throw new Error(`Unknown worker dependency: ${dependency}`);
+
+  expect(
+    atLeast(actual ?? "", requirement.minimum),
+    `${dependency}: expected stable version at least ${requirement.minimum}; received ${actual ?? "<missing>"}`
+  ).toBe(true);
+}
+
+const invalidWorkerVersions = workerDependencyFloors.flatMap(({ name, minimum }) => [
+  { name, label: "missing", actual: undefined },
+  { name, label: "malformed", actual: "not-a-version" },
+  { name, label: "prerelease", actual: `${minimum}-rc.1` },
+]);
 
 describe("Dependency security baseline", () => {
   it.each([
@@ -65,10 +100,42 @@ describe("Dependency security baseline", () => {
   });
 
   it("keeps the Cloudflare worker toolchain at the remediated dependency floor", () => {
-    expect(workerLock.packages["node_modules/wrangler"]?.version).toBe("4.147.0");
-    expect(workerLock.packages["node_modules/undici"]?.version).toBe("7.29.1");
-    expect(workerLock.packages["node_modules/@cloudflare/workers-types"]?.version).toBe(
-      "5.20261003.1"
+    for (const { name } of workerDependencyFloors) {
+      assertWorkerDependencyFloor(name, workerLock.packages[`node_modules/${name}`]?.version);
+    }
+  });
+
+  it.each(workerDependencyFloors)(
+    "accepts the original $name worker dependency baseline",
+    ({ name, minimum }) => {
+      expect(() => assertWorkerDependencyFloor(name, minimum)).not.toThrow();
+    }
+  );
+
+  it.each(workerDependencyFloors)(
+    "accepts the PR #775 upgraded $name worker dependency",
+    ({ name, upgraded }) => {
+      expect(() => assertWorkerDependencyFloor(name, upgraded)).not.toThrow();
+    }
+  );
+
+  it.each(workerDependencyFloors)(
+    "rejects the $name worker dependency below its security floor",
+    ({ name, below }) => {
+      expect(() => assertWorkerDependencyFloor(name, below)).toThrow();
+    }
+  );
+
+  it.each(invalidWorkerVersions)(
+    "rejects $label $name worker dependency versions",
+    ({ name, actual }) => {
+      expect(() => assertWorkerDependencyFloor(name, actual)).toThrow();
+    }
+  );
+
+  it("reports the worker dependency and actual version when a floor fails", () => {
+    expect(() => assertWorkerDependencyFloor("wrangler", "4.146.0")).toThrow(
+      "wrangler: expected stable version at least 4.147.0; received 4.146.0"
     );
   });
 

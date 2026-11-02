@@ -12,7 +12,7 @@ For every bug fix merged to main:
 4. Update the index table below
 5. These run as part of `npm test` — use the standard Vitest unit test setup (mocking, factories)
 
-October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with updated security floors and package-group synchronization checks.
+October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with updated security floors and package-group synchronization checks. PR #775 (`01a19bc3`) adds stable minimum floors for the Cloudflare worker toolchain so compatible lockfile upgrades do not fail exact-version assertions.
 
 ## Index
 
@@ -80,7 +80,7 @@ Task `01a197b1` (PR #777 report) adds `download-cache-policy.test.ts` for exact 
 | `ghsa-f88m-g3jw-g9cj-sharp-libvips.test.ts`          | Next.js, React Email UI, and Miniflare constrained Sharp to vulnerable 0.34.x after the patched 0.35 release                                                                                                                                        | 019f869e                       |
 | `issue-549-550-turnstile-concurrency.test.ts`        | Shared Turnstile cookie let overlapping protected actions overwrite or consume each other's single-use token                                                                                                                                        | #549/550                       |
 | `npm-deprecation-warnings.test.ts`                   | Redundant bcryptjs type stubs and the Twilio SDK's transitive scmp dependency emitted clean-install warnings                                                                                                                                        | c4ca3272                       |
-| `dependency-security-baseline.test.ts`               | Enforce patched dependencies and synchronized Next.js, React, Prisma, and Vitest manifest/lockfile groups                                                                                                                                           | 3c3227b5 / 027a7053 / d5b679c7 |
+| `dependency-security-baseline.test.ts`               | Enforce patched dependency floors, including stable Cloudflare worker toolchain minimums, and synchronized Next.js, React, Prisma, and Vitest manifest/lockfile groups                                                                              | 3c3227b5 / 027a7053 / d5b679c7 |
 | `roboto-font-build.test.ts`                          | Extensionless Google Roboto URLs broke Turbopack query parsing in the AMD64 production image                                                                                                                                                        | d5b679c7                       |
 | `issue-327-script-csp.test.ts`                       | Inline scripts were permitted by `script-src 'unsafe-inline'`; request nonces were not coupled to rendered HTML                                                                                                                                     | SEC-9 / #327                   |
 | `notification-locales.test.tsx`                      | Notification copy and address-only batches lost recipient locale; preserve authored text, status IDs, and localized defaults                                                                                                                        | 01a150ee                       |
