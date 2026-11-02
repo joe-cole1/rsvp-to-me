@@ -12,7 +12,7 @@ For every bug fix merged to main:
 4. Update the index table below
 5. These run as part of `npm test` — use the standard Vitest unit test setup (mocking, factories)
 
-October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with updated security floors and package-group synchronization checks. PR #775 (`01a19bc3`) adds stable minimum floors for the Cloudflare worker toolchain so compatible lockfile upgrades do not fail exact-version assertions.
+October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with updated security floors and package-group synchronization checks. PR #775 (`01a19bc3`) adds stable minimum floors for the Cloudflare worker toolchain so compatible lockfile upgrades do not fail exact-version assertions. #779/#603 (`01a19ceb`) extend this policy to runtime `tsx`, reject reintroduced deepmerge-ts overrides, and require Joi 18.3.1 for GHSA-4528-x5fx-h6hg.
 
 ## Index
 

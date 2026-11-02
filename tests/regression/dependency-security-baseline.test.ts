@@ -12,6 +12,10 @@
 // lockfile versions. Enforce stable minimums and exercise both the original
 // baseline and the PR's upgrades so the guard remains a real regression check.
 
+// #779/#603 (01a19ceb): tsx exact pins rejected compatible security patches;
+// upstream now supplies patched deepmerge-ts without overrides. Joi 18.3.1
+// closes GHSA-4528-x5fx-h6hg in the development wait-on dependency tree.
+
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfigFromFile } from "@prisma/config";
@@ -26,6 +30,7 @@ const workerLock = JSON.parse(
 const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  overrides?: Record<string, unknown>;
 };
 
 function atLeast(version: string, floor: string): boolean {
@@ -36,6 +41,34 @@ function atLeast(version: string, floor: string): boolean {
     if (actual[index] !== minimum[index]) return actual[index] > minimum[index];
   }
   return true;
+}
+
+function assertDependencyFloor(path: string, actual: string | undefined, minimum: string): void {
+  expect(
+    atLeast(actual ?? "", minimum),
+    `${path}: expected stable version at least ${minimum}; received ${actual ?? "<missing>"}`
+  ).toBe(true);
+}
+
+function assertRuntimeTsx(entry: Lock["packages"][string] | undefined): void {
+  expect(
+    atLeast(entry?.version ?? "", "4.23.15"),
+    `tsx: expected stable runtime version at least 4.23.15; received ${entry?.version ?? "<missing>"}`
+  ).toBe(true);
+  expect(entry?.dev, "tsx: production database seeding requires a runtime dependency").not.toBe(
+    true
+  );
+}
+
+function assertNoDeepmergeOverride(overrides: Record<string, unknown> = {}): void {
+  for (const [name, value] of Object.entries(overrides)) {
+    expect(name, "deepmerge-ts must use native upstream dependencies").not.toMatch(
+      /^deepmerge-ts(?:@|$)/
+    );
+    if (value && typeof value === "object") {
+      assertNoDeepmergeOverride(value as Record<string, unknown>);
+    }
+  }
 }
 
 const workerDependencyFloors = [
@@ -85,7 +118,7 @@ describe("Dependency security baseline", () => {
     ["nanoid", "3.3.18"],
     ["nodemailer", "10.1.2"],
     ["js-yaml", "4.3.2"],
-    ["joi", "18.2.9"],
+    ["joi", "18.3.1"],
     ["vitest", "5.0.5"],
     ["@vitest/coverage-v8", "5.0.5"],
     ["@vitest/mocker", "5.0.5"],
@@ -95,7 +128,7 @@ describe("Dependency security baseline", () => {
     );
     expect(entries.length).toBeGreaterThan(0);
     for (const [path, entry] of entries) {
-      expect(atLeast(entry.version ?? "", minimum), `${path}: ${entry.version}`).toBe(true);
+      assertDependencyFloor(path, entry.version, minimum);
     }
   });
 
@@ -181,9 +214,41 @@ describe("Dependency security baseline", () => {
   });
 
   it("keeps tsx in the runtime dependency tree for production database seeding", () => {
-    const tsx = lock.packages["node_modules/tsx"];
-    expect(tsx?.version).toBe("4.23.15");
-    expect(tsx?.dev).not.toBe(true);
+    assertRuntimeTsx(lock.packages["node_modules/tsx"]);
+  });
+
+  it.each(["4.23.15", "4.24.0"])("accepts stable runtime tsx %s", (version) => {
+    expect(() => assertRuntimeTsx({ version })).not.toThrow();
+  });
+
+  it.each([
+    { label: "below floor", entry: { version: "4.23.14" } },
+    { label: "missing entry", entry: undefined },
+    { label: "missing version", entry: {} },
+    { label: "malformed", entry: { version: "not-a-version" } },
+    { label: "prerelease", entry: { version: "4.24.0-rc.1" } },
+    { label: "dev-only", entry: { version: "4.23.15", dev: true } },
+  ])("rejects $label tsx runtime resolutions", ({ entry }) => {
+    expect(() => assertRuntimeTsx(entry)).toThrow(/tsx:/);
+  });
+
+  it("rejects Joi below the GHSA-4528-x5fx-h6hg patched floor", () => {
+    expect(() => assertDependencyFloor("node_modules/joi", "18.2.9", "18.3.1")).toThrow(
+      "node_modules/joi: expected stable version at least 18.3.1; received 18.2.9"
+    );
+    expect(() => assertDependencyFloor("node_modules/joi", "18.3.1", "18.3.1")).not.toThrow();
+  });
+
+  it("uses native deepmerge-ts dependencies without global or scoped overrides", () => {
+    assertNoDeepmergeOverride(manifest.overrides);
+  });
+
+  it.each([
+    { "deepmerge-ts": "8.0.2" },
+    { "@prisma/config": { "deepmerge-ts": "8.0.2" } },
+    { "@prisma/config": { "deepmerge-ts@^8.0.0": "8.0.2" } },
+  ])("rejects reintroduced deepmerge-ts overrides: %j", (overrides) => {
+    expect(() => assertNoDeepmergeOverride(overrides)).toThrow();
   });
 
   it("excludes html-to-text 10.0.0 while allowing the unaffected 9.x renderer", () => {

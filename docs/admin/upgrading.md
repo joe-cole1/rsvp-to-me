@@ -119,13 +119,23 @@ This batch updates Next.js and its ESLint configuration to 16.3.6, Sharp to
 9.1.1, and html-to-text to 10.0.1. It also refreshes vulnerable transitive
 packages. It adds no database migrations or environment variables.
 
-Keep the existing compatibility overrides. Prisma is now on 7.10.0; temporary
-scoped overrides select deepmerge-ts 8.0.1 for `@prisma/config` and mysql2
-3.24.4 for the Prisma CLI. Check Prisma config loading, client generation, and
-migrations before removing those overrides. Issue #603 tracks the remaining
-Prisma deepmerge dependency; #546 tracks the legacy brace-expansion adapter.
-Do not use `npm audit fix --force` to resolve this backlog: its proposed
-Prisma 6 downgrade changes the application's supported major version.
+Prisma 7.10.1 now natively depends on deepmerge-ts 8.0.2 through
+`@prisma/config`; html-to-text 10.0.1 also accepts the patched 8.x dependency.
+The temporary deepmerge-ts overrides have been removed (#603). Keep the
+remaining compatibility overrides, including mysql2 3.24.4 for the Prisma CLI;
+#546 tracks the legacy brace-expansion adapter. The regression baseline checks
+all deepmerge-ts resolutions remain at least 8.0.0 and loads the real Prisma
+configuration. Do not use `npm audit fix --force`: a proposed Prisma 6 downgrade
+changes the application's supported major version.
+
+The locked development wait-on dependency tree now uses patched Joi 18.3.1 to
+address GHSA-4528-x5fx-h6hg; the regression baseline requires 18.3.1 or newer.
+Reinstall from the checked-in lockfile with `npm ci`.
+`tsx` remains a production dependency for database seeding, with a stable
+security minimum of 4.23.15 rather than an exact patch requirement (#779).
+Newer stable compatible versions are allowed; prerelease or development-only
+resolutions do not satisfy the runtime guard. These dependency maintenance
+changes add no migrations, configuration, or host/guest behavior changes.
 
 The optional worker's Cloudflare types now match Wrangler's declared version-5
 peer requirement. Reinstall from `worker/package-lock.json` with
