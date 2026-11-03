@@ -9,7 +9,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { sendBlastEmail } from "@/lib/email";
 import { sendSmsBlast as smsSendBlast } from "@/lib/sms";
-import { logSafe } from "@/lib/logger";
+import { logger, logSafe } from "@/lib/logger";
+import { notifyEventUpdate } from "@/lib/notifications/event-update";
+import type { NotificationFeedback } from "@/lib/notifications/types";
 import { buildRsvpStatusFilter, type BlastStatusFilter } from "@/lib/blastFilters";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
@@ -170,75 +172,22 @@ export async function addEventUpdate(
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("event_update", captchaToken);
   const update = await db.eventUpdate.create({ data: { eventId, body, notifyGuests } });
+  let notifications: NotificationFeedback = null;
   if (notifyGuests) {
-    const rsvps = await db.rSVP.findMany({
-      where: {
-        eventId,
-        OR: [{ guestEmail: { not: null } }, { guestPhone: { not: null } }],
-      },
-      select: {
-        guestEmail: true,
-        guestPhone: true,
-        user: { select: { notificationChannel: true, preferredLocale: true } },
-      },
-    });
-
-    const emailGuests: { address: string; preferredLocale?: string | null }[] = [];
-    const smsGuests: { address: string; preferredLocale?: string | null }[] = [];
-
-    for (const r of rsvps) {
-      const channel = r.user?.notificationChannel ?? "EMAIL";
-      if (channel === "SMS" && r.guestPhone) {
-        smsGuests.push({ address: r.guestPhone, preferredLocale: r.user?.preferredLocale });
-      } else if (r.guestEmail) {
-        emailGuests.push({ address: r.guestEmail, preferredLocale: r.user?.preferredLocale });
-      }
-    }
-
-    if (emailGuests.length > 0 || smsGuests.length > 0) {
-      const fullEvent = await db.event.findUnique({
-        where: { id: eventId },
-        select: {
-          title: true,
-          theme: true,
-          hostDisplayName: true,
-          host: { select: { name: true, email: true } },
-        },
-      });
-      const eventTitle = fullEvent?.title ?? event.slug;
-      const hostName = fullEvent?.hostDisplayName ?? fullEvent?.host?.name;
-      const replyTo = fullEvent?.host?.email || undefined;
-
-      if (emailGuests.length > 0) {
-        for (const [locale, addresses] of groupRecipientsByLocale(emailGuests)) {
-          const t = await getTranslator(locale);
-          sendBlastEmail(addresses, {
-            locale,
-            eventTitle,
-            eventSlug: event.slug,
-            message: body,
-            hostName: hostName ?? t("Email.yourHost"),
-            theme: fullEvent?.theme,
-            replyTo,
-          }).catch(logSafe("addEventUpdate"));
-        }
-      }
-      if (smsGuests.length > 0) {
-        for (const [locale, addresses] of groupRecipientsByLocale(smsGuests)) {
-          const t = await getTranslator(locale);
-          smsSendBlast(addresses, {
-            locale,
-            eventTitle,
-            eventSlug: event.slug,
-            message: body,
-            hostName: hostName ?? t("Email.yourHost"),
-          }).catch(logSafe("addEventUpdate"));
-        }
-      }
+    try {
+      notifications = {
+        status: "completed",
+        summary: await notifyEventUpdate(eventId, event.slug, update.id, body),
+      };
+    } catch {
+      // Preparation errors can include private DB/provider values. Never return
+      // them to the client or let notification failure undo a posted update.
+      logger.warn("Event-update notification processing failed", { updateId: update.id });
+      notifications = { status: "failed" };
     }
   }
   revalidatePath(`/e/${event.slug}`);
-  return { success: true, id: update.id, createdAt: update.createdAt };
+  return { success: true, id: update.id, createdAt: update.createdAt, notifications };
 }
 
 export async function deleteEventUpdate(updateId: string) {

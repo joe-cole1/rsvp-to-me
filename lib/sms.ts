@@ -2,33 +2,42 @@ import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/server";
 import { decryptConfig } from "./crypto";
 import { isChannelEnabled, getSystemConfigMap } from "./config";
+import { AddRsvpSchema } from "./schemas";
+import { httpFailure, unconfirmed } from "./notifications/transport";
+import type { NotificationAdapter } from "./notifications/types";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const TWILIO_API_BASE_URL = "https://api.twilio.com/2010-04-01";
 
-async function createTwilioMessage(config: {
-  sid: string;
-  token: string;
-  from: string;
-  to: string;
-  body: string;
-}): Promise<unknown> {
-  const response = await fetch(
-    `${TWILIO_API_BASE_URL}/Accounts/${encodeURIComponent(config.sid)}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${config.sid}:${config.token}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        From: config.from,
-        To: config.to,
-        Body: config.body,
-      }),
-    }
-  );
+async function requestTwilioMessage(
+  config: {
+    sid: string;
+    token: string;
+    from: string;
+    to: string;
+    body: string;
+  },
+  signal?: AbortSignal
+): Promise<Response> {
+  return fetch(`${TWILIO_API_BASE_URL}/Accounts/${encodeURIComponent(config.sid)}/Messages.json`, {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${config.sid}:${config.token}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      From: config.from,
+      To: config.to,
+      Body: config.body,
+    }),
+  });
+}
 
+async function createTwilioMessage(
+  config: Parameters<typeof requestTwilioMessage>[0]
+): Promise<unknown> {
+  const response = await requestTwilioMessage(config);
   if (!response.ok) {
     throw new Error(`Twilio Messages API returned HTTP ${response.status}`);
   }
@@ -184,16 +193,78 @@ export async function sendSmsBlast(
   opts: { locale: Locale; eventTitle: string; eventSlug: string; message: string; hostName: string }
 ) {
   if (!(await isChannelEnabled("sms"))) return 0;
+  const body = await renderBlastSms(opts);
+  await Promise.allSettled(phones.map((p) => send(p, body)));
+  return phones.length;
+}
+
+async function renderBlastSms(opts: {
+  locale: Locale;
+  eventTitle: string;
+  eventSlug: string;
+  message: string;
+  hostName: string;
+}) {
   const t = await getTranslator(opts.locale);
-  const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
-  const body = t("Sms.blast", {
+  return t("Sms.blast", {
     hostName: opts.hostName,
     eventTitle: opts.eventTitle,
     message: opts.message,
-    eventUrl,
+    eventUrl: `${APP_URL}/e/${opts.eventSlug}`,
   });
-  await Promise.allSettled(phones.map((p) => send(p, body)));
-  return phones.length;
+}
+
+export async function createSmsNotificationAdapter(): Promise<NotificationAdapter> {
+  const config = await resolveSmsConfig();
+  return {
+    channel: "sms",
+    kinds: ["event_update"],
+    available: (await isChannelEnabled("sms")) && !!config.sid && !!config.token && !!config.phone,
+    async deliver(message, targets, context) {
+      return Promise.all(
+        targets.map(async (target) => {
+          const parsed = AddRsvpSchema.shape.guestPhone.safeParse(target.destination);
+          if (!parsed.success || !parsed.data)
+            return { status: "skipped" as const, reason: "invalid_destination" as const };
+          const t = await getTranslator(target.locale);
+          const body = await renderBlastSms({
+            locale: target.locale,
+            eventTitle: message.eventTitle,
+            eventSlug: message.eventSlug,
+            message: message.body,
+            hostName: message.hostName ?? t("Email.yourHost"),
+          });
+          return context.run(async (signal) => {
+            const response = await requestTwilioMessage(
+              {
+                sid: config.sid,
+                token: config.token,
+                from: config.phone,
+                to: parsed.data!.trim().replace(/[\s\-().]/g, ""),
+                body,
+              },
+              signal
+            );
+            if (!response.ok) return httpFailure(response.status);
+            const ack: unknown = await response.json();
+            if (
+              ack &&
+              typeof ack === "object" &&
+              "sid" in ack &&
+              typeof ack.sid === "string" &&
+              ack.sid
+            ) {
+              if ("status" in ack && (ack.status === "failed" || ack.status === "undelivered")) {
+                return { status: "failed" as const, reason: "rejected" as const };
+              }
+              return { status: "accepted" as const };
+            }
+            return unconfirmed();
+          }, unconfirmed);
+        })
+      );
+    },
+  };
 }
 
 export async function sendApprovalSms(

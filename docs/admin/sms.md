@@ -46,6 +46,22 @@ Each user can control their own notification preferences (Email vs SMS) in their
 
 ---
 
+### Event-update notifications
+
+Activity updates now reach phone-only RSVPs using the default **Both** preference.
+An explicit **SMS** choice permits only SMS; it does not fall through to email
+when a phone destination is absent. Guest SMS opt-outs and the site-wide SMS
+switch are honored by this update path. Twilio configuration must include the
+account SID, auth token, and sending phone number.
+
+The host sees aggregate submission results after posting. A Twilio message
+acknowledgement counts as **accepted for processing**, not delivered. Individual
+rejections are reported as failures; ambiguous failures and timeouts are uncertain
+and do not trigger another channel. The update remains posted. Existing RSVP
+confirmation, authentication, reminder, and manual blast flows retain their
+current helpers. See [Email Setup](email.md#event-update-delivery-results-335)
+for the shared policy and limits.
+
 ## What You Need
 
 - A Twilio account (a free trial is available).

@@ -49,6 +49,34 @@ Email dispatches are triggered by the following application events:
 | Nudge for unresponded guests                       | Invited guests who have not responded yet                      |
 | Profile email change verification                  | The user's new email address                                   |
 
+### Event-update delivery results (#335)
+
+Posting an activity update with **Notify guests of update** uses the shared
+notification dispatcher. It honors linked guests' email/SMS opt-outs and their
+current Email, SMS, or Both preference. Both prefers email and falls back to
+eligible SMS; a phone-only RSVP can receive SMS using the default Both preference.
+The existing update audience and site-wide channel switches are unchanged.
+
+The host receives aggregate accepted/skipped/failed/uncertain counts. Acceptance
+is a provider acknowledgement, not a delivery receipt. Missing transport
+configuration and console-only development handling never count as accepted.
+SMTP acceptance/rejection is resolved per RSVP destination; Cloudflare and
+Twilio require a positive acknowledgement. Ambiguous responses, server errors,
+and timeouts remain uncertain and stop fallback. Explicit rejection permits a
+configured alternative. The dispatcher never surfaces raw provider responses or
+recipient contacts in host feedback.
+
+Provider requests are limited to ten concurrent requests per update dispatch
+and a thirty-second deadline each. HTTP requests are aborted and timed-out SMTP
+transports are closed. Notification preparation or delivery failure does not
+undo the saved update. Results are not persisted and do not automatically retry.
+
+This upgrade requires no new settings, environment variables, dependencies,
+database migration, or Cloudflare Worker deployment. Current email templates,
+locale, themes, reply-to, BCC privacy, and sender configuration remain in use.
+Other notification producers retain their current helpers and have not yet
+adopted the new routing and reporting policy.
+
 _Note on Reminders:_ The in-process cron scheduler checks every 15 minutes to trigger due reminders. Each reminder type is sent exactly once per user per event.
 
 _Note on Host RSVP Alerts:_ When a guest RSVPs, the host and every co-host receive a **"New RSVP" alert** email summarizing the response (guest name, status, plus-ones, note) plus the current Going/Maybe/Can't-Go tallies. This is controlled per event by the **Email me when a guest RSVPs** toggle under **Event Settings → RSVP Options → Notification Settings** — new events default it **on** (a matching **Text me when a guest RSVPs** toggle defaults **off** and appears only when SMS is enabled, backed by the `Event.hostAlertEmail` / `Event.hostAlertSms` columns). Host alerts are **not** affected by the site-wide guest-email channel toggle — an operator who turns off guest email notifications will still receive their own new-RSVP alerts (the SMS alert does respect the site-wide SMS toggle).

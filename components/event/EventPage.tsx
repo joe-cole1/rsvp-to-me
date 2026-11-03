@@ -45,6 +45,7 @@ import { RsvpSection } from "./event-page/RsvpSection";
 import { ShareQrModal } from "./event-page/ShareQrModal";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { CAPTCHA_RESPONSE_FIELD } from "@/lib/captcha-types";
+import type { NotificationFeedback } from "@/lib/notifications/types";
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
@@ -206,6 +207,7 @@ export function EventPage({
   const [updateDraft, setUpdateDraft] = useState("");
   const [notifyOnUpdate, setNotifyOnUpdate] = useState(true);
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
+  const [notificationFeedback, setNotificationFeedback] = useState<NotificationFeedback>(null);
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
   const [claimName, setClaimName] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -580,11 +582,13 @@ export function EventPage({
   const postUpdate = async () => {
     if (!updateDraft.trim() || isPostingUpdate) return;
     setIsPostingUpdate(true);
+    setNotificationFeedback(null);
     try {
       const result = await runWithCaptcha("event_update", (token) =>
         addEventUpdate(event.id, updateDraft.trim(), notifyOnUpdate, token)
       );
       if (result.success) {
+        setNotificationFeedback(result.notifications);
         setEvent((e) => ({
           ...e,
           updates: [
@@ -967,6 +971,7 @@ export function EventPage({
           notifyOnUpdate={notifyOnUpdate}
           setNotifyOnUpdate={setNotifyOnUpdate}
           isPostingUpdate={isPostingUpdate}
+          notificationFeedback={notificationFeedback}
           submitComment={submitComment}
           submitReply={submitReply}
           postUpdate={postUpdate}

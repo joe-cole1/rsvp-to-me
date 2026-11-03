@@ -171,6 +171,13 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn().mockResolvedValue(undefined),
   sendBlastEmail: vi.fn().mockResolvedValue(undefined),
+  createEmailNotificationAdapter: vi.fn(async () => ({
+    channel: "email",
+    available: true,
+    kinds: ["event_update"],
+    deliver: async (_message: unknown, targets: unknown[]) =>
+      targets.map(() => ({ status: "accepted" })),
+  })),
   sendEventInviteEmail: vi.fn().mockResolvedValue(undefined),
   sendApprovalEmail: mockSendApprovalEmail,
   sendHostRsvpAlertEmail: vi.fn().mockResolvedValue(undefined),
@@ -178,6 +185,13 @@ vi.mock("@/lib/email", () => ({
 vi.mock("@/lib/sms", () => ({
   sendRsvpConfirmationSms: vi.fn().mockResolvedValue(undefined),
   sendSmsBlast: vi.fn().mockResolvedValue(2),
+  createSmsNotificationAdapter: vi.fn(async () => ({
+    channel: "sms",
+    available: true,
+    kinds: ["event_update"],
+    deliver: async (_message: unknown, targets: unknown[]) =>
+      targets.map(() => ({ status: "accepted" })),
+  })),
   sendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
   sendEventInviteSms: vi.fn().mockResolvedValue(undefined),
   sendApprovalSms: mockSendApprovalSms,
@@ -1163,7 +1177,12 @@ describe("addEventUpdate", () => {
 
   it("creates the update and returns its id and createdAt", async () => {
     const result = await addEventUpdate(EVENT_ID, UPDATE_BODY, false);
-    expect(result).toEqual({ success: true, id: "update-1", createdAt: CREATED_AT });
+    expect(result).toEqual({
+      success: true,
+      id: "update-1",
+      createdAt: CREATED_AT,
+      notifications: null,
+    });
   });
 
   it("persists body and notifyGuests flag", async () => {
