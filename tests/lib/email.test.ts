@@ -216,7 +216,10 @@ describe("lib/email.ts", () => {
       mockSystemConfigFindMany.mockResolvedValue([
         { key: "email_provider", value: "cloudflare" },
         { key: "cloudflare_worker_email_url", value: "https://db-worker.example.com" },
-        { key: "cloudflare_worker_api_secret", value: "db-secret" },
+        {
+          key: "cloudflare_worker_api_secret",
+          value: (await import("@/lib/crypto")).encryptConfig("db-secret"),
+        },
       ]);
 
       const { sendMagicLinkEmail } = await loadModule();
@@ -265,7 +268,10 @@ describe("lib/email.ts", () => {
       mockSystemConfigFindMany.mockResolvedValue([
         { key: "email_provider", value: "cloudflare_api" },
         { key: "cloudflare_account_id", value: "db-account-id" },
-        { key: "cloudflare_api_token", value: "db-api-token" },
+        {
+          key: "cloudflare_api_token",
+          value: (await import("@/lib/crypto")).encryptConfig("db-api-token"),
+        },
       ]);
 
       const { sendMagicLinkEmail } = await loadModule();

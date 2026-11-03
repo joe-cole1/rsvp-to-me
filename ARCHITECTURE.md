@@ -120,6 +120,13 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - `lib/capacityLock.ts`, `lib/rateLimit.ts`, and `lib/session.ts` build domain
   behavior on those primitives, with documented database fallbacks where used.
 
+- `lib/crypto.ts` owns authenticated v2 configuration-secret reads/writes.
+  `lib/config-secret-migration.ts` is the only legacy decryption boundary.
+  `scripts/migrate-config-secrets.ts` runs before Docker/native production
+  startup and during development sync; it backs up and atomically converts the
+  four secret `SystemConfig` settings, then records completion. It also owns
+  read-only checking and selective downgrade. See [ADR 0002](docs/engineering/decisions/0002-configuration-secret-migration.md).
+
 ### Authentication and access control
 
 1. `app/actions/auth.ts` validates sign-in/registration input and calls

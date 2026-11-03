@@ -76,4 +76,4 @@ ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 
 # The startup shell exits after the migration/seed steps and exec replaces it
 # with Next.js, leaving the application process to receive signals directly.
-CMD ["sh", "-c", "node scripts/migrate-db.js && npm run db:seed && exec ./node_modules/.bin/next start"]
+CMD ["sh", "-c", "node scripts/migrate-db.js && npm run db:secrets && npm run db:seed && exec ./node_modules/.bin/next start"]

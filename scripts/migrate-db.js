@@ -39,7 +39,7 @@ function runPreMigrationBackup(rawUrl) {
 
   const backupDir = path.join(process.cwd(), "data", "backups", "pre-migration");
   try {
-    fs.mkdirSync(backupDir, { recursive: true });
+    fs.mkdirSync(backupDir, { recursive: true, mode: 0o700 });
   } catch {
     console.warn("[migrate-db] Could not create backup directory — skipping pre-migration backup.");
     return;
@@ -50,18 +50,28 @@ function runPreMigrationBackup(rawUrl) {
   const outputPath = path.join(backupDir, filename);
 
   console.log("[migrate-db] Running pre-migration backup to %s...", filename);
+  let created = false;
   try {
+    // A legacy snapshot may contain plaintext provider credentials. Reserve a
+    // private file before pg_dump opens it; never overwrite an existing backup.
+    fs.closeSync(fs.openSync(outputPath, "wx", 0o600));
+    created = true;
     execFileSync(
       "pg_dump",
       ["-h", conn.host, "-p", conn.port, "-U", conn.user, "-f", outputPath, conn.database],
-      { env: { ...process.env, PGPASSWORD: conn.password }, stdio: ["ignore", "ignore", "pipe"] }
+      {
+        env: { ...process.env, PGPASSWORD: conn.password },
+        stdio: ["ignore", "ignore", "pipe"],
+        timeout: 60000,
+      }
     );
     console.log("[migrate-db] Pre-migration backup complete: %s", filename);
-  } catch (err) {
-    // Warn but never block the migration — backup failure is not a deploy blocker.
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[migrate-db] Pre-migration backup failed (continuing anyway): %s", msg);
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    return outputPath;
+  } catch {
+    // Schema startup keeps its best-effort backup policy. Secret conversion
+    // checks the return value and aborts before writes if its backup fails.
+    console.warn("[migrate-db] Pre-migration backup failed; check pg_dump and backup storage.");
+    if (created && fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
   }
 }
 
@@ -117,4 +127,5 @@ async function main() {
   console.log("[migrate-db] Database migrations deployed successfully.");
 }
 
-main();
+module.exports = { runPreMigrationBackup };
+if (require.main === module) main();

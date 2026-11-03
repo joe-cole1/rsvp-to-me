@@ -240,6 +240,15 @@ When the variable is unset, every caller gets the minimal body. Requests with a 
 
 > **Warning:** If you set this value, do not change or delete it. Changing the key after saving credentials in the Admin Panel will make them unreadable, requiring you to re-enter them in the UI.
 
+Saved provider credentials use versioned AES-256-GCM encryption with a random
+salt for each value. Salts are generated automatically and stored with the
+ciphertext; no new environment variable is needed. Startup converts older
+saved credentials automatically and stops with a redacted error if conversion
+cannot be completed. Preserve the existing encryption-key configuration during
+upgrades, including the `SESSION_SECRET` fallback. See the
+[upgrade and downgrade procedure](./upgrading.md#automatic-configuration-secret-conversion-328--339)
+before reverting to an older image. Key rotation is a separate operation.
+
 ---
 
 ### NEXT_PUBLIC_APP_URL

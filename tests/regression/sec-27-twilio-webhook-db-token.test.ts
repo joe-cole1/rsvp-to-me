@@ -34,6 +34,7 @@ vi.mock("@/lib/config", () => ({
 }));
 
 import { POST } from "@/app/api/webhooks/twilio/route";
+import { encryptConfig } from "@/lib/crypto";
 
 const APP_URL = "http://localhost:3000";
 
@@ -63,8 +64,8 @@ describe("SEC-27: Twilio webhook validates against the DB-configured token", () 
     mockInvitationFindMany.mockReset();
     // The whole point: NO env token — Twilio is configured only in the DB.
     delete process.env.TWILIO_AUTH_TOKEN;
-    // Plaintext stored value → decryptConfig returns it unchanged (no colons).
-    mockGetSystemConfigMap.mockResolvedValue({ twilio_auth_token: DB_TOKEN });
+    // Startup migration and admin writes now store authenticated v2 values.
+    mockGetSystemConfigMap.mockResolvedValue({ twilio_auth_token: encryptConfig(DB_TOKEN) });
     mockInvitationFindMany.mockResolvedValue([]); // no pending invitations → 200 twiml
   });
 

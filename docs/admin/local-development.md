@@ -13,6 +13,23 @@ WSL and use Docker Desktop only for PostgreSQL and Redis. Keep the repository
 under your Linux home directory (for example,
 `~/projects/rsvp-to-me`), not under `/mnt/c`.
 
+## Codex instructions
+
+The repository's `AGENTS.md` records project setup, architecture pointers,
+validation commands, and approval and shipping requirements. Delegation uses
+Codex's built-in agents without project-specific model or reasoning restrictions.
+Ask for subagents or parallel agent work when you want to delegate a task.
+
+## Saved configuration secrets
+
+Saved provider credentials are converted automatically by `scripts/dev-sync.sh`
+and `npm start`. If your development database contains older saved secrets,
+keep the same `ENCRYPTION_KEY` / `SESSION_SECRET` and make `pg_dump` available
+on PATH. Conversion requires writable `data/backups/pre-migration/` storage.
+`npm run db:secrets -- --check` checks without writing; `--rollback` is only for
+a deliberate downgrade with all app instances stopped. See
+[Upgrading](./upgrading.md#automatic-configuration-secret-conversion-328--339).
+
 ## One-time setup
 
 Install Node using nvm, then use the version recorded by the repository:
