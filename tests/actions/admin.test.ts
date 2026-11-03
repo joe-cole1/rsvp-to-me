@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { encryptConfig } from "@/lib/crypto";
 
 const {
   mockUserCount,
@@ -419,11 +420,12 @@ describe("app/actions/admin.ts", () => {
       mockTestEmailConfig.mockResolvedValue({ success: true });
       // Stub db.systemConfig.findUnique for SMTP password, Cloudflare secret, and Cloudflare API token
       const mockFindUnique = vi.fn().mockImplementation(({ where }) => {
-        if (where.key === "smtp_pass") return Promise.resolve({ value: "actual-smtp-password" });
+        if (where.key === "smtp_pass")
+          return Promise.resolve({ value: encryptConfig("actual-smtp-password") });
         if (where.key === "cloudflare_worker_api_secret")
-          return Promise.resolve({ value: "actual-worker-secret" });
+          return Promise.resolve({ value: encryptConfig("actual-worker-secret") });
         if (where.key === "cloudflare_api_token")
-          return Promise.resolve({ value: "actual-cf-api-token" });
+          return Promise.resolve({ value: encryptConfig("actual-cf-api-token") });
         return Promise.resolve(null);
       });
       // Add mock to db

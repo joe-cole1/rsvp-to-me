@@ -7,6 +7,47 @@ const { execFileSync } = require("node:child_process");
 const sharp = require("sharp");
 const { Client } = require("pg");
 const { createClient } = require("redis");
+const { createCipheriv, createDecipheriv, randomBytes, scryptSync } = require("node:crypto");
+
+function credential(value, modern) {
+  const salt = modern ? randomBytes(16) : "rsvp-to-me-salt";
+  const iv = randomBytes(12);
+  const cipher = createCipheriv(
+    "aes-256-gcm",
+    scryptSync(process.env.SESSION_SECRET, salt, 32),
+    iv
+  );
+  if (modern) cipher.setAAD(Buffer.from("rsvp-to-me:config:v2"));
+  const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const legacy = `${iv.toString("hex")}:${cipher.getAuthTag().toString("hex")}:${ciphertext.toString("hex")}`;
+  return modern ? `v2:${salt.toString("hex")}:${legacy}` : legacy;
+}
+
+async function prepareConfigUpgrade() {
+  // This fixture is destructive only to this smoke test's disposable database.
+  const target = new URL(process.env.DATABASE_URL);
+  assert.equal(target.hostname, "postgres");
+  assert.equal(target.pathname, "/rsvp_qc");
+  const client = new Client({ connectionString: target.toString() });
+  await client.connect();
+  try {
+    await client.query('DELETE FROM "SystemConfig" WHERE key = $1', ["config_encryption_version"]);
+    for (const [key, value] of [
+      ["smtp_pass", credential("qc-smtp-fixture", false)],
+      ["twilio_auth_token", "qc-twilio-fixture"],
+      ["cloudflare_worker_api_secret", credential("qc-worker-fixture", true)],
+      ["cloudflare_api_token", ""],
+    ]) {
+      await client.query(
+        'INSERT INTO "SystemConfig" (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+        [key, value]
+      );
+    }
+  } finally {
+    await client.end();
+  }
+  console.log("Prepared disposable legacy configuration upgrade fixture");
+}
 
 async function main() {
   assert.equal(process.arch, process.env.EXPECTED_NODE_ARCH);
@@ -44,7 +85,9 @@ async function main() {
   const backups = (await fs.readdir(backupDir)).filter((file) => file.endsWith(".sql")).sort();
   assert.ok(backups.length >= 2, "Both startups must create a pre-migration backup");
   for (const backup of backups) {
-    assert.ok((await fs.stat(path.join(backupDir, backup))).size > 0);
+    const stat = await fs.stat(path.join(backupDir, backup));
+    assert.ok(stat.size > 0);
+    assert.equal(stat.mode & 0o077, 0, "Credential snapshots must be private");
   }
 
   const db = new Client({
@@ -53,6 +96,41 @@ async function main() {
   });
   await db.connect();
   try {
+    const secrets = await db.query(
+      'SELECT key,value FROM "SystemConfig" WHERE key = ANY($1::text[])',
+      [
+        [
+          "smtp_pass",
+          "twilio_auth_token",
+          "cloudflare_worker_api_secret",
+          "cloudflare_api_token",
+          "config_encryption_version",
+        ],
+      ]
+    );
+    const config = Object.fromEntries(secrets.rows.map((row) => [row.key, row.value]));
+    assert.equal(config.config_encryption_version, "2");
+    assert.equal(config.cloudflare_api_token, "");
+    for (const [name, expected] of [
+      ["smtp_pass", "qc-smtp-fixture"],
+      ["twilio_auth_token", "qc-twilio-fixture"],
+      ["cloudflare_worker_api_secret", "qc-worker-fixture"],
+    ]) {
+      const [version, salt, iv, tag, text] = config[name].split(":");
+      assert.equal(version, "v2");
+      const decipher = createDecipheriv(
+        "aes-256-gcm",
+        scryptSync(process.env.SESSION_SECRET, Buffer.from(salt, "hex"), 32),
+        Buffer.from(iv, "hex")
+      );
+      decipher.setAAD(Buffer.from("rsvp-to-me:config:v2"));
+      decipher.setAuthTag(Buffer.from(tag, "hex"));
+      assert.equal(
+        Buffer.concat([decipher.update(Buffer.from(text, "hex")), decipher.final()]).toString(),
+        expected
+      );
+    }
+    console.log("Automatic legacy configuration upgrade and repeat startup passed");
     const seed = await db.query('SELECT code FROM "HostInviteCode" WHERE code = $1', [
       process.env.HOST_INVITE_CODE,
     ]);
@@ -130,7 +208,9 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+(process.argv.includes("--prepare-config-upgrade") ? prepareConfigUpgrade() : main()).catch(
+  (error) => {
+    console.error(error);
+    process.exitCode = 1;
+  }
+);

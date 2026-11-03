@@ -81,6 +81,15 @@ app_id=$(docker run -d --network "$network_id" \
   "$image")
 wait_for_health "$app_id"
 
+# Simulate an older installation, with no app process active during conversion.
+docker stop "$app_id" >/dev/null
+docker run --rm --network "$network_id" \
+  -e DATABASE_URL=postgresql://postgres:container-qc@postgres:5432/rsvp_qc \
+  -e SESSION_SECRET=container-qc-disposable-secret-at-least-32-characters \
+  "$image" node scripts/container-smoke.cjs --prepare-config-upgrade
+docker start "$app_id" >/dev/null
+wait_for_health "$app_id"
+
 # The first startup backs up an empty database. Restart after seeding so the
 # real entrypoint backs up migrated data, then restore into a separate database
 # in this invocation's disposable PostgreSQL container only.

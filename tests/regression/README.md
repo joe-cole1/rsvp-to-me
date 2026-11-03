@@ -16,6 +16,13 @@ October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with up
 
 ## Index
 
+Task `01a19e4a` addresses #328 / SEC-8 and #339 / SEC-44 in
+`issue-328-339-config-secrets.test.ts`: per-value salts, authenticated format
+validation, plaintext rejection, migration checks, backup failure, repeated
+startup, completion guards, and selective rollback. Real PostgreSQL concurrency,
+mid-write rollback, and redacted CLI failures are covered in
+`tests/integration/lib/config-secrets.test.ts`.
+
 Task `01a197b1` (PR #777 report) adds `download-cache-policy.test.ts` for exact dynamic-download cache rules, security-header preservation, and current RSVP rows on repeated CSV requests.
 
 #749 (`01a15e47`) adds `issue-749-invitation-names.test.ts` for event-scoped invitation names, reviewed send validation, private preview boundaries, safe resends, and token/organizer RSVP name corrections.

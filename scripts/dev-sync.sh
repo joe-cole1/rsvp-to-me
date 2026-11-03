@@ -84,6 +84,9 @@ npm run db:generate
 step "Applying migrations (prisma migrate deploy)"
 npx prisma migrate deploy
 
+step "Migrating saved configuration secrets (automatic, idempotent)"
+npm run db:secrets
+
 step "Seeding baseline data (db:seed — idempotent)"
 npm run db:seed
 

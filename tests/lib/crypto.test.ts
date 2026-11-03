@@ -7,15 +7,17 @@ describe("encryptConfig", () => {
     expect(encryptConfig("")).toBe("");
   });
 
-  it("returns a string with three colon-separated parts", () => {
+  it("returns version, salt, IV, tag, and ciphertext", () => {
     const encrypted = encryptConfig("test-config");
     expect(encrypted).toContain(":");
     const parts = encrypted.split(":");
-    expect(parts.length).toBe(3);
-    // iv is 24 hex characters (12 bytes)
-    expect(parts[0]).toMatch(/^[0-9a-f]{24}$/);
-    // authTag is 32 hex characters (16 bytes)
+    expect(parts.length).toBe(5);
+    expect(parts[0]).toBe("v2");
     expect(parts[1]).toMatch(/^[0-9a-f]{32}$/);
+    // iv is 24 hex characters (12 bytes)
+    expect(parts[2]).toMatch(/^[0-9a-f]{24}$/);
+    // authTag is 32 hex characters (16 bytes)
+    expect(parts[3]).toMatch(/^[0-9a-f]{32}$/);
   });
 
   it("produces different ciphertext on repeated calls (random IV)", () => {
@@ -44,9 +46,9 @@ describe("decryptConfig", () => {
     expect(decrypted).toBe(text);
   });
 
-  it("returns the input unchanged when it has no colons (not encrypted)", () => {
+  it("rejects plaintext outside the migration", () => {
     const plain = "plaintext";
-    expect(decryptConfig(plain)).toBe(plain);
+    expect(decryptConfig(plain)).toBe("");
   });
 
   it("fails closed (returns empty string) on corrupt data, without throwing", () => {
@@ -94,11 +96,11 @@ describe("encryptConfig / decryptConfig — property tests", () => {
     );
   });
 
-  it("encrypted output always has three colon-separated parts", () => {
+  it("encrypted output always has five colon-separated parts", () => {
     fc.assert(
       fc.property(fc.string({ minLength: 1 }), (text) => {
         const parts = encryptConfig(text).split(":");
-        expect(parts.length).toBe(3);
+        expect(parts.length).toBe(5);
         expect(parts[0].length).toBeGreaterThan(0);
         expect(parts[1].length).toBeGreaterThan(0);
         expect(parts[2].length).toBeGreaterThan(0);

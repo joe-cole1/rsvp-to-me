@@ -12,7 +12,7 @@
 // real credential. It now fails closed (returns "").
 //
 // Fix: a shared resolveTwilioAuthToken() that decrypts the stored value with
-// decryptConfig() (no-op on plaintext, "" on failure), preferring DB config
+// decryptConfig() (authenticated v2 after #328/#339, "" on failure), preferring DB config
 // then the env var.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

@@ -399,6 +399,72 @@ their browser choice, or English, until they pick a language. Default system
 emails and text messages then use each recipient's saved language; unknown
 recipients receive English. No environment variable is required.
 
+### Automatic configuration-secret conversion (#328 / #339)
+
+The upgrade containing these fixes automatically converts saved SMTP passwords,
+Cloudflare worker secrets/API tokens, and Twilio auth tokens to versioned
+encryption with random salts. This is an application data conversion, not a
+Prisma schema migration. Events, RSVPs, accounts, and session formats are
+unchanged. Environment-only credentials need no conversion; empty settings
+stay empty. Hosts and guests take no migration steps.
+
+Keep your existing `ENCRYPTION_KEY` exactly as configured. If it is unset,
+keep using the same `SESSION_SECRET`; do not introduce a new encryption key
+during this upgrade. Back up the database and `.env`, record the old image
+digest, and stop all older app instances before the new one starts. The normal
+single-app Compose recreation already replaces the old instance. Mixed-version
+rolling upgrades across this format change are unsupported.
+
+The container converts secrets before seeding and starting the web server.
+Before changing any credentials it requires a successful automatic pg_dump
+snapshot under `data/backups/pre-migration/`. The earlier schema snapshot remains
+best-effort; secret conversion takes its own mandatory snapshot when needed.
+Backups may contain old plaintext credentials, so protect them as secrets.
+Conversion and its completion marker commit together. Subsequent restarts
+verify the new format without changing credentials or repeating conversion.
+
+Logs include a summary such as `[config-secrets] migrate: 2 converted, 0 verified;
+v2 ready.` On failure, `[config-secrets] ERROR:` explains the affected setting
+or backup/database problem without displaying credentials. Startup stops and
+the secret transaction rolls back; successful earlier schema migrations remain
+applied. Fix the cause before restarting. Wrong-key failures require the
+original key; ambiguous legacy plaintext containing colons or corrupt data
+must be repaired using the previous app before retrying. No credentials need
+re-entry for a normal upgrade. Verify health and test enabled email/SMS after
+the app starts.
+
+If corruption is detected after a successful conversion, restore a valid v2
+credential from a protected backup. Starting the old app directly is unsafe
+because the other saved credentials are already in the new format; use the
+selective downgrade procedure below when a downgrade is necessary.
+
+For a read-only check using the new image, without starting the web server:
+
+```bash
+docker compose -f docker-compose.release.yml run --rm --no-deps app npm run db:secrets -- --check
+```
+
+`npm start` and `scripts/dev-sync.sh` also convert automatically. Native/source
+installations need `pg_dump` on PATH and writable `data/backups/pre-migration/`
+when conversion is necessary. Custom launchers that start Next.js directly must
+run `npm run db:secrets` after schema deployment and before serving requests.
+
+**Downgrade before starting an older image:** old versions cannot read the new
+format. Stop all app instances, keep the new image configured, and run:
+
+```bash
+docker compose -f docker-compose.release.yml stop app
+docker compose -f docker-compose.release.yml run --rm --no-deps app npm run db:secrets -- --rollback
+```
+
+This command requires a successful backup, rewrites only the secret settings
+to the previous encrypted format, and removes the completion marker in one
+transaction. Then select the old image digest and recreate the app. Do not
+restart the new app between rollback and downgrade, since it would convert
+again. Other database records, including RSVPs received since upgrade, are
+preserved. A later upgrade converts again automatically. Keep the same keys
+when restoring an old backup as well.
+
 ### If a Migration Fails
 
 If a migration fails on startup:

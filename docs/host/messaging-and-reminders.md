@@ -70,6 +70,14 @@ The wording of these emails is managed site-wide by your administrator, so the E
 
 ---
 
+## Messaging After a Site Upgrade
+
+Provider credentials saved by your administrator are converted automatically
+during site upgrades. Hosts and guests do not need to change notification
+settings or re-enter contact details. If an upgrade cannot verify saved
+credentials, the site administrator must resolve the startup error before the
+site can resume sending messages.
+
 ## When Messaging Is Turned Off
 
 If your site administrator has disabled both email and SMS, the messaging panel is hidden and the app runs in **pure RSVP-collection mode**: guests fill out forms and you see the guest list, but no messages are sent.

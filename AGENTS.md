@@ -1,7 +1,5 @@
 # RSVP to Me — Agent Guide
 
-The global Sol High / Luna Max policy applies.
-
 This file contains only RSVP to Me-specific requirements.
 
 ## Repository and Task Identity
@@ -22,14 +20,6 @@ Rename the Codex task to begin with `[<tag>]`.
 
 Preserve the same tag through task title, branch, commit, and PR title.
 
-## Coordinator
-
-Primary coordinator: **`gpt-5.6-sol` with high reasoning**.
-
-Only permitted subagent: **`luna_max`** (`gpt-5.6-luna`, max reasoning).
-
-Sol owns planning, architecture, integration, and final QC. Prefer Luna for reconnaissance, bounded implementation, testing, Git/GitHub mechanics, and CI evidence.
-
 ## Task Start and Branching
 
 Before write-capable work:
@@ -41,9 +31,9 @@ If unexplained changes exist:
 
 `BLOCKED — PRE-EXISTING WORKTREE CHANGES`
 
-Do not stash, discard, reset, clean, restore away, or absorb them without Sol's decision.
+Do not stash, discard, reset, clean, restore away, or absorb them without an explicit decision on how to preserve them.
 
-After Sol approves the plan and confirms a clean baseline, branch from current `origin/main`:
+After the user approves the plan and a clean baseline is confirmed, branch from current `origin/main`:
 
 `codex/<label>-<tag>-<short-topic>`
 
@@ -51,7 +41,7 @@ Never commit directly to `main`.
 
 Read-only planning/review does not require a branch.
 
-Before editing source/scripts/docs/config/tests, Sol presents the implementation plan and waits for user approval.
+Before editing source/scripts/docs/config/tests, present the implementation plan and wait for user approval.
 
 ## Architecture
 
@@ -80,7 +70,7 @@ Use:
 
 `scripts/dev-sync.sh --deps`
 
-only after cloning or when Sol explicitly authorizes dependency refresh/change.
+only after cloning or when the approved plan explicitly authorizes dependency refresh/change.
 
 Repository scripts load nvm and `.nvmrc`.
 
@@ -92,7 +82,7 @@ Use `/tmp`, not inherited Windows temp paths.
 
 Local dev Postgres/Redis, containers, and volumes are disposable.
 
-When delegated, Luna may rebuild/restart/recreate local services and use:
+Within the approved task scope, Codex may rebuild/restart/recreate local services and use:
 
 `scripts/dev-reset.sh --confirm`
 
@@ -137,7 +127,7 @@ Never weaken tests merely to pass.
 
 ## Dependencies
 
-Do not add/remove/change dependencies unless Sol explicitly authorizes it.
+Do not add/remove/change dependencies unless the approved plan explicitly authorizes it.
 
 `scripts/dev-sync.sh --deps` does not itself authorize dependency changes.
 
@@ -159,7 +149,7 @@ update.
 
 Pure internal refactors with no user/operator/config impact are exempt; state why in the PR.
 
-Update `ROADMAP.md` only for an already tracked item or when Sol/user explicitly approves unrelated roadmap work.
+Update `ROADMAP.md` only for an already tracked item or when the user explicitly approves unrelated roadmap work.
 
 Useful unrelated findings may become follow-on issues; do not fold them into the current task.
 
@@ -185,9 +175,9 @@ These are authoritative gates.
 
 A failing required check stops shipping unless explicitly waived by the user. A waiver is separate from `"ship it"` and must be documented.
 
-## GIT_PREP and Shipping
+## Shipping Preparation and Shipping
 
-Before asking the user to ship, Luna may prepare exact reviewed paths, concise diff summary, validation results, proposed commit message, release label, PR title/body, and current branch/PR state.
+Before asking the user to ship, prepare exact reviewed paths, concise diff summary, validation results, proposed commit message, release label, PR title/body, and current branch/PR state.
 
 Prefix every commit subject and PR title with:
 
@@ -195,7 +185,7 @@ Prefix every commit subject and PR title with:
 
 Normally use one coherent Conventional Commit per approved task.
 
-One current `"ship it"` authorizes the Luna SHIP worker to stage reviewed paths, commit, push the current feature branch, create/update the appropriate still-open PR, and monitor CI.
+One current `"ship it"` authorizes Codex to stage reviewed paths, commit, push the current feature branch, create/update the appropriate still-open PR, and monitor CI.
 
 Stage only reviewed paths. Never use:
 
@@ -245,11 +235,11 @@ Do not start `gh auth refresh` or `gh auth login` without explicit permission.
 
 ## CI
 
-After push/PR creation/update, Luna may monitor CI.
+After push/PR creation/update, monitor CI.
 
-On failure, gather workflow/job/check, failing command/test, concise logs, relevant files/lines, likely cause, and suggested correction; then stop for Sol triage.
+On failure, gather workflow/job/check, failing command/test, concise logs, relevant files/lines, likely cause, and suggested correction; then assess the failure before changing code.
 
-Any substantive correction requires Sol review and another `"ship it"`.
+Any substantive correction requires review and another `"ship it"`.
 
 ## Post-Merge
 
