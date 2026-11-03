@@ -18,6 +18,8 @@ import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { EventPageStyles } from "./styles";
 import { EventCard } from "./EventCard";
+import { NotificationDeliveryFeedback } from "./NotificationDeliveryFeedback";
+import type { NotificationFeedback } from "@/lib/notifications/types";
 
 export function ActivityFeed({
   event,
@@ -46,6 +48,7 @@ export function ActivityFeed({
   notifyOnUpdate,
   setNotifyOnUpdate,
   isPostingUpdate,
+  notificationFeedback,
   submitComment,
   submitReply,
   postUpdate,
@@ -82,6 +85,7 @@ export function ActivityFeed({
   notifyOnUpdate: boolean;
   setNotifyOnUpdate: React.Dispatch<React.SetStateAction<boolean>>;
   isPostingUpdate: boolean;
+  notificationFeedback: NotificationFeedback;
   submitComment: () => Promise<void>;
   submitReply: (parentId: string) => Promise<void>;
   postUpdate: () => Promise<void>;
@@ -170,6 +174,7 @@ export function ActivityFeed({
                   {isPostingUpdate ? translate("posting") : translate("post")}
                 </button>
               </div>
+              <NotificationDeliveryFeedback feedback={notificationFeedback} />
             </div>
           )}
           {event.commentsEnabled && !isHost && (isApprovedGuest || canViewerComment) && (

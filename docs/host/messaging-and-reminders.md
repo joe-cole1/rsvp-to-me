@@ -32,6 +32,38 @@ co-hosts so a compromised or abusive organizer account cannot be used to spam gu
 
 ---
 
+## Event Updates
+
+Use **Post an Update** in the event's activity section to publish news. Leave
+**Notify guests of update** checked to attempt notification of the event's
+RSVP contacts. This uses the existing update audience; it does not apply the
+recipient filters from the separate message-blast composer.
+
+Each guest's current event contact, notification preferences, and the services
+available on your site determine delivery:
+
+- **Email** permits email only; **SMS** permits text only.
+- **Both** prefers eligible email and falls back to eligible SMS. It sends one
+  notification, rather than a copy on each channel.
+- Guests without a linked account use email when available, then their RSVP
+  phone number. Phone-only guests can receive texts without changing a profile.
+- A channel turned off by the guest or your administrator is skipped. A service
+  also needs working configuration before a delivery attempt can start.
+
+After posting, the composer shows accepted, skipped, failed, and uncertain counts.
+**Accepted** means the service acknowledged the message for processing; it does
+not confirm inbox or device delivery. A failed primary followed by accepted
+fallback counts as one acceptance. A missing acknowledgement or timeout is
+**uncertain** and does not trigger another channel, because the first message
+may already have been accepted. Retrying can create duplicates.
+
+The update stays posted if some or all notifications fail. These counts are
+temporary feedback for the current composer session; there is no delivery-history
+screen or automatic retry. Other notification flows, including manual message
+blasts, have not yet moved to this shared routing policy.
+
+---
+
 ## New-RSVP Alerts
 
 Get notified the moment someone responds. When a guest RSVPs to your event — including an invited guest answering their invitation for the first time — you and any co-hosts receive a **"New RSVP" alert** with the guest's name, their status (Going / Maybe / Can't Go), any plus-ones and note, and your event's running Going / Maybe / Can't-Go totals. Later changes to an existing RSVP don't send another alert. If an invited guest's first answer can't be saved, nothing is sent and the answer stays unanswered, so the alert and their confirmation go out when they try again.

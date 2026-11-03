@@ -605,6 +605,12 @@
         "googleCalendar": "Google Calendar",
         "icalOutlookIcs": "iCal / Outlook (.ics)"
       },
+      "NotificationDeliveryFeedback": {
+        "summary": "Update posted. Notifications: {accepted} accepted, {skipped} skipped, {failed} failed, {uncertain} uncertain.",
+        "processingFailed": "Update posted. Notifications could not be processed.",
+        "acceptedHint": "Accepted means the service accepted the message for processing; delivery is not confirmed.",
+        "uncertainHint": "Some submissions could not be confirmed. Retrying could send duplicate notifications."
+      },
       "ActivityFeed": {
         "activity": "Activity",
         "postUpdate": "Post an Update",

@@ -16,6 +16,15 @@ October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with up
 
 ## Index
 
+Task `01a1a08c` addresses #335 in `issue-335-update-routing.test.ts`: phone-only
+default routing, opt-outs, explicit SMS selection, awaited delivery, safe aggregate
+feedback, posted-update preservation, and authorization/CAPTCHA ordering.
+`tests/lib/notifications.test.ts` and `tests/lib/notification-adapters.test.ts`
+cover generic adapters, fallback, uncertain acceptance, partial provider results,
+concurrency, and cancellation; component tests cover the host posting experience.
+`tests/integration/lib/notification-smtp.test.ts` uses a real loopback SMTP fixture
+to verify partial acceptance and destruction of a stalled socket at the deadline.
+
 Task `01a19e4a` addresses #328 / SEC-8 and #339 / SEC-44 in
 `issue-328-339-config-secrets.test.ts`: per-value salts, authenticated format
 validation, plaintext rejection, migration checks, backup failure, repeated

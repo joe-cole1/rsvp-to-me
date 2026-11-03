@@ -209,6 +209,16 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 
 ### Themes, effects, and email
 
+- `lib/notifications/` owns shared outbound notification policy and delivery
+  outcomes. Event updates are its first adopter: `event-update.ts` resolves the
+  existing event audience and RSVP contacts; `recipients.ts` translates legacy
+  preferences; `dispatch.ts` routes through registered channel adapters.
+  `transport.ts` bounds provider concurrency and deadlines. Result-bearing
+  adapters in `lib/email.ts` and `lib/sms.ts` preserve service-specific rendering
+  and stop fallback after accepted or uncertain submissions. Only aggregate
+  feedback crosses the host action boundary. Legacy producers remain on their
+  current helpers. See [ADR 0003](docs/engineering/decisions/0003-unified-notifications.md).
+
 - `lib/theme.ts`, `lib/fonts.ts`, and `lib/effects.ts` define web theme options.
 - `app/fonts.ts` builds the theme fonts. Roboto uses the licensed local asset in
   `app/font-files/`; the other families use `next/font/google` at build time.
