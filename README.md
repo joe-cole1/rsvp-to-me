@@ -2,7 +2,7 @@
 
 A beautiful, self-hosted, social-first event and RSVP platform for personal events (house parties, wine nights, dinners). Inspired by Partiful's expressive aesthetic. No payments, no ticketing — just invite links, RSVPs, connection, and social coordination.
 
-[Screenshots](#screenshots) · [Features](#core-features) · [Quick Start](#quick-start) · [Host Guide](docs/host/getting-started.md) · [Admin Guide](docs/admin/installation.md) · [Releases](https://github.com/joe-cole1/rsvp-to-me/releases)
+[Screenshots](#screenshots) · [Features](#core-features) · [Quick Start](#quick-start) · [Host Guide](docs/host/getting-started.md) · [Admin Guide](docs/admin/installation.md) · [Releases](https://github.com/joe-cole1/rsvp-to-me/releases) · [License](#license)
 
 ## Screenshots
 
@@ -145,3 +145,20 @@ For in-depth explanations of specific features, configurations, and operations, 
 | [Safe Upgrading Guide](docs/admin/upgrading.md)          | Instructions on updating to new versions safely without losing any database data.           |
 | [Sample Data and Screenshots](docs/admin/sample-data.md) | Seeded test accounts, local sign-in, and the desktop screenshot checklist.                  |
 | [Architecture Map](ARCHITECTURE.md)                      | Developer map of runtime boundaries, subsystems, entry points, and common change locations. |
+
+## License
+
+Copyright (C) 2026 Joseph Cole and contributors.
+
+RSVP to Me is free software licensed under the **GNU Affero General Public License,
+version 3 only** (`AGPL-3.0-only`). See [LICENSE](LICENSE) for the complete terms,
+including the warranty disclaimer.
+
+You may use, modify, self-host, and redistribute the application, including for
+commercial purposes, subject to the license. Distributing covered versions or
+providing a modified version over a network carries source-code and notice
+obligations described in the license.
+
+Contributions are welcome under the same license. Contributors retain their
+copyright. Third-party dependencies and vendored components retain their own
+licenses and notices.
