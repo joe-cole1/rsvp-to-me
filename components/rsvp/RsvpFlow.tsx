@@ -316,7 +316,7 @@ export function RsvpFlow({
           <p>
             <a
               href={`/e/${event.slug}/notifications?token=${existingRsvp.editToken}`}
-              style={{ color: t.accent }}
+              style={{ color: t.accentText }}
             >
               {notificationText("manageEvent")}
             </a>
@@ -327,7 +327,7 @@ export function RsvpFlow({
               display: "block",
               textAlign: "center",
               marginTop: "20px",
-              color: t.accent,
+              color: t.accentText,
               textDecoration: "none",
               fontWeight: 700,
             }}
@@ -387,12 +387,15 @@ export function RsvpFlow({
             <p style={{ fontSize: 14, marginBottom: 24 }}>
               <a
                 href={`/e/${event.slug}/notifications?token=${savedEditToken}`}
-                style={{ color: t.accent }}
+                style={{ color: t.accentText }}
               >
                 {notificationText("manageEvent")}
               </a>
               <br />
-              <a href={`/e/${event.slug}/rsvp?token=${savedEditToken}`} style={{ color: t.accent }}>
+              <a
+                href={`/e/${event.slug}/rsvp?token=${savedEditToken}`}
+                style={{ color: t.accentText }}
+              >
                 {notificationText("saveEditLink")}
               </a>
             </p>
@@ -426,7 +429,7 @@ export function RsvpFlow({
                   fontSize: "12px",
                   fontWeight: 700,
                   textTransform: "none",
-                  color: t.accent,
+                  color: t.accentText,
                   marginBottom: "8px",
                 }}
               >
@@ -510,7 +513,7 @@ export function RsvpFlow({
                     fontSize: "12px",
                     fontWeight: 700,
                     textTransform: "none",
-                    color: t.accent,
+                    color: t.accentText,
                     marginBottom: "12px",
                   }}
                 >
@@ -535,7 +538,7 @@ export function RsvpFlow({
                       }}
                     >
                       <span>{translate("votePolls")}</span>
-                      <span style={{ color: t.accent }}>→</span>
+                      <span style={{ color: t.accentText }}>→</span>
                     </a>
                   )}
                   {event.potluckItems && event.potluckItems.length > 0 && (
@@ -556,7 +559,7 @@ export function RsvpFlow({
                       }}
                     >
                       <span>{translate("bringSomethingPotluck")}</span>
-                      <span style={{ color: t.accent }}>→</span>
+                      <span style={{ color: t.accentText }}>→</span>
                     </a>
                   )}
                 </div>
@@ -696,7 +699,7 @@ export function RsvpFlow({
             <p>
               <a
                 href={`/e/${event.slug}/notifications?token=${existingRsvp.editToken}`}
-                style={{ color: t.accent }}
+                style={{ color: t.accentText }}
               >
                 {notificationText("manageEvent")}
               </a>
@@ -709,7 +712,7 @@ export function RsvpFlow({
                 fontWeight: 700,
                 textTransform: "none",
                 letterSpacing: "0.02em",
-                color: t.accent,
+                color: t.accentText,
                 marginBottom: "4px",
               }}
             >

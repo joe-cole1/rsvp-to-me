@@ -62,9 +62,8 @@ export function GuestListSection({
                 href={`/e/${event.slug}/guests`}
                 style={{
                   fontSize: "13px",
-                  color: t.accent,
+                  color: t.accentText,
                   textDecoration: "none",
-                  opacity: 0.85,
                 }}
               >
                 {translate("viewAll")}

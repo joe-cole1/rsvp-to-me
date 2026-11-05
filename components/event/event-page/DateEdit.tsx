@@ -83,6 +83,7 @@ export function DateEdit({
 }) {
   const translate = useTranslations("Ui.Event.DateEdit");
   const locale = useLocale();
+  const onGradient = t.pageDecoration === "bold-hero";
 
   const [open, setOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
@@ -198,7 +199,7 @@ export function DateEdit({
                 fontSize: "22px",
                 fontWeight: 800,
                 letterSpacing: "-0.02em",
-                color: t.heroText ?? t.textPrimary,
+                color: t.heroText,
                 textShadow: t.heroTextShadow,
               }}
             >
@@ -207,7 +208,7 @@ export function DateEdit({
             <div
               style={{
                 fontSize: "16px",
-                color: t.heroText ? "rgba(255,255,255,0.85)" : t.textSecondary,
+                color: t.heroTextSecondary,
                 marginTop: "4px",
                 fontWeight: 500,
                 textShadow: t.heroTextShadow,
@@ -221,7 +222,7 @@ export function DateEdit({
             <Pencil
               size={12}
               style={{
-                color: t.heroText ? "rgba(255,255,255,0.45)" : t.textMuted,
+                color: t.heroTextMuted,
                 cursor: "pointer",
                 marginTop: "6px",
                 flexShrink: 0,
@@ -425,12 +426,13 @@ export function DateEdit({
         <button
           onClick={() => setCalOpen(!calOpen)}
           style={{
-            background: t.heroText ? "rgba(255,255,255,0.2)" : t.cardBg,
-            border: `1px solid ${t.heroText ? "rgba(255,255,255,0.3)" : t.cardBorder}`,
+            // On the BOLD gradient the button is white glass.
+            background: onGradient ? "rgba(255,255,255,0.2)" : t.cardBg,
+            border: `1px solid ${onGradient ? "rgba(255,255,255,0.3)" : t.cardBorder}`,
             borderRadius: "12px",
-            color: t.heroText ?? t.textSecondary,
-            backdropFilter: t.heroText ? "blur(8px)" : undefined,
-            WebkitBackdropFilter: t.heroText ? "blur(8px)" : undefined,
+            color: onGradient ? t.heroText : t.textSecondary,
+            backdropFilter: onGradient ? "blur(8px)" : undefined,
+            WebkitBackdropFilter: onGradient ? "blur(8px)" : undefined,
             cursor: "pointer",
             width: "48px",
             height: "48px",

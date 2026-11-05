@@ -120,7 +120,7 @@ export function ActivityFeed({
                 style={{
                   fontWeight: 700,
                   fontSize: "12px",
-                  color: t.accent,
+                  color: t.accentText,
                   textTransform: "none" as const,
                   letterSpacing: "0.02em",
                   marginBottom: "8px",
@@ -349,7 +349,7 @@ export function ActivityFeed({
                                 }}
                               >
                                 <span
-                                  style={{ fontWeight: 700, fontSize: "13px", color: t.accent }}
+                                  style={{ fontWeight: 700, fontSize: "13px", color: t.accentText }}
                                 >
                                   {translate("update")} {event.host.name ?? event.host.email}
                                 </span>

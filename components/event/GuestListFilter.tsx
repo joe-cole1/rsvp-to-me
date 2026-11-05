@@ -855,7 +855,7 @@ export function GuestListFilter({
                         padding: "2px 8px",
                         borderRadius: "99px",
                         background: t.accentBg,
-                        color: t.accent,
+                        color: t.accentText,
                       }}
                     >
                       {translate("arrived2")}
@@ -1131,7 +1131,7 @@ export function GuestListFilter({
                           padding: "2px 8px",
                           borderRadius: "99px",
                           background: t.accentBg,
-                          color: t.accent,
+                          color: t.accentText,
                         }}
                       >
                         {translate("arrived2")}

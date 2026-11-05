@@ -286,7 +286,7 @@ export function EventPage({
     transition: "all 0.2s ease",
     background: t.cardBg,
     border: isCustom ? `1.5px dashed ${t.accent}` : `1.5px solid ${t.accent}`,
-    color: t.accent,
+    color: t.accentText,
   });
 
   // Derived

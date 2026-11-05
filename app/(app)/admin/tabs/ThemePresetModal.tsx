@@ -7,6 +7,7 @@ import {
   ACCENT_PRESETS,
   getDefaultCardOpacity,
   resolveTheme,
+  MIN_CARD_OPACITY,
 } from "@/lib/theme";
 import { FONT_OPTIONS, getFontById } from "@/lib/fonts";
 import type { AdminThemePreset, ThemePresetFormState, ThemeSnapObj } from "./types";
@@ -590,7 +591,7 @@ export function ThemePresetModal({
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <input
                       type="range"
-                      min={0.4}
+                      min={MIN_CARD_OPACITY}
                       max={1}
                       step={0.05}
                       value={currentOp}

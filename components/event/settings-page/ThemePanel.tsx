@@ -10,6 +10,7 @@ import {
   getDefaultCardOpacity,
   type BaseTheme,
   type ResolvedTheme,
+  MIN_CARD_OPACITY,
 } from "@/lib/theme";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import {
@@ -318,7 +319,7 @@ export function ThemePanel({
                       background: "transparent",
                       border: `1px solid ${t.accentBorder}`,
                       borderRadius: "10px",
-                      color: t.accent,
+                      color: t.accentText,
                       fontSize: "12px",
                       fontWeight: 600,
                       cursor: "pointer",
@@ -685,7 +686,7 @@ export function ThemePanel({
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <input
                       type="range"
-                      min={0.4}
+                      min={MIN_CARD_OPACITY}
                       max={1}
                       step={0.05}
                       value={cardOpacity}

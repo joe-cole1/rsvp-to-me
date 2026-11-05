@@ -53,7 +53,7 @@ export function LocationEdit({
     transition: "all 0.2s ease",
     background: t.cardBg,
     border: `1px dashed ${t.accentBorder}`,
-    color: t.accent,
+    color: t.accentText,
   });
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);

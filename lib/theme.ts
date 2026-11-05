@@ -1,4 +1,14 @@
 import { getHeadingFontValue } from "@/lib/fonts";
+import {
+  colorsIn,
+  composite,
+  ensureContrast,
+  minContrast,
+  parseColor,
+  sampleBetween,
+  scrimAlphaFor,
+  type Rgba,
+} from "@/lib/theme-contrast";
 
 export type BaseTheme = "DARK" | "SOFT" | "BOLD";
 
@@ -474,6 +484,15 @@ export const ACCENT_PRESETS = [
   { name: "Cyan", value: "#06b6d4" },
 ] as const;
 
+export type StatusKind = "success" | "warning" | "error" | "info";
+
+/** One status role: text that reads on `bg` laid over the card, plus a border. */
+export interface StatusColors {
+  text: string;
+  bg: string;
+  border: string;
+}
+
 export interface ResolvedTheme {
   // Raw inputs passed through so pickers can read them back
   gradientFrom: string;
@@ -485,24 +504,35 @@ export interface ResolvedTheme {
   pageDecorationBg1: string;
   pageDecorationBg2: string;
 
-  // Typography
+  // Typography on cards. All three reach 4.5:1 on the card at this theme's
+  // card opacity, and textMuted is never stronger than textSecondary.
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
   headingFont: string;
 
-  // Hero text — for BOLD where all content sits on a vivid full-page gradient;
-  // undefined for DARK/SOFT which already have good native contrast
-  heroText?: string;
+  // Text placed straight on the page ground (title, byline, date), chosen
+  // against the ground's lightest and darkest points. heroText reaches 3:1 and
+  // heroTextSecondary 4.5:1 there, heroTextMuted 3:1 (icons). On BOLD,
+  // heroScrim is a soft dark wash drawn behind that text when white is kept
+  // but needs help; the ratios above then hold on the ground plus the wash.
+  heroText: string;
+  heroTextSecondary: string;
+  heroTextMuted: string;
   heroTextShadow?: string;
+  heroScrim?: string;
 
   // Accent
   accent: string;
   accentRgb: string;
   accentFg: string; // WCAG-computed text color on accent background
+  accentText: string; // the accent as text: 4.5:1 on the card and on accentBg
   accentBg: string; // subtle accent background
   accentBorder: string;
   accentShadow: string;
+
+  // Status lines and chips, per base theme
+  status: Record<StatusKind, StatusColors>;
 
   // Cards
   cardBg: string;
@@ -611,6 +641,205 @@ export function getDefaultCardOpacity(base: BaseTheme | null | undefined): numbe
   return base === "DARK" ? 0.5 : base === "SOFT" ? 0.85 : 0.8;
 }
 
+/**
+ * The lowest card opacity hosts and admins can pick. Text colors are derived
+ * from the actual opacity, so they stay readable down to this value.
+ */
+export const MIN_CARD_OPACITY = 0.4;
+
+/** Fields resolveTheme() derives for readability after building the base look. */
+type DerivedField =
+  | "heroText"
+  | "heroTextSecondary"
+  | "heroTextMuted"
+  | "heroTextShadow"
+  | "heroScrim"
+  | "accentText"
+  | "status";
+
+/** The base look; its text colors are starting points that readableText() may adjust. */
+type ThemeDraft = Omit<ResolvedTheme, DerivedField>;
+
+const AA_TEXT = 4.5;
+const AA_LARGE = 3;
+
+// Status inks per surface family. DARK keeps the app shell's colors; SOFT and
+// BOLD start from darker inks that suit white glass cards.
+const STATUS_INKS: Record<
+  "dark" | "light",
+  Record<StatusKind, { ink: string; rgb: string; bgAlpha: number }>
+> = {
+  dark: {
+    success: { ink: "#4ade80", rgb: "34,197,94", bgAlpha: 0.12 },
+    warning: { ink: "#fbbf24", rgb: "245,158,11", bgAlpha: 0.12 },
+    error: { ink: "#fca5a5", rgb: "239,68,68", bgAlpha: 0.15 },
+    info: { ink: "#c084fc", rgb: "168,85,247", bgAlpha: 0.1 },
+  },
+  light: {
+    success: { ink: "#15803d", rgb: "22,163,74", bgAlpha: 0.1 },
+    warning: { ink: "#b45309", rgb: "217,119,6", bgAlpha: 0.1 },
+    error: { ink: "#b91c1c", rgb: "220,38,38", bgAlpha: 0.1 },
+    info: { ink: "#7e22ce", rgb: "147,51,234", bgAlpha: 0.1 },
+  },
+};
+
+// BOLD hero on a light gradient: the stone inks SOFT uses for its text.
+const HERO_INK = { text: "#1c1917", secondary: "#44403c", muted: "#57534e" };
+const HERO_WHITE_SHADOW = "0 1px 4px rgba(0,0,0,0.3)";
+// White hero text keeps the theme's look when a wash this light (or lighter) is
+// enough; past it, a light gradient switches to HERO_INK instead.
+const MIN_HERO_SCRIM = 0.35;
+
+/**
+ * The page-ground colors text can land on: for BOLD, samples along the
+ * full-page gradient; for DARK and SOFT, each page stop alone and under the
+ * centers of the orbs or blobs, where the ground is lightest or darkest.
+ */
+function pageGrounds(d: ThemeDraft): Rgba[] {
+  if (d.pageDecoration === "bold-hero") {
+    const [from, to] = colorsIn(d.pageDecorationBg1);
+    return sampleBetween(from, to ?? from);
+  }
+  const glow1 = colorsIn(d.pageDecorationBg1)[0];
+  const glow2 = colorsIn(d.pageDecorationBg2)[0];
+  return colorsIn(d.pageBg).flatMap((p) => [
+    p,
+    composite(glow1, p),
+    composite(glow2, p),
+    composite(glow1, composite(glow2, p)),
+  ]);
+}
+
+/** `css` (an rgba() or hsla() resolveTheme() built) with its alpha replaced. */
+function withAlpha(css: string, alpha: number): string {
+  return css.replace(/,\s*[\d.]+\)$/, `,${alpha})`);
+}
+
+/** The most see-through white (of a few steps) that still reaches `ratio`. */
+function whiteFor(surfaces: Rgba[], ratio: number): string {
+  for (const a of [0.75, 0.85]) {
+    const c = `rgba(255,255,255,${a})`;
+    if (minContrast(c, surfaces) >= ratio) return c;
+  }
+  return "#ffffff";
+}
+
+function boldHero(
+  grounds: Rgba[]
+): Pick<
+  ResolvedTheme,
+  "heroText" | "heroTextSecondary" | "heroTextMuted" | "heroTextShadow" | "heroScrim"
+> {
+  const white = "#ffffff";
+  if (minContrast(white, grounds) >= AA_TEXT) {
+    return {
+      heroText: white,
+      heroTextSecondary: white,
+      heroTextMuted: whiteFor(grounds, AA_LARGE),
+      heroTextShadow: HERO_WHITE_SHADOW,
+    };
+  }
+  const needed = scrimAlphaFor(white, grounds, AA_TEXT);
+  // The byline ink may darken (same hue) to reach 4.5:1 on mid-tone gradients.
+  const inkSecondary = ensureContrast(HERO_INK.secondary, grounds, AA_TEXT);
+  const inkFits =
+    minContrast(HERO_INK.text, grounds) >= AA_LARGE &&
+    minContrast(inkSecondary, grounds) >= AA_TEXT;
+  if (needed > MIN_HERO_SCRIM && inkFits) {
+    return {
+      heroText: HERO_INK.text,
+      heroTextSecondary: inkSecondary,
+      heroTextMuted: ensureContrast(HERO_INK.muted, grounds, AA_LARGE),
+    };
+  }
+  const alpha = Math.max(MIN_HERO_SCRIM, Math.ceil(needed * 20 - 1e-9) / 20);
+  const wash: Rgba = { r: 0, g: 0, b: 0, a: alpha };
+  const washed = grounds.map((g) => composite(wash, g));
+  return {
+    heroText: white,
+    heroTextSecondary: white,
+    heroTextMuted: whiteFor(washed, AA_LARGE),
+    heroTextShadow: HERO_WHITE_SHADOW,
+    heroScrim: `rgba(0,0,0,${Number(alpha.toFixed(2))})`,
+  };
+}
+
+/**
+ * Derives every text color from the event's own colors so it reads on the
+ * surface it sits on: cards composited over the page ground at this theme's
+ * card opacity, inputs and washes over those cards, and the ground itself for
+ * hero text. Fills and the look are left alone; only text colors move, and
+ * only in lightness.
+ */
+function readableText(d: ThemeDraft, base: BaseTheme): ResolvedTheme {
+  const grounds = pageGrounds(d);
+  const cardsFor = (css: string) => {
+    const card = parseColor(css);
+    return grounds.map((g) => composite(card, g));
+  };
+  let cardBg = d.cardBg;
+  let cardBgAlpha = d.cardBgAlpha;
+  let cards = cardsFor(cardBg);
+  // A see-through card over a ground that spans mid-tones (only extreme custom
+  // colors) can leave no ink that reads everywhere. Then, and only then, raise
+  // this theme's card opacity just far enough. Built-in presets never need it.
+  while (
+    cardBgAlpha !== undefined &&
+    cardBgAlpha < 1 &&
+    Math.max(minContrast("#000000", cards), minContrast("#ffffff", cards)) < AA_TEXT
+  ) {
+    cardBgAlpha = Math.min(1, Math.round((cardBgAlpha + 0.05) * 100) / 100);
+    cardBg = withAlpha(d.cardBg, cardBgAlpha);
+    cards = cardsFor(cardBg);
+  }
+  const over = (css: string) => {
+    const layer = parseColor(css);
+    return cards.map((c) => composite(layer, c));
+  };
+
+  const textPrimary = ensureContrast(d.textPrimary, cards, AA_TEXT);
+  const textSecondary = ensureContrast(d.textSecondary, cards, AA_TEXT);
+  const muted = ensureContrast(d.textMuted, cards, AA_TEXT);
+  // Muted must never read stronger than secondary (it did on BOLD before).
+  const textMuted =
+    minContrast(muted, cards) > minContrast(textSecondary, cards) ? textSecondary : muted;
+
+  const inks = STATUS_INKS[base === "DARK" ? "dark" : "light"];
+  const status = Object.fromEntries(
+    (Object.keys(inks) as StatusKind[]).map((kind) => {
+      const { ink, rgb, bgAlpha } = inks[kind];
+      const bg = `rgba(${rgb},${bgAlpha})`;
+      return [
+        kind,
+        { text: ensureContrast(ink, over(bg), AA_TEXT), bg, border: `rgba(${rgb},0.3)` },
+      ];
+    })
+  ) as Record<StatusKind, StatusColors>;
+
+  const hero =
+    base === "BOLD"
+      ? boldHero(grounds)
+      : {
+          heroText: ensureContrast(textPrimary, grounds, AA_TEXT),
+          heroTextSecondary: ensureContrast(d.textSecondary, grounds, AA_TEXT),
+          heroTextMuted: ensureContrast(d.textMuted, grounds, AA_LARGE),
+        };
+
+  return {
+    ...d,
+    cardBg,
+    cardBgAlpha,
+    textPrimary,
+    textSecondary,
+    textMuted,
+    inputPlaceholder: ensureContrast(d.inputPlaceholder, over(d.inputBg), AA_TEXT),
+    badgeText: ensureContrast(d.badgeText, over(d.badgeBg), AA_TEXT),
+    accentText: ensureContrast(d.accent, [...cards, ...over(d.accentBg)], AA_TEXT),
+    status,
+    ...hero,
+  };
+}
+
 export function resolveTheme(
   base: BaseTheme,
   gradientFrom: string,
@@ -619,6 +848,31 @@ export function resolveTheme(
   cardOpacity?: number | null,
   fontId?: string | null
 ): ResolvedTheme {
+  // Deriving readable text takes about a millisecond, and pickers resolve many
+  // themes per render, so results are cached. Treat them as read-only.
+  const key = [base, gradientFrom, gradientTo, accentColor, cardOpacity, fontId].join("|");
+  const cached = resolvedCache.get(key);
+  if (cached) return cached;
+  const theme = readableText(
+    resolveBaseLook(base, gradientFrom, gradientTo, accentColor, cardOpacity, fontId),
+    base
+  );
+  if (resolvedCache.size >= RESOLVED_CACHE_LIMIT) resolvedCache.clear();
+  resolvedCache.set(key, theme);
+  return theme;
+}
+
+const RESOLVED_CACHE_LIMIT = 500;
+const resolvedCache = new Map<string, ResolvedTheme>();
+
+function resolveBaseLook(
+  base: BaseTheme,
+  gradientFrom: string,
+  gradientTo: string,
+  accentColor: string,
+  cardOpacity?: number | null,
+  fontId?: string | null
+): ThemeDraft {
   const { r: aR, g: aG, b: aB } = hex2rgb(accentColor);
   const accentRgb = `${aR},${aG},${aB}`;
   const accentFg = getReadableText(accentColor);
@@ -730,10 +984,8 @@ export function resolveTheme(
     pageDecorationBg2: "none",
     textPrimary: "#0a0a0a",
     textSecondary: "#52525b",
-    textMuted: "#333333",
+    textMuted: "#71717a",
     headingFont: customHeadingFont ?? "inherit",
-    heroText: "#ffffff",
-    heroTextShadow: "0 1px 4px rgba(0,0,0,0.3)",
     accent: accentColor,
     accentRgb,
     accentFg,
