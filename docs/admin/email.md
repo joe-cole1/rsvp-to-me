@@ -71,15 +71,11 @@ and a thirty-second deadline each. HTTP requests are aborted and timed-out SMTP
 transports are closed. Notification preparation or delivery failure does not
 undo the saved update. Results are not persisted and do not automatically retry.
 
-This upgrade requires no new settings, environment variables, dependencies,
-database migration, or Cloudflare Worker deployment. Current email templates,
-locale, themes, reply-to, BCC privacy, and sender configuration remain in use.
-Other notification producers retain their current helpers and have not yet
-adopted the new routing and reporting policy.
+Recipient preferences add database migrations and profile/event settings, with no new dependencies, sender credentials, environment variables or Cloudflare Worker deployment. Current email templates, locale, themes, reply-to and BCC privacy remain in use. Automatic reminders, RSVP confirmations/decisions and organizer alerts also enforce recipient preferences. Initial invitations, manual blasts and authentication remain separate. See [Notification Preferences](../host/notification-preferences.md).
 
-_Note on Reminders:_ The in-process cron scheduler checks every 15 minutes to trigger due reminders. Each reminder type is sent exactly once per user per event.
+_Note on Reminders:_ The scheduler consumes each logical occurrence before submission. It does not automatically retry partial or uncertain acceptance; a crash after claiming can lose the occurrence. This is not an exactly-once delivery guarantee.
 
-_Note on Host RSVP Alerts:_ When a guest RSVPs, the host and every co-host receive a **"New RSVP" alert** email summarizing the response (guest name, status, plus-ones, note) plus the current Going/Maybe/Can't-Go tallies. This is controlled per event by the **Email me when a guest RSVPs** toggle under **Event Settings → RSVP Options → Notification Settings** — new events default it **on** (a matching **Text me when a guest RSVPs** toggle defaults **off** and appears only when SMS is enabled, backed by the `Event.hostAlertEmail` / `Event.hostAlertSms` columns). Host alerts are **not** affected by the site-wide guest-email channel toggle — an operator who turns off guest email notifications will still receive their own new-RSVP alerts (the SMS alert does respect the site-wide SMS toggle).
+_Note on Host RSVP Alerts:_ Event settings control whether organizers are notified of new RSVPs. Each organizer checks their own alert channels, in their profile or for one event. Email is the new-event default. Host-alert email remains independent of the guest-email toggle; SMS respects the site SMS toggle. Verified reusable destinations require explicit event selection. See [Notification Preferences](../host/notification-preferences.md).
 
 Personalized guest invitations keep the recipient’s RSVP context in the **View event details** link, just like the response buttons. This applies to newly sent and resent invitations; previously delivered emails are unchanged.
 

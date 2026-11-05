@@ -35,6 +35,7 @@ const {
 
 vi.mock("@/lib/db", () => ({
   db: {
+    notificationSettings: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     event: { findUnique: mockEventFindUnique },
     user: { findUnique: mockUserFindUnique, findMany: mockUserFindMany },
     eventCoHost: {

@@ -52,6 +52,10 @@ vi.mock("@/lib/db", () => ({
         throw error;
       }
     },
+    event: { findUnique: async () => (await mockRsvpFindUnique()).event },
+    notificationSettings: { findMany: async () => [] },
+    notificationConnection: { findMany: async () => [] },
+    notificationBinding: { findMany: async () => [] },
     rSVP: {
       findUnique: mockRsvpFindUnique,
       update: mockRsvpUpdate,
@@ -64,16 +68,33 @@ vi.mock("@/lib/db", () => ({
     checkIn: { deleteMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/email", () => ({
-  sendRsvpConfirmationEmail: mockConfirmEmail,
-  sendApprovalEmail: vi.fn(),
-  sendHostRsvpAlertEmail: mockAlertEmail,
-}));
-vi.mock("@/lib/sms", () => ({
-  sendRsvpConfirmationSms: mockConfirmSms,
-  sendApprovalSms: vi.fn(),
-  sendHostRsvpAlertSms: mockAlertSms,
-}));
+vi.mock("@/lib/email", async () => {
+  const { captureAdapter } = await import("@/tests/helpers/notification-adapter");
+  return {
+    createEmailNotificationAdapter: async () =>
+      captureAdapter("email", async (message, target) => {
+        if (message.kind === "host_alert")
+          return mockAlertEmail(target.destination, { ...message.options, locale: target.locale });
+        if (message.kind === "confirmation")
+          return mockConfirmEmail(target.destination, {
+            ...message.options,
+            locale: target.locale,
+          });
+      }),
+  };
+});
+vi.mock("@/lib/sms", async () => {
+  const { captureAdapter } = await import("@/tests/helpers/notification-adapter");
+  return {
+    createSmsNotificationAdapter: async () =>
+      captureAdapter("sms", async (message, target) => {
+        if (message.kind === "host_alert")
+          return mockAlertSms(target.destination, { ...message.options, locale: target.locale });
+        if (message.kind === "confirmation")
+          return mockConfirmSms(target.destination, { ...message.options, locale: target.locale });
+      }),
+  };
+});
 vi.mock("@/lib/activity", () => ({ logActivity: mockActivity, iconLabel: vi.fn() }));
 vi.mock("@/lib/capacityLock", () => ({
   withEventCapacityLock: vi.fn((_eventId: string, fn: () => Promise<unknown>) => fn()),
@@ -117,8 +138,10 @@ function invitedRsvp(overrides: Record<string, unknown> = {}) {
       theme: THEME,
       hostAlertEmail: true,
       hostAlertSms: true,
-      host: { email: "host@example.com", phone: "+15551230000", preferredLocale: null },
-      coHosts: [{ user: { email: "cohost@example.com", phone: null, preferredLocale: null } }],
+      host: { id: "host", email: "host@example.com", phone: "+15551230000", preferredLocale: null },
+      coHosts: [
+        { user: { id: "cohost", email: "cohost@example.com", phone: null, preferredLocale: null } },
+      ],
       rsvpFields: [],
     },
     ...overrides,
@@ -154,6 +177,7 @@ describe("an invited guest's first response through the edit link", () => {
       where: { id: "rsvp-1", responded: false },
       data: { responded: true },
     });
+    await vi.waitFor(() => expect(mockConfirmEmail).toHaveBeenCalled());
     expect(mockConfirmEmail).toHaveBeenCalledWith(
       "alice@example.com",
       expect.objectContaining({
@@ -170,10 +194,7 @@ describe("an invited guest's first response through the edit link", () => {
       "host@example.com",
       expect.objectContaining({ guestName: "Alice QA", status: "GOING", goingCount: 4 })
     );
-    expect(mockAlertSms).toHaveBeenCalledWith(
-      "+15551230000",
-      expect.objectContaining({ guestName: "Alice QA", plusOneCount: 1, note: "Yay" })
-    );
+    expect(mockAlertSms).not.toHaveBeenCalled(); // Preferred email acceptance stops SMS fallback.
     expect(mockActivity).toHaveBeenCalledWith(
       "event-1",
       "rsvp_new",
@@ -190,6 +211,7 @@ describe("an invited guest's first response through the edit link", () => {
     await updateRSVP("tok-1", ANSWER);
 
     expect(mockConfirmEmail).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(mockConfirmSms).toHaveBeenCalled());
     expect(mockConfirmSms).toHaveBeenCalledWith(
       "+15550001111",
       expect.objectContaining({ guestName: "Alice QA", editToken: "tok-1", status: "GOING" })
@@ -248,7 +270,7 @@ describe("an invited guest's first response through the edit link", () => {
     expect(mockActivity).not.toHaveBeenCalled();
 
     expect((await updateRSVP("tok-1", ANSWER)).success).toBe(true);
-    expect(mockConfirmEmail).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(mockConfirmEmail).toHaveBeenCalledTimes(1));
     await vi.waitFor(() => expect(mockAlertEmail).toHaveBeenCalledTimes(2));
     expect(mockActivity).toHaveBeenCalledWith(
       "event-1",

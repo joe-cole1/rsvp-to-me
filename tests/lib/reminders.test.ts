@@ -1,460 +1,246 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
-  mockEventFindMany: vi.fn(),
-  mockUserFindMany: vi.fn().mockResolvedValue([]),
-  mockSentReminderCreate: vi.fn().mockResolvedValue({}),
-  mockSessionDeleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-  mockCronLockDeleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-  mockCronLockCreate: vi.fn().mockResolvedValue({}),
-  mockCronLockDelete: vi.fn().mockResolvedValue({}),
-  mockInvitationFindMany: vi.fn().mockResolvedValue([]),
-  mockSendBlastEmail: vi.fn().mockResolvedValue(undefined),
-  mockSendSmsBlast: vi.fn().mockResolvedValue(undefined),
-  mockIsRedisEnabled: vi.fn().mockReturnValue(false),
-  mockRedisAcquireLock: vi.fn().mockResolvedValue(true),
-  mockRedisReleaseLock: vi.fn().mockResolvedValue(undefined),
+  schedules: vi.fn(),
+  claim: vi.fn(),
+  acquire: vi.fn(),
+  release: vi.fn(),
+  dbLock: vi.fn(),
+  cleanup: vi.fn(),
+  unlock: vi.fn(),
+  settings: vi.fn(),
+  deliver: vi.fn(),
+  redis: { enabled: false },
 }));
-
 vi.mock("@/lib/db", () => ({
   db: {
-    user: { findMany: mocks.mockUserFindMany },
-    event: { findMany: mocks.mockEventFindMany },
-    sentReminder: { create: mocks.mockSentReminderCreate },
-    session: { deleteMany: mocks.mockSessionDeleteMany },
-    cronLock: {
-      deleteMany: mocks.mockCronLockDeleteMany,
-      create: mocks.mockCronLockCreate,
-      delete: mocks.mockCronLockDelete,
-    },
-    invitation: { findMany: mocks.mockInvitationFindMany },
+    notificationSchedule: { findMany: mocks.schedules, updateMany: mocks.claim },
+    notificationSettings: { findMany: mocks.settings },
+    notificationBinding: { findMany: async () => [] },
+    notificationConnection: { findMany: async () => [] },
+    cronLock: { create: mocks.dbLock, deleteMany: mocks.cleanup, delete: mocks.unlock },
+    session: { deleteMany: async () => ({ count: 0 }) },
   },
 }));
-
-vi.mock("@/lib/email", () => ({
-  sendBlastEmail: mocks.mockSendBlastEmail,
-}));
-
-vi.mock("@/lib/sms", () => ({
-  sendSmsBlast: mocks.mockSendSmsBlast,
-}));
-
 vi.mock("@/lib/redis", () => ({
-  isRedisEnabled: mocks.mockIsRedisEnabled,
-  redisAcquireLock: mocks.mockRedisAcquireLock,
-  redisReleaseLock: mocks.mockRedisReleaseLock,
+  isRedisEnabled: () => mocks.redis.enabled,
+  redisAcquireLock: mocks.acquire,
+  redisReleaseLock: mocks.release,
 }));
-
+vi.mock("@/lib/notifications/service", () => ({ deliver: mocks.deliver }));
 import { processReminders } from "@/lib/reminders";
-
-function makeReminderEvent(overrides: Record<string, unknown> = {}) {
-  const now = new Date();
+const guest = {
+  id: "rsvp",
+  guestEmail: "guest@example.com",
+  guestPhone: "+15551234567",
+  userId: "user",
+  status: "GOING",
+  responded: true,
+  user: {
+    notificationChannel: "BOTH",
+    emailNotifications: true,
+    smsNotifications: true,
+    preferredLocale: "en-US",
+  },
+};
+function schedule(overrides = {}) {
   return {
-    id: "event-1",
-    title: "Wine Night",
-    slug: "wine-night",
-    status: "PUBLISHED",
-    startAt: new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000), // 8 days out
-    host: { name: "Alice" },
-    reminderSettings: {
-      emailWeekBefore: false,
-      emailDayBefore: false,
-      emailHoursBefore: 0,
-      smsWeekBefore: false,
-      smsDayBefore: false,
-      smsHoursBefore: 0,
-      nudgeUnresponded: false,
+    id: "slot",
+    hoursBefore: 2,
+    kind: "reminder",
+    recipientRouting: true,
+    legacyChannels: [],
+    event: {
+      id: "event",
+      title: "Party",
+      slug: "party",
+      theme: null,
+      host: { name: "Host" },
+      hostDisplayName: null,
+      startAt: new Date("2026-12-01T13:00:00Z"),
+      rsvps: [guest],
+      invitations: [] as { rsvpId: string; channel: string; sentTo: string }[],
     },
-    rsvps: [],
-    sentReminders: [],
     ...overrides,
   };
 }
-
 beforeEach(() => {
   vi.clearAllMocks();
-  // Set default resolutions for mocks to prevent undefined .catch errors
-  mocks.mockSessionDeleteMany.mockResolvedValue({ count: 0 });
-  mocks.mockCronLockDeleteMany.mockResolvedValue({ count: 0 });
-  mocks.mockCronLockCreate.mockResolvedValue({});
-  mocks.mockCronLockDelete.mockResolvedValue({});
-  mocks.mockSentReminderCreate.mockResolvedValue({});
-  mocks.mockInvitationFindMany.mockResolvedValue([]);
-  mocks.mockUserFindMany.mockResolvedValue([]);
-  mocks.mockSendBlastEmail.mockResolvedValue(undefined);
-  mocks.mockSendSmsBlast.mockResolvedValue(undefined);
-  mocks.mockIsRedisEnabled.mockReturnValue(false);
-  mocks.mockRedisAcquireLock.mockResolvedValue(true);
-  mocks.mockRedisReleaseLock.mockResolvedValue(undefined);
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-12-01T12:00:00Z"));
+  mocks.redis.enabled = false;
+  mocks.schedules.mockResolvedValue([]);
+  mocks.claim.mockResolvedValue({ count: 1 });
+  mocks.settings.mockResolvedValue([]);
+  mocks.acquire.mockResolvedValue(true);
+  mocks.dbLock.mockResolvedValue({});
+  mocks.cleanup.mockResolvedValue({ count: 0 });
+  mocks.unlock.mockResolvedValue({});
+  mocks.release.mockResolvedValue(undefined);
+  mocks.deliver.mockResolvedValue({ summary: { accepted: 1 } });
 });
-
-describe("processReminders — DB locking", () => {
-  beforeEach(() => {
-    mocks.mockIsRedisEnabled.mockReturnValue(false);
-  });
-
-  it("acquires a cronLock before processing (calls cronLock.create with jobName)", async () => {
-    mocks.mockEventFindMany.mockResolvedValue([]);
-
+afterEach(() => vi.useRealTimers());
+describe("reminder locking and occurrence consumption", () => {
+  it("acquires and releases the database cron lock", async () => {
     await processReminders();
-    expect(mocks.mockCronLockCreate).toHaveBeenCalledWith({
-      data: {
-        jobName: "process_reminders",
-        lockedAt: expect.any(Date),
-        expireAt: expect.any(Date),
-      },
-    });
-  });
-
-  it("skips processing when cronLock.create throws (another instance holds lock)", async () => {
-    mocks.mockCronLockCreate.mockRejectedValue(new Error("P2002 Unique constraint failed"));
-    mocks.mockEventFindMany.mockResolvedValue([]);
-
-    await processReminders();
-    expect(mocks.mockEventFindMany).not.toHaveBeenCalled();
-  });
-
-  it("deletes stale cronLock entries before acquiring (calls cronLock.deleteMany)", async () => {
-    mocks.mockEventFindMany.mockResolvedValue([]);
-
-    await processReminders();
-    expect(mocks.mockCronLockDeleteMany).toHaveBeenCalled();
-  });
-
-  it("deletes the cronLock in the finally block even when processing throws", async () => {
-    mocks.mockEventFindMany.mockRejectedValue(new Error("Query failed"));
-
-    await expect(processReminders()).rejects.toThrow("Query failed");
-    expect(mocks.mockCronLockDelete).toHaveBeenCalledWith({
-      where: { jobName: "process_reminders" },
-    });
-  });
-});
-
-describe("processReminders — Redis locking", () => {
-  beforeEach(() => {
-    mocks.mockIsRedisEnabled.mockReturnValue(true);
-  });
-
-  it("calls redisAcquireLock instead of cronLock.create", async () => {
-    mocks.mockEventFindMany.mockResolvedValue([]);
-
-    await processReminders();
-    expect(mocks.mockRedisAcquireLock).toHaveBeenCalledWith("lock:cron:process_reminders", 600);
-    expect(mocks.mockRedisReleaseLock).toHaveBeenCalledWith("lock:cron:process_reminders");
-  });
-
-  it("skips when Redis lock cannot be acquired", async () => {
-    mocks.mockRedisAcquireLock.mockResolvedValue(false);
-    await processReminders();
-    expect(mocks.mockEventFindMany).not.toHaveBeenCalled();
-  });
-});
-
-describe("processReminders — email reminders", () => {
-  it("sends email_week when emailWeekBefore=true, event is within 7 days, guests have emails, not yet sent", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000), // 6 days out (<= 7 days)
-      reminderSettings: {
-        emailWeekBefore: true,
-        emailDayBefore: false,
-        emailHoursBefore: 0,
-      },
-      rsvps: [{ guestEmail: "bob@example.com", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(["bob@example.com"], expect.any(Object));
-    expect(mocks.mockSentReminderCreate).toHaveBeenCalledWith({
-      data: { eventId: "event-1", type: "email_week" },
-    });
-  });
-
-  it("does NOT send email_week when already in sentReminders", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
-      reminderSettings: {
-        emailWeekBefore: true,
-      },
-      rsvps: [{ guestEmail: "bob@example.com", approved: true }],
-      sentReminders: [{ type: "email_week" }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendBlastEmail).not.toHaveBeenCalled();
-  });
-
-  it("does NOT send email_week when event is > 7 days away", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000), // 8 days out (> 7 days)
-      reminderSettings: {
-        emailWeekBefore: true,
-      },
-      rsvps: [{ guestEmail: "bob@example.com", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendBlastEmail).not.toHaveBeenCalled();
-  });
-
-  it("excludes guests with user.emailNotifications=false", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
-      reminderSettings: {
-        emailWeekBefore: true,
-      },
-      rsvps: [
-        { guestEmail: "bob@example.com", approved: true, user: { emailNotifications: false } },
-      ],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendBlastEmail).not.toHaveBeenCalled();
-  });
-
-  it("sends email_day when emailDayBefore=true, event 24+ hours out (actually within 24 hours)", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // 12 hours out (<= 24 hours)
-      reminderSettings: {
-        emailDayBefore: true,
-      },
-      rsvps: [{ guestEmail: "bob@example.com", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(["bob@example.com"], expect.any(Object));
-  });
-
-  it("sends email_hours when emailHoursBefore > 0, and event is within N hours", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours out
-      reminderSettings: {
-        emailHoursBefore: 3, // due at startAt - 3 hours
-      },
-      rsvps: [{ guestEmail: "bob@example.com", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(["bob@example.com"], expect.any(Object));
-  });
-});
-
-describe("processReminders — SMS reminders", () => {
-  it("sends sms_week when smsWeekBefore=true, phones present, event 7+ days out (actually within 7 days)", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000), // 6 days out
-      reminderSettings: {
-        smsWeekBefore: true,
-      },
-      rsvps: [{ guestPhone: "15551234567", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendSmsBlast).toHaveBeenCalledWith(["15551234567"], expect.any(Object));
-  });
-
-  it("sends sms_day when smsDayBefore=true, phones present", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // 12 hours out
-      reminderSettings: {
-        smsDayBefore: true,
-      },
-      rsvps: [{ guestPhone: "15551234567", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendSmsBlast).toHaveBeenCalledWith(["15551234567"], expect.any(Object));
-  });
-
-  it("sends sms_hours when smsHoursBefore > 0", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour out
-      reminderSettings: {
-        smsHoursBefore: 2,
-      },
-      rsvps: [{ guestPhone: "15551234567", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendSmsBlast).toHaveBeenCalledWith(["15551234567"], expect.any(Object));
-  });
-
-  it("excludes guests with user.smsNotifications=false", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 12 * 60 * 60 * 1000),
-      reminderSettings: {
-        smsDayBefore: true,
-      },
-      rsvps: [{ guestPhone: "15551234567", approved: true, user: { smsNotifications: false } }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-
-    await processReminders();
-    expect(mocks.mockSendSmsBlast).not.toHaveBeenCalled();
-  });
-});
-
-describe("processReminders — nudge", () => {
-  it("nudge_email: queries invitations channel=EMAIL, sends to those not in rsvpEmails set", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days out (<= 3 days)
-      reminderSettings: {
-        nudgeUnresponded: true,
-      },
-      rsvps: [{ guestEmail: "bob@example.com", approved: true }], // bob already rsvp'd
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-    mocks.mockInvitationFindMany.mockResolvedValue([
-      { sentTo: "bob@example.com" },
-      { sentTo: "alice@example.com" }, // alice has not rsvp'd
-    ]);
-
-    await processReminders();
-    expect(mocks.mockInvitationFindMany).toHaveBeenCalledWith({
-      where: { eventId: "event-1", channel: "EMAIL" },
-      select: { sentTo: true },
-    });
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(
-      ["alice@example.com"],
-      expect.any(Object)
+    expect(mocks.cleanup).toHaveBeenCalled();
+    expect(mocks.dbLock).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ jobName: "process_reminders" }) })
     );
+    expect(mocks.unlock).toHaveBeenCalledWith({ where: { jobName: "process_reminders" } });
   });
-
-  it("nudge_email: skips when no uninvited emails", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      reminderSettings: {
-        nudgeUnresponded: true,
-      },
-      rsvps: [{ guestEmail: "bob@example.com", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-    mocks.mockInvitationFindMany.mockResolvedValue([{ sentTo: "bob@example.com" }]);
-
+  it("skips when the database lock is already held", async () => {
+    mocks.dbLock.mockRejectedValue(new Error("unique"));
     await processReminders();
-    expect(mocks.mockSendBlastEmail).not.toHaveBeenCalled();
+    expect(mocks.schedules).not.toHaveBeenCalled();
   });
-
-  it("nudge_sms: queries invitations channel=SMS, sends to those not in rsvpPhones set", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      reminderSettings: {
-        nudgeUnresponded: true,
-      },
-      rsvps: [{ guestPhone: "15551234567", approved: true }],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
-    mocks.mockInvitationFindMany.mockResolvedValue([
-      { sentTo: "15551234567" },
-      { sentTo: "15559999999" },
-    ]);
-
-    await processReminders();
-    expect(mocks.mockInvitationFindMany).toHaveBeenCalledWith({
-      where: { eventId: "event-1", channel: "SMS" },
-      select: { sentTo: true },
-    });
-    expect(mocks.mockSendSmsBlast).toHaveBeenCalledWith(["15559999999"], expect.any(Object));
+  it("releases the database lock when preparation fails", async () => {
+    mocks.schedules.mockRejectedValue(new Error("Query failed"));
+    await expect(processReminders()).rejects.toThrow("Query failed");
+    expect(mocks.unlock).toHaveBeenCalled();
   });
-});
-
-describe("processReminders — event filtering", () => {
-  it("skips CANCELLED events", async () => {
-    // The query filter status: { not: 'CANCELLED' } will prevent it from being fetched in prod,
-    // but let's test if it handles it if returned or we check query
+  it("uses Redis locking when enabled", async () => {
+    mocks.redis.enabled = true;
     await processReminders();
-    expect(mocks.mockEventFindMany).toHaveBeenCalledWith(
+    expect(mocks.acquire).toHaveBeenCalledWith("lock:cron:process_reminders", 600);
+    expect(mocks.release).toHaveBeenCalled();
+    expect(mocks.dbLock).not.toHaveBeenCalled();
+  });
+  it("skips when Redis lock acquisition fails", async () => {
+    mocks.redis.enabled = true;
+    mocks.acquire.mockResolvedValue(false);
+    await processReminders();
+    expect(mocks.schedules).not.toHaveBeenCalled();
+    expect(mocks.release).not.toHaveBeenCalled();
+  });
+  it("queries only active unconsumed occurrences on future noncancelled events", async () => {
+    await processReminders();
+    expect(mocks.schedules).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          status: { not: "CANCELLED" },
-          startAt: { gt: expect.any(Date) },
-          reminderSettings: { isNot: null },
+          enabled: true,
+          consumedAt: null,
+          event: { status: { notIn: ["CANCELLED", "DELETED"] }, startAt: { gt: expect.any(Date) } },
         }),
       })
     );
   });
-});
-
-// Recipient language is independent of the cron process and browser state.
-describe("processReminders — recipient locales", () => {
-  it("groups one reminder by stored locale and records only the existing event/type marker", async () => {
-    const event = makeReminderEvent({
-      startAt: new Date(Date.now() + 60 * 60 * 1000),
-      host: { name: null },
-      reminderSettings: { emailHoursBefore: 2, smsHoursBefore: 0 },
-      rsvps: [
-        {
-          guestEmail: "en@example.com",
-          guestPhone: null,
-          user: { preferredLocale: "en-US", emailNotifications: true, smsNotifications: true },
-        },
-        {
-          guestEmail: "nl@example.com",
-          guestPhone: null,
-          user: { preferredLocale: "nl-NL", emailNotifications: true, smsNotifications: true },
-        },
-        {
-          guestEmail: "off@example.com",
-          guestPhone: null,
-          user: { preferredLocale: "nl-NL", emailNotifications: false, smsNotifications: true },
-        },
-      ],
-    });
-    mocks.mockEventFindMany.mockResolvedValue([event]);
+  it("does not consume a reminder before it is due", async () => {
+    mocks.schedules.mockResolvedValue([schedule({ hoursBefore: 0.5 })]);
     await processReminders();
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledTimes(2);
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(
-      ["en@example.com"],
-      expect.objectContaining({
-        locale: "en-US",
-        hostName: "Your host",
-        message: "Wine Night starts in 2 hours! See you soon.",
-      })
-    );
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledWith(
-      ["nl@example.com"],
-      expect.objectContaining({
-        locale: "nl-NL",
-        hostName: "De organisator",
-        message: "Wine Night begint over 2 uur! Tot snel.",
-      })
-    );
-    expect(mocks.mockSentReminderCreate).toHaveBeenCalledTimes(1);
-    expect(mocks.mockSentReminderCreate).toHaveBeenCalledWith({
-      data: { eventId: "event-1", type: "email_hours" },
-    });
+    expect(mocks.claim).not.toHaveBeenCalled();
+    expect(mocks.deliver).not.toHaveBeenCalled();
   });
-  it("does not record a successful marker when a later locale group fails", async () => {
-    mocks.mockEventFindMany.mockResolvedValue([
-      makeReminderEvent({
-        startAt: new Date(Date.now() + 60 * 60 * 1000),
-        reminderSettings: { emailHoursBefore: 2, smsHoursBefore: 0 },
-        rsvps: [
-          {
-            guestEmail: "en@example.com",
-            user: { preferredLocale: "en-US", emailNotifications: true },
-          },
-          {
-            guestEmail: "nl@example.com",
-            user: { preferredLocale: "nl-NL", emailNotifications: true },
-          },
-        ],
-      }),
-    ]);
-    mocks.mockSendBlastEmail
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error("group failed"));
+  it("atomically consumes the occurrence before any submission", async () => {
+    mocks.schedules.mockResolvedValue([schedule()]);
     await processReminders();
-    expect(mocks.mockSendBlastEmail).toHaveBeenCalledTimes(2);
-    expect(mocks.mockSentReminderCreate).not.toHaveBeenCalled();
+    expect(mocks.claim).toHaveBeenCalledWith({
+      where: { id: "slot", enabled: true, consumedAt: null },
+      data: { consumedAt: expect.any(Date) },
+    });
+    expect(mocks.claim.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.deliver.mock.invocationCallOrder[0]
+    );
+  });
+  it("does not send an occurrence already claimed by another scheduler", async () => {
+    mocks.schedules.mockResolvedValue([schedule()]);
+    mocks.claim.mockResolvedValue({ count: 0 });
+    await processReminders();
+    expect(mocks.deliver).not.toHaveBeenCalled();
+  });
+  it("does not retry consumed partial/uncertain submissions", async () => {
+    mocks.schedules.mockResolvedValue([schedule()]);
+    mocks.deliver.mockRejectedValue(new Error("private provider payload"));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await processReminders();
+    mocks.claim.mockResolvedValue({ count: 0 });
+    await processReminders();
+    expect(mocks.deliver).toHaveBeenCalledTimes(1);
+    expect(warning).toHaveBeenCalledWith(
+      "[reminders] Occurrence consumed; notification preparation failed"
+    );
+    warning.mockRestore();
+  });
+});
+describe("recipient-controlled reminders", () => {
+  it("routes one logical reminder through the recipient's policy", async () => {
+    mocks.schedules.mockResolvedValue([schedule()]);
+    await processReminders();
+    expect(mocks.deliver).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "event_update",
+        body: "Party starts in 2 hours! See you soon.",
+        smsBody: "Party starts in 2 hours!",
+      }),
+      [
+        expect.objectContaining({
+          policy: { channels: ["email", "sms"] },
+          destinations: { email: guest.guestEmail, sms: guest.guestPhone },
+          // Neither contact is proved, so they share one message.
+          proved: [],
+        }),
+      ]
+    );
+  });
+  it("retains a migrated email-only channel ceiling", async () => {
+    mocks.schedules.mockResolvedValue([
+      schedule({ recipientRouting: false, legacyChannels: ["email"] }),
+    ]);
+    await processReminders();
+    expect(mocks.deliver.mock.calls[0][1][0].policy.channels).toEqual(["email"]);
+  });
+  it("honors a reminder-category opt-out", async () => {
+    mocks.settings.mockResolvedValue([
+      {
+        id: "profile:user",
+        channels: ["email", "sms"],
+        blockedChannels: [],
+        categories: [{ category: "reminders", channels: [] }],
+      },
+    ]);
+    mocks.schedules.mockResolvedValue([schedule()]);
+    await processReminders();
+    expect(mocks.deliver.mock.calls[0][1][0].policy.channels).toEqual([]);
+  });
+  it("does not use a historical invitation address as an opt-out bypass", async () => {
+    const slot = schedule({ kind: "nudge" });
+    slot.event.rsvps = [
+      {
+        ...guest,
+        status: "INVITED",
+        responded: false,
+        user: { ...guest.user, emailNotifications: false, smsNotifications: false },
+      },
+    ];
+    slot.event.invitations = [{ rsvpId: "rsvp", channel: "EMAIL", sentTo: guest.guestEmail }];
+    mocks.schedules.mockResolvedValue([slot]);
+    await processReminders();
+    expect(mocks.deliver.mock.calls[0][1][0].policy.channels).toEqual([]);
+  });
+  it("nudges only unanswered matching event contacts", async () => {
+    const slot = schedule({ kind: "nudge" });
+    slot.event.rsvps = [
+      { ...guest, status: "INVITED", responded: false },
+      { ...guest, id: "answered" },
+    ];
+    slot.event.invitations = [
+      { rsvpId: "rsvp", channel: "EMAIL", sentTo: "stale@example.com" },
+      { rsvpId: "foreign", channel: "SMS", sentTo: guest.guestPhone },
+    ];
+    mocks.schedules.mockResolvedValue([slot]);
+    await processReminders();
+    expect(mocks.deliver.mock.calls[0][1]).toHaveLength(1);
+    expect(mocks.deliver.mock.calls[0][1][0].destinations).toEqual({});
+  });
+  it("localizes each recipient group from stored locale", async () => {
+    const slot = schedule();
+    slot.event.rsvps = [
+      guest,
+      { ...guest, id: "nl", user: { ...guest.user, preferredLocale: "nl-NL" } },
+    ];
+    mocks.schedules.mockResolvedValue([slot]);
+    await processReminders();
+    expect(mocks.deliver).toHaveBeenCalledTimes(2);
+    expect(mocks.deliver.mock.calls[1][0].body).toBe("Party begint over 2 uur! Tot snel.");
+    expect(mocks.claim).toHaveBeenCalledTimes(1);
   });
 });

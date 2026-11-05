@@ -6,6 +6,10 @@ import type { ResolvedTheme } from "@/lib/theme";
 import type { SettingsOverrides } from "./types";
 import type { SettingsPageStyles } from "./styles";
 import { Label, Section, Toggle } from "./ui";
+import {
+  NotificationPreferences,
+  type SaveReport,
+} from "@/components/notifications/NotificationPreferences";
 
 export function RsvpOptionsPanel({
   plusOneAllowed,
@@ -30,8 +34,9 @@ export function RsvpOptionsPanel({
   setHostAlertEmail,
   hostAlertSms,
   setHostAlertSms,
-  channelConfig,
   triggerSaveSettings,
+  eventId,
+  onNotificationStatus,
   t,
   S,
 }: {
@@ -59,10 +64,13 @@ export function RsvpOptionsPanel({
   setHostAlertSms: React.Dispatch<React.SetStateAction<boolean>>;
   channelConfig: { email: boolean; sms: boolean };
   triggerSaveSettings: (overrides: SettingsOverrides) => void;
+  eventId: string;
+  onNotificationStatus: SaveReport;
   t: ResolvedTheme;
   S: SettingsPageStyles;
 }) {
   const translate = useTranslations("Ui.Event.RsvpOptionsPanel");
+  const notifications = useTranslations("Ui.Notifications");
 
   return (
     <Section title={translate("rsvpOptions")} t={t}>
@@ -162,24 +170,28 @@ export function RsvpOptionsPanel({
           {translate("newRsvpAlertsGoCoHosts")}
         </div>
         <Toggle
-          label={translate("emailMeWhenGuestRsvps")}
-          value={hostAlertEmail}
+          label={notifications("enableHostAlerts")}
+          value={hostAlertEmail || hostAlertSms}
           onChange={(val) => {
+            // The event decides whether alerts exist; each organizer chooses how to get them.
             setHostAlertEmail(val);
-            triggerSaveSettings({ hostAlertEmail: val });
+            if (!val) setHostAlertSms(false);
+            triggerSaveSettings(
+              val ? { hostAlertEmail: true } : { hostAlertEmail: false, hostAlertSms: false }
+            );
           }}
           t={t}
         />
-        {channelConfig.sms && (
-          <Toggle
-            label={translate("textMeWhenGuestRsvps")}
-            value={hostAlertSms}
-            onChange={(val) => {
-              setHostAlertSms(val);
-              triggerSaveSettings({ hostAlertSms: val });
-            }}
-            t={t}
+        <Label t={t}>{notifications("organizerTitle")}</Label>
+        {hostAlertEmail || hostAlertSms ? (
+          <NotificationPreferences
+            scope={{ kind: "organizer", eventId }}
+            theme={t}
+            embedded
+            onStatus={onNotificationStatus}
           />
+        ) : (
+          <Label t={t}>{notifications("organizerOff")}</Label>
         )}
       </div>
       <Toggle

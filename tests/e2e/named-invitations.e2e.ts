@@ -83,8 +83,14 @@ for (const baseTheme of ["DARK", "SOFT"] as const) {
         // #754: the host supplied an email, so no "you didn't add an email" warning.
         await expect(guestPage.getByText(/Save your Edit Link/)).toHaveCount(0);
         await expect(
-          guestPage.getByText(/from the link in your invitation or confirmation message/)
+          guestPage.getByRole("link", { name: "Keep your private RSVP edit link" })
         ).toBeVisible();
+        await expect(
+          guestPage.getByRole("link", { name: "Keep your private RSVP edit link" })
+        ).toHaveAttribute("href", `/e/${slug}/rsvp?token=${invited.editToken}`);
+        await expect(
+          guestPage.getByRole("link", { name: "Manage notifications for this event" })
+        ).toHaveAttribute("href", `/e/${slug}/notifications?token=${invited.editToken}`);
         const updated = await pool.query<{
           id: string;
           editToken: string;

@@ -55,7 +55,6 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import {
   updateProfileSettings,
-  updateNotificationSettings,
   getUserProfile,
   cancelMyAccountDeletion,
 } from "@/app/actions/profile";
@@ -138,28 +137,6 @@ describe("app/actions/profile.ts", () => {
         "new@example.com",
         expect.stringContaining("/auth/verify-change?token="),
         "en-US"
-      );
-    });
-  });
-
-  describe("updateNotificationSettings", () => {
-    it("updates notification toggles in db", async () => {
-      mockGetSession.mockResolvedValue({ userId: USER_ID, email: USER_EMAIL, role: "HOST" });
-
-      const res = await updateNotificationSettings({
-        emailNotifications: false,
-        smsNotifications: true,
-      });
-
-      expect(res.success).toBe(true);
-      expect(mockUserUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: USER_ID },
-          data: {
-            emailNotifications: false,
-            smsNotifications: true,
-          },
-        })
       );
     });
   });

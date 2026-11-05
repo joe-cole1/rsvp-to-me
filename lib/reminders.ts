@@ -1,20 +1,17 @@
-import { groupRecipientsByLocale, resolveRecipientGroups } from "@/emails/recipients";
 import { getTranslator } from "@/i18n/server";
 import { db } from "./db";
-import { sendBlastEmail } from "./email";
-import { sendSmsBlast } from "./sms";
+import { recipientSelect, resolveRecipients } from "./notifications/resolve";
+import { deliver } from "./notifications/service";
 import { isRedisEnabled, redisAcquireLock, redisReleaseLock } from "./redis";
 import { logSafe } from "./logger";
 
-type ReminderType =
-  | "email_week"
-  | "email_day"
-  | "email_hours"
-  | "sms_week"
-  | "sms_day"
-  | "sms_hours"
-  | "nudge_email"
-  | "nudge_sms";
+/** Week and day reminders keep their natural wording; other offsets use pluralized hours. */
+export function reminderCopy(kind: string, hours: number) {
+  if (kind === "nudge") return ["Reminders.nudge_email", "Reminders.nudge_sms"] as const;
+  if (hours === 168) return ["Reminders.email_week", "Reminders.sms_week"] as const;
+  if (hours === 24) return ["Reminders.email_day", "Reminders.sms_day"] as const;
+  return ["Reminders.email_hours", "Reminders.sms_hours"] as const;
+}
 
 export async function processReminders(): Promise<void> {
   const jobName = "process_reminders";
@@ -62,182 +59,86 @@ export async function processReminders(): Promise<void> {
       })
       .catch(logSafe("reminders:expired-session-cleanup"));
 
-    const events = await db.event.findMany({
+    const schedules = await db.notificationSchedule.findMany({
       where: {
-        status: { not: "CANCELLED" },
-        startAt: { gt: now },
-        reminderSettings: { isNot: null },
+        enabled: true,
+        consumedAt: null,
+        event: { status: { notIn: ["CANCELLED", "DELETED"] }, startAt: { gt: now } },
       },
       include: {
-        reminderSettings: true,
-        theme: true,
-        host: { select: { name: true } },
-        rsvps: {
-          where: { approved: true },
-          select: {
-            guestEmail: true,
-            guestPhone: true,
-            status: true,
-            user: {
-              select: {
-                emailNotifications: true,
-                smsNotifications: true,
-                preferredLocale: true,
-              },
+        event: {
+          include: {
+            theme: true,
+            host: { select: { name: true } },
+            rsvps: {
+              where: { approved: true },
+              select: { ...recipientSelect, status: true, responded: true },
             },
+            invitations: { select: { rsvpId: true, channel: true, sentTo: true } },
           },
         },
-        sentReminders: { select: { type: true } },
       },
     });
-
-    for (const event of events) {
-      const rs = event.reminderSettings!;
-      const sent = new Set(event.sentReminders.map((r) => r.type));
-      const startAt = event.startAt;
-
-      const emails = event.rsvps.flatMap((r) => {
-        if (!r.guestEmail) return [];
-        if (r.user && !r.user.emailNotifications) return [];
-        return [r.guestEmail];
+    for (const schedule of schedules) {
+      const { event } = schedule;
+      if (now.getTime() < event.startAt.getTime() - schedule.hoursBefore * 3600000) continue;
+      // Consume before submission: uncertainty or partial success must never auto-repeat.
+      const claimed = await db.notificationSchedule.updateMany({
+        where: { id: schedule.id, enabled: true, consumedAt: null },
+        data: { consumedAt: now },
       });
-      const phones = event.rsvps.flatMap((r) => {
-        if (!r.guestPhone) return [];
-        if (r.user && !r.user.smsNotifications) return [];
-        return [r.guestPhone];
-      });
-      const rsvpEmails = new Set(emails);
-      const rsvpPhones = new Set(phones);
-
-      // One marker per event/type is intentionally preserved. A failed later locale
-      // group can cause accepted earlier groups to repeat on the next cron tick.
-      const sendLocalized = async (type: ReminderType, addresses: string[], raw = false) => {
-        const channel = type.startsWith("email") || type === "nudge_email" ? "email" : "phone";
-        const groups = raw
-          ? await resolveRecipientGroups(addresses, channel)
-          : groupRecipientsByLocale(
-              event.rsvps.flatMap((r) => {
-                const address = channel === "email" ? r.guestEmail : r.guestPhone;
-                if (!address || !addresses.includes(address)) return [];
-                if (
-                  r.user &&
-                  !(channel === "email" ? r.user.emailNotifications : r.user.smsNotifications)
-                )
-                  return [];
-                return [{ address, preferredLocale: r.user?.preferredLocale }];
-              })
-            );
-        for (const [locale, recipients] of groups) {
+      if (!claimed.count) continue;
+      try {
+        const rows =
+          schedule.kind === "nudge"
+            ? event.rsvps
+                .filter((row) => row.status === "INVITED" && !row.responded)
+                .map((row) => ({
+                  ...row,
+                  guestEmail: event.invitations.some(
+                    (invite) =>
+                      invite.rsvpId === row.id &&
+                      invite.channel === "EMAIL" &&
+                      invite.sentTo.toLowerCase().trim() === row.guestEmail?.toLowerCase().trim()
+                  )
+                    ? row.guestEmail
+                    : null,
+                  guestPhone: event.invitations.some(
+                    (invite) =>
+                      invite.rsvpId === row.id &&
+                      invite.channel === "SMS" &&
+                      invite.sentTo === row.guestPhone
+                  )
+                    ? row.guestPhone
+                    : null,
+                }))
+            : event.rsvps;
+        const recipients = await resolveRecipients(
+          "reminders",
+          rows,
+          schedule.recipientRouting ? undefined : schedule.legacyChannels
+        );
+        const [emailKey, smsKey] = reminderCopy(schedule.kind, schedule.hoursBefore);
+        // Render copy per locale without treating host content as ICU syntax.
+        for (const locale of new Set(recipients.map((recipient) => recipient.locale))) {
           const t = await getTranslator(locale);
-          const base = {
-            locale,
-            eventTitle: event.title,
-            eventSlug: event.slug,
-            hostName: event.hostDisplayName ?? event.host.name ?? t("Email.yourHost"),
-            message: t(`Reminders.${type}`, {
+          const values = { eventTitle: event.title, hours: schedule.hoursBefore };
+          await deliver(
+            {
+              kind: "event_update",
+              id: schedule.id,
               eventTitle: event.title,
-              hours: rs.emailHoursBefore,
-            }),
-          };
-          if (channel === "email")
-            await sendBlastEmail(recipients, { ...base, theme: event.theme });
-          else
-            await sendSmsBlast(recipients, {
-              ...base,
-              message: t(`Reminders.${type}`, {
-                eventTitle: event.title,
-                hours: rs.smsHoursBefore,
-              }),
-            });
+              eventSlug: event.slug,
+              hostName: event.hostDisplayName ?? event.host.name,
+              theme: event.theme,
+              body: t(emailKey, values),
+              smsBody: t(smsKey, values),
+            },
+            recipients.filter((recipient) => recipient.locale === locale)
+          );
         }
-      };
-
-      const checks: Array<{
-        type: ReminderType;
-        enabled: boolean;
-        dueAt: Date;
-        send: () => Promise<unknown>;
-      }> = [
-        {
-          type: "email_week",
-          enabled: rs.emailWeekBefore && emails.length > 0,
-          dueAt: new Date(startAt.getTime() - 7 * 24 * 60 * 60 * 1000),
-          send: () => sendLocalized("email_week", emails),
-        },
-        {
-          type: "email_day",
-          enabled: rs.emailDayBefore && emails.length > 0,
-          dueAt: new Date(startAt.getTime() - 24 * 60 * 60 * 1000),
-          send: () => sendLocalized("email_day", emails),
-        },
-        {
-          type: "email_hours",
-          enabled: rs.emailHoursBefore > 0 && emails.length > 0,
-          dueAt: new Date(startAt.getTime() - rs.emailHoursBefore * 60 * 60 * 1000),
-          send: () => sendLocalized("email_hours", emails),
-        },
-        {
-          type: "sms_week",
-          enabled: rs.smsWeekBefore && phones.length > 0,
-          dueAt: new Date(startAt.getTime() - 7 * 24 * 60 * 60 * 1000),
-          send: () => sendLocalized("sms_week", phones),
-        },
-        {
-          type: "sms_day",
-          enabled: rs.smsDayBefore && phones.length > 0,
-          dueAt: new Date(startAt.getTime() - 24 * 60 * 60 * 1000),
-          send: () => sendLocalized("sms_day", phones),
-        },
-        {
-          type: "sms_hours",
-          enabled: rs.smsHoursBefore > 0 && phones.length > 0,
-          dueAt: new Date(startAt.getTime() - rs.smsHoursBefore * 60 * 60 * 1000),
-          send: () => sendLocalized("sms_hours", phones),
-        },
-        {
-          type: "nudge_email",
-          enabled: rs.nudgeUnresponded,
-          dueAt: new Date(startAt.getTime() - 3 * 24 * 60 * 60 * 1000),
-          send: async () => {
-            const invitations = await db.invitation.findMany({
-              where: { eventId: event.id, channel: "EMAIL" },
-              select: { sentTo: true },
-            });
-            const nudgeEmails = [...new Set(invitations.map((i) => i.sentTo))].filter(
-              (e) => !rsvpEmails.has(e)
-            );
-            if (nudgeEmails.length === 0) return;
-            return sendLocalized("nudge_email", nudgeEmails, true);
-          },
-        },
-        {
-          type: "nudge_sms",
-          enabled: rs.nudgeUnresponded,
-          dueAt: new Date(startAt.getTime() - 3 * 24 * 60 * 60 * 1000),
-          send: async () => {
-            const invitations = await db.invitation.findMany({
-              where: { eventId: event.id, channel: "SMS" },
-              select: { sentTo: true },
-            });
-            const nudgePhones = [...new Set(invitations.map((i) => i.sentTo))].filter(
-              (p) => !rsvpPhones.has(p)
-            );
-            if (nudgePhones.length === 0) return;
-            return sendLocalized("nudge_sms", nudgePhones, true);
-          },
-        },
-      ];
-
-      for (const check of checks) {
-        if (!check.enabled || sent.has(check.type) || now < check.dueAt) continue;
-
-        try {
-          await check.send();
-          await db.sentReminder.create({ data: { eventId: event.id, type: check.type } });
-          console.log(`[reminders] Sent ${check.type} for "${event.title}"`);
-        } catch (err) {
-          console.error(`[reminders] Failed ${check.type} for "${event.title}":`, err);
-        }
+      } catch {
+        console.warn("[reminders] Occurrence consumed; notification preparation failed");
       }
     }
   } finally {

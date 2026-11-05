@@ -101,6 +101,7 @@ export function RsvpFlow({
   organizerOverride?: boolean;
   readOnlyReason?: string;
 }) {
+  const notificationText = useTranslations("Ui.Notifications");
   const translate = useTranslations("Ui.Rsvp.RsvpFlow");
   const statusLabel = useTranslations("Ui.Rsvp.status");
   const locale = useLocale();
@@ -312,6 +313,14 @@ export function RsvpFlow({
               </p>
             )}
           </div>
+          <p>
+            <a
+              href={`/e/${event.slug}/notifications?token=${existingRsvp.editToken}`}
+              style={{ color: t.accent }}
+            >
+              {notificationText("manageEvent")}
+            </a>
+          </p>
           <a
             href={`/e/${event.slug}?token=${existingRsvp.editToken}`}
             style={{
@@ -374,7 +383,22 @@ export function RsvpFlow({
                 ? translate("hopeCanMake")
                 : translate("sorryCanTMake")}
           </p>
-          {contactOnFile && !organizerOverride && (
+          {savedEditToken && !organizerOverride && (
+            <p style={{ fontSize: 14, marginBottom: 24 }}>
+              <a
+                href={`/e/${event.slug}/notifications?token=${savedEditToken}`}
+                style={{ color: t.accent }}
+              >
+                {notificationText("manageEvent")}
+              </a>
+              <br />
+              <a href={`/e/${event.slug}/rsvp?token=${savedEditToken}`} style={{ color: t.accent }}>
+                {notificationText("saveEditLink")}
+              </a>
+            </p>
+          )}
+          {/* An answer added to an invitation: its private link goes only to the invited contact. */}
+          {!savedEditToken && contactOnFile && !organizerOverride && (
             <p
               style={{
                 fontSize: "13px",
@@ -668,6 +692,16 @@ export function RsvpFlow({
           >
             {translate("back")}
           </a>
+          {existingRsvp && !organizerOverride && (
+            <p>
+              <a
+                href={`/e/${event.slug}/notifications?token=${existingRsvp.editToken}`}
+                style={{ color: t.accent }}
+              >
+                {notificationText("manageEvent")}
+              </a>
+            </p>
+          )}
           <div style={{ marginBottom: "20px" }}>
             <div
               style={{

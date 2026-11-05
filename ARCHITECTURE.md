@@ -211,16 +211,35 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 ### Themes, effects, and email
 
 - `lib/notifications/` owns shared outbound notification policy and delivery
-  outcomes. Event updates are its first adopter: `event-update.ts` resolves the
-  existing event audience and RSVP contacts; `recipients.ts` translates legacy
-  preferences; `dispatch.ts` routes through registered channel adapters.
+  outcomes. `event-update.ts` resolves the existing event audience and RSVP
+  contacts; `dispatch.ts` routes through registered channel adapters.
   `transport.ts` bounds provider concurrency and deadlines. Result-bearing
   adapters in `lib/email.ts` and `lib/sms.ts` preserve service-specific rendering
   and stop fallback after accepted or uncertain submissions. Only aggregate
-  feedback crosses the host action boundary. Legacy producers remain on their
-  current helpers. See [ADR 0003](docs/engineering/decisions/0003-unified-notifications.md).
-
+  feedback crosses the host action boundary. `preferences.ts` resolves which
+  channels each message type may use (event row, then profile row, then profile
+  default) and `deliveryRoutes()`: every proved destination gets its own copy and
+  unproved ones share one message. `resolve.ts` treats event RSVP contacts as
+  eligible, pauses contacts whose proof was revoked, and reports which
+  destinations are proved. `service.ts` handles RSVP confirmations/decisions and organizer alerts
+  (organizer eligibility comes from the event's alert switches), and reports
+  which channels the site offers. `lib/reminders.ts` consumes channel-neutral
+  schedule occurrences before dispatch. `manage.ts` owns account/RSVP-token
+  authorization, versioned preference writes, destination challenges and
+  connection removal, and builds its read model from the same resolvers producers
+  use. `lifecycle.ts` retires proof on sign-in contact changes and purges old
+  challenges. Connections never confer event access.
+  `app/actions/notifications.ts` exposes minimal, masked management DTOs;
+  `app/e/[slug]/notifications/page.tsx` is the private guest management entry
+  point and seeds the editor from its authorizing server read.
+  `components/notifications/` renders the choice table and contact lists from the
+  shared settings `Toggle`/`Section` controls. Manual blasts, invitations and
+  authentication retain separate delivery paths.
+  See [ADR 0003](docs/engineering/decisions/0003-unified-notifications.md).
 - `lib/theme.ts`, `lib/fonts.ts`, and `lib/effects.ts` define web theme options.
+  [docs/engineering/design-language.md](docs/engineering/design-language.md) is
+  the source of truth for how UI uses them: principles, shared components and
+  patterns every screen follows.
 - `app/fonts.ts` builds the theme fonts. Roboto uses the licensed local asset in
   `app/font-files/`; the other families use `next/font/google` at build time.
 - `lib/email-theme.ts` is the only web-theme-to-email degradation boundary.

@@ -6,8 +6,8 @@ import { resolveLocale } from "@/i18n/config";
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { sendRsvpConfirmationEmail, sendApprovalEmail, sendHostRsvpAlertEmail } from "@/lib/email";
-import { sendRsvpConfirmationSms, sendApprovalSms, sendHostRsvpAlertSms } from "@/lib/sms";
+import type { sendRsvpConfirmationEmail, sendHostRsvpAlertEmail } from "@/lib/email";
+import { notifyRsvp, notifyHostAlert } from "@/lib/notifications/service";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { AddRsvpSchema, UpdateRsvpSchema } from "@/lib/schemas";
@@ -137,7 +137,6 @@ function sendHostRsvpAlerts(
   source: string
 ) {
   if (!event.hostAlertEmail && !event.hostAlertSms) return;
-  const recipients = [event.host, ...event.coHosts.map((c) => c.user)];
   const alertBase = { ...alert, eventTitle: event.title, eventSlug: event.slug };
   (async () => {
     const counts = await db.rSVP.groupBy({
@@ -146,44 +145,30 @@ function sendHostRsvpAlerts(
       _count: { _all: true },
     });
     const countFor = (status: string) => counts.find((c) => c.status === status)?._count._all ?? 0;
-    for (const recipient of recipients) {
-      if (event.hostAlertEmail && recipient.email) {
-        sendHostRsvpAlertEmail(recipient.email, {
-          locale: resolveLocale(recipient.preferredLocale),
-          ...alertBase,
-          goingCount: countFor("GOING"),
-          maybeCount: countFor("MAYBE"),
-          noCount: countFor("NO"),
-          theme: event.theme,
-        }).catch(logSafe(source));
-      }
-      if (event.hostAlertSms && recipient.phone) {
-        sendHostRsvpAlertSms(recipient.phone, {
-          ...alertBase,
-          locale: resolveLocale(recipient.preferredLocale),
-        }).catch(logSafe(source));
-      }
-    }
+    // One dispatcher call resolves all current organizers and their own preferences.
+    await notifyHostAlert(event.id, {
+      kind: "host_alert",
+      id: event.id,
+      options: {
+        ...alertBase,
+        goingCount: countFor("GOING"),
+        maybeCount: countFor("MAYBE"),
+        noCount: countFor("NO"),
+        theme: event.theme,
+      },
+    });
   })().catch(logSafe(source));
 }
 
 /** Guest RSVP confirmation (with the edit link) to each contact the RSVP has. */
 function sendRsvpConfirmations(
-  contact: { email?: string | null; phone?: string | null },
+  rsvpId: string,
   opts: Parameters<typeof sendRsvpConfirmationEmail>[1],
   source: string
 ) {
-  if (contact.email) sendRsvpConfirmationEmail(contact.email, opts).catch(logSafe(source));
-  if (contact.phone) {
-    sendRsvpConfirmationSms(contact.phone, {
-      locale: opts.locale,
-      guestName: opts.guestName,
-      eventTitle: opts.eventTitle,
-      eventSlug: opts.eventSlug,
-      status: opts.status,
-      editToken: opts.editToken,
-    }).catch(logSafe(source));
-  }
+  void notifyRsvp(rsvpId, { kind: "confirmation", id: rsvpId, options: opts }).catch(
+    logSafe(source)
+  );
 }
 
 export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
@@ -355,7 +340,7 @@ export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
   logActivity(data.eventId, "rsvp_new", detail, data.guestName).catch(logSafe("addRSVP"));
 
   sendRsvpConfirmations(
-    { email: data.guestEmail, phone: data.guestPhone },
+    rsvp.id,
     {
       locale: recipientLocale,
       guestName: data.guestName,
@@ -389,7 +374,9 @@ export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
   );
 
   revalidatePath(`/e/${event.slug}`);
-  return { success: true, id: rsvp.id, editToken: rsvp.editToken };
+  // Typing an invitee's contact must not reveal their private link: it reaches them through
+  // the confirmation sent to the contact the invitation already holds.
+  return { success: true, id: rsvp.id, editToken: existingInvited ? null : rsvp.editToken };
 }
 
 // ── RSVP edit (guest) ─────────────────────────────────────────────────────────
@@ -549,7 +536,7 @@ export async function updateRSVP(
     ).catch(logSafe("updateRSVP"));
     const { event } = rsvp;
     sendRsvpConfirmations(
-      { email: rsvp.guestEmail, phone: rsvp.guestPhone },
+      rsvp.id,
       {
         locale: resolveLocale(rsvp.user?.preferredLocale),
         guestName,
@@ -719,9 +706,10 @@ export async function approveRsvp(rsvpId: string, message?: string, captchaToken
 
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
 
-  if (rsvp.guestEmail) {
-    await sendApprovalEmail(rsvp.guestEmail, {
-      locale: resolveLocale(rsvp.user?.preferredLocale),
+  await notifyRsvp(rsvp.id, {
+    kind: "approval",
+    id: rsvp.id,
+    options: {
       guestName: rsvp.guestName,
       eventTitle: rsvp.event.title,
       eventSlug: rsvp.event.slug,
@@ -729,15 +717,8 @@ export async function approveRsvp(rsvpId: string, message?: string, captchaToken
       message,
       theme: rsvp.event.theme,
       replyTo: rsvp.event.host.email || undefined,
-    }).catch(logSafe("approveRsvp"));
-  } else if (rsvp.guestPhone) {
-    await sendApprovalSms(rsvp.guestPhone, {
-      locale: resolveLocale(rsvp.user?.preferredLocale),
-      eventTitle: rsvp.event.title,
-      approved: true,
-      message,
-    }).catch(logSafe("approveRsvp"));
-  }
+    },
+  }).catch(logSafe("approveRsvp"));
 
   revalidatePath(`/e/${rsvp.event.slug}`);
   return { success: true };
@@ -765,9 +746,10 @@ export async function declineRsvp(rsvpId: string, message?: string, captchaToken
   if (!rsvp) throw new Error(await eventActionMessage("forbidden"));
   await assertHostOrCohost(rsvp.eventId);
 
-  if (rsvp.guestEmail) {
-    await sendApprovalEmail(rsvp.guestEmail, {
-      locale: resolveLocale(rsvp.user?.preferredLocale),
+  await notifyRsvp(rsvp.id, {
+    kind: "approval",
+    id: rsvp.id,
+    options: {
       guestName: rsvp.guestName,
       eventTitle: rsvp.event.title,
       eventSlug: rsvp.event.slug,
@@ -775,15 +757,8 @@ export async function declineRsvp(rsvpId: string, message?: string, captchaToken
       message,
       theme: rsvp.event.theme,
       replyTo: rsvp.event.host.email || undefined,
-    }).catch(logSafe("declineRsvp"));
-  } else if (rsvp.guestPhone) {
-    await sendApprovalSms(rsvp.guestPhone, {
-      locale: resolveLocale(rsvp.user?.preferredLocale),
-      eventTitle: rsvp.event.title,
-      approved: false,
-      message,
-    }).catch(logSafe("declineRsvp"));
-  }
+    },
+  }).catch(logSafe("declineRsvp"));
 
   await db.rSVP.delete({ where: { id: rsvpId } });
   revalidatePath(`/e/${rsvp.event.slug}`);

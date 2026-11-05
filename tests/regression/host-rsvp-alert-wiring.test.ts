@@ -27,7 +27,11 @@ const { mockEventFindUnique, mockRsvpCreate, mockRsvpGroupBy, mockAlertEmail, mo
 vi.mock("@/lib/db", () => ({
   db: {
     event: { findUnique: mockEventFindUnique },
+    notificationSettings: { findMany: async () => [] },
+    notificationConnection: { findMany: async () => [] },
+    notificationBinding: { findMany: async () => [] },
     rSVP: {
+      findUnique: async () => null,
       create: mockRsvpCreate,
       count: vi.fn().mockResolvedValue(0),
       findFirst: vi.fn().mockResolvedValue(null),
@@ -39,16 +43,26 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-vi.mock("@/lib/email", () => ({
-  sendRsvpConfirmationEmail: vi.fn().mockResolvedValue(undefined),
-  sendApprovalEmail: vi.fn().mockResolvedValue(undefined),
-  sendHostRsvpAlertEmail: mockAlertEmail,
-}));
-vi.mock("@/lib/sms", () => ({
-  sendRsvpConfirmationSms: vi.fn().mockResolvedValue(undefined),
-  sendApprovalSms: vi.fn().mockResolvedValue(undefined),
-  sendHostRsvpAlertSms: mockAlertSms,
-}));
+vi.mock("@/lib/email", async () => {
+  const { captureAdapter } = await import("@/tests/helpers/notification-adapter");
+  return {
+    createEmailNotificationAdapter: async () =>
+      captureAdapter("email", async (message, target) => {
+        if (message.kind === "host_alert")
+          return mockAlertEmail(target.destination, { ...message.options, locale: target.locale });
+      }),
+  };
+});
+vi.mock("@/lib/sms", async () => {
+  const { captureAdapter } = await import("@/tests/helpers/notification-adapter");
+  return {
+    createSmsNotificationAdapter: async () =>
+      captureAdapter("sms", async (message, target) => {
+        if (message.kind === "host_alert")
+          return mockAlertSms(target.destination, { ...message.options, locale: target.locale });
+      }),
+  };
+});
 vi.mock("@/lib/activity", () => ({ logActivity: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/capacityLock", () => ({
   withEventCapacityLock: vi.fn((_eventId: string, fn: () => Promise<unknown>) => fn()),
@@ -91,8 +105,8 @@ function eventRow(overrides = {}) {
     theme: THEME,
     hostAlertEmail: true,
     hostAlertSms: false,
-    host: { name: "Joe", email: "host@example.com", phone: "+15551230000" },
-    coHosts: [{ user: { email: "cohost@example.com", phone: null } }],
+    host: { id: "host", name: "Joe", email: "host@example.com", phone: "+15551230000" },
+    coHosts: [{ user: { id: "cohost", email: "cohost@example.com", phone: null } }],
     rsvpFields: [],
     ...overrides,
   };
@@ -159,15 +173,18 @@ describe("host new-RSVP alert wiring in addRSVP", () => {
 
     // Only the host has a phone; the co-host must be skipped, not crash the send.
     await vi.waitFor(() => expect(mockAlertSms).toHaveBeenCalledTimes(1));
-    expect(mockAlertSms).toHaveBeenCalledWith("+15551230000", {
-      locale: "en-US",
-      guestName: "Alice",
-      status: "GOING",
-      plusOneCount: 1,
-      note: "So excited!",
-      eventTitle: "Test Party",
-      eventSlug: "test-event",
-    });
+    expect(mockAlertSms).toHaveBeenCalledWith(
+      "+15551230000",
+      expect.objectContaining({
+        locale: "en-US",
+        guestName: "Alice",
+        status: "GOING",
+        plusOneCount: 1,
+        note: "So excited!",
+        eventTitle: "Test Party",
+        eventSlug: "test-event",
+      })
+    );
     expect(mockAlertEmail).not.toHaveBeenCalled();
   });
 
@@ -185,7 +202,7 @@ describe("host new-RSVP alert wiring in addRSVP", () => {
 
   it("skips recipients without an email address instead of sending to nothing", async () => {
     mockEventFindUnique.mockResolvedValue(
-      eventRow({ host: { name: "Joe", email: null, phone: null } })
+      eventRow({ host: { id: "host", name: "Joe", email: null, phone: null } })
     );
 
     const result = await addRSVP(RSVP_INPUT);

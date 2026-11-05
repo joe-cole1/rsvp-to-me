@@ -44,6 +44,10 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
       ...downloadPaths.map((source) => ({ source, headers: downloadHeaders })),
+      {
+        source: "/e/:slug/notifications",
+        headers: [...downloadHeaders, { key: "Referrer-Policy", value: "no-referrer" }],
+      },
     ];
   },
 };

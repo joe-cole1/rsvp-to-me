@@ -1,16 +1,17 @@
+import { deliveryRoutes } from "./preferences";
 import { createTransportContext, unconfirmed } from "./transport";
 import type {
   AttemptOutcome,
   DeliveryResult,
   DispatchReport,
-  EventUpdateMessage,
+  NotificationMessage,
   NotificationAdapter,
   NotificationRecipient,
 } from "./types";
 
 /** Policy knows registered channel IDs, never email addresses or phone numbers. */
 export async function dispatchNotification(
-  message: EventUpdateMessage,
+  message: NotificationMessage,
   recipients: NotificationRecipient[],
   adapters: readonly NotificationAdapter[]
 ): Promise<DispatchReport> {
@@ -19,10 +20,9 @@ export async function dispatchNotification(
   const context = createTransportContext();
   const deliveries: DeliveryResult[] = [];
   const jobs = recipients.flatMap((recipient) => {
-    const channels = [...new Set(recipient.policy.channels)];
-    return (
-      recipient.policy.mode === "all" ? channels.map((channel) => [channel]) : [channels]
-    ).map((routes) => {
+    const planned = deliveryRoutes(recipient.policy.channels, recipient.proved);
+    // A recipient with nothing to try still reports one skipped delivery.
+    return (planned.length ? planned : [[]]).map((routes) => {
       const result: DeliveryResult = { recipientId: recipient.id, status: "skipped", attempts: [] };
       deliveries.push(result);
       return { recipient, routes, index: 0, result, done: false };
@@ -62,6 +62,12 @@ export async function dispatchNotification(
           recipientId: recipient.id,
           locale: recipient.locale,
           destination: recipient.destinations[adapter.channel],
+          ...(recipient.canSend
+            ? {
+                authorize: () =>
+                  recipient.canSend!(adapter.channel, recipient.destinations[adapter.channel]),
+              }
+            : {}),
         }));
         let outcomes: AttemptOutcome[];
         try {

@@ -40,11 +40,14 @@ RSVP contacts. This uses the existing update audience; it does not apply the
 recipient filters from the separate message-blast composer.
 
 Each guest's current event contact, notification preferences, and the services
-available on your site determine delivery:
+available on your site determine delivery. See [Notification Preferences](notification-preferences.md) for each guest's table of choices and event exceptions. Each checked channel with a verified address gets its own copy; unverified addresses share one message, email first. Legacy settings migrate as follows:
 
-- **Email** permits email only; **SMS** permits text only.
-- **Both** prefers eligible email and falls back to eligible SMS. It sends one
-  notification, rather than a copy on each channel.
+- For event updates, **Email** permits email only and **SMS** permits text only.
+  Confirmations and decisions may use either channel.
+- **Both** checks email and text. Until the guest verifies an address, that is one
+  notification, email first, rather than a copy on each channel.
+- Old **Blasts & Reminders** opt-outs keep applying to updates and reminders only;
+  confirmations, decisions and host alerts still arrive, as before.
 - Guests without a linked account use email when available, then their RSVP
   phone number. Phone-only guests can receive texts without changing a profile.
 - A channel turned off by the guest or your administrator is skipped. A service
@@ -60,8 +63,7 @@ may already have been accepted. Retrying can create duplicates.
 
 The update stays posted if some or all notifications fail. These counts are
 temporary feedback for the current composer session; there is no delivery-history
-screen or automatic retry. Other notification flows, including manual message
-blasts, have not yet moved to this shared routing policy.
+screen or automatic retry. Automatic reminders, RSVP confirmations/decisions, and host alerts also enforce recipient preferences. Manual blasts and invitations remain separate; manual-blast opt-outs are tracked in #789.
 
 ---
 
@@ -69,24 +71,17 @@ blasts, have not yet moved to this shared routing policy.
 
 Get notified the moment someone responds. When a guest RSVPs to your event — including an invited guest answering their invitation for the first time — you and any co-hosts receive a **"New RSVP" alert** with the guest's name, their status (Going / Maybe / Can't Go), any plus-ones and note, and your event's running Going / Maybe / Can't-Go totals. Later changes to an existing RSVP don't send another alert. If an invited guest's first answer can't be saved, nothing is sent and the answer stays unanswered, so the alert and their confirmation go out when they try again.
 
-Control these under **Settings → RSVP Options → Notification Settings**:
+Control whether alerts exist with **Settings → RSVP Options → Notification Settings → Notify organizers of new RSVPs**. Directly below it, **Your RSVP alerts** sets how you personally receive them: follow your profile's settings or check this event's own channels, and optionally choose an address you verified in your profile. Each organizer changes only their own alerts.
 
-- **Email me when a guest RSVPs** — on by default.
-- **Text me when a guest RSVPs** — off by default, and shown only when texting is enabled on your site.
-
-These alerts are for hosts and co-hosts only; they're separate from the confirmation your guest receives, and they keep working even if your site's guest email notifications are turned off.
+Alerts use each organizer's account email by default. An account phone, or any other address, is used only once it is verified; turning **Notify organizers** on never turns on text alerts by itself. Enrolling a verified address alone does not redirect event messages. Events whose alerts were text-only before the upgrade keep texting existing organizers. Host-alert email keeps working when the site guest-email toggle is off; SMS still respects the site SMS toggle.
 
 ---
 
 ## Automated Reminders
 
-RSVP to Me automatically reminds guests as the event approaches. Each reminder can be toggled on or off in the event's Settings:
+Hosts choose a shared set of reminder times in **Settings → Auto-Reminders**: one week, one day, several hour offsets, custom hours, and a nudge three days before for invitations nobody has answered. New events start with a one-day reminder and the nudge turned on. Each switch saves immediately. Each recipient's channel list, category settings and event exceptions determine delivery.
 
-- **Email reminders:** one week before, one day before, and a custom number of hours before.
-- **SMS reminders:** one week before, one day before, and your chosen hours before (requires texting to be enabled).
-- **Unresponded nudge:** a few days before the event, a gentle reminder to invited guests who still haven't responded.
-
-A guest's own notification preferences always take precedence — if a guest has turned off SMS, they won't get texts even when an SMS reminder is enabled.
+Times already sent show **already sent or skipped**, and times already over show **time has passed**; neither sends. Old email/SMS timings merge where equal and keep their channel limits, named in a notice, until a host chooses **Let each guest's settings decide**. Already consumed reminders are never replayed when a schedule is saved, disabled or restored. There is no automatic retry; a crash after claiming an occurrence can lose it. Current same-event invitation contacts determine nudge eligibility, so historical addresses cannot bypass opt-outs.
 
 ---
 

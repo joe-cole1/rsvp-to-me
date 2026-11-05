@@ -17,6 +17,10 @@ vi.mock("@/lib/rateLimit", () => ({
     .fn()
     .mockResolvedValue({ success: true, limit: 15, remaining: 14, reset: new Date() }),
 }));
+vi.mock("@/lib/notifications/service", () => ({
+  notifyRsvp: vi.fn().mockResolvedValue(undefined),
+  notifyHostAlert: vi.fn().mockResolvedValue(undefined),
+}));
 // Email/SMS are fire-and-forget (.catch(() => {})), but mock to avoid SMTP/Twilio errors
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn().mockResolvedValue(undefined),
@@ -45,7 +49,7 @@ vi.mock("@/lib/redis", () => ({
 
 import { addRSVP, updateRSVP } from "@/app/actions/event";
 import { logActivity } from "@/lib/activity";
-import { sendRsvpConfirmationEmail } from "@/lib/email";
+import { notifyRsvp } from "@/lib/notifications/service";
 
 async function seedHost() {
   return db.user.create({
@@ -154,7 +158,8 @@ describe("addRSVP — real DB integration", () => {
       guestEmail: "alice@example.com",
       status: "GOING",
     });
-    expect(result).toMatchObject({ success: true });
+    // The invitation's private link reaches only its invited contact (01a1a105 QC).
+    expect(result).toMatchObject({ success: true, editToken: null });
 
     // Should only have one RSVP (the original was updated, not duplicated)
     const rsvps = await db.rSVP.findMany({ where: { eventId: event.id } });
@@ -260,7 +265,7 @@ describe("updateRSVP — an invited guest's first response, real DB", () => {
     vi.mocked(logActivity).mock.calls.filter(([, type]) => type === "rsvp_new");
 
   beforeEach(() => {
-    vi.mocked(sendRsvpConfirmationEmail).mockClear();
+    vi.mocked(notifyRsvp).mockClear();
     vi.mocked(logActivity).mockClear();
   });
 
@@ -277,7 +282,7 @@ describe("updateRSVP — an invited guest's first response, real DB", () => {
       plusOneCount: 0,
     });
     expect(await db.plusOneGuest.count({ where: { rsvpId: rsvp.id } })).toBe(0);
-    expect(sendRsvpConfirmationEmail).not.toHaveBeenCalled();
+    expect(notifyRsvp).not.toHaveBeenCalled();
     expect(firstResponseLogs()).toHaveLength(0);
 
     expect(await updateRSVP(rsvp.editToken, ANSWER)).toMatchObject({ success: true });
@@ -287,7 +292,7 @@ describe("updateRSVP — an invited guest's first response, real DB", () => {
       plusOneCount: 1,
     });
     expect(await db.plusOneGuest.count({ where: { rsvpId: rsvp.id } })).toBe(1);
-    expect(sendRsvpConfirmationEmail).toHaveBeenCalledTimes(1);
+    expect(notifyRsvp).toHaveBeenCalledTimes(1);
     expect(firstResponseLogs()).toHaveLength(1);
   });
 
@@ -301,7 +306,7 @@ describe("updateRSVP — an invited guest's first response, real DB", () => {
 
     expect(results.map((result) => result.success)).toEqual([true, true]);
     expect((await db.rSVP.findUnique({ where: { id: rsvp.id } }))?.responded).toBe(true);
-    expect(sendRsvpConfirmationEmail).toHaveBeenCalledTimes(1);
+    expect(notifyRsvp).toHaveBeenCalledTimes(1);
     expect(firstResponseLogs()).toHaveLength(1);
   });
 });

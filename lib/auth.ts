@@ -5,6 +5,7 @@ import { getRequestTranslator } from "@/i18n/server";
 import { randomBytes } from "crypto";
 import { db } from "./db";
 import { createSession } from "./session";
+import { retireChangedAccountConnection } from "@/lib/notifications/lifecycle";
 import { hashToken } from "./hash";
 import { promoteInitialAdmin } from "./admin-promotion";
 
@@ -205,20 +206,18 @@ export async function verifyChangeToken(
       where: { id: user.id },
       data: { email: newValue },
     });
-    await db.rSVP.updateMany({
-      where: { userId: user.id },
-      data: { guestEmail: newValue },
-    });
   } else {
     await db.user.update({
       where: { id: user.id },
       data: { phone: newValue },
     });
-    await db.rSVP.updateMany({
-      where: { userId: user.id },
-      data: { guestPhone: newValue },
-    });
   }
+
+  await retireChangedAccountConnection(
+    user.id,
+    isEmail ? "email" : "sms",
+    isEmail ? user.email : user.phone
+  );
 
   // Auto-link any new matching RSVPs
   await linkRsvpsToUser(user.id);

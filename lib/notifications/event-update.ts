@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { createEmailNotificationAdapter } from "@/lib/email";
 import { createSmsNotificationAdapter } from "@/lib/sms";
 import { dispatchNotification } from "./dispatch";
-import { resolveUpdateRecipients } from "./recipients";
+import { resolveRecipients, recipientSelect } from "./resolve";
 import type { DeliverySummary } from "./types";
 
 /** The event domain owns audience selection; transports never query guest identity. */
@@ -14,22 +14,10 @@ export async function notifyEventUpdate(
 ): Promise<DeliverySummary> {
   const rows = await db.rSVP.findMany({
     where: { eventId, OR: [{ guestEmail: { not: null } }, { guestPhone: { not: null } }] },
-    select: {
-      id: true,
-      guestEmail: true,
-      guestPhone: true,
-      user: {
-        select: {
-          notificationChannel: true,
-          emailNotifications: true,
-          smsNotifications: true,
-          preferredLocale: true,
-        },
-      },
-    },
+    select: recipientSelect,
   });
   if (!rows.length) return { accepted: 0, skipped: 0, failed: 0, uncertain: 0 };
-  const recipients = resolveUpdateRecipients(rows);
+  const recipients = await resolveRecipients("updates", rows);
   const event = await db.event.findUnique({
     where: { id: eventId },
     select: {

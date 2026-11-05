@@ -1,3 +1,6 @@
+vi.mock("@/lib/notifications/lifecycle", () => ({
+  retireChangedAccountConnection: vi.fn().mockResolvedValue(undefined),
+}));
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the request-locale boundary; translation rendering remains the real English ICU catalog.
@@ -483,7 +486,7 @@ describe("verifyChangeToken", () => {
     expect(result.error).toContain("profile updates");
   });
 
-  it("EMAIL_CHANGE: updates user.email, updates RSVPs guestEmail, calls linkRsvpsToUser, calls createSession", async () => {
+  it("EMAIL_CHANGE: updates account email and links matching RSVPs without replacing event contacts", async () => {
     mockMagicTokenFindUnique.mockResolvedValue({
       id: "tok-id",
       used: false,
@@ -504,10 +507,9 @@ describe("verifyChangeToken", () => {
       where: { id: "user-1" },
       data: { email: "new@example.com" },
     });
-    expect(mockRsvpUpdateMany).toHaveBeenCalledWith({
-      where: { userId: "user-1" },
-      data: { guestEmail: "new@example.com" },
-    });
+    expect(mockRsvpUpdateMany.mock.calls.every(([query]) => !("guestEmail" in query.data))).toBe(
+      true
+    );
   });
 
   it("EMAIL_CHANGE: returns error if another user already owns the new email", async () => {

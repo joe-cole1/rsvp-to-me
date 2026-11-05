@@ -51,6 +51,16 @@ Read the relevant section before broad reconnaissance and update it when a PR ch
 
 If applicable ADRs exist, read them before consequential architecture/trust-boundary changes and update/add/supersede them when required by the plan.
 
+## UI and Design Language
+
+Every UI change follows:
+
+`docs/engineering/design-language.md`
+
+Read it before building or changing a screen. Use its tokens, shared components and patterns; prefer fewer options over more configurability.
+
+If a change needs a pattern the document doesn't cover, propose it in the plan and add it to the document in the same PR.
+
 ## Development Environment
 
 Native Next.js dev server:

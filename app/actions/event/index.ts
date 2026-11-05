@@ -58,7 +58,6 @@ export {
   saveEventDates,
   saveCoverImage,
   removeCoverImage,
-  saveReminderSettings,
   getActiveThemePresets,
   deleteEvent,
 } from "./settings";

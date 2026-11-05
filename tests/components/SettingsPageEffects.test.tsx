@@ -9,7 +9,6 @@ import type { EventInput } from "@/components/event/settings-page/types";
 vi.mock("@/app/actions/event", () => ({
   saveEventSettings: vi.fn(),
   saveEventTheme: vi.fn(),
-  saveReminderSettings: vi.fn(),
   addCoHost: vi.fn(),
   removeCoHost: vi.fn(),
   updateCoHostDisplayName: vi.fn(),

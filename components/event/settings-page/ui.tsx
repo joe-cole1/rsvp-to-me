@@ -22,16 +22,19 @@ export function Label({ children, t }: { children: React.ReactNode; t: ResolvedT
   );
 }
 
+/** An immediate on/off switch. */
 export function Toggle({
   label,
   value,
   onChange,
   t,
+  disabled = false,
 }: {
   label: string;
   value: boolean;
   onChange: (v: boolean) => void;
   t: ResolvedTheme;
+  disabled?: boolean;
 }) {
   return (
     <div
@@ -44,6 +47,11 @@ export function Toggle({
     >
       <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
       <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        aria-label={label}
+        disabled={disabled}
         onClick={() => onChange(!value)}
         style={{
           width: "44px",
@@ -74,15 +82,30 @@ export function Toggle({
   );
 }
 
+/** A settings card. `action` sits at the right of the title (for example, an Add button). */
 export function Section({
   title,
   children,
   t,
+  action,
 }: {
   title: string;
   children: React.ReactNode;
   t: ResolvedTheme;
+  action?: React.ReactNode;
 }) {
+  const heading = (
+    <h2
+      style={{
+        fontSize: "15px",
+        fontWeight: 700,
+        color: t.textPrimary,
+        marginBottom: action ? 0 : "20px",
+      }}
+    >
+      {title}
+    </h2>
+  );
   return (
     <EventCard
       theme={t}
@@ -90,9 +113,22 @@ export function Section({
         padding: "20px",
       }}
     >
-      <h2 style={{ fontSize: "15px", fontWeight: 700, color: t.textPrimary, marginBottom: "20px" }}>
-        {title}
-      </h2>
+      {action ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "12px",
+          }}
+        >
+          {heading}
+          {action}
+        </div>
+      ) : (
+        heading
+      )}
       {children}
     </EventCard>
   );
