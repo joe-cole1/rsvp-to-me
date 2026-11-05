@@ -130,6 +130,13 @@ This section gets your **RSVP to Me** installation up and running in a few steps
 
 ---
 
+## Contributing
+
+Bug reports, feature suggestions, questions, documentation, translations, and code
+contributions are welcome. Start with the [contributing guide](CONTRIBUTING.md)
+for development setup, validation, and contribution licensing, or use the
+[issue chooser](https://github.com/joe-cole1/rsvp-to-me/issues/new/choose).
+
 ## Detailed Documentation Guides
 
 For in-depth explanations of specific features, configurations, and operations, refer to the guides below:

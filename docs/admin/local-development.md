@@ -13,6 +13,13 @@ WSL and use Docker Desktop only for PostgreSQL and Redis. Keep the repository
 under your Linux home directory (for example,
 `~/projects/rsvp-to-me`), not under `/mnt/c`.
 
+## Contributing
+
+For issue reporting, translation and code contributions, testing expectations,
+and contribution licensing, see the
+[contributing guide](https://github.com/joe-cole1/rsvp-to-me/blob/main/CONTRIBUTING.md).
+The commands and environment setup below support that workflow.
+
 ## Codex instructions
 
 The repository's `AGENTS.md` records project setup, architecture pointers,
@@ -38,6 +45,29 @@ Install Node using nvm, then use the version recorded by the repository:
 nvm install
 nvm use
 ```
+
+Create a local configuration file before starting the services:
+
+```bash
+cp .env.example .env
+```
+
+Use a disposable local database and development credentials. Set
+`POSTGRES_PASSWORD` and `REDIS_PASSWORD` in `.env`, and generate `SESSION_SECRET`
+with `openssl rand -base64 32`. The native Next.js process also needs explicit
+connection URLs; Compose only constructs those URLs for the containerized app.
+Replace the password placeholders in these values with the matching local
+passwords (URL-encode reserved characters when needed):
+
+| Variable              | Local value                                                        |
+| --------------------- | ------------------------------------------------------------------ |
+| `DATABASE_URL`        | `postgresql://postgres:<POSTGRES_PASSWORD>@127.0.0.1:5432/rsvp_db` |
+| `REDIS_URL`           | `redis://:<REDIS_PASSWORD>@127.0.0.1:6379`                         |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000`                                            |
+
+Use a local test address for `INITIAL_ADMIN_EMAIL` if you need admin access. Set
+`HOST_INVITE_CODE` for local host registration, or set `OPEN_REGISTRATION=true`
+while developing. Keep the actual `.env` file out of commits.
 
 Repository scripts select `.nvmrc` automatically. When running raw Node or npm
 commands from a noninteractive shell, load `$HOME/.nvm/nvm.sh` first. If that
