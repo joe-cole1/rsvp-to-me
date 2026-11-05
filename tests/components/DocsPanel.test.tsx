@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
+import { act, fireEvent, waitFor } from "@testing-library/react";
 import { render, screen } from "@/tests/components/render";
 import DocsPanel, { type PanelDoc } from "@/components/docs/DocsPanel";
 import dutch from "@/messages/nl-NL.json";
@@ -60,6 +61,7 @@ describe("DocsPanel language-aware navigation", () => {
     await user.click(screen.getByRole("link", { name: "Instellen" }));
     expect(screen.getByRole("article")).toHaveAttribute("lang", "en-US");
     expect(screen.getByRole("heading", { name: "Settings" })).toHaveAttribute("id", "settings");
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: "Samen organiseren" }));
     expect(screen.getByRole("article")).toHaveAttribute("lang", "nl-NL");
     await user.click(screen.getByRole("link", { name: "Begin" }));
@@ -68,6 +70,64 @@ describe("DocsPanel language-aware navigation", () => {
       "getting-started"
     );
     expect(screen.getByRole("article")).toHaveAttribute("dir", "ltr");
+    // Flush the second crosslink timer before jsdom is disposed.
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(2));
+  });
+
+  it("scrolls to a crosslinked heading after the article changes", () => {
+    vi.useFakeTimers();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scroll = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scroll;
+    try {
+      render(<DocsPanel docs={docs} />, { locale: "nl-NL", messages: dutch });
+      fireEvent.click(screen.getByRole("link", { name: "Instellen" }));
+      expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(49));
+      expect(scroll).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(1));
+      expect(scroll).toHaveBeenCalledExactlyOnceWith({ behavior: "smooth" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels a pending crosslink scroll when another article is selected", () => {
+    vi.useFakeTimers();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scroll = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scroll;
+    try {
+      render(<DocsPanel docs={docs} />, { locale: "nl-NL", messages: dutch });
+      fireEvent.click(screen.getByRole("link", { name: "Instellen" }));
+      fireEvent.click(screen.getByRole("button", { name: "Samen organiseren" }));
+      act(() => vi.advanceTimersByTime(100));
+      expect(scroll).not.toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels a pending crosslink scroll when the panel unmounts", () => {
+    vi.useFakeTimers();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scroll = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scroll;
+    try {
+      const { unmount } = render(<DocsPanel docs={docs} />, {
+        locale: "nl-NL",
+        messages: dutch,
+      });
+      fireEvent.click(screen.getByRole("link", { name: "Instellen" }));
+      unmount();
+      act(() => vi.advanceTimersByTime(100));
+      expect(scroll).not.toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+      vi.useRealTimers();
+    }
   });
 
   it("localizes the empty-article state through the real provider", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import remarkCanonicalHeadings from "@/lib/remark-canonical-headings";
 import { Search, FileText } from "lucide-react";
@@ -29,12 +29,32 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
   const [query, setQuery] = useState("");
 
   const slugSet = useMemo(() => new Set(docs.map((d) => d.slug)), [docs]);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current !== null) {
+        clearTimeout(scrollTimerRef.current);
+        scrollTimerRef.current = null;
+      }
+    };
+  }, []);
 
   function selectDoc(slug: string, hash = "") {
     if (!slugSet.has(slug)) return;
+
+    // A new selection supersedes any scroll scheduled for the previous article.
+    if (scrollTimerRef.current !== null) {
+      clearTimeout(scrollTimerRef.current);
+      scrollTimerRef.current = null;
+    }
+
     setActiveSlug(slug);
     if (hash) {
-      setTimeout(() => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" }), 50);
+      scrollTimerRef.current = setTimeout(() => {
+        scrollTimerRef.current = null;
+        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
     }
   }
 
