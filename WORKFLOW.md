@@ -138,6 +138,10 @@ specified label. New PRs require a body file containing `## Summary`,
 `## Verification`, and `## Documentation` sections. The script stops if the
 branch has an open PR unless the user has explicitly authorized an update.
 
+Use `--pr-handoff` only where `gh` cannot open PRs. Check the branch's open,
+closed, and merged PR state through the GitHub integration first, then use the
+printed handoff to create or update the appropriate PR after pushing.
+
 ## 6. CI follow-up
 
 After opening a PR, inspect its checks:
@@ -145,6 +149,8 @@ After opening a PR, inspect its checks:
 ```bash
 gh pr checks <pr-number> --watch
 ```
+
+When using PR handoff, monitor the same checks through the GitHub integration.
 
 If a check fails, reproduce it locally when practical, make a focused fix,
 re-run the relevant preflight, and obtain approval before shipping the update.

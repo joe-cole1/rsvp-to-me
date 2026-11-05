@@ -220,6 +220,10 @@ Use:
 
 as the canonical shipping mechanism after authorization.
 
+Use `--pr-handoff` only where `gh` cannot open PRs; check the branch's PR state
+through the GitHub integration before invoking it, then create/update the
+appropriate PR and monitor CI through the integration after pushing.
+
 If the branch's prior PR is MERGED or CLOSED:
 
 `BLOCKED — EXISTING PR IS NOT OPEN`
