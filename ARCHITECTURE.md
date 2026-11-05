@@ -33,26 +33,27 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 
 ## Repository map
 
-| Path            | Responsibility                                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `app/`          | Next.js layouts, pages, route handlers, Server Actions, and generated Prisma client output.                                    |
-| `proxy.ts`      | Request-time document boundary: generates the CSP nonce and forwards the matching policy into Next.js rendering.               |
-| `app/(app)/`    | Shared authenticated application shell for dashboard, profile, help, and admin pages.                                          |
-| `app/e/[slug]/` | Public event, RSVP, guest-list, calendar, CSV, and host-settings routes.                                                       |
-| `app/actions/`  | Primary mutation/query boundary for auth, profiles, administration, and event management.                                      |
-| `components/`   | Client and shared UI grouped by dashboard, event, RSVP, documentation, and common shell.                                       |
-| `lib/`          | Server-side domain services and cross-cutting helpers. Prefer these sources of truth over duplicating logic in routes/actions. |
-| `emails/`       | React Email components, templates, registry, rendering, and template types.                                                    |
-| `prisma/`       | PostgreSQL schema, migrations, and idempotent development/test seed data.                                                      |
-| `tests/`        | Unit, API, action, component, integration, E2E, helper, and regression coverage.                                               |
-| `docs/admin/`   | Installation, configuration, operations, email/SMS, upgrading, and local-development documentation.                            |
-| `docs/host/`    | Host-facing and guest-experience help content rendered by the application.                                                     |
-| `worker/`       | Optional independently deployed Cloudflare Email Worker.                                                                       |
-| `public/`       | Static icons, event effects, preview artifacts, and web-manifest assets.                                                       |
-| `scripts/`      | Development sync/reset, preflight, shipping, migration, and E2E utilities.                                                     |
-| `.github/`      | CI, releases, and dependency automation.                                                                                       |
-| `perf/`         | Manual performance scenarios and notes.                                                                                        |
-| `vendor/`       | Temporary, repository-owned compatibility packages for audited dependencies; each package must name its removal issue.         |
+| Path              | Responsibility                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `CONTRIBUTING.md` | Contributor setup, issue reporting, validation, and contribution licensing.                                                    |
+| `app/`            | Next.js layouts, pages, route handlers, Server Actions, and generated Prisma client output.                                    |
+| `proxy.ts`        | Request-time document boundary: generates the CSP nonce and forwards the matching policy into Next.js rendering.               |
+| `app/(app)/`      | Shared authenticated application shell for dashboard, profile, help, and admin pages.                                          |
+| `app/e/[slug]/`   | Public event, RSVP, guest-list, calendar, CSV, and host-settings routes.                                                       |
+| `app/actions/`    | Primary mutation/query boundary for auth, profiles, administration, and event management.                                      |
+| `components/`     | Client and shared UI grouped by dashboard, event, RSVP, documentation, and common shell.                                       |
+| `lib/`            | Server-side domain services and cross-cutting helpers. Prefer these sources of truth over duplicating logic in routes/actions. |
+| `emails/`         | React Email components, templates, registry, rendering, and template types.                                                    |
+| `prisma/`         | PostgreSQL schema, migrations, and idempotent development/test seed data.                                                      |
+| `tests/`          | Unit, API, action, component, integration, E2E, helper, and regression coverage.                                               |
+| `docs/admin/`     | Installation, configuration, operations, email/SMS, upgrading, and local-development documentation.                            |
+| `docs/host/`      | Host-facing and guest-experience help content rendered by the application.                                                     |
+| `worker/`         | Optional independently deployed Cloudflare Email Worker.                                                                       |
+| `public/`         | Static icons, event effects, preview artifacts, and web-manifest assets.                                                       |
+| `scripts/`        | Development sync/reset, preflight, shipping, migration, and E2E utilities.                                                     |
+| `.github/`        | Community issue/PR templates, CI, releases, and dependency automation.                                                         |
+| `perf/`           | Manual performance scenarios and notes.                                                                                        |
+| `vendor/`         | Temporary, repository-owned compatibility packages for audited dependencies; each package must name its removal issue.         |
 
 ## Entry points and shared boundaries
 

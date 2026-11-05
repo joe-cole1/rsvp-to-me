@@ -1,0 +1,30 @@
+name: Question or help
+description: Ask about usage, setup, development, or licensing.
+title: "Question: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [host and admin guides](https://github.com/joe-cole1/rsvp-to-me#detailed-documentation-guides)
+        and existing issues first. Questions are welcome here.
+
+        This issue is public. Do not share credentials, magic sign-in links, RSVP edit
+        tokens, private event links, or guest information. For suspected vulnerabilities,
+        follow the [private reporting guidance](https://github.com/joe-cole1/rsvp-to-me/blob/main/CONTRIBUTING.md#security-reports-and-private-information).
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like help with?
+      description: Explain what you are trying to do and where you are stuck.
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you checked or tried?
+      description: Link relevant documentation or issues, and describe the result.
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant version or setup, if applicable
+      description: Include a release tag, image digest, commit, browser, or deployment method if useful. Keep configuration values private.

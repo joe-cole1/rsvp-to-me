@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an improvement and explain the user problem it solves.
+title: "Feature: "
+labels: [feature]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Describe the user need so we can agree on the
+        smallest useful change before implementation. Please use fictional examples
+        and leave out guest information, private links, and credentials.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Who encounters this problem, and what are they trying to accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What would a useful result look like?
+      description: Describe the desired behavior. An implementation design is optional.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Existing features or workarounds you tried
+      description: Explain what is missing from the current workflow, if applicable.
+  - type: textarea
+    id: context
+    attributes:
+      label: Examples or additional context
+      description: Mockups or sanitized examples are welcome. Note compatibility concerns if relevant.

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Host and admin documentation
+    url: https://github.com/joe-cole1/rsvp-to-me#detailed-documentation-guides
+    about: Read the usage, installation, configuration, and troubleshooting guides.
+  - name: Contributing guide
+    url: https://github.com/joe-cole1/rsvp-to-me/blob/main/CONTRIBUTING.md
+    about: Find development setup, contribution expectations, validation, and licensing information.

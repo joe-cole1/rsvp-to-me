@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible problem with RSVP to Me.
+title: "Bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. A small, reproducible example helps us investigate.
+
+        This issue is public. Remove secrets, magic sign-in links, RSVP edit tokens,
+        private event links, guest contact information, and private uploads from anything you share.
+        For suspected vulnerabilities, follow the
+        [private reporting guidance](https://github.com/joe-cole1/rsvp-to-me/blob/main/CONTRIBUTING.md#security-reports-and-private-information).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and who it affects, such as a host, guest, or administrator.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Start from a known state and include the relevant event settings. Use fake guest data.
+      placeholder: |
+        1. Create an event with...
+        2. Open the guest page and...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Describe the behavior you expected to see.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version, if known
+      description: A release tag, Docker image digest, or Git commit is more useful than "latest". Guests can leave this blank.
+      placeholder: Release tag, image digest, or commit
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How is the app running?
+      options:
+        - Official Docker image
+        - Docker image built from source
+        - Native development server
+        - Other setup
+        - I do not know / I am a guest
+  - type: textarea
+    id: environment
+    attributes:
+      label: Relevant environment
+      description: Browser/device, server OS, reverse proxy, or email/SMS provider when relevant. Do not include credentials.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs, screenshots, or additional context
+      description: Add only the relevant excerpt or image. Redact private information before uploading.
