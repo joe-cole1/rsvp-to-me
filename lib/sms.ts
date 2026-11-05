@@ -4,7 +4,7 @@ import { decryptConfig } from "./crypto";
 import { isChannelEnabled, getSystemConfigMap } from "./config";
 import { AddRsvpSchema } from "./schemas";
 import { httpFailure, unconfirmed } from "./notifications/transport";
-import type { NotificationAdapter } from "./notifications/types";
+import type { NotificationAdapter, NotificationMessage } from "./notifications/types";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const TWILIO_API_BASE_URL = "https://api.twilio.com/2010-04-01";
@@ -144,17 +144,24 @@ export async function sendRsvpConfirmationSms(
   }
 ) {
   if (!(await isChannelEnabled("sms"))) return;
+  return send(to, await renderConfirmationSms(opts));
+}
+
+async function renderConfirmationSms(opts: Parameters<typeof sendRsvpConfirmationSms>[1]) {
   const t = await getTranslator(opts.locale);
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
   const statusLabel = t(`Sms.status.${opts.status}`) + (opts.status === "GOING" ? " ✓" : "");
-  return send(
-    to,
+  return (
     t("Sms.confirmation", {
       guestName: opts.guestName,
       status: statusLabel,
       eventTitle: opts.eventTitle,
       editUrl,
-    })
+    }) +
+    "\n" +
+    t("Ui.Notifications.manageEvent") +
+    ": " +
+    `${APP_URL}/e/${opts.eventSlug}/notifications?token=${opts.editToken}`
   );
 }
 
@@ -218,7 +225,7 @@ export async function createSmsNotificationAdapter(): Promise<NotificationAdapte
   const config = await resolveSmsConfig();
   return {
     channel: "sms",
-    kinds: ["event_update"],
+    kinds: ["event_update", "confirmation", "approval", "host_alert", "connection_verification"],
     available: (await isChannelEnabled("sms")) && !!config.sid && !!config.token && !!config.phone,
     async deliver(message, targets, context) {
       return Promise.all(
@@ -226,15 +233,11 @@ export async function createSmsNotificationAdapter(): Promise<NotificationAdapte
           const parsed = AddRsvpSchema.shape.guestPhone.safeParse(target.destination);
           if (!parsed.success || !parsed.data)
             return { status: "skipped" as const, reason: "invalid_destination" as const };
-          const t = await getTranslator(target.locale);
-          const body = await renderBlastSms({
-            locale: target.locale,
-            eventTitle: message.eventTitle,
-            eventSlug: message.eventSlug,
-            message: message.body,
-            hostName: message.hostName ?? t("Email.yourHost"),
-          });
+          const body = await renderNotificationSms(message, target.locale);
           return context.run(async (signal) => {
+            if (target.authorize && !(await target.authorize()))
+              return { status: "skipped" as const, reason: "unavailable" as const };
+            if (signal.aborted) return unconfirmed();
             const response = await requestTwilioMessage(
               {
                 sid: config.sid,
@@ -272,13 +275,14 @@ export async function sendApprovalSms(
   opts: { locale: Locale; eventTitle: string; approved: boolean; message?: string }
 ) {
   if (!(await isChannelEnabled("sms"))) return;
+  return send(to, await renderApprovalSms(opts));
+}
+
+async function renderApprovalSms(opts: Parameters<typeof sendApprovalSms>[1]) {
   const t = await getTranslator(opts.locale);
   const statusStr = t(opts.approved ? "Sms.approved" : "Sms.declined");
   const msgStr = opts.message ? t("Sms.hostMessage", { message: opts.message }) : "";
-  return send(
-    to,
-    t("Sms.approval", { eventTitle: opts.eventTitle, decision: statusStr, message: msgStr })
-  );
+  return t("Sms.approval", { eventTitle: opts.eventTitle, decision: statusStr, message: msgStr });
 }
 
 export async function sendHostRsvpAlertSms(
@@ -294,6 +298,10 @@ export async function sendHostRsvpAlertSms(
   }
 ) {
   if (!(await isChannelEnabled("sms"))) return;
+  return send(to, await renderHostAlertSms(opts));
+}
+
+async function renderHostAlertSms(opts: Parameters<typeof sendHostRsvpAlertSms>[1]) {
   const t = await getTranslator(opts.locale);
   const statusLabel = t(`Sms.status.${opts.status}`);
   const plusStr = opts.plusOneCount > 0 ? ` +${opts.plusOneCount}` : "";
@@ -301,15 +309,28 @@ export async function sendHostRsvpAlertSms(
     ? ` "${opts.note.trim().slice(0, 60)}${opts.note.trim().length > 60 ? "…" : ""}"`
     : "";
   const guestListUrl = `${APP_URL}/e/${opts.eventSlug}#guests`;
-  return send(
-    to,
-    t("Sms.hostAlert", {
-      guestName: opts.guestName,
-      plusStr,
-      status: statusLabel,
-      eventTitle: opts.eventTitle,
-      note: noteStr,
-      guestListUrl,
-    })
-  );
+  return t("Sms.hostAlert", {
+    guestName: opts.guestName,
+    plusStr,
+    status: statusLabel,
+    eventTitle: opts.eventTitle,
+    note: noteStr,
+    guestListUrl,
+  });
+}
+
+async function renderNotificationSms(message: NotificationMessage, locale: Locale) {
+  if (message.kind === "confirmation") return renderConfirmationSms({ ...message.options, locale });
+  if (message.kind === "approval") return renderApprovalSms({ ...message.options, locale });
+  if (message.kind === "host_alert") return renderHostAlertSms({ ...message.options, locale });
+  const t = await getTranslator(locale);
+  if (message.kind === "connection_verification")
+    return t("Notifications.verificationBody", { code: message.code });
+  return renderBlastSms({
+    locale,
+    eventTitle: message.eventTitle,
+    eventSlug: message.eventSlug,
+    message: message.smsBody ?? message.body,
+    hostName: message.hostName ?? t("Email.yourHost"),
+  });
 }

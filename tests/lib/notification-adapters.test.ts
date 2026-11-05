@@ -88,6 +88,28 @@ afterEach(() => {
 });
 
 describe("result-bearing email delivery", () => {
+  it("filters revoked targets inside the provider gate while preserving BCC batching", async () => {
+    const adapter = await createEmailNotificationAdapter();
+    const outcomes = await adapter.deliver(
+      message,
+      emailTargets.map((target, index) => ({ ...target, authorize: async () => index === 1 })),
+      createTransportContext()
+    );
+    expect(outcomes.map((outcome) => outcome.status)).toEqual(["skipped", "accepted"]);
+    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
+    expect(mocks.sendMail.mock.calls[0][0].bcc).toEqual(["b@example.com"]);
+  });
+
+  it("does not submit a revoked SMS target", async () => {
+    const adapter = await createSmsNotificationAdapter();
+    const outcomes = await adapter.deliver(
+      message,
+      phoneTargets.map((target) => ({ ...target, authorize: async () => false })),
+      createTransportContext()
+    );
+    expect(outcomes[0].status).toBe("skipped");
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
   it("keeps BCC privacy, theme, locale, reply-to and authored text", async () => {
     const adapter = await createEmailNotificationAdapter();
     const outcomes = await adapter.deliver(

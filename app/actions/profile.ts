@@ -119,30 +119,6 @@ export async function updateProfileSettings(
   return { success: true, messages };
 }
 
-export async function updateNotificationSettings(data: {
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  notificationChannel?: "EMAIL" | "SMS" | "BOTH";
-}) {
-  const t = await getRequestTranslator();
-  const session = await getSession();
-  if (!session) throw new Error(t("Ui.Errors.Profile.unauthorized"));
-
-  await db.user.update({
-    where: { id: session.userId },
-    data: {
-      emailNotifications: data.emailNotifications,
-      smsNotifications: data.smsNotifications,
-      ...(data.notificationChannel !== undefined && {
-        notificationChannel: data.notificationChannel,
-      }),
-    },
-  });
-
-  revalidatePath("/profile");
-  return { success: true };
-}
-
 export async function getUserProfile() {
   const sessionUser = await getSessionUser();
   if (!sessionUser) return null;

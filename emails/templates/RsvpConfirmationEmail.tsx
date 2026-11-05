@@ -15,6 +15,7 @@ export function RsvpConfirmationEmail({
   status,
   eventUrl,
   editUrl,
+  manageUrl,
 }: RsvpConfirmationEmailProps) {
   const { t } = requireEmailI18n(i18n);
   const emoji = status === "GOING" ? " 🎉" : status === "MAYBE" ? " 🤞" : "";
@@ -24,6 +25,19 @@ export function RsvpConfirmationEmail({
       <a href={editUrl} target="_blank" rel="noopener noreferrer" style={{ color: theme.accent }}>
         {t("Email.confirmation.update")}
       </a>
+      {manageUrl && (
+        <>
+          <br />
+          <a
+            href={manageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: theme.accent }}
+          >
+            {t("Ui.Notifications.manageEvent")}
+          </a>
+        </>
+      )}
     </p>
   );
   const statusLabel = t(`Email.status.${status}`);

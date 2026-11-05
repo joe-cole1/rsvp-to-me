@@ -35,6 +35,7 @@ export interface RsvpConfirmationEmailProps extends EmailI18nProps {
   status: RsvpStatus;
   eventUrl: string;
   editUrl: string;
+  manageUrl?: string;
 }
 
 export interface ApprovalEmailProps extends EmailI18nProps {

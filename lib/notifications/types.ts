@@ -17,19 +17,52 @@ export type EventUpdateMessage = {
   eventSlug: string;
   eventTitle: string;
   body: string;
+  /** Shorter text-message copy for the same occurrence, when the producer has one. */
+  smsBody?: string;
   hostName: string | null;
   replyTo?: string;
   theme?: EmailThemeInput | null;
 };
 
+export type ConfirmationMessage = {
+  kind: "confirmation";
+  id: string;
+  options: Omit<Parameters<typeof import("@/lib/email").sendRsvpConfirmationEmail>[1], "locale">;
+};
+export type ApprovalMessage = {
+  kind: "approval";
+  id: string;
+  options: Omit<Parameters<typeof import("@/lib/email").sendApprovalEmail>[1], "locale">;
+};
+export type HostAlertMessage = {
+  kind: "host_alert";
+  id: string;
+  options: Omit<Parameters<typeof import("@/lib/email").sendHostRsvpAlertEmail>[1], "locale">;
+};
+export type VerificationMessage = { kind: "connection_verification"; id: string; code: string };
+export type NotificationMessage =
+  | EventUpdateMessage
+  | ConfirmationMessage
+  | ApprovalMessage
+  | HostAlertMessage
+  | VerificationMessage;
+
 export type NotificationRecipient = {
   id: string;
   locale: Locale;
   destinations: Readonly<Record<string, string>>;
-  policy: { mode: "preferred" | "all"; channels: readonly string[] };
+  policy: { channels: readonly string[] };
+  /** Channels whose destination is proved: each gets its own copy. The rest share one. */
+  proved?: readonly string[];
+  canSend?: (channel: string, destination: string) => Promise<boolean>;
 };
 
-export type DeliveryTarget = { recipientId: string; destination: string; locale: Locale };
+export type DeliveryTarget = {
+  recipientId: string;
+  destination: string;
+  locale: Locale;
+  authorize?: () => Promise<boolean>;
+};
 
 export interface TransportContext {
   // Adapters perform every provider request through this shared gate/deadline.
@@ -43,9 +76,9 @@ export interface TransportContext {
 export interface NotificationAdapter {
   channel: string;
   available: boolean;
-  kinds: readonly EventUpdateMessage["kind"][];
+  kinds: readonly NotificationMessage["kind"][];
   deliver(
-    message: EventUpdateMessage,
+    message: NotificationMessage,
     targets: DeliveryTarget[],
     context: TransportContext
   ): Promise<AttemptOutcome[]>;

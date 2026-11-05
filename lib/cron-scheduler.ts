@@ -6,6 +6,7 @@ import { isRedisEnabled, redisAcquireLock, redisReleaseLock } from "./redis";
 import { logSafe } from "./logger";
 import { performImmediateUserDeletion } from "./account-deletion";
 import { cleanupRateLimits } from "./rateLimit";
+import { purgeNotificationChallenges } from "./notifications/lifecycle";
 
 async function runWithLock(
   jobName: string,
@@ -96,6 +97,7 @@ async function processRateLimitCleanup() {
   await runWithLock("process_rate_limit_cleanup", 600, async () => {
     console.log("[cron-scheduler] Running rate limit database cleanup...");
     await cleanupRateLimits();
+    await purgeNotificationChallenges();
   });
 }
 

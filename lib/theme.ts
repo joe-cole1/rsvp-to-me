@@ -759,3 +759,11 @@ export function resolveTheme(
     avatarGradient: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
   };
 }
+
+/** The app shell's dark surface as a resolved theme, for shared controls outside events. */
+export const APP_SHELL_THEME = resolveTheme(
+  "DARK",
+  APP_SHELL.accent,
+  APP_SHELL.accentSecondary,
+  APP_SHELL.accent
+);

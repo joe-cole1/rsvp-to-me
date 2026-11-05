@@ -29,7 +29,80 @@ select {
   color-scheme: dark;
 }
 
-/* ── Animated background effects (ParticleLayer) ─────────────────────────────
+/* ── Notification table (components/notifications) ──────────────────────────
+   Rows are message types, columns are channels. Under 480px of card width each
+   row stacks: the description, then one labeled checkbox per channel. Colors stay
+   inline (theme tokens); only layout lives here so it can respond to width. */
+
+.rsvp-pref {
+  container-type: inline-size;
+}
+
+.rsvp-pref-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(var(--rsvp-pref-cols, 2), 72px);
+  align-items: center;
+  padding: 10px 0;
+}
+
+.rsvp-pref-head {
+  align-items: end;
+  padding: 0 0 8px;
+}
+
+.rsvp-pref-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.rsvp-pref-cell-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@container (max-width: 479px) {
+  .rsvp-pref-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  /* Each checkbox carries its column's name here, so the header row would only repeat it. */
+  .rsvp-pref-row.rsvp-pref-head {
+    display: none;
+  }
+
+  .rsvp-pref-row > [role="rowheader"] {
+    flex: 1 0 100%;
+    margin-bottom: 6px;
+  }
+
+  .rsvp-pref-cell {
+    justify-content: flex-start;
+    padding: 0 12px;
+    border: 1px solid var(--rsvp-pref-border, rgba(255, 255, 255, 0.16));
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .rsvp-pref-cell-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+}
+
+/* ── Animated background effects (ParticleLayer)─────────────────────────────
    GPU-only properties (transform, opacity) so the drift stays at 60fps without
    layout or paint work. Outer node travels the viewport; inner node handles
    sway/wobble + rotation; the sprite itself twinkles (float mode only). */

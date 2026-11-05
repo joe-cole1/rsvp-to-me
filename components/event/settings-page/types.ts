@@ -141,16 +141,6 @@ export interface SettingsOverrides extends Partial<GuestRsvpDisplayFields> {
   hostAlertSms?: boolean;
 }
 
-export interface ReminderOverrides {
-  emailWeekBefore?: boolean;
-  emailDayBefore?: boolean;
-  emailHoursBefore?: number;
-  smsWeekBefore?: boolean;
-  smsDayBefore?: boolean;
-  smsHoursBefore?: number;
-  nudgeUnresponded?: boolean;
-}
-
 export type ThemeSnapObj = {
   name: string;
   emoji: string;

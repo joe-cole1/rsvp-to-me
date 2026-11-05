@@ -112,3 +112,47 @@ Task `01a197b1` (PR #777 report) adds `download-cache-policy.test.ts` for exact 
 | `invitation-composer-qa.test.tsx`                    | Invite composer dropped focus on Tab after a name edit, discarded the draft on close, and hid why disabled-channel rows failed; typing bypassed the 200-recipient cap; imports dropped an invalid first guest or moved names onto the wrong contact | cb58e723 / de78391d            |
 | `guest-list-stale-resend.test.tsx`                   | Guest-list Resend used unreviewed `inviteGuest`, so a stale card resent silently after a reply, rename, or conflict; then a "responded" refusal advised a refresh that could not clear it                                                           | 8be23944 / de78391d            |
 | `preflight-worker-typecheck.test.ts`                 | Local preflight skipped CI's standalone email-worker type-check, so worker type errors passed the local CI-parity gate                                                                                                                              | de78391d                       |
+
+### Recipient notification preferences (`01a1a105`)
+
+- `notification-event-authority.test.ts`: claimed account links and unrelated
+  profile destinations cannot authorize event routes; event-level opt-outs survive
+  profile changes; separate copies need proof of each destination; revoked or stale
+  bindings, binding generations and submission rechecks.
+- `profile-notification-contact-change.test.ts`: profile verification changes
+  account identity without silently rewriting event RSVP contacts; matching
+  notification proof is retired separately.
+- `notification-management-surface.test.tsx`: the real guest editor keeps readable
+  contrast against every ancestor surface of the private page.
+- `notification-preferences-load.test.tsx`: the guest editor is seeded by its
+  authorizing server read, so no later client read can overwrite a new choice.
+- `notification-contact-collision.test.ts`: normalized same-channel contact
+  collisions are rejected before event destination changes, without cross-service inference.
+
+QC follow-up within `01a1a105` (2026-11-05). The retired legacy writers were removed
+outright, so `notification-legacy-writer.test.ts` was deleted with them.
+
+- `notification-organizer-alerts.test.ts`: a first organizer save stored no eligibility
+  and stopped alerts to the account email while the page claimed email; migrated rows for
+  events with both alert switches off suppressed alerts forever; a revoked connection
+  dropped the account contact. (Migration SQL cases: `tests/integration/lib/notification-migration.test.ts`.)
+- `notification-legacy-optout-scope.test.ts`: the upgrade widened "Blasts & Reminders"
+  opt-outs and the update-channel choice into hard blocks, losing confirmations,
+  decisions and host alerts that were always sent before.
+- `notification-consent-and-proof.test.ts`: re-enabling a category demanded a code;
+  disconnecting or a sign-in change hard-blocked the channel everywhere; a paused
+  contact was still shown as delivering.
+- `invited-rsvp-public-token.test.ts` and the D3 case in `issue-754-invited-edit-link.test.tsx`:
+  the public form returned an invited guest's private link to whoever typed their email.
+- `notification-settings-surface.test.tsx`: a failed load stayed on "Loading" forever;
+  organizers saw guest copy and indistinguishable masked addresses; the shared switch had
+  no accessible name or state.
+- `notification-reminder-schedule.test.ts`: reminders read "starts in 168 hours";
+  sent or passed times looked pending; a load failure said "Could not save".
+- `notification-challenge-retention.test.ts`: used and expired verification challenges
+  kept private destinations forever.
+- `notification-stale-client.test.tsx`: a page loaded before a deployment said "Could not
+  save" when its server actions no longer existed; it now says the page is out of date and
+  offers a reload.
+- `notification-unexpected-error-logging.test.ts`: unexpected notification action failures
+  left no trace in the server log; they now log the error's kind and code, never its message.

@@ -109,6 +109,9 @@ export async function removeCoHost(cohostId: string) {
     await assertHost(cohost.eventId);
   }
   await db.eventCoHost.delete({ where: { id: cohostId } });
+  await db.notificationSettings.deleteMany({
+    where: { eventId: cohost.eventId, userId: cohost.userId },
+  });
   revalidatePath(`/e/${cohost.event.slug}/settings`);
 }
 

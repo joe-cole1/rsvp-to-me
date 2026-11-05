@@ -101,8 +101,20 @@ const {
   mockCheckInDeleteMany: vi.fn(),
 }));
 
+const notificationMocks = vi.hoisted(() => ({
+  rsvp: vi.fn().mockResolvedValue(undefined),
+  host: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/lib/notifications/service", () => ({
+  notifyRsvp: notificationMocks.rsvp,
+  notifyHostAlert: notificationMocks.host,
+}));
 vi.mock("@/lib/db", () => ({
   db: {
+    notificationSettings: { findMany: async () => [], deleteMany: vi.fn() },
+    notificationConnection: { findMany: async () => [] },
+    notificationBinding: { findMany: async () => [], deleteMany: vi.fn() },
+    notificationSchedule: { deleteMany: vi.fn() },
     async $transaction(action: (client: unknown) => Promise<unknown>) {
       return action(this);
     },
@@ -230,7 +242,6 @@ import {
   addInfoSection,
   removeInfoSection,
   saveEventDates,
-  saveReminderSettings,
   addEventUpdate,
   deleteEventUpdate,
   addPotluckItem,
@@ -1051,40 +1062,6 @@ describe("saveEventDates", () => {
     await saveEventDates(EVENT_ID, "2026-12-01T19:00", null);
     const { startAt } = mockEventUpdate.mock.calls[0][0].data;
     expect(startAt.toISOString()).toBe("2026-12-02T00:00:00.000Z");
-  });
-});
-
-// ── saveReminderSettings ──────────────────────────────────────────────────────
-
-describe("saveReminderSettings", () => {
-  const SETTINGS = {
-    emailWeekBefore: true,
-    emailDayBefore: true,
-    emailHoursBefore: 2,
-    smsWeekBefore: false,
-    smsDayBefore: false,
-    smsHoursBefore: 0,
-    nudgeUnresponded: false,
-  };
-
-  beforeEach(() => {
-    asHost();
-    mockEventFindUnique.mockResolvedValue(hostEventRow());
-    mockReminderSettingsUpsert.mockResolvedValue({});
-  });
-
-  it("upserts reminder settings for the event", async () => {
-    await saveReminderSettings(EVENT_ID, SETTINGS);
-    expect(mockReminderSettingsUpsert).toHaveBeenCalledWith({
-      where: { eventId: EVENT_ID },
-      update: SETTINGS,
-      create: { eventId: EVENT_ID, ...SETTINGS },
-    });
-  });
-
-  it("revalidates the settings page", async () => {
-    await saveReminderSettings(EVENT_ID, SETTINGS);
-    expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}/settings`);
   });
 });
 
@@ -1935,23 +1912,20 @@ describe("approveRsvp / declineRsvp with notification messages", () => {
 
   it("approves RSVP and passes custom message to approval email", async () => {
     await approveRsvp("rsvp-1", "Welcome to the party!");
-    expect(mockSendApprovalEmail).toHaveBeenCalledWith(
-      "guest@example.com",
-      expect.objectContaining({
-        message: "Welcome to the party!",
-      })
-    );
+    expect(notificationMocks.rsvp).toHaveBeenCalledWith("rsvp-1", {
+      kind: "approval",
+      id: "rsvp-1",
+      options: expect.objectContaining({ message: "Welcome to the party!", approved: true }),
+    });
   });
 
   it("declines RSVP and passes custom message to decline email", async () => {
     await declineRsvp("rsvp-1", "Sorry, we are full.");
-    expect(mockSendApprovalEmail).toHaveBeenCalledWith(
-      "guest@example.com",
-      expect.objectContaining({
-        message: "Sorry, we are full.",
-        approved: false,
-      })
-    );
+    expect(notificationMocks.rsvp).toHaveBeenCalledWith("rsvp-1", {
+      kind: "approval",
+      id: "rsvp-1",
+      options: expect.objectContaining({ message: "Sorry, we are full.", approved: false }),
+    });
   });
 });
 

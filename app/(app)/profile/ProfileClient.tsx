@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import NextImage from "next/image";
 import {
   updateProfileSettings,
-  updateNotificationSettings,
   requestAccountDeletion,
   cancelMyAccountDeletion,
 } from "@/app/actions/profile";
@@ -22,6 +21,7 @@ import {
   appCardStyle,
   appInputStyle,
 } from "@/components/ui/AppPrimitives";
+import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 import { Dialog } from "@/components/ui/Dialog";
 import { compressImage } from "@/lib/client-image";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
@@ -58,11 +58,6 @@ export default function ProfileClient({
   const [email, setEmail] = useState(initialProfile.email || "");
   const [phone, setPhone] = useState(initialProfile.phone || "");
   const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatarUrl || "");
-  const [emailNotifications, setEmailNotifications] = useState(initialProfile.emailNotifications);
-  const [smsNotifications, setSmsNotifications] = useState(initialProfile.smsNotifications);
-  const [notificationChannel, setNotificationChannel] = useState<"EMAIL" | "SMS" | "BOTH">(
-    initialProfile.notificationChannel
-  );
 
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
@@ -203,37 +198,6 @@ export default function ProfileClient({
         setFeedback({ type: "error", message });
       }
     });
-  };
-
-  const handleToggleNotifications = async (type: "email" | "sms") => {
-    const nextEmail = type === "email" ? !emailNotifications : emailNotifications;
-    const nextSms = type === "sms" ? !smsNotifications : smsNotifications;
-
-    if (type === "email") setEmailNotifications(nextEmail);
-    if (type === "sms") setSmsNotifications(nextSms);
-
-    try {
-      await updateNotificationSettings({
-        emailNotifications: nextEmail,
-        smsNotifications: nextSms,
-        notificationChannel,
-      });
-    } catch (err) {
-      console.error("Failed to update notification toggles", err);
-    }
-  };
-
-  const handleChannelChange = async (channel: "EMAIL" | "SMS" | "BOTH") => {
-    setNotificationChannel(channel);
-    try {
-      await updateNotificationSettings({
-        emailNotifications,
-        smsNotifications,
-        notificationChannel: channel,
-      });
-    } catch (err) {
-      console.error("Failed to update notification channel", err);
-    }
   };
 
   const displayName = name || initialProfile.email?.split("@")[0] || t("user");
@@ -446,197 +410,9 @@ export default function ProfileClient({
               {isPending ? t("saving") : t("save")}
             </AppButton>
           </div>
-
-          {/* Section: Notification Preferences */}
-          {(channelConfig.email || channelConfig.sms) && (
-            <div
-              style={{
-                ...appCardStyle,
-                padding: "24px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "20px",
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textPrimary,
-                  margin: 0,
-                }}
-              >
-                {t("notifications")}
-              </h3>
-              <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", margin: "0 0 8px 0" }}>
-                {t("notificationHint")}
-              </p>
-
-              {/* Preferred Channel (shown only when both email and SMS are enabled) */}
-              {channelConfig.email && channelConfig.sms && (
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      fontSize: "14px",
-                      color: APP_SHELL.textPrimary,
-                      marginBottom: "10px",
-                    }}
-                  >
-                    {t("channel")}
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {(
-                      [
-                        { value: "EMAIL", label: t("emailChannel") },
-                        { value: "SMS", label: t("smsChannel") },
-                        { value: "BOTH", label: t("both") },
-                      ] as const
-                    ).map(({ value, label }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => handleChannelChange(value)}
-                        style={{
-                          padding: "7px 18px",
-                          borderRadius: "20px",
-                          border:
-                            notificationChannel === value
-                              ? `1.5px solid ${APP_SHELL.accent}`
-                              : "1.5px solid rgba(255,255,255,0.12)",
-                          background:
-                            notificationChannel === value
-                              ? `${APP_SHELL.accent}22`
-                              : "rgba(255,255,255,0.04)",
-                          color:
-                            notificationChannel === value
-                              ? APP_SHELL.accent
-                              : APP_SHELL.textSecondary,
-                          fontSize: "13px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          transition: "all 0.15s",
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: APP_SHELL.textSecondary,
-                      margin: "8px 0 0 0",
-                    }}
-                  >
-                    {t("channelHint")}
-                  </p>
-                </div>
-              )}
-
-              {/* Email Notifications Toggle */}
-              {channelConfig.email && (
-                <div
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
-                >
-                  <div>
-                    <div
-                      style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}
-                    >
-                      {t("emailBlasts")}
-                    </div>
-                    <div
-                      style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}
-                    >
-                      {t("emailHint")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleNotifications("email")}
-                    style={{
-                      width: "50px",
-                      height: "26px",
-                      borderRadius: "13px",
-                      border: "none",
-                      backgroundColor: emailNotifications
-                        ? APP_SHELL.accent
-                        : "rgba(255,255,255,0.1)",
-                      cursor: "pointer",
-                      position: "relative",
-                      transition: "background-color 0.2s",
-                      padding: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        backgroundColor: "#fff",
-                        position: "absolute",
-                        top: "3px",
-                        left: emailNotifications ? "27px" : "3px",
-                        transition: "left 0.2s",
-                      }}
-                    />
-                  </button>
-                </div>
-              )}
-
-              {/* SMS Notifications Toggle */}
-              {channelConfig.sms && (
-                <div
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
-                >
-                  <div>
-                    <div
-                      style={{ fontWeight: 600, fontSize: "14px", color: APP_SHELL.textPrimary }}
-                    >
-                      {t("smsBlasts")}
-                    </div>
-                    <div
-                      style={{ fontSize: "12px", color: APP_SHELL.textSecondary, marginTop: "2px" }}
-                    >
-                      {t("smsHint")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleNotifications("sms")}
-                    style={{
-                      width: "50px",
-                      height: "26px",
-                      borderRadius: "13px",
-                      border: "none",
-                      backgroundColor: smsNotifications
-                        ? APP_SHELL.accent
-                        : "rgba(255,255,255,0.1)",
-                      cursor: "pointer",
-                      position: "relative",
-                      transition: "background-color 0.2s",
-                      padding: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        backgroundColor: "#fff",
-                        position: "absolute",
-                        top: "3px",
-                        left: smsNotifications ? "27px" : "3px",
-                        transition: "left 0.2s",
-                      }}
-                    />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </form>
+
+        <NotificationPreferences scope={{ kind: "profile" }} />
 
         {/* Danger Zone */}
         <div

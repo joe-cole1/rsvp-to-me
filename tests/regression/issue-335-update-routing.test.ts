@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db", () => ({
   db: {
+    notificationSettings: { findMany: async () => [] },
+    notificationConnection: { findMany: async () => [] },
+    notificationBinding: { findMany: async () => [] },
     rSVP: { findMany: mocks.guests },
     event: { findUnique: mocks.event },
     eventUpdate: { create: mocks.create },

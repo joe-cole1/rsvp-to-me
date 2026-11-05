@@ -42,7 +42,7 @@ Without SMS configured, the app works entirely through email. With Twilio connec
 | **Event Update Blasts**         | Send immediate text notifications to all Going/Maybe guests.                                                     |
 | **Automated Reminders**         | Schedule text reminders 7 days, 1 day, or N hours before the event.                                              |
 
-Each user can control their own notification preferences (Email vs SMS) in their Profile. Hosts can toggle their own **New RSVP** alerts (email and, when SMS is enabled, text) per event under **Event Settings → RSVP Options → Notification Settings** — the text alert defaults off. Host RSVP alerts go to the host and every co-host.
+Each recipient checks which channels each kind of message uses, in their Profile or private RSVP management page, with optional event exceptions. Every checked channel with a verified address gets its own copy; unverified addresses share one message, email first, then text. Each organizer controls their own alert preferences. Hosts choose whether to generate new-RSVP alerts and when to schedule reminders. See [Notification Preferences](../host/notification-preferences.md).
 
 ---
 
@@ -57,9 +57,7 @@ account SID, auth token, and sending phone number.
 The host sees aggregate submission results after posting. A Twilio message
 acknowledgement counts as **accepted for processing**, not delivered. Individual
 rejections are reported as failures; ambiguous failures and timeouts are uncertain
-and do not trigger another channel. The update remains posted. Existing RSVP
-confirmation, authentication, reminder, and manual blast flows retain their
-current helpers. See [Email Setup](email.md#event-update-delivery-results-335)
+and do not trigger another channel. The update remains posted. RSVP confirmations/decisions, automatic reminders and organizer alerts also enforce recipient preferences. Authentication, initial invitations and manual blasts remain separate; #789 tracks manual-blast opt-outs. See [Email Setup](email.md#event-update-delivery-results-335)
 for the shared policy and limits.
 
 ## What You Need

@@ -45,6 +45,15 @@ export async function performImmediateUserDeletion(userId: string): Promise<void
   // Reassign hosted events to the SYSTEM tombstone user
   await db.event.updateMany({ where: { hostId: userId }, data: { hostId: "system" } });
 
+  // User rows are tombstoned, so notification-owned PII needs explicit deletion.
+  await db.notificationChallenge.deleteMany({ where: { userId } });
+  await db.notificationBinding.updateMany({
+    where: { connection: { userId } },
+    data: { revokedAt: new Date() },
+  });
+  await db.notificationConnection.deleteMany({ where: { userId } });
+  await db.notificationSettings.deleteMany({ where: { userId } });
+
   // Anonymize PII
   await db.user.update({
     where: { id: userId },

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchNotification } from "@/lib/notifications/dispatch";
-import { resolveUpdateRecipients } from "@/lib/notifications/recipients";
 import {
   createTransportContext,
   httpFailure,
@@ -27,7 +26,7 @@ function recipient(channels = ["email", "sms"]): NotificationRecipient {
     id: "guest-1",
     locale: "en-US",
     destinations: { email: "guest@example.com", sms: "+15550001111", telegram: "opaque-chat-id" },
-    policy: { mode: "preferred", channels },
+    policy: { channels },
   };
 }
 function adapter(
@@ -105,11 +104,8 @@ describe("channel-neutral dispatch", () => {
     expect(report.summary.failed).toBe(1);
   });
 
-  it("supports explicit multi-channel delivery without repeating duplicate choices", async () => {
-    const all = {
-      ...recipient(["email", "sms", "email"]),
-      policy: { mode: "all" as const, channels: ["email", "sms", "email"] },
-    };
+  it("sends a copy to each proved channel without repeating duplicate choices", async () => {
+    const all = { ...recipient(["email", "sms", "email"]), proved: ["email", "sms"] };
     const report = await dispatchNotification(
       message,
       [all],
@@ -117,6 +113,28 @@ describe("channel-neutral dispatch", () => {
     );
     expect(report.summary).toEqual({ accepted: 1, failed: 1, skipped: 0, uncertain: 0 });
     expect(report.deliveries).toHaveLength(2);
+  });
+
+  it("gives unproved contacts one shared message even with every channel checked", async () => {
+    const email = adapter("email");
+    const sms = adapter("sms");
+    const report = await dispatchNotification(message, [recipient()], [email, sms]);
+    expect(report.deliveries).toHaveLength(1);
+    expect(email.deliver).toHaveBeenCalledTimes(1);
+    expect(sms.deliver).not.toHaveBeenCalled();
+  });
+
+  it("sends a proved channel its own copy beside one message to the unproved rest", async () => {
+    const email = adapter("email");
+    const sms = adapter("sms");
+    const report = await dispatchNotification(
+      message,
+      [{ ...recipient(), proved: ["sms"] }],
+      [email, sms]
+    );
+    expect(report.deliveries).toHaveLength(2);
+    expect(email.deliver).toHaveBeenCalledTimes(1);
+    expect(sms.deliver).toHaveBeenCalledTimes(1);
   });
 
   it("batches only the same channel and locale and advances rejected recipients alone", async () => {
@@ -159,57 +177,6 @@ describe("channel-neutral dispatch", () => {
     await expect(
       dispatchNotification(message, [], [adapter("email"), adapter("email")])
     ).rejects.toThrow("Duplicate notification channel");
-  });
-});
-
-describe("legacy preference compatibility", () => {
-  const row = {
-    id: "rsvp-1",
-    guestEmail: "event@example.com",
-    guestPhone: "+15550001111",
-    user: {
-      notificationChannel: "BOTH" as const,
-      emailNotifications: true,
-      smsNotifications: true,
-      preferredLocale: "nl-NL",
-    },
-  };
-  it("maps Both to preferred email/SMS and carries the event's contacts and locale", () => {
-    expect(resolveUpdateRecipients([row])).toEqual([
-      {
-        id: "rsvp-1",
-        locale: "nl-NL",
-        destinations: { email: "event@example.com", sms: "+15550001111" },
-        policy: { mode: "preferred", channels: ["email", "sms"] },
-      },
-    ]);
-  });
-  it.each(["EMAIL", "SMS"] as const)("keeps %s explicit", (notificationChannel) => {
-    expect(
-      resolveUpdateRecipients([{ ...row, user: { ...row.user, notificationChannel } }])[0].policy
-        .channels
-    ).toEqual([notificationChannel.toLowerCase()]);
-  });
-  it("removes opted-out destinations and falls back safely for invalid locales", () => {
-    const result = resolveUpdateRecipients([
-      {
-        ...row,
-        user: {
-          ...row.user,
-          preferredLocale: "unknown",
-          emailNotifications: false,
-          smsNotifications: false,
-        },
-      },
-    ])[0];
-    expect(result.destinations).toEqual({});
-    expect(result.locale).toBe("en-US");
-  });
-  it("handles unlinked phone-only guests", () => {
-    expect(resolveUpdateRecipients([{ ...row, guestEmail: null, user: null }])[0]).toMatchObject({
-      destinations: { sms: "+15550001111" },
-      policy: { channels: ["email", "sms"] },
-    });
   });
 });
 

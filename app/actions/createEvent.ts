@@ -55,6 +55,12 @@ export async function createEvent(formData: FormData) {
       visibility: parsed.visibility,
       hostId: sessionUser.id,
       status: "PUBLISHED",
+      notificationSchedule: {
+        create: [
+          { kind: "reminder", hoursBefore: 24 },
+          { kind: "nudge", hoursBefore: 72 },
+        ],
+      },
     },
   });
 

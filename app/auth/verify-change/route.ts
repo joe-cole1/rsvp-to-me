@@ -4,6 +4,7 @@ import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
 import { linkRsvpsToUser } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { isRedisEnabled, redisSet } from "@/lib/redis";
+import { retireChangedAccountConnection } from "@/lib/notifications/lifecycle";
 import { hashToken } from "@/lib/hash";
 
 export async function GET(request: NextRequest) {
@@ -63,20 +64,18 @@ export async function GET(request: NextRequest) {
       where: { id: user.id },
       data: { email: newValue },
     });
-    await db.rSVP.updateMany({
-      where: { userId: user.id },
-      data: { guestEmail: newValue },
-    });
   } else {
     await db.user.update({
       where: { id: user.id },
       data: { phone: newValue },
     });
-    await db.rSVP.updateMany({
-      where: { userId: user.id },
-      data: { guestPhone: newValue },
-    });
   }
+
+  await retireChangedAccountConnection(
+    user.id,
+    isEmail ? "email" : "sms",
+    isEmail ? user.email : user.phone
+  );
 
   // Link any matching RSVPs dynamically on profile change verification
   await linkRsvpsToUser(user.id);

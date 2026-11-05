@@ -23,7 +23,12 @@ import { CoHostInviteEmail } from "@/emails/templates/CoHostInviteEmail";
 import { formatEventDateTime } from "./calendar";
 import { AddRsvpSchema } from "./schemas";
 import { httpFailure, unconfirmed } from "./notifications/transport";
-import type { AttemptOutcome, NotificationAdapter } from "./notifications/types";
+import type {
+  AttemptOutcome,
+  NotificationAdapter,
+  NotificationMessage,
+  DeliveryTarget,
+} from "./notifications/types";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -544,6 +549,10 @@ export async function sendApprovalEmail(
   }
 ) {
   if (!(await isChannelEnabled("email"))) return;
+  return send({ to, ...(await renderApprovalMail(opts)) });
+}
+
+async function renderApprovalMail(opts: Parameters<typeof sendApprovalEmail>[1]) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const { subject, toggles } = await templateCopy(
     "approval",
@@ -567,7 +576,7 @@ export async function sendApprovalEmail(
     }),
     opts.locale
   );
-  return send({ to, subject, html, text, replyTo: opts.replyTo });
+  return { subject, html, text, replyTo: opts.replyTo };
 }
 
 type BlastEmailOptions = {
@@ -610,7 +619,9 @@ export async function sendBlastEmail(to: string[], opts: BlastEmailOptions) {
 }
 
 /** Result-bearing path for unified notifications; legacy send contracts stay intact. */
-export async function createEmailNotificationAdapter(): Promise<NotificationAdapter> {
+export async function createEmailNotificationAdapter(
+  options: { hostAlerts?: boolean } = {}
+): Promise<NotificationAdapter> {
   const config = await resolveEmailConfig();
   const workerReady =
     config.provider === "cloudflare" &&
@@ -622,11 +633,18 @@ export async function createEmailNotificationAdapter(): Promise<NotificationAdap
     !!config.cloudflare.accountId &&
     !!config.cloudflare.apiToken;
   const smtpReady = !!config.smtp.host;
-  return {
+  const adapter: NotificationAdapter = {
     channel: "email",
-    kinds: ["event_update"],
-    available: (await isChannelEnabled("email")) && (workerReady || apiReady || smtpReady),
+    kinds: ["event_update", "confirmation", "approval", "host_alert", "connection_verification"],
+    available:
+      (options.hostAlerts || (await isChannelEnabled("email"))) &&
+      (workerReady || apiReady || smtpReady),
     async deliver(message, targets, context) {
+      if (message.kind !== "event_update" && targets.length > 1) {
+        return Promise.all(
+          targets.map(async (target) => (await adapter.deliver(message, [target], context))[0])
+        );
+      }
       const outcomes: AttemptOutcome[] = targets.map(() => ({
         status: "skipped",
         reason: "invalid_destination",
@@ -638,61 +656,85 @@ export async function createEmailNotificationAdapter(): Promise<NotificationAdap
           : [];
       });
       if (!valid.length) return outcomes;
-      const t = await getTranslator(valid[0].locale);
-      const mail = await renderBlastMail({
-        locale: valid[0].locale,
-        eventTitle: message.eventTitle,
-        eventSlug: message.eventSlug,
-        message: message.body,
-        hostName: message.hostName ?? t("Email.yourHost"),
-        replyTo: message.replyTo,
-        theme: message.theme,
-      });
+      const mail = await renderNotificationMail(message, valid[0]);
       let pending = valid;
       if (workerReady || apiReady) {
-        const outcome = await context.run(async (signal) => {
-          const payload = {
-            from: config.from,
-            to: config.from,
-            bcc: valid.map((target) => target.destination),
-            ...mail,
-          };
-          const url = workerReady
-            ? `${config.cloudflare.url}/send`
-            : `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.cloudflare.accountId!)}/email/sending/send`;
-          const response = await fetch(url, {
-            method: "POST",
-            signal,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${workerReady ? config.cloudflare.secret : config.cloudflare.apiToken}`,
-            },
-            body: JSON.stringify(payload),
-          });
-          if (!response.ok) return httpFailure(response.status);
-          const ack: unknown = await response.json();
-          const confirmed =
-            ack &&
-            typeof ack === "object" &&
-            (workerReady
-              ? "ok" in ack && ack.ok === true
-              : "success" in ack && ack.success === true);
-          return confirmed ? { status: "accepted" as const } : unconfirmed();
-        }, unconfirmed);
-        for (const target of valid) outcomes[target.index] = outcome;
+        const results = await context.run(
+          async (signal): Promise<AttemptOutcome[]> => {
+            const authorized = await Promise.all(
+              valid.map(async (target) => !target.authorize || (await target.authorize()))
+            );
+            const active = valid.filter((_, index) => authorized[index]);
+            if (!active.length)
+              return valid.map(() => ({ status: "skipped", reason: "unavailable" }));
+            if (signal.aborted) return valid.map(unconfirmed);
+            const payload = {
+              from: config.from,
+              to: config.from,
+              bcc: active.map((target) => target.destination),
+              ...mail,
+            };
+            const url = workerReady
+              ? `${config.cloudflare.url}/send`
+              : `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.cloudflare.accountId!)}/email/sending/send`;
+            const response = await fetch(url, {
+              method: "POST",
+              signal,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${workerReady ? config.cloudflare.secret : config.cloudflare.apiToken}`,
+              },
+              body: JSON.stringify(payload),
+            });
+            if (!response.ok)
+              return valid.map((_, index) =>
+                authorized[index]
+                  ? httpFailure(response.status)
+                  : { status: "skipped", reason: "unavailable" }
+              );
+            const ack: unknown = await response.json();
+            const confirmed =
+              ack &&
+              typeof ack === "object" &&
+              (workerReady
+                ? "ok" in ack && ack.ok === true
+                : "success" in ack && ack.success === true);
+            return valid.map((_, index) =>
+              !authorized[index]
+                ? { status: "skipped", reason: "unavailable" }
+                : confirmed
+                  ? { status: "accepted" }
+                  : unconfirmed()
+            );
+          },
+          () => valid.map(unconfirmed)
+        );
+        valid.forEach((target, index) => {
+          outcomes[target.index] = results[index];
+        });
         // Never repeat a possibly accepted HTTP send through SMTP or another channel.
-        pending = outcome.status === "failed" && smtpReady ? valid : [];
+        pending = smtpReady ? valid.filter((_, index) => results[index].status === "failed") : [];
       }
       if (pending.length && smtpReady) {
         let transport: ReturnType<typeof getSmtpTransport> = null;
         const results = await context.run(
           async (signal) => {
+            const authorized = await Promise.all(
+              pending.map(async (target) => !target.authorize || (await target.authorize()))
+            );
+            const active = pending.filter((_, index) => authorized[index]);
+            if (!active.length)
+              return pending.map(() => ({
+                status: "skipped" as const,
+                reason: "unavailable" as const,
+              }));
+            if (signal.aborted) return pending.map(unconfirmed);
             transport = getSmtpTransport(config.smtp, signal)!;
             try {
               const info: unknown = await transport.sendMail({
                 from: config.from,
                 to: config.from,
-                bcc: pending.map((target) => target.destination),
+                bcc: active.map((target) => target.destination),
                 ...mail,
               });
               const accepted =
@@ -714,12 +756,14 @@ export async function createEmailNotificationAdapter(): Promise<NotificationAdap
                   (value) =>
                     typeof value === "string" && value.toLowerCase() === address.toLowerCase()
                 );
-              return pending.map((target) =>
-                contains(accepted, target.destination)
-                  ? { status: "accepted" as const }
-                  : contains(rejected, target.destination)
-                    ? { status: "failed" as const, reason: "rejected" as const }
-                    : unconfirmed()
+              return pending.map((target, index) =>
+                !authorized[index]
+                  ? { status: "skipped" as const, reason: "unavailable" as const }
+                  : contains(accepted, target.destination)
+                    ? { status: "accepted" as const }
+                    : contains(rejected, target.destination)
+                      ? { status: "failed" as const, reason: "rejected" as const }
+                      : unconfirmed()
               );
             } catch (error) {
               const rejected =
@@ -729,10 +773,12 @@ export async function createEmailNotificationAdapter(): Promise<NotificationAdap
                 typeof error.responseCode === "number" &&
                 error.responseCode >= 400 &&
                 error.responseCode < 600;
-              return pending.map(() =>
-                rejected
-                  ? { status: "failed" as const, reason: "rejected" as const }
-                  : unconfirmed()
+              return pending.map((_, index) =>
+                !authorized[index]
+                  ? { status: "skipped" as const, reason: "unavailable" as const }
+                  : rejected
+                    ? { status: "failed" as const, reason: "rejected" as const }
+                    : unconfirmed()
               );
             }
           },
@@ -746,6 +792,7 @@ export async function createEmailNotificationAdapter(): Promise<NotificationAdap
       return outcomes;
     },
   };
+  return adapter;
 }
 
 export async function sendRsvpConfirmationEmail(
@@ -763,6 +810,10 @@ export async function sendRsvpConfirmationEmail(
   } & EventEmailContext
 ) {
   if (!(await isChannelEnabled("email"))) return;
+  return send({ to, ...(await renderConfirmationMail(opts)) });
+}
+
+async function renderConfirmationMail(opts: Parameters<typeof sendRsvpConfirmationEmail>[1]) {
   const eventUrl = `${APP_URL}/e/${opts.eventSlug}`;
   const editUrl = `${APP_URL}/e/${opts.eventSlug}/rsvp?token=${opts.editToken}`;
   const t = await getTranslator(opts.locale);
@@ -788,10 +839,11 @@ export async function sendRsvpConfirmationEmail(
       status: opts.status,
       eventUrl,
       editUrl,
+      manageUrl: `${APP_URL}/e/${opts.eventSlug}/notifications?token=${opts.editToken}`,
     }),
     opts.locale
   );
-  return send({ to, subject, html, text, replyTo: opts.replyTo });
+  return { subject, html, text, replyTo: opts.replyTo };
 }
 
 export async function sendHostRsvpAlertEmail(
@@ -810,6 +862,10 @@ export async function sendHostRsvpAlertEmail(
     theme?: EmailThemeInput | null;
   }
 ) {
+  return send({ to, ...(await renderHostAlertMail(opts)) });
+}
+
+async function renderHostAlertMail(opts: Parameters<typeof sendHostRsvpAlertEmail>[1]) {
   const guestListUrl = `${APP_URL}/e/${opts.eventSlug}#guests`;
   const t = await getTranslator(opts.locale);
   const label = t(`Email.status.${opts.status}`);
@@ -837,7 +893,7 @@ export async function sendHostRsvpAlertEmail(
     }),
     opts.locale
   );
-  return send({ to, subject, html, text });
+  return { subject, html, text };
 }
 
 export async function testEmailConfig(
@@ -988,4 +1044,34 @@ export async function testEmailConfig(
   // console provider fallback
   console.log("[email:dev-test]", { to: testTo, subject });
   return { success: true };
+}
+
+async function renderNotificationMail(message: NotificationMessage, target: DeliveryTarget) {
+  if (message.kind === "confirmation")
+    return renderConfirmationMail({ ...message.options, locale: target.locale });
+  if (message.kind === "approval")
+    return renderApprovalMail({ ...message.options, locale: target.locale });
+  if (message.kind === "host_alert")
+    return renderHostAlertMail({ ...message.options, locale: target.locale });
+  const t = await getTranslator(target.locale);
+  if (message.kind === "connection_verification") {
+    const { NotificationVerificationEmail } =
+      await import("@/emails/templates/NotificationVerificationEmail");
+    return {
+      subject: t("Notifications.verificationSubject"),
+      ...(await renderEmail(
+        createElement(NotificationVerificationEmail, { code: message.code }),
+        target.locale
+      )),
+    };
+  }
+  return renderBlastMail({
+    locale: target.locale,
+    eventTitle: message.eventTitle,
+    eventSlug: message.eventSlug,
+    message: message.body,
+    hostName: message.hostName ?? t("Email.yourHost"),
+    replyTo: message.replyTo,
+    theme: message.theme,
+  });
 }

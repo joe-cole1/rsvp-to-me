@@ -662,3 +662,46 @@ RSVP to Me uses PostgreSQL 18. When a new major PostgreSQL version is released a
    ```
 
 8. **Verify** by navigating to your app URL and running a quick sanity check on the dashboard and a public event page.
+
+## Recipient notification preferences (`01a1a105`)
+
+Back up the database and stop every old application instance and scheduler
+before applying this upgrade. Do not mix legacy producers with preference-aware
+workers: old binaries cannot enforce category/event preferences or revocation.
+The additive notification migrations run through normal `prisma migrate deploy`.
+No new credentials, environment variables or dependencies are required.
+
+Migration keeps the scope each legacy choice had. The old Email/SMS switches covered
+reminders and host blasts, so they become update/reminder choices, not channel blocks;
+confirmations, approval decisions and host alerts keep arriving as before. The old
+channel choice keeps applying to event updates. Both checks email and text; because no
+address is verified at upgrade, it stays one message, email first, then SMS, never
+duplicate delivery. A recipient gets a copy on each channel only after verifying those
+addresses. Organizers keep
+the account contacts their event's alert switches covered; events whose alerts were off
+get no organizer row, so turning alerts on later works. No contact is marked verified.
+Connections remain unverified until the owner proves possession; enrollment does
+not change login identity or existing event contacts.
+
+Old reminder timings merge by offset while retaining source-channel ceilings.
+Either sent marker consumes the merged occurrence. Already-due occurrences are
+consumed at upgrade to avoid a catch-up burst. Migrated schedules keep their channel
+limits until a host chooses **Let each guest's settings decide**.
+
+Recipients see only channels the site offers: a channel must be enabled here and its
+provider configured. Disabling a service hides it without discarding anyone's choices;
+re-enabling it restores them. Used and expired verification challenges are deleted a
+day later by the existing rate-limit cleanup job.
+
+Verify profile preferences, private guest management, confirmation decisions,
+organizer alerts and reminders after upgrade. See
+[Notification Preferences](../host/notification-preferences.md) and the
+[local milestone test plan](../engineering/testing/01a1a105-notifications.md).
+Manual blasts and invitations remain separate; #789 tracks manual-blast opt-outs.
+Authentication and inbound SMS behavior are not migrated.
+
+A database-only additive rollback is insufficient: a legacy binary would ignore
+new preferences. Before downgrading, stop notification production or restore a
+consistent pre-upgrade database/application backup. Destination challenges,
+connections and event bindings contain private contact information; protect
+backups accordingly and never copy verification codes or private links into logs.

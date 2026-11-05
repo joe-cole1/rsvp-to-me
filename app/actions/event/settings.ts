@@ -305,29 +305,6 @@ export async function removeCoverImage(eventId: string) {
   revalidatePath(`/e/${event.slug}`);
 }
 
-export async function saveReminderSettings(
-  eventId: string,
-  settings: {
-    emailWeekBefore: boolean;
-    emailDayBefore: boolean;
-    emailHoursBefore: number;
-    smsWeekBefore: boolean;
-    smsDayBefore: boolean;
-    smsHoursBefore: number;
-    nudgeUnresponded: boolean;
-  },
-  captchaToken?: string | null
-) {
-  const event = await assertHostOrCohost(eventId);
-  await assertCaptcha("event_settings", captchaToken);
-  await db.eventReminderSettings.upsert({
-    where: { eventId },
-    update: settings,
-    create: { eventId, ...settings },
-  });
-  revalidatePath(`/e/${event.slug}/settings`);
-}
-
 // ── Public theme preset fetch (for the SettingsPage theme builder) ────────────
 
 export async function getActiveThemePresets() {
@@ -350,6 +327,8 @@ export async function deleteEvent(eventId: string) {
 
   // Hard-delete all guest data before tombstoning (GDPR: purpose no longer exists)
   await db.$transaction([
+    db.notificationSettings.deleteMany({ where: { eventId } }),
+    db.notificationSchedule.deleteMany({ where: { eventId } }),
     db.rSVPAnswer.deleteMany({ where: { rsvp: { eventId } } }),
     db.plusOneGuest.deleteMany({ where: { rsvp: { eventId } } }),
     db.rSVP.deleteMany({ where: { eventId } }),

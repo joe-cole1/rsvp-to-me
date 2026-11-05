@@ -26,11 +26,14 @@ model User {
   deletionRequestedAt DateTime?
   deletionScheduledAt DateTime?
 
-  events         Event[]
-  coHostedEvents EventCoHost[]
-  magicTokens    MagicToken[]
-  sessions       Session[]
-  rsvps          RSVP[]
+  events                  Event[]
+  coHostedEvents          EventCoHost[]
+  magicTokens             MagicToken[]
+  sessions                Session[]
+  rsvps                   RSVP[]
+  notificationSettings    NotificationSettings[]
+  notificationConnections NotificationConnection[]
+  notificationChallenges  NotificationChallenge[]
 }
 
 enum Role {
@@ -145,22 +148,24 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  host              User                   @relation(fields: [hostId], references: [id])
-  coHosts           EventCoHost[]
-  theme             EventTheme?
-  reminderSettings  EventReminderSettings?
-  infoSections      EventInfoSection[]
-  rsvps             RSVP[]
-  invitations       Invitation[]
-  updates           EventUpdate[]
-  potluckItems      PotluckItem[]
-  sentReminders     SentReminder[]
-  comments          Comment[]
-  rsvpFields        RSVPField[]
-  checkIns          CheckIn[]
-  activityEvents    ActivityEvent[]
-  polls             Poll[]
-  coHostInvitations CoHostInvitation[]
+  host                 User                   @relation(fields: [hostId], references: [id])
+  coHosts              EventCoHost[]
+  theme                EventTheme?
+  reminderSettings     EventReminderSettings?
+  infoSections         EventInfoSection[]
+  rsvps                RSVP[]
+  invitations          Invitation[]
+  updates              EventUpdate[]
+  potluckItems         PotluckItem[]
+  sentReminders        SentReminder[]
+  comments             Comment[]
+  rsvpFields           RSVPField[]
+  checkIns             CheckIn[]
+  activityEvents       ActivityEvent[]
+  polls                Poll[]
+  coHostInvitations    CoHostInvitation[]
+  notificationSettings NotificationSettings[]
+  notificationSchedule NotificationSchedule[]
 }
 
 enum LocationType {
@@ -329,11 +334,109 @@ model RSVP {
   updatedAt    DateTime   @updatedAt
   userId       String?
 
-  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  answers       RSVPAnswer[]
-  checkIn       CheckIn?
-  plusOneGuests PlusOneGuest[]
+  event                  Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user                   User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  answers                RSVPAnswer[]
+  checkIn                CheckIn?
+  plusOneGuests          PlusOneGuest[]
+  notificationSettings   NotificationSettings?
+  notificationBindings   NotificationBinding[]
+  notificationChallenges NotificationChallenge[]
+}
+
+// Channel IDs are adapter registry keys, deliberately independent of providers.
+model NotificationSettings {
+  id              String                           @id
+  userId          String?
+  rsvpId          String?                          @unique
+  eventId         String?
+  channels        String[]                         @default([])
+  blockedChannels String[]                         @default([])
+  legacyChannels  String[]                         @default([])
+  revision        Int                              @default(0)
+  user            User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rsvp            RSVP?                            @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  event           Event?                           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  categories      NotificationCategoryPreference[]
+  bindings        NotificationBinding[]
+
+  @@unique([userId, eventId])
+}
+
+// A row is an explicit choice for one message type; no channels turns it off.
+model NotificationCategoryPreference {
+  id         String               @id @default(cuid())
+  settingsId String
+  category   String
+  channels   String[]             @default([])
+  settings   NotificationSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+
+  @@unique([settingsId, category])
+}
+
+model NotificationConnection {
+  id          String                @id @default(cuid())
+  userId      String
+  channel     String
+  destination String
+  generation  Int                   @default(1)
+  verifiedAt  DateTime
+  revokedAt   DateTime?
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bindings    NotificationBinding[]
+
+  @@unique([userId, channel])
+}
+
+model NotificationBinding {
+  id                   String                  @id @default(cuid())
+  rsvpId               String?
+  settingsId           String?
+  channel              String
+  destination          String
+  verifiedAt           DateTime
+  revokedAt            DateTime?
+  connectionId         String?
+  connectionGeneration Int?
+  rsvp                 RSVP?                   @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  settings             NotificationSettings?   @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  connection           NotificationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+
+  @@unique([rsvpId, channel])
+  @@unique([settingsId, channel])
+}
+
+model NotificationChallenge {
+  id                  String    @id @default(cuid())
+  userId              String?
+  rsvpId              String?
+  channel             String
+  destination         String
+  originalDestination String?
+  secretHash          String
+  expiresAt           DateTime
+  attempts            Int       @default(0)
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
+  user                User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rsvp                RSVP?     @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+// One consumed marker per logical occurrence, not a delivery history or queue.
+model NotificationSchedule {
+  id               String    @id @default(cuid())
+  eventId          String
+  kind             String    @default("reminder")
+  hoursBefore      Int
+  legacyChannels   String[]  @default([])
+  recipientRouting Boolean   @default(true)
+  enabled          Boolean   @default(true)
+  consumedAt       DateTime?
+  event            Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, kind, hoursBefore])
 }
 
 model PlusOneGuest {

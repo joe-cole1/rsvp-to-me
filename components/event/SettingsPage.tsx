@@ -14,7 +14,6 @@ import {
 import {
   saveEventSettings,
   saveEventTheme,
-  saveReminderSettings,
   addCoHost,
   removeCoHost,
   updateCoHostDisplayName,
@@ -37,7 +36,6 @@ import type {
   EventInput,
   PollEntry,
   PotluckItemEntry,
-  ReminderOverrides,
   RsvpFieldEntry,
   SessionUser,
   SettingsOverrides,
@@ -54,7 +52,8 @@ import { RsvpOptionsPanel } from "./settings-page/RsvpOptionsPanel";
 import { QuestionnairePanel } from "./settings-page/QuestionnairePanel";
 import { DisplayOptionsPanel } from "./settings-page/DisplayOptionsPanel";
 import { DangerZonePanel } from "./settings-page/DangerZonePanel";
-import { RemindersPanel } from "./settings-page/RemindersPanel";
+import { ReminderSchedule } from "@/components/notifications/ReminderSchedule";
+import type { SaveReport } from "@/components/notifications/NotificationPreferences";
 import { PollsPanel } from "./settings-page/PollsPanel";
 import { PotluckPanel } from "./settings-page/PotluckPanel";
 import { EmailsPanel } from "./settings-page/EmailsPanel";
@@ -145,15 +144,11 @@ export function SettingsPage({
   const [passwordSavedAsNull, setPasswordSavedAsNull] = useState(false);
   const effectivePasswordHash = passwordSavedAsNull ? null : event.passwordHash;
 
-  // ── Reminders State ──
-  const rs = event.reminderSettings;
-  const [emailWeekBefore, setEmailWeekBefore] = useState(rs?.emailWeekBefore ?? false);
-  const [emailDayBefore, setEmailDayBefore] = useState(rs?.emailDayBefore ?? true);
-  const [emailHoursBefore, setEmailHoursBefore] = useState(rs?.emailHoursBefore ?? 0);
-  const [smsWeekBefore, setSmsWeekBefore] = useState(rs?.smsWeekBefore ?? false);
-  const [smsDayBefore, setSmsDayBefore] = useState(rs?.smsDayBefore ?? false);
-  const [smsHoursBefore, setSmsHoursBefore] = useState(rs?.smsHoursBefore ?? 0);
-  const [nudgeUnresponded, setNudgeUnresponded] = useState(rs?.nudgeUnresponded ?? true);
+  // Notification editors save each switch immediately; reuse the page's save indicator.
+  const reportNotificationStatus: SaveReport = (state, message) => {
+    setSaveStatus(state);
+    setErr(state === "ERROR" ? (message ?? translate("failedSaveSettings")) : null);
+  };
 
   // ── Co-hosts State ──
   const [coHosts, setCoHosts] = useState<CoHostEntry[]>(event.coHosts);
@@ -386,38 +381,6 @@ export function SettingsPage({
       } catch {
         setSaveStatus("ERROR");
         setErr(translate("failedSaveSettings"));
-      }
-    });
-  };
-
-  // ── Reminders Auto-Save ──
-  const triggerSaveReminders = (overrides: ReminderOverrides) => {
-    setSaveStatus("SAVING");
-    setErr(null);
-    const data = {
-      emailWeekBefore:
-        overrides.emailWeekBefore !== undefined ? overrides.emailWeekBefore : emailWeekBefore,
-      emailDayBefore:
-        overrides.emailDayBefore !== undefined ? overrides.emailDayBefore : emailDayBefore,
-      emailHoursBefore:
-        overrides.emailHoursBefore !== undefined ? overrides.emailHoursBefore : emailHoursBefore,
-      smsWeekBefore:
-        overrides.smsWeekBefore !== undefined ? overrides.smsWeekBefore : smsWeekBefore,
-      smsDayBefore: overrides.smsDayBefore !== undefined ? overrides.smsDayBefore : smsDayBefore,
-      smsHoursBefore:
-        overrides.smsHoursBefore !== undefined ? overrides.smsHoursBefore : smsHoursBefore,
-      nudgeUnresponded:
-        overrides.nudgeUnresponded !== undefined ? overrides.nudgeUnresponded : nudgeUnresponded,
-    };
-    startTransition(async () => {
-      try {
-        await runWithCaptcha("event_settings", (token) =>
-          saveReminderSettings(event.id, data, token)
-        );
-        setSaveStatus("SAVED");
-      } catch {
-        setSaveStatus("ERROR");
-        setErr(translate("failedSaveReminders"));
       }
     });
   };
@@ -1086,6 +1049,8 @@ export function SettingsPage({
             setHostAlertSms={setHostAlertSms}
             channelConfig={channelConfig}
             triggerSaveSettings={triggerSaveSettings}
+            eventId={event.id}
+            onNotificationStatus={reportNotificationStatus}
             t={t}
             S={S}
           />
@@ -1158,25 +1123,7 @@ export function SettingsPage({
 
         {/* ── Auto-Reminders ── */}
         {activeSection === "reminders" && (
-          <RemindersPanel
-            channelConfig={channelConfig}
-            nudgeUnresponded={nudgeUnresponded}
-            setNudgeUnresponded={setNudgeUnresponded}
-            emailWeekBefore={emailWeekBefore}
-            setEmailWeekBefore={setEmailWeekBefore}
-            emailDayBefore={emailDayBefore}
-            setEmailDayBefore={setEmailDayBefore}
-            emailHoursBefore={emailHoursBefore}
-            setEmailHoursBefore={setEmailHoursBefore}
-            smsWeekBefore={smsWeekBefore}
-            setSmsWeekBefore={setSmsWeekBefore}
-            smsDayBefore={smsDayBefore}
-            setSmsDayBefore={setSmsDayBefore}
-            smsHoursBefore={smsHoursBefore}
-            setSmsHoursBefore={setSmsHoursBefore}
-            triggerSaveReminders={triggerSaveReminders}
-            t={t}
-          />
+          <ReminderSchedule eventId={event.id} theme={t} onStatus={reportNotificationStatus} />
         )}
 
         {/* ── Emails ── */}

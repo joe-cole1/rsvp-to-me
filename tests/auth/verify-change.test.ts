@@ -1,3 +1,6 @@
+vi.mock("@/lib/notifications/lifecycle", () => ({
+  retireChangedAccountConnection: vi.fn().mockResolvedValue(undefined),
+}));
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

@@ -85,6 +85,10 @@ const {
 
 vi.mock("@/lib/db", () => ({
   db: {
+    notificationSettings: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    notificationConnection: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    notificationChallenge: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    notificationBinding: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     user: {
       count: mockUserCount,
       findMany: mockUserFindMany,

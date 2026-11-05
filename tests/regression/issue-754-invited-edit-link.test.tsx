@@ -75,7 +75,12 @@ describe("#754 edit-link box on the RSVP done screen", () => {
     render(<RsvpFlow event={event} theme={testTheme} existingRsvp={invited(true)} />);
     await submit();
     expect(screen.queryByText(GUEST_WARNING)).not.toBeInTheDocument();
-    expect(screen.getByText(ON_FILE)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Keep your private RSVP edit link" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Manage notifications for this event" })
+    ).toBeInTheDocument();
     expect(screen.queryByDisplayValue(/tok-754/)).not.toBeInTheDocument();
   });
 
@@ -117,6 +122,28 @@ describe("#754 edit-link box on the RSVP done screen", () => {
     });
     await submit();
     expect(screen.queryByText(GUEST_WARNING)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Keep your private RSVP edit link" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Manage notifications for this event" })
+    ).toBeInTheDocument();
+  });
+
+  // 01a1a105 QC (D3): a public answer merged into an invitation gets no private token, so
+  // the screen says where the link went instead of showing anyone the invitee's links.
+  it("points an answer merged into an invitation to its message, with no private links", async () => {
+    mockAddRSVP.mockResolvedValue({ success: true, id: "rsvp-1", editToken: null });
+    render(<RsvpFlow event={event} theme={testTheme} initialStatus="GOING" />);
+    fireEvent.change(screen.getByPlaceholderText("Your name (required)"), {
+      target: { value: "Bea" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/email/i), {
+      target: { value: "invitee@example.com" },
+    });
+    await submit();
     expect(screen.getByText(ON_FILE)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Keep your private RSVP edit link" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Manage notifications for this event" })).toBeNull();
   });
 });
