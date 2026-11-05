@@ -34,6 +34,7 @@ RUN DATABASE_URL=postgresql://build-placeholder:5432/build \
     npm run build
 
 FROM ${NODE_IMAGE} AS runner
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -59,6 +60,7 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 # Markdown sources rendered by the in-app Documentation portal (/docs).
 COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/README.md ./README.md
+COPY --from=builder /app/LICENSE ./LICENSE
 
 RUN mkdir -p /app/data /app/.next/cache && \
     chown -R nextjs:nodejs /app/data /app/.next/cache && \

@@ -25,7 +25,8 @@ This guide walks you through deploying **RSVP to Me** on any machine that can ru
 9. [Connecting Database Tools](#connecting-database-tools)
 10. [Stopping, Starting, and Restarting](#stopping-starting-and-restarting)
 11. [HTTPS and Custom Domains](#https-and-custom-domains)
-12. [Troubleshooting](#troubleshooting)
+12. [License and Source Code](#license-and-source-code)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -383,6 +384,29 @@ Recommended reverse proxies:
 - **Caddy** (Automatic HTTPS, simple single-line reverse proxies): [Caddy Reverse Proxy Quick Start](https://caddyserver.com/docs/quick-starts/reverse-proxy)
 - **Nginx Proxy Manager** (Web-based GUI for managing Let's Encrypt certificates): [Nginx Proxy Manager Homepage](https://nginxproxymanager.com/)
 - **Traefik** (A cloud-native proxy that integrates directly with Docker labels): [Traefik Docker Documentation](https://doc.traefik.io/traefik/)
+
+---
+
+## License and Source Code
+
+RSVP to Me is licensed under the GNU Affero General Public License, version 3 only
+(`AGPL-3.0-only`). Personal use, business use, self-hosting, paid hosting, and paid
+support are permitted subject to the license. The production image includes the
+full license at `/app/LICENSE`.
+
+The project source is available at
+[github.com/joe-cole1/rsvp-to-me](https://github.com/joe-cole1/rsvp-to-me).
+If you run a modified version for users over a network, prominently offer those
+users access to the complete corresponding source for the version they are using
+under the AGPL. That offer must include your modifications and the source and
+build materials required by the license; linking to an unchanged upstream version
+is insufficient when your deployed version differs. Distribution of covered
+versions also carries license, notice, and source obligations.
+
+Keep credentials, private configuration values, guest data, and uploaded personal
+content out of source-code releases. Third-party components retain their own
+licenses. This is a summary; the
+[full license](https://github.com/joe-cole1/rsvp-to-me/blob/main/LICENSE) governs.
 
 ---
 
