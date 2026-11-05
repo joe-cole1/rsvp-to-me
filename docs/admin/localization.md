@@ -16,6 +16,8 @@ When signed in, the setting is saved to your account and this browser. When sign
 
 English is the default. German is available as **Deutsch**, Spanish as **Español**, and Dutch as **Nederlands** in the language menu, which lists English first and the other languages alphabetically by native name. A long menu scrolls and opens at the current language. Unsupported or removed language selections fall back to English. There is no automatic selection from browser language headers. Event titles, descriptions, questions, guest names, notes, and other user-written content stay exactly as written. Dates use the viewer's language and the event's timezone.
 
+Event-update notification counts and the processing, acceptance, and uncertainty feedback use the host's selected interface language, including Dutch.
+
 ## Email and SMS Languages
 
 Default system emails and text messages use the recipient's saved account language. Unknown recipients receive English. A sign-in message can use the requesting browser's selected language if the recipient has no saved language; it does not save that choice before verified sign-in. Profile contact-verification messages use the signed-in user's language. Administrator previews and test messages use the administrator's selected language.

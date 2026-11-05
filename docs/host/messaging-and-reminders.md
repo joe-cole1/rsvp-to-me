@@ -51,6 +51,7 @@ available on your site determine delivery:
   also needs working configuration before a delivery attempt can start.
 
 After posting, the composer shows accepted, skipped, failed, and uncertain counts.
+This feedback uses your selected interface language, including Dutch (**Nederlands**).
 **Accepted** means the service acknowledged the message for processing; it does
 not confirm inbox or device delivery. A failed primary followed by accepted
 fallback counts as one acceptance. A missing acknowledgement or timeout is
