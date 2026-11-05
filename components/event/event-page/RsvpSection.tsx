@@ -10,8 +10,25 @@ import { EventCard } from "./EventCard";
 import { RSVP_RESPONSE_STATUSES, RsvpStatusChoice } from "@/components/rsvp/status";
 
 const FLOATING_BOTTOM_GAP = 12;
+// A docked card must pass an edge by this much before it floats again, so jitter at
+// the docking line cannot flip it back and forth.
+const DOCKING_HYSTERESIS = 8;
 
 type SubmittedStatus = "GOING" | "MAYBE" | "NO";
+
+// Decides from the docked card's geometry only. The compact floating card is
+// shorter, so a line measured from whichever card is on screen would move with
+// the state and could contradict itself.
+function shouldCardFloat(
+  wasFloating: boolean,
+  slotTop: number,
+  dockedHeight: number,
+  viewportHeight: number
+) {
+  const dockedBottom = slotTop + dockedHeight;
+  const slack = wasFloating ? 0 : DOCKING_HYSTERESIS;
+  return dockedBottom > viewportHeight - FLOATING_BOTTOM_GAP + slack || dockedBottom <= -slack;
+}
 
 export function RsvpSection({
   event,
@@ -45,6 +62,9 @@ export function RsvpSection({
   const slotRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
+  const isFloatingRef = useRef(false);
+  const cardHeightRef = useRef(0);
+  const dockedHeightRef = useRef(0);
   const [isFloating, setIsFloating] = useState(false);
   const [cardHeight, setCardHeight] = useState(0);
   const [dockedHeight, setDockedHeight] = useState(0);
@@ -88,14 +108,28 @@ export function RsvpSection({
 
       const measuredHeight = card.offsetHeight || card.getBoundingClientRect().height;
       if (measuredHeight > 0) {
-        setCardHeight(measuredHeight);
-        if (!isFloating) setDockedHeight(measuredHeight);
+        if (measuredHeight !== cardHeightRef.current) {
+          cardHeightRef.current = measuredHeight;
+          setCardHeight(measuredHeight);
+        }
+        // Only a measurement of the card as rendered docked may define the docking line.
+        const showingDocked = card.getAttribute("data-rsvp-floating") !== "true";
+        if (showingDocked && measuredHeight !== dockedHeightRef.current) {
+          dockedHeightRef.current = measuredHeight;
+          setDockedHeight(measuredHeight);
+        }
       }
 
-      const slotRect = slot.getBoundingClientRect();
-      const dockingLine = window.innerHeight - FLOATING_BOTTOM_GAP - measuredHeight;
-      const slotIsDocked = slotRect.top <= dockingLine && slotRect.bottom > 0;
-      setIsFloating(!slotIsDocked);
+      const nextFloating = shouldCardFloat(
+        isFloatingRef.current,
+        slot.getBoundingClientRect().top,
+        dockedHeightRef.current || measuredHeight,
+        window.innerHeight
+      );
+      if (nextFloating !== isFloatingRef.current) {
+        isFloatingRef.current = nextFloating;
+        setIsFloating(nextFloating);
+      }
     };
 
     const onScroll = () => {
@@ -120,7 +154,7 @@ export function RsvpSection({
       if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
       resizeObserver?.disconnect();
     };
-  }, [shouldFloat, isFloating]);
+  }, [shouldFloat]);
 
   if (isHost) return null;
 

@@ -116,6 +116,7 @@ Task `01a197b1` (PR #777 report) adds `download-cache-policy.test.ts` for exact 
 | `invitation-composer-qa.test.tsx`                    | Invite composer dropped focus on Tab after a name edit, discarded the draft on close, and hid why disabled-channel rows failed; typing bypassed the 200-recipient cap; imports dropped an invalid first guest or moved names onto the wrong contact | cb58e723 / de78391d            |
 | `guest-list-stale-resend.test.tsx`                   | Guest-list Resend used unreviewed `inviteGuest`, so a stale card resent silently after a reply, rename, or conflict; then a "responded" refusal advised a refresh that could not clear it                                                           | 8be23944 / de78391d            |
 | `preflight-worker-typecheck.test.ts`                 | Local preflight skipped CI's standalone email-worker type-check, so worker type errors passed the local CI-parity gate                                                                                                                              | de78391d                       |
+| `floating-rsvp-docking-loop.test.tsx`                | The floating RSVP card placed its docking line from whichever card was on screen, so heights that straddled the line flipped it on every pass and logged "Maximum update depth exceeded" (design review B-1)                                        | d1a4521f                       |
 
 ### Recipient notification preferences (`01a1a105`)
 
