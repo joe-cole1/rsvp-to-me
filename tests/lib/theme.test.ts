@@ -1,5 +1,116 @@
 import { describe, it, expect } from "vitest";
-import { resolveTheme, getReadableText, THEME_PRESETS, getSortedPresets } from "@/lib/theme";
+import {
+  resolveTheme,
+  getReadableText,
+  getDefaultCardOpacity,
+  hex2hsl,
+  MIN_CARD_OPACITY,
+  THEME_PRESETS,
+  getSortedPresets,
+} from "@/lib/theme";
+import { colorsIn, minContrast } from "@/lib/theme-contrast";
+
+const preset = (id: string) => {
+  const p = THEME_PRESETS.find((x) => x.id === id);
+  if (!p) throw new Error(`no preset ${id}`);
+  return resolveTheme(p.base, p.gradientFrom, p.gradientTo, p.accentColor);
+};
+
+describe("readable text derived in resolveTheme", () => {
+  it("gives light BOLD gradients a dark hero ink with no shadow or scrim", () => {
+    for (const id of ["summer", "citrus-pop"]) {
+      const t = preset(id);
+      expect(t.heroText).toBe("#1c1917");
+      expect(t.heroTextSecondary).toBe("#44403c");
+      expect(t.heroTextShadow).toBeUndefined();
+      expect(t.heroScrim).toBeUndefined();
+    }
+    // Summer Vibes: the reference canvas reads 10.4:1 for the title.
+    const summer = preset("summer");
+    const ground = colorsIn(summer.pageDecorationBg1);
+    expect(minContrast(summer.heroText, ground)).toBeCloseTo(10.4, 1);
+  });
+
+  it("keeps white hero text on Sunset with a soft scrim behind it", () => {
+    const t = preset("sunset");
+    expect(t.heroText).toBe("#ffffff");
+    expect(t.heroTextShadow).toBe("0 1px 4px rgba(0,0,0,0.3)");
+    expect(t.heroScrim).toBe("rgba(0,0,0,0.35)");
+  });
+
+  it("needs no scrim where white already reads on the gradient", () => {
+    for (const id of ["grape-soda", "fourth-of-july", "thanksgiving"]) {
+      expect(preset(id).heroScrim).toBeUndefined();
+      expect(preset(id).heroText).toBe("#ffffff");
+    }
+  });
+
+  it("uses theme text on the ground for DARK and SOFT, with no scrim", () => {
+    const dark = preset("halloween");
+    expect(dark.heroText).toBe("#ffffff");
+    expect(dark.heroScrim).toBeUndefined();
+    const soft = preset("rose-cloud");
+    expect(soft.heroText).toBe("#1c1917");
+    expect(soft.heroTextSecondary).toBe("#44403c");
+  });
+
+  it("keeps the app shell's status colors on DARK and darker inks on SOFT and BOLD", () => {
+    const dark = preset("dark-night");
+    expect(dark.status.success).toEqual({
+      text: "#4ade80",
+      bg: "rgba(34,197,94,0.12)",
+      border: "rgba(34,197,94,0.3)",
+    });
+    expect(dark.status.error.text).toBe("#fca5a5");
+    expect(dark.status.info.text).toBe("#c084fc");
+    for (const id of ["rose-cloud", "sunset"]) {
+      const t = preset(id);
+      for (const s of Object.values(t.status)) {
+        expect(minContrast(s.text, colorsIn("#ffffff"))).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(t.status.success.text).not.toBe(dark.status.success.text);
+    }
+  });
+
+  it("orders BOLD muted text below secondary again", () => {
+    const t = preset("sunset");
+    expect(t.textMuted).not.toBe("#333333");
+    expect(hex2hsl(t.textMuted).l).toBeGreaterThan(hex2hsl(t.textSecondary).l);
+  });
+
+  it("shifts the accent only in lightness for accentText", () => {
+    const t = preset("sunset");
+    expect(t.accentText).not.toBe(t.accent);
+    expect(Math.abs(hex2hsl(t.accentText).h - hex2hsl(t.accent).h)).toBeLessThanOrEqual(2);
+    // A light accent on a dark card is already readable and stays as it is.
+    expect(preset("winter").accentText).toBe("#bae6fd");
+  });
+
+  it("leaves every preset's look untouched", () => {
+    for (const p of THEME_PRESETS) {
+      for (const opacity of [getDefaultCardOpacity(p.base), MIN_CARD_OPACITY]) {
+        const t = resolveTheme(p.base, p.gradientFrom, p.gradientTo, p.accentColor, opacity);
+        expect(t.accent).toBe(p.accentColor);
+        expect(t.accentFg).toBe(getReadableText(p.accentColor));
+        expect(t.avatarGradient).toBe(
+          `linear-gradient(135deg, ${p.gradientFrom}, ${p.gradientTo})`
+        );
+        expect(t.cardBgAlpha).toBe(opacity);
+        if (p.base === "BOLD") {
+          expect(t.pageDecorationBg1).toBe(
+            `linear-gradient(160deg, ${p.gradientFrom} 0%, ${p.gradientTo} 100%)`
+          );
+        }
+      }
+    }
+  });
+
+  it("raises card opacity only when no ink can read on an extreme custom gradient", () => {
+    const t = resolveTheme("BOLD", "#000000", "#1e3a8a", "#fde047", MIN_CARD_OPACITY);
+    expect(t.cardBgAlpha).toBeGreaterThan(MIN_CARD_OPACITY);
+    expect(t.cardBg).toBe(`rgba(255,255,255,${t.cardBgAlpha})`);
+  });
+});
 
 describe("Theme Resolution", () => {
   describe("getReadableText", () => {

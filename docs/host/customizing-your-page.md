@@ -49,9 +49,16 @@ On the **Theme** tab, choose a base look from the theme picker:
 
 Your site's administrator may publish additional **theme presets** that also appear here.
 
+Text colors adjust automatically so guests can read them on your colors and card opacity. On a
+**Bold & Colorful** page, the title, host line and date turn dark on light gradients, and on
+mid-tone gradients a soft dark shade sits behind them so the white text stays clear. Your
+gradient, accent and fonts never change.
+
 ### Accent Color
 
-A color picker sets the accent color used for buttons, links, and highlights.
+A color picker sets the accent color used for buttons, links, and highlights. Where the accent is
+used for text, such as links, it is shown a little lighter or darker if needed so it stays
+readable.
 
 ### Event Title Font
 

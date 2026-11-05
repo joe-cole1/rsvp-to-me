@@ -148,7 +148,7 @@ export function PollsPanel({
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                color: t.accent,
+                color: t.accentText,
                 fontSize: "12px",
                 fontWeight: 600,
                 display: "flex",

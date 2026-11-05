@@ -132,7 +132,7 @@ export function PotluckSection({
                               flexShrink: 0,
                               background: `rgba(${t.accentRgb}, 0.12)`,
                               border: `1px solid rgba(${t.accentRgb}, 0.25)`,
-                              color: t.accent,
+                              color: t.accentText,
                             }}
                           >
                             {translate("iLlBring")}
@@ -164,7 +164,7 @@ export function PotluckSection({
                                 color: t.textSecondary,
                               }}
                             >
-                              <span style={{ color: t.accent }}>✓</span>
+                              <span style={{ color: t.accentText }}>✓</span>
                               <span>
                                 {claim.guestName}{" "}
                                 <span style={{ color: t.textMuted }}>
@@ -242,7 +242,7 @@ export function PotluckSection({
                             opacity: !claimName.trim() ? 0.5 : 1,
                             background: `rgba(${t.accentRgb}, 0.12)`,
                             border: `1px solid rgba(${t.accentRgb}, 0.25)`,
-                            color: t.accent,
+                            color: t.accentText,
                           }}
                         >
                           {translate("claim")}

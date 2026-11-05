@@ -162,7 +162,7 @@ export function InfoSectionsBlock({
                           href={targetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: t.accent, textDecoration: "none" }}
+                          style={{ color: t.accentText, textDecoration: "none" }}
                         >
                           {displayContent}{" "}
                           <ExternalLink
@@ -283,7 +283,7 @@ export function InfoSectionsBlock({
               cursor: "pointer",
               fontSize: "12px",
               fontWeight: 700,
-              color: t.accent,
+              color: t.accentText,
               fontFamily: "inherit",
             }}
           >

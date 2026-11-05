@@ -54,9 +54,9 @@ export function RsvpSection({
     SubmittedStatus,
     { label: string; icon: typeof CircleCheck; color: string }
   > = {
-    GOING: { label: translate("reGoing"), icon: CircleCheck, color: "#22c55e" },
-    MAYBE: { label: translate("markedAsMaybe"), icon: CircleHelp, color: "#f59e0b" },
-    NO: { label: translate("canTMake"), icon: CircleX, color: "#ef4444" },
+    GOING: { label: translate("reGoing"), icon: CircleCheck, color: t.status.success.text },
+    MAYBE: { label: translate("markedAsMaybe"), icon: CircleHelp, color: t.status.warning.text },
+    NO: { label: translate("canTMake"), icon: CircleX, color: t.status.error.text },
   };
 
   const slotRef = useRef<HTMLDivElement>(null);
@@ -161,7 +161,7 @@ export function RsvpSection({
   const submittedStatus = rsvpDone && rsvpStatus && rsvpStatus !== "INVITED" ? rsvpStatus : null;
   const summary = submittedStatus ? RESPONSE_SUMMARIES[submittedStatus] : null;
   const SummaryIcon = !rsvpApproved ? Clock3 : summary?.icon;
-  const summaryColor = !rsvpApproved ? "#f59e0b" : summary?.color;
+  const summaryColor = !rsvpApproved ? t.status.warning.text : summary?.color;
   const floating = shouldFloat && isFloating;
   const reservedHeight = Math.max(cardHeight, dockedHeight);
 
@@ -235,7 +235,7 @@ export function RsvpSection({
                 <a
                   href={`/e/${event.slug}/rsvp?token=${guestEditToken}`}
                   style={{
-                    color: t.accent,
+                    color: t.accentText,
                     flexShrink: 0,
                     fontSize: "12px",
                     fontWeight: 700,
@@ -268,7 +268,7 @@ export function RsvpSection({
                 <div
                   style={{
                     fontSize: "12px",
-                    color: deadlinePassed ? "#f87171" : t.textMuted,
+                    color: deadlinePassed ? t.status.error.text : t.textMuted,
                     marginBottom: "16px",
                     fontWeight: deadlinePassed ? 600 : 400,
                   }}
