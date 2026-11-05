@@ -66,11 +66,35 @@ The PR body file must contain `## Summary`, `## Verification`, and
 `## Documentation` headings. The script rejects unsupported release labels,
 pre-existing staged work, and unreviewed tracked or untracked changes.
 
+Where `gh` cannot open PRs, use `--pr-handoff` and finish PR handling through
+the GitHub integration:
+
+```bash
+scripts/ship.sh "[<tag>] chore: update local tooling" --pr-handoff --label chore --fast --pr-body-file /tmp/pr.md -- scripts/ship.sh
+```
+
+This explicit mode skips the `gh` requirement and every `gh` call. Formatting,
+preflight, reviewed-path staging, self-review guards, commit, and push still run.
+The body file and its required headings are mandatory, even with
+`--allow-open-pr`. After a successful push, the script prints the base, head,
+title, label, body-file path, and draft flag, then reports that PR handoff is
+required. Create or update the appropriate PR and monitor CI through the
+integration to finish shipping.
+
+Before invoking this mode, check the branch's PR state through the integration.
+An associated merged or closed PR must stop shipping under `AGENTS.md`;
+an open PR must be updated under the current shipping authorization. The script
+warns before formatting that PR state was not checked. `--allow-open-pr` retains
+its normal-mode behavior but cannot enforce an open-PR guard in handoff mode.
+Normal mode checks only open PRs, so checking for merged or closed PRs remains
+the caller's responsibility in either mode.
+
 ### One-time WSL setup
 
 - **Node 22** via nvm (`nvm install 22`).
 - **Docker** (Docker Desktop with WSL integration) for the ephemeral services.
 - **git push/pull**: share the Windows credential manager —
   `git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"`
-- **gh**: authenticated in WSL (`gh auth login`, or reuse the Windows token).
+- **gh**: authenticated in WSL (`gh auth login`, or reuse the Windows token),
+  unless using `--pr-handoff` with a GitHub integration.
 - **Playwright browsers** (only for full E2E): `npx playwright install --with-deps chromium` (one-time).

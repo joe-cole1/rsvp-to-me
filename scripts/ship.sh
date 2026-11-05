@@ -8,6 +8,7 @@
 # Examples:
 #   scripts/ship.sh "fix(auth): tighten session check" --label bug --pr-body-file /tmp/pr.md -- app/auth.ts
 #   scripts/ship.sh "chore: add local CI scripts" --label chore --fast --pr-body-file /tmp/pr.md -- scripts/ship.sh
+#   scripts/ship.sh "chore: update tooling" --pr-handoff --label chore --fast --pr-body-file /tmp/pr.md -- scripts/ship.sh
 #
 set -Eeuo pipefail
 
@@ -36,6 +37,7 @@ BASE="main"
 FASTFLAG=""
 DRAFT=""
 ALLOW_OPEN_PR=0
+PR_HANDOFF=0
 PR_BODY_FILE=""
 FILES=()
 while [ $# -gt 0 ]; do
@@ -53,6 +55,7 @@ while [ $# -gt 0 ]; do
     --fast)  FASTFLAG="--fast"; shift;;
     --draft) DRAFT="--draft"; shift;;
     --allow-open-pr) ALLOW_OPEN_PR=1; shift;;
+    --pr-handoff) PR_HANDOFF=1; shift;;
     --pr-body-file)
       [ $# -ge 2 ] || { echo "✗ --pr-body-file requires a value." >&2; exit 1; }
       PR_BODY_FILE="$2"
@@ -87,19 +90,35 @@ if [ "$BRANCH" = "$BASE" ]; then
   exit 1
 fi
 
-command -v gh >/dev/null 2>&1 || {
-  echo "✗ GitHub CLI (gh) is required to check and open the PR." >&2
-  exit 1
-}
+OPEN_PR=""
+if [ "$PR_HANDOFF" -eq 1 ]; then
+  echo "⚠ PR state was not checked (open, closed, or merged)." >&2
+  echo "  The caller must check branch PR state through the GitHub integration before running --pr-handoff." >&2
+  if [ "$ALLOW_OPEN_PR" -eq 1 ]; then
+    echo "  --allow-open-pr cannot enforce the open-PR guard in handoff mode." >&2
+  fi
+else
+  command -v gh >/dev/null 2>&1 || {
+    echo "✗ GitHub CLI (gh) is required to check and open the PR." >&2
+    exit 1
+  }
 
-OPEN_PR="$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url')"
-if [ -n "$OPEN_PR" ] && [ "$ALLOW_OPEN_PR" -ne 1 ]; then
-  echo "✗ This branch already has an open PR: $OPEN_PR" >&2
-  echo "  Obtain explicit approval before rerunning with --allow-open-pr." >&2
-  exit 1
+  OPEN_PR="$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url')"
+  if [ -n "$OPEN_PR" ] && [ "$ALLOW_OPEN_PR" -ne 1 ]; then
+    echo "✗ This branch already has an open PR: $OPEN_PR" >&2
+    echo "  Obtain explicit approval before rerunning with --allow-open-pr." >&2
+    exit 1
+  fi
 fi
-if [ -z "$OPEN_PR" ]; then
-  [ -n "$PR_BODY_FILE" ] || { echo "✗ A new PR requires --pr-body-file <path>." >&2; exit 1; }
+if [ "$PR_HANDOFF" -eq 1 ] || [ -z "$OPEN_PR" ]; then
+  [ -n "$PR_BODY_FILE" ] || {
+    if [ "$PR_HANDOFF" -eq 1 ]; then
+      echo "✗ --pr-handoff requires --pr-body-file <path>." >&2
+    else
+      echo "✗ A new PR requires --pr-body-file <path>." >&2
+    fi
+    exit 1
+  }
   [ -r "$PR_BODY_FILE" ] || { echo "✗ PR body file is not readable: $PR_BODY_FILE" >&2; exit 1; }
   for heading in "## Summary" "## Verification" "## Documentation"; do
     grep -Fqx "$heading" "$PR_BODY_FILE" || {
@@ -184,7 +203,19 @@ git commit -m "$MSG"
 say "Pushing '$BRANCH'"
 git push -u origin "$BRANCH"
 
-# 6) Open a PR or report the existing one.
+# 6) Hand off PR handling, open a PR, or report the existing one.
+if [ "$PR_HANDOFF" -eq 1 ]; then
+  say "PR handoff"
+  printf '  Base: %s\n' "$BASE"
+  printf '  Head: %s\n' "$BRANCH"
+  printf '  Title: %s\n' "$MSG"
+  printf '  Label: %s\n' "$LABEL"
+  printf '  Body file: %s\n' "$PR_BODY_FILE"
+  printf '  Draft flag: %s\n' "${DRAFT:-(none)}"
+  printf '\n\033[1;32m✓ Pushed; PR handoff required: %s\033[0m\n' "$BRANCH"
+  exit 0
+fi
+
 if gh pr view "$BRANCH" >/dev/null 2>&1; then
   say "PR already open:"
   gh pr view "$BRANCH" --json url --jq .url

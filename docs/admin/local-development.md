@@ -284,6 +284,15 @@ permission changes in the shared working tree.
 
 ### GitHub CLI authentication checks
 
+Where `gh` cannot open PRs, the canonical `scripts/ship.sh` supports an explicit
+`--pr-handoff` mode. Before invoking it, check the branch's open, closed, and
+merged PR state through the GitHub integration under the repository shipping
+rules. All local validation and Git safeguards still run; a body file with the
+required headings remains mandatory. After pushing, use the printed handoff to
+create or update the appropriate PR and monitor CI through the integration.
+See [Developer Scripts](https://github.com/joe-cole1/rsvp-to-me/blob/main/scripts/README.md)
+for usage and the PR-state caveat.
+
 `gh auth status` can report a stale token stored in `hosts.yml` even when a
 different credential source is successfully authenticating live GitHub
 requests. Treat that output as a troubleshooting hint, not proof that GitHub
