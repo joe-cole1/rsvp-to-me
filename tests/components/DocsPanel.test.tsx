@@ -61,6 +61,7 @@ describe("DocsPanel language-aware navigation", () => {
     await user.click(screen.getByRole("link", { name: "Instellen" }));
     expect(screen.getByRole("article")).toHaveAttribute("lang", "en-US");
     expect(screen.getByRole("heading", { name: "Settings" })).toHaveAttribute("id", "settings");
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: "Samen organiseren" }));
     expect(screen.getByRole("article")).toHaveAttribute("lang", "nl-NL");
     await user.click(screen.getByRole("link", { name: "Begin" }));
@@ -69,7 +70,7 @@ describe("DocsPanel language-aware navigation", () => {
       "getting-started"
     );
     expect(screen.getByRole("article")).toHaveAttribute("dir", "ltr");
-    // Flush both crosslink timers before jsdom is disposed.
+    // Flush the second crosslink timer before jsdom is disposed.
     await waitFor(() => expect(scroll).toHaveBeenCalledTimes(2));
   });
 
