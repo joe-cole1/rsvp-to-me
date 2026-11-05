@@ -16,6 +16,10 @@ October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with up
 
 ## Index
 
+Task `01a1ab65` addresses #793 in `issue-793-dutch-notification-feedback.test.ts`:
+all four event-update feedback messages must exist in the Dutch catalog, and the
+localized summary must interpolate every delivery count without English fallback.
+
 Task `01a1a08c` addresses #335 in `issue-335-update-routing.test.ts`: phone-only
 default routing, opt-outs, explicit SMS selection, awaited delivery, safe aggregate
 feedback, posted-update preservation, and authorization/CAPTCHA ordering.

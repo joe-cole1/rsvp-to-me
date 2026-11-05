@@ -605,6 +605,12 @@
         "googleCalendar": "Google Agenda",
         "icalOutlookIcs": "iCal / Outlook (.ics)"
       },
+      "NotificationDeliveryFeedback": {
+        "summary": "Mededeling geplaatst. Meldingen: {accepted} geaccepteerd, {skipped} overgeslagen, {failed} mislukt, {uncertain} onzeker.",
+        "processingFailed": "Mededeling geplaatst. De meldingen konden niet worden verwerkt.",
+        "acceptedHint": "Geaccepteerd betekent dat de dienst het bericht voor verwerking heeft geaccepteerd; de bezorging is niet bevestigd.",
+        "uncertainHint": "Sommige verzendpogingen konden niet worden bevestigd. Opnieuw proberen kan tot dubbele meldingen leiden."
+      },
       "ActivityFeed": {
         "activity": "Activiteit",
         "postUpdate": "Plaats een mededeling",
