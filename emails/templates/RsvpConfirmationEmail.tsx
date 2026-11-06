@@ -3,6 +3,7 @@ import { EmailLayout } from "../components/EmailLayout";
 import { Hero } from "../components/Hero";
 import { EmailButton } from "../components/EmailButton";
 import { DetailsCard } from "../components/DetailsCard";
+import { linkStyle } from "../components/linkStyle";
 import { splitParagraphs } from "../render";
 import type { RsvpConfirmationEmailProps } from "../types";
 
@@ -22,7 +23,13 @@ export function RsvpConfirmationEmail({
   const footer = (
     <p className="dm-text-muted" style={{ margin: 0, fontSize: "13px", color: theme.textMuted }}>
       {t("Email.confirmation.changed")}{" "}
-      <a href={editUrl} target="_blank" rel="noopener noreferrer" style={{ color: theme.accent }}>
+      <a
+        href={editUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="dm-link"
+        style={linkStyle(theme, undefined, true)}
+      >
         {t("Email.confirmation.update")}
       </a>
       {manageUrl && (
@@ -32,7 +39,8 @@ export function RsvpConfirmationEmail({
             href={manageUrl}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: theme.accent }}
+            className="dm-link"
+            style={linkStyle(theme, undefined, true)}
           >
             {t("Ui.Notifications.manageEvent")}
           </a>

@@ -128,11 +128,20 @@ export function toHex({ r, g, b }: { r: number; g: number; b: number }): string 
  * Otherwise shifts its lightness (same hue and saturation) toward whichever of
  * black or white reads better on the surfaces until it does, and returns hex.
  * If no shade of that hue gets there, returns the better of black and white.
+ * Pass `toward` to fix the direction for an ink that must stay dark or light;
+ * its fallback is then that extreme.
  */
-export function ensureContrast(color: string, surfaces: Rgba[], ratio: number): string {
+export function ensureContrast(
+  color: string,
+  surfaces: Rgba[],
+  ratio: number,
+  toward?: "black" | "white"
+): string {
   if (minContrast(color, surfaces) >= ratio) return color;
   const { h, s, l } = rgbToHsl(parseColor(color));
-  const lighten = minContrast("#ffffff", surfaces) > minContrast("#000000", surfaces);
+  const lighten = toward
+    ? toward === "white"
+    : minContrast("#ffffff", surfaces) > minContrast("#000000", surfaces);
   for (let step = 1; step <= 100; step++) {
     const next = lighten ? Math.min(100, l + step) : Math.max(0, l - step);
     const candidate = toHex(hslToRgb(h, s, next));

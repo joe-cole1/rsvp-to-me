@@ -271,19 +271,34 @@ Fonts and effects are theme inputs, not app tokens.
 `resolveEmailTheme()` in `lib/email-theme.ts` is the only web-to-email boundary. It derives
 everything from `resolveTheme()`, so new presets reach email with no email-code change.
 
-- **Inherited:** `accent` and `accentFg`, the hero gradient with a solid `heroFallback` for
-  Outlook, hero text and shadow, the heading font's `emailStack`, button radius, weight and
-  case, and the avatar gradient.
-- **Fixed:** a light canvas (#f4f4f7) and white body with readable body inks, 12px card radius,
-  and a `prefers-color-scheme: dark` variant in `emails/components/EmailLayout.tsx`.
-- **Dropped:** glass, blur, orbs, blobs, shadows, animation, effects and web fonts.
+- **Inherited:** `accent` (fills, borders, and link underlines where visible) and `accentFg`, the hero gradient
+  with a solid `heroFallback` for Outlook, the web's hero ink choice and shadow, the heading
+  font's `emailStack`, button radius, weight and case, and the avatar gradient.
+- **Fixed:** a light canvas (#f4f4f7), white body and #f8f8fa details card (`EMAIL_SURFACES`),
+  body inks #18181b, #52525b and muted #6b6b75, 12px card radius, and a
+  `prefers-color-scheme: dark` variant (`EMAIL_DARK_MODE`, muted #9a9aa3) applied by
+  `emails/components/EmailLayout.tsx`.
+- **Dropped:** glass, blur, orbs, blobs, shadows, animation, effects, web fonts and `heroScrim`.
 
-Email text follows principle 6 on the white body. Email inherits the web `heroText`, so light
-BOLD gradients get the dark hero ink, but not `heroScrim`, so white BOLD hero text still fails
-in email where the web page uses a scrim. Accent-colored links also fail on many presets, and the
-email muted gray reads at 3.2:1. Planned (#808): a derived
-`linkColor`, hero text chosen against the worst gradient stop and the fallback, and a readable
-muted gray, all inside `resolveEmailTheme()` and covered by the preset-sweep test.
+Email text follows principle 6 on email surfaces, never web ones. `resolveEmailTheme()` derives
+these with the `lib/theme-contrast.ts` helpers, moving colors only in lightness:
+
+- **`linkColor`** is the accent made readable (4.5:1) on the body, card and canvas, and
+  `linkColorDark` the same on the dark-mode surfaces (the `.dm-link` class). Every
+  accent-colored text link uses `linkStyle()` from `emails/components/linkStyle.ts`: text in
+  `linkColor`, underline in `linkUnderline` (the `accent` where it reads 3:1 on the body and
+  card, else `linkColor`), since the underline is what tells a link from body text. Footer
+  links on the canvas underline in `linkColor`. Accent buttons keep the `accent` fill with
+  `accentFg`.
+- **`heroText`** (title, 3:1) and **`heroTextSecondary`** (kicker and subtitle, 4.5:1, a solid
+  color with no opacity) are measured on the gradient sampled stop to stop plus `heroFallback`.
+  The web's choice goes first, then the other ink; a dark ink may deepen toward black. When no
+  ink reaches both everywhere (a few mid-tone BOLD gradients such as Tropical Punch), the ink
+  that reads best is used and the gradient is left alone: no panel, wash or lift.
+- **`avatarText`** reaches 3:1 on the avatar gradient where an ink can.
+
+`tests/lib/email-preset-sweep.test.tsx` enforces this for every base default and preset, plus a
+few extreme custom colors.
 
 ## Copy
 

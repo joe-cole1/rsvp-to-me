@@ -684,8 +684,9 @@ const STATUS_INKS: Record<
 };
 
 // BOLD hero on a light gradient: the stone inks SOFT uses for its text.
-const HERO_INK = { text: "#1c1917", secondary: "#44403c", muted: "#57534e" };
-const HERO_WHITE_SHADOW = "0 1px 4px rgba(0,0,0,0.3)";
+// Exported so resolveEmailTheme() picks from the same inks.
+export const HERO_INK = { text: "#1c1917", secondary: "#44403c", muted: "#57534e" };
+export const HERO_WHITE_SHADOW = "0 1px 4px rgba(0,0,0,0.3)";
 // White hero text keeps the theme's look when a wash this light (or lighter) is
 // enough; past it, a light gradient switches to HERO_INK instead.
 const MIN_HERO_SCRIM = 0.35;

@@ -410,6 +410,12 @@ All event-related emails are rendered from the event's own theme, so an invite f
 - Theme is resolved **at send time** from the event's current theme row. If a host changes their theme, every subsequent email — including automated reminders — uses the new look. Already-sent emails are unchanged.
 - New theme presets (built-in or admin-created) work in email automatically, with no email-code changes.
 - Emails use a **light canvas with a themed gradient hero** (plus the cover image when set). This is the most reliable choice across clients: Apple Mail/Outlook honor the `prefers-color-scheme` dark tweaks we ship, while Gmail applies its own dark treatment to the light canvas gracefully.
+- **Readable text is automatic**, measured on the email's own surfaces (the white body, the details card, the light canvas, the dark-mode surfaces, and the hero gradient plus the solid color Outlook shows instead):
+  - **Links** such as "Update your RSVP" use a deeper or lighter shade of the event accent (same hue) that reads at 4.5:1; the underline keeps the accent itself wherever it shows up on white. Buttons keep the accent fill.
+  - **Hero text** is white or a dark ink, chosen like the event page: the title reads at 3:1 and the small line above it (and the date line on invites) at 4.5:1. Email can't draw the soft shade the event page puts behind white text, so a few bold gradients that use it on the web get the dark ink in email. On a few mid-tone gradients no single ink reaches 4.5:1 everywhere for the small line (Tropical Punch, St. Patrick's and Blue Raspberry read 4.1–4.35:1); the email then uses the ink that reads best and never alters the gradient.
+  - **Gray text** (timestamps, "Hosted by", the footer) reads at 4.5:1.
+
+  This covers built-in presets, admin-created presets and custom colors, and `tests/lib/email-preset-sweep.test.tsx` checks every built-in preset.
 
 > **Degradation contract (for developers):** email clients cannot run modern CSS, so `resolveEmailTheme()` is the single place where web-theme capabilities are mapped to email-safe equivalents. Every new `ResolvedTheme` capability must declare its email mapping or explicitly degrade (e.g. a future background image → a bulletproof hero background with a solid-color fallback; animation → a static equivalent). Anything undeclared is ignored — email rendering must never break because a web-only token was added. See the module docblock in `lib/email-theme.ts` and the rule in `AGENTS.md`.
 
@@ -419,7 +425,7 @@ All event-related emails are rendered from the event's own theme, so an invite f
 
 ## Editing Template Copy & Content Blocks
 
-Under **Admin Panel → Email → Email Templates**, admins can customize each email without touching code. Pick a template from the dropdown to edit it; a **live preview** renders beside the editor (with a Dark/Soft/Bold sample switcher for event emails), and **Send test to me** delivers a sample to your admin address.
+Under **Admin Panel → Email → Email Templates**, admins can customize each email without touching code. Pick a template from the dropdown to edit it; a **live preview** renders beside the editor, and **Send test to me** delivers a sample to your admin address. For event emails, the **Sample theme** list above the preview picks the theme both use: the Dark, Soft or Bold defaults, or any active preset (built-in or one you created), with its heading font.
 
 **What you can edit per template:**
 

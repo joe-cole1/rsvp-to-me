@@ -2,6 +2,7 @@ import { requireEmailI18n } from "../i18n";
 import { EmailLayout } from "../components/EmailLayout";
 import { Hero } from "../components/Hero";
 import { HostFlourish } from "../components/HostFlourish";
+import { linkStyle } from "../components/linkStyle";
 import { splitParagraphs } from "../render";
 import type { BlastEmailProps } from "../types";
 
@@ -65,7 +66,8 @@ export function BlastEmail({
                   href={eventUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: theme.accent, fontSize: "14px" }}
+                  className="dm-link"
+                  style={linkStyle(theme, { fontSize: "14px" })}
                 >
                   {t("Email.blast.view")}
                 </a>

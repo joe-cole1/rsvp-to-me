@@ -1,5 +1,6 @@
 import { requireEmailI18n, type EmailI18n } from "../i18n";
 import type { EmailTheme } from "@/lib/email-theme";
+import { linkStyle } from "./linkStyle";
 import {
   buildGoogleCalendarUrl,
   buildGoogleMapsUrl,
@@ -50,7 +51,7 @@ export function DetailsCard({
     color: theme.textPrimary,
   };
   const subStyle = { ...textStyle, color: theme.textSecondary };
-  const linkStyle = { color: theme.accent, textDecoration: "underline" };
+  const link = linkStyle(theme);
 
   return (
     <table
@@ -85,12 +86,13 @@ export function DetailsCard({
               {event.locationName || t("Email.virtualEvent")}
             </p>
             {event.virtualUrl ? (
-              <p style={subStyle}>
+              <p className="dm-text-secondary" style={subStyle}>
                 <a
                   href={event.virtualUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={linkStyle}
+                  className="dm-link"
+                  style={link}
                 >
                   {t("Email.joinLink")}
                 </a>
@@ -108,12 +110,13 @@ export function DetailsCard({
               </p>
             ) : null}
             {showMapLink && mapQuery ? (
-              <p style={subStyle}>
+              <p className="dm-text-secondary" style={subStyle}>
                 <a
                   href={buildGoogleMapsUrl(mapQuery)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={linkStyle}
+                  className="dm-link"
+                  style={link}
                 >
                   {t("Email.openMap")}
                 </a>
@@ -124,13 +127,14 @@ export function DetailsCard({
 
         {showCalendarLinks ? (
           <DetailRow label="🗓️">
-            <p style={subStyle}>
+            <p className="dm-text-secondary" style={subStyle}>
               {t("Email.addCalendar")}{" "}
               <a
                 href={buildGoogleCalendarUrl(event)}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={linkStyle}
+                className="dm-link"
+                style={link}
               >
                 Google
               </a>
@@ -139,7 +143,8 @@ export function DetailsCard({
                 href={icsUrlForEvent(event.slug)}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={linkStyle}
+                className="dm-link"
+                style={link}
               >
                 Apple / Outlook (.ics)
               </a>

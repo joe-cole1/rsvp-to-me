@@ -21,6 +21,8 @@ type TemplateEntry = {
   overrides: { subject?: string; body?: string } & Partial<Record<TemplateToggleKey, boolean>>;
 };
 
+type SamplePreset = { id: string; name: string; emoji: string };
+
 const BASES = ["DARK", "SOFT", "BOLD"] as const;
 
 const inputStyle: React.CSSProperties = {
@@ -46,7 +48,9 @@ export function EmailTemplatesSection() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [toggles, setToggles] = useState<Partial<Record<TemplateToggleKey, boolean>>>({});
-  const [sampleBase, setSampleBase] = useState<(typeof BASES)[number]>("DARK");
+  // A base theme id (its defaults) or a theme preset id.
+  const [sampleTheme, setSampleTheme] = useState<string>("DARK");
+  const [samplePresets, setSamplePresets] = useState<SamplePreset[]>([]);
   const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -65,7 +69,10 @@ export function EmailTemplatesSection() {
   useEffect(() => {
     // setState only in the async callback (not synchronously in the effect body).
     getEmailTemplatesAdmin()
-      .then(({ templates: loaded }) => setTemplates(loaded as TemplateEntry[]))
+      .then(({ templates: loaded, samplePresets: presets }) => {
+        setTemplates(loaded as TemplateEntry[]);
+        setSamplePresets(presets);
+      })
       .catch(() => setStatus(tr("failedToLoadTemplates")));
   }, [locale, tr]);
 
@@ -102,14 +109,14 @@ export function EmailTemplatesSection() {
     if (!selected) return;
     if (previewTimer.current) clearTimeout(previewTimer.current);
     previewTimer.current = setTimeout(() => {
-      previewEmailTemplateAction(selected.meta.id, currentOverrides(), sampleBase)
+      previewEmailTemplateAction(selected.meta.id, currentOverrides(), sampleTheme)
         .then(setPreview)
         .catch(() => setPreview(null));
     }, 400);
     return () => {
       if (previewTimer.current) clearTimeout(previewTimer.current);
     };
-  }, [selected, currentOverrides, sampleBase]);
+  }, [selected, currentOverrides, sampleTheme]);
 
   const handleSave = async () => {
     if (!selected) return;
@@ -185,7 +192,7 @@ export function EmailTemplatesSection() {
     setBusy(true);
     setStatus(null);
     try {
-      const res = await sendEmailTemplateTestAction(selected.meta.id, sampleBase);
+      const res = await sendEmailTemplateTestAction(selected.meta.id, sampleTheme);
       setStatus(
         res.success ? tr("testSentTo", { recipient: res.sentTo }) : (res.error ?? tr("sendFailed"))
       );
@@ -426,26 +433,35 @@ export function EmailTemplatesSection() {
           >
             <label style={{ ...labelStyle, marginBottom: 0 }}>{tr("livePreview")}</label>
             {selected.meta.eventScoped && (
-              <div style={{ display: "flex", gap: "4px" }}>
-                {BASES.map((base) => (
-                  <button
-                    key={base}
-                    type="button"
-                    onClick={() => setSampleBase(base)}
-                    style={{
-                      backgroundColor: sampleBase === base ? APP_SHELL.accent : "transparent",
-                      border: `1px solid ${sampleBase === base ? APP_SHELL.accent : APP_SHELL.cardBorder}`,
-                      color: sampleBase === base ? "#fff" : APP_SHELL.textSecondary,
-                      borderRadius: "999px",
-                      padding: "3px 10px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {tEvent("shared.baseThemes." + base)}
-                  </button>
-                ))}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <label
+                  htmlFor="email-preview-sample-theme"
+                  style={{ ...labelStyle, marginBottom: 0 }}
+                >
+                  {tr("sampleTheme")}
+                </label>
+                <select
+                  id="email-preview-sample-theme"
+                  value={sampleTheme}
+                  onChange={(e) => setSampleTheme(e.target.value)}
+                  style={{ ...inputStyle, width: "auto", maxWidth: "220px", colorScheme: "dark" }}
+                >
+                  {[
+                    ...BASES.map((base) => ({
+                      value: base,
+                      label: tEvent("shared.baseThemes." + base),
+                    })),
+                    ...samplePresets.map((p) => ({ value: p.id, label: `${p.emoji} ${p.name}` })),
+                  ].map((option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                      style={{ backgroundColor: "#12091f", color: "#ffffff" }}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>

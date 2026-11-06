@@ -79,7 +79,7 @@ The **Effects** tab in **Settings → Theme** adds an optional layer of gently d
 - Every visitor can choose **"✨ Hide effects"** from the menu in the top bar, so anyone who finds the animation distracting can turn it off for themselves. Signed-in visitors open the menu from their profile picture; signed-out visitors use the circular hamburger button. The choice is remembered in their browser and doesn't affect anyone else.
 - Effects follow guests and hosts across the event page, RSVP form, guest list, and event settings. **Emails always stay static** by design.
 
-Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
+Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. Email text is adjusted to stay readable in every mail app: links appear in a deeper shade of your accent color, and on some bold gradients the email title uses a dark ink where your page shows white text over a soft shade. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
 
 ---
 

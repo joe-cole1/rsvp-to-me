@@ -65,8 +65,7 @@ export function Hero({
                           fontWeight: "600",
                           letterSpacing: "1px",
                           textTransform: "uppercase" as const,
-                          color: theme.heroText,
-                          opacity: 0.85,
+                          color: theme.heroTextSecondary,
                         }}
                       >
                         {kicker}
@@ -91,8 +90,7 @@ export function Hero({
                         style={{
                           margin: "8px 0 0",
                           fontSize: "15px",
-                          color: theme.heroText,
-                          opacity: 0.9,
+                          color: theme.heroTextSecondary,
                         }}
                       >
                         {subtitle}
