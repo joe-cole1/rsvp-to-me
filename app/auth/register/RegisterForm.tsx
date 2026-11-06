@@ -4,14 +4,11 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { registerHostAction } from "@/app/actions/auth";
 import { AppShell } from "@/components/ui/AppShell";
-import { APP_SHELL } from "@/lib/theme";
-import {
-  AppButton,
-  AppCard,
-  AppInput,
-  FormField,
-  InlineAlert,
-} from "@/components/ui/AppPrimitives";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { AppCard } from "@/components/ui/AppPrimitives";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 export default function RegisterForm({ openRegistration }: { openRegistration: boolean }) {
@@ -91,70 +88,50 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
               >
                 {tr("checkYourEmailForAMagicLinkToSign")}
               </p>
-              <a
-                href="/auth/sign-in"
-                style={{
-                  display: "inline-block",
-                  padding: "10px 24px",
-                  background: APP_SHELL.accent,
-                  color: APP_SHELL.textPrimary,
-                  borderRadius: APP_SHELL.btnRadius,
-                  textDecoration: "none",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                }}
-              >
+              <a href="/auth/sign-in" {...buttonProps(T, { variant: "primary" })}>
                 {tr("goToSignIn")}
               </a>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <FormField label={tr("yourName")}>
-                <AppInput
+              <Field theme={T} label={tr("yourName")}>
+                <Input
+                  theme={T}
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={tr("janeSmith")}
-                  style={{ padding: "12px 14px", fontSize: "15px" }}
                 />
-              </FormField>
-              <FormField label={tr("emailAddress")}>
-                <AppInput
+              </Field>
+              <Field theme={T} label={tr("emailAddress")}>
+                <Input
+                  theme={T}
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={tr("youExampleCom")}
-                  style={{ padding: "12px 14px", fontSize: "15px" }}
                 />
-              </FormField>
+              </Field>
               {!openRegistration && (
-                <FormField label={tr("inviteCode")}>
-                  <AppInput
+                <Field theme={T} label={tr("inviteCode")}>
+                  <Input
+                    theme={T}
                     type="text"
                     required
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     placeholder={tr("enterYourInviteCode")}
-                    style={{ padding: "12px 14px", fontSize: "15px" }}
                   />
-                </FormField>
+                </Field>
               )}
 
-              {error && <InlineAlert>{error}</InlineAlert>}
+              {error && <InlineAlert theme={T}>{error}</InlineAlert>}
 
-              <AppButton
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "13px",
-                  fontSize: "15px",
-                }}
-              >
+              <Button theme={T} variant="primary" type="submit" disabled={loading} fullWidth>
                 {loading ? tr("creatingAccount") : tr("createAccount")}
-              </AppButton>
+              </Button>
 
               <div style={{ textAlign: "center", marginTop: "20px" }}>
                 {tr.rich("alreadyHaveAnAccountSignInMessage", {
@@ -170,7 +147,7 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
                       {chunks}
                     </a>
                   ),
-                  part1: (chunks) => <span style={{ color: APP_SHELL.accent }}>{chunks}</span>,
+                  part1: (chunks) => <span style={{ color: T.accentText }}>{chunks}</span>,
                 })}
               </div>
             </form>

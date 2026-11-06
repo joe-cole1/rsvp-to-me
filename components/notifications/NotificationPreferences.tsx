@@ -4,9 +4,12 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
-import { InlineAlert } from "@/components/ui/AppPrimitives";
-import { Section, Toggle } from "@/components/event/settings-page/ui";
-import { buttonStyle, inviteVars, linkButtonStyle } from "@/components/event/invitations/styles";
+import { Section } from "@/components/event/settings-page/ui";
+import { Button, DISABLED_OPACITY, buttonProps } from "@/components/ui/Button";
+import { chipStyle } from "@/components/ui/Choice";
+import { Check } from "@/components/ui/Field";
+import { InlineAlert, StatusChip } from "@/components/ui/Feedback";
+import { Toggle } from "@/components/ui/Toggle";
 import { APP_SHELL_THEME as APP_THEME, type ResolvedTheme } from "@/lib/theme";
 import type { Category, Channel } from "@/lib/notifications/preferences";
 import type { ManagementData, ManagementScope } from "@/lib/notifications/manage";
@@ -140,17 +143,30 @@ function useManagement(scope: ManagementScope, initialData?: ManagementData, rep
 }
 type Management = ReturnType<typeof useManagement>;
 
-function StatusLine({ status, section }: { status: Status; section: string }) {
+function StatusLine({
+  status,
+  section,
+  theme,
+}: {
+  status: Status;
+  section: string;
+  theme: ResolvedTheme;
+}) {
   const t = useTranslations("Ui.Notifications");
   if (!status || status.section !== section) return null;
   return (
     <div style={{ marginTop: "12px" }}>
-      <InlineAlert tone={status.tone}>
+      <InlineAlert theme={theme} tone={status.tone}>
         {status.text}{" "}
         {status.reload && (
-          <button type="button" style={linkButtonStyle} onClick={() => window.location.reload()}>
+          <Button
+            theme={theme}
+            variant="link"
+            type="button"
+            onClick={() => window.location.reload()}
+          >
             {t("reload")}
-          </button>
+          </Button>
         )}
       </InlineAlert>
     </div>
@@ -234,16 +250,17 @@ function PreferenceTable({
                 style={{
                   color: theme.textPrimary,
                   cursor: disabled ? "not-allowed" : "pointer",
-                  opacity: disabled ? 0.6 : 1,
+                  opacity: disabled ? DISABLED_OPACITY : 1,
                 }}
               >
-                <input
-                  type="checkbox"
+                <Check
+                  theme={theme}
                   aria-label={t("cellLabel", { category: t(row.category), channel: t(channel) })}
                   checked={row.channels.includes(channel)}
                   disabled={disabled}
                   onChange={(event) => onToggle(row.category, channel, event.target.checked)}
-                  style={{ width: "20px", height: "20px", margin: 0, accentColor: theme.accent }}
+                  // The cell carries the disabled look; don't fade the box twice.
+                  style={{ width: "20px", height: "20px", opacity: 1 }}
                 />
                 <span className="rsvp-pref-cell-label" aria-hidden>
                   {t(channel)}
@@ -276,25 +293,6 @@ function useToggle(data: ManagementData, m: Management) {
       t(on ? "cellOn" : "cellOff", { category: t(category), channel: t(channel) })
     );
 }
-
-const chipStyle = (theme: ResolvedTheme, tone: "success" | "neutral"): CSSProperties => ({
-  flexShrink: 0,
-  fontSize: "12px",
-  fontWeight: 700,
-  padding: "3px 8px",
-  borderRadius: "100px",
-  background: tone === "success" ? "rgba(34,197,94,0.12)" : theme.inputBg,
-  color: tone === "success" ? "#4ade80" : theme.textSecondary,
-});
-const iconButton: CSSProperties = {
-  ...buttonStyle,
-  flexShrink: 0,
-  width: "40px",
-  padding: 0,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
 
 /** Contacts grouped by channel: one row per address, or an empty line. */
 function ContactGroup({
@@ -400,14 +398,10 @@ function ProfileContacts({ data, theme, scope, m }: EditorProps) {
       t={theme}
       action={
         free.length > 0 && !adding ? (
-          <button
-            type="button"
-            style={{ ...buttonStyle, display: "inline-flex", alignItems: "center", gap: "6px" }}
-            onClick={() => setAdding(true)}
-          >
+          <Button theme={theme} variant="secondary" type="button" onClick={() => setAdding(true)}>
             <Plus size={16} aria-hidden />
             {t("add")}
-          </button>
+          </Button>
         ) : undefined
       }
     >
@@ -432,21 +426,16 @@ function ProfileContacts({ data, theme, scope, m }: EditorProps) {
               {free.map((option) => (
                 <label
                   key={option}
-                  style={{
-                    ...buttonStyle,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    borderColor: option === channel ? theme.accent : undefined,
-                    color: theme.textPrimary,
-                  }}
+                  className="rsvp-field-within"
+                  style={{ ...chipStyle(theme, option === channel), gap: "8px" }}
                 >
-                  <input
+                  <Check
+                    theme={theme}
                     type="radio"
                     name="contact-kind"
                     checked={option === channel}
                     onChange={() => setPicked(option)}
-                    style={{ margin: 0, accentColor: theme.accent }}
+                    style={{ width: "16px", height: "16px" }}
                   />
                   {t(option)}
                 </label>
@@ -474,10 +463,13 @@ function ProfileContacts({ data, theme, scope, m }: EditorProps) {
             {connection ? (
               <ContactItem theme={theme}>
                 <Address theme={theme}>{connection.destination}</Address>
-                <span style={chipStyle(theme, "success")}>{t("contactVerified")}</span>
-                <button
+                <StatusChip theme={theme} tone="success">
+                  {t("contactVerified")}
+                </StatusChip>
+                <Button
+                  theme={theme}
+                  variant="icon"
                   type="button"
-                  style={iconButton}
                   aria-label={t("removeAddress", { destination: connection.destination })}
                   onClick={() =>
                     m.run(
@@ -489,7 +481,7 @@ function ProfileContacts({ data, theme, scope, m }: EditorProps) {
                   }
                 >
                   <Minus size={16} aria-hidden />
-                </button>
+                </Button>
               </ContactItem>
             ) : (
               <li style={{ padding: "14px 0", fontSize: "13px", color: theme.textSecondary }}>
@@ -499,7 +491,7 @@ function ProfileContacts({ data, theme, scope, m }: EditorProps) {
           </ContactGroup>
         );
       })}
-      <StatusLine status={m.status} section="contacts" />
+      <StatusLine status={m.status} section="contacts" theme={theme} />
     </Section>
   );
 }
@@ -527,7 +519,9 @@ function EventContacts({ data, theme, scope, m, embedded }: EditorProps & { embe
     const text = chipText(state);
     return (
       text && (
-        <span style={chipStyle(theme, state === "verified" ? "success" : "neutral")}>{text}</span>
+        <StatusChip theme={theme} tone={state === "verified" ? "success" : "neutral"}>
+          {text}
+        </StatusChip>
       )
     );
   };
@@ -563,7 +557,12 @@ function EventContacts({ data, theme, scope, m, embedded }: EditorProps & { embe
             </Address>
             {chip(row.state)}
             {!organizer && editing !== row.channel && (
-              <button type="button" style={linkButtonStyle} onClick={() => setEditing(row.channel)}>
+              <Button
+                theme={theme}
+                variant="link"
+                type="button"
+                onClick={() => setEditing(row.channel)}
+              >
                 {t(
                   row.state === "missing"
                     ? "addContact"
@@ -571,7 +570,7 @@ function EventContacts({ data, theme, scope, m, embedded }: EditorProps & { embe
                       ? "verifyContact"
                       : "changeContact"
                 )}
-              </button>
+              </Button>
             )}
           </ContactItem>
         </ContactGroup>
@@ -579,10 +578,11 @@ function EventContacts({ data, theme, scope, m, embedded }: EditorProps & { embe
       {unbound.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
           {unbound.map((row) => (
-            <button
+            <Button
               key={row.id}
+              theme={theme}
+              variant="secondary"
               type="button"
-              style={buttonStyle}
               onClick={() =>
                 m.run(
                   "contacts",
@@ -593,16 +593,16 @@ function EventContacts({ data, theme, scope, m, embedded }: EditorProps & { embe
               }
             >
               {t("useForEvent", { destination: row.destination })}
-            </button>
+            </Button>
           ))}
         </div>
       )}
       {organizer && (
-        <Link href="/profile" style={linkButtonStyle}>
+        <Link href="/profile" {...buttonProps(theme, { variant: "link" })}>
           {t("manageProfileConnections")}
         </Link>
       )}
-      <StatusLine status={m.status} section="contacts" />
+      <StatusLine status={m.status} section="contacts" theme={theme} />
     </Wrapper>
   );
 }
@@ -650,9 +650,11 @@ function ProfileEditor(props: EditorProps) {
             <Hint theme={theme}>{t("emptyRow")}</Hint>
           </>
         ) : (
-          <InlineAlert tone="info">{t("noneOffered")}</InlineAlert>
+          <InlineAlert theme={theme} tone="info">
+            {t("noneOffered")}
+          </InlineAlert>
         )}
-        <StatusLine status={m.status} section="table" />
+        <StatusLine status={m.status} section="table" theme={theme} />
       </Section>
       <ProfileContacts {...props} />
       <Section title={t("oneEventTitle")} t={theme}>
@@ -684,7 +686,7 @@ function EventEditor(props: EditorProps & { embedded: boolean }) {
       <>
         {data.linked && (
           <Toggle
-            t={theme}
+            theme={theme}
             label={t("useProfile")}
             value={following}
             onChange={(follow) =>
@@ -698,10 +700,12 @@ function EventEditor(props: EditorProps & { embedded: boolean }) {
             {t("channelUnavailable", { channel: t(row.channel) })}
           </Hint>
         ))}
-        <StatusLine status={m.status} section="table" />
+        <StatusLine status={m.status} section="table" theme={theme} />
       </>
     ) : (
-      <InlineAlert tone="info">{t("noneOffered")}</InlineAlert>
+      <InlineAlert theme={theme} tone="info">
+        {t("noneOffered")}
+      </InlineAlert>
     );
   const contacts = !(data.kind === "organizer" && data.hostAlertsEnabled === false) && (
     <EventContacts {...props} embedded={embedded} />
@@ -744,10 +748,12 @@ export function NotificationPreferences({
   if (!m.data) {
     const waiting = m.loadError ? (
       <>
-        <InlineAlert tone="error">{m.loadError}</InlineAlert>
-        <button type="button" style={buttonStyle} onClick={m.load}>
+        <InlineAlert theme={theme} tone="error">
+          {m.loadError}
+        </InlineAlert>
+        <Button theme={theme} variant="secondary" type="button" onClick={m.load}>
           {t("retry")}
-        </button>
+        </Button>
       </>
     ) : (
       <Hint theme={theme}>{t("loading")}</Hint>
@@ -764,5 +770,5 @@ export function NotificationPreferences({
   } else {
     content = <EventEditor data={m.data} theme={theme} scope={scope} m={m} embedded={embedded} />;
   }
-  return <div style={inviteVars(theme)}>{content}</div>;
+  return <div>{content}</div>;
 }

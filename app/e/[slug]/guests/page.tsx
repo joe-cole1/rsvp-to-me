@@ -1,6 +1,7 @@
 import { getRequestTranslator } from "@/i18n/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { buttonProps } from "@/components/ui/Button";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
 import { serializeGuestRsvp, canViewGuestListPage } from "@/lib/guestList";
@@ -145,20 +146,11 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
       >
         {/* Header */}
         <div style={{ marginBottom: "28px" }}>
-          <Link
-            href={`/e/${slug}`}
-            style={{
-              color: t.textMuted,
-              fontSize: "13px",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              marginBottom: "16px",
-            }}
-          >
-            {translate("Ui.Event.GuestsRoute.back")}
-          </Link>
+          <p style={{ margin: "0 0 16px", fontSize: "14px" }}>
+            <Link href={`/e/${slug}`} {...buttonProps(t, { variant: "link", onGround: true })}>
+              {translate("Ui.Event.GuestsRoute.back")}
+            </Link>
+          </p>
           <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "4px" }}>{event.title}</h1>
           <p style={{ color: t.textMuted, fontSize: "14px" }}>
             {countSummary || translate("Ui.Event.GuestsRoute.title")}

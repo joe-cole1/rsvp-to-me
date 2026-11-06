@@ -10,11 +10,15 @@ import {
   type InvitationDraftRow,
   type InvitationRowStatus,
 } from "@/lib/invitation-draft-rows";
-import { inputStyle, mutedText } from "./styles";
+import type { ResolvedTheme } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
+import { mutedText } from "./styles";
 
 type Field = "name" | "contact";
 
 export function RecipientRows({
+  theme,
   rows,
   statuses,
   revealAll,
@@ -23,6 +27,7 @@ export function RecipientRows({
   onSpreadsheetPaste,
   onPasteTooLong,
 }: {
+  theme: ResolvedTheme;
   rows: InvitationDraftRow[];
   statuses: InvitationRowStatus[];
   /** Show every row's problem, e.g. after the host asks what needs attention. */
@@ -110,14 +115,15 @@ export function RecipientRows({
         return (
           <div key={row.id} data-row-id={row.id}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
-              <input
+              <Input
+                theme={theme}
                 {...field("name")}
                 aria-label={t("nameLabel", { number })}
                 placeholder={t("nameOptional")}
                 maxLength={120}
                 autoComplete="off"
                 data-autofocus={blank && index === rows.length - 1 ? "" : undefined}
-                style={{ ...inputStyle, flex: "1 1 160px" }}
+                style={{ flex: "1 1 160px", width: "auto" }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
@@ -125,13 +131,14 @@ export function RecipientRows({
                   }
                 }}
               />
-              <input
+              <Input
+                theme={theme}
                 {...field("contact")}
                 aria-label={t("contactLabel", { number })}
                 placeholder={t("contact")}
                 inputMode="email"
                 autoComplete="off"
-                style={{ ...inputStyle, flex: "1.4 1 200px" }}
+                style={{ flex: "1.4 1 200px", width: "auto" }}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter") return;
                   event.preventDefault();
@@ -141,9 +148,11 @@ export function RecipientRows({
                   if (next) focus(next.id, "name");
                 }}
               />
-              <span style={{ width: "36px", display: "flex", justifyContent: "center" }}>
+              <span style={{ width: "40px", display: "flex", justifyContent: "center" }}>
                 {blank ? null : (
-                  <button
+                  <Button
+                    theme={theme}
+                    variant="icon"
                     type="button"
                     aria-label={t("remove", { number })}
                     onClick={() => {
@@ -151,35 +160,23 @@ export function RecipientRows({
                       dispatch({ type: "remove", id: row.id });
                       if (next) focus(next.id, "name");
                     }}
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      border: "none",
-                      borderRadius: "8px",
-                      background: "transparent",
-                      color: "var(--invite-muted)",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
                   >
                     <X size={18} aria-hidden="true" />
-                  </button>
+                  </Button>
                 )}
               </span>
             </div>
             {showProblem ? (
               <p
                 id={describedBy}
-                style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--invite-problem)" }}
+                style={{ margin: "4px 0 0", fontSize: "13px", color: theme.status.error.text }}
               >
                 {problem}
               </p>
             ) : status.kind === "ready" ? (
               <p
                 style={{
-                  ...mutedText,
+                  ...mutedText(theme),
                   margin: "4px 0 0",
                   display: "flex",
                   alignItems: "center",

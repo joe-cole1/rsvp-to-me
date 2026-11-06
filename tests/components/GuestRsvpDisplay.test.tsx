@@ -5,7 +5,6 @@ import { testTheme } from "./helpers/theme";
 import { GuestListSection } from "@/components/event/event-page/GuestListSection";
 import type { EventData } from "@/components/event/event-page/types";
 import { GuestRsvpDisplaySettings } from "@/components/event/settings-page/GuestRsvpDisplaySettings";
-import { buildStyles } from "@/components/event/settings-page/styles";
 import { guestRsvpDisplayFields, type GuestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
 
 vi.mock("@/app/actions/event", () => ({
@@ -196,7 +195,6 @@ describe("grouped guest display settings", () => {
         }
         guestListVis={hostOnly ? "HOST_ONLY" : "ALL"}
         t={testTheme}
-        S={buildStyles(testTheme)}
       />
     );
   }

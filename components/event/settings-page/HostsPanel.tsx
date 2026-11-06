@@ -7,6 +7,9 @@ import type { ResolvedTheme } from "@/lib/theme";
 import type { CoHostEntry, EventInput, SettingsOverrides, SessionUser } from "./types";
 import type { SettingsPageStyles } from "./styles";
 import { Section } from "./ui";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 
 export function HostsPanel({
   event,
@@ -85,20 +88,9 @@ export function HostsPanel({
             </div>
           </div>
           {isOwner && (
-            <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: t.textMuted,
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
-                {translate("displayNameOverride")}
-              </label>
-              <input
-                style={{ ...S.inp, fontSize: "12px", padding: "6px 10px" }}
+            <Field theme={t} label={translate("displayNameOverride")} style={{ marginBottom: 0 }}>
+              <Input
+                theme={t}
                 placeholder={translate("overrideDisplayNameEvent")}
                 value={hostDisplayName}
                 onChange={(e) => {
@@ -106,7 +98,7 @@ export function HostsPanel({
                   triggerSaveSettings({ hostDisplayName: e.target.value || null });
                 }}
               />
-            </div>
+            </Field>
           )}
         </div>
 
@@ -137,42 +129,37 @@ export function HostsPanel({
                 </div>
               </div>
               {(isOwner || ch.user.id === sessionUser?.id) && (
-                <button
+                <Button
+                  theme={t}
+                  variant="icon"
                   onClick={() => handleRemoveCohost(ch.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: t.textMuted,
-                    padding: "4px",
-                  }}
+                  aria-label={
+                    ch.user.id === sessionUser?.id
+                      ? translate("removeYourself")
+                      : translate("removeCoHost")
+                  }
                   title={
                     ch.user.id === sessionUser?.id
                       ? translate("removeYourself")
                       : translate("removeCoHost")
                   }
                 >
-                  <X size={16} />
-                </button>
+                  <X size={16} aria-hidden="true" />
+                </Button>
               )}
             </div>
             {(isOwner || ch.user.id === sessionUser?.id) && (
-              <div>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: t.textMuted,
-                    display: "block",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {ch.user.id === sessionUser?.id
+              <Field
+                theme={t}
+                label={
+                  ch.user.id === sessionUser?.id
                     ? translate("displayNameOverride2")
-                    : translate("coHostDisplayNameOverride")}
-                </label>
-                <input
-                  style={{ ...S.inp, fontSize: "12px", padding: "6px 10px" }}
+                    : translate("coHostDisplayNameOverride")
+                }
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  theme={t}
                   placeholder={
                     ch.user.id === sessionUser?.id
                       ? translate("overrideDisplayName")
@@ -188,7 +175,7 @@ export function HostsPanel({
                     }
                   }}
                 />
-              </div>
+              </Field>
             )}
           </div>
         ))}
@@ -198,9 +185,10 @@ export function HostsPanel({
           <div style={{ marginTop: "16px" }}>
             <h4
               style={{
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: 700,
-                color: t.textMuted,
+                letterSpacing: "0.02em",
+                color: t.textSecondary,
                 marginBottom: "8px",
               }}
             >
@@ -239,19 +227,15 @@ export function HostsPanel({
                     </div>
                   </div>
                 </div>
-                <button
+                <Button
+                  theme={t}
+                  variant="icon"
                   onClick={() => handleCancelInvitation(invite.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: t.textMuted,
-                    padding: "4px",
-                  }}
+                  aria-label={translate("cancelInvitation")}
                   title={translate("cancelInvitation")}
                 >
-                  <X size={16} />
-                </button>
+                  <X size={16} aria-hidden="true" />
+                </Button>
               </div>
             ))}
           </div>
@@ -259,26 +243,33 @@ export function HostsPanel({
       </div>
       {isOwner && (
         <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-          <input
+          <Input
+            theme={t}
+            type="email"
+            aria-label={translate("addCoHost")}
             value={cohostEmail}
             onChange={(e) => setCohostEmail(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddCohost();
             }}
             placeholder={translate("cohostEmailCom")}
-            style={{ ...S.inp, flex: 1 }}
+            style={{ flex: 1, width: "auto" }}
           />
-          <button
+          <Button
+            theme={t}
+            variant="secondary"
             onClick={handleAddCohost}
             disabled={isPending || !cohostEmail.trim()}
-            style={S.smallBtn}
+            style={{ whiteSpace: "nowrap" }}
           >
             {translate("addCoHost")}
-          </button>
+          </Button>
         </div>
       )}
       {isOwner && cohostError && (
-        <div style={{ fontSize: "13px", color: "#f87171", marginTop: "8px" }}>{cohostError}</div>
+        <InlineAlert theme={t} style={{ marginTop: "8px", marginBottom: 0 }}>
+          {cohostError}
+        </InlineAlert>
       )}
     </Section>
   );

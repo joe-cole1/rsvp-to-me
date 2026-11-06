@@ -16,8 +16,9 @@ import {
 import { timeAgo } from "./helpers";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
 import { EventCard } from "./EventCard";
+import { Button } from "@/components/ui/Button";
+import { Check, Input, Textarea } from "@/components/ui/Field";
 import { NotificationDeliveryFeedback } from "./NotificationDeliveryFeedback";
 import type { NotificationFeedback } from "@/lib/notifications/types";
 
@@ -26,7 +27,6 @@ export function ActivityFeed({
   renderAvatar,
   isPending,
   t,
-  S,
   isHost,
   isPendingGuest,
   isApprovedGuest,
@@ -63,7 +63,6 @@ export function ActivityFeed({
   ) => React.ReactNode;
   isPending: boolean;
   t: ResolvedTheme;
-  S: EventPageStyles;
   isHost: boolean;
   isPendingGuest: boolean;
   isApprovedGuest: boolean;
@@ -93,6 +92,7 @@ export function ActivityFeed({
   removeActivityEvent: (id: string) => void;
 }) {
   const translate = useTranslations("Ui.Event.ActivityFeed");
+  const common = useTranslations("Ui.Common");
   const locale = useLocale();
 
   return (
@@ -128,9 +128,11 @@ export function ActivityFeed({
               >
                 {translate("postUpdate")}
               </div>
-              <textarea
-                style={{ ...S.inp, resize: "none", marginBottom: "8px" } as React.CSSProperties}
+              <Textarea
+                theme={t}
+                style={{ resize: "none", marginBottom: "8px" }}
                 rows={3}
+                aria-label={translate("postUpdate")}
                 placeholder={translate("changedStartTimeNewLocationWhat")}
                 value={updateDraft}
                 onChange={(e) => setUpdateDraft(e.target.value)}
@@ -153,26 +155,21 @@ export function ActivityFeed({
                     cursor: "pointer",
                   }}
                 >
-                  <input
-                    type="checkbox"
+                  <Check
+                    theme={t}
                     checked={notifyOnUpdate}
                     onChange={(e) => setNotifyOnUpdate(e.target.checked)}
-                    style={{ accentColor: t.accent }}
                   />
                   {translate("notifyGuestsUpdate")}
                 </label>
-                <button
+                <Button
+                  theme={t}
+                  variant="primary"
                   onClick={postUpdate}
                   disabled={!updateDraft.trim() || isPostingUpdate}
-                  style={{
-                    ...S.btn,
-                    width: "auto",
-                    padding: "8px 18px",
-                    opacity: !updateDraft.trim() || isPostingUpdate ? 0.5 : 1,
-                  }}
                 >
                   {isPostingUpdate ? translate("posting") : translate("post")}
-                </button>
+                </Button>
               </div>
               <NotificationDeliveryFeedback feedback={notificationFeedback} />
             </div>
@@ -183,7 +180,7 @@ export function ActivityFeed({
                 <div
                   style={{
                     fontSize: "12px",
-                    color: "#fbbf24",
+                    color: t.status.warning.text,
                     marginBottom: "6px",
                     display: "flex",
                     alignItems: "center",
@@ -200,8 +197,10 @@ export function ActivityFeed({
                 </div>
               )}
               <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  style={{ ...S.inp, flex: 1 }}
+                <Input
+                  theme={t}
+                  style={{ flex: 1, width: "auto" }}
+                  aria-label={translate("leaveComment")}
                   placeholder={translate("leaveComment")}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
@@ -212,21 +211,15 @@ export function ActivityFeed({
                     }
                   }}
                 />
-                <button
+                <Button
+                  theme={t}
+                  variant="primary"
                   onClick={submitComment}
                   disabled={!commentText.trim() || isPending}
-                  style={{
-                    background: t.accent,
-                    color: t.accentFg,
-                    border: "none",
-                    borderRadius: t.btnRadius,
-                    padding: "0 16px",
-                    cursor: "pointer",
-                    opacity: !commentText.trim() ? 0.5 : 1,
-                  }}
+                  aria-label={translate("leaveComment")}
                 >
-                  <Send size={16} />
-                </button>
+                  <Send size={16} aria-hidden="true" />
+                </Button>
               </div>
             </div>
           )}
@@ -354,19 +347,16 @@ export function ActivityFeed({
                                   {translate("update")} {event.host.name ?? event.host.email}
                                 </span>
                                 {isHost && (
-                                  <button
+                                  <Button
+                                    theme={t}
+                                    variant="icon"
+                                    size="sm"
                                     onClick={() => removeUpdate(item.id)}
-                                    style={{
-                                      background: "none",
-                                      border: "none",
-                                      cursor: "pointer",
-                                      color: t.textMuted,
-                                      padding: "2px",
-                                      flexShrink: 0,
-                                    }}
+                                    aria-label={common("remove")}
+                                    title={common("remove")}
                                   >
-                                    <X size={13} />
-                                  </button>
+                                    <X size={14} aria-hidden="true" />
+                                  </Button>
                                 )}
                               </div>
                               {event.showTimestamps && (
@@ -473,21 +463,16 @@ export function ActivityFeed({
                               )}
                             </div>
                             {isHost && (
-                              <button
+                              <Button
+                                theme={t}
+                                variant="icon"
+                                size="sm"
                                 onClick={() => removeActivityEvent(item.id)}
+                                aria-label={translate("hideActivity")}
                                 title={translate("hideActivity")}
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  color: t.textMuted,
-                                  padding: "2px",
-                                  flexShrink: 0,
-                                  opacity: 0.6,
-                                }}
                               >
-                                <X size={12} />
-                              </button>
+                                <X size={14} aria-hidden="true" />
+                              </Button>
                             )}
                           </div>
                         );
@@ -531,25 +516,19 @@ export function ActivityFeed({
                               {item.body}
                             </p>
                             {(isHost || guestRsvpId) && (
-                              <button
-                                onClick={() => {
-                                  setReplyingToId(replyingToId === item.id ? null : item.id);
-                                  setReplyText("");
-                                }}
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  color: t.textMuted,
-                                  fontSize: "12px",
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  padding: "4px 0",
-                                  display: "inline-block",
-                                  marginTop: "6px",
-                                }}
-                              >
-                                {translate("reply")}
-                              </button>
+                              <div style={{ marginTop: "6px", fontSize: "13px" }}>
+                                <Button
+                                  theme={t}
+                                  variant="link"
+                                  aria-expanded={replyingToId === item.id}
+                                  onClick={() => {
+                                    setReplyingToId(replyingToId === item.id ? null : item.id);
+                                    setReplyText("");
+                                  }}
+                                >
+                                  {translate("reply")}
+                                </Button>
+                              </div>
                             )}
                             {item.replies.length > 0 && (
                               <div
@@ -606,45 +585,29 @@ export function ActivityFeed({
                             )}
                             {replyingToId === item.id && (
                               <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                                <input
+                                <Input
+                                  theme={t}
                                   type="text"
+                                  aria-label={translate("writeReply")}
                                   placeholder={translate("writeReply")}
                                   value={replyText}
                                   onChange={(e) => setReplyText(e.target.value)}
-                                  style={{
-                                    flex: 1,
-                                    background: "rgba(255, 255, 255, 0.05)",
-                                    border: `1px solid ${t.cardBorder}`,
-                                    borderRadius: "10px",
-                                    padding: "6px 12px",
-                                    color: t.textPrimary,
-                                    fontSize: "13px",
-                                    outline: "none",
-                                  }}
+                                  style={{ flex: 1, width: "auto" }}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter" && !isPending && replyText.trim()) {
                                       submitReply(item.id);
                                     }
                                   }}
                                 />
-                                <button
+                                <Button
+                                  theme={t}
+                                  variant="primary"
                                   onClick={() => submitReply(item.id)}
                                   disabled={!replyText.trim() || isPending}
-                                  style={{
-                                    background: t.accent,
-                                    color: t.accentFg,
-                                    border: "none",
-                                    borderRadius: "10px",
-                                    padding: "0 12px",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    opacity: !replyText.trim() ? 0.5 : 1,
-                                  }}
+                                  aria-label={translate("reply")}
                                 >
-                                  <Send size={12} />
-                                </button>
+                                  <Send size={14} aria-hidden="true" />
+                                </Button>
                               </div>
                             )}
                           </div>
@@ -664,49 +627,27 @@ export function ActivityFeed({
                           borderTop: `1px solid ${t.cardBorder || "rgba(255,255,255,0.1)"}`,
                         }}
                       >
-                        <button
+                        <Button
+                          theme={t}
+                          variant="secondary"
+                          size="sm"
                           onClick={() => setFeedPage((prev) => Math.max(prev - 1, 1))}
                           disabled={currentPage === 1}
-                          style={{
-                            padding: "6px 12px",
-                            background:
-                              currentPage === 1
-                                ? "rgba(255,255,255,0.02)"
-                                : "rgba(255,255,255,0.06)",
-                            border: `1px solid ${t.cardBorder || "rgba(255,255,255,0.1)"}`,
-                            borderRadius: "8px",
-                            color: currentPage === 1 ? t.textMuted : t.textPrimary,
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                            transition: "all 0.2s",
-                          }}
                         >
                           {translate("prev")}
-                        </button>
+                        </Button>
                         <span style={{ color: t.textSecondary, fontSize: "12px" }}>
                           {translate("pagination", { page: currentPage, total: totalPages })}
                         </span>
-                        <button
+                        <Button
+                          theme={t}
+                          variant="secondary"
+                          size="sm"
                           onClick={() => setFeedPage((prev) => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          style={{
-                            padding: "6px 12px",
-                            background:
-                              currentPage === totalPages
-                                ? "rgba(255,255,255,0.02)"
-                                : "rgba(255,255,255,0.06)",
-                            border: `1px solid ${t.cardBorder || "rgba(255,255,255,0.1)"}`,
-                            borderRadius: "8px",
-                            color: currentPage === totalPages ? t.textMuted : t.textPrimary,
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                            transition: "all 0.2s",
-                          }}
                         >
                           {translate("next")}
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </>

@@ -3,14 +3,18 @@
 import { useTranslations } from "next-intl";
 
 import React, { useEffect, useReducer, useState } from "react";
-import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock, Check } from "lucide-react";
-import type { ResolvedTheme } from "@/lib/theme";
+import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock, Check, X } from "lucide-react";
+import { APP_SHELL, chromeTheme, type ResolvedTheme } from "@/lib/theme";
 import { sendBlast, sendSmsBlast, saveEventSettings } from "@/app/actions/event";
 import Image from "next/image";
 import QRCode from "qrcode";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 import { Dialog } from "@/components/ui/Dialog";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Chip, choiceTileStyle } from "@/components/ui/Choice";
+import { Check as CheckBox, Label, Textarea } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 import { emptyInvitationDraft, invitationDraftReducer } from "@/lib/invitation-draft-rows";
 import { InvitationComposer } from "./InvitationComposer";
 
@@ -36,6 +40,8 @@ export function HostBar({
   channelConfig?: { email: boolean; sms: boolean };
 }) {
   const translate = useTranslations("Ui.Event.HostBar");
+  // The bar, its dialog and sheets are app chrome: the dark shell with the event's accent.
+  const ct = chromeTheme(t);
 
   const VISIBILITY_OPTIONS: {
     value: Visibility;
@@ -286,8 +292,8 @@ export function HostBar({
                   borderRadius: "80px",
                   border: "none",
                   cursor: "pointer",
-                  background: activePanel === id ? `rgba(${t.accent},0.2)` : "transparent",
-                  color: activePanel === id ? t.accent : "rgba(255,255,255,0.7)",
+                  background: "transparent",
+                  color: "rgba(255,255,255,0.7)",
                   fontSize: "11px",
                   fontWeight: 600,
                   fontFamily: "inherit",
@@ -297,8 +303,7 @@ export function HostBar({
                   (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    activePanel === id ? `rgba(${t.accent},0.2)` : "transparent";
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
                 }}
               >
                 <Icon size={18} />
@@ -319,8 +324,8 @@ export function HostBar({
             width: "min(760px,100%)",
             maxHeight: "90dvh",
             overflowY: "auto",
-            background: "rgba(15,15,20,0.98)",
-            color: "#ffffff",
+            background: APP_SHELL.chromeSurface,
+            color: ct.textPrimary,
             padding: "24px",
             borderRadius: "20px",
           }}
@@ -329,14 +334,15 @@ export function HostBar({
             <h2 id="invitation-dialog-title" style={{ fontSize: "20px", fontWeight: 700 }}>
               {translate("inviteGuests")}
             </h2>
-            <button
+            <Button
+              theme={ct}
+              variant="icon"
               type="button"
               onClick={() => setActivePanel(null)}
               aria-label={translate("close")}
-              style={{ padding: "6px 12px", fontSize: "24px", borderRadius: "8px" }}
             >
-              ×
-            </button>
+              <X size={20} aria-hidden="true" />
+            </Button>
           </div>
           <div
             role="tablist"
@@ -345,7 +351,7 @@ export function HostBar({
               display: "flex",
               gap: "4px",
               margin: "12px 0 18px",
-              borderBottom: "1px solid rgba(255,255,255,0.12)",
+              borderBottom: `1px solid ${ct.inputBorder}`,
             }}
           >
             {inviteTabs.map((tab, index) => {
@@ -368,18 +374,23 @@ export function HostBar({
                     setInviteTab(next.id);
                     document.getElementById(`invite-tab-${next.id}`)?.focus();
                   }}
-                  style={{
-                    padding: "10px 14px",
-                    marginBottom: "-1px",
-                    border: "none",
-                    borderBottom: `2px solid ${selected ? t.accent : "transparent"}`,
-                    background: "transparent",
-                    color: selected ? "#ffffff" : "rgba(255,255,255,0.6)",
-                    font: "inherit",
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
+                  className="rsvp-control"
+                  style={
+                    {
+                      "--rsvp-focus": ct.accent,
+                      minHeight: "44px",
+                      padding: "10px 14px",
+                      marginBottom: "-1px",
+                      border: "none",
+                      borderBottom: `2px solid ${selected ? ct.accent : "transparent"}`,
+                      background: "transparent",
+                      color: selected ? ct.textPrimary : ct.textSecondary,
+                      font: "inherit",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    } as React.CSSProperties
+                  }
                 >
                   {tab.label}
                 </button>
@@ -393,18 +404,14 @@ export function HostBar({
           >
             {inviteTab === "invite" ? (
               !messagingOn ? (
-                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px" }}>
+                <p style={{ color: ct.textSecondary, fontSize: "14px" }}>
                   {translate("messagingNotConfiguredServerShareEvent")}
                 </p>
               ) : (
                 <InvitationComposer
                   eventId={eventId}
                   channelConfig={channelConfig}
-                  theme={{
-                    ...t,
-                    inputBg: "rgba(255,255,255,0.06)",
-                    inputBorder: "rgba(255,255,255,0.16)",
-                  }}
+                  theme={ct}
                   draft={inviteDraft}
                   dispatch={dispatchInvite}
                 />
@@ -412,8 +419,7 @@ export function HostBar({
             ) : visibility === "PRIVATE" ? (
               <div
                 style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  border: `1px solid ${ct.inputBorder}`,
                   borderRadius: "12px",
                   padding: "16px",
                   marginBottom: "16px",
@@ -422,7 +428,7 @@ export function HostBar({
               >
                 <p
                   style={{
-                    color: "rgba(255,255,255,0.6)",
+                    color: ct.textSecondary,
                     fontSize: "14px",
                     marginBottom: "10px",
                     lineHeight: 1.6,
@@ -432,39 +438,34 @@ export function HostBar({
                 </p>
                 <a
                   href={`/e/${eventSlug}/settings?section=privacy`}
-                  style={{
-                    color: t.accent,
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                  }}
+                  {...buttonProps(ct, { variant: "link" })}
                 >
                   {translate("changeDisplayOptions")}
                 </a>
               </div>
             ) : (
               <>
-                <p
-                  style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}
-                >
+                <p style={{ color: ct.textSecondary, fontSize: "14px", marginBottom: "16px" }}>
                   {translate("shareEventLinkOrSendInvites")}
                 </p>
                 <div
                   style={{
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "12px",
-                    padding: "12px 16px",
+                    background: ct.inputBg,
+                    border: `1px solid ${ct.inputBorder}`,
+                    borderRadius: "10px",
+                    padding: "10px 14px",
                     fontSize: "14px",
                     marginBottom: "12px",
                     wordBreak: "break-all",
-                    color: "rgba(255,255,255,0.9)",
+                    color: ct.textPrimary,
                   }}
                 >
                   {typeof window !== "undefined" ? window.location.href : ""}
                 </div>
                 <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                  <button
+                  <Button
+                    theme={ct}
+                    variant="primary"
                     onClick={() => {
                       if (typeof navigator !== "undefined") {
                         navigator.clipboard.writeText(window.location.href);
@@ -472,44 +473,16 @@ export function HostBar({
                         setTimeout(() => setCopiedLink(false), 2000);
                       }
                     }}
-                    style={{
-                      flex: 1,
-                      padding: "12px",
-                      background: copiedLink ? "#22c55e" : t.accent,
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "12px",
-                      fontFamily: "inherit",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                      transition: "all 0.15s ease-in-out",
-                    }}
+                    style={{ flex: 1 }}
                   >
-                    {copiedLink ? <Check size={16} /> : null}
+                    {copiedLink ? <Check size={16} aria-hidden="true" /> : null}
                     {copiedLink ? translate("copied") : translate("copyLink")}
-                  </button>
+                  </Button>
                   {qrDataUrl && (
                     <a
                       href={qrDataUrl}
                       download="event-qr.png"
-                      style={{
-                        padding: "12px 16px",
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "12px",
-                        color: "rgba(255,255,255,0.8)",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        textDecoration: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        whiteSpace: "nowrap",
-                      }}
+                      {...buttonProps(ct, { variant: "secondary" })}
                     >
                       {translate("qr")}
                     </a>
@@ -535,6 +508,8 @@ export function HostBar({
 
       {activePanel === "message" && (
         <SlideUp
+          theme={ct}
+          closeLabel={translate("close")}
           onClose={() => {
             setActivePanel(null);
             setBlastResult(null);
@@ -547,64 +522,33 @@ export function HostBar({
                 padding: "24px 0",
                 textAlign: "center",
                 fontSize: "14px",
-                color: "rgba(255,255,255,0.4)",
+                color: ct.textSecondary,
               }}
             >
               {translate("messagingNotConfiguredServerEnableEmail")}
             </div>
           ) : (
             <>
-              <textarea
+              <Textarea
+                theme={ct}
                 rows={4}
+                aria-label={translate("messageGuests")}
                 placeholder={translate("typeMessage")}
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                style={{
-                  width: "100%",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "12px",
-                  padding: "12px 16px",
-                  color: "#fff",
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  outline: "none",
-                  resize: "none",
-                  marginBottom: "12px",
-                  boxSizing: "border-box",
-                }}
+                style={{ resize: "none", marginBottom: "12px" }}
               />
 
               {blastResult && (
-                <p
-                  style={{
-                    fontSize: "13px",
-                    marginBottom: "12px",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    background: blastSucceeded ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)",
-                    color: blastSucceeded ? "#4ade80" : "#f87171",
-                  }}
-                >
+                <InlineAlert theme={ct} tone={blastSucceeded ? "success" : "error"}>
                   {blastResult}
-                </p>
+                </InlineAlert>
               )}
 
               {/* Channel selection */}
               {(channelConfig.email || channelConfig.sms) && (
                 <div style={{ marginBottom: "16px" }}>
-                  <div
-                    style={{
-                      color: "rgba(255,255,255,0.4)",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    {translate("deliveryChannels")}
-                  </div>
+                  <Label theme={ct}>{translate("deliveryChannels")}</Label>
                   <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
                     {channelConfig.email && (
                       <label
@@ -614,14 +558,13 @@ export function HostBar({
                           gap: "8px",
                           fontSize: "14px",
                           cursor: "pointer",
-                          color: "rgba(255,255,255,0.8)",
+                          color: ct.textPrimary,
                         }}
                       >
-                        <input
-                          type="checkbox"
+                        <CheckBox
+                          theme={ct}
                           checked={sendEmail}
                           onChange={(e) => setSendEmail(e.target.checked)}
-                          style={{ accentColor: t.accent }}
                         />
                         <span>{translate("email")}</span>
                       </label>
@@ -634,14 +577,13 @@ export function HostBar({
                           gap: "8px",
                           fontSize: "14px",
                           cursor: "pointer",
-                          color: "rgba(255,255,255,0.8)",
+                          color: ct.textPrimary,
                         }}
                       >
-                        <input
-                          type="checkbox"
+                        <CheckBox
+                          theme={ct}
                           checked={sendSms}
                           onChange={(e) => setSendSms(e.target.checked)}
-                          style={{ accentColor: t.accent }}
                         />
                         <span>{translate("sms")}</span>
                       </label>
@@ -652,18 +594,7 @@ export function HostBar({
 
               {/* Recipient selection */}
               <div style={{ marginBottom: "20px" }}>
-                <div
-                  style={{
-                    color: "rgba(255,255,255,0.4)",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {translate("recipients")}
-                </div>
+                <Label theme={ct}>{translate("recipients")}</Label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {(
                     [
@@ -676,35 +607,23 @@ export function HostBar({
                   ).map(({ key, label }) => {
                     const active = recipientFilters.includes(key);
                     return (
-                      <button
+                      <Chip
                         key={key}
-                        type="button"
+                        theme={ct}
+                        selected={active}
                         onClick={() => toggleRecipientFilter(key)}
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: "20px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          border: active
-                            ? `1px solid ${t.accent}`
-                            : "1px solid rgba(255,255,255,0.1)",
-                          background: active
-                            ? `rgba(${t.accentRgb}, 0.15)`
-                            : "rgba(255,255,255,0.03)",
-                          color: active ? t.accent : "rgba(255,255,255,0.7)",
-                          fontFamily: "inherit",
-                          transition: "all 0.15s",
-                        }}
                       >
                         {label}
-                      </button>
+                      </Chip>
                     );
                   })}
                 </div>
               </div>
 
-              <button
+              <Button
+                theme={ct}
+                variant="primary"
+                fullWidth
                 onClick={handleSendMessage}
                 disabled={
                   !messageText.trim() ||
@@ -712,34 +631,23 @@ export function HostBar({
                   (!sendEmail && !sendSms) ||
                   recipientFilters.length === 0
                 }
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  background: t.accent,
-                  color: t.accentFg,
-                  border: "none",
-                  borderRadius: "10px",
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  cursor:
-                    !messageText.trim() || isSending || (!sendEmail && !sendSms)
-                      ? "not-allowed"
-                      : "pointer",
-                  opacity: !messageText.trim() || isSending || (!sendEmail && !sendSms) ? 0.5 : 1,
-                  marginTop: "8px",
-                }}
+                style={{ marginTop: "8px" }}
               >
                 {isSending ? translate("sending") : translate("sendMessage")}
-              </button>
+              </Button>
             </>
           )}
         </SlideUp>
       )}
 
       {activePanel === "visibility" && (
-        <SlideUp onClose={() => setActivePanel(null)} title={translate("eventVisibility")}>
-          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
+        <SlideUp
+          theme={ct}
+          closeLabel={translate("close")}
+          onClose={() => setActivePanel(null)}
+          title={translate("eventVisibility")}
+        >
+          <p style={{ color: ct.textSecondary, fontSize: "14px", marginBottom: "16px" }}>
             {translate("controlWhoCanFindViewEvent")}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -748,57 +656,44 @@ export function HostBar({
               return (
                 <button
                   key={value}
+                  type="button"
+                  aria-pressed={isActive}
                   onClick={() => handleVisibilityChange(value)}
                   disabled={visibilityPending}
+                  className="rsvp-control rsvp-press"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
+                    ...choiceTileStyle(ct, isActive, visibilityPending && !isActive),
+                    flexDirection: "row",
+                    justifyContent: "flex-start",
                     gap: "14px",
                     padding: "14px 16px",
                     borderRadius: "14px",
-                    border: "none",
-                    cursor: visibilityPending ? "not-allowed" : "pointer",
-                    background: isActive ? t.accentBg : "rgba(255,255,255,0.05)",
-                    outline: isActive ? `1.5px solid ${t.accentBorder}` : "1.5px solid transparent",
                     textAlign: "left",
-                    fontFamily: "inherit",
-                    transition: "all 0.15s",
-                    opacity: visibilityPending && !isActive ? 0.5 : 1,
                   }}
                 >
                   <Icon
                     size={20}
-                    color={isActive ? t.accent : "rgba(255,255,255,0.5)"}
+                    color={isActive ? ct.accent : ct.textSecondary}
                     style={{ flexShrink: 0 }}
+                    aria-hidden="true"
                   />
                   <div>
-                    <div
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 700,
-                        color: isActive ? "#fff" : "rgba(255,255,255,0.75)",
-                      }}
-                    >
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: ct.textPrimary }}>
                       {label}
                     </div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "rgba(255,255,255,0.45)",
-                        marginTop: "2px",
-                      }}
-                    >
+                    <div style={{ fontSize: "13px", color: ct.textSecondary, marginTop: "2px" }}>
                       {description}
                     </div>
                   </div>
                   {isActive && (
                     <div
+                      aria-hidden="true"
                       style={{
                         marginLeft: "auto",
                         width: "18px",
                         height: "18px",
                         borderRadius: "50%",
-                        background: t.accent,
+                        background: ct.accent,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -808,7 +703,7 @@ export function HostBar({
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                         <path
                           d="M1 4l3 3 5-6"
-                          stroke={t.accentFg}
+                          stroke={ct.accentFg}
                           strokeWidth="1.8"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -820,53 +715,38 @@ export function HostBar({
               );
             })}
           </div>
-          <a
-            href={`/e/${eventSlug}/settings?section=privacy`}
-            style={{
-              display: "block",
-              textAlign: "center",
-              marginTop: "16px",
-              color: "rgba(255,255,255,0.35)",
-              fontSize: "13px",
-              textDecoration: "none",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.65)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.35)";
-            }}
-          >
-            {translate("moreOptionsSettings")}
-          </a>
+          <p style={{ textAlign: "center", margin: "16px 0 0", fontSize: "13px" }}>
+            <a
+              href={`/e/${eventSlug}/settings?section=privacy`}
+              {...buttonProps(ct, { variant: "link" })}
+            >
+              {translate("moreOptionsSettings")}
+            </a>
+          </p>
         </SlideUp>
       )}
 
       {activePanel === "preview" && (
-        <SlideUp onClose={() => setActivePanel(null)} title={translate("previewAsGuest")}>
-          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
+        <SlideUp
+          theme={ct}
+          closeLabel={translate("close")}
+          onClose={() => setActivePanel(null)}
+          title={translate("previewAsGuest")}
+        >
+          <p style={{ color: ct.textSecondary, fontSize: "14px", marginBottom: "16px" }}>
             {translate("showsExactlyWhatGuestsSeeWhen")}
           </p>
-          <button
+          <Button
+            theme={ct}
+            variant="primary"
+            fullWidth
             onClick={() => {
               window.open(window.location.href + "?preview=1", "_blank");
               setActivePanel(null);
             }}
-            style={{
-              width: "100%",
-              padding: "12px",
-              background: t.accent,
-              color: t.accentFg,
-              border: "none",
-              borderRadius: "12px",
-              fontFamily: "inherit",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
           >
             {translate("openGuestPreview")}
-          </button>
+          </Button>
         </SlideUp>
       )}
     </>
@@ -878,11 +758,15 @@ function SlideUp({
   onClose,
   onOpen,
   title,
+  theme,
+  closeLabel,
 }: {
   children: React.ReactNode;
   onClose: () => void;
   onOpen?: () => void;
   title: string;
+  theme: ResolvedTheme;
+  closeLabel: string;
 }) {
   // Call onOpen once when mounted
   const calledRef = React.useRef(false);
@@ -927,19 +811,9 @@ function SlideUp({
           }}
         >
           <h3 style={{ color: "#fff", fontWeight: 700, fontSize: "17px" }}>{title}</h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: "rgba(255,255,255,0.5)",
-              cursor: "pointer",
-              fontSize: "20px",
-              padding: "4px",
-            }}
-          >
-            ×
-          </button>
+          <Button theme={theme} variant="icon" onClick={onClose} aria-label={closeLabel}>
+            <X size={20} aria-hidden="true" />
+          </Button>
         </div>
         {children}
       </div>

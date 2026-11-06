@@ -3,6 +3,10 @@
     "Common": {
       "save": "Speichern",
       "cancel": "Abbrechen",
+      "close": "Schließen",
+      "remove": "Entfernen",
+      "back": "Zurück",
+      "edit": "Bearbeiten",
       "dismissNotification": "Benachrichtigung schließen",
       "siteDescription": "Schöne, persönliche Veranstaltungsseiten für Weinabende, Dinnerpartys und alles dazwischen."
     },

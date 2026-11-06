@@ -1,8 +1,11 @@
 "use client";
 import { useTranslations } from "next-intl";
 
-import { APP_SHELL } from "@/lib/theme";
+import { X } from "lucide-react";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Choice";
 import type { AdminThemePreset, ThemePresetFormState } from "./types";
 
 export function ThemesTab({
@@ -59,7 +62,10 @@ export function ThemesTab({
               {tr("manageThePresetThemesHostsCanPickFromIn")}
             </p>
           </div>
-          <button
+          <Button
+            theme={T}
+            variant="primary"
+            style={{ whiteSpace: "nowrap" }}
             onClick={() =>
               setThemePresetForm({
                 name: "",
@@ -74,20 +80,9 @@ export function ThemesTab({
                 fontId: null,
               })
             }
-            style={{
-              backgroundColor: APP_SHELL.accent,
-              border: "none",
-              color: "#fff",
-              borderRadius: "10px",
-              padding: "10px 18px",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
           >
             {tr("newPreset")}
-          </button>
+          </Button>
         </div>
 
         <div
@@ -190,7 +185,10 @@ export function ThemesTab({
                     {preset.seasonal ? tr("seasonal") : ""}
                   </div>
                   <div style={{ display: "flex", gap: "6px" }}>
-                    <button
+                    <Button
+                      theme={T}
+                      variant="secondary"
+                      size="sm"
                       onClick={() => {
                         const vals = {
                           id: preset.id,
@@ -208,51 +206,29 @@ export function ThemesTab({
                         setThemePresetForm(vals);
                         setThemePresetOriginal(vals);
                       }}
-                      style={{
-                        flex: 1,
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        padding: "5px 0",
-                        borderRadius: "7px",
-                        border: `1px solid ${APP_SHELL.cardBorder}`,
-                        backgroundColor: "transparent",
-                        color: APP_SHELL.textSecondary,
-                        cursor: "pointer",
-                      }}
+                      style={{ flex: 1 }}
                     >
                       {tr("edit")}
-                    </button>
-                    <button
+                    </Button>
+                    <Chip
+                      theme={T}
+                      selected={preset.active}
                       onClick={() => handleTogglePresetActive(preset)}
-                      style={{
-                        flex: 1,
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        padding: "5px 0",
-                        borderRadius: "7px",
-                        border: `1px solid ${preset.active ? "#22c55e44" : APP_SHELL.cardBorder}`,
-                        backgroundColor: preset.active ? "rgba(34,197,94,0.1)" : "transparent",
-                        color: preset.active ? "#22c55e" : APP_SHELL.textSecondary,
-                        cursor: "pointer",
-                      }}
+                      style={{ flex: 1 }}
                     >
                       {preset.active ? tr("active") : tr("inactive")}
-                    </button>
-                    <button
+                    </Chip>
+                    <Button
+                      theme={T}
+                      variant="destructive"
+                      size="sm"
+                      aria-label={`${tr("delete")}: ${preset.name}`}
+                      title={tr("delete")}
                       onClick={() => handleDeleteThemePreset(preset.id)}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        padding: "5px 8px",
-                        borderRadius: "7px",
-                        border: "1px solid rgba(239,68,68,0.3)",
-                        backgroundColor: "transparent",
-                        color: "#ef4444",
-                        cursor: "pointer",
-                      }}
+                      style={{ padding: 0, width: "32px" }}
                     >
-                      ×
-                    </button>
+                      <X size={14} aria-hidden="true" />
+                    </Button>
                   </div>
                 </div>
               </div>

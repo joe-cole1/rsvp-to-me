@@ -47,7 +47,13 @@ On the **Theme** tab, choose a base look from the theme picker:
 - **Soft & Dreamy** — pastel tones and gentle contrast.
 - **Bold & Colorful** — vivid, high-contrast layouts.
 
-Your site's administrator may publish additional **theme presets** that also appear here.
+Your site's administrator may publish additional **theme presets** that also appear here. All of
+them are shown at once in a grid that grows with the page, with the applied preset outlined.
+
+Buttons, fields, switches and save messages on your event page, its **Settings** and the RSVP
+form all take your theme's colors and button style, so they look the same on every screen and
+stay readable on light and dark themes alike. The host bar at the bottom of your page and its
+dialogs stay dark, with your accent color.
 
 Text colors adjust automatically so guests can read them on your colors and card opacity. On a
 **Bold & Colorful** page, the title, host line and date turn dark on light gradients, and on

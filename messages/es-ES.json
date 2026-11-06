@@ -3,6 +3,10 @@
     "Common": {
       "save": "Guardar",
       "cancel": "Cancelar",
+      "close": "Cerrar",
+      "remove": "Quitar",
+      "back": "Atrás",
+      "edit": "Editar",
       "dismissNotification": "Descartar notificación",
       "siteDescription": "Páginas de eventos bonitas y personales para noches de vino, cenas y todo lo que se te ocurra."
     },

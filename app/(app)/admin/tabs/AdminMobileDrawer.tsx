@@ -2,7 +2,9 @@
 import { useTranslations } from "next-intl";
 
 import { X } from "lucide-react";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
+import { NavItem } from "@/components/ui/NavItem";
 import type { AdminFeedback, TabId } from "./types";
 
 export function AdminMobileDrawer({
@@ -19,6 +21,7 @@ export function AdminMobileDrawer({
   setFeedback: React.Dispatch<React.SetStateAction<AdminFeedback | null>>;
 }) {
   const tr = useTranslations("Ui.Admin");
+  const common = useTranslations("Ui.Common");
 
   return (
     <>
@@ -68,22 +71,15 @@ export function AdminMobileDrawer({
               <h3 style={{ fontSize: "16px", fontWeight: 800, color: APP_SHELL.textPrimary }}>
                 {tr("adminNavigation")}
               </h3>
-              <button
+              <Button
+                theme={APP_SHELL_THEME}
+                variant="icon"
                 type="button"
+                aria-label={common("close")}
                 onClick={() => setIsDrawerOpen(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: APP_SHELL.textSecondary,
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
               >
-                <X size={20} />
-              </button>
+                <X size={20} aria-hidden="true" />
+              </Button>
             </div>
 
             <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
@@ -110,35 +106,18 @@ export function AdminMobileDrawer({
                   { id: "docs", label: tr("documentation") },
                 ] as const
               ).map((tab) => (
-                <button
+                <NavItem
                   key={tab.id}
+                  theme={APP_SHELL_THEME}
+                  active={activeTab === tab.id}
                   onClick={() => {
                     handleTabChange(tab.id);
                     setFeedback(null);
                     setIsDrawerOpen(false);
                   }}
-                  style={{
-                    textAlign: "left",
-                    padding: "11px 14px",
-                    borderRadius: "10px",
-                    border: "none",
-                    backgroundColor: activeTab === tab.id ? APP_SHELL.accent : "transparent",
-                    color: activeTab === tab.id ? "#fff" : APP_SHELL.textSecondary,
-                    fontSize: "14px",
-                    fontWeight: activeTab === tab.id ? 700 : 600,
-                    cursor: "pointer",
-                    transition: "background 0.15s, color 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (activeTab !== tab.id)
-                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "transparent";
-                  }}
                 >
                   {tab.label}
-                </button>
+                </NavItem>
               ))}
             </div>
           </div>

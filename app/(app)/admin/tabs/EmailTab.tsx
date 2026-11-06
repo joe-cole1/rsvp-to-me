@@ -2,9 +2,13 @@
 import { useTranslations } from "next-intl";
 
 import { useState } from "react";
-import { ChevronDown, Eye, EyeOff } from "lucide-react";
-import { APP_SHELL } from "@/lib/theme";
+import { Check, ChevronDown, Copy } from "lucide-react";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Field, Input, SecretInput, Select } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
+import { Toggle } from "@/components/ui/Toggle";
 import { EmailTemplatesSection } from "./EmailTemplatesSection";
 
 function CollapsibleSection({
@@ -23,18 +27,23 @@ function CollapsibleSection({
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <button
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "12px",
-          ...appCardStyle,
-          padding: "16px 24px",
-          cursor: "pointer",
-          textAlign: "left",
-          width: "100%",
-        }}
+        className="rsvp-control"
+        style={
+          {
+            "--rsvp-focus": T.accent,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            ...appCardStyle,
+            padding: "16px 24px",
+            cursor: "pointer",
+            textAlign: "left",
+            width: "100%",
+          } as React.CSSProperties
+        }
       >
         <div>
           <div style={{ fontWeight: 700, fontSize: "16px", color: APP_SHELL.textPrimary }}>
@@ -81,13 +90,9 @@ export function EmailTab({
   setCfAccountId,
   cfApiToken,
   setCfApiToken,
-  showCfApiToken,
-  setShowCfApiToken,
   cfWorkerUrl,
   setCfWorkerUrl,
   suggestedSubdomain,
-  showSecret,
-  setShowSecret,
   cfWorkerSecret,
   setCfWorkerSecret,
   secretCopied,
@@ -123,13 +128,9 @@ export function EmailTab({
   setCfAccountId: React.Dispatch<React.SetStateAction<string>>;
   cfApiToken: string;
   setCfApiToken: React.Dispatch<React.SetStateAction<string>>;
-  showCfApiToken: boolean;
-  setShowCfApiToken: React.Dispatch<React.SetStateAction<boolean>>;
   cfWorkerUrl: string;
   setCfWorkerUrl: React.Dispatch<React.SetStateAction<string>>;
   suggestedSubdomain: string;
-  showSecret: boolean;
-  setShowSecret: React.Dispatch<React.SetStateAction<boolean>>;
   cfWorkerSecret: string;
   setCfWorkerSecret: React.Dispatch<React.SetStateAction<string>>;
   secretCopied: boolean;
@@ -223,59 +224,14 @@ function extractRawEmail(fromStr) {
             padding: "24px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}>
-                {tr("guestEmailNotifications")}
-              </div>
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: APP_SHELL.textSecondary,
-                  marginTop: "4px",
-                  maxWidth: "420px",
-                }}
-              >
-                {tr("whenOffNoEmailsAreSentToGuestsRsvp")}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleToggleEmailEnabled}
-              style={{
-                width: "50px",
-                height: "26px",
-                borderRadius: "13px",
-                border: "none",
-                backgroundColor:
-                  config.email_enabled !== "false" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-                cursor: "pointer",
-                position: "relative",
-                transition: "background-color 0.2s",
-                padding: 0,
-                flexShrink: 0,
-              }}
-            >
-              <div
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                  backgroundColor: "#fff",
-                  position: "absolute",
-                  top: "3px",
-                  left: config.email_enabled !== "false" ? "27px" : "3px",
-                  transition: "left 0.2s",
-                }}
-              />
-            </button>
-          </div>
+          <Toggle
+            theme={T}
+            label={tr("guestEmailNotifications")}
+            description={tr("whenOffNoEmailsAreSentToGuestsRsvp")}
+            value={config.email_enabled !== "false"}
+            onChange={handleToggleEmailEnabled}
+            style={{ marginBottom: 0 }}
+          />
         </div>
 
         {/* Section 2: Server Configuration & Email Delivery */}
@@ -308,410 +264,130 @@ function extractRawEmail(fromStr) {
 
           <form
             onSubmit={handleSaveEmailConfig}
-            style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+            style={{ display: "flex", flexDirection: "column" }}
           >
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                  marginBottom: "6px",
-                }}
-              >
-                {tr("emailProvider")}
-              </label>
-              <select
+            <Field theme={T} label={tr("emailProvider")}>
+              <Select
+                theme={T}
                 value={emailProvider}
                 onChange={(e) => setEmailProvider(e.target.value)}
-                style={{
-                  width: "100%",
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.inputRadius,
-                  padding: "10px 14px",
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                  colorScheme: "dark",
-                }}
               >
-                <option value="console" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>
-                  {tr("consoleFallbackLocalDevLogging")}
-                </option>
-                <option value="smtp" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>
-                  {tr("smtpServer")}
-                </option>
-                <option value="cloudflare" style={{ backgroundColor: "#12091f", color: "#ffffff" }}>
-                  {tr("cloudflareWorkers")}
-                </option>
-                <option
-                  value="cloudflare_api"
-                  style={{ backgroundColor: "#12091f", color: "#ffffff" }}
-                >
-                  {tr("cloudflareEmailRestApi")}
-                </option>
-              </select>
-            </div>
+                <option value="console">{tr("consoleFallbackLocalDevLogging")}</option>
+                <option value="smtp">{tr("smtpServer")}</option>
+                <option value="cloudflare">{tr("cloudflareWorkers")}</option>
+                <option value="cloudflare_api">{tr("cloudflareEmailRestApi")}</option>
+              </Select>
+            </Field>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                  marginBottom: "6px",
-                }}
-              >
-                {tr("fromAddress")}
-              </label>
-              <input
+            <Field theme={T} label={tr("fromAddress")}>
+              <Input
+                theme={T}
                 type="text"
                 required
                 placeholder={tr("eGRsvpToMeNoreplyYourdomainCom")}
                 value={emailFrom}
                 onChange={(e) => setEmailFrom(e.target.value)}
-                style={{
-                  width: "100%",
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.inputRadius,
-                  padding: "10px 14px",
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
+            </Field>
 
             {emailProvider === "smtp" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "16px" }}>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        color: APP_SHELL.textSecondary,
-                        marginBottom: "6px",
-                      }}
-                    >
-                      {tr("smtpHost")}
-                    </label>
-                    <input
+                  <Field theme={T} label={tr("smtpHost")}>
+                    <Input
+                      theme={T}
                       type="text"
                       required
                       placeholder={tr("eGSmtpGmailCom")}
                       value={smtpHost}
                       onChange={(e) => setSmtpHost(e.target.value)}
-                      style={{
-                        width: "100%",
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        padding: "10px 14px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "13px",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
                     />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        color: APP_SHELL.textSecondary,
-                        marginBottom: "6px",
-                      }}
-                    >
-                      {tr("smtpPort")}
-                    </label>
-                    <input
+                  </Field>
+                  <Field theme={T} label={tr("smtpPort")}>
+                    <Input
+                      theme={T}
                       type="text"
                       required
                       placeholder="587"
                       value={smtpPort}
                       onChange={(e) => setSmtpPort(e.target.value)}
-                      style={{
-                        width: "100%",
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        padding: "10px 14px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "13px",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
                     />
-                  </div>
+                  </Field>
                 </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontWeight: 600,
-                        fontSize: "13px",
-                        color: APP_SHELL.textPrimary,
-                      }}
-                    >
-                      {tr("useSecureConnectionSslTls")}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        color: APP_SHELL.textSecondary,
-                        marginTop: "2px",
-                      }}
-                    >
-                      {tr("setTrueForPort465FalseFor587Starttls")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSmtpSecure((prev) => !prev)}
-                    style={{
-                      width: "50px",
-                      height: "26px",
-                      borderRadius: "13px",
-                      border: "none",
-                      backgroundColor: smtpSecure ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-                      cursor: "pointer",
-                      position: "relative",
-                      transition: "background-color 0.2s",
-                      padding: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        backgroundColor: "#fff",
-                        position: "absolute",
-                        top: "3px",
-                        left: smtpSecure ? "27px" : "3px",
-                        transition: "left 0.2s",
-                      }}
-                    />
-                  </button>
-                </div>
+                <Toggle
+                  theme={T}
+                  label={tr("useSecureConnectionSslTls")}
+                  description={tr("setTrueForPort465FalseFor587Starttls")}
+                  value={smtpSecure}
+                  onChange={setSmtpSecure}
+                  style={{ marginBottom: "16px" }}
+                />
 
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr("smtpUsernameOptional")}
-                  </label>
-                  <input
+                <Field theme={T} label={tr("smtpUsernameOptional")}>
+                  <Input
+                    theme={T}
                     type="text"
                     placeholder={tr("eGUserGmailCom")}
                     value={smtpUser}
                     onChange={(e) => setSmtpUser(e.target.value)}
-                    style={{
-                      width: "100%",
-                      backgroundColor: APP_SHELL.inputBg,
-                      border: `1px solid ${APP_SHELL.inputBorder}`,
-                      borderRadius: APP_SHELL.inputRadius,
-                      padding: "10px 14px",
-                      color: APP_SHELL.textPrimary,
-                      fontSize: "13px",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
                   />
-                </div>
+                </Field>
 
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr("smtpPasswordOptional")}
-                  </label>
-                  <input
+                <Field theme={T} label={tr("smtpPasswordOptional")}>
+                  <Input
+                    theme={T}
                     type="password"
                     placeholder={tr("password")}
                     value={smtpPass}
                     onChange={(e) => setSmtpPass(e.target.value)}
-                    style={{
-                      width: "100%",
-                      backgroundColor: APP_SHELL.inputBg,
-                      border: `1px solid ${APP_SHELL.inputBorder}`,
-                      borderRadius: APP_SHELL.inputRadius,
-                      padding: "10px 14px",
-                      color: APP_SHELL.textPrimary,
-                      fontSize: "13px",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
                   />
-                </div>
+                </Field>
               </div>
             )}
 
             {emailProvider === "cloudflare_api" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div
-                  style={{
-                    padding: "12px 16px",
-                    backgroundColor: "rgba(245, 158, 11, 0.1)",
-                    border: "1px solid rgba(245, 158, 11, 0.3)",
-                    borderRadius: "8px",
-                    color: "#fbbf24",
-                    fontSize: "12px",
-                    lineHeight: "1.5",
-                    display: "flex",
-                    gap: "8px",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <span style={{ fontSize: "16px" }}>⚠️</span>
-                  <div>
-                    {tr.rich("oneWayOutboundOnlyDirectApiSendingDoesMessage", {
-                      part0: (chunks) => <strong>{chunks}</strong>,
-                    })}
-                  </div>
-                </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <InlineAlert theme={T} tone="warning">
+                  {tr.rich("oneWayOutboundOnlyDirectApiSendingDoesMessage", {
+                    part0: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                </InlineAlert>
 
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr("cloudflareAccountId")}
-                  </label>
-                  <input
+                <Field
+                  theme={T}
+                  label={tr("cloudflareAccountId")}
+                  hint={tr.rich("yourUnique32CharacterCloudflareAccountIdYouMessage", {
+                    part0: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                >
+                  <Input
+                    theme={T}
                     type="text"
                     required
                     placeholder={tr("eG1a2b3c4d5e6f")}
                     value={cfAccountId}
                     onChange={(e) => setCfAccountId(e.target.value)}
-                    style={{
-                      width: "100%",
-                      backgroundColor: APP_SHELL.inputBg,
-                      border: `1px solid ${APP_SHELL.inputBorder}`,
-                      borderRadius: APP_SHELL.inputRadius,
-                      padding: "10px 14px",
-                      color: APP_SHELL.textPrimary,
-                      fontSize: "13px",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
                   />
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      color: APP_SHELL.textSecondary,
-                      marginTop: "4px",
-                      lineHeight: "1.4",
-                    }}
-                  >
-                    {tr.rich("yourUnique32CharacterCloudflareAccountIdYouMessage", {
-                      part0: (chunks) => <strong>{chunks}</strong>,
-                    })}
-                  </span>
-                </div>
+                </Field>
 
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr("cloudflareApiToken")}
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type={showCfApiToken ? "text" : "password"}
-                      required
-                      placeholder={tr("cloudflareApiToken")}
-                      value={cfApiToken}
-                      onChange={(e) => setCfApiToken(e.target.value)}
-                      style={{
-                        width: "100%",
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        padding: "10px 40px 10px 14px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "13px",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCfApiToken(!showCfApiToken)}
-                      style={{
-                        position: "absolute",
-                        right: "10px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: APP_SHELL.textSecondary,
-                        padding: "4px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      title={showCfApiToken ? tr("hideToken") : tr("showToken")}
-                    >
-                      {showCfApiToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      color: APP_SHELL.textSecondary,
-                      marginTop: "4px",
-                      lineHeight: "1.4",
-                    }}
-                  >
-                    {tr.rich("anApiTokenWithAccountGtEmailSendingMessage", {
-                      part0: (chunks) => <strong>{chunks}</strong>,
-                    })}
-                  </span>
-                </div>
+                <Field
+                  theme={T}
+                  label={tr("cloudflareApiToken")}
+                  hint={tr.rich("anApiTokenWithAccountGtEmailSendingMessage", {
+                    part0: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                >
+                  <SecretInput
+                    theme={T}
+                    showLabel={tr("showToken")}
+                    hideLabel={tr("hideToken")}
+                    required
+                    placeholder={tr("cloudflareApiToken")}
+                    value={cfApiToken}
+                    onChange={(e) => setCfApiToken(e.target.value)}
+                  />
+                </Field>
 
                 <div
                   style={{
@@ -748,7 +424,7 @@ function extractRawEmail(fromStr) {
                             href="https://dash.cloudflare.com"
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: APP_SHELL.accent, textDecoration: "underline" }}
+                            style={{ color: T.accentText, textDecoration: "underline" }}
                           >
                             {chunks}
                           </a>
@@ -819,20 +495,19 @@ function extractRawEmail(fromStr) {
             )}
 
             {emailProvider === "cloudflare" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr("cloudflareWorkerUrl")}
-                  </label>
-                  <input
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <Field
+                  theme={T}
+                  label={tr("cloudflareWorkerUrl")}
+                  hint={tr.rich("thePublicHttpEndpointOfYourWorkerUsuallyMessage", {
+                    part0: (chunks) => <code>{chunks}</code>,
+                    part1: (chunks) => <strong>{chunks}</strong>,
+                    part2: (chunks) => <strong>{chunks}</strong>,
+                    value0: suggestedSubdomain,
+                  })}
+                >
+                  <Input
+                    theme={T}
                     type="url"
                     required
                     placeholder={`https://rsvp-email-worker.${suggestedSubdomain}.workers.dev`}
@@ -844,92 +519,32 @@ function extractRawEmail(fromStr) {
                         setCfWorkerUrl(`https://${val}`);
                       }
                     }}
-                    style={{
-                      width: "100%",
-                      backgroundColor: APP_SHELL.inputBg,
-                      border: `1px solid ${APP_SHELL.inputBorder}`,
-                      borderRadius: APP_SHELL.inputRadius,
-                      padding: "10px 14px",
-                      color: APP_SHELL.textPrimary,
-                      fontSize: "13px",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
                   />
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      color: APP_SHELL.textSecondary,
-                      marginTop: "4px",
-                      lineHeight: "1.4",
-                    }}
-                  >
-                    {tr.rich("thePublicHttpEndpointOfYourWorkerUsuallyMessage", {
-                      part0: (chunks) => <code>{chunks}</code>,
-                      part1: (chunks) => <strong>{chunks}</strong>,
-                      part2: (chunks) => <strong>{chunks}</strong>,
-                      value0: suggestedSubdomain,
-                    })}
-                  </span>
-                </div>
+                </Field>
 
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr("workerApiSecretWorkerApiSecret")}
-                  </label>
+                <Field
+                  theme={T}
+                  label={tr("workerApiSecretWorkerApiSecret")}
+                  hint={tr.rich("aSecureTokenUsedToAuthenticateNextJsMessage", {
+                    part0: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                >
                   <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <div style={{ position: "relative", flex: 1 }}>
-                      <input
-                        type={showSecret ? "text" : "password"}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <SecretInput
+                        theme={T}
+                        showLabel={tr("showSecret")}
+                        hideLabel={tr("hideSecret")}
                         required
                         placeholder={tr("apiSecretToken")}
                         value={cfWorkerSecret}
                         onChange={(e) => setCfWorkerSecret(e.target.value)}
-                        style={{
-                          width: "100%",
-                          backgroundColor: APP_SHELL.inputBg,
-                          border: `1px solid ${APP_SHELL.inputBorder}`,
-                          borderRadius: APP_SHELL.inputRadius,
-                          padding: "10px 40px 10px 14px",
-                          color: APP_SHELL.textPrimary,
-                          fontSize: "13px",
-                          outline: "none",
-                          boxSizing: "border-box",
-                        }}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowSecret(!showSecret)}
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: APP_SHELL.textSecondary,
-                          padding: "4px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                        title={showSecret ? tr("hideSecret") : tr("showSecret")}
-                      >
-                        {showSecret ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
                     </div>
 
-                    <button
+                    <Button
+                      theme={T}
+                      variant="icon"
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(cfWorkerSecret);
@@ -937,37 +552,19 @@ function extractRawEmail(fromStr) {
                         setTimeout(() => setSecretCopied(false), 2000);
                       }}
                       disabled={!cfWorkerSecret}
-                      style={{
-                        backgroundColor: secretCopied ? "#22c55e" : "rgba(255, 255, 255, 0.08)",
-                        border: `1px solid ${secretCopied ? "#22c55e" : APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        color: "#fff",
-                        padding: "0 14px",
-                        height: "38px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        cursor: cfWorkerSecret ? "pointer" : "not-allowed",
-                        opacity: cfWorkerSecret ? 1 : 0.5,
-                        transition: "background-color 0.2s, border-color 0.2s",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (cfWorkerSecret && !secretCopied)
-                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (cfWorkerSecret && !secretCopied)
-                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
-                      }}
+                      aria-label={tr("copySecretToClipboard")}
                       title={tr("copySecretToClipboard")}
                     >
-                      {secretCopied ? "✓" : "📋"}
-                    </button>
+                      {secretCopied ? (
+                        <Check size={16} aria-hidden="true" />
+                      ) : (
+                        <Copy size={16} aria-hidden="true" />
+                      )}
+                    </Button>
 
-                    <button
+                    <Button
+                      theme={T}
+                      variant="secondary"
                       type="button"
                       onClick={() => {
                         const hasSavedSecret = !!config.cloudflare_worker_api_secret;
@@ -987,85 +584,26 @@ function extractRawEmail(fromStr) {
                         }
                         setCfWorkerSecret(secret);
                       }}
-                      style={{
-                        backgroundColor: "rgba(255, 255, 255, 0.08)",
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: APP_SHELL.inputRadius,
-                        color: APP_SHELL.textPrimary,
-                        padding: "0 14px",
-                        height: "38px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "background-color 0.2s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)")
-                      }
                     >
                       {tr("generate")}
-                    </button>
+                    </Button>
                   </div>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      color: APP_SHELL.textSecondary,
-                      marginTop: "4px",
-                      lineHeight: "1.4",
-                    }}
-                  >
-                    {tr.rich("aSecureTokenUsedToAuthenticateNextJsMessage", {
-                      part0: (chunks) => <strong>{chunks}</strong>,
-                    })}
-                  </span>
-                </div>
+                </Field>
 
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr("adminFallbackEmailInboundForwardTo")}
-                  </label>
-                  <input
+                <Field
+                  theme={T}
+                  label={tr("adminFallbackEmailInboundForwardTo")}
+                  hint={tr("byDefaultGuestRepliesGoDynamicallyToEachEvent")}
+                >
+                  <Input
+                    theme={T}
                     type="email"
                     required
                     placeholder={tr("eGAdminDomainCom")}
                     value={cfInboundForwardTo}
                     onChange={(e) => setCfInboundForwardTo(e.target.value)}
-                    style={{
-                      width: "100%",
-                      backgroundColor: APP_SHELL.inputBg,
-                      border: `1px solid ${APP_SHELL.inputBorder}`,
-                      borderRadius: APP_SHELL.inputRadius,
-                      padding: "10px 14px",
-                      color: APP_SHELL.textPrimary,
-                      fontSize: "13px",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
                   />
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      color: APP_SHELL.textSecondary,
-                      marginTop: "4px",
-                      lineHeight: "1.4",
-                    }}
-                  >
-                    {tr("byDefaultGuestRepliesGoDynamicallyToEachEvent")}
-                  </span>
-                </div>
+                </Field>
 
                 <div
                   style={{
@@ -1102,7 +640,7 @@ function extractRawEmail(fromStr) {
                             href="https://dash.cloudflare.com"
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: APP_SHELL.accent, textDecoration: "underline" }}
+                            style={{ color: T.accentText, textDecoration: "underline" }}
                           >
                             {chunks}
                           </a>
@@ -1134,58 +672,34 @@ function extractRawEmail(fromStr) {
                       marginBottom: "12px",
                     }}
                   >
-                    <button
+                    <Button
+                      theme={T}
+                      variant="secondary"
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(generateWorkerCode());
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
                       }}
-                      style={{
-                        backgroundColor: copied ? "#22c55e" : APP_SHELL.accent,
-                        border: "none",
-                        color: "#fff",
-                        borderRadius: "6px",
-                        padding: "8px 16px",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        transition: "background-color 0.2s",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
                     >
+                      {copied ? (
+                        <Check size={16} aria-hidden="true" />
+                      ) : (
+                        <Copy size={16} aria-hidden="true" />
+                      )}
                       {copied ? tr("copied") : tr("copyWorkerCode")}
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
+                      theme={T}
+                      variant="secondary"
                       type="button"
+                      aria-expanded={showCode}
                       onClick={() => setShowCode(!showCode)}
-                      style={{
-                        backgroundColor: "rgba(255, 255, 255, 0.08)",
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: "6px",
-                        color: APP_SHELL.textPrimary,
-                        padding: "8px 16px",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        transition: "background-color 0.2s",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)")
-                      }
                     >
-                      <span>{tr("ltGt")}</span>{" "}
+                      <span aria-hidden="true">{tr("ltGt")}</span>
                       {showCode ? tr("hideWorkerCode") : tr("viewWorkerCode")}
-                    </button>
+                    </Button>
                   </div>
 
                   {showCode && (
@@ -1348,43 +862,24 @@ function extractRawEmail(fromStr) {
                 marginTop: "10px",
               }}
             >
-              <button
+              <Button
+                theme={T}
+                variant="secondary"
                 type="button"
                 disabled={isPending || isTestingEmail}
                 onClick={handleTestEmailConfig}
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.08)",
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  color: APP_SHELL.textPrimary,
-                  borderRadius: "10px",
-                  padding: "10px 20px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: isPending || isTestingEmail ? "not-allowed" : "pointer",
-                  transition: "background-color 0.2s",
-                  opacity: isPending || isTestingEmail ? 0.6 : 1,
-                }}
               >
                 {isTestingEmail ? tr("testing") : tr("testConnection")}
-              </button>
+              </Button>
 
-              <button
+              <Button
+                theme={T}
+                variant="primary"
                 type="submit"
                 disabled={isPending || isTestingEmail}
-                style={{
-                  backgroundColor: APP_SHELL.accent,
-                  border: "none",
-                  color: "#fff",
-                  borderRadius: "10px",
-                  padding: "10px 20px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: isPending || isTestingEmail ? "not-allowed" : "pointer",
-                  opacity: isPending || isTestingEmail ? 0.6 : 1,
-                }}
               >
                 {tr("saveSettings")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

@@ -82,6 +82,8 @@ If you already have one active Admin account, you can promote other users:
 
 ## Overview
 
+Every button, field, switch and message in the Admin Panel uses the same shared controls as the rest of the site, so a primary action, a secondary action and a delete look the same on every tab. Deletes and revokes are shown in the error color, and in-row actions (**Restore**, **Delete now**, **Download**, **Revoke**) are the compact size. On phones, the menu button at the top opens the section list.
+
 The **Overview** tab shows a snapshot of your installation:
 
 | Stat             | What it counts                                                |
@@ -198,7 +200,7 @@ Go to `/admin` > **Email** to configure outbound email. Settings saved here are 
 
 - **Guest Email Notifications toggle:** when off, no emails are sent to guests (RSVP confirmations, blast updates, reminders, invites). Host sign-in links and admin emails are always sent regardless of this setting.
 - **Email Provider:** choose **SMTP**, **Cloudflare Worker**, or **Cloudflare REST API**.
-- **Provider fields:** enter the credentials for the selected provider (SMTP host/port/secure/username/password, or the relevant Cloudflare fields) plus the **From Address**.
+- **Provider fields:** enter the credentials for the selected provider (SMTP host/port/secure/username/password, or the relevant Cloudflare fields) plus the **From Address**. Token and secret fields are hidden as you type; the eye button inside the field shows or hides the value, and it starts hidden each time the page loads.
 - **Send Test Email:** enter an address and send a test to verify your settings.
 
 See the [Email Setup Guide](email.md) for provider-by-provider walkthroughs.
@@ -210,7 +212,7 @@ See the [Email Setup Guide](email.md) for provider-by-provider walkthroughs.
 Go to `/admin` > **SMS** to configure Twilio.
 
 - **SMS Notifications toggle:** when on, guests receive SMS confirmations, blast updates, reminders, and invites. It defaults to on automatically when Twilio credentials are present, and requires those credentials to work.
-- Enter your Twilio **Account SID**, **Auth Token**, and **phone number**.
+- Enter your Twilio **Account SID**, **Auth Token** (hidden by default; use the eye button to show it), and **phone number**.
 - **Send Test SMS:** send a test message to a phone number to verify your settings.
 
 See the [SMS Setup Guide](sms.md) for the full Twilio walkthrough.

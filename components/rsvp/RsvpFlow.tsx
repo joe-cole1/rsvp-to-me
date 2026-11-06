@@ -1,6 +1,9 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Check as CheckBox, Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 
 import { useState, useTransition } from "react";
 import { addRSVP, updateRSVP, updateRsvpAsHost } from "@/app/actions/event";
@@ -316,20 +319,17 @@ export function RsvpFlow({
           <p>
             <a
               href={`/e/${event.slug}/notifications?token=${existingRsvp.editToken}`}
-              style={{ color: t.accentText }}
+              {...buttonProps(t, { variant: "link", onGround: true })}
             >
               {notificationText("manageEvent")}
             </a>
           </p>
           <a
             href={`/e/${event.slug}?token=${existingRsvp.editToken}`}
+            {...buttonProps(t, { variant: "primary", fullWidth: true })}
             style={{
-              display: "block",
-              textAlign: "center",
+              ...buttonProps(t, { variant: "primary", fullWidth: true }).style,
               marginTop: "20px",
-              color: t.accentText,
-              textDecoration: "none",
-              fontWeight: 700,
             }}
           >
             {translate("returnEvent")}
@@ -387,14 +387,14 @@ export function RsvpFlow({
             <p style={{ fontSize: 14, marginBottom: 24 }}>
               <a
                 href={`/e/${event.slug}/notifications?token=${savedEditToken}`}
-                style={{ color: t.accentText }}
+                {...buttonProps(t, { variant: "link", onGround: true })}
               >
                 {notificationText("manageEvent")}
               </a>
               <br />
               <a
                 href={`/e/${event.slug}/rsvp?token=${savedEditToken}`}
-                style={{ color: t.accentText }}
+                {...buttonProps(t, { variant: "link", onGround: true })}
               >
                 {notificationText("saveEditLink")}
               </a>
@@ -446,23 +446,16 @@ export function RsvpFlow({
                 {translate(organizerOverride ? "guestHasNoContact" : "sinceDidnTAddEmailOr")}
               </p>
               <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  style={{
-                    width: "100%",
-                    padding: "8px 10px",
-                    background: t.cardBg,
-                    border: `1px solid ${t.inputBorder}`,
-                    borderRadius: "10px",
-                    color: t.textPrimary,
-                    fontFamily: "inherit",
-                    fontSize: "12px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
+                <Input
+                  theme={t}
+                  aria-label={translate(organizerOverride ? "guestEditLink" : "saveEditLink")}
+                  style={{ flex: 1, width: "auto", fontSize: "13px" }}
                   readOnly
                   value={`${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.slug}?token=${savedEditToken}`}
                 />
-                <button
+                <Button
+                  theme={t}
+                  variant="secondary"
                   onClick={() => {
                     if (typeof navigator !== "undefined") {
                       navigator.clipboard.writeText(
@@ -472,26 +465,11 @@ export function RsvpFlow({
                       setTimeout(() => setLinkCopied(false), 2000);
                     }
                   }}
-                  style={{
-                    padding: "8px 12px",
-                    background: linkCopied ? "#22c55e" : t.accent,
-                    border: "none",
-                    borderRadius: "10px",
-                    color: "#ffffff",
-                    fontFamily: "inherit",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    transition: "all 0.15s ease-in-out",
-                  }}
+                  style={{ whiteSpace: "nowrap" }}
                 >
-                  {linkCopied ? <Check size={12} /> : null}
+                  {linkCopied ? <Check size={14} aria-hidden="true" /> : null}
                   {linkCopied ? translate("copied") : translate("copy")}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -523,43 +501,27 @@ export function RsvpFlow({
                   {event.polls && event.polls.length > 0 && (
                     <a
                       href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}#polls`}
+                      {...buttonProps(t, { variant: "secondary", fullWidth: true })}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
+                        ...buttonProps(t, { variant: "secondary", fullWidth: true }).style,
                         justifyContent: "space-between",
-                        padding: "10px 12px",
-                        background: t.cardBg,
-                        border: `1px solid ${t.inputBorder}`,
-                        borderRadius: "10px",
-                        color: t.textPrimary,
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        fontWeight: 600,
                       }}
                     >
                       <span>{translate("votePolls")}</span>
-                      <span style={{ color: t.accentText }}>→</span>
+                      <span aria-hidden="true">→</span>
                     </a>
                   )}
                   {event.potluckItems && event.potluckItems.length > 0 && (
                     <a
                       href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}#potluck`}
+                      {...buttonProps(t, { variant: "secondary", fullWidth: true })}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
+                        ...buttonProps(t, { variant: "secondary", fullWidth: true }).style,
                         justifyContent: "space-between",
-                        padding: "10px 12px",
-                        background: t.cardBg,
-                        border: `1px solid ${t.inputBorder}`,
-                        borderRadius: "10px",
-                        color: t.textPrimary,
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        fontWeight: 600,
                       }}
                     >
                       <span>{translate("bringSomethingPotluck")}</span>
-                      <span style={{ color: t.accentText }}>→</span>
+                      <span aria-hidden="true">→</span>
                     </a>
                   )}
                 </div>
@@ -569,18 +531,7 @@ export function RsvpFlow({
             href={
               returnPath ?? `/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`
             }
-            style={{
-              display: "block",
-              background: t.accent,
-              color: t.accentFg,
-              textDecoration: "none",
-              borderRadius: t.btnRadius,
-              padding: "14px",
-              fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"],
-              fontSize: "15px",
-              textAlign: "center",
-              boxShadow: t.accentShadow,
-            }}
+            {...buttonProps(t, { variant: "primary", fullWidth: true })}
           >
             {returnPath ? translate("backGuestList") : translate("backEvent")}
           </a>
@@ -627,52 +578,7 @@ export function RsvpFlow({
       justifyContent: "flex-end",
       zIndex: 50,
     } as React.CSSProperties,
-    inp: {
-      width: "100%",
-      padding: "13px 16px",
-      background: t.inputBg,
-      border: `1px solid ${t.inputBorder}`,
-      borderRadius: "12px",
-      color: t.textPrimary,
-      fontFamily: "inherit",
-      fontSize: "15px",
-      outline: "none",
-      boxSizing: "border-box",
-      colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light",
-    } as React.CSSProperties,
-    label: {
-      display: "block",
-      fontSize: "12px",
-      fontWeight: 700,
-      textTransform: "none" as const,
-      letterSpacing: "0.02em",
-      color: t.textMuted,
-      marginBottom: "8px",
-    },
     group: { marginBottom: "20px" } as React.CSSProperties,
-    cancelBtn: {
-      padding: "12px 22px",
-      background: "transparent",
-      border: `1px solid ${t.cardBorder}`,
-      borderRadius: t.btnRadius,
-      color: t.textMuted,
-      fontFamily: "inherit",
-      fontSize: "14px",
-      fontWeight: 600,
-      cursor: "pointer",
-    } as React.CSSProperties,
-    primaryBtn: {
-      padding: "12px 28px",
-      background: t.accent,
-      border: "none",
-      borderRadius: t.btnRadius,
-      color: t.accentFg,
-      fontFamily: "inherit",
-      fontSize: "14px",
-      fontWeight: t.btnFontWeight as React.CSSProperties["fontWeight"],
-      cursor: "pointer",
-      boxShadow: t.accentShadow,
-    } as React.CSSProperties,
   };
 
   // ── Step 1: Details ─────────────────────────────────────────────────────────
@@ -681,25 +587,19 @@ export function RsvpFlow({
       <div style={S.page}>
         <EventAtmosphere theme={t} effect={effect} />
         <div style={S.header}>
-          <a
-            href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`}
-            style={{
-              color: t.textMuted,
-              fontSize: "13px",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              padding: "12px 0",
-            }}
-          >
-            {translate("back")}
-          </a>
+          <p style={{ margin: 0, padding: "12px 0", fontSize: "14px" }}>
+            <a
+              href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`}
+              {...buttonProps(t, { variant: "link", onGround: true })}
+            >
+              {translate("back")}
+            </a>
+          </p>
           {existingRsvp && !organizerOverride && (
             <p>
               <a
                 href={`/e/${event.slug}/notifications?token=${existingRsvp.editToken}`}
-                style={{ color: t.accentText }}
+                {...buttonProps(t, { variant: "link", onGround: true })}
               >
                 {notificationText("manageEvent")}
               </a>
@@ -748,10 +648,10 @@ export function RsvpFlow({
 
           {/* RSVP as */}
           <div style={S.group}>
-            <div style={S.label}>{translate("rsvpAs")}</div>
+            <Label theme={t}>{translate("rsvpAs")}</Label>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <input
-                style={S.inp}
+              <Input
+                theme={t}
                 placeholder={translate("nameRequired")}
                 aria-label={translate("nameRequired")}
                 maxLength={100}
@@ -761,18 +661,20 @@ export function RsvpFlow({
               {!isEdit && (
                 <>
                   {channelConfig.email && (
-                    <input
-                      style={S.inp}
+                    <Input
+                      theme={t}
                       type="email"
+                      aria-label={translate("emailOptionalUpdates")}
                       placeholder={translate("emailOptionalUpdates")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   )}
                   {channelConfig.sms && (
-                    <input
-                      style={S.inp}
+                    <Input
+                      theme={t}
                       type="tel"
+                      aria-label={translate("phoneOptionalSmsUpdates")}
                       placeholder={translate("phoneOptionalSmsUpdates")}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -785,10 +687,9 @@ export function RsvpFlow({
 
           {/* Attendee Count dropdown — only for GOING */}
           {event.plusOneAllowed && event.plusOneMax > 0 && status === "GOING" && (
-            <div style={S.group}>
-              <div style={S.label}>{translate("attendeeCount")}</div>
-              <select
-                style={{ ...S.inp, cursor: "pointer" }}
+            <Field theme={t} label={translate("attendeeCount")} style={S.group}>
+              <Select
+                theme={t}
                 value={plusOneNames.length + 1}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
@@ -811,8 +712,8 @@ export function RsvpFlow({
                       : translate("partyOption", { total: i + 1, count: i })}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
           )}
 
           {/* Plus One Names Inputs */}
@@ -821,23 +722,21 @@ export function RsvpFlow({
             status === "GOING" &&
             plusOneNames.length > 0 && (
               <div style={S.group}>
-                <div style={S.label}>
+                <Label theme={t}>
                   {translate("plusOneNames")}{" "}
-                  {event.plusOneNamesRequired ? (
-                    <span style={{ color: "#ef4444", fontSize: "11px", textTransform: "none" }}>
-                      {translate("required")}
-                    </span>
-                  ) : (
-                    <span style={{ color: t.textMuted, fontSize: "11px", textTransform: "none" }}>
-                      {translate("optional")}
-                    </span>
-                  )}
-                </div>
+                  <span style={{ fontWeight: 400 }}>
+                    {event.plusOneNamesRequired ? translate("required") : translate("optional")}
+                  </span>
+                </Label>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {plusOneNames.map((n, i) => (
-                    <input
+                    <Input
                       key={i}
-                      style={S.inp}
+                      theme={t}
+                      aria-label={translate("plusOnePlaceholder", {
+                        number: i + 1,
+                        required: event.plusOneNamesRequired ? "yes" : "no",
+                      })}
                       placeholder={translate("plusOnePlaceholder", {
                         number: i + 1,
                         required: event.plusOneNamesRequired ? "yes" : "no",
@@ -851,45 +750,39 @@ export function RsvpFlow({
                     />
                   ))}
                 </div>
-                <p style={{ fontSize: "12px", color: t.textMuted, margin: "8px 0 0" }}>
+                <p style={{ fontSize: "13px", color: t.textSecondary, margin: "8px 0 0" }}>
                   {translate("notePlusOneNamesPublic")}
                 </p>
               </div>
             )}
 
           {/* Note */}
-          <div style={S.group}>
-            <div style={S.label}>{translate("messageOptionalPublic")}</div>
-            <textarea
-              style={{ ...S.inp, resize: "none" } as React.CSSProperties}
+          <Field theme={t} label={translate("messageOptionalPublic")} style={S.group}>
+            <Textarea
+              theme={t}
+              style={{ resize: "none" }}
               rows={3}
               placeholder={translate("leaveNote")}
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-          </div>
+          </Field>
 
-          {error && (
-            <p style={{ color: "#f87171", fontSize: "13px", marginBottom: "16px" }}>{error}</p>
-          )}
+          {error && <InlineAlert theme={t}>{error}</InlineAlert>}
         </div>
 
         <div style={S.footer}>
           <a
             href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`}
-            style={{
-              ...S.cancelBtn,
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-            }}
+            {...buttonProps(t, { variant: "secondary" })}
           >
             {translate("cancel")}
           </a>
-          <button
+          <Button
+            theme={t}
+            variant="primary"
             onClick={handleContinue}
             disabled={!canProceedStep1 || isPending}
-            style={{ ...S.primaryBtn, opacity: !canProceedStep1 || isPending ? 0.5 : 1 }}
           >
             {isPending
               ? translate("saving")
@@ -898,7 +791,7 @@ export function RsvpFlow({
                 : showUpdateCopy
                   ? translate("updateRsvp")
                   : translate("confirmRsvp")}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -909,23 +802,11 @@ export function RsvpFlow({
     <div style={S.page}>
       <EventAtmosphere theme={t} effect={effect} />
       <div style={S.header}>
-        <button
-          onClick={() => setStep(1)}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: t.textMuted,
-            fontSize: "13px",
-            padding: "12px 0",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            fontFamily: "inherit",
-          }}
-        >
-          {translate("back")}
-        </button>
+        <p style={{ margin: 0, padding: "12px 0", fontSize: "14px" }}>
+          <Button theme={t} variant="link" onGround onClick={() => setStep(1)}>
+            {translate("back")}
+          </Button>
+        </p>
         <div style={{ marginBottom: "8px" }}>
           <h1 style={{ fontSize: "20px", fontWeight: 800, margin: "0 0 4px" }}>
             {translate("questionsHost")}
@@ -939,97 +820,105 @@ export function RsvpFlow({
       <div style={S.body}>
         {event.rsvpFields.map((f) => (
           <div key={f.id} style={{ marginBottom: "20px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                fontWeight: 600,
-                color: t.textSecondary,
-                marginBottom: "8px",
-              }}
-            >
-              {f.label}
-              {f.required && (
-                <span
-                  style={{ color: "#ef4444", fontSize: "12px", marginLeft: "4px", fontWeight: 400 }}
-                >
-                  {translate("required3")}
-                </span>
-              )}
-            </label>
-            {f.fieldType === "TEXTAREA" ? (
-              <textarea
-                style={{ ...S.inp, resize: "none" } as React.CSSProperties}
-                rows={3}
-                value={answers[f.id] ?? ""}
-                onChange={(e) => setAnswerValue(f.id, e.target.value)}
-              />
-            ) : f.fieldType === "SELECT" ? (
-              <select
-                style={{ ...S.inp, cursor: "pointer" }}
-                value={answers[f.id] ?? ""}
-                onChange={(e) => setAnswerValue(f.id, e.target.value)}
-              >
-                <option value="">{translate("select")}</option>
-                {parseOptions(f.options).map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            ) : f.fieldType === "CHECKBOX" ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {parseOptions(f.options).map((opt) => (
-                  <label
-                    key={opt}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={(answers[f.id] ?? "").split(",").includes(opt)}
-                      onChange={() => checkboxToggle(f.id, opt)}
-                      style={{ accentColor: t.accent, width: "16px", height: "16px" }}
-                    />
-                    {opt}
-                  </label>
-                ))}
-              </div>
+            {f.fieldType === "CHECKBOX" ? (
+              <>
+                <Label theme={t}>
+                  {f.label}
+                  {f.required && (
+                    <span style={{ fontWeight: 400, marginLeft: "4px" }}>
+                      {translate("required3")}
+                    </span>
+                  )}
+                </Label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {parseOptions(f.options).map((opt) => (
+                    <label
+                      key={opt}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                      }}
+                    >
+                      <CheckBox
+                        theme={t}
+                        checked={(answers[f.id] ?? "").split(",").includes(opt)}
+                        onChange={() => checkboxToggle(f.id, opt)}
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                </div>
+              </>
             ) : (
-              <input
-                style={S.inp}
-                value={answers[f.id] ?? ""}
-                onChange={(e) => setAnswerValue(f.id, e.target.value)}
-              />
+              <Field
+                theme={t}
+                label={
+                  <>
+                    {f.label}
+                    {f.required && (
+                      <span style={{ fontWeight: 400, marginLeft: "4px" }}>
+                        {translate("required3")}
+                      </span>
+                    )}
+                  </>
+                }
+                style={{ marginBottom: 0 }}
+              >
+                {f.fieldType === "TEXTAREA" ? (
+                  <Textarea
+                    theme={t}
+                    style={{ resize: "none" }}
+                    rows={3}
+                    value={answers[f.id] ?? ""}
+                    onChange={(e) => setAnswerValue(f.id, e.target.value)}
+                  />
+                ) : f.fieldType === "SELECT" ? (
+                  <Select
+                    theme={t}
+                    value={answers[f.id] ?? ""}
+                    onChange={(e) => setAnswerValue(f.id, e.target.value)}
+                  >
+                    <option value="">{translate("select")}</option>
+                    {parseOptions(f.options).map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input
+                    theme={t}
+                    value={answers[f.id] ?? ""}
+                    onChange={(e) => setAnswerValue(f.id, e.target.value)}
+                  />
+                )}
+              </Field>
             )}
           </div>
         ))}
 
-        {error && (
-          <p style={{ color: "#f87171", fontSize: "13px", marginBottom: "16px" }}>{error}</p>
-        )}
+        {error && <InlineAlert theme={t}>{error}</InlineAlert>}
       </div>
 
       <div style={S.footer}>
-        <button onClick={() => setStep(1)} style={S.cancelBtn}>
+        <Button theme={t} variant="secondary" onClick={() => setStep(1)}>
           {translate("back")}
-        </button>
-        <button
+        </Button>
+        <Button
+          theme={t}
+          variant="primary"
           onClick={submit}
           disabled={requiredUnanswered.length > 0 || isPending}
-          style={{ ...S.primaryBtn, opacity: requiredUnanswered.length > 0 || isPending ? 0.5 : 1 }}
         >
           {isPending
             ? translate("saving")
             : showUpdateCopy
               ? translate("updateRsvp")
               : translate("submit")}
-        </button>
+        </Button>
       </div>
     </div>
   );

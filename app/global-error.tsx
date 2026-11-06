@@ -5,6 +5,8 @@ import english from "@/messages/en-US.json";
 import { loadMessages } from "@/i18n/catalogs";
 import { DEFAULT_LOCALE, locales, type Locale } from "@/i18n/config";
 import { AppTopNav } from "@/components/ui/AppNav";
+import { APP_SHELL_THEME } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
 
 export function GlobalErrorContent({
   reset,
@@ -25,22 +27,9 @@ export function GlobalErrorContent({
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, marginBottom: 24 }}>
           {t("globalDescription")}
         </p>
-        <button
-          onClick={reset}
-          style={{
-            background: "#a855f7",
-            color: "#fff",
-            border: "none",
-            borderRadius: 14,
-            padding: "12px 24px",
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
+        <Button theme={APP_SHELL_THEME} variant="primary" onClick={reset}>
           {t("reload")}
-        </button>
+        </Button>
       </div>
     </>
   );

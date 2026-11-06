@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import type { ResolvedTheme } from "@/lib/theme";
 import { ICON_SET } from "./helpers";
+import { ChoiceTile } from "@/components/ui/Choice";
 
 // ── Icon picker strip ──────────────────────────────────────────────────────────
 
@@ -27,26 +28,21 @@ export function IconPicker({
       }}
     >
       {ICON_SET.map(({ key, icon: IconComp }) => (
-        <button
+        <ChoiceTile
           key={key}
+          theme={t}
+          selected={selected === key}
           onClick={() => onSelect(key)}
           title={shared("icons." + key)}
-          style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "50%",
-            background: selected === key ? t.accentBg : t.inputBg,
-            border: selected === key ? `2px solid ${t.accent}` : "2px solid transparent",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            flexShrink: 0,
-            padding: 0,
-          }}
+          aria-label={shared("icons." + key)}
+          style={{ width: "40px", height: "40px", padding: 0, borderRadius: "50%", flexShrink: 0 }}
         >
-          <IconComp size={16} style={{ color: selected === key ? t.accent : t.textMuted }} />
-        </button>
+          <IconComp
+            size={16}
+            aria-hidden="true"
+            style={{ color: selected === key ? t.accent : t.textSecondary }}
+          />
+        </ChoiceTile>
       ))}
     </div>
   );

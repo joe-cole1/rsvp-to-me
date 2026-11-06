@@ -5,8 +5,9 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Menu } from "lucide-react";
 import DocsPanel, { type PanelDoc } from "@/components/docs/DocsPanel";
-import { APP_SHELL } from "@/lib/theme";
-import { FeedbackToast } from "@/components/ui/AppPrimitives";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
+import { Toast } from "@/components/ui/Feedback";
 import { AppShell } from "@/components/ui/AppShell";
 import {
   updateUserRole,
@@ -175,8 +176,6 @@ export default function AdminClient({
   );
   const [cfAccountId, setCfAccountId] = useState(config.cloudflare_account_id || "");
   const [cfApiToken, setCfApiToken] = useState(config.cloudflare_api_token || "");
-  const [showCfApiToken, setShowCfApiToken] = useState(false);
-  const [showSecret, setShowSecret] = useState(false);
   const [secretCopied, setSecretCopied] = useState(false);
   const [suggestedSubdomain, setSuggestedSubdomain] = useState("your-subdomain");
 
@@ -188,7 +187,6 @@ export default function AdminClient({
   const [twilioAccountSid, setTwilioAccountSid] = useState(config.twilio_account_sid || "");
   const [twilioAuthToken, setTwilioAuthToken] = useState(config.twilio_auth_token || "");
   const [twilioPhoneNumber, setTwilioPhoneNumber] = useState(config.twilio_phone_number || "");
-  const [showTwilioToken, setShowTwilioToken] = useState(false);
   const [isTestingSms, setIsTestingSms] = useState(false);
   const [smsTestTo, setSmsTestTo] = useState("");
 
@@ -897,27 +895,18 @@ export default function AdminClient({
           }}
         >
           {/* Hamburger trigger for the mobile drawer — sidebar is hidden below lg */}
-          <button
-            type="button"
-            aria-label={tr("openAdminNavigation")}
-            className="lg:hidden"
-            onClick={() => setIsDrawerOpen(true)}
-            style={{
-              backgroundColor: "rgba(255,255,255,0.08)",
-              border: `1px solid ${APP_SHELL.inputBorder}`,
-              borderRadius: "8px",
-              cursor: "pointer",
-              color: APP_SHELL.textPrimary,
-              padding: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              marginTop: "4px",
-            }}
-          >
-            <Menu size={20} />
-          </button>
+          {/* The wrapper carries lg:hidden: the button's inline display would override it. */}
+          <div className="lg:hidden" style={{ flexShrink: 0, marginTop: "4px" }}>
+            <Button
+              theme={T}
+              variant="icon"
+              type="button"
+              aria-label={tr("openAdminNavigation")}
+              onClick={() => setIsDrawerOpen(true)}
+            >
+              <Menu size={20} aria-hidden="true" />
+            </Button>
+          </div>
           <div>
             <h2
               style={{
@@ -952,7 +941,11 @@ export default function AdminClient({
           isPending={isPending}
         />
 
-        <FeedbackToast feedback={feedback} onDismiss={() => setFeedback(null)} />
+        <Toast
+          theme={T}
+          toast={feedback && { tone: feedback.type, message: feedback.message }}
+          onDismiss={() => setFeedback(null)}
+        />
 
         {/* Content Layout */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
@@ -1041,13 +1034,9 @@ export default function AdminClient({
                 setCfAccountId={setCfAccountId}
                 cfApiToken={cfApiToken}
                 setCfApiToken={setCfApiToken}
-                showCfApiToken={showCfApiToken}
-                setShowCfApiToken={setShowCfApiToken}
                 cfWorkerUrl={cfWorkerUrl}
                 setCfWorkerUrl={setCfWorkerUrl}
                 suggestedSubdomain={suggestedSubdomain}
-                showSecret={showSecret}
-                setShowSecret={setShowSecret}
                 cfWorkerSecret={cfWorkerSecret}
                 setCfWorkerSecret={setCfWorkerSecret}
                 secretCopied={secretCopied}
@@ -1072,8 +1061,6 @@ export default function AdminClient({
                 handleSaveSmsConfig={handleSaveSmsConfig}
                 twilioAccountSid={twilioAccountSid}
                 setTwilioAccountSid={setTwilioAccountSid}
-                showTwilioToken={showTwilioToken}
-                setShowTwilioToken={setShowTwilioToken}
                 twilioAuthToken={twilioAuthToken}
                 setTwilioAuthToken={setTwilioAuthToken}
                 twilioPhoneNumber={twilioPhoneNumber}

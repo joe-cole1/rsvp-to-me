@@ -6,7 +6,9 @@ import {
   CAPTCHA_RESPONSE_FIELD,
   type CaptchaAction,
 } from "@/lib/captcha-types";
+import { APP_SHELL_THEME } from "@/lib/theme";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { InlineAlert } from "./Feedback";
 
 export function CaptchaForm({
   captchaAction,
@@ -39,9 +41,9 @@ export function CaptchaForm({
     <form action={action} onSubmit={handleSubmit} style={style}>
       {children}
       {error && (
-        <p role="alert" style={{ color: "#f87171", fontSize: "13px", marginTop: "12px" }}>
+        <InlineAlert theme={APP_SHELL_THEME} style={{ marginTop: "12px", marginBottom: 0 }}>
           {error}
-        </p>
+        </InlineAlert>
       )}
     </form>
   );

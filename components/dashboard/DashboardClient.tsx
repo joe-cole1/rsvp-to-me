@@ -19,8 +19,11 @@ import {
   MessageSquare,
   MoreHorizontal,
 } from "lucide-react";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Choice";
+import { Input, Select } from "@/components/ui/Field";
 import type { DashboardEvent, DashboardInvite, DashboardActivity } from "@/app/actions/event";
 
 export interface DashboardGridItem {
@@ -298,7 +301,7 @@ export function DashboardClient({
               {showNewEventCard && (
                 <Link
                   href={userRole === "GUEST" ? "/auth/register" : "/dashboard/events/new"}
-                  style={{ color: APP_SHELL.accent, fontWeight: 800, textDecoration: "none" }}
+                  style={{ color: T.accentText, fontWeight: 800, textDecoration: "none" }}
                 >
                   {tr("hostOne")}
                 </Link>
@@ -321,29 +324,18 @@ export function DashboardClient({
         }}
       >
         {/* Search Toggle Pill */}
-        <button
+        <Chip
+          theme={T}
+          selected={showSearchInput}
+          aria-expanded={showSearchInput}
           onClick={() => {
             setShowSearchInput(!showSearchInput);
             if (showSearchInput) setSearchQuery("");
           }}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "8px 18px",
-            background: showSearchInput ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)",
-            border: showSearchInput ? "1px solid #fff" : "1px solid rgba(255,255,255,0.1)",
-            borderRadius: "99px",
-            color: "#fff",
-            fontSize: "13px",
-            fontWeight: 700,
-            cursor: "pointer",
-            transition: "all 0.15s ease-in-out",
-          }}
         >
-          <Search size={14} strokeWidth={2.5} />
+          <Search size={14} strokeWidth={2.5} aria-hidden="true" />
           {tr("search")}
-        </button>
+        </Chip>
 
         {/* Filter Tab Pills */}
         <PillTab
@@ -388,24 +380,15 @@ export function DashboardClient({
       {/* Inline Search Input */}
       {showSearchInput && (
         <div style={{ marginBottom: "28px", animation: "slideDown 0.2s ease-out" }}>
-          <input
+          <Input
+            theme={T}
             type="text"
+            aria-label={tr("searchEventsByTitle")}
             placeholder={tr("searchEventsByTitle")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoFocus
-            style={{
-              width: "100%",
-              maxWidth: "400px",
-              padding: "10px 16px",
-              background: APP_SHELL.inputBg,
-              border: `1px solid ${APP_SHELL.inputBorder}`,
-              borderRadius: "20px",
-              color: "#fff",
-              fontSize: "14px",
-              outline: "none",
-              borderImage: `linear-gradient(to right, ${APP_SHELL.accent}, #ec4899) 1`,
-            }}
+            style={{ maxWidth: "400px" }}
           />
         </div>
       )}
@@ -589,7 +572,9 @@ export function DashboardClient({
                         marginBottom: "20px",
                       }}
                     >
-                      <select
+                      <Select
+                        theme={T}
+                        aria-label={tr("allActivityTypes")}
                         value={activityTypeFilter}
                         onChange={(e) => {
                           setActivityTypeFilter(
@@ -597,64 +582,30 @@ export function DashboardClient({
                           );
                           setActivityPage(1);
                         }}
-                        style={{
-                          width: "100%",
-                          padding: "8px 10px",
-                          borderRadius: "8px",
-                          background: "rgba(255,255,255,0.05)",
-                          border: `1px solid ${APP_SHELL.cardBorder}`,
-                          color: APP_SHELL.textPrimary,
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          outline: "none",
-                          cursor: "pointer",
-                        }}
                       >
-                        <option value="all" style={{ background: "#12121c" }}>
-                          {tr("allActivityTypes")}
-                        </option>
-                        <option value="rsvp" style={{ background: "#12121c" }}>
-                          {tr("rsvpsOnly")}
-                        </option>
-                        <option value="potluck" style={{ background: "#12121c" }}>
-                          {tr("potluckSignUps")}
-                        </option>
-                        <option value="comment" style={{ background: "#12121c" }}>
-                          {tr("commentsOnly")}
-                        </option>
-                        <option value="event" style={{ background: "#12121c" }}>
-                          {tr("eventUpdates")}
-                        </option>
-                      </select>
+                        <option value="all">{tr("allActivityTypes")}</option>
+                        <option value="rsvp">{tr("rsvpsOnly")}</option>
+                        <option value="potluck">{tr("potluckSignUps")}</option>
+                        <option value="comment">{tr("commentsOnly")}</option>
+                        <option value="event">{tr("eventUpdates")}</option>
+                      </Select>
 
-                      <select
+                      <Select
+                        theme={T}
+                        aria-label={tr("allEvents")}
                         value={activityEventFilter}
                         onChange={(e) => {
                           setActivityEventFilter(e.target.value);
                           setActivityPage(1);
                         }}
-                        style={{
-                          width: "100%",
-                          padding: "8px 10px",
-                          borderRadius: "8px",
-                          background: "rgba(255,255,255,0.05)",
-                          border: `1px solid ${APP_SHELL.cardBorder}`,
-                          color: APP_SHELL.textPrimary,
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          outline: "none",
-                          cursor: "pointer",
-                        }}
                       >
-                        <option value="all" style={{ background: "#12121c" }}>
-                          {tr("allEvents")}
-                        </option>
+                        <option value="all">{tr("allEvents")}</option>
                         {activityEventsList.map((e) => (
-                          <option key={e.id} value={e.id} style={{ background: "#12121c" }}>
+                          <option key={e.id} value={e.id}>
                             {e.title}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
 
                     {filteredActivities.length === 0 ? (
@@ -765,9 +716,9 @@ export function DashboardClient({
                                       <Link
                                         href={`/e/${act.event.slug}`}
                                         style={{
-                                          color: APP_SHELL.accent,
+                                          color: T.accentText,
                                           textDecoration: "none",
-                                          fontSize: "11px",
+                                          fontSize: "12px",
                                           fontWeight: 600,
                                           whiteSpace: "nowrap",
                                           overflow: "hidden",
@@ -810,52 +761,27 @@ export function DashboardClient({
                           borderTop: `1px solid ${APP_SHELL.cardBorder}`,
                         }}
                       >
-                        <button
+                        <Button
+                          theme={T}
+                          variant="secondary"
+                          size="sm"
                           onClick={() => setActivityPage((prev) => Math.max(prev - 1, 1))}
                           disabled={currentPage === 1}
-                          style={{
-                            padding: "6px 12px",
-                            background:
-                              currentPage === 1
-                                ? "rgba(255,255,255,0.02)"
-                                : "rgba(255,255,255,0.06)",
-                            border: `1px solid ${APP_SHELL.cardBorder}`,
-                            borderRadius: "8px",
-                            color: currentPage === 1 ? APP_SHELL.textMuted : APP_SHELL.textPrimary,
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                            transition: "all 0.2s",
-                          }}
                         >
                           {tr("prev")}
-                        </button>
-                        <span style={{ color: APP_SHELL.textSecondary, fontSize: "11px" }}>
+                        </Button>
+                        <span style={{ color: APP_SHELL.textSecondary, fontSize: "12px" }}>
                           {tr("pageOfMessage", { value0: currentPage, value1: totalPages })}
                         </span>
-                        <button
+                        <Button
+                          theme={T}
+                          variant="secondary"
+                          size="sm"
                           onClick={() => setActivityPage((prev) => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          style={{
-                            padding: "6px 12px",
-                            background:
-                              currentPage === totalPages
-                                ? "rgba(255,255,255,0.02)"
-                                : "rgba(255,255,255,0.06)",
-                            border: `1px solid ${APP_SHELL.cardBorder}`,
-                            borderRadius: "8px",
-                            color:
-                              currentPage === totalPages
-                                ? APP_SHELL.textMuted
-                                : APP_SHELL.textPrimary,
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                            transition: "all 0.2s",
-                          }}
                         >
                           {tr("next")}
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </>
@@ -883,33 +809,10 @@ interface PillTabProps {
 function PillTab({ filter, active, label, count, onClick }: PillTabProps) {
   const isActive = active === filter;
   return (
-    <button
-      onClick={() => onClick(filter)}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "8px 18px",
-        background: isActive ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.02)",
-        border: isActive ? "1px solid #fff" : "1px solid rgba(255,255,255,0.08)",
-        borderRadius: "99px",
-        color: isActive ? "#fff" : APP_SHELL.textSecondary,
-        fontSize: "13px",
-        fontWeight: isActive ? 800 : 600,
-        cursor: "pointer",
-        transition: "all 0.15s ease-in-out",
-      }}
-      onMouseEnter={(e) => {
-        if (!isActive) e.currentTarget.style.color = "#fff";
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) e.currentTarget.style.color = APP_SHELL.textSecondary;
-      }}
-    >
-      {label}{" "}
-      <span style={{ marginLeft: "4px", opacity: isActive ? 1 : 0.6, fontSize: "11px" }}>
-        {count}
-      </span>
-    </button>
+    <Chip theme={T} selected={isActive} onClick={() => onClick(filter)}>
+      {label}
+      <span>{count}</span>
+    </Chip>
   );
 }
 
@@ -1053,29 +956,21 @@ function EventCard({
 
         {/* Dots Menu Button (Top-Right) */}
         <div style={{ position: "absolute", top: "12px", right: "12px", zIndex: 3 }}>
-          <button
+          <Button
+            theme={T}
+            variant="overlay"
+            size="sm"
             aria-label={tr("eventMenu", { title: item.title })}
+            aria-expanded={isDropdownOpen}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation(); // prevent navigating to event page
               onToggleDropdown(!isDropdownOpen);
             }}
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "rgba(0,0,0,0.5)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              cursor: "pointer",
-              backdropFilter: "blur(4px)",
-            }}
+            style={{ width: "32px", padding: 0 }}
           >
-            <MoreHorizontal size={14} strokeWidth={2.5} />
-          </button>
+            <MoreHorizontal size={16} strokeWidth={2.5} aria-hidden="true" />
+          </Button>
 
           {/* Dropdown Menu */}
           {isDropdownOpen && (

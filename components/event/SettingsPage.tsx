@@ -3,7 +3,9 @@
 import { useTranslations } from "next-intl";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { InlineAlert, Toast } from "@/components/ui/Feedback";
 import { type BaseTheme, resolveTheme, getSortedPresets, getDefaultCardOpacity } from "@/lib/theme";
 import {
   DEFAULT_EFFECT_DENSITY,
@@ -76,6 +78,7 @@ export function SettingsPage({
   channelConfig?: { email: boolean; sms: boolean };
 }) {
   const translate = useTranslations("Ui.Event.SettingsPage");
+  const common = useTranslations("Ui.Common");
 
   const [isPending, startTransition] = useTransition();
   const { runWithCaptcha } = useCaptcha();
@@ -138,7 +141,6 @@ export function SettingsPage({
   const [visibility, setVisibility] = useState(event.visibility);
   const [password, setPassword] = useState("");
   const [passwordDirty, setPasswordDirty] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   // Tracks when the host explicitly saved a password removal this session,
   // so the "SET" badge and placeholder update without a full page reload.
   const [passwordSavedAsNull, setPasswordSavedAsNull] = useState(false);
@@ -839,7 +841,10 @@ export function SettingsPage({
 
       {/* ── Settings sub-nav ── */}
       <div style={S.header}>
-        <button
+        <Button
+          theme={t}
+          variant="icon"
+          aria-label={common("back")}
           onClick={() => {
             if (activeSection) {
               closeSection();
@@ -847,18 +852,9 @@ export function SettingsPage({
               window.location.href = `/e/${event.slug}`;
             }
           }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            color: t.textSecondary,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-          }}
         >
-          <ArrowLeft size={20} />
-        </button>
+          <ArrowLeft size={20} aria-hidden="true" />
+        </Button>
         <h1
           style={{
             fontSize: "17px",
@@ -918,33 +914,16 @@ export function SettingsPage({
       </div>
 
       {/* Floating toast notification for settings save status */}
-      {(saveStatus === "SAVED" || saveStatus === "ERROR") && (
-        <div
-          style={{
-            position: "fixed",
-            top: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 10000,
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: t.cardBg,
-            border: `1px solid ${saveStatus === "SAVED" ? "#22c55e" : "#ef4444"}`,
-            borderRadius: t.cardRadius,
-            padding: "10px 16px",
-            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.15)",
-            color: saveStatus === "SAVED" ? "#22c55e" : "#ef4444",
-            fontWeight: 600,
-            fontSize: "14px",
-            backdropFilter: "blur(8px)",
-            transition: "all 0.2s ease-in-out",
-          }}
-        >
-          {saveStatus === "SAVED" ? <Check size={16} color="#22c55e" /> : <span>⚠️</span>}
-          {saveStatus === "SAVED" ? translate("changesSaved") : translate("errorSavingChanges")}
-        </div>
-      )}
+      <Toast
+        theme={t}
+        toast={
+          saveStatus === "SAVED"
+            ? { tone: "success", message: translate("changesSaved") }
+            : saveStatus === "ERROR"
+              ? { tone: "error", message: translate("errorSavingChanges") }
+              : null
+        }
+      />
 
       <div style={S.container}>
         {activeSection === null && (
@@ -955,7 +934,7 @@ export function SettingsPage({
               t={t}
               emailEnabled={channelConfig.email}
             />
-            {isOwner && <DangerZonePanel eventId={event.id} t={t} S={S} />}
+            {isOwner && <DangerZonePanel eventId={event.id} t={t} />}
           </div>
         )}
 
@@ -1052,7 +1031,6 @@ export function SettingsPage({
             eventId={event.id}
             onNotificationStatus={reportNotificationStatus}
             t={t}
-            S={S}
           />
         )}
 
@@ -1085,7 +1063,6 @@ export function SettingsPage({
             triggerSaveSettings={triggerSaveSettings}
             isPending={isPending}
             t={t}
-            S={S}
           />
         )}
 
@@ -1111,13 +1088,10 @@ export function SettingsPage({
             setPassword={setPassword}
             passwordDirty={passwordDirty}
             setPasswordDirty={setPasswordDirty}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
             setPasswordSavedAsNull={setPasswordSavedAsNull}
             effectivePasswordHash={effectivePasswordHash}
             triggerSaveSettings={triggerSaveSettings}
             t={t}
-            S={S}
           />
         )}
 
@@ -1152,7 +1126,6 @@ export function SettingsPage({
             handleDeletePollOption={handleDeletePollOption}
             isPending={isPending}
             t={t}
-            S={S}
           />
         )}
 
@@ -1169,16 +1142,13 @@ export function SettingsPage({
             handleUnclaimItem={handleUnclaimItem}
             isPending={isPending}
             t={t}
-            S={S}
           />
         )}
 
         {err && (
-          <div
-            style={{ color: "#f87171", fontSize: "13px", textAlign: "center", marginTop: "16px" }}
-          >
+          <InlineAlert theme={t} style={{ marginTop: "16px" }}>
             {err}
-          </div>
+          </InlineAlert>
         )}
       </div>
     </div>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, type CSSProperties } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
-import { AppButton, AppInput, FormField } from "@/components/ui/AppPrimitives";
-import { buttonStyle } from "@/components/event/invitations/styles";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { Channel } from "@/lib/notifications/preferences";
 import type { ManagementData, ManagementScope } from "@/lib/notifications/manage";
@@ -37,31 +37,36 @@ export function DestinationVerifier({
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [pending, startTransition] = useTransition();
-  const hint: CSSProperties = { margin: 0, fontSize: "13px", color: theme.textSecondary };
   const failed = (error: unknown) => {
     const { code: failure } = actionFailure(error);
     onError(t(`errors.${failure}`), failure);
   };
   const cancel = (
-    <button type="button" style={buttonStyle} onClick={onCancel}>
+    <Button theme={theme} variant="secondary" type="button" onClick={onCancel}>
       {t("cancel")}
-    </button>
+    </Button>
   );
   if (!challengeId)
     return (
       <>
-        <FormField label={t(channel === "email" ? "newEmail" : "newPhone")}>
-          <AppInput
+        <Field
+          theme={theme}
+          label={t(channel === "email" ? "newEmail" : "newPhone")}
+          hint={t("sendHint")}
+        >
+          <Input
+            theme={theme}
             type={channel === "email" ? "email" : "tel"}
             autoComplete={channel === "email" ? "email" : "tel"}
             value={destination}
             onChange={(event) => setDestination(event.target.value)}
             placeholder={channel === "email" ? "you@example.com" : "+15551234567"}
           />
-        </FormField>
-        <p style={hint}>{t("sendHint")}</p>
+        </Field>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <AppButton
+          <Button
+            theme={theme}
+            variant="primary"
             type="button"
             disabled={pending || !destination.trim()}
             onClick={() =>
@@ -79,25 +84,27 @@ export function DestinationVerifier({
             }
           >
             {pending ? t("saving") : t("sendCode")}
-          </AppButton>
+          </Button>
           {cancel}
         </div>
       </>
     );
   return (
     <>
-      <FormField label={t("code")}>
-        <AppInput
+      <Field theme={theme} label={t("code")} hint={t("codeHint")}>
+        <Input
+          theme={theme}
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={8}
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
         />
-      </FormField>
-      <p style={hint}>{t("codeHint")}</p>
+      </Field>
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <AppButton
+        <Button
+          theme={theme}
+          variant="primary"
           type="button"
           disabled={pending || !/^\d{8}$/.test(code)}
           onClick={() =>
@@ -113,7 +120,7 @@ export function DestinationVerifier({
           }
         >
           {pending ? t("saving") : t("verify")}
-        </AppButton>
+        </Button>
         {cancel}
       </div>
     </>

@@ -12,20 +12,26 @@ import {
   suggestInvitationSpreadsheetMapping,
   type InvitationSpreadsheetMapping,
 } from "@/lib/invitation-spreadsheet";
-import { buttonStyle, inputStyle, mutedText, panelStyle, primary } from "./styles";
+import type { ResolvedTheme } from "@/lib/theme";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Check, Select, Textarea } from "@/components/ui/Field";
+import { mutedText as mutedFor, panelStyle, problemText } from "./styles";
 
 const PREVIEW_ROWS = 5;
 
 export function SpreadsheetImportPanel({
+  theme,
   initialText,
   onAdd,
   onCancel,
 }: {
+  theme: ResolvedTheme;
   initialText: string;
   onAdd: (recipients: PastedRecipient[]) => void;
   onCancel: () => void;
 }) {
   const t = useTranslations("Ui.Event.InvitationComposer");
+  const mutedText = mutedFor(theme);
   const ids = useId();
   const [source, setSource] = useState(initialText);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -70,12 +76,12 @@ export function SpreadsheetImportPanel({
     return (
       <label style={{ display: "grid", gap: "4px", flex: "1 1 200px" }}>
         <span style={mutedText}>{label}</span>
-        <select
+        <Select
+          theme={theme}
           value={value ?? ""}
           onChange={(event) =>
             onChange(event.target.value === "" ? undefined : Number(event.target.value))
           }
-          style={inputStyle}
         >
           <option value="">{t("noColumn")}</option>
           {columns
@@ -85,7 +91,7 @@ export function SpreadsheetImportPanel({
                 {columnLabel(column)}
               </option>
             ))}
-        </select>
+        </Select>
       </label>
     );
   }
@@ -100,21 +106,36 @@ export function SpreadsheetImportPanel({
   const nameSelects = Math.min(3, mapping.nameColumns.length + 1);
 
   return (
-    <section aria-label={t("spreadsheet")} style={panelStyle}>
+    <section aria-label={t("spreadsheet")} style={panelStyle(theme)}>
       <strong>{t("spreadsheet")}</strong>
       <span style={mutedText}>{t("spreadsheetHelp")}</span>
       {fileName ? (
         <p style={{ ...mutedText, margin: 0, display: "flex", gap: "8px", alignItems: "center" }}>
           <span style={{ overflowWrap: "anywhere" }}>{fileName}</span>
-          <button type="button" style={buttonStyle} onClick={() => load("", null)}>
+          <Button
+            theme={theme}
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => load("", null)}
+          >
             {t("removeFile")}
-          </button>
+          </Button>
         </p>
       ) : (
-        <label style={{ display: "grid", gap: "4px" }}>
-          <span style={mutedText}>{t("chooseFile")}</span>
+        <label
+          {...buttonProps(theme, { variant: "secondary" })}
+          className="rsvp-press rsvp-field-within"
+          style={{
+            ...buttonProps(theme, { variant: "secondary" }).style,
+            position: "relative",
+            justifySelf: "start",
+          }}
+        >
+          {t("chooseFile")}
           <input
             type="file"
+            style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
             accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
             onChange={(event) => {
               const input = event.currentTarget;
@@ -137,26 +158,26 @@ export function SpreadsheetImportPanel({
         </label>
       )}
       {fileError && (
-        <p role="alert" style={{ margin: 0, color: "var(--invite-problem)" }}>
+        <p role="alert" style={problemText(theme)}>
           {fileError}
         </p>
       )}
       {fileName ? null : (
         <label style={{ display: "grid", gap: "4px" }}>
           <span style={mutedText}>{t("pasteCells")}</span>
-          <textarea
+          <Textarea
+            theme={theme}
             rows={4}
             value={source}
             onChange={(event) => load(event.target.value, null)}
-            style={{ ...inputStyle, resize: "vertical" }}
           />
         </label>
       )}
       {source.trim() && width > 0 && (
         <>
           <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              type="checkbox"
+            <Check
+              theme={theme}
               checked={mapping.hasHeader}
               onChange={(event) => update({ hasHeader: event.target.checked })}
             />
@@ -186,7 +207,7 @@ export function SpreadsheetImportPanel({
         </>
       )}
       {issue ? (
-        <p role="alert" style={{ margin: 0, color: "var(--invite-problem)" }}>
+        <p role="alert" style={problemText(theme)}>
           {t(`spreadsheetIssues.${issue.code}`, { row: (issue.row ?? 0) + 1 })}
         </p>
       ) : (
@@ -204,17 +225,18 @@ export function SpreadsheetImportPanel({
         )
       )}
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <button
+        <Button
+          theme={theme}
+          variant="primary"
           type="button"
-          style={primary(!!issue || !result.recipients.length)}
           disabled={!!issue || !result.recipients.length}
           onClick={() => onAdd(result.recipients)}
         >
           {t("addFound", { count: result.recipients.length })}
-        </button>
-        <button type="button" style={buttonStyle} onClick={onCancel}>
+        </Button>
+        <Button theme={theme} variant="secondary" type="button" onClick={onCancel}>
           {t("cancel")}
-        </button>
+        </Button>
       </div>
     </section>
   );

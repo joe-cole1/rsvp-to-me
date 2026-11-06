@@ -5,14 +5,14 @@ import { useTranslations } from "next-intl";
 import { BarChart3, Settings } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
 import { EventCard } from "./EventCard";
+import { Button } from "@/components/ui/Button";
+import { Check, Input } from "@/components/ui/Field";
 
 export function PollsSection({
   event,
   isPending,
   t,
-  S,
   isHost,
   rsvpStatus,
   rsvpDone,
@@ -27,7 +27,6 @@ export function PollsSection({
   event: EventData;
   isPending: boolean;
   t: ResolvedTheme;
-  S: EventPageStyles;
   isHost: boolean;
   rsvpStatus: "GOING" | "MAYBE" | "NO" | "INVITED" | null;
   rsvpDone: boolean;
@@ -120,8 +119,8 @@ export function PollsSection({
                             fontWeight: 700,
                             padding: "2px 6px",
                             borderRadius: "99px",
-                            background: "rgba(239, 68, 68, 0.15)",
-                            color: "#f87171",
+                            background: t.status.error.bg,
+                            color: t.status.error.text,
                           }}
                         >
                           {translate("locked")}
@@ -217,13 +216,13 @@ export function PollsSection({
                                 color: isVoted ? t.textPrimary : t.textSecondary,
                               }}
                             >
-                              <input
+                              <Check
+                                theme={t}
                                 type={poll.multiChoice ? "checkbox" : "radio"}
                                 name={`poll-${poll.id}`}
                                 checked={isVoted}
                                 disabled={!canVote}
                                 onChange={(e) => handleVote(poll.id, opt.id, e.target.checked)}
-                                style={{ cursor: canVote ? "pointer" : "default" }}
                               />
                               <span>{opt.text}</span>
                               {opt.creatorName && (
@@ -288,8 +287,9 @@ export function PollsSection({
                   {/* Suggest Option form for Guests */}
                   {poll.allowGuestsToAdd && isEligibleToVote && !poll.locked && (
                     <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                      <input
-                        style={{ ...S.inp, padding: "8px 12px", fontSize: "12.5px" }}
+                      <Input
+                        theme={t}
+                        aria-label={translate("suggestAnotherOption")}
                         placeholder={translate("suggestAnotherOption")}
                         value={newPollOptionTexts[poll.id] ?? ""}
                         onChange={(e) => {
@@ -302,18 +302,15 @@ export function PollsSection({
                           if (e.key === "Enter") handleAddPollOption(poll.id);
                         }}
                       />
-                      <button
+                      <Button
+                        theme={t}
+                        variant="secondary"
                         onClick={() => handleAddPollOption(poll.id)}
                         disabled={!newPollOptionTexts[poll.id]?.trim() || isPending}
-                        style={{
-                          ...S.mutedBtn,
-                          padding: "8px 12px",
-                          fontSize: "12.5px",
-                          whiteSpace: "nowrap",
-                        }}
+                        style={{ whiteSpace: "nowrap" }}
                       >
                         {translate("suggest")}
-                      </button>
+                      </Button>
                     </div>
                   )}
 

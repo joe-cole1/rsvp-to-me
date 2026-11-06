@@ -1,6 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 
 import { Mail } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -69,37 +72,20 @@ export function GuestInviteFriendCard({
       <p style={{ fontSize: "13px", color: t.textSecondary, margin: "0 0 12px", lineHeight: 1.4 }}>
         {translate("eventPrivateCanInviteFriendsBy")}
       </p>
-      <label style={{ display: "block", marginBottom: "10px" }}>
-        {translate("nameOptional")}
-        <input
+      <Field theme={t} label={translate("nameOptional")} style={{ marginBottom: "10px" }}>
+        <Input
+          theme={t}
           value={name}
           onChange={(event) => setName(event.target.value)}
           maxLength={100}
           disabled={isPending}
-          style={{
-            width: "100%",
-            padding: "10px",
-            color: t.textPrimary,
-            background: t.inputBg,
-            border: `1px solid ${t.inputBorder}`,
-            borderRadius: t.btnRadius,
-          }}
         />
-      </label>
+      </Field>
       <div style={{ display: "flex", gap: "8px", width: "100%" }}>
-        <input
-          style={{
-            flex: 1,
-            padding: "10px 14px",
-            background: t.inputBg,
-            border: `1px solid ${t.inputBorder}`,
-            borderRadius: t.btnRadius,
-            color: t.textPrimary,
-            fontFamily: "inherit",
-            fontSize: "13.5px",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
+        <Input
+          theme={t}
+          style={{ flex: 1, width: "auto" }}
+          aria-label={translate("friendEmailComOr15551234567")}
           placeholder={translate("friendEmailComOr15551234567")}
           value={target}
           disabled={isPending}
@@ -108,36 +94,25 @@ export function GuestInviteFriendCard({
             if (e.key === "Enter" && target.trim() && !isPending) handleSend();
           }}
         />
-        <button
+        <Button
+          theme={t}
+          variant="primary"
           onClick={handleSend}
           disabled={!target.trim() || isPending}
-          style={{
-            padding: "10px 18px",
-            background: t.accent,
-            color: t.accentFg,
-            border: "none",
-            borderRadius: t.btnRadius,
-            fontFamily: "inherit",
-            fontSize: "13px",
-            fontWeight: 700,
-            cursor: !target.trim() || isPending ? "not-allowed" : "pointer",
-            opacity: !target.trim() || isPending ? 0.6 : 1,
-            boxShadow: t.accentShadow,
-            whiteSpace: "nowrap",
-          }}
+          style={{ whiteSpace: "nowrap" }}
         >
           {isPending ? translate("sending") : translate("send")}
-        </button>
+        </Button>
       </div>
       {status === "success" && (
-        <div style={{ fontSize: "12.5px", color: "#4ade80", fontWeight: 600, marginTop: "8px" }}>
+        <InlineAlert theme={t} tone="success" style={{ marginTop: "8px", marginBottom: 0 }}>
           {translate("invitationSentSuccessfully")}
-        </div>
+        </InlineAlert>
       )}
       {status === "error" && (
-        <div style={{ fontSize: "12.5px", color: "#f87171", fontWeight: 600, marginTop: "8px" }}>
-          ✕ {errorMsg}
-        </div>
+        <InlineAlert theme={t} tone="error" style={{ marginTop: "8px", marginBottom: 0 }}>
+          {errorMsg}
+        </InlineAlert>
       )}
     </EventCard>
   );

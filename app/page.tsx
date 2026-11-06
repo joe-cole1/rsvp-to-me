@@ -2,7 +2,8 @@ import { getRequestLocale, getRequestTranslator } from "@/i18n/server";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { AppShell } from "@/components/ui/AppShell";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME } from "@/lib/theme";
+import { buttonProps } from "@/components/ui/Button";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
@@ -144,34 +145,14 @@ export default async function Home() {
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
             {tr.rich("Ui.Home.signInCreateAccountMessage", {
               part0: (chunks) => (
-                <a
-                  href="/auth/sign-in"
-                  style={{
-                    padding: "14px 32px",
-                    background: APP_SHELL.accent,
-                    color: APP_SHELL.textPrimary,
-                    borderRadius: APP_SHELL.btnRadius,
-                    textDecoration: "none",
-                    fontSize: "16px",
-                    fontWeight: 700,
-                  }}
-                >
+                <a href="/auth/sign-in" {...buttonProps(APP_SHELL_THEME, { variant: "primary" })}>
                   {chunks}
                 </a>
               ),
               part1: (chunks) => (
                 <a
                   href="/auth/register"
-                  style={{
-                    padding: "14px 32px",
-                    background: APP_SHELL.cardBg2,
-                    border: `1px solid ${APP_SHELL.cardBorder}`,
-                    color: APP_SHELL.textPrimary,
-                    borderRadius: APP_SHELL.btnRadius,
-                    textDecoration: "none",
-                    fontSize: "16px",
-                    fontWeight: 700,
-                  }}
+                  {...buttonProps(APP_SHELL_THEME, { variant: "secondary" })}
                 >
                   {chunks}
                 </a>

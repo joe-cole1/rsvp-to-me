@@ -3,13 +3,18 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { parseInvitationPaste, type PastedRecipient } from "@/lib/invitation-paste";
-import { buttonStyle, inputStyle, mutedText, panelStyle, primary } from "./styles";
+import type { ResolvedTheme } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/Field";
+import { mutedText, panelStyle } from "./styles";
 
 export function PasteListPanel({
+  theme,
   onAdd,
   onCancel,
   onSpreadsheetPaste,
 }: {
+  theme: ResolvedTheme;
   onAdd: (recipients: PastedRecipient[]) => void;
   onCancel: () => void;
   onSpreadsheetPaste: (text: string) => void;
@@ -19,13 +24,14 @@ export function PasteListPanel({
   const pasted = parseInvitationPaste(text);
   const count = pasted.rows.length;
   return (
-    <section aria-label={t("pasteList")} style={panelStyle}>
+    <section aria-label={t("pasteList")} style={panelStyle(theme)}>
       <label style={{ display: "grid", gap: "6px" }}>
         <strong>{t("pasteListLabel")}</strong>
-        <span style={mutedText}>
+        <span style={mutedText(theme)}>
           {t("pasteListHelp", { example: "Alex Rivera <alex@example.com>" })}
         </span>
-        <textarea
+        <Textarea
+          theme={theme}
           autoFocus
           rows={6}
           value={text}
@@ -37,24 +43,24 @@ export function PasteListPanel({
               onSpreadsheetPaste(pastedText);
             }
           }}
-          style={{ ...inputStyle, resize: "vertical" }}
         />
       </label>
-      <p role="status" style={{ ...mutedText, margin: 0 }}>
+      <p role="status" style={{ ...mutedText(theme), margin: 0 }}>
         {pasted.tooLong ? t("tooLong") : t("found", { count })}
       </p>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <button
+        <Button
+          theme={theme}
+          variant="primary"
           type="button"
-          style={primary(!count)}
           disabled={!count}
           onClick={() => onAdd(pasted.rows)}
         >
           {t("addFound", { count })}
-        </button>
-        <button type="button" style={buttonStyle} onClick={onCancel}>
+        </Button>
+        <Button theme={theme} variant="secondary" type="button" onClick={onCancel}>
           {t("cancel")}
-        </button>
+        </Button>
       </div>
     </section>
   );

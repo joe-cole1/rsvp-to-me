@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { APP_SHELL_THEME } from "@/lib/theme";
+import { Button, buttonProps } from "@/components/ui/Button";
 
 export default function RootError({
   reset,
@@ -54,36 +56,10 @@ export default function RootError({
           {t("description")}
         </p>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-          <button
-            onClick={() => reset()}
-            style={{
-              background: "#a855f7",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "14px",
-              padding: "11px 22px",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
+          <Button theme={APP_SHELL_THEME} variant="primary" onClick={() => reset()}>
             {t("retry")}
-          </button>
-          <Link
-            href="/"
-            style={{
-              background: "transparent",
-              color: "rgba(255,255,255,0.5)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: "14px",
-              padding: "11px 22px",
-              fontSize: "14px",
-              fontWeight: 600,
-              textDecoration: "none",
-              display: "inline-block",
-            }}
-          >
+          </Button>
+          <Link href="/" {...buttonProps(APP_SHELL_THEME, { variant: "secondary" })}>
             {t("home")}
           </Link>
         </div>

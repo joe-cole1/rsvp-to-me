@@ -8,6 +8,8 @@ import { saveEventDates } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { formatDate, formatTime, toDateTimeLocal, tzLocalToUtcClient } from "./helpers";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { Button } from "@/components/ui/Button";
+import { Input, Label } from "@/components/ui/Field";
 
 // ── Date/time inline editor ────────────────────────────────────────────────────
 
@@ -82,6 +84,7 @@ export function DateEdit({
   virtualUrl: string | null;
 }) {
   const translate = useTranslations("Ui.Event.DateEdit");
+  const common = useTranslations("Ui.Common");
   const locale = useLocale();
   const onGradient = t.pageDecoration === "bold-hero";
 
@@ -249,173 +252,79 @@ export function DateEdit({
             }}
           >
             <div style={{ marginBottom: "12px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  textTransform: "none",
-                  letterSpacing: "0.02em",
-                  color: t.textMuted,
-                  marginBottom: "6px",
-                }}
-              >
-                {translate("startDateTime")}
-              </label>
+              <Label theme={t}>{translate("startDateTime")}</Label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <input
+                <Input
+                  theme={t}
                   type="date"
+                  aria-label={translate("startDateTime")}
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    background: t.inputBg,
-                    border: `1px solid ${t.inputBorder}`,
-                    color: t.textPrimary,
-                    fontFamily: "inherit",
-                    fontSize: "14px",
-                    colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light",
-                    boxSizing: "border-box",
-                  }}
                 />
-                <input
+                <Input
+                  theme={t}
                   type="time"
+                  aria-label={translate("startDateTime")}
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    background: t.inputBg,
-                    border: `1px solid ${t.inputBorder}`,
-                    color: t.textPrimary,
-                    fontFamily: "inherit",
-                    fontSize: "14px",
-                    colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light",
-                    boxSizing: "border-box",
-                  }}
                 />
               </div>
             </div>
             <div style={{ marginBottom: "14px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  textTransform: "none",
-                  letterSpacing: "0.02em",
-                  color: t.textMuted,
-                  marginBottom: "6px",
-                }}
-              >
+              <Label theme={t}>
                 {translate("endDateTime")}{" "}
-                <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
-                  {translate("optional")}
-                </span>
-              </label>
+                <span style={{ fontWeight: 400 }}>{translate("optional")}</span>
+              </Label>
               <div style={{ display: "flex", gap: "6px" }}>
                 <div
                   style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", flex: 1 }}
                 >
-                  <input
+                  <Input
+                    theme={t}
                     type="date"
+                    aria-label={translate("endDateTime")}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      background: t.inputBg,
-                      border: `1px solid ${t.inputBorder}`,
-                      color: t.textPrimary,
-                      fontFamily: "inherit",
-                      fontSize: "14px",
-                      colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light",
-                      boxSizing: "border-box",
-                    }}
                   />
-                  <input
+                  <Input
+                    theme={t}
                     type="time"
+                    aria-label={translate("endDateTime")}
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      background: t.inputBg,
-                      border: `1px solid ${t.inputBorder}`,
-                      color: t.textPrimary,
-                      fontFamily: "inherit",
-                      fontSize: "14px",
-                      colorScheme: t.textPrimary === "#ffffff" ? "dark" : "light",
-                      boxSizing: "border-box",
-                    }}
                   />
                 </div>
                 {(endDate || endTime) && (
-                  <button
+                  <Button
+                    theme={t}
+                    variant="icon"
                     onClick={() => {
                       setEndDate("");
                       setEndTime("");
                     }}
-                    style={{
-                      background: t.inputBg,
-                      border: `1px solid ${t.inputBorder}`,
-                      borderRadius: "10px",
-                      color: t.textSecondary,
-                      cursor: "pointer",
-                      padding: "0 10px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    aria-label={`${common("remove")}: ${translate("endDateTime")}`}
                   >
-                    <X size={14} />
-                  </button>
+                    <X size={16} aria-hidden="true" />
+                  </Button>
                 )}
               </div>
             </div>
-            <p style={{ fontSize: "11px", color: t.textMuted, marginBottom: "14px" }}>
+            <p style={{ fontSize: "12px", color: t.textMuted, marginBottom: "14px" }}>
               {timezone.replace(/_/g, " ")}
             </p>
             <div style={{ display: "flex", gap: "8px" }}>
-              <button
+              <Button
+                theme={t}
+                variant="primary"
                 onClick={save}
                 disabled={!startDate || !startTime || isPending}
-                style={{
-                  flex: 1,
-                  background: t.accent,
-                  color: t.accentFg,
-                  border: "none",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  cursor: !startDate || !startTime || isPending ? "not-allowed" : "pointer",
-                  opacity: !startDate || !startTime || isPending ? 0.5 : 1,
-                }}
+                style={{ flex: 1 }}
               >
                 {isPending ? translate("saving") : translate("save")}
-              </button>
-              <button
-                onClick={() => setOpen(false)}
-                style={{
-                  background: t.inputBg,
-                  color: t.textSecondary,
-                  border: `1px solid ${t.inputBorder}`,
-                  borderRadius: "10px",
-                  padding: "10px 14px",
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  cursor: "pointer",
-                }}
-              >
+              </Button>
+              <Button theme={t} variant="secondary" onClick={() => setOpen(false)}>
                 {translate("cancel")}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -443,8 +352,11 @@ export function DateEdit({
             transition: "all 0.2s ease",
           }}
           title={translate("addCalendar")}
+          aria-label={translate("addCalendar")}
+          aria-expanded={calOpen}
+          className="rsvp-control"
         >
-          <CalendarPlus size={22} />
+          <CalendarPlus size={22} aria-hidden="true" />
         </button>
         {calOpen && (
           <div

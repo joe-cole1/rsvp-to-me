@@ -3,7 +3,7 @@ import { getRequestTranslator } from "@/i18n/server";
 import { readManagement } from "@/lib/notifications/manage";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 import { APP_SHELL_THEME } from "@/lib/theme";
-import { InlineAlert } from "@/components/ui/AppPrimitives";
+import { InlineAlert } from "@/components/ui/Feedback";
 import { AppShell } from "@/components/ui/AppShell";
 import { buildStyles } from "@/components/event/settings-page/styles";
 
@@ -33,7 +33,9 @@ export default async function NotificationPage({
   return (
     <AppShell>
       <main style={buildStyles(APP_SHELL_THEME).container}>
-        <InlineAlert tone="info">{t("Ui.Notifications.guestIntro")}</InlineAlert>
+        <InlineAlert theme={APP_SHELL_THEME} tone="info">
+          {t("Ui.Notifications.guestIntro")}
+        </InlineAlert>
         <NotificationPreferences key={JSON.stringify(scope)} scope={scope} initialData={data} />
       </main>
     </AppShell>

@@ -4,26 +4,21 @@ import { useTranslations } from "next-intl";
 
 import { useState, useTransition } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { SettingsPageStyles } from "./styles";
 import { deleteEvent } from "@/app/actions/event";
 import { Dialog } from "@/components/ui/Dialog";
 import { EventCard } from "@/components/event/event-page/EventCard";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 
-export function DangerZonePanel({
-  eventId,
-  t,
-  S,
-}: {
-  eventId: string;
-  t: ResolvedTheme;
-  S: SettingsPageStyles;
-}) {
+export function DangerZonePanel({ eventId, t }: { eventId: string; t: ResolvedTheme }) {
   const translate = useTranslations("Ui.Event.DangerZonePanel");
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const danger = t.status.error;
 
   const handleDelete = () => {
     if (confirmText !== "DELETE") return;
@@ -48,12 +43,11 @@ export function DangerZonePanel({
       <EventCard
         theme={t}
         style={{
-          border: "1px solid rgba(239, 68, 68, 0.4)",
+          border: `1px solid ${danger.border}`,
           padding: "20px",
-          boxShadow: t.cardShadow || "0 4px 20px rgba(239, 68, 68, 0.05)",
         }}
       >
-        <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#ef4444", marginBottom: "12px" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: 700, color: danger.text, marginBottom: "12px" }}>
           {translate("dangerZone")}
         </h2>
         <p
@@ -66,31 +60,15 @@ export function DangerZonePanel({
         >
           {translate("deleteEventPermanentlyEraseAllGuest")}
         </p>
-        <button
+        <Button
+          theme={t}
+          variant="destructive"
+          fullWidth
           type="button"
           onClick={() => setShowConfirm(true)}
-          style={{
-            width: "100%",
-            padding: "10px 16px",
-            backgroundColor: "rgba(239, 68, 68, 0.1)",
-            border: "1px solid #ef4444",
-            color: "#ef4444",
-            borderRadius: "8px",
-            fontSize: "14px",
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            transition: "all 0.2s ease-in-out",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
-          }}
         >
           {translate("deleteEvent")}
-        </button>
+        </Button>
       </EventCard>
 
       <Dialog
@@ -104,7 +82,7 @@ export function DangerZonePanel({
         closeOnBackdrop={!isPending}
         panelStyle={{
           background: t.cardBg,
-          border: "1px solid rgba(239, 68, 68, 0.4)",
+          border: `1px solid ${danger.border}`,
           borderRadius: t.cardRadius,
           padding: "24px",
           maxWidth: "360px",
@@ -118,7 +96,7 @@ export function DangerZonePanel({
           style={{
             fontSize: "18px",
             fontWeight: 800,
-            color: "#ef4444",
+            color: danger.text,
             margin: "0 0 12px",
           }}
         >
@@ -135,32 +113,25 @@ export function DangerZonePanel({
           {translate("actionPermanentCannotUndoneConfirmPlease")}{" "}
           <strong style={{ color: t.textPrimary }}>DELETE</strong> {translate("boxBelow")}
         </p>
-        <input
+        <Input
+          theme={t}
           type="text"
+          aria-label="DELETE"
           placeholder="DELETE"
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
-          style={{
-            ...S.inp,
-            borderColor: confirmText === "DELETE" ? "#22c55e" : t.inputBorder,
-            marginBottom: "16px",
-          }}
+          style={{ marginBottom: "16px" }}
           autoComplete="off"
         />
         {error && (
-          <p
-            style={{
-              fontSize: "12px",
-              color: "#ef4444",
-              margin: "0 0 12px",
-              fontWeight: 600,
-            }}
-          >
+          <InlineAlert theme={t} style={{ marginBottom: "12px" }}>
             {error}
-          </p>
+          </InlineAlert>
         )}
         <div style={{ display: "flex", gap: "10px" }}>
-          <button
+          <Button
+            theme={t}
+            variant="secondary"
             type="button"
             onClick={() => {
               setShowConfirm(false);
@@ -168,45 +139,20 @@ export function DangerZonePanel({
               setError(null);
             }}
             disabled={isPending}
-            style={{
-              flex: 1,
-              padding: "10px",
-              background: "transparent",
-              color: t.textSecondary,
-              border: `1px solid ${t.inputBorder}`,
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: isPending ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-            }}
+            style={{ flex: 1 }}
           >
             {translate("cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
+            theme={t}
+            variant="destructive"
             type="button"
             onClick={handleDelete}
             disabled={confirmText !== "DELETE" || isPending}
-            style={{
-              flex: 1,
-              padding: "10px",
-              background:
-                confirmText === "DELETE" && !isPending ? "#ef4444" : "rgba(239, 68, 68, 0.4)",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: confirmText !== "DELETE" || isPending ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-            }}
+            style={{ flex: 1 }}
           >
             {isPending ? translate("deleting") : translate("confirmDelete")}
-          </button>
+          </Button>
         </div>
       </Dialog>
     </>

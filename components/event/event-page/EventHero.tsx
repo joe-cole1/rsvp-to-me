@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
 
 import { useEffect, useState } from "react";
 import NextImage from "next/image";
@@ -354,53 +355,29 @@ export function EventHero({
                   zIndex: 1,
                 }}
               >
-                <button
+                <Button
+                  theme={t}
+                  variant="overlay"
+                  size="sm"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  style={{
-                    background: "rgba(0,0,0,0.5)",
-                    backdropFilter: "blur(8px)",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "6px 10px",
-                    cursor: isUploading ? "not-allowed" : "pointer",
-                    color: "#fff",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    opacity: isUploading ? 0.7 : 1,
-                  }}
                 >
                   {uploadStatus === "compressing"
                     ? translate("compressing")
                     : uploadStatus === "uploading"
                       ? translate("uploading")
                       : translate("cover")}
-                </button>
+                </Button>
                 {event.theme?.coverImageUrl && (
-                  <button
+                  <Button
+                    theme={t}
+                    variant="overlay"
+                    size="sm"
                     onClick={handleCoverRemove}
                     disabled={isPending}
-                    style={{
-                      background: "rgba(0,0,0,0.5)",
-                      backdropFilter: "blur(8px)",
-                      border: "none",
-                      borderRadius: "8px",
-                      padding: "6px 10px",
-                      cursor: isPending ? "not-allowed" : "pointer",
-                      color: "#fff",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      opacity: isPending ? 0.7 : 1,
-                    }}
                   >
                     {translate("remove")}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
