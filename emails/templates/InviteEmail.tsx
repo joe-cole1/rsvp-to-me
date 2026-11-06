@@ -4,6 +4,7 @@ import { Hero } from "../components/Hero";
 import { EmailButton } from "../components/EmailButton";
 import { DetailsCard } from "../components/DetailsCard";
 import { HostFlourish } from "../components/HostFlourish";
+import { linkStyle } from "../components/linkStyle";
 import { splitParagraphs } from "../render";
 import { formatEventDateTime } from "@/lib/calendar";
 import type { InviteEmailProps } from "../types";
@@ -135,7 +136,8 @@ export function InviteEmail({
                   href={eventUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: theme.accent, fontSize: "14px" }}
+                  className="dm-link"
+                  style={linkStyle(theme, { fontSize: "14px" })}
                 >
                   {t("Email.invite.details")}
                 </a>

@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { resolveEmailTheme, appShellEmailTheme, type EmailThemeInput } from "@/lib/email-theme";
-import { getReadableText, resolveTheme } from "@/lib/theme";
+import {
+  appShellEmailTheme,
+  bannerSurfaces,
+  resolveEmailTheme,
+  type EmailThemeInput,
+} from "@/lib/email-theme";
+import { minContrast } from "@/lib/theme-contrast";
+import { getReadableText, hex2hsl, HERO_INK, HERO_WHITE_SHADOW, resolveTheme } from "@/lib/theme";
 
 const soft: EmailThemeInput = {
   baseTheme: "SOFT",
@@ -47,6 +53,40 @@ describe("lib/email-theme.ts", () => {
     expect(t.btnTransform).toBe("uppercase");
   });
 
+  it("uses the dark stone ink on a BOLD gradient where white only works with the web scrim", () => {
+    // Sunset: white reads 2.8:1 on the bare gradient; email has no scrim.
+    const web = resolveTheme("BOLD", bold.gradientFrom, bold.gradientTo, bold.accentColor);
+    expect(web.heroScrim).toBeDefined();
+    const t = resolveEmailTheme(bold);
+    expect(t.heroText).toBe(HERO_INK.text);
+    expect(t.heroTextSecondary).toBe(HERO_INK.text);
+    expect(t.heroTextShadow).toBeUndefined();
+  });
+
+  it("keeps white BOLD hero text, with the web shadow, where it reads on the bare gradient", () => {
+    const grape = { ...bold, gradientFrom: "#7c3aed", gradientTo: "#c026d3" };
+    const t = resolveEmailTheme(grape);
+    expect(t.heroText).toBe("#ffffff");
+    expect(t.heroTextShadow).toBe(HERO_WHITE_SHADOW);
+  });
+
+  it("derives linkColor from the accent in lightness only, and leaves readable accents alone", () => {
+    const winter = resolveEmailTheme({ ...dark, accentColor: "#bae6fd" });
+    expect(winter.accent).toBe("#bae6fd");
+    expect(winter.linkColor).not.toBe("#bae6fd");
+    expect(hex2hsl(winter.linkColor).h).toBeCloseTo(hex2hsl("#bae6fd").h, -1);
+    expect(winter.linkColorDark).toBe("#bae6fd");
+    const grape = resolveEmailTheme({ ...bold, accentColor: "#a21caf" });
+    expect(grape.linkColor).toBe("#a21caf");
+  });
+
+  it("underlines links in the accent where it reads 3:1 on the body and card, else in linkColor", () => {
+    const pale = resolveEmailTheme({ ...dark, accentColor: "#bae6fd" }); // Winter, 1.3:1
+    expect(pale.linkUnderline).toBe(pale.linkColor);
+    const amber = resolveEmailTheme({ ...bold, accentColor: "#d97706" }); // Summer, 3.0:1
+    expect(amber.linkUnderline).toBe("#d97706");
+  });
+
   it("computes accentFg via the shared WCAG helper", () => {
     for (const input of [dark, soft, bold]) {
       expect(resolveEmailTheme(input).accentFg).toBe(getReadableText(input.accentColor));
@@ -58,8 +98,15 @@ describe("lib/email-theme.ts", () => {
       const t = resolveEmailTheme(input);
       for (const token of [
         t.heroFallback,
+        t.heroText,
+        t.heroTextSecondary,
         t.accent,
         t.accentFg,
+        t.linkColor,
+        t.linkColorDark,
+        t.linkUnderline,
+        t.textMuted,
+        t.avatarText,
         t.accentSoftBg,
         t.accentBorder,
         t.cardBg,
@@ -101,5 +148,9 @@ describe("lib/email-theme.ts", () => {
     expect(t.accent).toBe("#a855f7");
     expect(t.heroGradient).toContain("#13091f");
     expect(t.heroFallback).toMatch(/^#[0-9a-f]{6}$/i);
+    // The app-shell hero swaps in its own gradient; white still reads there.
+    expect(minContrast(t.heroText, bannerSurfaces(t.heroGradient, t.heroFallback))).toBeGreaterThan(
+      4.5
+    );
   });
 });

@@ -247,7 +247,10 @@ Go to `/admin` > **Themes** to manage the preset themes hosts can choose from in
   from the preset's colors and card opacity so it meets WCAG AA. Bold presets get a dark title on
   light gradients or a soft shade behind white text on mid-tone ones. Built-in presets are
   checked by `tests/lib/theme-contrast-sweep.test.ts`. If an extreme gradient leaves no readable
-  text color at a very low card opacity, the card is shown slightly more opaque.
+  text color at a very low card opacity, the card is shown slightly more opaque. Emails made
+  from the preset get the same treatment on their own surfaces; see
+  [Themed Email Templates](email.md#themed-email-templates). To check a preset's emails, pick
+  it as the **Sample theme** under **Email → Email Templates**.
 
 These presets populate the theme picker that hosts see when customizing an event page.
 

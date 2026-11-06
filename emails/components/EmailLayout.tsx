@@ -1,26 +1,31 @@
 import { locales } from "@/i18n/config";
 import { requireEmailI18n, type EmailI18n } from "../i18n";
-import type { EmailTheme } from "@/lib/email-theme";
+import { EMAIL_DARK_MODE as DM, type EmailTheme } from "@/lib/email-theme";
 import type * as React from "react";
 
 // Progressive dark-mode enhancement: honored by Apple Mail / Outlook / Samsung,
 // ignored by Gmail (which applies its own inversion to the light canvas — an
 // acceptable degradation per the design decision "light canvas + themed accents").
+// Colors come from EMAIL_DARK_MODE and the theme's linkColorDark, which
+// resolveEmailTheme() keeps readable on these surfaces.
 // The mobile query stacks padding down for ≤480px viewports.
-const responsiveStyles = `
+function responsiveStyles(theme: EmailTheme): string {
+  return `
   @media only screen and (max-width: 480px) {
     .email-content { padding-left: 20px !important; padding-right: 20px !important; }
     .email-hero { padding-left: 20px !important; padding-right: 20px !important; }
   }
   @media (prefers-color-scheme: dark) {
-    .email-canvas { background-color: #17171a !important; }
-    .email-card { background-color: #222226 !important; }
-    .dm-text-primary { color: #f4f4f5 !important; }
-    .dm-text-secondary { color: #b3b3bc !important; }
-    .dm-text-muted { color: #8b8b94 !important; }
-    .dm-block { background-color: #2a2a30 !important; border-color: #3d3d46 !important; }
+    .email-canvas { background-color: ${DM.canvas} !important; }
+    .email-card { background-color: ${DM.body} !important; }
+    .dm-text-primary { color: ${DM.textPrimary} !important; }
+    .dm-text-secondary { color: ${DM.textSecondary} !important; }
+    .dm-text-muted { color: ${DM.textMuted} !important; }
+    .dm-link { color: ${theme.linkColorDark} !important; text-decoration-color: ${theme.linkColorDark} !important; }
+    .dm-block { background-color: ${DM.card} !important; border-color: ${DM.border} !important; }
   }
 `;
+}
 
 export function EmailLayout({
   i18n,
@@ -41,7 +46,7 @@ export function EmailLayout({
       <head>
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
-        <style>{responsiveStyles}</style>
+        <style>{responsiveStyles(theme)}</style>
       </head>
       <body
         className="email-canvas"

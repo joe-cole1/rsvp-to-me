@@ -247,6 +247,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - `app/fonts.ts` builds the theme fonts. Roboto uses the licensed local asset in
   `app/font-files/`; the other families use `next/font/google` at build time.
 - `lib/email-theme.ts` is the only web-theme-to-email degradation boundary.
+  `resolveEmailTheme()` derives the email's readable colors (`linkColor`,
+  `linkColorDark`, hero text and the avatar initial) on email surfaces with the
+  same `lib/theme-contrast.ts` helpers; templates only read its fields.
+  `tests/lib/email-preset-sweep.test.tsx` enforces the email contrast contract.
 - `emails/registry.tsx` defines template metadata/defaults and assembles sample
   previews; `emails/templates/` contains the renderable templates.
 - `lib/email-settings.ts` merges saved template overrides.

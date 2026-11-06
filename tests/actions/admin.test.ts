@@ -36,6 +36,7 @@ const {
   mockThemePresetCreate,
   mockThemePresetUpdate,
   mockThemePresetDelete,
+  mockThemePresetFindUnique,
   mockRsvpDeleteMany,
   mockCoHostDeleteMany,
   mockMagicTokenDeleteMany,
@@ -76,6 +77,7 @@ const {
   mockThemePresetCreate: vi.fn(),
   mockThemePresetUpdate: vi.fn(),
   mockThemePresetDelete: vi.fn(),
+  mockThemePresetFindUnique: vi.fn(),
   mockRsvpDeleteMany: vi.fn(),
   mockCoHostDeleteMany: vi.fn(),
   mockMagicTokenDeleteMany: vi.fn(),
@@ -139,6 +141,7 @@ vi.mock("@/lib/db", () => ({
       create: mockThemePresetCreate,
       update: mockThemePresetUpdate,
       delete: mockThemePresetDelete,
+      findUnique: mockThemePresetFindUnique,
     },
     $transaction: mockTransaction,
   },
@@ -198,7 +201,10 @@ import {
   updateThemePreset,
   deleteThemePreset,
   resetAllEmailTemplatesAction,
+  getEmailTemplatesAdmin,
+  previewEmailTemplateAction,
 } from "@/app/actions/admin";
+import { resolveEmailTheme } from "@/lib/email-theme";
 
 describe("app/actions/admin.ts", () => {
   const ADMIN_ID = "admin-1";
@@ -411,6 +417,40 @@ describe("app/actions/admin.ts", () => {
       mockSystemConfigDeleteMany.mockResolvedValue({ count: 0 });
       const res = await resetAllEmailTemplatesAction();
       expect(res).toEqual({ success: true, cleared: 0 });
+    });
+
+    it("getEmailTemplatesAdmin lists the active presets as preview sample themes", async () => {
+      const presets = [{ id: "p-winter", name: "Winter", emoji: "❄️" }];
+      mockThemePresetFindMany.mockResolvedValue(presets);
+      const res = await getEmailTemplatesAdmin();
+      expect(res.samplePresets).toEqual(presets);
+      expect(mockThemePresetFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { active: true } })
+      );
+    });
+
+    it("previewEmailTemplateAction renders a preset sample theme, including admin-created presets", async () => {
+      const preset = {
+        base: "BOLD" as const,
+        gradientFrom: "#f59e0b",
+        gradientTo: "#dc2626",
+        accentColor: "#bae6fd",
+        fontId: null,
+      };
+      mockThemePresetFindUnique.mockResolvedValue(preset);
+      const { html } = await previewEmailTemplateAction("invite", {}, "admin-made-preset");
+      expect(mockThemePresetFindUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: "admin-made-preset" } })
+      );
+      const theme = resolveEmailTheme({ ...preset, baseTheme: preset.base });
+      expect(html.toLowerCase()).toContain(theme.linkColor.toLowerCase());
+      expect(html.toLowerCase()).toContain(theme.heroFallback.toLowerCase());
+    });
+
+    it("previewEmailTemplateAction falls back to the DARK defaults for an unknown sample", async () => {
+      mockThemePresetFindUnique.mockResolvedValue(null);
+      const { html } = await previewEmailTemplateAction("invite", {}, "missing");
+      expect(html.toLowerCase()).toContain(resolveEmailTheme().heroFallback.toLowerCase());
     });
 
     it("keeps twilio_auth_token write-only: echoing the mask back is a no-op (L-5)", async () => {

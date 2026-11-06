@@ -441,16 +441,44 @@ function parseTemplateId(
   return id as TemplateId;
 }
 
-async function emailThemeForPreview(base?: string) {
+/**
+ * The theme an admin preview or test send uses. `sample` is a base theme id
+ * (its defaults) or a theme preset id; undefined means a non-event email,
+ * which uses the app-shell theme. An unknown sample falls back to DARK.
+ */
+async function emailThemeForPreview(sample?: string) {
   const { appShellEmailTheme, resolveEmailTheme } = await import("@/lib/email-theme");
   const { BASE_THEMES } = await import("@/lib/theme");
-  const baseTheme = BASE_THEMES.find((b) => b.id === base);
-  if (!baseTheme) return appShellEmailTheme();
+  if (sample === undefined) return appShellEmailTheme();
+  const baseTheme = BASE_THEMES.find((b) => b.id === sample);
+  if (baseTheme) {
+    return resolveEmailTheme({
+      baseTheme: baseTheme.id,
+      gradientFrom: baseTheme.defaultGradientFrom,
+      gradientTo: baseTheme.defaultGradientTo,
+      accentColor: baseTheme.defaultAccent,
+    });
+  }
+  const preset =
+    typeof sample === "string" && sample.length <= 64
+      ? await db.themePreset.findUnique({
+          where: { id: sample },
+          select: {
+            base: true,
+            gradientFrom: true,
+            gradientTo: true,
+            accentColor: true,
+            fontId: true,
+          },
+        })
+      : null;
+  if (!preset) return resolveEmailTheme();
   return resolveEmailTheme({
-    baseTheme: baseTheme.id,
-    gradientFrom: baseTheme.defaultGradientFrom,
-    gradientTo: baseTheme.defaultGradientTo,
-    accentColor: baseTheme.defaultAccent,
+    baseTheme: preset.base,
+    gradientFrom: preset.gradientFrom,
+    gradientTo: preset.gradientTo,
+    accentColor: preset.accentColor,
+    fontId: preset.fontId,
   });
 }
 
@@ -458,13 +486,21 @@ export async function getEmailTemplatesAdmin() {
   await assertAdmin();
   const { getEmailTemplateSettings } = await import("@/lib/email-settings");
   const localizedMeta = getEmailTemplateMeta(await getRequestTranslator());
-  const templates = await Promise.all(
-    TEMPLATE_IDS.map(async (id) => ({
-      meta: localizedMeta[id],
-      overrides: await getEmailTemplateSettings(id),
-    }))
-  );
-  return { templates };
+  const [templates, samplePresets] = await Promise.all([
+    Promise.all(
+      TEMPLATE_IDS.map(async (id) => ({
+        meta: localizedMeta[id],
+        overrides: await getEmailTemplateSettings(id),
+      }))
+    ),
+    // The presets hosts can pick, for the preview's sample-theme list.
+    db.themePreset.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true, emoji: true },
+    }),
+  ]);
+  return { templates, samplePresets };
 }
 
 export async function saveEmailTemplateAction(id: string, overrides: unknown) {
@@ -515,7 +551,7 @@ export async function resetAllEmailTemplatesAction() {
 export async function previewEmailTemplateAction(
   id: string,
   overrides: unknown,
-  sampleBase?: string
+  sampleTheme?: string
 ) {
   await assertAdmin();
   const templateId = parseTemplateId(id, await getRequestTranslator());
@@ -525,7 +561,7 @@ export async function previewEmailTemplateAction(
   const { renderEmail } = await import("@/emails/render");
   const meta = EMAIL_TEMPLATE_META[templateId];
   const theme = meta.eventScoped
-    ? await emailThemeForPreview(sampleBase ?? "DARK")
+    ? await emailThemeForPreview(sampleTheme ?? "DARK")
     : await emailThemeForPreview();
   const { subject, element } = await buildSampleEmail(
     templateId,
@@ -538,7 +574,7 @@ export async function previewEmailTemplateAction(
 }
 
 /** Send a sample of any template to the signed-in admin's email. */
-export async function sendEmailTemplateTestAction(id: string, sampleBase?: string) {
+export async function sendEmailTemplateTestAction(id: string, sampleTheme?: string) {
   const tr = await getRequestTranslator();
 
   const session = await assertAdmin();
@@ -557,7 +593,7 @@ export async function sendEmailTemplateTestAction(id: string, sampleBase?: strin
   const { sendRenderedEmail } = await import("@/lib/email");
   const meta = EMAIL_TEMPLATE_META[templateId];
   const theme = meta.eventScoped
-    ? await emailThemeForPreview(sampleBase ?? "DARK")
+    ? await emailThemeForPreview(sampleTheme ?? "DARK")
     : await emailThemeForPreview();
   const overrides = await getEmailTemplateSettings(templateId);
   const { subject, element } = await buildSampleEmail(

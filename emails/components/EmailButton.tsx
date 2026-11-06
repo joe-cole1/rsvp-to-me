@@ -30,7 +30,7 @@ export function EmailButton({
       : {
           ...base,
           backgroundColor: theme.bodyBg,
-          color: theme.accent,
+          color: theme.linkColor,
           border: `1px solid ${theme.accentBorder}`,
           padding: "11px 25px",
         };
