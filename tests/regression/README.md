@@ -21,6 +21,17 @@ runner declared at `^5.0.5` and coverage at `^5.1.0`.
 
 ## Index
 
+Task `01a1b4d4` addresses #825 (batch 11 of #814) in
+`issue-825-amount-size-independence.test.tsx`: #811's Amount choice wrote both the
+stored density and the stored size, so picking an Amount overwrote a host's size and
+size couldn't be set on its own. Amount now changes particle count only, Size is its
+own control again (Small 3×, Medium 5×, Large 7× and a 1–10× slider that saves from
+the keyboard), and older events keep their stored size. Library search, mixtures,
+movement and the migration are covered in `tests/lib/effect-*.test.ts`,
+`tests/api/effects-search.test.ts`, `tests/actions/theme-effects.test.ts`,
+`tests/components/EffectsPanel.test.tsx` and
+`tests/integration/lib/effect-library-migration.test.ts`.
+
 Task `8bb37ef2` addresses #810 (and #795) in `issue-810-accessibility-blockers.test.tsx`:
 `app/` and `components/` never call the browser's `confirm()`, `alert()` or `prompt()`; a
 guest-list removal is confirmed in the shared `useConfirm()` dialog; and the event hero's

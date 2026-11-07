@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "issue": "https://github.com/joe-cole1/rsvp-to-me/issues/825",
+  "taskTag": "01a1b4d4",
+  "baseCommit": "3a9f47c2db0ec1d0086098dca44da3468c02a46e",
+  "artworkSources": [
+    {
+      "name": "@iconify-json/fluent-emoji-flat",
+      "version": "1.2.6",
+      "key": "fluent-emoji-flat",
+      "url": "https://registry.npmjs.org/@iconify-json/fluent-emoji-flat/-/fluent-emoji-flat-1.2.6.tgz",
+      "integrity": "sha512-RY47RgPb47fYUiyrA64sIOL0+UU02s29sXpNBbIQRBUlPlfNFTKUmZDERGuxDs/7yNGWqQYvuaSYM1M4fRXlUw==",
+      "license": "MIT",
+      "archiveFile": "fluent-emoji-flat-1.2.6.tgz",
+      "archiveBytes": 1172438,
+      "extractedFiles": 9,
+      "archiveSha256": "7d064769dee690815f823bc5bcc511d957198caf9f5edd8dd9c1aa48a6aeb175"
+    },
+    {
+      "name": "@iconify-json/noto",
+      "version": "1.2.10",
+      "key": "noto",
+      "url": "https://registry.npmjs.org/@iconify-json/noto/-/noto-1.2.10.tgz",
+      "integrity": "sha512-iULvHkFZpJvHjT7+MWhOfqc2/aDc1eU4+pwFukitJ7VmBF2XHnnj/k6XQRTqF1ByK+5C0A9I/J26Zwo8KkA9Ww==",
+      "license": "Apache-2.0",
+      "archiveFile": "noto-1.2.10.tgz",
+      "archiveBytes": 3102958,
+      "extractedFiles": 9,
+      "archiveSha256": "f7eb2c3ffc0db97804fb4b2baec735fa8a070e68c9c198911f0177627b7632e0"
+    }
+  ],
+  "translationSources": [
+    {
+      "name": "cldr-annotations-full",
+      "version": "49.0.0",
+      "key": "cldr-annotations-full",
+      "url": "https://registry.npmjs.org/cldr-annotations-full/-/cldr-annotations-full-49.0.0.tgz",
+      "integrity": "sha512-AYFll+64o58nWlCq+EEmQE1G+zyw6avVdYlsr4edLEQ3tTb7tVldu2ICD4bbCyx62cchP4j5lUtXLbFqajqgbg==",
+      "license": "Unicode-3.0",
+      "archiveFile": "cldr-annotations-full-49.0.0.tgz",
+      "archiveBytes": 6604242,
+      "extractedFiles": 7,
+      "archiveSha256": "ce415a4898da7a4ca755437de2593863c05045fc6b1649d8da5ee05fa3bdc33b"
+    },
+    {
+      "name": "cldr-annotations-derived-full",
+      "version": "49.0.0",
+      "key": "cldr-annotations-derived-full",
+      "url": "https://registry.npmjs.org/cldr-annotations-derived-full/-/cldr-annotations-derived-full-49.0.0.tgz",
+      "integrity": "sha512-dao837mPbiEytwUeJSEBs6lE/83mWf6v5fE/9SUMLDttkHMr0M8TPjsixkTeKSHA0u5nDGeoHOBoGzlEHAG7Aw==",
+      "license": "Unicode-3.0",
+      "archiveFile": "cldr-annotations-derived-full-49.0.0.tgz",
+      "archiveBytes": 4238563,
+      "extractedFiles": 7,
+      "archiveSha256": "e83ab0348ec09f4b5bb27f658b9c424c9c8fbf512484b728903515b9f01c3c28"
+    }
+  ],
+  "preparationTools": [
+    {
+      "name": "@iconify/utils",
+      "version": "3.1.7",
+      "key": "iconify-utils",
+      "url": "https://registry.npmjs.org/@iconify/utils/-/utils-3.1.7.tgz",
+      "integrity": "sha512-JZHlwdID+dy+lTgbYC8NEC4zeugqeYsc6jewvzb4c58kHauJn+X7rNwQjxz5p2qSjqaEeQoLkCIQ9v/H4PK0/w==",
+      "license": "MIT",
+      "archiveFile": "iconify-utils-3.1.7.tgz",
+      "archiveBytes": 56772,
+      "extractedFiles": 155,
+      "archiveSha256": "f668bcbce107043bd2b31577f744d520ba4bae86848aad0f0941b414feea73a7"
+    }
+  ],
+  "artworkLicenses": [
+    {
+      "collection": "fluent-emoji-flat",
+      "document": "LICENSE",
+      "repository": "microsoft/fluentui-emoji",
+      "path": "LICENSE",
+      "revision": "252e16f8dd1400bb3ba86384b474742b4fef089f",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/252e16f8dd1400bb3ba86384b474742b4fef089f/LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+    },
+    {
+      "collection": "noto",
+      "document": "NOTICE",
+      "repository": "googlefonts/noto-emoji",
+      "path": "svg/LICENSE",
+      "revision": "43bac1a1272f31cedf0d74c2089fba6c7f952276",
+      "url": "https://raw.githubusercontent.com/googlefonts/noto-emoji/43bac1a1272f31cedf0d74c2089fba6c7f952276/svg/LICENSE",
+      "sha256": "611ceab36dae96644ca84e8ace6873821790192bf6f73b0d0624a21b24b4b332"
+    },
+    {
+      "collection": "noto",
+      "document": "REGION-FLAGS-LICENSE",
+      "repository": "googlefonts/noto-emoji",
+      "path": "third_party/region-flags/LICENSE",
+      "revision": "43bac1a1272f31cedf0d74c2089fba6c7f952276",
+      "url": "https://raw.githubusercontent.com/googlefonts/noto-emoji/43bac1a1272f31cedf0d74c2089fba6c7f952276/third_party/region-flags/LICENSE",
+      "sha256": "73af5be6e2ea006b75bebfd2f463f252c5ce8c94024c639dbdd97f0456272a5a"
+    },
+    {
+      "collection": "noto",
+      "document": "LICENSE",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "licenseVersion": "Apache-2.0",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ],
+  "licenseHistoryNote": "Noto moved its SVG directory in commit 9411589157168199e31fab898cb64ea633b6b81a. The SVG copyright notice and regional-flag notice are pinned to its parent 43bac1a1272f31cedf0d74c2089fba6c7f952276; the font-only SIL Open Font License is not substituted for artwork licensing.",
+  "translationLicense": {
+    "spdx": "Unicode-3.0",
+    "localPath": "/effects/library/cldr/49.0.0/LICENSE.txt",
+    "source": "cldr-annotations-full@49.0.0/LICENSE"
+  },
+  "localeSources": {
+    "en-US": "en",
+    "nl-NL": "nl",
+    "de-DE": "de",
+    "es-ES": "es"
+  },
+  "artworkCount": 6874,
+  "collections": {
+    "fluent-emoji-flat": 3145,
+    "noto": 3729
+  },
+  "coverage": {
+    "en-US": {
+      "total": 6874,
+      "cldr": 6846,
+      "componentOverrides": 28,
+      "missing": 0
+    },
+    "nl-NL": {
+      "total": 6874,
+      "cldr": 6846,
+      "componentOverrides": 28,
+      "missing": 0
+    },
+    "de-DE": {
+      "total": 6874,
+      "cldr": 6846,
+      "componentOverrides": 28,
+      "missing": 0
+    },
+    "es-ES": {
+      "total": 6874,
+      "cldr": 6846,
+      "componentOverrides": 28,
+      "missing": 0
+    }
+  },
+  "aliasUnicodeOverrides": {
+    "backhand-index-pointing-right": "1f449",
+    "backhand-index-pointing-right-dark": "1f449-1f3ff",
+    "backhand-index-pointing-right-light": "1f449-1f3fb",
+    "backhand-index-pointing-right-medium": "1f449-1f3fd",
+    "backhand-index-pointing-right-medium-dark": "1f449-1f3fe",
+    "backhand-index-pointing-right-medium-light": "1f449-1f3fc"
+  },
+  "componentOverrideIds": [
+    "noto:keycap",
+    "noto:letter-a",
+    "noto:letter-b",
+    "noto:letter-c",
+    "noto:letter-d",
+    "noto:letter-e",
+    "noto:letter-f",
+    "noto:letter-g",
+    "noto:letter-h",
+    "noto:letter-i",
+    "noto:letter-j",
+    "noto:letter-k",
+    "noto:letter-l",
+    "noto:letter-m",
+    "noto:letter-n",
+    "noto:letter-o",
+    "noto:letter-p",
+    "noto:letter-q",
+    "noto:letter-r",
+    "noto:letter-s",
+    "noto:letter-t",
+    "noto:letter-u",
+    "noto:letter-v",
+    "noto:letter-w",
+    "noto:letter-x",
+    "noto:letter-y",
+    "noto:letter-z",
+    "noto:unknown-flag"
+  ],
+  "excludedSourceEntries": {
+    "fluent-emoji-flat": {
+      "hiddenIcons": 35,
+      "duplicateTypoAlias": "japanese-hear-button"
+    },
+    "reason": "Use Unicode-mapped public emoji and the six public right-pointing aliases; omit the source set's hidden variants and duplicate spelling alias."
+  },
+  "preparation": [
+    "Resolve full icon data and inherited alias transforms with getIconData() from @iconify/utils 3.1.7.",
+    "Export complete SVG documents with iconToSVG() and iconToHTML(); preserve original view boxes, fills, gradients, masks, and internal references.",
+    "Join chars.json Unicode sequences to CLDR base and derived annotations. Try exact sequences before variation-selector-insensitive matching. Preserve joiners, modifiers, regional indicators, and tag characters.",
+    "Use CLDR tts names as labels and default annotations as keywords. Capitalize the first display-label character and include original English icon names in English keywords.",
+    "Supply explicit local labels and keywords for Noto regional indicator letters A-Z, the keycap component, and unknown-flag in all four locales.",
+    "Application code, runtime dependencies, database schema, normal UI message catalogs, and existing effect assets are unchanged."
+  ],
+  "reproduction": "Preparation helpers and verified source archives are retained outside the repository in the task's 825-source-cache. They are preparation tools, not runtime dependencies."
+}

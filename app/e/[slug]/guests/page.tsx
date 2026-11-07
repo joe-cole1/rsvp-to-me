@@ -9,7 +9,7 @@ import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { EventAtmosphere } from "@/components/event/EventAtmosphere";
 import { getChannelConfig } from "@/lib/config";
-import { resolveEffectConfig } from "@/lib/effects";
+import { resolveEventEffect } from "@/lib/effect-catalog";
 import {
   guestCountLabel,
   guestRsvpDisplayFields,
@@ -81,7 +81,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
     event.theme?.cardOpacity,
     event.theme?.fontId
   );
-  const effect = resolveEffectConfig(event.theme);
+  const effect = await resolveEventEffect(event.theme);
 
   const approvedRsvps = event.rsvps.filter((r) => r.approved && r.status !== "INVITED");
   const pendingRsvps = event.rsvps.filter((r) => !r.approved && r.status !== "INVITED");

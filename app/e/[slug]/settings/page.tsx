@@ -6,6 +6,8 @@ import { getSessionUser } from "@/lib/session-user";
 import { SettingsPage } from "@/components/event/SettingsPage";
 import { getActiveThemePresets } from "@/app/actions/event";
 import { getChannelConfig } from "@/lib/config";
+import { CUSTOM_EFFECT_ID } from "@/lib/effects";
+import { getLibraryIconSummaries } from "@/lib/effect-catalog";
 
 export async function generateMetadata(props: PageProps<"/e/[slug]/settings">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -68,9 +70,13 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
   const isCohost = event.coHosts.some((ch) => ch.user.id === sessionUser.id);
   if (!isOwner && !isCohost) redirect(`/e/${slug}`);
 
-  const [themePresets, channelConfig] = await Promise.all([
+  // #825: seed labels for only the stored mixture's icons (never the catalog).
+  const storedIconIds =
+    event.theme?.effectId === CUSTOM_EFFECT_ID ? (event.theme.effectIconIds ?? []) : [];
+  const [themePresets, channelConfig, initialLibraryIcons] = await Promise.all([
     getActiveThemePresets(),
     getChannelConfig(),
+    getLibraryIconSummaries(storedIconIds).catch(() => []),
   ]);
 
   return (
@@ -80,6 +86,7 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
       themePresets={themePresets}
       sessionUser={sessionUser}
       channelConfig={channelConfig}
+      initialLibraryIcons={initialLibraryIcons}
     />
   );
 }

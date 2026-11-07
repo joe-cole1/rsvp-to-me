@@ -13,18 +13,10 @@ import {
   MIN_CARD_OPACITY,
 } from "@/lib/theme";
 import { FONT_OPTIONS } from "@/lib/fonts";
-import {
-  EFFECT_AMOUNTS,
-  EFFECT_SPEEDS,
-  DEFAULT_EFFECT_DENSITY,
-  DEFAULT_EFFECT_SPEED,
-  DEFAULT_EFFECT_SIZE,
-  effectAmountFor,
-  getSortedEffectSets,
-  type EffectAmount,
-  type EffectSpeed,
-} from "@/lib/effects";
+import type { LibraryIconSummary } from "@/lib/effect-catalog-shared";
 import type { DbThemePreset, EventInput, ThemeExtrasOverrides, ThemeSnapObj } from "./types";
+import { effectStatesEqual, initialEffectState, type EffectEditorState } from "./effect-state";
+import { EffectsPanel } from "./EffectsPanel";
 import { Section } from "./ui";
 import { Button } from "@/components/ui/Button";
 import { Chip, ChoiceTile, CustomSwatch, Swatch } from "@/components/ui/Choice";
@@ -54,14 +46,10 @@ export function ThemePanel({
   setThemePresetId,
   fontId,
   setFontId,
-  effectId,
-  setEffectId,
-  effectDensity,
-  setEffectDensity,
-  effectSpeed,
-  setEffectSpeed,
-  effectSize,
-  setEffectSize,
+  effect,
+  setEffect,
+  libraryIcons,
+  rememberLibraryIcons,
   triggerSaveTheme,
   t,
 }: {
@@ -90,14 +78,10 @@ export function ThemePanel({
   setThemePresetId: React.Dispatch<React.SetStateAction<string | null>>;
   fontId: string | null;
   setFontId: React.Dispatch<React.SetStateAction<string | null>>;
-  effectId: string | null;
-  setEffectId: React.Dispatch<React.SetStateAction<string | null>>;
-  effectDensity: string;
-  setEffectDensity: React.Dispatch<React.SetStateAction<string>>;
-  effectSpeed: string;
-  setEffectSpeed: React.Dispatch<React.SetStateAction<string>>;
-  effectSize: number;
-  setEffectSize: React.Dispatch<React.SetStateAction<number>>;
+  effect: EffectEditorState;
+  setEffect: React.Dispatch<React.SetStateAction<EffectEditorState>>;
+  libraryIcons: Record<string, LibraryIconSummary>;
+  rememberLibraryIcons: (icons: LibraryIconSummary[]) => void;
   triggerSaveTheme: (
     newBase: BaseTheme,
     newFrom: string,
@@ -112,7 +96,6 @@ export function ThemePanel({
   const shared = useTranslations("Ui.Event.shared");
   const translate = useTranslations("Ui.Event.ThemePanel");
 
-  const sortedEffectSets = getSortedEffectSets();
   // Sub-tab within the Theme section; purely visual, so plain local state (no URL sync)
   const [activeTab, setActiveTab] = useState<"theme" | "effects" | "font">("theme");
   const hint: React.CSSProperties = {
@@ -167,10 +150,7 @@ export function ThemePanel({
             const savedOpacity =
               event.theme?.cardOpacity ?? getDefaultCardOpacity(event.theme?.baseTheme);
             const savedFontId = event.theme?.fontId ?? null;
-            const savedEffectId = event.theme?.effectId ?? null;
-            const savedEffectDensity = event.theme?.effectDensity ?? DEFAULT_EFFECT_DENSITY;
-            const savedEffectSpeed = event.theme?.effectSpeed ?? DEFAULT_EFFECT_SPEED;
-            const savedEffectSize = event.theme?.effectSize ?? DEFAULT_EFFECT_SIZE;
+            const savedEffect = initialEffectState(event.theme);
             const hasChanged =
               base !== savedBase ||
               gradientFrom !== savedFrom ||
@@ -178,10 +158,7 @@ export function ThemePanel({
               accent !== savedAccent ||
               cardOpacity !== savedOpacity ||
               fontId !== savedFontId ||
-              effectId !== savedEffectId ||
-              effectDensity !== savedEffectDensity ||
-              effectSpeed !== savedEffectSpeed ||
-              effectSize !== savedEffectSize;
+              !effectStatesEqual(effect, savedEffect);
             const appliedPreset = themePresetId
               ? themePresets.find((p) => p.id === themePresetId)
               : null;
@@ -247,10 +224,7 @@ export function ThemePanel({
                         setAccent(savedAccent);
                         setCardOpacity(savedOpacity);
                         setFontId(savedFontId);
-                        setEffectId(savedEffectId);
-                        setEffectDensity(savedEffectDensity);
-                        setEffectSpeed(savedEffectSpeed);
-                        setEffectSize(savedEffectSize);
+                        setEffect(savedEffect);
                         triggerSaveTheme(
                           savedBase,
                           savedFrom,
@@ -258,13 +232,7 @@ export function ThemePanel({
                           savedAccent,
                           undefined,
                           savedOpacity,
-                          {
-                            fontId: savedFontId,
-                            effectId: savedEffectId,
-                            effectDensity: savedEffectDensity,
-                            effectSpeed: savedEffectSpeed,
-                            effectSize: savedEffectSize,
-                          }
+                          { fontId: savedFontId, effect: savedEffect }
                         );
                       }}
                       style={{ flexShrink: 0 }}
@@ -600,124 +568,20 @@ export function ThemePanel({
 
       {/* ── Effect (animated background) ── */}
       {activeTab === "effects" && (
-        <div style={{ marginBottom: "12px" }}>
-          <Label theme={t}>{translate("effect")}</Label>
-          <p style={hint}>{translate("optionalFloatingMotifsBehindEventPage")}</p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(88px, 1fr))",
-              gap: "8px",
-            }}
-          >
-            <ChoiceTile
-              theme={t}
-              selected={effectId === null}
-              onClick={() => {
-                setEffectId(null);
-                triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
-                  effectId: null,
-                });
-              }}
-            >
-              <span aria-hidden="true" style={{ fontSize: "18px" }}>
-                🚫
-              </span>
-              <span style={{ fontSize: "12px", fontWeight: 600 }}>{translate("none")}</span>
-            </ChoiceTile>
-            {sortedEffectSets.map((e) => (
-              <ChoiceTile
-                key={e.id}
-                theme={t}
-                selected={effectId === e.id}
-                onClick={() => {
-                  setEffectId(e.id);
-                  triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
-                    effectId: e.id,
-                  });
-                }}
-                title={shared("effects." + e.id)}
-              >
-                <span aria-hidden="true" style={{ fontSize: "18px" }}>
-                  {e.emoji}
-                </span>
-                <span
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    maxWidth: "100%",
-                  }}
-                >
-                  {shared("effects." + e.id)}
-                </span>
-              </ChoiceTile>
-            ))}
-          </div>
-
-          {effectId && (
-            <div
-              style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "14px" }}
-            >
-              <div>
-                <Label theme={t}>{translate("amount")}</Label>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  {(Object.keys(EFFECT_AMOUNTS) as EffectAmount[]).map((amount) => (
-                    <Chip
-                      key={amount}
-                      theme={t}
-                      selected={effectAmountFor(effectDensity) === amount}
-                      onClick={() => {
-                        const { density, size } = EFFECT_AMOUNTS[amount];
-                        setEffectDensity(density);
-                        setEffectSize(size);
-                        triggerSaveTheme(
-                          base,
-                          gradientFrom,
-                          gradientTo,
-                          accent,
-                          undefined,
-                          undefined,
-                          { effectDensity: density, effectSize: size }
-                        );
-                      }}
-                    >
-                      {shared("amount." + amount)}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label theme={t}>{translate("speed")}</Label>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  {(Object.keys(EFFECT_SPEEDS) as EffectSpeed[]).map((s) => (
-                    <Chip
-                      key={s}
-                      theme={t}
-                      selected={effectSpeed === s}
-                      onClick={() => {
-                        setEffectSpeed(s);
-                        triggerSaveTheme(
-                          base,
-                          gradientFrom,
-                          gradientTo,
-                          accent,
-                          undefined,
-                          undefined,
-                          { effectSpeed: s }
-                        );
-                      }}
-                    >
-                      {shared("speed." + s)}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <EffectsPanel
+          eventId={event.id}
+          t={t}
+          effect={effect}
+          libraryIcons={libraryIcons}
+          onPreview={setEffect}
+          onCommit={(next, icons) => {
+            if (icons?.length) rememberLibraryIcons(icons);
+            setEffect(next);
+            triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
+              effect: next,
+            });
+          }}
+        />
       )}
 
       {/* ── Event title font ── */}

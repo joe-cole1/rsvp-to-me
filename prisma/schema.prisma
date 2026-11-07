@@ -232,10 +232,12 @@ model EventTheme {
   appliedPresetId String?
   cardOpacity     Float?
   fontId          String? // heading font id from lib/fonts.ts; null = base default
-  effectId        String? // animated background set from lib/effects.ts; null = none
+  effectId        String? // animated background set from lib/effects.ts; "custom" = effectIconIds; null = none
+  effectIconIds   String[]  @default([]) // 1-3 library icon ids (lib/effect-catalog.ts) when effectId = "custom"
   effectDensity   String? // sparse | medium | dense
   effectSpeed     String? // gentle | medium | lively
   effectSize      Float? // sprite size multiplier 1-10; null = 1 (current default size)
+  effectMovement  String? // up | down | random; null = the set's own fall/float (random for custom)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

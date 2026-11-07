@@ -9,6 +9,10 @@ export const PASSWORD_EVENT_SLUG = "e2e-password-event";
 export const PASSWORD_EVENT_PASSWORD = "open-sesame";
 export const CREATED_EVENT_TITLE = "E2E Created Event";
 export const CREATED_EVENT_SLUG = "e2e-created-event";
+/** #825: an event with no theme yet, for the library-effect host flow */
+export const EFFECTS_EVENT_SLUG = "e2e-effects-event";
+/** #825: an older event whose effect was saved at a non-preset 6× size */
+export const LEGACY_EFFECT_EVENT_SLUG = "e2e-legacy-effect-event";
 
 export const AUTH_STATE_PATH = path.join(__dirname, "fixtures", "auth-state.json");
 export const MAGIC_TOKEN_PATH = path.join(__dirname, "fixtures", "magic-token.txt");

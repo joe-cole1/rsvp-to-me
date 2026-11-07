@@ -410,6 +410,54 @@ The theme's effect **Density** and **Size** controls are replaced by one
 **Amount** choice that writes the existing `effectDensity` and `effectSize`
 fields. No theme data changes during the upgrade, and stored sizes above 2× keep
 rendering until a host picks an Amount. No environment variable is required.
+(#825 later restored a separate Size control; see below.)
+
+### Searchable background effects, movement and size (#825)
+
+The `20261107180000_theme_effect_library` migration adds two `EventTheme`
+columns: `effectIconIds` (a text array, default empty) and `effectMovement`
+(nullable, no default). It is additive only — no existing row is rewritten.
+Every event keeps its built-in effect, Amount, Speed and stored size exactly as
+before, including sizes outside the new quick choices (for example 6×) and
+sizes an #811 Amount choice wrote; a `NULL` size still means 1×, and a `NULL`
+movement keeps each built-in set's own fall/float direction.
+
+Hosts can now mix up to three icons from a local library (Fluent Emoji Flat
+1.2.6 and Noto Emoji 1.2.10, 6,874 icons) that they search in English, Dutch,
+German and Spanish, and they set Amount (count only), Size (3×/5×/7× or a
+1–10× slider), Speed and Up/Down/Random movement independently. A mixture is
+stored as `effectId = 'custom'` plus its icon ids; only ids and settings are
+stored, never artwork or URLs.
+
+**Packaging.** The artwork ships in `public/effects/library/<collection>/<version>/`
+(about 33 MB of SVG) and the manifest, provenance and CLDR 49 labels/keywords in
+`lib/effect-catalog-data/` (about 11 MB of JSON). The container image already
+includes both directories; no volume, download job, cache, API key, environment
+variable or outside service is involved, and the existing Content Security
+Policy is unchanged. The server reads the data once per process (only when an
+event uses a mixture or a host searches), and the browser only receives the
+selected icons and one page of 24 search results at a time. The versioned
+library paths are served with `Cache-Control: public, max-age=31536000, immutable`.
+Host searches go to `GET /api/effects/search`, which requires a host, co-host
+or admin session for the event and allows 120 searches per user per minute
+(Redis, or the database fallback, like other rate limits).
+
+**Licensing.** Fluent Emoji Flat is MIT-licensed (Microsoft Corporation); Noto
+Emoji artwork is Apache-2.0 (Google), with its notice and regional-flag notice;
+the labels and keywords come from Unicode CLDR under the Unicode License v3.
+The full texts are served at `/effects/library/fluent-emoji-flat/1.2.6/LICENSE.txt`,
+`/effects/library/noto/1.2.10/LICENSE.txt`, `NOTICE.txt`, `REGION-FLAGS-LICENSE.txt`
+and `/effects/library/cldr/49.0.0/LICENSE.txt`; source versions and checksums
+are recorded in `lib/effect-catalog-data/provenance.json`. These licenses
+cover the artwork and data only; they grant no trademark rights.
+
+**Updating the library.** The versions are pinned. A newer collection or CLDR
+release is an intentional code change: prepare the new version directory and
+data files offline, keep the old ids that events reference (or plan their
+replacement), update `provenance.json` and the notices, and ship it like any
+other release. The application never downloads icons at runtime. If a stored
+icon id disappears from the catalog, that event simply shows no effect, and
+the host editor explains why.
 
 ### User Language Preference (#732)
 
