@@ -78,7 +78,7 @@ The **Effects** tab in **Settings → Theme** adds an optional layer of gently d
 
 - **Off by default.** Effects are purely opt-in and fully independent of your theme — put turkeys on a St. Patrick's theme if that's your party.
 - **Ready-made sets** appear as soon as you open the tab, with **None** first. Seasonal effects near your current date sort to the front as suggestions — nothing is ever applied automatically.
-- **Search for icons.** Type in **Search icons** to find more than 6,800 emoji-style icons in two styles, Fluent Emoji Flat and Noto Emoji. Search works in English, Dutch, German and Spanish at the same time, whatever language the app is in — "cat", "kat", "Katze" and "gato" all find cats — and ignores capitals and accents. You can also paste an emoji, such as 🎉 or 👋🏽, to find it directly. Results show their names in your language and the style underneath; **Load more** shows the next page. Clear the search to see the ready-made sets again.
+- **Search for icons.** Type in **Search icons** to find more than 3,700 Noto Emoji icons, one for every emoji. Search works in English, Dutch, German and Spanish at the same time, whatever language the app is in — "cat", "kat", "Katze" and "gato" all find cats — and ignores capitals and accents. You can also paste an emoji, such as 🎉 or 👋🏽, to find it directly. Results show their names in your language; **Load more** shows the next page. Clear the search to see the ready-made sets again.
 - **Mix up to three icons.** Click an icon to add it to **Your mix**; the motifs take turns evenly across the background. Click it again, or use its remove button, to take it out. Removing the last icon turns the effect off, and choosing a ready-made set replaces the mix.
 - **Amount** (Less / Some / More) sets how many motifs drift by — and only that.
 - **Size** sets how big they are: **Small** (3×), **Medium** (5×) or **Large** (7×), or drag the slider (or use the arrow keys) anywhere from 1× to 10× in half steps. The current size is shown next to the slider. Each motif still varies a little in size so the layer keeps its organic feel. New effects start at Small.
@@ -94,9 +94,8 @@ The **Effects** tab in **Settings → Theme** adds an optional layer of gently d
 
 #### Icon credits
 
-The searchable effect icons come from two open-source collections, included unchanged:
+The searchable effect icons come from an open-source collection, included unchanged:
 
-- **Fluent Emoji Flat** by Microsoft Corporation, MIT License — [license](/effects/library/fluent-emoji-flat/1.2.6/LICENSE.txt).
 - **Noto Emoji** by Google, Apache License 2.0 — [license](/effects/library/noto/1.2.10/LICENSE.txt), [notice](/effects/library/noto/1.2.10/NOTICE.txt) and [regional-flag notice](/effects/library/noto/1.2.10/REGION-FLAGS-LICENSE.txt).
 - Icon names and search words in all four languages come from the Unicode CLDR project, Unicode License v3 — [license](/effects/library/cldr/49.0.0/LICENSE.txt).
 

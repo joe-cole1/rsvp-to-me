@@ -5,18 +5,6 @@
   "baseCommit": "3a9f47c2db0ec1d0086098dca44da3468c02a46e",
   "artworkSources": [
     {
-      "name": "@iconify-json/fluent-emoji-flat",
-      "version": "1.2.6",
-      "key": "fluent-emoji-flat",
-      "url": "https://registry.npmjs.org/@iconify-json/fluent-emoji-flat/-/fluent-emoji-flat-1.2.6.tgz",
-      "integrity": "sha512-RY47RgPb47fYUiyrA64sIOL0+UU02s29sXpNBbIQRBUlPlfNFTKUmZDERGuxDs/7yNGWqQYvuaSYM1M4fRXlUw==",
-      "license": "MIT",
-      "archiveFile": "fluent-emoji-flat-1.2.6.tgz",
-      "archiveBytes": 1172438,
-      "extractedFiles": 9,
-      "archiveSha256": "7d064769dee690815f823bc5bcc511d957198caf9f5edd8dd9c1aa48a6aeb175"
-    },
-    {
       "name": "@iconify-json/noto",
       "version": "1.2.10",
       "key": "noto",
@@ -71,15 +59,6 @@
   ],
   "artworkLicenses": [
     {
-      "collection": "fluent-emoji-flat",
-      "document": "LICENSE",
-      "repository": "microsoft/fluentui-emoji",
-      "path": "LICENSE",
-      "revision": "252e16f8dd1400bb3ba86384b474742b4fef089f",
-      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/252e16f8dd1400bb3ba86384b474742b4fef089f/LICENSE",
-      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
-    },
-    {
       "collection": "noto",
       "document": "NOTICE",
       "repository": "googlefonts/noto-emoji",
@@ -117,44 +96,35 @@
     "de-DE": "de",
     "es-ES": "es"
   },
-  "artworkCount": 6874,
+  "artworkCount": 3729,
   "collections": {
-    "fluent-emoji-flat": 3145,
     "noto": 3729
   },
   "coverage": {
     "en-US": {
-      "total": 6874,
-      "cldr": 6846,
+      "total": 3729,
+      "cldr": 3701,
       "componentOverrides": 28,
       "missing": 0
     },
     "nl-NL": {
-      "total": 6874,
-      "cldr": 6846,
+      "total": 3729,
+      "cldr": 3701,
       "componentOverrides": 28,
       "missing": 0
     },
     "de-DE": {
-      "total": 6874,
-      "cldr": 6846,
+      "total": 3729,
+      "cldr": 3701,
       "componentOverrides": 28,
       "missing": 0
     },
     "es-ES": {
-      "total": 6874,
-      "cldr": 6846,
+      "total": 3729,
+      "cldr": 3701,
       "componentOverrides": 28,
       "missing": 0
     }
-  },
-  "aliasUnicodeOverrides": {
-    "backhand-index-pointing-right": "1f449",
-    "backhand-index-pointing-right-dark": "1f449-1f3ff",
-    "backhand-index-pointing-right-light": "1f449-1f3fb",
-    "backhand-index-pointing-right-medium": "1f449-1f3fd",
-    "backhand-index-pointing-right-medium-dark": "1f449-1f3fe",
-    "backhand-index-pointing-right-medium-light": "1f449-1f3fc"
   },
   "componentOverrideIds": [
     "noto:keycap",
@@ -187,11 +157,7 @@
     "noto:unknown-flag"
   ],
   "excludedSourceEntries": {
-    "fluent-emoji-flat": {
-      "hiddenIcons": 35,
-      "duplicateTypoAlias": "japanese-hear-button"
-    },
-    "reason": "Use Unicode-mapped public emoji and the six public right-pointing aliases; omit the source set's hidden variants and duplicate spelling alias."
+    "reason": "Use Unicode-mapped public emoji only. (The Fluent-specific exclusions no longer apply: see removedCollections.)"
   },
   "preparation": [
     "Resolve full icon data and inherited alias transforms with getIconData() from @iconify/utils 3.1.7.",
@@ -199,7 +165,18 @@
     "Join chars.json Unicode sequences to CLDR base and derived annotations. Try exact sequences before variation-selector-insensitive matching. Preserve joiners, modifiers, regional indicators, and tag characters.",
     "Use CLDR tts names as labels and default annotations as keywords. Capitalize the first display-label character and include original English icon names in English keywords.",
     "Supply explicit local labels and keywords for Noto regional indicator letters A-Z, the keycap component, and unknown-flag in all four locales.",
-    "Application code, runtime dependencies, database schema, normal UI message catalogs, and existing effect assets are unchanged."
+    "Application code, runtime dependencies, database schema, normal UI message catalogs, and existing effect assets are unchanged.",
+    "2026-11-08 (#825 follow-up): removed the Fluent Emoji Flat collection, its artwork, license and catalog/locale entries; Noto entries, labels and keywords are unchanged."
   ],
-  "reproduction": "Preparation helpers and verified source archives are retained outside the repository in the task's 825-source-cache. They are preparation tools, not runtime dependencies."
+  "reproduction": "Preparation helpers and verified source archives are retained outside the repository in the task's 825-source-cache. They are preparation tools, not runtime dependencies.",
+  "removedCollections": [
+    {
+      "collection": "fluent-emoji-flat",
+      "name": "Fluent Emoji Flat",
+      "version": "1.2.6",
+      "removedOn": "2026-11-08",
+      "removedIcons": 3145,
+      "reason": "Host decision after #827: every Fluent Emoji Flat icon is the same Unicode emoji as a Noto Emoji icon, so keeping both only duplicated search results. Noto covers all of them plus 584 more. Entries and artwork were deleted; nothing was regenerated."
+    }
+  ]
 }

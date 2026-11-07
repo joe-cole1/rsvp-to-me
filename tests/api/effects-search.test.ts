@@ -92,7 +92,7 @@ describe("GET /api/effects/search", () => {
   it("accepts an unknown locale by falling back to English", async () => {
     const res = await get({ eventId: "evt-1", q: "cat", locale: "../../etc" });
     expect(res.status).toBe(200);
-    expect((await res.json()).items[0].id).toBe("fluent-emoji-flat:cat");
+    expect((await res.json()).items[0].id).toBe("noto:cat");
   });
 
   it("rejects missing ids, oversized queries and bad offsets", async () => {

@@ -32,14 +32,25 @@ async function allIds(query: string, locale = "en-US") {
 }
 
 describe("prepared catalog data", () => {
-  it("has 6,874 unique selectable icons in the two approved collections", async () => {
+  it("has 3,729 unique selectable Noto icons, one per emoji", async () => {
     const { icons } = await loadEffectManifest();
-    expect(icons.length).toBe(6874);
-    expect(new Set(icons.map((i) => i.id)).size).toBe(6874);
-    const byCollection = Object.fromEntries(
-      LIBRARY_COLLECTION_IDS.map((c) => [c, icons.filter((i) => i.collection === c).length])
-    );
-    expect(byCollection).toEqual({ "fluent-emoji-flat": 3145, noto: 3729 });
+    expect(icons.length).toBe(3729);
+    expect(new Set(icons.map((i) => i.id)).size).toBe(3729);
+    expect(LIBRARY_COLLECTION_IDS).toEqual(["noto"]);
+    expect(icons.every((i) => i.collection === "noto")).toBe(true);
+    // No repeats: every emoji sequence appears once
+    expect(new Set(icons.map((i) => i.unicode)).size).toBe(3729);
+  });
+
+  it("ships no Fluent Emoji Flat artwork or entries any more", () => {
+    expect(existsSync(join(process.cwd(), "public/effects/library/fluent-emoji-flat"))).toBe(false);
+    for (const file of [
+      "icons.json",
+      "collections.json",
+      ...LOCALES.map((l) => `locales/${l}.json`),
+    ]) {
+      expect(readFileSync(join(DATA, file), "utf8"), file).not.toContain('"fluent-emoji-flat:');
+    }
   });
 
   it("points every icon at a trusted local SVG that exists", async () => {
@@ -65,7 +76,6 @@ describe("prepared catalog data", () => {
 
   it("ships the artwork and CLDR license notices", () => {
     for (const notice of [
-      "effects/library/fluent-emoji-flat/1.2.6/LICENSE.txt",
       "effects/library/noto/1.2.10/LICENSE.txt",
       "effects/library/noto/1.2.10/NOTICE.txt",
       "effects/library/noto/1.2.10/REGION-FLAGS-LICENSE.txt",
@@ -78,7 +88,8 @@ describe("prepared catalog data", () => {
 
 describe("membership and resolution", () => {
   it("knows real ids and rejects syntactically valid but missing ones", async () => {
-    expect(await areLibraryIconIdsKnown(["fluent-emoji-flat:cat", "noto:cat"])).toBe(true);
+    expect(await areLibraryIconIdsKnown(["noto:cat", "noto:red-heart"])).toBe(true);
+    expect(await areLibraryIconIdsKnown(["fluent-emoji-flat:cat"])).toBe(false);
     expect(await areLibraryIconIdsKnown(["noto:not-a-real-icon"])).toBe(false);
     expect(await getLibraryIconRefs(["noto:cat", "noto:nope"])).toEqual([
       { id: "noto:cat", src: "/effects/library/noto/1.2.10/cat.svg" },
@@ -98,7 +109,7 @@ describe("membership and resolution", () => {
   it("resolves a stored mixture to trusted sprites and fails safe otherwise", async () => {
     const config = await resolveEventEffect({
       effectId: CUSTOM_EFFECT_ID,
-      effectIconIds: ["noto:red-heart", "fluent-emoji-flat:cat"],
+      effectIconIds: ["noto:red-heart", "noto:cat"],
       effectSize: 6,
     });
     expect(config).toMatchObject({
@@ -107,11 +118,18 @@ describe("membership and resolution", () => {
       movement: "random",
       libraryIcons: [
         { id: "noto:red-heart", src: "/effects/library/noto/1.2.10/red-heart.svg" },
-        { id: "fluent-emoji-flat:cat", src: "/effects/library/fluent-emoji-flat/1.2.6/cat.svg" },
+        { id: "noto:cat", src: "/effects/library/noto/1.2.10/cat.svg" },
       ],
     });
     expect(
       await resolveEventEffect({ effectId: CUSTOM_EFFECT_ID, effectIconIds: ["noto:gone"] })
+    ).toBeNull();
+    // A Fluent icon stored while #827 shipped both collections fails safe
+    expect(
+      await resolveEventEffect({
+        effectId: CUSTOM_EFFECT_ID,
+        effectIconIds: ["fluent-emoji-flat:cat"],
+      })
     ).toBeNull();
     expect(
       await resolveEventEffect({ effectId: CUSTOM_EFFECT_ID, effectIconIds: ["../../x"] })
@@ -133,36 +151,37 @@ describe("folding", () => {
 });
 
 describe("searchLibraryIcons", () => {
-  it("finds both styles of cat in all four languages, whatever the interface language", async () => {
+  it("finds the cat in all four languages, whatever the interface language", async () => {
     for (const query of ["cat", "kat", "Katze", "gato"]) {
       for (const locale of ["en-US", "de-DE"]) {
         const ids = await allIds(query, locale);
-        expect(ids, `${query} (${locale})`).toContain("fluent-emoji-flat:cat");
         expect(ids, `${query} (${locale})`).toContain("noto:cat");
       }
     }
   });
 
-  it("finds both styles of heart in all four languages, accents optional", async () => {
+  it("finds the red heart in all four languages, accents optional", async () => {
     for (const query of ["heart", "hart", "Herz", "corazon", "corazón"]) {
       const ids = await allIds(query, "nl-NL");
-      expect(ids, query).toContain("fluent-emoji-flat:red-heart");
       expect(ids, query).toContain("noto:red-heart");
     }
   });
 
-  it("ranks the exact label in the interface language first, Fluent before Noto", async () => {
+  it("ranks the exact label in the interface language first", async () => {
     const page = await searchLibraryIcons({ query: "Katze", locale: "de-DE", offset: 0 });
-    expect(page.items.slice(0, 2).map((i) => i.id)).toEqual(["fluent-emoji-flat:cat", "noto:cat"]);
+    expect(page.items[0].id).toBe("noto:cat");
     const en = await searchLibraryIcons({ query: "cat", locale: "en-US", offset: 0 });
-    expect(en.items.slice(0, 2).map((i) => i.id)).toEqual(["fluent-emoji-flat:cat", "noto:cat"]);
+    expect(en.items[0].id).toBe("noto:cat");
+    // Each emoji appears once in the results
+    const ids = await allIds("cat");
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("ignores case and surrounding whitespace, and matches every word of a multiword query", async () => {
     const a = await allIds("  HEART   eyes ");
     const b = await allIds("heart eyes");
     expect(a).toEqual(b);
-    expect(a).toContain("fluent-emoji-flat:smiling-face-with-heart-eyes");
+    expect(a).toContain("noto:smiling-face-with-heart-eyes");
     expect(a).toContain("noto:smiling-cat-with-heart-eyes");
     // Every word must match: a cat without heart eyes is not a result
     expect(a).not.toContain("noto:cat");
@@ -175,26 +194,14 @@ describe("searchLibraryIcons", () => {
   });
 
   it("finds a pasted emoji by its exact sequence and keeps skin tones and joiners distinct", async () => {
-    expect((await allIds("🐈")).sort()).toEqual(["fluent-emoji-flat:cat", "noto:cat"]);
-    expect((await allIds("👋")).sort()).toEqual([
-      "fluent-emoji-flat:waving-hand",
-      "noto:waving-hand",
-    ]);
-    expect((await allIds("👋🏽")).sort()).toEqual([
-      "fluent-emoji-flat:waving-hand-medium",
-      "noto:waving-hand-medium-skin-tone",
-    ]);
+    expect(await allIds("🐈")).toEqual(["noto:cat"]);
+    expect(await allIds("👋")).toEqual(["noto:waving-hand"]);
+    expect(await allIds("👋🏽")).toEqual(["noto:waving-hand-medium-skin-tone"]);
     // ZWJ sequences resolve as a whole, not as their parts
-    expect((await allIds("👩‍💻")).sort()).toEqual([
-      "fluent-emoji-flat:woman-technologist",
-      "noto:woman-technologist",
-    ]);
+    expect(await allIds("👩‍💻")).toEqual(["noto:woman-technologist"]);
     // A variation selector (as most keyboards send ❤️) doesn't prevent a match
-    expect((await allIds("❤️")).sort()).toEqual(["fluent-emoji-flat:red-heart", "noto:red-heart"]);
-    expect((await allIds("🏳️‍🌈")).sort()).toEqual([
-      "fluent-emoji-flat:rainbow-flag",
-      "noto:rainbow-flag",
-    ]);
+    expect(await allIds("❤️")).toEqual(["noto:red-heart"]);
+    expect(await allIds("🏳️‍🌈")).toEqual(["noto:rainbow-flag"]);
   });
 
   it("returns nothing for empty, blank or unmatched queries", async () => {
@@ -227,7 +234,7 @@ describe("searchLibraryIcons", () => {
 
   it("falls back to English for an unknown locale", async () => {
     const page = await searchLibraryIcons({ query: "cat", locale: "xx-YY", offset: 0 });
-    expect(page.items[0].id).toBe("fluent-emoji-flat:cat");
+    expect(page.items[0].id).toBe("noto:cat");
   });
 
   it("returns only summaries: no keywords, SVG bodies or extra fields", async () => {

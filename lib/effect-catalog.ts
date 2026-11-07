@@ -3,8 +3,8 @@ import "server-only";
 // Server-only local icon library for background effects (#825).
 //
 // Source of truth: the prepared, pinned data in lib/effect-catalog-data/
-// (Fluent Emoji Flat 1.2.6 + Noto Emoji 1.2.10 artwork under
-// public/effects/library/, CLDR 49 labels/keywords in four languages). It is
+// (Noto Emoji 1.2.10 artwork under public/effects/library/, CLDR 49
+// labels/keywords in four languages). It is
 // fixed application data — no runtime download, refresh, Redis cache or
 // external icon/translation service. Each server process reads it once from a
 // fixed repository path (never a path built from request text) and keeps the
@@ -69,7 +69,6 @@ interface Manifest {
 
 interface IndexedIcon {
   icon: IconRecord;
-  collectionOrder: number;
   labels: Record<Locale, string>;
   foldedLabels: Record<Locale, string>;
   /** Human-readable English source name, folded ("cat-face" → "cat face") */
@@ -171,7 +170,6 @@ async function buildIndex(): Promise<SearchIndex> {
     }
     return {
       icon,
-      collectionOrder: LIBRARY_COLLECTION_IDS.indexOf(icon.collection),
       labels,
       foldedLabels,
       foldedName,
@@ -299,7 +297,6 @@ export async function searchLibraryIcons(input: EffectSearchInput): Promise<Effe
     (a, b) =>
       a.tier - b.tier ||
       collator.compare(a.entry.labels[locale], b.entry.labels[locale]) ||
-      a.entry.collectionOrder - b.entry.collectionOrder ||
       (a.entry.icon.id < b.entry.icon.id ? -1 : a.entry.icon.id > b.entry.icon.id ? 1 : 0)
   );
 

@@ -2,25 +2,6 @@
   "schemaVersion": 1,
   "collections": [
     {
-      "id": "fluent-emoji-flat",
-      "name": "Fluent Emoji Flat",
-      "version": "1.2.6",
-      "iconCount": 3145,
-      "basePath": "/effects/library/fluent-emoji-flat/1.2.6",
-      "palette": true,
-      "author": {
-        "name": "Microsoft Corporation",
-        "url": "https://github.com/microsoft/fluentui-emoji"
-      },
-      "license": {
-        "title": "MIT",
-        "spdx": "MIT",
-        "url": "https://github.com/microsoft/fluentui-emoji/blob/252e16f8dd1400bb3ba86384b474742b4fef089f/LICENSE",
-        "localPath": "/effects/library/fluent-emoji-flat/1.2.6/LICENSE.txt"
-      },
-      "sourcePackage": "@iconify-json/fluent-emoji-flat"
-    },
-    {
       "id": "noto",
       "name": "Noto Emoji",
       "version": "1.2.10",

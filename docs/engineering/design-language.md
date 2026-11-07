@@ -304,8 +304,8 @@ secondary button.
 search field ("Search icons") sits above the grid. With no query the grid shows None and the
 built-in sets, seasonal ones first; with a query it shows None and the matching library icons
 instead, in the same growing grid (no scrolling box), with **Load more** under it. Each icon
-tile shows the art, its label in the interface language and the collection name as a small
-caption, so the two styles of the same subject stay distinguishable. A host picks one
+tile shows the art and its label in the interface language. The library has one style (Noto
+Emoji), so each emoji appears once and tiles carry no style caption. A host picks one
 built-in set or mixes up to three icons: the mixture shows as a "Your mix" row of small
 items, each with a named remove button ("Remove Cat"); clicking a selected tile removes it;
 a fourth pick shows a short info line instead of adding. Loading, no results, too many
@@ -333,8 +333,7 @@ Fonts and effects are theme inputs, not app tokens.
   event route, never to body text, labels or controls. Script fonts (Pacifico, Dancing Script,
   Caveat) are only used at 28px and up.
 - **Effects.** `lib/effects.ts` defines the built-in sets and the effect model; a host can
-  also mix up to three icons from the local Fluent Emoji Flat and Noto Emoji library, which
-  keep their own colors (only built-in tinted sets take theme colors). `EventAtmosphere`
+  also mix up to three icons from the local Noto Emoji library, which keep their own colors (only built-in tinted sets take theme colors). `EventAtmosphere`
   renders every effect behind all content (`ParticleLayer`, `aria-hidden`, no pointer
   events, hidden under `prefers-reduced-motion` and by the viewer's Hide effects choice).
   Random movement sends each particle across on its own path, sideways and diagonal too.

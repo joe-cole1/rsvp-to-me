@@ -11,17 +11,16 @@ import { testTheme } from "./helpers/theme";
 // #825: the Effects editor — local icon search, mixtures of up to three icons,
 // and independent Amount / Size / Speed / Movement.
 
-function icon(name: string, en: string, nl: string, collection = "noto"): LibraryIconSummary {
-  const version = collection === "noto" ? "1.2.10" : "1.2.6";
+function icon(name: string, en: string, nl: string): LibraryIconSummary {
   return {
-    id: `${collection}:${name}`,
-    collection: collection as LibraryIconSummary["collection"],
-    src: `/effects/library/${collection}/${version}/${name}.svg`,
+    id: `noto:${name}`,
+    collection: "noto",
+    src: `/effects/library/noto/1.2.10/${name}.svg`,
     labels: { "en-US": en, "nl-NL": nl, "de-DE": en, "es-ES": en },
   };
 }
 const CAT = icon("cat", "Cat", "Kat");
-const CAT_FLUENT = icon("cat", "Cat", "Kat", "fluent-emoji-flat");
+const CAT_FACE = icon("cat-face", "Cat face", "Kattengezicht");
 const DOG = icon("dog", "Dog", "Hond");
 const HEART = icon("red-heart", "Red heart", "Rood hart");
 const PIZZA = icon("pizza", "Pizza", "Pizza");
@@ -110,8 +109,8 @@ describe("EffectsPanel", () => {
   });
 
   it("debounces typing into one local search for the event and interface language", async () => {
-    fetchMock.mockResolvedValue(page([CAT_FLUENT, CAT]));
-    const { getByLabelText, findByText, getAllByText } = render(
+    fetchMock.mockResolvedValue(page([CAT, CAT_FACE]));
+    const { getByLabelText, findByText, getByRole, queryByText } = render(
       <Harness initial={NONE} onCommit={vi.fn()} />
     );
     const input = getByLabelText("Search icons");
@@ -127,10 +126,10 @@ describe("EffectsPanel", () => {
     expect(params.get("locale")).toBe("en-US");
     expect(params.get("offset")).toBe("0");
     await findByText("Showing 2 of 2");
-    // Both styles show, told apart by their collection
-    expect(getAllByText("Cat")).toHaveLength(2);
-    expect(getAllByText("Noto Emoji")).toHaveLength(1);
-    expect(getAllByText("Fluent Emoji Flat")).toHaveLength(1);
+    // One tile per icon, named by its label alone (no style caption any more)
+    expect(getByRole("button", { name: "Cat" })).toBeTruthy();
+    expect(getByRole("button", { name: "Cat face" })).toBeTruthy();
+    expect(queryByText("Noto Emoji")).toBeNull();
   });
 
   it("ignores a late response from an older query", async () => {

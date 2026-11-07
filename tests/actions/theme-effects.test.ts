@@ -54,7 +54,7 @@ describe("saveEventTheme — library effects", () => {
   it("saves a custom mixture with all its settings in one write", async () => {
     await save({
       effectId: "custom",
-      effectIconIds: ["noto:cat", "fluent-emoji-flat:red-heart", "fluent-emoji-flat:pizza"],
+      effectIconIds: ["noto:cat", "noto:red-heart", "noto:pizza"],
       effectDensity: "dense",
       effectSpeed: "gentle",
       effectSize: 6,
@@ -62,7 +62,7 @@ describe("saveEventTheme — library effects", () => {
     });
     expect(update()).toMatchObject({
       effectId: "custom",
-      effectIconIds: ["noto:cat", "fluent-emoji-flat:red-heart", "fluent-emoji-flat:pizza"],
+      effectIconIds: ["noto:cat", "noto:red-heart", "noto:pizza"],
       effectDensity: "dense",
       effectSpeed: "gentle",
       effectSize: 6,
@@ -116,6 +116,7 @@ describe("saveEventTheme — library effects", () => {
       },
     ],
     ["another collection", { effectId: "custom", effectIconIds: ["mdi:cat"] }],
+    ["a removed Fluent icon", { effectId: "custom", effectIconIds: ["fluent-emoji-flat:cat"] }],
     ["a nonexistent id", { effectId: "custom", effectIconIds: ["noto:not-a-real-icon"] }],
     ["a URL", { effectId: "custom", effectIconIds: ["https://cdn.example.com/cat.svg"] }],
     ["a traversal string", { effectId: "custom", effectIconIds: ["noto:../../etc/passwd"] }],

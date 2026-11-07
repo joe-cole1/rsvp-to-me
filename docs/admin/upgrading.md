@@ -422,16 +422,22 @@ before, including sizes outside the new quick choices (for example 6×) and
 sizes an #811 Amount choice wrote; a `NULL` size still means 1×, and a `NULL`
 movement keeps each built-in set's own fall/float direction.
 
-Hosts can now mix up to three icons from a local library (Fluent Emoji Flat
-1.2.6 and Noto Emoji 1.2.10, 6,874 icons) that they search in English, Dutch,
+Hosts can now mix up to three icons from a local library (Noto Emoji 1.2.10,
+3,729 icons, one per emoji) that they search in English, Dutch,
 German and Spanish, and they set Amount (count only), Size (3×/5×/7× or a
 1–10× slider), Speed and Up/Down/Random movement independently. A mixture is
 stored as `effectId = 'custom'` plus its icon ids; only ids and settings are
 stored, never artwork or URLs.
 
+The first build of this feature (PR #827) also shipped Fluent Emoji Flat 1.2.6.
+Every Fluent icon was the same emoji as a Noto one, so it only duplicated search
+results and was removed before release. Only `noto:` ids are valid; a test
+event that saved a `fluent-emoji-flat:` id from that build shows no effect,
+and its editor asks the host to pick the icons again.
+
 **Packaging.** The artwork ships in `public/effects/library/<collection>/<version>/`
-(about 33 MB of SVG) and the manifest, provenance and CLDR 49 labels/keywords in
-`lib/effect-catalog-data/` (about 11 MB of JSON). The container image already
+(about 24 MB of SVG) and the manifest, provenance and CLDR 49 labels/keywords in
+`lib/effect-catalog-data/` (about 6 MB of JSON). The container image already
 includes both directories; no volume, download job, cache, API key, environment
 variable or outside service is involved, and the existing Content Security
 Policy is unchanged. The server reads the data once per process (only when an
@@ -442,10 +448,9 @@ Host searches go to `GET /api/effects/search`, which requires a host, co-host
 or admin session for the event and allows 120 searches per user per minute
 (Redis, or the database fallback, like other rate limits).
 
-**Licensing.** Fluent Emoji Flat is MIT-licensed (Microsoft Corporation); Noto
-Emoji artwork is Apache-2.0 (Google), with its notice and regional-flag notice;
-the labels and keywords come from Unicode CLDR under the Unicode License v3.
-The full texts are served at `/effects/library/fluent-emoji-flat/1.2.6/LICENSE.txt`,
+**Licensing.** Noto Emoji artwork is Apache-2.0 (Google), with its notice and
+regional-flag notice; the labels and keywords come from Unicode CLDR under the
+Unicode License v3. The full texts are served at
 `/effects/library/noto/1.2.10/LICENSE.txt`, `NOTICE.txt`, `REGION-FLAGS-LICENSE.txt`
 and `/effects/library/cldr/49.0.0/LICENSE.txt`; source versions and checksums
 are recorded in `lib/effect-catalog-data/provenance.json`. These licenses
