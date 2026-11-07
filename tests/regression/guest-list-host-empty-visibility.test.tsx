@@ -65,6 +65,7 @@ describe("host guest-list card visibility", () => {
     renderGuestList(publicEvent, false);
 
     expect(screen.getByText("Guests (1)")).not.toBeNull();
+    expect(screen.queryByText(/Invited/)).toBeNull();
     expect(screen.getByRole("link", { name: "View all →" }).getAttribute("href")).toBe(
       "/e/test-party/guests"
     );

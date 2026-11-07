@@ -221,15 +221,15 @@
     "Event": {
       "ThemePanel": {
         "theme": "Tema",
-        "theme2": "🎨 Tema",
-        "effects": "✨ Efectos",
-        "font": "🔤 Fuente",
+        "theme2": "Tema",
+        "effects": "Efectos",
+        "font": "Fuente",
         "searchThemes": "Buscar temas…",
         "all": "Todos",
-        "seasonal": "🎉 De temporada",
-        "general": "🎨 General",
-        "light": "☀️ Claro",
-        "dark": "🌙 Oscuro",
+        "seasonal": "De temporada",
+        "general": "General",
+        "light": "Claro",
+        "dark": "Oscuro",
         "reset": "↺ Restablecer",
         "restore": "↺ Restaurar los valores predeterminados de \"",
         "defaults": "\"",
@@ -247,9 +247,8 @@
         "effect": "Efecto",
         "optionalFloatingMotifsBehindEventPage": "Motivos flotantes opcionales detrás de la página de tu evento. Desactivados de forma predeterminada: combina cualquier efecto con cualquier tema.",
         "none": "Ninguno",
-        "density": "Densidad",
+        "amount": "Cantidad",
         "speed": "Velocidad",
-        "size": "Tamaño",
         "eventTitleFont": "Fuente del título del evento",
         "appliedOnlyMainEventTitleSome": "Solo se aplica al título principal del evento. Algunos temas eligen automáticamente una fuente a juego; selecciona una aquí para cambiarla.",
         "themeDefault": "Predeterminada del tema",
@@ -257,22 +256,22 @@
         "restorePreset": "↺ Restaurar los valores predeterminados de «{name}»"
       },
       "SettingsMenu": {
-        "hostsCoHosts": "👥 Anfitriones y coanfitriones",
-        "displayOptions": "🔒 Opciones de visualización",
+        "hostsCoHosts": "Anfitriones y coanfitriones",
+        "displayOptions": "Opciones de visualización",
         "guestListAccessGuestRsvpDisplay": "Acceso a la lista de invitados, visualización de respuestas y privacidad del evento",
-        "rsvpOptions": "✉️ Opciones de confirmación",
+        "rsvpOptions": "Opciones de confirmación",
         "1SettingsRsvpApprovalMaybeOptions": "Configuración de acompañantes, aprobación de respuestas y opción «Quizá»",
-        "theme": "🎨 Tema",
+        "theme": "Tema",
         "changeBaseThemeAccentColor": "Cambiar el tema base y el color de acento",
-        "autoReminders": "🔔 Recordatorios automáticos",
+        "autoReminders": "Recordatorios automáticos",
         "setUpAutomaticEmailsTextsBefore": "Configurar correos y SMS automáticos antes o después del evento",
-        "emails": "💌 Correos",
+        "emails": "Correos",
         "previewEventSThemedEmailsSend": "Ver los correos con el tema de este evento y enviarte una prueba",
-        "polls": "📊 Encuestas",
+        "polls": "Encuestas",
         "createManagePollsGuests": "Crear y gestionar encuestas para los invitados",
-        "questionnaire": "📋 Cuestionario",
+        "questionnaire": "Cuestionario",
         "askCustomQuestionsGuestsDuringRsvp": "Hacer preguntas personalizadas a los invitados al confirmar su asistencia",
-        "potluck": "🍽️ Comida compartida",
+        "potluck": "Comida compartida",
         "manageItemsGuestsCanSignUp": "Gestionar las aportaciones que los invitados pueden traer",
         "manageWhoCanEditEvent": "Gestionar quién puede editar este evento",
         "viewHostsManageCoHostProfile": "Ver los anfitriones y gestionar tu perfil de coanfitrión"
@@ -377,26 +376,30 @@
         "hostContact": "{email} · Anfitrión"
       },
       "GuestRsvpDisplaySettings": {
-        "guestFacingRsvpDisplay": "Visualización de respuestas para los invitados",
-        "chooseHowGuestsSeeResponseLists": "Elige cómo ven los invitados las listas de respuestas y los recuentos en la página del evento y en la lista completa de invitados.",
-        "showImmediatelyDisplaysNamesWhenPage": "«Mostrar inmediatamente» muestra los nombres al abrir la página. «Mostrar tras hacer clic» permite a los invitados abrir la lista. «No mostrar» oculta ese tipo de respuesta y su recuento en las listas visibles para los invitados. Estas opciones no cambian la respuesta de nadie.",
+        "guestFacingRsvpDisplay": "Respuestas visibles para los invitados",
+        "intro": "Elige qué ven los invitados en cada respuesta. Los anfitriones y coanfitriones siempre ven todos los nombres y cifras.",
         "guestListCurrentlyHostOnlyThese": "Tu lista de invitados está configurada como «Solo el anfitrión». Estas opciones guardadas se aplicarán cuando permitas a los invitados ver la lista.",
-        "guestNames": "Nombres de los invitados",
-        "showImmediately": "Mostrar inmediatamente",
-        "showAfterClick": "Mostrar tras hacer clic",
-        "doNotDisplay": "No mostrar",
-        "countShownGuests": "Recuento visible para los invitados",
-        "exactCount": "Recuento exacto",
-        "noCount": "Sin recuento",
-        "limit3": "Limitar a 3+",
-        "guestsSee1Or2Smaller": "Los invitados ven 1 o 2 en las listas pequeñas y 3+ en las listas de tres o más, incluso después de abrirlas. Los anfitriones y coanfitriones siguen viendo el recuento exacto.",
-        "guestPreviewExampleResponses": "Vista previa para invitados · respuestas de ejemplo",
-        "responseTypeNotDisplayedGuests": "Este tipo de respuesta no se muestra a los invitados.",
-        "guestNamesAppearHere": "Los nombres de los invitados aparecen aquí.",
-        "theseDisplayPreferencesGuestListVisibility": "Estas opciones controlan la visualización. La visibilidad de la lista de invitados indicada arriba determina quién puede acceder a ella. Tu vista de anfitrión conserva todos los detalles; usa las vistas previas para invitados para ver estas opciones.",
-        "namesLabel": "{label}: nombres de los invitados",
-        "countsLabel": "{label}: recuento visible para los invitados",
-        "hostDetails": "Los anfitriones y coanfitriones siempre ven todos los nombres y los recuentos exactos."
+        "tableName": "Respuestas visibles para los invitados",
+        "columnResponse": "Respuesta",
+        "columnNames": "Nombres",
+        "columnCount": "Número",
+        "invitedHint": "Aún sin respuesta",
+        "names": {
+          "EXPANDED": "Visibles",
+          "COLLAPSED": "Plegados",
+          "HIDDEN": "Ocultos"
+        },
+        "count": {
+          "EXACT": "Exacto",
+          "CAPPED": "3+",
+          "HIDDEN": "Oculto"
+        },
+        "cellLabel": "{row}: {column}",
+        "footnote": "Los nombres plegados se ocultan hasta que un invitado toca el título. 3+ muestra la cifra real hasta 2 y después 3+.",
+        "previewHeading": "Lo que ven los invitados",
+        "previewEmpty": "Los invitados no ven ninguna respuesta.",
+        "previewMore": "+{count} más",
+        "previewTotal": "{count, plural, one {# respuesta} other {# respuestas}}"
       },
       "EmailsPanel": {
         "emails": "Correos",
@@ -418,8 +421,8 @@
         "set": "ESTABLECIDA",
         "hidePassword": "Ocultar contraseña",
         "showPassword": "Mostrar contraseña",
-        "replaceCurrentPassword": "⚠️ Se sustituirá la contraseña actual.",
-        "savingRemovePasswordRequirement": "⚠️ Al guardar, dejará de ser necesaria una contraseña.",
+        "replaceCurrentPassword": "Se sustituirá la contraseña actual.",
+        "savingRemovePasswordRequirement": "Al guardar, dejará de ser necesaria una contraseña.",
         "saveNewPassword": "Guardar nueva contraseña",
         "removePassword": "Eliminar contraseña",
         "cancel": "Cancelar",
@@ -556,7 +559,8 @@
         "rsvpSettings": "Configuración de respuestas",
         "going": "Asistirán",
         "maybe": "Quizá asistan",
-        "canTMake": "No asistirán"
+        "canTMake": "No asistirán",
+        "invited": "Invitados"
       },
       "GuestInviteFriendCard": {
         "inviteFriend": "Invita a un amigo",
@@ -867,10 +871,10 @@
           "zelle": "Zelle",
           "venmo": "Venmo"
         },
-        "density": {
-          "sparse": "Baja",
-          "medium": "Media",
-          "dense": "Alta"
+        "amount": {
+          "less": "Poco",
+          "some": "Algo",
+          "more": "Mucho"
         },
         "speed": {
           "gentle": "Suave",
@@ -880,8 +884,10 @@
         "guestStatuses": {
           "GOING": "Asistiré",
           "MAYBE": "Quizá",
-          "NO": "No asistiré"
+          "NO": "No asistiré",
+          "INVITED": "Invitados"
         },
+        "countAtLeast": "{count} o más",
         "placeholders": {
           "link": "Detalles del enlace (p. ej., chat de grupo, lista de reproducción)...",
           "gift": "Detalles de la lista de regalos (p. ej., Target, Amazon)...",
@@ -924,6 +930,7 @@
         "going": "{count} asistirán",
         "maybe": "{count} quizá asistan",
         "declined": "{count} no asistirán",
+        "invited": "{count} invitados",
         "pending": "{count} pendientes de aprobación",
         "back": "← Volver al evento",
         "title": "Lista de invitados",

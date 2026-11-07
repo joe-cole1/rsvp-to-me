@@ -77,8 +77,8 @@ Fonts are bundled with the app — nothing is loaded from external services, and
 The **Effects** tab in **Settings → Theme** adds an optional layer of gently drifting motifs behind your page — falling autumn leaves, floating balloons, rising fireworks, drifting turkeys, snow, confetti, and more (19 sets in all, including a beer toast 🍺).
 
 - **Off by default.** Effects are purely opt-in and fully independent of your theme — put turkeys on a St. Patrick's theme if that's your party.
-- **Density** (Sparse / Medium / Dense) controls how many motifs float around; **Speed** (Gentle / Medium / Lively) controls how fast.
-- **Size** is a slider from **1×** (each set's designed size, the default) up to **10×** for oversized statement motifs — think giant snowflakes drifting past. Each motif still varies a little around the chosen size so the layer keeps its organic feel.
+- **Amount** (Less / Some / More) sets how many motifs float around and how big they are, in one choice: Less is a few at their designed size, Some (the default) is a medium amount at their designed size, and More is a dense layer at twice the size. **Speed** (Gentle / Medium / Lively) controls how fast. Each motif still varies a little in size so the layer keeps its organic feel.
+- Events that picked a larger size with the old size slider keep it until you choose an Amount.
 - Seasonal effects near your current date sort to the front of the picker as suggestions — nothing is ever applied automatically.
 - Confetti and balloons tint themselves to match your theme's colors.
 - Guests who have "reduce motion" enabled in their device accessibility settings see a calm, static page — the animation layer hides itself automatically.

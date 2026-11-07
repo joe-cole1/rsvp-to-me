@@ -4,7 +4,7 @@ import Link from "next/link";
 import { buttonProps } from "@/components/ui/Button";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
-import { serializeGuestRsvp, canViewGuestListPage } from "@/lib/guestList";
+import { serializeGuestRsvp, canViewGuestListPage, invitedGuestsForViewer } from "@/lib/guestList";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
 import { EventAtmosphere } from "@/components/event/EventAtmosphere";
@@ -93,6 +93,12 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
   const no = approvedRsvps.filter((r) => r.status === "NO");
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
   const display = resolveGuestRsvpDisplay(event, isHost);
+  // #811: guests get Invited names/count only as the host's Invited row allows;
+  // hosts keep the full host-only Invited tab below instead.
+  const guestInvited = isHost
+    ? { invitedGuests: [], invitedCount: invitedRsvps.length }
+    : invitedGuestsForViewer(display.INVITED, invitedRsvps);
+  const invitedCountLabel = guestCountLabel(guestInvited.invitedCount, display.INVITED);
   const countSummary = [
     showGuestResponseTotal(display)
       ? translate("Ui.Event.GuestsRoute.responses", {
@@ -111,6 +117,9 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
         ? translate(`Ui.Event.GuestsRoute.${label}`, { count: value })
         : null;
     }),
+    invitedCountLabel !== null && guestInvited.invitedCount > 0
+      ? translate("Ui.Event.GuestsRoute.invited", { count: invitedCountLabel })
+      : null,
     isHost && pendingRsvps.length > 0
       ? translate("Ui.Event.GuestsRoute.pending", { count: pendingRsvps.length })
       : null,
@@ -198,6 +207,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
                   ]
                 : []
             }
+            guestInvited={guestInvited.invitedGuests}
             isHost={isHost}
             guestRsvpDisplay={guestRsvpDisplayFields(event)}
             eventId={event.id}

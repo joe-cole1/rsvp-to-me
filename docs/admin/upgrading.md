@@ -391,6 +391,26 @@ exact counts. RSVP records, capacity, notifications, and exports are unaffected.
 The existing guest-list visibility controls continue to enforce access; the new
 preferences only change presentation. No environment variable is required.
 
+### Guest RSVP display table and Invited row (#811)
+
+The `20261107120000_guest_invited_display` migration adds two event fields,
+`guestInvitedList` and `guestInvitedCount`, both defaulting to `HIDDEN`, so no
+existing or new event shows invited guests to other guests until a host turns it
+on. Counts are now independent of names, so the same migration sets a response's
+stored count to `HIDDEN` wherever its names were already hidden; guest-facing
+pages look the same after the upgrade.
+
+Hosts set all four rows in one table under **Settings → Display options → Guest
+RSVP display**, and every row's count may now use the 3+ cap. When the Invited
+row is hidden, invited guests are not queried for or sent to guest browsers;
+when it is shown, guests receive names only (never contact details or edit
+tokens), and still only when guest list visibility lets them see the list.
+
+The theme's effect **Density** and **Size** controls are replaced by one
+**Amount** choice that writes the existing `effectDensity` and `effectSize`
+fields. No theme data changes during the upgrade, and stored sizes above 2× keep
+rendering until a host picks an Amount. No environment variable is required.
+
 ### User Language Preference (#732)
 
 The `20261019000000_user_preferred_locale` migration adds a nullable

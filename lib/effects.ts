@@ -59,6 +59,27 @@ export const EFFECT_SIZE_MIN = 1;
 export const EFFECT_SIZE_MAX = 10;
 export const DEFAULT_EFFECT_SIZE = EFFECT_SIZE_MIN;
 
+/**
+ * #811: hosts pick one Amount instead of a density and a size. Each step
+ * writes both stored fields; "some" is the long-standing default (medium, 1×),
+ * so events that never changed it look the same.
+ */
+export type EffectAmount = "less" | "some" | "more";
+
+export const EFFECT_AMOUNTS: Record<EffectAmount, { density: EffectDensity; size: number }> = {
+  less: { density: "sparse", size: 1 },
+  some: { density: "medium", size: 1 },
+  more: { density: "dense", size: 2 },
+};
+
+/**
+ * The Amount step a stored density reads as. Older events may carry any size
+ * from 1 to 10×; it keeps rendering as stored until the host picks a step.
+ */
+export function effectAmountFor(density: string | null | undefined): EffectAmount {
+  return density === "sparse" ? "less" : density === "dense" ? "more" : "some";
+}
+
 export const EFFECT_SETS: EffectSet[] = [
   // ── Classics (year-round) ──
   {

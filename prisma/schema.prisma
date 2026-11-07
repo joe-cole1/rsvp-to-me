@@ -126,12 +126,16 @@ model Event {
   guestsCanInvite        Boolean      @default(false)
 
   // Guest-facing presentation only; hosts/co-hosts always see full lists and counts.
+  // List and count are independent: a hidden list can still show its count.
+  // Invited = host-added guests with no reply yet; hidden from guests by default.
   guestGoingList     GuestListDisplay  @default(EXPANDED)
   guestGoingCount    GuestCountDisplay @default(EXACT)
   guestMaybeList     GuestListDisplay  @default(EXPANDED)
   guestMaybeCount    GuestCountDisplay @default(EXACT)
   guestDeclinedList  GuestListDisplay  @default(COLLAPSED)
   guestDeclinedCount GuestCountDisplay @default(HIDDEN)
+  guestInvitedList   GuestListDisplay  @default(HIDDEN)
+  guestInvitedCount  GuestCountDisplay @default(HIDDEN)
 
   // Host notifications — "New RSVP" alerts to the host and co-hosts
   hostAlertEmail Boolean @default(true)

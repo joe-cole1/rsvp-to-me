@@ -109,32 +109,51 @@ If your event is **Private** or password-protected, the guest list is gated the 
 
 ---
 
-## Guest-facing RSVP Display
+## Guest RSVP display
 
-Open **Settings → Display Options → Guest-facing RSVP display**, directly below
-**Guest list visibility**. Going, Maybe, and Can't make it each have their own
-group of display controls and an interactive guest preview with example responses.
+Open **Settings → Display options → Guest RSVP display**, directly below
+**Guest list visibility**. One table has a row for each response (Going, Maybe,
+Can't make it, and Invited) with two menus: **Names** and **Count**. The two are
+independent, so a row can show its count without any names.
 
 **These settings affect guests only. Hosts and co-hosts always see complete lists
 and exact counts on the event page and in guest management.**
 
-| Control               | Choice             | What guests see                                                                                                                                    |
-| --------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Guest names           | Show immediately   | Names appear when the page opens.                                                                                                                  |
-| Guest names           | Show after a click | A collapsed heading opens the names. On the full guest list, selecting that response filter reveals them; All starts with only the expanded lists. |
-| Guest names           | Do not display     | That response type, its names, and its count are omitted from guest-facing lists.                                                                  |
-| Count shown to guests | Exact count        | The actual number appears beside the response type.                                                                                                |
-| Count shown to guests | No count           | The response label appears without a number, even after opening the names.                                                                         |
-| Count shown to guests | Limit to 3+        | Available for Can't make it: show 1 or 2, then 3+ for three or more responses, including after opening the list.                                   |
+| Menu  | Choice    | What guests see                                                                                                                                 |
+| ----- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Names | Shown     | Names appear when the page opens.                                                                                                               |
+| Names | Collapsed | Names stay hidden until a guest taps the heading. On the full guest list, selecting that response filter reveals them; All starts without them. |
+| Names | Hidden    | No names for that response. If its count is on, guests see only the heading and number, such as "Going · 5".                                    |
+| Count | Exact     | The actual number appears beside the response.                                                                                                  |
+| Count | 3+        | Shows 1 or 2, then 3+ for three or more. Screen readers read it as "3 or more".                                                                 |
+| Count | Hidden    | The response appears without a number.                                                                                                          |
 
-The count control disappears when you choose **Do not display**. Summary totals
-and filter badges follow the same choices; the combined response total is omitted
-when it would reveal a hidden or capped count. Guest names can still be counted
-when a list is opened: these are presentation choices, not additional access rules.
+Under the table, **What guests see** previews your choices with example names
+and updates as soon as you change a menu.
 
-For new events, Going and Maybe start expanded with exact counts. Can't make it
-starts collapsed with no count. Existing events retain expanded lists and exact
-counts until a host changes them.
+A row with both menus on **Hidden** disappears from guest-facing lists. Summary
+totals and filter badges follow the same choices; the combined response total
+shows only when Going, Maybe, and Can't make it all use **Exact**. Invited never
+adds to that total. Guest names can still be counted when a list is shown: these
+are presentation choices, not additional access rules.
+
+For new events, Going and Maybe start shown with exact counts, Can't make it
+starts collapsed with no count, and Invited starts hidden. Events that hid a
+response's names before this table existed keep that response's count hidden
+too, so nothing guests see changes until you change it.
+
+### Showing invited guests
+
+**Invited** means guests you added who haven't replied yet. Once they reply,
+they move to Going, Maybe, or Can't make it. Invited is hidden from guests by
+default. Turning on its names lets your guests see who else was invited before
+those people have replied, so turn it on only when that's what you want.
+
+Guests only ever receive invited guests' names, never their email, phone, or
+personal links. When the Invited row is hidden, invited guests aren't sent to
+guests' browsers at all; with only its count on, guests receive just the number
+(no more than 3 when it's 3+). Your own **Invited** tab on the guest list is
+unchanged.
 
 **Guest list visibility** still decides who may access the list. When it is
 **Host only**, guest display controls are disabled and retain their saved choices

@@ -56,9 +56,26 @@ describe("saving guest RSVP display", () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid values before writing preferences", async () => {
+  it("saves the Invited row and a 3+ cap on any response", async () => {
     mocks.session.mockResolvedValue({ userId: "host-1", role: "HOST" });
-    await expect(saveEventSettings("event-1", { guestGoingCount: "CAPPED" })).rejects.toThrow();
-    expect(mocks.update).not.toHaveBeenCalled();
+    const update = {
+      guestGoingCount: "CAPPED",
+      guestInvitedList: "COLLAPSED",
+      guestInvitedCount: "CAPPED",
+    } as const;
+    await expect(saveEventSettings("event-1", update)).resolves.toEqual({ success: true });
+    expect(mocks.update).toHaveBeenCalledExactlyOnceWith({
+      where: { id: "event-1" },
+      data: { ...update, rsvpDeadline: undefined },
+    });
   });
+
+  it.each([{ guestGoingCount: "APPROXIMATE" }, { guestInvitedList: "SHOWN" }])(
+    "rejects invalid values before writing preferences: %o",
+    async (settings) => {
+      mocks.session.mockResolvedValue({ userId: "host-1", role: "HOST" });
+      await expect(saveEventSettings("event-1", settings as never)).rejects.toThrow();
+      expect(mocks.update).not.toHaveBeenCalled();
+    }
+  );
 });

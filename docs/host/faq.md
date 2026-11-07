@@ -20,10 +20,12 @@ Quick answers to the things hosts run into most.
 - **Inviting:** **Invite → Invite people** lets you type, paste a list, or
   import a spreadsheet, then review everyone before sending. People who
   already responded are only invited again if you tick them.
-- **Guest-facing RSVP display:** under **Settings → Display Options** you can
-  choose how much of each response list guests see. Existing events look the
-  same; new events start with the "Can't make it" list collapsed and its count
-  hidden.
+- **Guest RSVP display:** under **Settings → Display options** one table sets
+  what guests see for Going, Maybe, Can't make it, and Invited. Names can be
+  shown, collapsed, or hidden, and the count can be exact, 3+, or hidden, even
+  when names are hidden. Existing events look the same; new events start with
+  the "Can't make it" list collapsed and its count hidden, and Invited always
+  starts hidden.
 
 Event links, RSVP edit links, and sign-ins keep working, and you don't need to
 recreate events or resend invitations. Your administrator may briefly restart

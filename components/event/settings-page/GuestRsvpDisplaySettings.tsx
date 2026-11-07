@@ -1,18 +1,38 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 
 import type { ResolvedTheme } from "@/lib/theme";
 import {
-  GUEST_RSVP_GROUPS,
+  GUEST_DISPLAY_ROWS,
+  isGuestRowShown,
   resolveGuestRsvpDisplay,
+  showGuestResponseTotal,
   type GuestCountDisplay,
+  type GuestDisplayStatus,
   type GuestListDisplay,
   type GuestRsvpDisplayFields,
 } from "@/lib/guestRsvpDisplay";
+import { Select } from "@/components/ui/Field";
 import { GuestRsvpGroup } from "../GuestRsvpGroup";
-import { Field, Select } from "@/components/ui/Field";
 
+const NAME_CHOICES: GuestListDisplay[] = ["EXPANDED", "COLLAPSED", "HIDDEN"];
+const COUNT_CHOICES: GuestCountDisplay[] = ["EXACT", "CAPPED", "HIDDEN"];
+
+/** Example responses for the live preview: a few names, then "+N more". */
+const PREVIEW: Record<GuestDisplayStatus, { count: number; names: string[] }> = {
+  GOING: { count: 5, names: ["Ana", "Ben", "Cleo", "Dev", "Eli"] },
+  MAYBE: { count: 2, names: ["Fay", "Gus"] },
+  NO: { count: 13, names: ["Hal", "Ivy", "Jo"] },
+  INVITED: { count: 8, names: ["Kai", "Lu", "Mo"] },
+};
+
+/**
+ * Guest RSVP display as one choice table: a row per response (Going, Maybe,
+ * Can't make it, Invited) with a Names menu and a Count menu. The two are
+ * independent, so a row can show its count without names.
+ */
 export function GuestRsvpDisplaySettings({
   value,
   onChange,
@@ -27,123 +47,212 @@ export function GuestRsvpDisplaySettings({
   const shared = useTranslations("Ui.Event.shared");
   const translate = useTranslations("Ui.Event.GuestRsvpDisplaySettings");
 
-  const display = resolveGuestRsvpDisplay(value);
   const hostOnly = guestListVis === "HOST_ONLY";
+  const divider = `1px solid ${t.cardBorder}`;
+  const head: CSSProperties = {
+    fontSize: "12px",
+    fontWeight: 700,
+    letterSpacing: "0.02em",
+    color: t.textSecondary,
+  };
+  const columns = [
+    { key: "names", label: translate("columnNames") },
+    { key: "count", label: translate("columnCount") },
+  ] as const;
 
   return (
-    <section aria-labelledby="guest-rsvp-display-heading" style={{ margin: "20px 0 24px" }}>
-      <h3 id="guest-rsvp-display-heading" style={{ fontSize: "14px", fontWeight: 700 }}>
+    <section aria-labelledby="guest-rsvp-display-heading" style={{ margin: "20px 0 8px" }}>
+      <h3
+        id="guest-rsvp-display-heading"
+        style={{ fontSize: "14px", fontWeight: 700, color: t.textPrimary, margin: "0 0 4px" }}
+      >
         {translate("guestFacingRsvpDisplay")}
       </h3>
-      <p style={{ color: t.textSecondary, fontSize: "13px", lineHeight: 1.6 }}>
-        {translate("chooseHowGuestsSeeResponseLists")} <strong>{translate("hostDetails")}</strong>
-      </p>
-      <p style={{ color: t.textMuted, fontSize: "12px", lineHeight: 1.6 }}>
-        {translate("showImmediatelyDisplaysNamesWhenPage")}
+      <p style={{ color: t.textSecondary, fontSize: "13px", lineHeight: 1.6, margin: "0 0 12px" }}>
+        {translate("intro")}
       </p>
       {hostOnly && (
-        <p style={{ color: t.textSecondary, fontSize: "13px" }}>
+        <p style={{ color: t.textSecondary, fontSize: "13px", lineHeight: 1.6 }}>
           {translate("guestListCurrentlyHostOnlyThese")}
         </p>
       )}
-      {GUEST_RSVP_GROUPS.map(({ status, listField, countField }) => {
-        const label = shared("guestStatuses." + status);
-        return (
-          <fieldset
-            key={status}
-            disabled={hostOnly}
-            style={{
-              border: `1px solid ${t.cardBorder}`,
-              borderRadius: "12px",
-              padding: "12px",
-              margin: "14px 0",
-              minWidth: 0,
-              opacity: hostOnly ? 0.6 : 1,
-            }}
+      <div
+        className="rsvp-pref"
+        style={
+          {
+            "--rsvp-pref-cols": columns.length,
+            "--rsvp-pref-col": "136px",
+            "--rsvp-pref-gap": "8px",
+            "--rsvp-pref-border": t.inputBorder,
+          } as CSSProperties
+        }
+      >
+        <div role="table" aria-label={translate("tableName")}>
+          <div
+            role="row"
+            className="rsvp-pref-row rsvp-pref-head"
+            style={{ borderBottom: divider }}
           >
-            <legend
-              style={{ color: t.textPrimary, fontSize: "14px", fontWeight: 700, padding: "0 6px" }}
-            >
-              {label}
-            </legend>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: "12px",
-              }}
-            >
-              <Field theme={t} label={translate("guestNames")} style={{ marginBottom: 0 }}>
-                <Select
-                  theme={t}
-                  aria-label={translate("namesLabel", { label })}
-                  value={value[listField]}
-                  onChange={(event) =>
-                    onChange({ [listField]: event.target.value as GuestListDisplay })
-                  }
+            <span role="columnheader" style={head}>
+              {translate("columnResponse")}
+            </span>
+            {columns.map((column) => (
+              <span key={column.key} role="columnheader" style={head}>
+                {column.label}
+              </span>
+            ))}
+          </div>
+          {GUEST_DISPLAY_ROWS.map(({ status, listField, countField }, index) => {
+            const row = shared("guestStatuses." + status);
+            return (
+              <div
+                key={status}
+                role="row"
+                className="rsvp-pref-row"
+                style={{
+                  borderBottom: index < GUEST_DISPLAY_ROWS.length - 1 ? divider : "none",
+                }}
+              >
+                <div role="rowheader">
+                  <div style={{ fontSize: "14px", color: t.textPrimary }}>{row}</div>
+                  {status === "INVITED" && (
+                    <div style={{ fontSize: "13px", color: t.textSecondary, marginTop: "2px" }}>
+                      {translate("invitedHint")}
+                    </div>
+                  )}
+                </div>
+                <label
+                  role="cell"
+                  className="rsvp-pref-cell rsvp-pref-cell-menu"
+                  style={{ color: t.textSecondary }}
                 >
-                  <option value="EXPANDED">{translate("showImmediately")}</option>
-                  <option value="COLLAPSED">{translate("showAfterClick")}</option>
-                  <option value="HIDDEN">{translate("doNotDisplay")}</option>
-                </Select>
-              </Field>
-              {value[listField] !== "HIDDEN" && (
-                <Field theme={t} label={translate("countShownGuests")} style={{ marginBottom: 0 }}>
+                  <span className="rsvp-pref-cell-label" aria-hidden>
+                    {columns[0].label}
+                  </span>
                   <Select
                     theme={t}
-                    aria-label={translate("countsLabel", { label })}
+                    aria-label={translate("cellLabel", { row, column: columns[0].label })}
+                    value={value[listField]}
+                    disabled={hostOnly}
+                    onChange={(event) =>
+                      onChange({ [listField]: event.target.value as GuestListDisplay })
+                    }
+                  >
+                    {NAME_CHOICES.map((choice) => (
+                      <option key={choice} value={choice}>
+                        {translate(`names.${choice}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label
+                  role="cell"
+                  className="rsvp-pref-cell rsvp-pref-cell-menu"
+                  style={{ color: t.textSecondary }}
+                >
+                  <span className="rsvp-pref-cell-label" aria-hidden>
+                    {columns[1].label}
+                  </span>
+                  <Select
+                    theme={t}
+                    aria-label={translate("cellLabel", { row, column: columns[1].label })}
                     value={value[countField]}
+                    disabled={hostOnly}
                     onChange={(event) =>
                       onChange({ [countField]: event.target.value as GuestCountDisplay })
                     }
                   >
-                    <option value="EXACT">{translate("exactCount")}</option>
-                    <option value="HIDDEN">{translate("noCount")}</option>
-                    {status === "NO" && <option value="CAPPED">{translate("limit3")}</option>}
+                    {COUNT_CHOICES.map((choice) => (
+                      <option key={choice} value={choice}>
+                        {translate(`count.${choice}`)}
+                      </option>
+                    ))}
                   </Select>
-                </Field>
-              )}
-            </div>
-            {value[listField] !== "HIDDEN" && value[countField] === "CAPPED" && (
-              <p style={{ color: t.textSecondary, fontSize: "13px" }}>
-                {translate("guestsSee1Or2Smaller")}
-              </p>
-            )}
-            <div
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <p style={{ color: t.textSecondary, fontSize: "13px", lineHeight: 1.6, margin: "12px 0 0" }}>
+        {translate("footnote")}
+      </p>
+      <GuestPreview value={value} t={t} />
+    </section>
+  );
+}
+
+/**
+ * One live preview of the guest view under the table, drawn with the same
+ * heading component guests get. Never one preview per row.
+ */
+function GuestPreview({ value, t }: { value: GuestRsvpDisplayFields; t: ResolvedTheme }) {
+  const shared = useTranslations("Ui.Event.shared");
+  const translate = useTranslations("Ui.Event.GuestRsvpDisplaySettings");
+  const display = resolveGuestRsvpDisplay(value);
+  const groups = GUEST_DISPLAY_ROWS.map(({ status }) => {
+    const sample = PREVIEW[status];
+    const more = sample.count - sample.names.length;
+    return (
+      <GuestRsvpGroup
+        key={status}
+        label={shared("guestStatuses." + status)}
+        count={sample.count}
+        display={display[status]}
+        t={t}
+      >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+          {sample.names.map((name) => (
+            <span
+              key={name}
               style={{
-                marginTop: "12px",
-                padding: "10px",
-                borderRadius: "8px",
-                background: t.inputBg,
+                padding: "4px 10px",
+                borderRadius: "999px",
+                background: t.pillBg,
+                border: `1px solid ${t.pillBorder}`,
+                color: t.textPrimary,
+                fontSize: "13px",
               }}
             >
-              <p style={{ color: t.textMuted, fontSize: "11px", margin: "0 0 8px" }}>
-                {translate("guestPreviewExampleResponses")}
-              </p>
-              {value[listField] === "HIDDEN" ? (
-                <span style={{ color: t.textMuted, fontSize: "12px" }}>
-                  {translate("responseTypeNotDisplayedGuests")}
-                </span>
-              ) : (
-                <GuestRsvpGroup
-                  key={value[listField]}
-                  label={label}
-                  count={status === "NO" ? 13 : status === "GOING" ? 5 : 2}
-                  display={display[status]}
-                  t={t}
-                >
-                  <span style={{ color: t.textSecondary, fontSize: "12px" }}>
-                    {translate("guestNamesAppearHere")}
-                  </span>
-                </GuestRsvpGroup>
-              )}
-            </div>
-          </fieldset>
-        );
-      })}
-      <p style={{ color: t.textMuted, fontSize: "12px", lineHeight: 1.6 }}>
-        {translate("theseDisplayPreferencesGuestListVisibility")}
-      </p>
-    </section>
+              {name}
+            </span>
+          ))}
+          {more > 0 && (
+            <span style={{ alignSelf: "center", color: t.textSecondary, fontSize: "13px" }}>
+              {translate("previewMore", { count: more })}
+            </span>
+          )}
+        </div>
+      </GuestRsvpGroup>
+    );
+  });
+  const anyShown = GUEST_DISPLAY_ROWS.some(({ status }) => isGuestRowShown(display[status]));
+  const total = PREVIEW.GOING.count + PREVIEW.MAYBE.count + PREVIEW.NO.count;
+
+  return (
+    <div
+      role="region"
+      aria-labelledby="guest-rsvp-preview-heading"
+      style={{ marginTop: "16px", paddingTop: "14px", borderTop: `1px solid ${t.cardBorder}` }}
+    >
+      <h4
+        id="guest-rsvp-preview-heading"
+        style={{ fontSize: "13px", fontWeight: 700, color: t.textPrimary, margin: "0 0 10px" }}
+      >
+        {translate("previewHeading")}
+      </h4>
+      {anyShown ? (
+        groups
+      ) : (
+        <p style={{ color: t.textSecondary, fontSize: "13px", margin: 0 }}>
+          {translate("previewEmpty")}
+        </p>
+      )}
+      {anyShown && showGuestResponseTotal(display) && (
+        <p style={{ color: t.textSecondary, fontSize: "13px", margin: "4px 0 0" }}>
+          {translate("previewTotal", { count: total })}
+        </p>
+      )}
+    </div>
   );
 }

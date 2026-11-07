@@ -73,7 +73,8 @@ select {
 
 .rsvp-pref-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(var(--rsvp-pref-cols, 2), 72px);
+  grid-template-columns: minmax(0, 1fr) repeat(var(--rsvp-pref-cols, 2), var(--rsvp-pref-col, 72px));
+  column-gap: var(--rsvp-pref-gap, 0);
   align-items: center;
   padding: 10px 0;
 }
@@ -132,6 +133,18 @@ select {
     height: auto;
     overflow: visible;
     clip: auto;
+  }
+
+  /* A menu cell already has a bordered control: stack its label above it instead. */
+  .rsvp-pref-cell.rsvp-pref-cell-menu {
+    flex: 1 1 140px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    font-size: 12px;
+    font-weight: 700;
   }
 }
 

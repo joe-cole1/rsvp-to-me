@@ -14,15 +14,14 @@ import {
 } from "@/lib/theme";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import {
-  EFFECT_DENSITIES,
+  EFFECT_AMOUNTS,
   EFFECT_SPEEDS,
-  EFFECT_SIZE_MIN,
-  EFFECT_SIZE_MAX,
   DEFAULT_EFFECT_DENSITY,
   DEFAULT_EFFECT_SPEED,
   DEFAULT_EFFECT_SIZE,
+  effectAmountFor,
   getSortedEffectSets,
-  type EffectDensity,
+  type EffectAmount,
   type EffectSpeed,
 } from "@/lib/effects";
 import type { DbThemePreset, EventInput, ThemeExtrasOverrides, ThemeSnapObj } from "./types";
@@ -205,7 +204,18 @@ export function ThemePanel({
                     marginBottom: "8px",
                   }}
                 >
-                  <div style={{ display: "flex", gap: "6px", flex: 1, overflowX: "auto" }}>
+                  {/* Scrolls sideways when it overflows; the padding keeps focus rings unclipped. */}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "6px",
+                      flex: 1,
+                      minWidth: 0,
+                      overflowX: "auto",
+                      padding: "3px",
+                      margin: "-3px",
+                    }}
+                  >
                     {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
                       <Chip
                         key={f}
@@ -652,15 +662,17 @@ export function ThemePanel({
               style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "14px" }}
             >
               <div>
-                <Label theme={t}>{translate("density")}</Label>
+                <Label theme={t}>{translate("amount")}</Label>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  {(Object.keys(EFFECT_DENSITIES) as EffectDensity[]).map((d) => (
+                  {(Object.keys(EFFECT_AMOUNTS) as EffectAmount[]).map((amount) => (
                     <Chip
-                      key={d}
+                      key={amount}
                       theme={t}
-                      selected={effectDensity === d}
+                      selected={effectAmountFor(effectDensity) === amount}
                       onClick={() => {
-                        setEffectDensity(d);
+                        const { density, size } = EFFECT_AMOUNTS[amount];
+                        setEffectDensity(density);
+                        setEffectSize(size);
                         triggerSaveTheme(
                           base,
                           gradientFrom,
@@ -668,11 +680,11 @@ export function ThemePanel({
                           accent,
                           undefined,
                           undefined,
-                          { effectDensity: d }
+                          { effectDensity: density, effectSize: size }
                         );
                       }}
                     >
-                      {shared("density." + d)}
+                      {shared("amount." + amount)}
                     </Chip>
                   ))}
                 </div>
@@ -701,63 +713,6 @@ export function ThemePanel({
                       {shared("speed." + s)}
                     </Chip>
                   ))}
-                </div>
-              </div>
-              <div>
-                <Label theme={t} htmlFor="theme-effect-size">
-                  {translate("size")}
-                </Label>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <Range
-                    theme={t}
-                    id="theme-effect-size"
-                    min={EFFECT_SIZE_MIN}
-                    max={EFFECT_SIZE_MAX}
-                    step={0.5}
-                    value={effectSize}
-                    onChange={(e) => {
-                      setEffectSize(parseFloat(e.target.value));
-                    }}
-                    onMouseUp={(e) => {
-                      const val = parseFloat((e.target as HTMLInputElement).value);
-                      triggerSaveTheme(
-                        base,
-                        gradientFrom,
-                        gradientTo,
-                        accent,
-                        undefined,
-                        undefined,
-                        {
-                          effectSize: val,
-                        }
-                      );
-                    }}
-                    onTouchEnd={(e) => {
-                      const val = parseFloat((e.target as HTMLInputElement).value);
-                      triggerSaveTheme(
-                        base,
-                        gradientFrom,
-                        gradientTo,
-                        accent,
-                        undefined,
-                        undefined,
-                        {
-                          effectSize: val,
-                        }
-                      );
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      color: t.textSecondary,
-                      minWidth: "40px",
-                      textAlign: "right",
-                    }}
-                  >
-                    {effectSize}×
-                  </span>
                 </div>
               </div>
             </div>
