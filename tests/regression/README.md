@@ -14,6 +14,11 @@ For every bug fix merged to main:
 
 October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with updated security floors and package-group synchronization checks. PR #775 (`01a19bc3`) adds stable minimum floors for the Cloudflare worker toolchain so compatible lockfile upgrades do not fail exact-version assertions. #779/#603 (`01a19ceb`) extend this policy to runtime `tsx`, reject reintroduced deepmerge-ts overrides, and require Joi 18.3.1 for GHSA-4528-x5fx-h6hg.
 
+PR #818 (`01a1b35c`) adds fixtures to `dependency-security-baseline.test.ts` that
+accept coordinated Vitest upgrades and reject partial manifest or resolved-version
+updates. The original failure resolved both packages to 5.1.0 while leaving the
+runner declared at `^5.0.5` and coverage at `^5.1.0`.
+
 ## Index
 
 Task `01a1ab65` addresses #793 in `issue-793-dutch-notification-feedback.test.ts`:
