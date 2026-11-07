@@ -175,7 +175,19 @@ export function LocationEdit({
             <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1 }}>
               {locationCardInner}
             </div>
-            <Pencil size={12} style={{ color: t.textMuted, flexShrink: 0, marginTop: "2px" }} />
+            <Button
+              theme={t}
+              variant="icon"
+              type="button"
+              aria-label={translate("editLocation")}
+              aria-expanded={open}
+              onClick={(e) => {
+                e.stopPropagation();
+                openPopover();
+              }}
+            >
+              <Pencil size={14} aria-hidden="true" />
+            </Button>
           </div>
         ) : initialType === "PHYSICAL" && (initialName || initialAddress) ? (
           <>

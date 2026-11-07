@@ -76,6 +76,10 @@ If an older invitation record is no longer connected to an RSVP, you can remove 
 history without removing a guest's RSVP. An unlinked invitation can also reconnect when a guest
 responds with the matching email or phone.
 
+Removing an RSVP, a guest or an invitation, and declining a request awaiting approval, first opens
+a short confirmation that says what will happen. Choose the action to go ahead, or **Cancel** (or
+press Escape) to leave everything as it was. Declining tells the guest and removes the request.
+
 When editing an RSVP, hosts and co-hosts can correct the primary guest's name. The correction
 applies only to this event and does not change the guest's account profile or other events.
 

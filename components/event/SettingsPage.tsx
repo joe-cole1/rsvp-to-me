@@ -866,9 +866,9 @@ export function SettingsPage({
         >
           {activeSection ? (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ cursor: "pointer", opacity: 0.6 }} onClick={closeSection}>
+              <Button theme={t} variant="link" type="button" onClick={closeSection}>
                 {translate("settings")}
-              </span>
+              </Button>
               <span style={{ opacity: 0.4 }}>/</span>
               <span>
                 {activeSection === "theme" && translate("theme")}

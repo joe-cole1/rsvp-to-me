@@ -21,6 +21,14 @@ runner declared at `^5.0.5` and coverage at `^5.1.0`.
 
 ## Index
 
+Task `8bb37ef2` addresses #810 (and #795) in `issue-810-accessibility-blockers.test.tsx`:
+`app/` and `components/` never call the browser's `confirm()`, `alert()` or `prompt()`; a
+guest-list removal is confirmed in the shared `useConfirm()` dialog; and the event hero's
+host controls (Edit title, Edit description, Edit date and time, Edit location, the
+"N others" co-host trigger) are named
+buttons that work by keyboard. `orphaned-invitation-removal.test.tsx` now confirms through
+the dialog.
+
 Task `01a1ab65` addresses #793 in `issue-793-dutch-notification-feedback.test.ts`:
 all four event-update feedback messages must exist in the Dutch catalog, and the
 localized summary must interpolate every delivery count without English fallback.

@@ -8,6 +8,7 @@ import DocsPanel, { type PanelDoc } from "@/components/docs/DocsPanel";
 import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Feedback";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { AppShell } from "@/components/ui/AppShell";
 import {
   updateUserRole,
@@ -92,6 +93,7 @@ export default function AdminClient({
 }: AdminClientProps) {
   const tr = useTranslations("Ui.Admin");
   const locale = useLocale();
+  const { confirm, dialog: confirmDialog } = useConfirm(T);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -232,7 +234,12 @@ export default function AdminClient({
   };
 
   const handleDeleteBackup = async (filename: string) => {
-    if (!confirm(tr("areYouSureYouWantToDeleteBackupValue0Message", { value0: filename }))) return;
+    const ok = await confirm({
+      title: tr("deleteBackupTitle"),
+      message: tr("deleteBackupMessage", { filename }),
+      confirmLabel: tr("deleteAction"),
+    });
+    if (!ok) return;
     setFeedback(null);
     try {
       const res = await deleteBackupAction(filename);
@@ -457,10 +464,13 @@ export default function AdminClient({
     });
   };
 
-  const handleUserDelete = (userId: string, name: string) => {
-    if (!confirm(tr("scheduleValue0SAccountForDeletionTheyWillBeMessage", { value0: name }))) {
-      return;
-    }
+  const handleUserDelete = async (userId: string, name: string) => {
+    const ok = await confirm({
+      title: tr("scheduleDeletionTitle", { name }),
+      message: tr("scheduleDeletionMessage"),
+      confirmLabel: tr("scheduleDeletionAction"),
+    });
+    if (!ok) return;
     setFeedback(null);
     startTransition(async () => {
       try {
@@ -523,10 +533,13 @@ export default function AdminClient({
     });
   };
 
-  const handleUserDeleteImmediately = (userId: string, name: string) => {
-    if (!confirm(tr("warningAreYouAbsolutelySureYouWantToPermanentlyMessage", { value0: name }))) {
-      return;
-    }
+  const handleUserDeleteImmediately = async (userId: string, name: string) => {
+    const ok = await confirm({
+      title: tr("deleteNowTitle", { name }),
+      message: tr("deleteNowMessage"),
+      confirmLabel: tr("deleteNowAction"),
+    });
+    if (!ok) return;
     setFeedback(null);
     startTransition(async () => {
       try {
@@ -585,10 +598,13 @@ export default function AdminClient({
     });
   };
 
-  const handleEventDelete = (eventId: string, title: string) => {
-    if (!confirm(tr("areYouSureYouWantToModerateDeleteTheMessage", { value0: title }))) {
-      return;
-    }
+  const handleEventDelete = async (eventId: string, title: string) => {
+    const ok = await confirm({
+      title: tr("deleteEventTitle", { title }),
+      message: tr("deleteEventMessage"),
+      confirmLabel: tr("deleteEventAction"),
+    });
+    if (!ok) return;
     setFeedback(null);
     startTransition(async () => {
       try {
@@ -800,7 +816,12 @@ export default function AdminClient({
   };
 
   const handleDeleteThemePreset = async (id: string) => {
-    if (!confirm(tr("deleteThisThemePresetEventsUsingItWillKeep"))) return;
+    const ok = await confirm({
+      title: tr("deletePresetTitle"),
+      message: tr("deletePresetMessage"),
+      confirmLabel: tr("deleteAction"),
+    });
+    if (!ok) return;
     try {
       await deleteThemePreset(id);
       setThemePresets((prev) => prev.filter((p) => p.id !== id));
@@ -941,6 +962,7 @@ export default function AdminClient({
           isPending={isPending}
         />
 
+        {confirmDialog}
         <Toast
           theme={T}
           toast={feedback && { tone: feedback.type, message: feedback.message }}

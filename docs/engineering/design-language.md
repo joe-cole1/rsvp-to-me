@@ -182,7 +182,9 @@ a native button or link outside `components/ui` paints an accent fill.
     `cardBg` surface, `accentText` and a Plus icon), such as Add location, Add poll or the
     info-section chips. The card surface keeps it readable when it sits on the page ground.
   - Link: an inline, underlined action in `accentText`, such as Change, Verify or Back.
-  - Icon: a 40px square with an accessible name (Close, Remove, Edit).
+  - Icon: a 40px square with an accessible name (Close, Remove, Edit). On the page ground
+    (outside any card) pass `onGround`, so the icon reads `heroTextMuted` like the other
+    hero icons; `onGround` on a Link reads `heroTextSecondary`.
   - Overlay: a control laid on a photo (the cover image, an event card): dark glass with
     white text, because the photo, not the theme, is underneath.
 
@@ -220,8 +222,15 @@ a native button or link outside `components/ui` paints an accent fill.
   card over its page ground, may carry one action (Undo) and a dismiss button, and renders
   nothing when there is no message. One toast component; no hand-built toasts.
 - **Dialog:** `components/ui/Dialog.tsx` for every modal, with a labeled title, focus moved in
-  and returned on close. Destructive actions use a confirm dialog built on it that says what
-  will happen. Never use the browser's `confirm()`, `alert()` or `prompt()`.
+  and returned on close. Never use the browser's `confirm()`, `alert()` or `prompt()`.
+- **Confirm dialog:** `useConfirm(theme)` in `components/ui/ConfirmDialog.tsx`, for every
+  action that deletes or overwrites. Render its `dialog`, then
+  `if (!(await confirm({ title, message, confirmLabel }))) return;`. The title asks the
+  question ("Remove this guest?"), the message is one sentence on what will happen (it is the
+  dialog's description), and the action button is a verb ("Remove"), destructive by default
+  or `tone: "primary"` for an overwrite that isn't a loss. Cancel comes first and takes the
+  focus. The panel is the card over the page ground, so card text stays readable. A failed
+  action reports in an `InlineAlert` next to its control, never in an alert box.
 - **Status chip:** `StatusChip`, a small pill. Good states use `status.success` (`text` on
   `bg`), everything else `inputBg` with `textSecondary`.
 - **Upload:** a secondary or icon button (40px) that opens the file picker through
@@ -251,7 +260,8 @@ or an `avatarGradient` placeholder, the date and the location. Text outside a ca
 soft wash behind that band, reaching past the text and feathered at the edges, without creating
 a stacking context. Nothing else goes on the ground. The guest list and RSVP pages repeat the same title block,
 so the event reads the same on every route. Host edit controls are Icon buttons ("Edit
-title"), never clickable icons.
+title", with `onGround` in the hero), never clickable icons, and the inline field they open is
+named ("Event title"). Triggers such as "2 others" are buttons that report `aria-expanded`.
 
 **Step flow.** Multi-step forms such as the RSVP flow show "Step 1 of 2" as text, mark the
 current step with `aria-current="step"`, keep Back and Next in the same place, and show errors

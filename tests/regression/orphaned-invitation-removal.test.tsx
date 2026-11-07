@@ -5,7 +5,7 @@
 // deletes only the invitation history, never the guest's RSVP.
 
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@/tests/components/render";
+import { fireEvent, render, screen, waitFor, within } from "@/tests/components/render";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { testTheme } from "@/tests/components/helpers/theme";
 
@@ -36,7 +36,6 @@ const orphanedInvitation = {
 describe("orphaned invitation removal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   it("removes an unlinked invitation without requiring an RSVP edit token", async () => {
@@ -57,6 +56,9 @@ describe("orphaned invitation removal", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    // Removal is confirmed in the shared dialog (#810).
+    const dialog = screen.getByRole("dialog", { name: "Remove this invitation?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
 
     await waitFor(() =>
       expect(mocks.deleteInvitationAsHost).toHaveBeenCalledWith("invite-history-1")

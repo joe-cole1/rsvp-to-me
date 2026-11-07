@@ -61,8 +61,15 @@ export function EventHero({
     const handleOutsideClick = () => {
       setShowHostsPopup(false);
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowHostsPopup(false);
+    };
     window.addEventListener("click", handleOutsideClick);
-    return () => window.removeEventListener("click", handleOutsideClick);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("click", handleOutsideClick);
+      window.removeEventListener("keydown", handleEscape);
+    };
   }, [showHostsPopup]);
 
   useEffect(() => {
@@ -101,6 +108,8 @@ export function EventHero({
             alignItems: "flex-start",
             marginBottom: "8px",
             position: "relative",
+            // Keep a long title clear of the Edit title button, and still centered.
+            paddingInline: isHost ? "44px" : undefined,
           }}
         >
           <h1
@@ -128,21 +137,22 @@ export function EventHero({
                 textAlign: "center",
               }}
               isHost={isHost}
+              label={translate("eventTitle")}
+              focusColor={t.accent}
             />
           </h1>
           {isHost && (
-            <Pencil
-              size={12}
-              style={{
-                color: t.heroTextMuted,
-                cursor: "pointer",
-                marginTop: "10px",
-                flexShrink: 0,
-                position: "absolute",
-                right: 0,
-              }}
+            <Button
+              theme={t}
+              variant="icon"
+              onGround
+              type="button"
+              aria-label={translate("editTitle")}
               onClick={() => titleRef.current?.click()}
-            />
+              style={{ position: "absolute", right: 0, top: 0 }}
+            >
+              <Pencil size={14} aria-hidden="true" />
+            </Button>
           )}
         </div>
 
@@ -182,29 +192,23 @@ export function EventHero({
             {event.coHosts && event.coHosts.length > 1 && (
               <span style={{ position: "relative" }}>
                 {" + "}
-                <span
+                <Button
+                  theme={t}
+                  variant="link"
+                  onGround
+                  type="button"
+                  aria-expanded={showHostsPopup}
+                  aria-controls="event-cohosts-list"
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowHostsPopup(!showHostsPopup);
                   }}
-                  style={{
-                    cursor: "pointer",
-                    textDecoration: "underline dotted",
-                    fontWeight: 600,
-                    color: t.heroText,
-                    transition: "opacity 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = "0.8";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = "1";
-                  }}
                 >
                   {event.coHosts.length} {translate("others")}
-                </span>
+                </Button>
                 {showHostsPopup && (
                   <div
+                    id="event-cohosts-list"
                     onClick={(e) => e.stopPropagation()}
                     style={{
                       position: "absolute",
@@ -439,11 +443,15 @@ export function EventHero({
             </h2>
           </div>
           {isHost && (
-            <Pencil
-              size={12}
-              style={{ color: t.textMuted, cursor: "pointer" }}
+            <Button
+              theme={t}
+              variant="icon"
+              type="button"
+              aria-label={translate("editDescription")}
               onClick={() => detailsRef.current?.click()}
-            />
+            >
+              <Pencil size={14} aria-hidden="true" />
+            </Button>
           )}
         </div>
         <InlineEdit
@@ -451,6 +459,8 @@ export function EventHero({
           value={event.description ?? ""}
           onSave={(v) => save("description", v)}
           placeholder={translate("addDescription")}
+          label={translate("description")}
+          focusColor={t.accent}
           multiline
           style={{
             color: t.textSecondary,

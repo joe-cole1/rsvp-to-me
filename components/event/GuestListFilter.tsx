@@ -20,6 +20,7 @@ import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { Button, buttonProps } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Choice";
 import { Input } from "@/components/ui/Field";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import {
   GUEST_RSVP_GROUPS,
   guestCountLabel,
@@ -91,6 +92,7 @@ export function GuestListFilter({
   const shared = useTranslations("Ui.Event.shared");
   const translate = useTranslations("Ui.Event.GuestListFilter");
   const locale = useLocale();
+  const { confirm, dialog: confirmDialog } = useConfirm(t);
 
   const [filter, setFilter] = useState<Filter>("ALL");
   const [going, setGoing] = useState(initialGoing);
@@ -245,8 +247,15 @@ export function GuestListFilter({
     gap: "14px",
   };
 
-  const handleDelete = (rsvpId: string) => {
-    if (!confirm(translate("removeRsvpCannotUndone"))) return;
+  const confirmRemove = (title: string) =>
+    confirm({
+      title,
+      message: translate("cannotBeUndone"),
+      confirmLabel: translate("remove"),
+    });
+
+  const handleDelete = async (rsvpId: string) => {
+    if (!(await confirmRemove(translate("removeRsvpTitle")))) return;
     setDeletingId(rsvpId);
     startTransition(async () => {
       const result = await deleteRsvpAsHost(rsvpId);
@@ -283,8 +292,8 @@ export function GuestListFilter({
     });
   };
 
-  const handleDeleteInvited = (id: string) => {
-    if (!confirm(translate("removeGuestCannotUndone"))) return;
+  const handleDeleteInvited = async (id: string) => {
+    if (!(await confirmRemove(translate("removeGuestTitle")))) return;
     startTransition(async () => {
       const result = await deleteRsvpAsHost(id);
       if (result.success) {
@@ -293,8 +302,8 @@ export function GuestListFilter({
     });
   };
 
-  const handleDeleteInvitation = (invitationId: string) => {
-    if (!confirm(translate("removeInvitationCannotUndone"))) return;
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!(await confirmRemove(translate("removeInvitationTitle")))) return;
     setDeletingInvitationId(invitationId);
     startTransition(async () => {
       const result = await deleteInvitationAsHost(invitationId);
@@ -305,8 +314,13 @@ export function GuestListFilter({
     });
   };
 
-  const handleDecline = (rsvpId: string) => {
-    if (!confirm(translate("declineRemoveRsvpRequest"))) return;
+  const handleDecline = async (rsvpId: string) => {
+    const ok = await confirm({
+      title: translate("declineRequestTitle"),
+      message: translate("declineRequestMessage"),
+      confirmLabel: translate("decline"),
+    });
+    if (!ok) return;
     startTransition(async () => {
       const res = await runWithCaptcha("rsvp_moderation", (token) =>
         declineRsvp(rsvpId, undefined, token)
@@ -545,6 +559,7 @@ export function GuestListFilter({
 
   return (
     <>
+      {confirmDialog}
       {isHost && (
         <div
           style={{

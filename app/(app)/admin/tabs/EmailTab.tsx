@@ -8,6 +8,7 @@ import { appCardStyle } from "@/components/ui/AppPrimitives";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, SecretInput, Select } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { Toggle } from "@/components/ui/Toggle";
 import { EmailTemplatesSection } from "./EmailTemplatesSection";
 
@@ -146,6 +147,7 @@ export function EmailTab({
   handleTestEmailConfig: () => Promise<void>;
 }) {
   const tr = useTranslations("Ui.Admin");
+  const { confirm, dialog: confirmDialog } = useConfirm(T);
 
   const generateWorkerCode = () => {
     return `// WARNING: If you modify this template, make sure to also update the file
@@ -216,6 +218,7 @@ function extractRawEmail(fromStr) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {confirmDialog}
       <CollapsibleSection title={tr("emailSetup")} subtitle={tr("EmailTab.setupSubtitle")}>
         {/* Guest Email Channel Toggle */}
         <div
@@ -566,12 +569,15 @@ function extractRawEmail(fromStr) {
                       theme={T}
                       variant="secondary"
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         const hasSavedSecret = !!config.cloudflare_worker_api_secret;
                         if (hasSavedSecret) {
-                          const confirmOverwrite = window.confirm(
-                            "Warning: A worker API secret is already saved in the database. Generating a new one will overwrite it. You must also update the WORKER_API_SECRET in your Cloudflare dashboard to match. Are you sure you want to continue?"
-                          );
+                          const confirmOverwrite = await confirm({
+                            title: tr("replaceWorkerSecretTitle"),
+                            message: tr("replaceWorkerSecretMessage"),
+                            confirmLabel: tr("replaceWorkerSecretAction"),
+                            tone: "primary",
+                          });
                           if (!confirmOverwrite) return;
                         }
                         const chars =
