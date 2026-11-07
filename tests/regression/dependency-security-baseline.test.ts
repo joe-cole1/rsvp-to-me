@@ -15,6 +15,9 @@
 // #779/#603 (01a19ceb): tsx exact pins rejected compatible security patches;
 // upstream now supplies patched deepmerge-ts without overrides. Joi 18.3.1
 // closes GHSA-4528-x5fx-h6hg in the development wait-on dependency tree.
+// PR #818 (01a1b35c): a coverage-provider upgrade resolved both Vitest packages
+// to 5.1.0 but left the runner's declared range behind. Exercise coordinated
+// upgrades and partial updates without tying the guard to the latest release.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -48,6 +51,23 @@ function assertDependencyFloor(path: string, actual: string | undefined, minimum
     atLeast(actual ?? "", minimum),
     `${path}: expected stable version at least ${minimum}; received ${actual ?? "<missing>"}`
   ).toBe(true);
+}
+
+function assertSynchronizedGroup(
+  names: readonly string[],
+  declared: Record<string, string>,
+  packages: Lock["packages"]
+): void {
+  const version = packages[`node_modules/${names[0]}`]?.version;
+  expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+  for (const name of names) {
+    expect(declared[name], name).toBe(declared[names[0]]);
+    const resolutions = Object.entries(packages).filter(
+      ([path]) => path === `node_modules/${name}` || path.endsWith(`/node_modules/${name}`)
+    );
+    expect(resolutions.length, name).toBeGreaterThan(0);
+    for (const [path, entry] of resolutions) expect(entry.version, path).toBe(version);
+  }
 }
 
 function assertRuntimeTsx(entry: Lock["packages"][string] | undefined): void {
@@ -196,17 +216,48 @@ describe("Dependency security baseline", () => {
     ["Prisma", ["prisma", "@prisma/client", "@prisma/adapter-pg"]],
     ["Vitest", ["vitest", "@vitest/coverage-v8"]],
   ])("keeps the %s package group synchronized in the manifest and lockfile", (_, names) => {
-    const declared = { ...manifest.dependencies, ...manifest.devDependencies };
-    const version = lock.packages[`node_modules/${names[0]}`]?.version;
-    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
-    for (const name of names) {
-      expect(declared[name], name).toBe(declared[names[0]]);
-      const resolutions = Object.entries(lock.packages).filter(
-        ([path]) => path === `node_modules/${name}` || path.endsWith(`/node_modules/${name}`)
-      );
-      expect(resolutions.length, name).toBeGreaterThan(0);
-      for (const [path, entry] of resolutions) expect(entry.version, path).toBe(version);
-    }
+    assertSynchronizedGroup(
+      names,
+      { ...manifest.dependencies, ...manifest.devDependencies },
+      lock.packages
+    );
+  });
+
+  it.each(["5.0.5", "5.1.0", "5.2.0"])("accepts coordinated Vitest %s upgrades", (version) => {
+    const names = ["vitest", "@vitest/coverage-v8"];
+    expect(() =>
+      assertSynchronizedGroup(
+        names,
+        Object.fromEntries(names.map((name) => [name, `^${version}`])),
+        Object.fromEntries(names.map((name) => [`node_modules/${name}`, { version }]))
+      )
+    ).not.toThrow();
+  });
+
+  it("rejects PR #818's partial manifest upgrade even when installed versions match", () => {
+    expect(() =>
+      assertSynchronizedGroup(
+        ["vitest", "@vitest/coverage-v8"],
+        { vitest: "^5.0.5", "@vitest/coverage-v8": "^5.1.0" },
+        {
+          "node_modules/vitest": { version: "5.1.0" },
+          "node_modules/@vitest/coverage-v8": { version: "5.1.0" },
+        }
+      )
+    ).toThrow("@vitest/coverage-v8");
+  });
+
+  it("rejects mismatched Vitest resolutions even when declared ranges match", () => {
+    expect(() =>
+      assertSynchronizedGroup(
+        ["vitest", "@vitest/coverage-v8"],
+        { vitest: "^5.0.5", "@vitest/coverage-v8": "^5.0.5" },
+        {
+          "node_modules/vitest": { version: "5.0.5" },
+          "node_modules/@vitest/coverage-v8": { version: "5.1.0" },
+        }
+      )
+    ).toThrow("node_modules/@vitest/coverage-v8");
   });
 
   it("uses Nodemailer's bundled declarations instead of the legacy DefinitelyTyped package", () => {
