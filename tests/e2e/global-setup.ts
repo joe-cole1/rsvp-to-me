@@ -8,6 +8,8 @@ import bcrypt from "bcryptjs";
 import {
   AUTH_STATE_PATH,
   E2E_HOST_EMAIL,
+  EFFECTS_EVENT_SLUG,
+  LEGACY_EFFECT_EVENT_SLUG,
   MAGIC_TOKEN_PATH,
   PASSWORD_EVENT_PASSWORD,
   PASSWORD_EVENT_SLUG,
@@ -95,6 +97,22 @@ export default async function globalSetup() {
       visibility: "PUBLIC",
       passwordHash: await bcrypt.hash(PASSWORD_EVENT_PASSWORD, 10),
     });
+    // #825: the effects spec gets its own events so parallel specs never see its changes.
+    await seedEvent(pool, hostId, {
+      slug: EFFECTS_EVENT_SLUG,
+      title: "E2E Effects Event",
+      visibility: "PUBLIC",
+    });
+    await seedEvent(pool, hostId, {
+      slug: LEGACY_EFFECT_EVENT_SLUG,
+      title: "E2E Legacy Effect Event",
+      visibility: "PUBLIC",
+    });
+    await pool.query(
+      `INSERT INTO "EventTheme" (id, "eventId", "effectId", "effectDensity", "effectSpeed", "effectSize")
+       SELECT $1, id, 'snow', 'medium', 'gentle', 6 FROM "Event" WHERE slug = $2`,
+      [randomUUID(), LEGACY_EFFECT_EVENT_SLUG]
+    );
 
     // 4. Create a DB session and seal it into a cookie
     const sessionId = randomUUID();

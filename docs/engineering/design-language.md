@@ -194,7 +194,7 @@ a native button or link outside `components/ui` paints an accent fill.
 
 - **Choices:** in `components/ui/Choice.tsx`, all buttons with `aria-pressed`:
   - Chip: a pill for filters and short either/or choices (Theme · Effects · Font, effect amount,
-    speed, guest-list filters, recipients). It sits on the `cardBg` surface, so it reads on
+    size, speed and movement, guest-list filters, recipients). It sits on the `cardBg` surface, so it reads on
     the page ground too; selected lays `accentBg` over it with `accentText`.
   - Choice tile: a tile in a picker grid (presets, base themes, fonts, effects, icons).
     Selected reads `accentBg` with a 2px `accent` border.
@@ -300,6 +300,23 @@ grid that grows with the page (no scrolling box inside the page). Switching betw
 Effects and Font uses buttons with `aria-pressed`, or real tabs. Restoring preset defaults is a
 secondary button.
 
+**Effect picker.** `components/event/settings-page/EffectsPanel.tsx` (#825). One labeled
+search field ("Search icons") sits above the grid. With no query the grid shows None and the
+built-in sets, seasonal ones first; with a query it shows None and the matching library icons
+instead, in the same growing grid (no scrolling box), with **Load more** under it. Each icon
+tile shows the art, its label in the interface language and the collection name as a small
+caption, so the two styles of the same subject stay distinguishable. A host picks one
+built-in set or mixes up to three icons: the mixture shows as a "Your mix" row of small
+items, each with a named remove button ("Remove Cat"); clicking a selected tile removes it;
+a fourth pick shows a short info line instead of adding. Loading, no results, too many
+searches and a failed search are one status line or `InlineAlert` under the grid, and none
+of them change the effect. Under the grid, for an active effect, four independent controls
+stack in one column: **Amount** (Less, Some, More: how many), **Size** (Small 3×, Medium 5×,
+Large 7× chips, then a 1–10× slider in 0.5 steps with the actual value beside it), **Speed**
+and **Movement** (Up, Down, Random). A size that isn't 3, 5 or 7 selects no chip. Every
+choice saves at once; the slider previews while it moves and saves when released, by
+pointer, touch, key or blur.
+
 **Header and host bar.** The global header (`components/ui/AppNav.tsx`) and the host's
 floating bar (`components/event/HostBar.tsx`) are app chrome. Whether app chrome stays on the
 dark app shell over event pages or takes a tint from the event theme is an open decision (see
@@ -315,10 +332,14 @@ Fonts and effects are theme inputs, not app tokens.
   returns `headingFont` as `var(--font-…), <fallback>`. It applies to the event title on every
   event route, never to body text, labels or controls. Script fonts (Pacifico, Dancing Script,
   Caveat) are only used at 28px and up.
-- **Effects.** `lib/effects.ts` defines the sets; `EventAtmosphere` renders them behind all
-  content (`ParticleLayer`, `aria-hidden`, hidden under `prefers-reduced-motion`). Sprites pass
-  under the hero band's `heroScrim` and under cards; keep any other text in a card so sprites
-  never reduce its contrast.
+- **Effects.** `lib/effects.ts` defines the built-in sets and the effect model; a host can
+  also mix up to three icons from the local Fluent Emoji Flat and Noto Emoji library, which
+  keep their own colors (only built-in tinted sets take theme colors). `EventAtmosphere`
+  renders every effect behind all content (`ParticleLayer`, `aria-hidden`, no pointer
+  events, hidden under `prefers-reduced-motion` and by the viewer's Hide effects choice).
+  Random movement sends each particle across on its own path, sideways and diagonal too.
+  Sprites pass under the hero band's `heroScrim` and under cards; keep any other text in a
+  card so sprites never reduce its contrast.
 - **Email** never receives web fonts or effects (see Email).
 
 ## Email
@@ -402,5 +423,11 @@ Decided:
   (Exact, 3+, Hidden). Count is independent of names, every row may use 3+, and Invited
   (host-added guests with no reply yet) starts hidden.
 - **Effect controls** (#811, 2026-11-07): density and size merge into one Amount (Less, Some,
-  More); Speed stays. The lowest card opacity stays 0.40 (#807): text colors are derived from
+  More); Speed stays. _Superseded for size by #825._
+- **Effect controls, revisited** (#825, 2026-11-07): #811's Amount also set the size and the
+  size slider was removed; hosts lost a control they used. Amount now sets only how many
+  motifs drift (Less, Some, More), Size is its own control again (Small 3×, Medium 5×,
+  Large 7× plus the 1–10× slider), and Movement (Up, Down, Random) is new. All four are
+  independent of each other and of the motif. Stored sizes, including ones an #811 Amount
+  wrote, are kept as they are. The lowest card opacity stays 0.40 (#807): text colors are derived from
   each theme's actual opacity; see the contrast contract.

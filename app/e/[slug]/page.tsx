@@ -5,7 +5,7 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
-import { resolveEffectConfig } from "@/lib/effects";
+import { resolveEventEffect } from "@/lib/effect-catalog";
 import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
 import { AppShell } from "@/components/ui/AppShell";
@@ -227,7 +227,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     event.theme?.fontId
   );
 
-  const effect = resolveEffectConfig(event.theme);
+  const effect = await resolveEventEffect(event.theme);
 
   const channelConfig = await getChannelConfig();
 

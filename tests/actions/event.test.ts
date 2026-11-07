@@ -1700,6 +1700,8 @@ describe("saveEventTheme", () => {
         cardOpacity: null,
         fontId: null,
         effectId: null,
+        effectIconIds: [],
+        effectMovement: null,
         effectDensity: null,
         effectSpeed: null,
         effectSize: null,

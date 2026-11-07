@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "collections": [
+    {
+      "id": "fluent-emoji-flat",
+      "name": "Fluent Emoji Flat",
+      "version": "1.2.6",
+      "iconCount": 3145,
+      "basePath": "/effects/library/fluent-emoji-flat/1.2.6",
+      "palette": true,
+      "author": {
+        "name": "Microsoft Corporation",
+        "url": "https://github.com/microsoft/fluentui-emoji"
+      },
+      "license": {
+        "title": "MIT",
+        "spdx": "MIT",
+        "url": "https://github.com/microsoft/fluentui-emoji/blob/252e16f8dd1400bb3ba86384b474742b4fef089f/LICENSE",
+        "localPath": "/effects/library/fluent-emoji-flat/1.2.6/LICENSE.txt"
+      },
+      "sourcePackage": "@iconify-json/fluent-emoji-flat"
+    },
+    {
+      "id": "noto",
+      "name": "Noto Emoji",
+      "version": "1.2.10",
+      "iconCount": 3729,
+      "basePath": "/effects/library/noto/1.2.10",
+      "palette": true,
+      "author": {
+        "name": "Google Inc",
+        "url": "https://github.com/googlefonts/noto-emoji"
+      },
+      "license": {
+        "title": "Apache 2.0",
+        "spdx": "Apache-2.0",
+        "url": "https://github.com/googlefonts/noto-emoji/blob/43bac1a1272f31cedf0d74c2089fba6c7f952276/svg/LICENSE",
+        "localPath": "/effects/library/noto/1.2.10/LICENSE.txt",
+        "notices": [
+          "/effects/library/noto/1.2.10/NOTICE.txt",
+          "/effects/library/noto/1.2.10/REGION-FLAGS-LICENSE.txt"
+        ]
+      },
+      "sourcePackage": "@iconify-json/noto"
+    }
+  ]
+}

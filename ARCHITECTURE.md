@@ -49,7 +49,7 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 | `docs/admin/`     | Installation, configuration, operations, email/SMS, upgrading, and local-development documentation.                            |
 | `docs/host/`      | Host-facing and guest-experience help content rendered by the application.                                                     |
 | `worker/`         | Optional independently deployed Cloudflare Email Worker.                                                                       |
-| `public/`         | Static icons, event effects, preview artifacts, and web-manifest assets.                                                       |
+| `public/`         | Static icons, event effects (incl. the pinned `effects/library/` icon art), preview artifacts, and web-manifest assets.        |
 | `scripts/`        | Development sync/reset, preflight, shipping, migration, and E2E utilities.                                                     |
 | `.github/`        | Community issue/PR templates, CI, releases, and dependency automation.                                                         |
 | `perf/`           | Manual performance scenarios and notes.                                                                                        |
@@ -169,8 +169,9 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   privacy-gated social artwork from current event data.
 - Access-granted event routes share their background and animated effects through
   `components/event/EventAtmosphere.tsx`, which composes `ThemeBackground` and
-  `ParticleLayer`; persisted effect fields resolve through
-  `lib/effects.ts#resolveEffectConfig`. Public event sections use
+  `ParticleLayer`; event routes resolve persisted effect fields through the
+  server-only `lib/effect-catalog.ts#resolveEventEffect` (custom library
+  mixtures) and the pure `lib/effects.ts#resolveEffectConfig`. Public event sections use
   `components/event/event-page/EventCard.tsx` as their semantic surface.
 - New and existing RSVP flows use `app/e/[slug]/rsvp/page.tsx` and
   `components/rsvp/`; RSVP response labels and controls are centralized in
@@ -257,6 +258,21 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   [docs/engineering/design-language.md](docs/engineering/design-language.md) is
   the source of truth for how UI uses them: principles, shared components and
   patterns every screen follows.
+- Background effects (#825): `lib/effects.ts` is the pure, client-safe model —
+  the 19 built-in sets, Amount (density only), Size, Speed, Up/Down/Random
+  movement, the reserved `custom` source and shape checks for library ids.
+  `lib/effect-particles.ts` builds the particle paths `ParticleLayer` animates.
+  The local icon library is fixed application data: artwork under
+  `public/effects/library/<collection>/<version>/` and its manifest,
+  provenance and four-language CLDR labels/keywords in `lib/effect-catalog-data/`.
+  `lib/effect-catalog.ts` (`server-only`) is its only reader: it loads the data
+  once per process, checks membership, resolves stored ids to trusted sprite
+  paths and runs the search; `lib/effect-catalog-shared.ts` holds the small
+  client-safe types. `app/api/effects/search/route.ts` is the host editor's
+  authorized, rate-limited, uncached search endpoint. No icon or translation
+  service is contacted at runtime. `EventTheme.effectIconIds` and
+  `effectMovement` persist a mixture and its movement through `saveEventTheme`;
+  the editor is `components/event/settings-page/EffectsPanel.tsx`.
 - `app/fonts.ts` builds the theme fonts. Roboto uses the licensed local asset in
   `app/font-files/`; the other families use `next/font/google` at build time.
 - `lib/email-theme.ts` is the only web-theme-to-email degradation boundary.
@@ -360,6 +376,7 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 | RSVP behavior            | `app/actions/event/rsvp.ts`                | `components/rsvp/`, `lib/schemas.ts`, capacity/access helpers     |
 | Guest check-in           | `app/actions/event/checkins.ts`            | guest-list route/component, `CheckIn`, activity/privacy helpers   |
 | Host event settings      | `app/actions/event/settings.ts`            | `components/event/settings-page/`, `prisma/schema.prisma`         |
+| Background effects       | `lib/effects.ts`, `lib/effect-catalog.ts`  | `ParticleLayer`, `EffectsPanel`, effect search route, design docs |
 | Dashboard                | `app/actions/event/dashboard.ts`           | `components/dashboard/`, `app/(app)/dashboard/`                   |
 | Authentication/session   | `app/actions/auth.ts`, `app/auth/`         | `lib/auth.ts`, `lib/session.ts`, `lib/session-user.ts`            |
 | Authorization            | `lib/auth-guards.ts`, `lib/eventAccess.ts` | relevant action/route and regression tests                        |

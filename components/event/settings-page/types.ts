@@ -1,6 +1,8 @@
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 import type { GuestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
+import type { StoredEffectFields } from "@/lib/effects";
+import type { EffectEditorState } from "./effect-state";
 
 export type SessionUser = {
   id: string;
@@ -89,20 +91,18 @@ export type EventInput = Partial<GuestRsvpDisplayFields> & {
   hostDisplayName: string | null;
   hostAlertEmail: boolean;
   hostAlertSms: boolean;
-  theme: {
-    baseTheme: "DARK" | "SOFT" | "BOLD";
-    gradientFrom: string;
-    gradientTo: string;
-    accentColor: string;
-    coverImageUrl: string | null;
-    appliedPresetId?: string | null;
-    cardOpacity?: number | null;
-    fontId?: string | null;
-    effectId?: string | null;
-    effectDensity?: string | null;
-    effectSpeed?: string | null;
-    effectSize?: number | null;
-  } | null;
+  theme:
+    | ({
+        baseTheme: "DARK" | "SOFT" | "BOLD";
+        gradientFrom: string;
+        gradientTo: string;
+        accentColor: string;
+        coverImageUrl: string | null;
+        appliedPresetId?: string | null;
+        cardOpacity?: number | null;
+        fontId?: string | null;
+      } & StoredEffectFields)
+    | null;
   reminderSettings: {
     emailWeekBefore: boolean;
     emailDayBefore: boolean;
@@ -169,12 +169,13 @@ export type DbThemePreset = {
   defaultSnapshot?: unknown;
 };
 
+/**
+ * Explicit values for one theme autosave. Omitted fields save their current
+ * state; `effect` is always a complete snapshot of the effect editor.
+ */
 export interface ThemeExtrasOverrides {
   fontId?: string | null;
-  effectId?: string | null;
-  effectDensity?: string | null;
-  effectSpeed?: string | null;
-  effectSize?: number | null;
+  effect?: EffectEditorState;
 }
 
 export type SettingsSection =

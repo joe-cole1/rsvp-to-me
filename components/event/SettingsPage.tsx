@@ -7,12 +7,13 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InlineAlert, Toast } from "@/components/ui/Feedback";
 import { type BaseTheme, resolveTheme, getSortedPresets, getDefaultCardOpacity } from "@/lib/theme";
+import { resolveEffectConfig } from "@/lib/effects";
+import type { LibraryIconSummary } from "@/lib/effect-catalog-shared";
 import {
-  DEFAULT_EFFECT_DENSITY,
-  DEFAULT_EFFECT_SPEED,
-  DEFAULT_EFFECT_SIZE,
-  resolveEffectConfig,
-} from "@/lib/effects";
+  effectStateToFields,
+  initialEffectState,
+  type EffectEditorState,
+} from "./settings-page/effect-state";
 import {
   saveEventSettings,
   saveEventTheme,
@@ -70,12 +71,15 @@ export function SettingsPage({
   themePresets = [],
   sessionUser = null,
   channelConfig = { email: true, sms: true },
+  initialLibraryIcons = [],
 }: {
   event: EventInput;
   isOwner: boolean;
   themePresets?: DbThemePreset[];
   sessionUser?: SessionUser | null;
   channelConfig?: { email: boolean; sms: boolean };
+  /** Server-resolved summaries of the stored custom effect's icons (#825) */
+  initialLibraryIcons?: LibraryIconSummary[];
 }) {
   const translate = useTranslations("Ui.Event.SettingsPage");
   const common = useTranslations("Ui.Common");
@@ -98,16 +102,18 @@ export function SettingsPage({
     event.theme?.appliedPresetId ?? null
   );
   const [fontId, setFontId] = useState<string | null>(event.theme?.fontId ?? null);
-  const [effectId, setEffectId] = useState<string | null>(event.theme?.effectId ?? null);
-  const [effectDensity, setEffectDensity] = useState<string>(
-    event.theme?.effectDensity ?? DEFAULT_EFFECT_DENSITY
+  // #825: one object for every effect field, so each save sends all of them.
+  const [effect, setEffect] = useState<EffectEditorState>(() => initialEffectState(event.theme));
+  // Summaries for library icons this editor knows: the stored mixture, plus
+  // anything picked from search results. Only these few labels reach the client.
+  const [libraryIcons, setLibraryIcons] = useState<Record<string, LibraryIconSummary>>(() =>
+    Object.fromEntries(initialLibraryIcons.map((icon) => [icon.id, icon]))
   );
-  const [effectSpeed, setEffectSpeed] = useState<string>(
-    event.theme?.effectSpeed ?? DEFAULT_EFFECT_SPEED
-  );
-  const [effectSize, setEffectSize] = useState<number>(
-    event.theme?.effectSize ?? DEFAULT_EFFECT_SIZE
-  );
+  const rememberLibraryIcons = (icons: LibraryIconSummary[]) =>
+    setLibraryIcons((known) => ({
+      ...known,
+      ...Object.fromEntries(icons.map((icon) => [icon.id, icon])),
+    }));
   const [themeSearch, setThemeSearch] = useState("");
   const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">(
     "all"
@@ -295,11 +301,9 @@ export function SettingsPage({
             newCardOpacity !== undefined ? newCardOpacity : cardOpacity,
             {
               fontId: extras?.fontId !== undefined ? extras.fontId : fontId,
-              effectId: extras?.effectId !== undefined ? extras.effectId : effectId,
-              effectDensity:
-                extras?.effectDensity !== undefined ? extras.effectDensity : effectDensity,
-              effectSpeed: extras?.effectSpeed !== undefined ? extras.effectSpeed : effectSpeed,
-              effectSize: extras?.effectSize !== undefined ? extras.effectSize : effectSize,
+              // Always the complete effect, so a color or font save can never
+              // drop a custom mixture or an explicit movement.
+              ...effectStateToFields(extras?.effect ?? effect),
             },
             token
           )
@@ -816,14 +820,8 @@ export function SettingsPage({
   const t = resolveTheme(base, gradientFrom, gradientTo, accent, cardOpacity, fontId);
 
   const activeEffect = useMemo(
-    () =>
-      resolveEffectConfig({
-        effectId,
-        effectDensity,
-        effectSpeed,
-        effectSize,
-      }),
-    [effectId, effectDensity, effectSpeed, effectSize]
+    () => resolveEffectConfig(effectStateToFields(effect), Object.values(libraryIcons)),
+    [effect, libraryIcons]
   );
 
   const S = buildStyles(t);
@@ -964,14 +962,10 @@ export function SettingsPage({
             setThemePresetId={setThemePresetId}
             fontId={fontId}
             setFontId={setFontId}
-            effectId={effectId}
-            setEffectId={setEffectId}
-            effectDensity={effectDensity}
-            setEffectDensity={setEffectDensity}
-            effectSpeed={effectSpeed}
-            setEffectSpeed={setEffectSpeed}
-            effectSize={effectSize}
-            setEffectSize={setEffectSize}
+            effect={effect}
+            setEffect={setEffect}
+            libraryIcons={libraryIcons}
+            rememberLibraryIcons={rememberLibraryIcons}
             triggerSaveTheme={triggerSaveTheme}
             t={t}
           />

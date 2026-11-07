@@ -151,23 +151,18 @@ select {
 /* ── Animated background effects (ParticleLayer)─────────────────────────────
    GPU-only properties (transform, opacity) so the drift stays at 60fps without
    layout or paint work. Outer node travels the viewport; inner node handles
-   sway/wobble + rotation; the sprite itself twinkles (float mode only). */
+   sway/wobble + rotation; built-in float sets also twinkle.
+   #825: one path keyframe serves Up, Down and Random. Each particle sets its
+   own start and end points (lib/effect-particles.ts), already pushed past the
+   edge far enough for its size, so Random particles cross in different
+   directions and no loop restart is visible. */
 
-@keyframes rsvp-effect-fall {
+@keyframes rsvp-effect-path {
   from {
-    transform: translate3d(0, -12vh, 0);
+    transform: translate3d(var(--from-x, 0), var(--from-y, -12vh), 0);
   }
   to {
-    transform: translate3d(0, 112vh, 0);
-  }
-}
-
-@keyframes rsvp-effect-float {
-  from {
-    transform: translate3d(0, 112vh, 0);
-  }
-  to {
-    transform: translate3d(0, -12vh, 0);
+    transform: translate3d(var(--to-x, 0), var(--to-y, 112vh), 0);
   }
 }
 

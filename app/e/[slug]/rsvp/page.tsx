@@ -6,7 +6,7 @@ import { resolveEventAccess } from "@/lib/eventAccess";
 import { resolveTheme } from "@/lib/theme";
 import { RsvpFlow } from "@/components/rsvp/RsvpFlow";
 import { getChannelConfig } from "@/lib/config";
-import { resolveEffectConfig } from "@/lib/effects";
+import { resolveEventEffect } from "@/lib/effect-catalog";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -76,7 +76,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
     event.theme?.cardOpacity,
     event.theme?.fontId
   );
-  const effect = resolveEffectConfig(event.theme);
+  const effect = await resolveEventEffect(event.theme);
 
   const rsvpEvent = {
     id: event.id,

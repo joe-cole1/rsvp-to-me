@@ -48,6 +48,13 @@ const nextConfig: NextConfig = {
         source: "/e/:slug/notifications",
         headers: [...downloadHeaders, { key: "Referrer-Policy", value: "no-referrer" }],
       },
+      // #825: effect library art lives under a pinned version directory
+      // (public/effects/library/<collection>/<version>/), so a file never
+      // changes in place; a new version is a new path.
+      {
+        source: "/effects/library/:collection/:version/:file",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
 };

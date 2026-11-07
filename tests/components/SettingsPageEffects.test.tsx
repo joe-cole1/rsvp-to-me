@@ -91,4 +91,41 @@ describe("SettingsPage effect layer", () => {
     expect(effectLayer).toBeTruthy();
     expect(effectLayer?.getAttribute("data-effect-id")).toBe("confetti");
   });
+
+  // #825: a stored library mixture previews from the server-seeded summaries.
+  const CAT = {
+    id: "noto:cat",
+    collection: "noto" as const,
+    src: "/effects/library/noto/1.2.10/cat.svg",
+    labels: { "en-US": "Cat", "nl-NL": "Kat", "de-DE": "Katze", "es-ES": "Gato" },
+  };
+  const customEvent: EventInput = {
+    ...mockEvent,
+    theme: {
+      ...mockEvent.theme!,
+      effectId: "custom",
+      effectIconIds: ["noto:cat"],
+      effectSize: 6,
+      effectMovement: "up",
+    },
+  };
+
+  it("previews a stored custom mixture with its library art and movement", () => {
+    const { container } = render(
+      <SettingsPage event={customEvent} isOwner themePresets={[]} initialLibraryIcons={[CAT]} />
+    );
+    const layer = container.querySelector(".rsvp-effect-layer")!;
+    expect(layer.getAttribute("data-effect-id")).toBe("custom");
+    expect(layer.getAttribute("data-effect-movement")).toBe("up");
+    const sprites = [...layer.querySelectorAll("img")].map((img) => img.getAttribute("src"));
+    expect(sprites.length).toBe(18);
+    expect(new Set(sprites)).toEqual(new Set([CAT.src]));
+  });
+
+  it("shows no effect when the stored icons can't be resolved", () => {
+    const { container } = render(
+      <SettingsPage event={customEvent} isOwner themePresets={[]} initialLibraryIcons={[]} />
+    );
+    expect(container.querySelector(".rsvp-effect-layer")).toBeNull();
+  });
 });

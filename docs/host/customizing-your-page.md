@@ -74,16 +74,31 @@ Fonts are bundled with the app — nothing is loaded from external services, and
 
 ### Effects (Animated Backgrounds)
 
-The **Effects** tab in **Settings → Theme** adds an optional layer of gently drifting motifs behind your page — falling autumn leaves, floating balloons, rising fireworks, drifting turkeys, snow, confetti, and more (19 sets in all, including a beer toast 🍺).
+The **Effects** tab in **Settings → Theme** adds an optional layer of gently drifting motifs behind your page — falling autumn leaves, floating balloons, rising fireworks, drifting turkeys, snow, confetti, and more (19 ready-made sets in all, including a beer toast 🍺) — or a mix of icons you choose yourself.
 
 - **Off by default.** Effects are purely opt-in and fully independent of your theme — put turkeys on a St. Patrick's theme if that's your party.
-- **Amount** (Less / Some / More) sets how many motifs float around and how big they are, in one choice: Less is a few at their designed size, Some (the default) is a medium amount at their designed size, and More is a dense layer at twice the size. **Speed** (Gentle / Medium / Lively) controls how fast. Each motif still varies a little in size so the layer keeps its organic feel.
-- Events that picked a larger size with the old size slider keep it until you choose an Amount.
-- Seasonal effects near your current date sort to the front of the picker as suggestions — nothing is ever applied automatically.
-- Confetti and balloons tint themselves to match your theme's colors.
+- **Ready-made sets** appear as soon as you open the tab, with **None** first. Seasonal effects near your current date sort to the front as suggestions — nothing is ever applied automatically.
+- **Search for icons.** Type in **Search icons** to find more than 6,800 emoji-style icons in two styles, Fluent Emoji Flat and Noto Emoji. Search works in English, Dutch, German and Spanish at the same time, whatever language the app is in — "cat", "kat", "Katze" and "gato" all find cats — and ignores capitals and accents. You can also paste an emoji, such as 🎉 or 👋🏽, to find it directly. Results show their names in your language and the style underneath; **Load more** shows the next page. Clear the search to see the ready-made sets again.
+- **Mix up to three icons.** Click an icon to add it to **Your mix**; the motifs take turns evenly across the background. Click it again, or use its remove button, to take it out. Removing the last icon turns the effect off, and choosing a ready-made set replaces the mix.
+- **Amount** (Less / Some / More) sets how many motifs drift by — and only that.
+- **Size** sets how big they are: **Small** (3×), **Medium** (5×) or **Large** (7×), or drag the slider (or use the arrow keys) anywhere from 1× to 10× in half steps. The current size is shown next to the slider. Each motif still varies a little in size so the layer keeps its organic feel. New effects start at Small.
+- **Speed** (Gentle / Medium / Lively) controls how fast.
+- **Movement** sets the direction for the whole effect: **Up**, **Down**, or **Random**, where each motif drifts across on its own path — sideways and diagonally too. Ready-made sets keep their usual direction (falling leaves, rising balloons) until you pick one; a mix of icons starts with Random.
+- Amount, Size, Speed and Movement are independent: changing one never changes another, and changing the motifs keeps them all.
+- **If you set your effect before November 2026:** for a short time, Amount also set the size (More doubled it) and the size slider was gone. Size is its own control again. Whatever size your event has now — including one set by the old slider or by that Amount choice — is kept exactly as it is; adjust it with Size if you like.
+- Confetti and balloons tint themselves to match your theme's colors. Library icons keep their own colors.
+- Everything is part of RSVP to Me itself: icons, their names and the search all run on your RSVP to Me site, with no outside icon or translation service. The artwork's licenses are listed under [Icon credits](#icon-credits).
 - Guests who have "reduce motion" enabled in their device accessibility settings see a calm, static page — the animation layer hides itself automatically.
 - Every visitor can choose **"✨ Hide effects"** from the menu in the top bar, so anyone who finds the animation distracting can turn it off for themselves. Signed-in visitors open the menu from their profile picture; signed-out visitors use the circular hamburger button. The choice is remembered in their browser and doesn't affect anyone else.
 - Effects follow guests and hosts across the event page, RSVP form, guest list, and event settings. **Emails always stay static** by design.
+
+#### Icon credits
+
+The searchable effect icons come from two open-source collections, included unchanged:
+
+- **Fluent Emoji Flat** by Microsoft Corporation, MIT License — [license](/effects/library/fluent-emoji-flat/1.2.6/LICENSE.txt).
+- **Noto Emoji** by Google, Apache License 2.0 — [license](/effects/library/noto/1.2.10/LICENSE.txt), [notice](/effects/library/noto/1.2.10/NOTICE.txt) and [regional-flag notice](/effects/library/noto/1.2.10/REGION-FLAGS-LICENSE.txt).
+- Icon names and search words in all four languages come from the Unicode CLDR project, Unicode License v3 — [license](/effects/library/cldr/49.0.0/LICENSE.txt).
 
 Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. Email text is adjusted to stay readable in every mail app: links appear in a deeper shade of your accent color, and on some bold gradients the email title uses a dark ink where your page shows white text over a soft shade. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
 
