@@ -5,10 +5,30 @@ import { EFFECTS_EVENT_SLUG, LEGACY_EFFECT_EVENT_SLUG, readAuthCookies } from ".
 // independently, changes the font, reloads, and sees the same background on
 // the event page, guest list and RSVP flow — all served from this origin.
 
-const CAT = "/effects/library/fluent-emoji-flat/1.2.6/cat.svg";
+const CAT = "/effects/library/noto/1.2.10/cat.svg";
 const HEART = "/effects/library/noto/1.2.10/red-heart.svg";
 
+// Theme saves are server actions (POSTs). Count the ones in flight so a test
+// never reloads while a queued save is still running: the page's "Saving"
+// line clears when any one save finishes, and "networkidle" has already been
+// reached by the time the host starts clicking, so neither is a reliable wait.
+const inFlightSaves = new WeakMap<Page, { count: number }>();
+
+function trackSaves(page: Page) {
+  const state = { count: 0 };
+  inFlightSaves.set(page, state);
+  page.on("request", (r) => {
+    if (r.method() === "POST") state.count++;
+  });
+  const finished = (r: { method(): string }) => {
+    if (r.method() === "POST") state.count--;
+  };
+  page.on("requestfinished", finished);
+  page.on("requestfailed", finished);
+}
+
 async function openEffects(page: Page, slug: string) {
+  if (!inFlightSaves.has(page)) trackSaves(page);
   await page.goto(`/e/${slug}/settings?section=theme`);
   await page.getByRole("button", { name: "Effects", exact: true }).click();
 }
@@ -18,9 +38,13 @@ function group(page: Page, name: string) {
 }
 
 async function settle(page: Page) {
-  // Theme saves are server actions; let the last one finish before reloading.
-  await page.waitForLoadState("networkidle");
-  await expect(page.getByText("Saving…")).toHaveCount(0);
+  const saves = inFlightSaves.get(page)!;
+  // Twice, with a pause between, so a save started by the last click is counted too.
+  for (let i = 0; i < 2; i++) {
+    await expect.poll(() => saves.count, { timeout: 15_000 }).toBe(0);
+    await page.waitForTimeout(500);
+  }
+  await expect.poll(() => saves.count).toBe(0);
 }
 
 test.describe("Background effects (#825)", () => {
@@ -44,7 +68,7 @@ test.describe("Background effects (#825)", () => {
 
     // Spanish and German searches with the interface in English
     await search.fill("gato");
-    await page.locator('[data-icon-id="fluent-emoji-flat:cat"]').click();
+    await page.locator('[data-icon-id="noto:cat"]').click();
     // "Herz" alone matches hundreds of hearts; the full German label ranks red heart first.
     await search.fill("Rotes Herz");
     await page.locator('[data-icon-id="noto:red-heart"]').click();

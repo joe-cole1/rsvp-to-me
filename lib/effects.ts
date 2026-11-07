@@ -148,13 +148,16 @@ export const MAX_LIBRARY_ICONS = 3;
 /** Common nominal size for library art before the host's multiplier. */
 export const LIBRARY_ICON_BASE_SIZE_PX = 22;
 
-/** The two prepared collections, in their fixed tie-break order. */
-export const LIBRARY_COLLECTION_IDS = ["fluent-emoji-flat", "noto"] as const;
+/**
+ * The prepared library collection. #825 shipped Fluent Emoji Flat as well, but
+ * every Fluent icon duplicated a Noto emoji, so the library is Noto-only.
+ */
+export const LIBRARY_COLLECTION_IDS = ["noto"] as const;
 export type LibraryCollectionId = (typeof LIBRARY_COLLECTION_IDS)[number];
 
-const LIBRARY_ICON_ID = /^(fluent-emoji-flat|noto):[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const LIBRARY_ICON_ID = /^noto:[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const LIBRARY_ICON_ID_MAX_LENGTH = 120;
-const LIBRARY_ICON_SRC = /^\/effects\/library\/(fluent-emoji-flat|noto)\/[0-9.]+\/[a-z0-9-]+\.svg$/;
+const LIBRARY_ICON_SRC = /^\/effects\/library\/noto\/[0-9.]+\/[a-z0-9-]+\.svg$/;
 
 /** Shape check only — real membership is checked server-side by the catalog. */
 export function isLibraryIconIdShape(id: unknown): id is string {

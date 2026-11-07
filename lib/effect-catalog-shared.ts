@@ -1,10 +1,9 @@
 // Client-safe types and small metadata for the local effect icon library (#825).
 //
 // The full icon manifest and the four-language keyword corpus stay behind the
-// server-only lib/effect-catalog.ts. Only this tiny module (types, the two
-// collection names, the search page size) may reach client bundles.
+// server-only lib/effect-catalog.ts. Only this tiny module (types and the
+// search limits) may reach client bundles.
 
-import collectionsData from "./effect-catalog-data/collections.json";
 import type { Locale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import type { LibraryCollectionId } from "./effects";
@@ -36,15 +35,6 @@ export interface EffectSearchErrorResponse {
   error: EffectSearchErrorCode;
   /** rate_limited only: seconds until the window resets */
   retryAfter?: number;
-}
-
-const COLLECTION_NAMES: Record<string, string> = Object.fromEntries(
-  collectionsData.collections.map((c) => [c.id, c.name])
-);
-
-/** "Fluent Emoji Flat" / "Noto Emoji" — proper names, never translated. */
-export function libraryCollectionName(collection: string): string {
-  return COLLECTION_NAMES[collection] ?? collection;
 }
 
 /** The icon's label in the interface language (English if a label is missing). */

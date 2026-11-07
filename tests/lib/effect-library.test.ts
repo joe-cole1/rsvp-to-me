@@ -24,15 +24,9 @@ import { buildParticles } from "@/lib/effect-particles";
 
 // #825: custom library mixtures, independent Size, and Up/Down/Random movement.
 
-const CAT = {
-  id: "fluent-emoji-flat:cat",
-  src: "/effects/library/fluent-emoji-flat/1.2.6/cat.svg",
-};
+const CAT = { id: "noto:cat", src: "/effects/library/noto/1.2.10/cat.svg" };
 const HEART = { id: "noto:red-heart", src: "/effects/library/noto/1.2.10/red-heart.svg" };
-const PIZZA = {
-  id: "fluent-emoji-flat:pizza",
-  src: "/effects/library/fluent-emoji-flat/1.2.6/pizza.svg",
-};
+const PIZZA = { id: "noto:pizza", src: "/effects/library/noto/1.2.10/pizza.svg" };
 
 function seeded(seed: number) {
   let x = seed >>> 0;
@@ -43,11 +37,12 @@ function seeded(seed: number) {
 }
 
 describe("library icon shape checks", () => {
-  it("accepts only the two prepared collections' id format", () => {
+  it("accepts only the Noto collection's id format", () => {
     expect(isLibraryIconIdShape(CAT.id)).toBe(true);
     expect(isLibraryIconIdShape("noto:waving-hand-dark-skin-tone")).toBe(true);
     for (const bad of [
       "mdi:cat",
+      "fluent-emoji-flat:cat", // removed after #827: every Fluent icon duplicated a Noto emoji
       "noto:",
       "noto:../../etc/passwd",
       "noto:Cat",
@@ -69,8 +64,7 @@ describe("library icon shape checks", () => {
     expect(isValidLibraryIconIdList([CAT.id, CAT.id])).toBe(false);
     expect(isValidLibraryIconIdList([CAT.id, HEART.id, PIZZA.id, "noto:cat"])).toBe(false);
     expect(isValidLibraryIconIdList("noto:cat")).toBe(false);
-    // The same subject in the other style is a distinct choice
-    expect(isValidLibraryIconIdList(["fluent-emoji-flat:cat", "noto:cat"])).toBe(true);
+    expect(isValidLibraryIconIdList(["fluent-emoji-flat:cat", "noto:cat"])).toBe(false);
   });
 
   it("trusts only versioned same-origin library paths", () => {
@@ -80,6 +74,7 @@ describe("library icon shape checks", () => {
       "//evil.test/cat.svg",
       "/effects/library/noto/1.2.10/../../secret.svg",
       "/effects/library/mdi/1.0/cat.svg",
+      "/effects/library/fluent-emoji-flat/1.2.6/cat.svg",
       "/api/uploads/x.svg",
       "javascript:alert(1)",
       "/effects/library/noto/1.2.10/cat.png",

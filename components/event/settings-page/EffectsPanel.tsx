@@ -24,7 +24,6 @@ import {
 } from "@/lib/effects";
 import {
   EFFECT_SEARCH_MAX_QUERY_LENGTH,
-  libraryCollectionName,
   libraryIconLabel,
   type EffectSearchErrorResponse,
   type EffectSearchResponse,
@@ -37,7 +36,7 @@ import { Field, Input, Label, Range } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
 
 // #825: the Effects tab. An empty search shows None and the 19 built-in sets;
-// a search finds icons in the local Fluent/Noto library in any of the four
+// a search finds icons in the local Noto Emoji library in any of the four
 // languages. A host picks one built-in set or mixes up to three icons, then
 // sets Amount, Size, Speed and Movement independently. Every change saves at
 // once through the theme autosave (onCommit); the size slider previews while
@@ -316,12 +315,7 @@ export function EffectsPanel({
                     height={24}
                     style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }}
                   />
-                  <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                    <span style={{ ...ellipsis, fontSize: "13px", fontWeight: 600 }}>{label}</span>
-                    <span style={{ ...ellipsis, fontSize: "11px", color: t.textSecondary }}>
-                      {libraryCollectionName(icon.collection)}
-                    </span>
-                  </span>
+                  <span style={{ ...ellipsis, fontSize: "13px", fontWeight: 600 }}>{label}</span>
                   <Button
                     theme={t}
                     variant="icon"
@@ -372,14 +366,13 @@ export function EffectsPanel({
             {noneTile}
             {search.items.map((icon) => {
               const label = libraryIconLabel(icon, locale);
-              const collection = libraryCollectionName(icon.collection);
               return (
                 <ChoiceTile
                   key={icon.id}
                   theme={t}
                   selected={selectedKnown.includes(icon.id)}
                   onClick={() => toggleIcon(icon)}
-                  title={`${label} · ${collection}`}
+                  title={label}
                   data-icon-id={icon.id}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -393,9 +386,6 @@ export function EffectsPanel({
                     style={{ width: "32px", height: "32px", objectFit: "contain" }}
                   />
                   <span style={{ ...ellipsis, fontSize: "12px", fontWeight: 600 }}>{label}</span>
-                  <span style={{ ...ellipsis, fontSize: "11px", color: t.textSecondary }}>
-                    {collection}
-                  </span>
                 </ChoiceTile>
               );
             })}

@@ -105,11 +105,11 @@ describe("effect library migration", () => {
     await client.query(
       `UPDATE "EventTheme" SET "effectId" = 'custom', "effectIconIds" = $1, "effectMovement" = 'random'
        WHERE id = 'new'`,
-      [["noto:cat", "fluent-emoji-flat:red-heart"]]
+      [["noto:cat", "noto:red-heart"]]
     );
     expect(await row("new")).toMatchObject({
       effectId: "custom",
-      effectIconIds: ["noto:cat", "fluent-emoji-flat:red-heart"],
+      effectIconIds: ["noto:cat", "noto:red-heart"],
       effectMovement: "random",
     });
   });

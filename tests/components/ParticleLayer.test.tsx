@@ -178,7 +178,7 @@ describe("ParticleLayer", () => {
   // ── #825: library mixtures and independent movement ──
   const LIBRARY = [
     { id: "noto:cat", src: "/effects/library/noto/1.2.10/cat.svg" },
-    { id: "fluent-emoji-flat:pizza", src: "/effects/library/fluent-emoji-flat/1.2.6/pizza.svg" },
+    { id: "noto:pizza", src: "/effects/library/noto/1.2.10/pizza.svg" },
   ];
 
   it("draws a custom mixture's own colors with img sprites in a contained square", () => {
