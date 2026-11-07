@@ -56,15 +56,13 @@ describe("effects registry", () => {
     }
   });
 
-  it("each Amount step writes a valid density and size, and Some is the old default", () => {
-    expect(EFFECT_AMOUNTS).toEqual({
-      less: { density: "sparse", size: 1 },
-      some: { density: "medium", size: 1 },
-      more: { density: "dense", size: 2 },
-    });
-    for (const { density, size } of Object.values(EFFECT_AMOUNTS)) {
+  it("each Amount step is a density only (#825), and Some is the old default", () => {
+    expect(EFFECT_AMOUNTS).toEqual({ less: "sparse", some: "medium", more: "dense" });
+    expect(Object.values(EFFECT_AMOUNTS).map((d) => EFFECT_DENSITIES[d].count)).toEqual([
+      10, 18, 28,
+    ]);
+    for (const density of Object.values(EFFECT_AMOUNTS)) {
       expect(isValidEffectDensity(density)).toBe(true);
-      expect(isValidEffectSize(size)).toBe(true);
     }
   });
 
@@ -114,6 +112,7 @@ describe("effects registry", () => {
       density: "medium",
       speed: "medium",
       size: 1,
+      movement: "down",
     });
     expect(
       resolveEffectConfig({
@@ -122,7 +121,7 @@ describe("effects registry", () => {
         effectSpeed: "gentle",
         effectSize: 4,
       })
-    ).toEqual({ effectId: "snow", density: "sparse", speed: "gentle", size: 4 });
+    ).toEqual({ effectId: "snow", density: "sparse", speed: "gentle", size: 4, movement: "down" });
   });
 
   it("falls back safely when persisted effect options are invalid", () => {
@@ -132,8 +131,9 @@ describe("effects registry", () => {
         effectDensity: "extreme",
         effectSpeed: "ludicrous",
         effectSize: 99,
+        effectMovement: "sideways",
       })
-    ).toEqual({ effectId: "snow", density: "medium", speed: "medium", size: 1 });
+    ).toEqual({ effectId: "snow", density: "medium", speed: "medium", size: 1, movement: "down" });
   });
 
   it("sorts seasonal sets by month proximity, classics after", () => {

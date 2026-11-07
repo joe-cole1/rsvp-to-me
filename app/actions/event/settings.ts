@@ -7,11 +7,16 @@ import { db } from "@/lib/db";
 import type { BaseTheme } from "@/lib/theme";
 import { isValidFontId } from "@/lib/fonts";
 import {
-  isValidEffectId,
+  CUSTOM_EFFECT_ID,
+  isValidEffectSource,
   isValidEffectDensity,
   isValidEffectSpeed,
   isValidEffectSize,
+  isValidEffectMovement,
+  isValidLibraryIconIdList,
+  type StoredEffectFields,
 } from "@/lib/effects";
+import { areLibraryIconIdsKnown } from "@/lib/effect-catalog";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { tzLocalToUtc } from "@/lib/utils";
@@ -102,12 +107,45 @@ export async function saveEventLocation(
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 
-export interface ThemeExtras {
+/**
+ * Optional theme fields. `undefined` leaves a stored value unchanged; `null`
+ * clears it. The effect source is written atomically: `effectIconIds` is only
+ * accepted together with `effectId`, a custom mixture must carry its 1–3
+ * catalog ids, and choosing None or a built-in set clears the stored ids.
+ */
+export interface ThemeExtras extends StoredEffectFields {
   fontId?: string | null;
-  effectId?: string | null;
-  effectDensity?: string | null;
-  effectSpeed?: string | null;
-  effectSize?: number | null;
+}
+
+async function validateThemeExtras(extras: ThemeExtras) {
+  if (!isValidFontId(extras.fontId)) throw new Error(await eventActionMessage("unknownFont"));
+  if (!isValidEffectSource(extras.effectId))
+    throw new Error(await eventActionMessage("unknownEffect"));
+  if (!isValidEffectDensity(extras.effectDensity))
+    throw new Error(await eventActionMessage("invalidDensity"));
+  if (!isValidEffectSpeed(extras.effectSpeed))
+    throw new Error(await eventActionMessage("invalidSpeed"));
+  if (!isValidEffectSize(extras.effectSize))
+    throw new Error(await eventActionMessage("invalidSize"));
+  if (!isValidEffectMovement(extras.effectMovement))
+    throw new Error(await eventActionMessage("invalidMovement"));
+
+  const ids = extras.effectIconIds;
+  if (extras.effectId === CUSTOM_EFFECT_ID) {
+    if (!isValidLibraryIconIdList(ids) || !(await areLibraryIconIdsKnown(ids)))
+      throw new Error(await eventActionMessage("invalidEffectIcons"));
+  } else if (ids !== undefined) {
+    // Ids only travel with their source, and only a custom source has any.
+    const empty = ids === null || (Array.isArray(ids) && ids.length === 0);
+    if (extras.effectId === undefined || !empty)
+      throw new Error(await eventActionMessage("invalidEffectIcons"));
+  }
+}
+
+/** The stored icon list that goes with a newly written effect source. */
+function effectIconIdsFor(extras: ThemeExtras): string[] | undefined {
+  if (extras.effectId === undefined) return undefined;
+  return extras.effectId === CUSTOM_EFFECT_ID ? [...(extras.effectIconIds ?? [])] : [];
 }
 
 export async function saveEventTheme(
@@ -123,17 +161,8 @@ export async function saveEventTheme(
 ) {
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("event_theme", captchaToken);
-  if (extras) {
-    if (!isValidFontId(extras.fontId)) throw new Error(await eventActionMessage("unknownFont"));
-    if (!isValidEffectId(extras.effectId))
-      throw new Error(await eventActionMessage("unknownEffect"));
-    if (!isValidEffectDensity(extras.effectDensity))
-      throw new Error(await eventActionMessage("invalidDensity"));
-    if (!isValidEffectSpeed(extras.effectSpeed))
-      throw new Error(await eventActionMessage("invalidSpeed"));
-    if (!isValidEffectSize(extras.effectSize))
-      throw new Error(await eventActionMessage("invalidSize"));
-  }
+  if (extras) await validateThemeExtras(extras);
+  const effectIconIds = extras ? effectIconIdsFor(extras) : undefined;
   await db.eventTheme.upsert({
     where: { eventId },
     update: {
@@ -145,6 +174,10 @@ export async function saveEventTheme(
       ...(cardOpacity !== undefined ? { cardOpacity } : {}),
       ...(extras && extras.fontId !== undefined ? { fontId: extras.fontId } : {}),
       ...(extras && extras.effectId !== undefined ? { effectId: extras.effectId } : {}),
+      ...(effectIconIds !== undefined ? { effectIconIds } : {}),
+      ...(extras && extras.effectMovement !== undefined
+        ? { effectMovement: extras.effectMovement }
+        : {}),
       ...(extras && extras.effectDensity !== undefined
         ? { effectDensity: extras.effectDensity }
         : {}),
@@ -161,6 +194,8 @@ export async function saveEventTheme(
       cardOpacity: cardOpacity ?? null,
       fontId: extras?.fontId ?? null,
       effectId: extras?.effectId ?? null,
+      effectIconIds: effectIconIds ?? [],
+      effectMovement: extras?.effectMovement ?? null,
       effectDensity: extras?.effectDensity ?? null,
       effectSpeed: extras?.effectSpeed ?? null,
       effectSize: extras?.effectSize ?? null,

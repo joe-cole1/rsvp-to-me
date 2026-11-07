@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@/tests/components/render";
+import { within } from "@testing-library/react";
 import React from "react";
 import { ThemePanel } from "@/components/event/settings-page/ThemePanel";
 import { GuestSharingCard } from "@/components/event/event-page/GuestSharingCard";
@@ -9,8 +10,18 @@ import dutch from "@/messages/nl-NL.json";
 import { testTheme } from "./helpers/theme";
 import type { EventInput } from "@/components/event/settings-page/types";
 import type { EventData } from "@/components/event/event-page/types";
+import type { EffectEditorState } from "@/components/event/settings-page/effect-state";
 
 const noop = vi.fn();
+
+const CONFETTI: EffectEditorState = {
+  effectId: "confetti",
+  effectIconIds: [],
+  effectDensity: "medium",
+  effectSpeed: "medium",
+  effectSize: 3,
+  effectMovement: null,
+};
 
 function renderPanel(
   overrides: Partial<React.ComponentProps<typeof ThemePanel>> = {},
@@ -52,14 +63,10 @@ function renderPanel(
       setThemePresetId={noop}
       fontId="playfair"
       setFontId={noop}
-      effectId="confetti"
-      setEffectId={noop}
-      effectDensity="medium"
-      setEffectDensity={noop}
-      effectSpeed="medium"
-      setEffectSpeed={noop}
-      effectSize={1}
-      setEffectSize={noop}
+      effect={CONFETTI}
+      setEffect={noop}
+      libraryIcons={{}}
+      rememberLibraryIcons={noop}
       triggerSaveTheme={noop}
       t={testTheme}
       {...overrides}
@@ -78,36 +85,37 @@ describe("ThemePanel tabs", () => {
     expect(container.querySelector('input[type="range"]')).toBeNull();
   });
 
-  it("Effects tab shows the picker with Amount and Speed each on its own row, and no size slider", () => {
-    const { container, getByText, queryByText, queryByPlaceholderText } = renderPanel();
+  it("Effects tab shows the picker, a labeled icon search, and four independent controls", () => {
+    const { container, getByText, getByLabelText, queryByPlaceholderText } = renderPanel();
     fireEvent.click(getByText("Effects"));
     expect(queryByPlaceholderText("Search themes…")).toBeNull();
     expect(getByText("None")).toBeTruthy();
-    // The two controls are stacked in a dedicated column container
-    const amount = getByText("Amount");
-    const speed = getByText("Speed");
-    const column = amount.parentElement!.parentElement as HTMLElement;
+    expect(getByLabelText("Search icons")).toHaveAttribute("type", "search");
+    // Amount, Size, Speed and Movement stack in one column
+    const labels = ["Amount", "Size", "Speed", "Movement"].map((name) => getByText(name));
+    const column = labels[0].parentElement!.parentElement as HTMLElement;
     expect(column.style.flexDirection).toBe("column");
-    expect(speed.parentElement!.parentElement).toBe(column);
-    expect(queryByText("Density")).toBeNull();
-    expect(queryByText("Size")).toBeNull();
-    expect(container.querySelector('input[type="range"]')).toBeNull();
+    for (const label of labels) expect(label.parentElement!.parentElement).toBe(column);
+    // #825 restores the size slider: 1–10× in 0.5 steps
+    const slider = container.querySelector('input[type="range"]')!;
+    expect(slider).toHaveAttribute("min", "1");
+    expect(slider).toHaveAttribute("max", "10");
+    expect(slider).toHaveAttribute("step", "0.5");
   });
 
-  it("an Amount step saves density and size together", () => {
-    const setEffectDensity = vi.fn();
-    const setEffectSize = vi.fn();
+  it("an Amount step saves the density and leaves Size alone", () => {
+    const setEffect = vi.fn();
     const triggerSaveTheme = vi.fn();
     const { getByText, getByRole } = renderPanel({
-      setEffectDensity,
-      setEffectSize,
+      effect: { ...CONFETTI, effectSize: 6 },
+      setEffect,
       triggerSaveTheme,
     });
     fireEvent.click(getByText("Effects"));
     expect(getByRole("button", { name: "Some" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(getByRole("button", { name: "More" }));
-    expect(setEffectDensity).toHaveBeenCalledWith("dense");
-    expect(setEffectSize).toHaveBeenCalledWith(2);
+    const next = { ...CONFETTI, effectSize: 6, effectDensity: "dense" };
+    expect(setEffect).toHaveBeenCalledWith(next);
     expect(triggerSaveTheme).toHaveBeenCalledWith(
       "DARK",
       "#7c3aed",
@@ -115,14 +123,84 @@ describe("ThemePanel tabs", () => {
       "#a855f7",
       undefined,
       undefined,
-      { effectDensity: "dense", effectSize: 2 }
+      { effect: next }
     );
   });
 
-  it("an older event reads as the Amount step its density maps to", () => {
-    const { getByText, getByRole } = renderPanel({ effectDensity: "sparse", effectSize: 6 });
+  it("a Size choice saves the size and leaves Amount alone", () => {
+    const setEffect = vi.fn();
+    const { getByText, getByRole } = renderPanel({
+      effect: { ...CONFETTI, effectDensity: "sparse" },
+      setEffect,
+    });
+    fireEvent.click(getByText("Effects"));
+    expect(getByRole("button", { name: "Small" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(getByRole("button", { name: "Large" }));
+    expect(setEffect).toHaveBeenCalledWith({ ...CONFETTI, effectDensity: "sparse", effectSize: 7 });
+  });
+
+  it("an older event shows its stored size and Amount step as they are", () => {
+    const { container, getByText, getByRole } = renderPanel({
+      effect: { ...CONFETTI, effectDensity: "sparse", effectSize: 6 },
+    });
     fireEvent.click(getByText("Effects"));
     expect(getByRole("button", { name: "Less" })).toHaveAttribute("aria-pressed", "true");
+    const size = within(getByRole("group", { name: "Size" }));
+    for (const name of ["Small", "Medium", "Large"]) {
+      expect(size.getByRole("button", { name })).toHaveAttribute("aria-pressed", "false");
+    }
+    expect(container.querySelector("output")!.textContent).toBe("6×");
+  });
+
+  it("movement shows the set's own direction until the host picks one", () => {
+    const setEffect = vi.fn();
+    const { getByText, getByRole } = renderPanel({ setEffect });
+    fireEvent.click(getByText("Effects"));
+    // Confetti falls
+    expect(getByRole("button", { name: "Down" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(getByRole("button", { name: "Random" }));
+    expect(setEffect).toHaveBeenCalledWith({ ...CONFETTI, effectMovement: "random" });
+  });
+
+  it("reset restores the saved effect, including its mixture", () => {
+    const setEffect = vi.fn();
+    const triggerSaveTheme = vi.fn();
+    const event = {
+      title: "Summer Gala",
+      theme: {
+        baseTheme: "DARK",
+        gradientFrom: "#7c3aed",
+        gradientTo: "#1e40af",
+        accentColor: "#a855f7",
+        coverImageUrl: null,
+        fontId: "playfair",
+        cardOpacity: 0.85,
+        effectId: "custom",
+        effectIconIds: ["noto:cat"],
+        effectSize: 6,
+        effectMovement: "up",
+      },
+    } as unknown as EventInput;
+    const { getByRole } = renderPanel({ event, setEffect, triggerSaveTheme });
+    fireEvent.click(getByRole("button", { name: "↺ Reset" }));
+    const saved = {
+      effectId: "custom",
+      effectIconIds: ["noto:cat"],
+      effectDensity: "medium",
+      effectSpeed: "medium",
+      effectSize: 6,
+      effectMovement: "up",
+    };
+    expect(setEffect).toHaveBeenCalledWith(saved);
+    expect(triggerSaveTheme).toHaveBeenCalledWith(
+      "DARK",
+      "#7c3aed",
+      "#1e40af",
+      "#a855f7",
+      undefined,
+      0.85,
+      { fontId: "playfair", effect: saved }
+    );
   });
 
   it("Font tab shows the font grid and live preview using event title", () => {
@@ -178,7 +256,10 @@ describe("localized theme descriptors", () => {
     expect(getByText("Hoeveelheid")).toBeVisible();
     expect(getByText("Snelheid")).toBeVisible();
     expect(getByText("Harten")).toBeVisible();
+    expect(getByText("Grootte")).toBeVisible();
+    expect(getByText("Beweging")).toBeVisible();
+    expect(getByText("Willekeurig")).toBeVisible();
     fireEvent.click(getByTitle("Harten"));
-    expect(noop).toHaveBeenCalledWith("hearts");
+    expect(noop).toHaveBeenCalledWith({ ...CONFETTI, effectId: "hearts" });
   });
 });
