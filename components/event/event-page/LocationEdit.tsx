@@ -10,6 +10,7 @@ import type { LocationType } from "./types";
 import { buildMapUrl } from "./helpers";
 import { LocationFields } from "@/components/event/LocationFields";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { Button } from "@/components/ui/Button";
 
 // ── Location inline editor ────────────────────────────────────────────────────
 
@@ -39,22 +40,6 @@ export function LocationEdit({
 }) {
   const translate = useTranslations("Ui.Event.LocationEdit");
 
-  const getChipStyle = (): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 14px",
-    borderRadius: "100px",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    marginBottom: "24px",
-    transition: "all 0.2s ease",
-    background: t.cardBg,
-    border: `1px dashed ${t.accentBorder}`,
-    color: t.accentText,
-  });
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -280,10 +265,16 @@ export function LocationEdit({
           <div style={cardStyle}>{locationCardInner}</div>
         )
       ) : isHost ? (
-        <button onClick={openPopover} className="chip-button" style={getChipStyle()}>
-          <Plus size={13} />
+        <Button
+          theme={t}
+          variant="add"
+          size="sm"
+          onClick={openPopover}
+          style={{ marginBottom: "24px" }}
+        >
+          <Plus size={14} aria-hidden="true" />
           {translate("addLocation")}
-        </button>
+        </Button>
       ) : null}
 
       {/* Popover */}
@@ -313,44 +304,21 @@ export function LocationEdit({
               setVUrl(location.virtualUrl);
             }}
             theme={t}
-            compact
           />
 
           <div style={{ display: "flex", gap: "8px" }}>
-            <button
+            <Button
+              theme={t}
+              variant="primary"
               onClick={save}
               disabled={isPending}
-              style={{
-                flex: 1,
-                background: t.accent,
-                color: t.accentFg,
-                border: "none",
-                borderRadius: "10px",
-                padding: "10px",
-                fontFamily: "inherit",
-                fontSize: "14px",
-                fontWeight: 700,
-                cursor: isPending ? "not-allowed" : "pointer",
-                opacity: isPending ? 0.5 : 1,
-              }}
+              style={{ flex: 1 }}
             >
               {isPending ? translate("saving") : translate("save")}
-            </button>
-            <button
-              onClick={() => setOpen(false)}
-              style={{
-                background: t.inputBg,
-                color: t.textSecondary,
-                border: `1px solid ${t.inputBorder}`,
-                borderRadius: "10px",
-                padding: "10px 14px",
-                fontFamily: "inherit",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
-            >
+            </Button>
+            <Button theme={t} variant="secondary" onClick={() => setOpen(false)}>
               {translate("cancel")}
-            </button>
+            </Button>
           </div>
         </div>
       )}

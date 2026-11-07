@@ -94,8 +94,16 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   for authenticated application pages.
 - `components/ui/AppNav.tsx` owns the shared top-bar variants and composes the
   signed-in profile or signed-out viewer menu from `components/ui/ProfileDropdown.tsx`.
-- `components/ui/AppPrimitives.tsx` owns app-shell cards, form controls, alerts,
-  and feedback styling; `components/ui/Dialog.tsx` owns accessible modal behavior.
+- `components/ui/` owns the one shared control set, each control reading the
+  `ResolvedTheme` it is given (`APP_SHELL_THEME` on app pages, the event's theme on
+  event pages, `chromeTheme()` in host-bar chrome): `Button.tsx` (every button
+  look, plus `buttonProps()` for links), `Choice.tsx` (chips, tiles, swatches),
+  `Field.tsx` (labels, inputs, selects, checkboxes, sliders, secret and color
+  inputs), `Toggle.tsx`, `NavItem.tsx` and `Feedback.tsx` (inline alerts, status
+  chips, the toast). Their focus and hover states live in the `.rsvp-control`,
+  `.rsvp-press` and `.rsvp-field` classes in `app/globals.css`.
+  `AppPrimitives.tsx` keeps only the app-shell card, and `Dialog.tsx` owns
+  accessible modal behavior.
 - `app/page.tsx` is the public landing page.
 - `app/e/[slug]/page.tsx` is the main public event page.
 - `app/(app)/dashboard/page.tsx` is the host dashboard.

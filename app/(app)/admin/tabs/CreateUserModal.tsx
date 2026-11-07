@@ -2,9 +2,10 @@
 import { useTranslations } from "next-intl";
 
 import { X } from "lucide-react";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { Dialog } from "@/components/ui/Dialog";
-import { AppButton, AppInput, appInputStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Field, Input, Select } from "@/components/ui/Field";
 
 export function CreateUserModal({
   createUserOpen,
@@ -63,140 +64,80 @@ export function CreateUserModal({
         >
           {tr("createUser2")}
         </h3>
-        <button
+        <Button
+          theme={T}
+          variant="icon"
           onClick={() => setCreateUserOpen(false)}
           aria-label={tr("closeCreateUserDialog")}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: APP_SHELL.textSecondary,
-            cursor: "pointer",
-            padding: "4px",
-            display: "flex",
-            alignItems: "center",
-          }}
         >
-          <X size={20} />
-        </button>
+          <X size={20} aria-hidden="true" />
+        </Button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "11px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              color: APP_SHELL.textSecondary,
-              marginBottom: "6px",
-              letterSpacing: "0.05em",
-            }}
-          >
-            {tr.rich("nameOptionalMessage", {
-              part0: (chunks) => <span style={{ color: APP_SHELL.textMuted }}>{chunks}</span>,
-            })}
-          </label>
-          <AppInput
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <Field
+          theme={T}
+          label={tr.rich("nameOptionalMessage", {
+            part0: (chunks) => <span style={{ fontWeight: 400 }}>{chunks}</span>,
+          })}
+        >
+          <Input
+            theme={T}
             type="text"
             value={createUserName}
             onChange={(e) => setCreateUserName(e.target.value)}
             placeholder={tr("janeSmith")}
           />
-        </div>
+        </Field>
 
-        <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "11px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              color: APP_SHELL.textSecondary,
-              marginBottom: "6px",
-              letterSpacing: "0.05em",
-            }}
-          >
-            {tr("email2")}
-          </label>
-          <AppInput
+        <Field theme={T} label={tr("email2")}>
+          <Input
+            theme={T}
             type="email"
             value={createUserEmail}
             onChange={(e) => setCreateUserEmail(e.target.value)}
             placeholder={tr("janeExampleCom")}
             required
           />
-        </div>
+        </Field>
 
-        <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "11px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              color: APP_SHELL.textSecondary,
-              marginBottom: "6px",
-              letterSpacing: "0.05em",
-            }}
-          >
-            {tr.rich("phoneOptionalMessage", {
-              part0: (chunks) => <span style={{ color: APP_SHELL.textMuted }}>{chunks}</span>,
-            })}
-          </label>
-          <AppInput
+        <Field
+          theme={T}
+          label={tr.rich("phoneOptionalMessage", {
+            part0: (chunks) => <span style={{ fontWeight: 400 }}>{chunks}</span>,
+          })}
+        >
+          <Input
+            theme={T}
             type="tel"
             value={createUserPhone}
             onChange={(e) => setCreateUserPhone(e.target.value)}
             placeholder="+1 555 000 0000"
           />
-        </div>
+        </Field>
 
-        <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "11px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              color: APP_SHELL.textSecondary,
-              marginBottom: "6px",
-              letterSpacing: "0.05em",
-            }}
-          >
-            {tr("role")}
-          </label>
-          <select
+        <Field theme={T} label={tr("role")}>
+          <Select
+            theme={T}
             value={createUserRole}
             onChange={(e) => setCreateUserRole(e.target.value as "GUEST" | "HOST" | "ADMIN")}
-            style={appInputStyle}
           >
-            <option value="GUEST" style={{ backgroundColor: "#12091f" }}>
-              {tr("guest2")}
-            </option>
-            <option value="HOST" style={{ backgroundColor: "#12091f" }}>
-              {tr("host2")}
-            </option>
-            <option value="ADMIN" style={{ backgroundColor: "#12091f" }}>
-              {tr("admin2")}
-            </option>
-          </select>
-        </div>
+            <option value="GUEST">{tr("guest2")}</option>
+            <option value="HOST">{tr("host2")}</option>
+            <option value="ADMIN">{tr("admin2")}</option>
+          </Select>
+        </Field>
 
-        <AppButton
+        <Button
+          theme={T}
+          variant="primary"
+          fullWidth
           onClick={handleCreateUser}
           disabled={isPending || !createUserEmail}
-          style={{
-            width: "100%",
-            borderRadius: APP_SHELL.inputRadius,
-            padding: "14px",
-            fontSize: "15px",
-            fontWeight: 600,
-            marginTop: "4px",
-          }}
+          style={{ marginTop: "4px" }}
         >
           {isPending ? tr("creating") : tr("createUser2")}
-        </AppButton>
+        </Button>
       </div>
     </Dialog>
   );

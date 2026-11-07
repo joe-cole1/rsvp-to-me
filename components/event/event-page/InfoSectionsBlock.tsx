@@ -7,13 +7,14 @@ import { IconPicker } from "./IconPicker";
 import { getIconItem, getPlaceholder, ICON_SET, PRESET_CHIPS } from "./helpers";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
 import { EventCard } from "./EventCard";
+import { Button } from "@/components/ui/Button";
+import { Input, Textarea } from "@/components/ui/Field";
+import { Toast } from "@/components/ui/Feedback";
 
 export function InfoSectionsBlock({
   event,
   t,
-  S,
   isHost,
   pendingDelete,
   addingSection,
@@ -24,7 +25,6 @@ export function InfoSectionsBlock({
   setEditingSection,
   editDraft,
   setEditDraft,
-  getChipStyle,
   commitInfoSection,
   deleteSection,
   undoDeleteSection,
@@ -34,7 +34,6 @@ export function InfoSectionsBlock({
 }: {
   event: EventData;
   t: ResolvedTheme;
-  S: EventPageStyles;
   isHost: boolean;
   pendingDelete: {
     id: string;
@@ -53,7 +52,6 @@ export function InfoSectionsBlock({
   setEditDraft: React.Dispatch<
     React.SetStateAction<{ iconKey: string; content: string; url: string; title: string }>
   >;
-  getChipStyle: (isCustom: boolean) => React.CSSProperties;
   commitInfoSection: () => Promise<void>;
   deleteSection: (id: string) => void;
   undoDeleteSection: () => void;
@@ -63,6 +61,7 @@ export function InfoSectionsBlock({
 }) {
   const shared = useTranslations("Ui.Event.shared");
   const translate = useTranslations("Ui.Event.InfoSectionsBlock");
+  const common = useTranslations("Ui.Common");
 
   return (
     <>
@@ -108,8 +107,12 @@ export function InfoSectionsBlock({
                       onSelect={(key) => setEditDraft((d) => ({ ...d, iconKey: key }))}
                       t={t}
                     />
-                    <textarea
-                      style={{ ...S.inp, resize: "none" } as React.CSSProperties}
+                    <Textarea
+                      theme={t}
+                      aria-label={getPlaceholder(editDraft.iconKey, (key) =>
+                        shared("placeholders." + key)
+                      )}
+                      style={{ resize: "none" }}
                       rows={2}
                       placeholder={getPlaceholder(editDraft.iconKey, (key) =>
                         shared("placeholders." + key)
@@ -119,31 +122,35 @@ export function InfoSectionsBlock({
                       autoFocus
                     />
                     {(editDraft.iconKey === "zelle" || editDraft.iconKey === "venmo") && (
-                      <input
-                        style={S.inp}
+                      <Input
+                        theme={t}
                         type="text"
+                        aria-label={translate("suggestedDonationAmountOptionalEG")}
                         placeholder={translate("suggestedDonationAmountOptionalEG")}
                         value={editDraft.title}
                         onChange={(e) => setEditDraft((d) => ({ ...d, title: e.target.value }))}
                       />
                     )}
-                    <input
-                      style={S.inp}
+                    <Input
+                      theme={t}
                       type="url"
+                      aria-label={translate("linkOptional")}
                       placeholder={translate("linkOptional")}
                       value={editDraft.url}
                       onChange={(e) => setEditDraft((d) => ({ ...d, url: e.target.value }))}
                     />
                     <div style={{ display: "flex", gap: "8px" }}>
-                      <button
+                      <Button
+                        theme={t}
+                        variant="primary"
                         onClick={() => commitEditSection(sec.id)}
-                        style={{ ...S.btn, flex: 1, padding: "8px" }}
+                        style={{ flex: 1 }}
                       >
                         {translate("save")}
-                      </button>
-                      <button onClick={() => setEditingSection(null)} style={S.mutedBtn}>
+                      </Button>
+                      <Button theme={t} variant="secondary" onClick={() => setEditingSection(null)}>
                         {translate("cancel")}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -152,10 +159,12 @@ export function InfoSectionsBlock({
                       display: "flex",
                       gap: "10px",
                       alignItems: "center",
-                      padding: "11px 16px",
+                      padding: "6px 8px 6px 16px",
+                      minHeight: "44px",
+                      boxSizing: "border-box",
                     }}
                   >
-                    <Icon size={15} style={{ color: t.accent, flexShrink: 0 }} />
+                    <Icon size={15} style={{ color: t.accent, flexShrink: 0 }} aria-hidden="true" />
                     <div style={{ flex: 1, fontSize: "13px" }}>
                       {targetUrl ? (
                         <a
@@ -182,63 +191,49 @@ export function InfoSectionsBlock({
                     {isHost && (
                       <>
                         {moveSection && i > 0 && (
-                          <button
+                          <Button
+                            theme={t}
+                            variant="icon"
+                            size="sm"
                             onClick={() => moveSection(i, -1)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              color: t.textMuted,
-                              padding: "2px",
-                              flexShrink: 0,
-                            }}
+                            aria-label={translate("moveUp")}
                             title={translate("moveUp")}
                           >
-                            <ChevronUp size={13} />
-                          </button>
+                            <ChevronUp size={16} aria-hidden="true" />
+                          </Button>
                         )}
                         {moveSection && i < event.infoSections.length - 1 && (
-                          <button
+                          <Button
+                            theme={t}
+                            variant="icon"
+                            size="sm"
                             onClick={() => moveSection(i, 1)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              color: t.textMuted,
-                              padding: "2px",
-                              flexShrink: 0,
-                            }}
+                            aria-label={translate("moveDown")}
                             title={translate("moveDown")}
                           >
-                            <ChevronDown size={13} />
-                          </button>
+                            <ChevronDown size={16} aria-hidden="true" />
+                          </Button>
                         )}
-                        <button
+                        <Button
+                          theme={t}
+                          variant="icon"
+                          size="sm"
                           onClick={() => startEditSection(sec)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            color: t.textMuted,
-                            padding: "2px",
-                            flexShrink: 0,
-                          }}
+                          aria-label={`${common("edit")}: ${displayContent}`}
+                          title={common("edit")}
                         >
-                          <Pencil size={13} />
-                        </button>
-                        <button
+                          <Pencil size={14} aria-hidden="true" />
+                        </Button>
+                        <Button
+                          theme={t}
+                          variant="icon"
+                          size="sm"
                           onClick={() => deleteSection(sec.id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            color: t.textMuted,
-                            padding: "2px",
-                            flexShrink: 0,
-                          }}
+                          aria-label={`${common("remove")}: ${displayContent}`}
+                          title={common("remove")}
                         >
-                          <X size={13} />
-                        </button>
+                          <X size={14} aria-hidden="true" />
+                        </Button>
                       </>
                     )}
                   </div>
@@ -250,47 +245,11 @@ export function InfoSectionsBlock({
       )}
 
       {/* ── Undo delete toast ── */}
-      {pendingDelete && (
-        <div
-          style={{
-            position: "fixed",
-            top: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: t.cardBg,
-            border: `1px solid ${t.cardBorder}`,
-            borderRadius: t.cardRadius,
-            padding: "12px 16px",
-            gap: "12px",
-            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.15)",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <span style={{ fontSize: "13px", color: t.textSecondary }}>
-            {translate("sectionRemoved")}
-          </span>
-          <button
-            onClick={undoDeleteSection}
-            style={{
-              background: "none",
-              border: `1px solid ${t.cardBorder}`,
-              borderRadius: t.btnRadius,
-              padding: "4px 12px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: 700,
-              color: t.accentText,
-              fontFamily: "inherit",
-            }}
-          >
-            {translate("undo")}
-          </button>
-        </div>
-      )}
+      <Toast
+        theme={t}
+        toast={pendingDelete ? { tone: "info", message: translate("sectionRemoved") } : null}
+        action={{ label: translate("undo"), onClick: undoDeleteSection }}
+      />
 
       {/* ── Add info section (host only) ── */}
       {isHost &&
@@ -301,8 +260,12 @@ export function InfoSectionsBlock({
               onSelect={(key) => setSectionDraft((d) => ({ ...d, iconKey: key }))}
               t={t}
             />
-            <textarea
-              style={{ ...S.inp, resize: "none", marginBottom: "10px" } as React.CSSProperties}
+            <Textarea
+              theme={t}
+              aria-label={getPlaceholder(sectionDraft.iconKey, (key) =>
+                shared("placeholders." + key)
+              )}
+              style={{ resize: "none", marginBottom: "10px" }}
               rows={2}
               placeholder={getPlaceholder(sectionDraft.iconKey, (key) =>
                 shared("placeholders." + key)
@@ -312,28 +275,32 @@ export function InfoSectionsBlock({
               autoFocus
             />
             {(sectionDraft.iconKey === "zelle" || sectionDraft.iconKey === "venmo") && (
-              <input
-                style={{ ...S.inp, marginBottom: "10px" }}
+              <Input
+                theme={t}
+                style={{ marginBottom: "10px" }}
                 type="text"
+                aria-label={translate("suggestedDonationAmountOptionalEG")}
                 placeholder={translate("suggestedDonationAmountOptionalEG")}
                 value={sectionDraft.title}
                 onChange={(e) => setSectionDraft((d) => ({ ...d, title: e.target.value }))}
               />
             )}
-            <input
-              style={{ ...S.inp, marginBottom: "10px" }}
+            <Input
+              theme={t}
+              style={{ marginBottom: "10px" }}
               type="url"
+              aria-label={translate("linkOptional")}
               placeholder={translate("linkOptional")}
               value={sectionDraft.url}
               onChange={(e) => setSectionDraft((d) => ({ ...d, url: e.target.value }))}
             />
             <div style={{ display: "flex", gap: "8px" }}>
-              <button onClick={commitInfoSection} style={{ ...S.btn, flex: 1, padding: "10px" }}>
+              <Button theme={t} variant="primary" onClick={commitInfoSection} style={{ flex: 1 }}>
                 {translate("save")}
-              </button>
-              <button onClick={() => setAddingSection(false)} style={S.mutedBtn}>
+              </Button>
+              <Button theme={t} variant="secondary" onClick={() => setAddingSection(false)}>
                 {translate("cancel")}
-              </button>
+              </Button>
             </div>
           </EventCard>
         ) : (
@@ -342,32 +309,34 @@ export function InfoSectionsBlock({
               (preset) => {
                 const Icon = preset.icon;
                 return (
-                  <button
+                  <Button
                     key={preset.key}
-                    className="chip-button"
+                    theme={t}
+                    variant="add"
+                    size="sm"
                     onClick={() => {
                       setAddingSection(true);
                       setSectionDraft({ iconKey: preset.key, content: "", url: "", title: "" });
                     }}
-                    style={getChipStyle(false)}
                   >
-                    <Icon size={13} />
+                    <Icon size={14} aria-hidden="true" />
                     {shared("chips." + preset.key)}
-                  </button>
+                  </Button>
                 );
               }
             )}
-            <button
-              className="chip-button"
+            <Button
+              theme={t}
+              variant="add"
+              size="sm"
               onClick={() => {
                 setAddingSection(true);
                 setSectionDraft({ iconKey: ICON_SET[0].key, content: "", url: "", title: "" });
               }}
-              style={getChipStyle(true)}
             >
-              <Plus size={13} />
+              <Plus size={14} aria-hidden="true" />
               {translate("addCustom")}
-            </button>
+            </Button>
           </div>
         ))}
     </>

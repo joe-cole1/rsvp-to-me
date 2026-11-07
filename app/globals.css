@@ -29,6 +29,39 @@ select {
   color-scheme: dark;
 }
 
+/* ── Shared controls (components/ui) ─────────────────────────────────────────
+   Colors stay inline (theme fields). The states inline styles can't express live
+   here, fed by variables each control sets: --rsvp-focus (the accent ring),
+   --rsvp-hover (a wash laid over the fill) and --rsvp-placeholder. Controls set
+   backgroundColor, never the background shorthand, so the hover wash can show. */
+
+.rsvp-control:focus-visible {
+  outline: 2px solid var(--rsvp-focus, currentColor);
+  outline-offset: 2px;
+}
+
+.rsvp-press:not(:disabled):not([aria-disabled="true"]):hover {
+  background-image: linear-gradient(var(--rsvp-hover), var(--rsvp-hover));
+}
+
+.rsvp-link:not(:disabled):not([aria-disabled="true"]):hover {
+  text-decoration-thickness: 2px;
+}
+
+.rsvp-field::placeholder {
+  color: var(--rsvp-placeholder);
+  opacity: 1;
+}
+
+.rsvp-field:focus-visible {
+  outline-offset: 0;
+}
+
+/* A label styled as a field around a hidden native picker (color inputs). */
+.rsvp-field-within:focus-within {
+  outline: 2px solid var(--rsvp-focus, currentColor);
+}
+
 /* ── Notification table (components/notifications) ──────────────────────────
    Rows are message types, columns are channels. Under 480px of card width each
    row stacks: the description, then one labeled checkbox per channel. Colors stay

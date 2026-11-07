@@ -10,7 +10,9 @@ import {
   sendEventEmailTest,
   getEventEmailTemplates,
 } from "@/app/actions/event";
-import { Label, Section } from "./ui";
+import { Section } from "./ui";
+import { Button } from "@/components/ui/Button";
+import { Field, Select } from "@/components/ui/Field";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 type EventTemplateOption = { id: string; label: string; description: string };
@@ -80,57 +82,36 @@ export function EmailsPanel({ eventId, t }: { eventId: string; t: ResolvedTheme 
         </div>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div style={{ flex: "1 1 240px" }}>
-            <Label t={t}>{translate("email")}</Label>
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              style={{
-                width: "100%",
-                backgroundColor: t.inputBg,
-                border: `1px solid ${t.inputBorder}`,
-                borderRadius: "12px",
-                padding: "10px 14px",
-                color: t.inputText,
-                fontSize: "13px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-            >
+          <Field
+            theme={t}
+            label={translate("email")}
+            style={{ flex: "1 1 240px", marginBottom: 0 }}
+          >
+            <Select theme={t} value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
               {templates.map((tpl) => (
                 <option key={tpl.id} value={tpl.id}>
                   {tpl.label}
                 </option>
               ))}
-            </select>
-          </div>
-          <button
+            </Select>
+          </Field>
+          <Button
+            theme={t}
+            variant="secondary"
             type="button"
             onClick={handleSendTest}
             disabled={sending || !currentPreview}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: t.accent,
-              border: "none",
-              color: t.accentFg,
-              borderRadius: t.btnRadius,
-              padding: "10px 18px",
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: sending ? "not-allowed" : "pointer",
-              opacity: sending || !currentPreview ? 0.6 : 1,
-            }}
           >
-            <Send size={14} /> {translate("sendMeTest")}
-          </button>
+            <Send size={14} aria-hidden="true" /> {translate("sendMeTest")}
+          </Button>
         </div>
 
         {selected && (
           <div style={{ fontSize: "12px", color: t.textMuted }}>{selected.description}</div>
         )}
-        {status && <div style={{ fontSize: "12px", color: t.textSecondary }}>{status}</div>}
+        <div role="status" style={{ fontSize: "13px", color: t.textSecondary }}>
+          {status}
+        </div>
 
         {currentPreview ? (
           <div>

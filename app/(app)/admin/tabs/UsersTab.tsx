@@ -1,8 +1,10 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 
-import { APP_SHELL } from "@/lib/theme";
-import { AppInput, appCardStyle, appInputStyle } from "@/components/ui/AppPrimitives";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Input, Select } from "@/components/ui/Field";
 import type { AdminUser } from "./types";
 
 export function UsersTab({
@@ -42,70 +44,52 @@ export function UsersTab({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-        <AppInput
+        <Input
+          theme={T}
           type="text"
+          aria-label={tr("searchUsersByNameEmailOrPhone")}
           placeholder={tr("searchUsersByNameEmailOrPhone")}
           value={userSearch}
           onChange={(e) => handleUserSearch(e.target.value)}
-          style={{ flex: "1 1 200px", padding: "12px 16px" }}
+          style={{ flex: "1 1 200px", width: "auto" }}
         />
 
         {/* Role Filter */}
-        <select
+        <Select
+          theme={T}
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value as "ALL" | "HOST" | "GUEST" | "ADMIN")}
-          style={{
-            ...appInputStyle,
-            width: "auto",
-            padding: "12px 16px",
-            cursor: "pointer",
-            minWidth: "130px",
-            colorScheme: "dark",
-          }}
+          style={{ width: "auto", minWidth: "130px" }}
         >
           <option value="ALL">{tr("allRoles")}</option>
           <option value="ADMIN">{tr("admin")}</option>
           <option value="HOST">{tr("host")}</option>
           <option value="GUEST">{tr("guest")}</option>
-        </select>
+        </Select>
 
         {/* Status Filter */}
-        <select
+        <Select
+          theme={T}
           value={statusFilter}
           onChange={(e) =>
             setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED")
           }
-          style={{
-            ...appInputStyle,
-            width: "auto",
-            padding: "12px 16px",
-            cursor: "pointer",
-            minWidth: "160px",
-            colorScheme: "dark",
-          }}
+          style={{ width: "auto", minWidth: "160px" }}
         >
           <option value="ALL">{tr("allStatuses")}</option>
           <option value="ACTIVE">{tr("active")}</option>
           <option value="PENDING_DELETE">{tr("pendingDeletion")}</option>
           <option value="DELETED">{tr("deletedAnonymized")}</option>
-        </select>
+        </Select>
 
-        <button
+        <Button
+          theme={T}
+          variant="primary"
           onClick={() => setCreateUserOpen(true)}
-          style={{
-            backgroundColor: APP_SHELL.accent,
-            color: "#fff",
-            border: "none",
-            borderRadius: APP_SHELL.inputRadius,
-            padding: "12px 20px",
-            fontSize: "14px",
-            fontWeight: 600,
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
+          style={{ whiteSpace: "nowrap" }}
         >
           {tr("createUser")}
-        </button>
+        </Button>
       </div>
 
       <div
@@ -159,8 +143,8 @@ export function UsersTab({
                       {u.deletionScheduledAt && (
                         <div
                           style={{
-                            fontSize: "11px",
-                            color: "#ef4444",
+                            fontSize: "12px",
+                            color: T.status.error.text,
                             fontWeight: 600,
                             marginTop: "4px",
                           }}
@@ -181,44 +165,20 @@ export function UsersTab({
                       </div>
                     </td>
                     <td style={{ padding: "16px" }}>
-                      <select
+                      <Select
+                        theme={T}
+                        aria-label={tr("role")}
                         value={u.role}
                         onChange={(e) =>
                           handleRoleChange(u.id, e.target.value as "GUEST" | "HOST" | "ADMIN")
                         }
                         disabled={u.id === sessionUserId}
-                        style={{
-                          backgroundColor: APP_SHELL.inputBg,
-                          border: `1px solid ${APP_SHELL.inputBorder}`,
-                          color: APP_SHELL.textPrimary,
-                          borderRadius: "6px",
-                          padding: "4px 8px",
-                          fontSize: "12px",
-                          outline: "none",
-                          colorScheme: "dark",
-                          opacity: u.id === sessionUserId ? 0.6 : 1,
-                          cursor: u.id === sessionUserId ? "not-allowed" : "default",
-                        }}
+                        style={{ width: "auto" }}
                       >
-                        <option
-                          value="GUEST"
-                          style={{ backgroundColor: "#12091f", color: "#ffffff" }}
-                        >
-                          {tr("guest")}
-                        </option>
-                        <option
-                          value="HOST"
-                          style={{ backgroundColor: "#12091f", color: "#ffffff" }}
-                        >
-                          {tr("host")}
-                        </option>
-                        <option
-                          value="ADMIN"
-                          style={{ backgroundColor: "#12091f", color: "#ffffff" }}
-                        >
-                          {tr("admin")}
-                        </option>
-                      </select>
+                        <option value="GUEST">{tr("guest")}</option>
+                        <option value="HOST">{tr("host")}</option>
+                        <option value="ADMIN">{tr("admin")}</option>
+                      </Select>
                     </td>
                     <td style={{ padding: "16px", textAlign: "right" }}>
                       {u.id === sessionUserId ? (
@@ -241,60 +201,41 @@ export function UsersTab({
                             justifyContent: "flex-end",
                           }}
                         >
-                          <button
+                          <Button
+                            theme={T}
+                            variant="secondary"
+                            size="sm"
                             onClick={() =>
                               handleCancelDeletion(u.id, u.name || u.email || tr("unknownUser"))
                             }
-                            style={{
-                              backgroundColor: "transparent",
-                              border: "1px solid #22c55e",
-                              color: "#22c55e",
-                              cursor: "pointer",
-                              fontWeight: 600,
-                              fontSize: "12px",
-                              borderRadius: "6px",
-                              padding: "4px 10px",
-                            }}
                           >
                             {tr("restore")}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            theme={T}
+                            variant="destructive"
+                            size="sm"
                             onClick={() =>
                               handleUserDeleteImmediately(
                                 u.id,
                                 u.name || u.email || tr("unknownUser")
                               )
                             }
-                            style={{
-                              backgroundColor: "transparent",
-                              border: "1px solid #ef4444",
-                              color: "#ef4444",
-                              cursor: "pointer",
-                              fontWeight: 600,
-                              fontSize: "12px",
-                              borderRadius: "6px",
-                              padding: "4px 10px",
-                            }}
                           >
                             {tr("deleteNow")}
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <button
+                        <Button
+                          theme={T}
+                          variant="destructive"
+                          size="sm"
                           onClick={() =>
                             handleUserDelete(u.id, u.name || u.email || tr("unknownUser"))
                           }
-                          style={{
-                            backgroundColor: "transparent",
-                            border: "none",
-                            color: "#ef4444",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                            fontSize: "13px",
-                          }}
                         >
                           {tr("delete")}
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>

@@ -3,6 +3,10 @@
     "Common": {
       "save": "Opslaan",
       "cancel": "Annuleren",
+      "close": "Sluiten",
+      "remove": "Verwijderen",
+      "back": "Terug",
+      "edit": "Bewerken",
       "dismissNotification": "Melding sluiten",
       "siteDescription": "Mooie, persoonlijke evenementpagina’s voor wijnavonden, etentjes en alles daartussenin."
     },

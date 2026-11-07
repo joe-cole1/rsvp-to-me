@@ -8,10 +8,11 @@ import {
   type NotificationScheduleData,
 } from "@/app/actions/notification-schedule";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
-import { InlineAlert } from "@/components/ui/AppPrimitives";
-import { Label, Section, Toggle } from "@/components/event/settings-page/ui";
-import { buildStyles } from "@/components/event/settings-page/styles";
-import { buttonStyle, inviteVars, panelStyle } from "@/components/event/invitations/styles";
+import { Section } from "@/components/event/settings-page/ui";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
+import { Toggle } from "@/components/ui/Toggle";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { SaveReport } from "./NotificationPreferences";
 
@@ -28,7 +29,6 @@ export function ReminderSchedule({
   const t = useTranslations("Ui.Notifications");
   const panel = useTranslations("Ui.Event.RemindersPanel");
   const { runWithCaptcha } = useCaptcha();
-  const S = buildStyles(theme);
   const [schedule, setSchedule] = useState<NotificationScheduleData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [status, setStatus] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(
@@ -118,24 +118,39 @@ export function ReminderSchedule({
     !!schedule &&
     schedule.times.filter((row) => row.enabled).length < 10;
 
+  const hint = (text: string) => (
+    <p
+      style={{
+        margin: "0 0 14px",
+        fontSize: "13px",
+        lineHeight: "19px",
+        color: theme.textSecondary,
+      }}
+    >
+      {text}
+    </p>
+  );
+
   let body: React.ReactNode;
   if (!schedule)
     body = loadError ? (
       <>
-        <InlineAlert tone="error">{loadError}</InlineAlert>
-        <button type="button" style={buttonStyle} onClick={load}>
+        <InlineAlert theme={theme} tone="error">
+          {loadError}
+        </InlineAlert>
+        <Button theme={theme} variant="secondary" type="button" onClick={load}>
           {t("retry")}
-        </button>
+        </Button>
       </>
     ) : (
-      <Label t={theme}>{t("loading")}</Label>
+      hint(t("loading"))
     );
   else
     body = (
       <>
-        <Label t={theme}>{t("scheduleHint")}</Label>
+        {hint(t("scheduleHint"))}
         {schedule.legacy.length > 0 && (
-          <InlineAlert tone="info">
+          <InlineAlert theme={theme} tone="info">
             {t("scheduleLegacy", {
               limits: schedule.legacy
                 .map(
@@ -146,13 +161,15 @@ export function ReminderSchedule({
                 )
                 .join("; "),
             })}{" "}
-            <button
+            <Button
+              theme={theme}
+              variant="secondary"
+              size="sm"
               type="button"
-              style={buttonStyle}
               onClick={() => commit(schedule, t("legacyConverted"), true)}
             >
               {t("convertLegacy")}
-            </button>
+            </Button>
           </InlineAlert>
         )}
         {schedule.times.map((row) => {
@@ -161,7 +178,7 @@ export function ReminderSchedule({
           return (
             <Toggle
               key={row.hours}
-              t={theme}
+              theme={theme}
               label={label}
               value={row.enabled}
               onChange={(on) =>
@@ -179,7 +196,7 @@ export function ReminderSchedule({
           );
         })}
         <Toggle
-          t={theme}
+          theme={theme}
           label={`${t("nudgeToggle")}${statusText(schedule.nudge.status) ? ` · ${statusText(schedule.nudge.status)}` : ""}`}
           value={schedule.nudge.enabled}
           onChange={(on) =>
@@ -189,21 +206,31 @@ export function ReminderSchedule({
             )
           }
         />
-        <div style={panelStyle}>
-          <Label t={theme}>{t("customHours")}</Label>
-          <input
-            type="number"
-            min={1}
-            max={8760}
-            inputMode="numeric"
-            aria-label={t("customHours")}
-            style={S.inp}
-            value={custom}
-            onChange={(event) => setCustom(event.target.value)}
-          />
-          <button
+        <div
+          style={{
+            display: "grid",
+            gap: "10px",
+            padding: "14px",
+            marginBottom: "16px",
+            border: `1px solid ${theme.inputBorder}`,
+            borderRadius: "12px",
+          }}
+        >
+          <Field theme={theme} label={t("customHours")} style={{ marginBottom: 0 }}>
+            <Input
+              theme={theme}
+              type="number"
+              min={1}
+              max={8760}
+              inputMode="numeric"
+              value={custom}
+              onChange={(event) => setCustom(event.target.value)}
+            />
+          </Field>
+          <Button
+            theme={theme}
+            variant="secondary"
             type="button"
-            style={buttonStyle}
             disabled={!customValid}
             onClick={() => {
               setCustom("");
@@ -225,16 +252,18 @@ export function ReminderSchedule({
             }}
           >
             {t("addTime")}
-          </button>
+          </Button>
         </div>
-        {status && <InlineAlert tone={status.tone}>{status.text}</InlineAlert>}
+        {status && (
+          <InlineAlert theme={theme} tone={status.tone}>
+            {status.text}
+          </InlineAlert>
+        )}
       </>
     );
   return (
-    <div style={inviteVars(theme)}>
-      <Section title={panel("autoReminders")} t={theme}>
-        {body}
-      </Section>
-    </div>
+    <Section title={panel("autoReminders")} t={theme}>
+      {body}
+    </Section>
   );
 }

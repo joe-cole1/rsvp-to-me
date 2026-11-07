@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   ACCENT_PRESETS,
   BASE_THEMES,
@@ -26,7 +26,10 @@ import {
   type EffectSpeed,
 } from "@/lib/effects";
 import type { DbThemePreset, EventInput, ThemeExtrasOverrides, ThemeSnapObj } from "./types";
-import { Label, Section } from "./ui";
+import { Section } from "./ui";
+import { Button } from "@/components/ui/Button";
+import { Chip, ChoiceTile, CustomSwatch, Swatch } from "@/components/ui/Choice";
+import { ColorInput, Input, Label, Range } from "@/components/ui/Field";
 
 export function ThemePanel({
   event,
@@ -113,6 +116,12 @@ export function ThemePanel({
   const sortedEffectSets = getSortedEffectSets();
   // Sub-tab within the Theme section; purely visual, so plain local state (no URL sync)
   const [activeTab, setActiveTab] = useState<"theme" | "effects" | "font">("theme");
+  const hint: React.CSSProperties = {
+    fontSize: "13px",
+    lineHeight: "19px",
+    color: t.textSecondary,
+    margin: "0 0 8px",
+  };
   return (
     <Section title={translate("theme")} t={t}>
       {/* Sub-tabs: color presets / animated effects / event-title font */}
@@ -124,23 +133,15 @@ export function ThemePanel({
             { id: "font", label: translate("font") },
           ] as const
         ).map((tab) => (
-          <button
+          <Chip
             key={tab.id}
+            theme={t}
+            selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: 1,
-              padding: "8px 12px",
-              borderRadius: "10px",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: "pointer",
-              border: `1px solid ${activeTab === tab.id ? t.accent : t.inputBorder}`,
-              background: activeTab === tab.id ? t.accentBg : t.inputBg,
-              color: activeTab === tab.id ? t.accent : t.textMuted,
-            }}
+            style={{ flex: 1 }}
           >
             {tab.label}
-          </button>
+          </Chip>
         ))}
       </div>
 
@@ -148,22 +149,13 @@ export function ThemePanel({
         <>
           {/* Search */}
           <div style={{ marginBottom: "10px" }}>
-            <input
+            <Input
+              theme={t}
               type="text"
+              aria-label={translate("searchThemes")}
               value={themeSearch}
               onChange={(e) => setThemeSearch(e.target.value)}
               placeholder={translate("searchThemes")}
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                padding: "8px 12px",
-                background: t.inputBg,
-                border: `1px solid ${t.inputBorder}`,
-                borderRadius: "10px",
-                color: t.textPrimary,
-                fontSize: "13px",
-                outline: "none",
-              }}
             />
           </div>
 
@@ -215,21 +207,11 @@ export function ThemePanel({
                 >
                   <div style={{ display: "flex", gap: "6px", flex: 1, overflowX: "auto" }}>
                     {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
-                      <button
+                      <Chip
                         key={f}
+                        theme={t}
+                        selected={themeFilter === f}
                         onClick={() => setThemeFilter(f)}
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: "20px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                          flexShrink: 0,
-                          border: `1px solid ${themeFilter === f ? t.accent : t.inputBorder}`,
-                          background: themeFilter === f ? t.accentBg : "transparent",
-                          color: themeFilter === f ? t.accent : t.textMuted,
-                        }}
                       >
                         {f === "all"
                           ? translate("all")
@@ -240,11 +222,14 @@ export function ThemePanel({
                               : f === "light"
                                 ? translate("light")
                                 : translate("dark")}
-                      </button>
+                      </Chip>
                     ))}
                   </div>
                   {hasChanged && (
-                    <button
+                    <Button
+                      theme={t}
+                      variant="secondary"
+                      size="sm"
                       onClick={() => {
                         setBase(savedBase);
                         setGradientFrom(savedFrom);
@@ -272,25 +257,17 @@ export function ThemePanel({
                           }
                         );
                       }}
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                        border: `1px solid ${t.inputBorder}`,
-                        background: "transparent",
-                        color: t.textMuted,
-                      }}
+                      style={{ flexShrink: 0 }}
                     >
                       {translate("reset")}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {divergedFromPreset && presetDefault && appliedPreset && (
-                  <button
+                  <Button
+                    theme={t}
+                    variant="secondary"
+                    fullWidth
                     type="button"
                     onClick={() => {
                       const defaultOpacity =
@@ -312,35 +289,21 @@ export function ThemePanel({
                         { fontId: defaultFontId }
                       );
                     }}
-                    style={{
-                      width: "100%",
-                      marginBottom: "8px",
-                      padding: "8px 12px",
-                      background: "transparent",
-                      border: `1px solid ${t.accentBorder}`,
-                      borderRadius: "10px",
-                      color: t.accentText,
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      textAlign: "center",
-                    }}
+                    style={{ marginBottom: "8px" }}
                   >
                     {translate("restorePreset", { name: appliedPreset.name })}
-                  </button>
+                  </Button>
                 )}
               </>
             );
           })()}
 
-          {/* Preset grid */}
+          {/* Preset grid: grows with the page, no scrolling box inside it */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
-              gap: "7px",
-              maxHeight: "300px",
-              overflowY: "auto",
+              gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+              gap: "8px",
               marginBottom: "14px",
             }}
           >
@@ -351,8 +314,10 @@ export function ThemePanel({
                 gradientTo === p.gradientTo &&
                 accent === p.accentColor;
               return (
-                <button
+                <ChoiceTile
                   key={p.id}
+                  theme={t}
+                  selected={isActive}
                   onClick={() => {
                     const defaultOpacity = p.cardOpacity ?? getDefaultCardOpacity(p.base);
                     const presetFontId = p.fontId ?? null;
@@ -373,19 +338,10 @@ export function ThemePanel({
                       { fontId: presetFontId }
                     );
                   }}
-                  style={{
-                    padding: 0,
-                    border: `2px solid ${isActive ? t.accent : t.inputBorder}`,
-                    borderRadius: "10px",
-                    cursor: "pointer",
-                    background: isActive ? t.accentBg : t.inputBg,
-                    transition: "all 0.15s",
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
+                  style={{ padding: 0, gap: 0, overflow: "hidden", alignItems: "stretch" }}
                 >
                   <div
+                    aria-hidden="true"
                     style={{
                       position: "relative",
                       height: "36px",
@@ -393,7 +349,7 @@ export function ThemePanel({
                     }}
                   >
                     <span
-                      style={{ position: "absolute", top: "3px", left: "4px", fontSize: "10px" }}
+                      style={{ position: "absolute", top: "3px", left: "4px", fontSize: "12px" }}
                     >
                       {p.emoji}
                     </span>
@@ -402,8 +358,8 @@ export function ThemePanel({
                         position: "absolute",
                         bottom: "3px",
                         right: "4px",
-                        width: "7px",
-                        height: "7px",
+                        width: "8px",
+                        height: "8px",
                         borderRadius: "50%",
                         background: p.accentColor,
                         border: "1px solid rgba(255,255,255,0.3)",
@@ -412,11 +368,9 @@ export function ThemePanel({
                   </div>
                   <div
                     style={{
-                      padding: "4px 5px",
-                      fontSize: "9px",
+                      padding: "5px 6px",
+                      fontSize: "12px",
                       fontWeight: 600,
-                      color: t.textSecondary,
-                      textAlign: "center",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -424,7 +378,7 @@ export function ThemePanel({
                   >
                     {p.name}
                   </div>
-                </button>
+                </ChoiceTile>
               );
             })}
             {visibleThemePresets.length === 0 && (
@@ -433,8 +387,8 @@ export function ThemePanel({
                   gridColumn: "1 / -1",
                   textAlign: "center",
                   padding: "20px",
-                  color: t.textMuted,
-                  fontSize: "12px",
+                  color: t.textSecondary,
+                  fontSize: "13px",
                 }}
               >
                 {translate("noThemesMatch")}
@@ -452,43 +406,53 @@ export function ThemePanel({
             }}
           >
             <button
+              type="button"
+              aria-expanded={themeCustomizeOpen}
               onClick={() => setThemeCustomizeOpen((o) => !o)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "10px 14px",
-                background: t.inputBg,
-                border: "none",
-                cursor: "pointer",
-                color: t.textPrimary,
-                fontSize: "13px",
-                fontWeight: 600,
-              }}
+              className="rsvp-control rsvp-press"
+              style={
+                {
+                  "--rsvp-focus": t.accent,
+                  "--rsvp-hover": "rgba(127,127,127,0.08)",
+                  width: "100%",
+                  minHeight: "44px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  backgroundColor: t.inputBg,
+                  border: "none",
+                  cursor: "pointer",
+                  color: t.textPrimary,
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                } as React.CSSProperties
+              }
             >
               <span>{translate("customizeColors")}</span>
-              <span
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
                 style={{
-                  fontSize: "11px",
-                  color: t.textMuted,
+                  color: t.textSecondary,
                   transform: themeCustomizeOpen ? "rotate(180deg)" : "none",
                   transition: "transform 0.2s",
                 }}
-              >
-                ▼
-              </span>
+              />
             </button>
 
             {themeCustomizeOpen && (
               <div style={{ padding: "14px", borderTop: `1px solid ${t.inputBorder}` }}>
                 {/* Style selector */}
                 <div style={{ marginBottom: "14px" }}>
-                  <Label t={t}>{translate("style")}</Label>
+                  <Label theme={t}>{translate("style")}</Label>
                   <div style={{ display: "flex", gap: "8px" }}>
                     {BASE_THEMES.map((bt) => (
-                      <button
+                      <ChoiceTile
                         key={bt.id}
+                        theme={t}
+                        selected={base === bt.id}
                         onClick={() => {
                           const newFrom = bt.defaultGradientFrom;
                           const newTo = bt.defaultGradientTo;
@@ -499,193 +463,88 @@ export function ThemePanel({
                           setAccent(newAccent);
                           triggerSaveTheme(bt.id, newFrom, newTo, newAccent);
                         }}
-                        style={{
-                          flex: 1,
-                          padding: 0,
-                          border: `2px solid ${base === bt.id ? t.textPrimary : t.inputBorder}`,
-                          borderRadius: "12px",
-                          cursor: "pointer",
-                          overflow: "hidden",
-                          background: "none",
-                          transition: "border-color 0.15s",
-                        }}
+                        style={{ flex: 1, padding: 0, gap: 0, overflow: "hidden" }}
                       >
-                        <div style={{ height: "36px", background: bt.preview }} />
                         <div
-                          style={{
-                            padding: "5px 4px",
-                            color: t.textPrimary,
-                            fontSize: "10px",
-                            fontWeight: 600,
-                            background: t.inputBg,
-                          }}
-                        >
+                          aria-hidden="true"
+                          style={{ height: "36px", width: "100%", background: bt.preview }}
+                        />
+                        <div style={{ padding: "6px 4px", fontSize: "12px", fontWeight: 600 }}>
                           {shared("baseThemes." + bt.id)}
                         </div>
-                      </button>
+                      </ChoiceTile>
                     ))}
                   </div>
                 </div>
 
                 {/* Background colors */}
                 <div style={{ marginBottom: "14px" }}>
-                  <Label t={t}>{translate("backgroundColors")}</Label>
+                  <Label theme={t}>{translate("backgroundColors")}</Label>
                   <div style={{ display: "flex", gap: "10px" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>
-                        {translate("start")}
-                      </div>
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "7px 10px",
-                          background: t.inputBg,
-                          border: `1px solid ${t.inputBorder}`,
-                          borderRadius: "9px",
-                          cursor: "pointer",
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ ...hint, margin: "0 0 6px" }}>{translate("start")}</div>
+                      <ColorInput
+                        theme={t}
+                        label={`${translate("backgroundColors")}: ${translate("start")}`}
+                        value={gradientFrom}
+                        onChange={(value) => {
+                          setGradientFrom(value);
+                          triggerSaveTheme(base, value, gradientTo, accent);
                         }}
-                      >
-                        <div
-                          style={{
-                            width: "18px",
-                            height: "18px",
-                            borderRadius: "5px",
-                            background: gradientFrom,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            color: t.textSecondary,
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {gradientFrom}
-                        </span>
-                        <input
-                          type="color"
-                          value={gradientFrom}
-                          onChange={(e) => {
-                            setGradientFrom(e.target.value);
-                            triggerSaveTheme(base, e.target.value, gradientTo, accent);
-                          }}
-                          style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-                        />
-                      </label>
+                      />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>
-                        {translate("end")}
-                      </div>
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "7px 10px",
-                          background: t.inputBg,
-                          border: `1px solid ${t.inputBorder}`,
-                          borderRadius: "9px",
-                          cursor: "pointer",
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ ...hint, margin: "0 0 6px" }}>{translate("end")}</div>
+                      <ColorInput
+                        theme={t}
+                        label={`${translate("backgroundColors")}: ${translate("end")}`}
+                        value={gradientTo}
+                        onChange={(value) => {
+                          setGradientTo(value);
+                          triggerSaveTheme(base, gradientFrom, value, accent);
                         }}
-                      >
-                        <div
-                          style={{
-                            width: "18px",
-                            height: "18px",
-                            borderRadius: "5px",
-                            background: gradientTo,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            color: t.textSecondary,
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {gradientTo}
-                        </span>
-                        <input
-                          type="color"
-                          value={gradientTo}
-                          onChange={(e) => {
-                            setGradientTo(e.target.value);
-                            triggerSaveTheme(base, gradientFrom, e.target.value, accent);
-                          }}
-                          style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-                        />
-                      </label>
+                      />
                     </div>
                   </div>
                 </div>
 
                 {/* Accent color */}
-                <Label t={t}>{translate("accentColor")}</Label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                <Label theme={t}>{translate("accentColor")}</Label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {ACCENT_PRESETS.map((p) => (
-                    <button
+                    <Swatch
                       key={p.value}
+                      theme={t}
+                      color={p.value}
+                      label={shared("accents." + p.name)}
+                      selected={accent === p.value}
                       onClick={() => {
                         setAccent(p.value);
                         triggerSaveTheme(base, gradientFrom, gradientTo, p.value);
                       }}
-                      title={shared("accents." + p.name)}
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "50%",
-                        background: p.value,
-                        border: `3px solid ${accent === p.value ? t.textPrimary : "transparent"}`,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {accent === p.value && <Check size={12} color={t.accentFg} strokeWidth={3} />}
-                    </button>
-                  ))}
-                  <label
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      borderRadius: "50%",
-                      border: `3px solid ${!ACCENT_PRESETS.some((p) => p.value === accent) ? t.textPrimary : "transparent"}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      background: ACCENT_PRESETS.some((p) => p.value === accent)
-                        ? t.inputBg
-                        : accent,
-                      position: "relative",
-                      overflow: "hidden",
-                    }}
-                  >
-                    🎨
-                    <input
-                      type="color"
-                      value={accent}
-                      onChange={(e) => {
-                        setAccent(e.target.value);
-                        triggerSaveTheme(base, gradientFrom, gradientTo, e.target.value);
-                      }}
-                      style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
                     />
-                  </label>
+                  ))}
+                  <CustomSwatch
+                    theme={t}
+                    label={translate("accentColor")}
+                    value={accent}
+                    selected={!ACCENT_PRESETS.some((p) => p.value === accent)}
+                    onChange={(value) => {
+                      setAccent(value);
+                      triggerSaveTheme(base, gradientFrom, gradientTo, value);
+                    }}
+                  />
                 </div>
 
                 {/* Card opacity */}
                 <div style={{ marginTop: "14px" }}>
-                  <Label t={t}>{translate("cardOpacity")}</Label>
+                  <Label theme={t} htmlFor="theme-card-opacity">
+                    {translate("cardOpacity")}
+                  </Label>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <input
-                      type="range"
+                    <Range
+                      theme={t}
+                      id="theme-card-opacity"
                       min={MIN_CARD_OPACITY}
                       max={1}
                       step={0.05}
@@ -702,21 +561,20 @@ export function ThemePanel({
                         const val = parseFloat((e.target as HTMLInputElement).value);
                         triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, val);
                       }}
-                      style={{ flex: 1, accentColor: t.accent }}
                     />
                     <span
                       style={{
-                        fontSize: "12px",
+                        fontSize: "13px",
                         fontWeight: 600,
                         color: t.textSecondary,
-                        minWidth: "36px",
+                        minWidth: "40px",
                         textAlign: "right",
                       }}
                     >
                       {Math.round(cardOpacity * 100)}%
                     </span>
                   </div>
-                  <div style={{ fontSize: "11px", color: t.textMuted, marginTop: "4px" }}>
+                  <div style={{ ...hint, margin: "4px 0 0" }}>
                     {cardOpacity < 0.65
                       ? translate("veryFrostedBoldGradientShowsThrough")
                       : cardOpacity > 0.92
@@ -733,45 +591,35 @@ export function ThemePanel({
       {/* ── Effect (animated background) ── */}
       {activeTab === "effects" && (
         <div style={{ marginBottom: "12px" }}>
-          <Label t={t}>{translate("effect")}</Label>
-          <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "8px" }}>
-            {translate("optionalFloatingMotifsBehindEventPage")}
-          </div>
+          <Label theme={t}>{translate("effect")}</Label>
+          <p style={hint}>{translate("optionalFloatingMotifsBehindEventPage")}</p>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))",
-              gap: "7px",
-              maxHeight: "240px",
-              overflowY: "auto",
+              gridTemplateColumns: "repeat(auto-fill, minmax(88px, 1fr))",
+              gap: "8px",
             }}
           >
-            <button
+            <ChoiceTile
+              theme={t}
+              selected={effectId === null}
               onClick={() => {
                 setEffectId(null);
                 triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
                   effectId: null,
                 });
               }}
-              style={{
-                padding: "10px 4px",
-                borderRadius: "10px",
-                border: `2px solid ${effectId === null ? t.accent : t.inputBorder}`,
-                background: effectId === null ? t.accentBg : t.inputBg,
-                color: t.textPrimary,
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "4px",
-              }}
             >
-              <span style={{ fontSize: "18px" }}>🚫</span>
-              <span style={{ fontSize: "10px", fontWeight: 600 }}>{translate("none")}</span>
-            </button>
+              <span aria-hidden="true" style={{ fontSize: "18px" }}>
+                🚫
+              </span>
+              <span style={{ fontSize: "12px", fontWeight: 600 }}>{translate("none")}</span>
+            </ChoiceTile>
             {sortedEffectSets.map((e) => (
-              <button
+              <ChoiceTile
                 key={e.id}
+                theme={t}
+                selected={effectId === e.id}
                 onClick={() => {
                   setEffectId(e.id);
                   triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
@@ -779,23 +627,13 @@ export function ThemePanel({
                   });
                 }}
                 title={shared("effects." + e.id)}
-                style={{
-                  padding: "10px 4px",
-                  borderRadius: "10px",
-                  border: `2px solid ${effectId === e.id ? t.accent : t.inputBorder}`,
-                  background: effectId === e.id ? t.accentBg : t.inputBg,
-                  color: t.textPrimary,
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
               >
-                <span style={{ fontSize: "18px" }}>{e.emoji}</span>
+                <span aria-hidden="true" style={{ fontSize: "18px" }}>
+                  {e.emoji}
+                </span>
                 <span
                   style={{
-                    fontSize: "10px",
+                    fontSize: "12px",
                     fontWeight: 600,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
@@ -805,7 +643,7 @@ export function ThemePanel({
                 >
                   {shared("effects." + e.id)}
                 </span>
-              </button>
+              </ChoiceTile>
             ))}
           </div>
 
@@ -814,13 +652,13 @@ export function ThemePanel({
               style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "14px" }}
             >
               <div>
-                <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>
-                  {translate("density")}
-                </div>
-                <div style={{ display: "flex", gap: "6px" }}>
+                <Label theme={t}>{translate("density")}</Label>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   {(Object.keys(EFFECT_DENSITIES) as EffectDensity[]).map((d) => (
-                    <button
+                    <Chip
                       key={d}
+                      theme={t}
+                      selected={effectDensity === d}
                       onClick={() => {
                         setEffectDensity(d);
                         triggerSaveTheme(
@@ -833,30 +671,20 @@ export function ThemePanel({
                           { effectDensity: d }
                         );
                       }}
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        border: `1px solid ${effectDensity === d ? t.accent : t.inputBorder}`,
-                        background: effectDensity === d ? t.accentBg : "transparent",
-                        color: effectDensity === d ? t.accent : t.textMuted,
-                      }}
                     >
                       {shared("density." + d)}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>
-                  {translate("speed")}
-                </div>
-                <div style={{ display: "flex", gap: "6px" }}>
+                <Label theme={t}>{translate("speed")}</Label>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   {(Object.keys(EFFECT_SPEEDS) as EffectSpeed[]).map((s) => (
-                    <button
+                    <Chip
                       key={s}
+                      theme={t}
+                      selected={effectSpeed === s}
                       onClick={() => {
                         setEffectSpeed(s);
                         triggerSaveTheme(
@@ -869,29 +697,20 @@ export function ThemePanel({
                           { effectSpeed: s }
                         );
                       }}
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        border: `1px solid ${effectSpeed === s ? t.accent : t.inputBorder}`,
-                        background: effectSpeed === s ? t.accentBg : "transparent",
-                        color: effectSpeed === s ? t.accent : t.textMuted,
-                      }}
                     >
                       {shared("speed." + s)}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "5px" }}>
+                <Label theme={t} htmlFor="theme-effect-size">
                   {translate("size")}
-                </div>
+                </Label>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <input
-                    type="range"
+                  <Range
+                    theme={t}
+                    id="theme-effect-size"
                     min={EFFECT_SIZE_MIN}
                     max={EFFECT_SIZE_MAX}
                     step={0.5}
@@ -927,14 +746,13 @@ export function ThemePanel({
                         }
                       );
                     }}
-                    style={{ flex: 1, accentColor: t.accent }}
                   />
                   <span
                     style={{
-                      fontSize: "12px",
+                      fontSize: "13px",
                       fontWeight: 600,
                       color: t.textSecondary,
-                      minWidth: "36px",
+                      minWidth: "40px",
                       textAlign: "right",
                     }}
                   >
@@ -950,39 +768,32 @@ export function ThemePanel({
       {/* ── Event title font ── */}
       {activeTab === "font" && (
         <div style={{ marginBottom: "12px" }}>
-          <Label t={t}>{translate("eventTitleFont")}</Label>
-          <div style={{ fontSize: "11px", color: t.textMuted, marginBottom: "8px" }}>
-            {translate("appliedOnlyMainEventTitleSome")}
-          </div>
+          <Label theme={t}>{translate("eventTitleFont")}</Label>
+          <p style={hint}>{translate("appliedOnlyMainEventTitleSome")}</p>
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))",
-              gap: "6px",
+              gap: "8px",
             }}
           >
-            <button
+            <ChoiceTile
+              theme={t}
+              selected={fontId === null}
               onClick={() => {
                 setFontId(null);
                 triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
                   fontId: null,
                 });
               }}
-              style={{
-                padding: "9px 6px",
-                borderRadius: "10px",
-                border: `2px solid ${fontId === null ? t.accent : t.inputBorder}`,
-                background: fontId === null ? t.accentBg : t.inputBg,
-                color: t.textPrimary,
-                fontSize: "13px",
-                cursor: "pointer",
-              }}
             >
               {translate("themeDefault")}
-            </button>
+            </ChoiceTile>
             {FONT_OPTIONS.map((f) => (
-              <button
+              <ChoiceTile
                 key={f.id}
+                theme={t}
+                selected={fontId === f.id}
                 onClick={() => {
                   setFontId(f.id);
                   triggerSaveTheme(base, gradientFrom, gradientTo, accent, undefined, undefined, {
@@ -990,22 +801,19 @@ export function ThemePanel({
                   });
                 }}
                 title={f.label}
-                style={{
-                  padding: "9px 6px",
-                  borderRadius: "10px",
-                  border: `2px solid ${fontId === f.id ? t.accent : t.inputBorder}`,
-                  background: fontId === f.id ? t.accentBg : t.inputBg,
-                  color: t.textPrimary,
-                  fontSize: "14px",
-                  fontFamily: `var(${f.cssVar}), ${f.fallback}`,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
+                style={{ fontSize: "14px", fontFamily: `var(${f.cssVar}), ${f.fallback}` }}
               >
-                {f.label}
-              </button>
+                <span
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "100%",
+                  }}
+                >
+                  {f.label}
+                </span>
+              </ChoiceTile>
             ))}
           </div>
           <div

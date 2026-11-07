@@ -1,8 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
 
-import { Check, Megaphone } from "lucide-react";
+import { Check, Megaphone, Copy, QrCode } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
@@ -42,7 +43,9 @@ export function GuestSharingCard({
             <span style={{ fontWeight: 700, fontSize: "14px" }}>{translate("shareEvent")}</span>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button
+            <Button
+              theme={t}
+              variant="secondary"
               onClick={() => {
                 if (typeof navigator !== "undefined") {
                   navigator.clipboard.writeText(window.location.origin + `/e/${event.slug}`);
@@ -50,48 +53,23 @@ export function GuestSharingCard({
                   setTimeout(() => setEventLinkCopied(false), 2000);
                 }
               }}
-              style={{
-                flex: 1,
-                padding: "10px 14px",
-                background: eventLinkCopied ? "#22c55e" : t.inputBg,
-                border: `1px solid ${eventLinkCopied ? "#22c55e" : t.inputBorder}`,
-                borderRadius: t.btnRadius,
-                color: eventLinkCopied ? "#ffffff" : t.textPrimary,
-                fontFamily: "inherit",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                transition: "all 0.15s ease-in-out",
-              }}
+              style={{ flex: 1 }}
             >
-              {eventLinkCopied ? <Check size={14} /> : <span>📋</span>}
+              {eventLinkCopied ? (
+                <Check size={16} aria-hidden="true" />
+              ) : (
+                <Copy size={16} aria-hidden="true" />
+              )}
               {eventLinkCopied ? translate("copied") : translate("copyLink")}
-            </button>
-            <button
+            </Button>
+            <Button
+              theme={t}
+              variant="secondary"
               onClick={() => setShowShareQr(true)}
-              style={{
-                flex: 1,
-                padding: "10px 14px",
-                background: t.inputBg,
-                border: `1px solid ${t.inputBorder}`,
-                borderRadius: t.btnRadius,
-                color: t.textPrimary,
-                fontFamily: "inherit",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-              }}
+              style={{ flex: 1 }}
             >
-              <span>📱</span> {translate("showQrCode")}
-            </button>
+              <QrCode size={16} aria-hidden="true" /> {translate("showQrCode")}
+            </Button>
           </div>
         </EventCard>
       )}

@@ -136,8 +136,8 @@ How `resolveTheme()` derives them:
 Colors, radii and surfaces come from `lib/theme.ts`, as described above. Don't hard-code colors
 in components. Status colors come from the theme's `status` field; on app pages that is
 `APP_SHELL_THEME.status` (success #4ade80 on rgba(34,197,94,0.12), error #fca5a5 on
-rgba(239,68,68,0.15), info #c084fc on rgba(168,85,247,0.1)). Shared components that still
-hard-code these (`InlineAlert`, toasts, buttons) move to the field in #809.
+rgba(239,68,68,0.15), info #c084fc on rgba(168,85,247,0.1)). The shared components in
+`components/ui` read these fields; nothing else picks a status color.
 
 **Type.** Body text is Arial/Helvetica on every page. The event title uses the theme's
 `headingFont` (see Fonts and effects). Card titles are 15px bold, body text 14px, hints 13px
@@ -148,49 +148,82 @@ with 19px line height, labels and column headers 12px bold. Nothing people read 
 cards, 20px settings-card padding, 24px event-card padding, 32px between hero blocks. Pages
 run in one column, 600px wide at most.
 
-**Radii** come from the theme (`cardRadius`, `btnRadius`). Event-page inputs and alerts use
-10px, app-shell inputs 12px, and pills and switches are fully rounded.
+**Radii** come from the theme (`cardRadius`, `btnRadius`). Inputs and alerts use 10px on every
+page, and chips, pills and switches are fully rounded.
 
-**Focus.** Every interactive element shows a visible focus ring in `accent`.
+**Focus.** Every interactive element shows a visible focus ring in `accent`. The shared
+controls draw it, and their hover wash, through the `.rsvp-control`, `.rsvp-press` and
+`.rsvp-field` classes in `app/globals.css`, so never set `outline: none` inline.
 
 ## Components
+
+Every control comes from `components/ui` and takes a `theme` prop: the event's
+`ResolvedTheme` on event pages, `APP_SHELL_THEME` on app pages, and `chromeTheme(t)` in app
+chrome over an event (the host bar, its dialogs and sheets: the dark shell carrying the
+event's accent). Two controls that look alike are always the same component. Never hand-build
+a button, field, switch, chip, alert or toast; if a screen needs a look the set doesn't have,
+add it to the set and to this page. `style` on a shared control is for layout only (width,
+flex, margins), never for colors or sizes. `tests/components/UiPrimitives.test.tsx` fails if
+a native button or link outside `components/ui` paints an accent fill.
 
 - **Card:** `Section` in `components/event/settings-page/ui.tsx` (an `EventCard` with a title)
   for settings; `EventCard` for event-page sections; `AppCard` only for app-shell layouts.
   Put a header action such as **+ Add** in `Section`'s `action` slot, at the right of the
   title. Don't put a card inside a card. Inside an existing card, use a plain heading instead.
-- **Switch:** `Toggle`, for one on/off choice that applies at once. It has a name and an
-  on/off state for assistive technology. Its hit area is at least 40px tall, and when disabled
-  it shows 0.45 opacity and a not-allowed cursor.
-- **Buttons:** one set, all reading `ResolvedTheme`:
-  - Primary: `accent` fill with `accentFg` text, 44px tall, one per form.
-  - Secondary: `inputBg` fill with an `inputBorder` border, 40px tall.
-  - Link: inline actions such as Change or Verify.
-  - Icon: 40px square with an accessible name.
-  - Destructive: secondary styling with error text, always behind a confirm dialog.
+- **Buttons:** `Button` in `components/ui/Button.tsx`, or `buttonProps(theme, look)` to give
+  a `<Link>` or `<a>` the same look:
+  - Primary: `accent` fill with `accentFg` text, the theme's button radius, weight and case,
+    44px tall, one per form.
+  - Secondary: `inputBg` fill with an `inputBorder` border and `textPrimary` text, 40px tall.
+    Everything that isn't the form's main action, including Cancel, Back and Copy.
+  - Destructive: the secondary shape in the theme's `status.error` colors, always behind a
+    confirm dialog.
+  - Add: "+ Add …" where something can be added (a dashed `accentBorder` outline on the
+    `cardBg` surface, `accentText` and a Plus icon), such as Add location, Add poll or the
+    info-section chips. The card surface keeps it readable when it sits on the page ground.
+  - Link: an inline, underlined action in `accentText`, such as Change, Verify or Back.
+  - Icon: a 40px square with an accessible name (Close, Remove, Edit).
+  - Overlay: a control laid on a photo (the cover image, an event card): dark glass with
+    white text, because the photo, not the theme, is underneath.
 
-  Disabled is 0.45 opacity with a not-allowed cursor. Today the set lives in
-  `components/event/invitations/styles.ts` (`buttonStyle`, `primary()`, `linkButtonStyle`),
-  which needs the `inviteVars(theme)` CSS variables on an ancestor. `AppButton` (white text on
-  the accent) and the settings `smallBtn` are older variants to migrate. The set is planned to
-  move to `components/ui`.
+  `size="sm"` (32px, 13px text) is only for actions inside a list or table row, or on a photo.
+  Disabled is 0.45 opacity with a not-allowed cursor. A copied or saved state changes the
+  label (and adds a check icon), never the button's color.
 
-- **Fields:** a label, the control, an optional hint and an error, with the label tied to the
-  control. Labels are 12px bold in `textSecondary`. On app pages use `FormField` + `AppInput`
-  from `components/ui/AppPrimitives`. On event pages use the settings `S.inp` style with a real
-  `<label>`. The shared `Label` and `FormField` label colors still use the muted gray and are
-  due to move to `textSecondary`.
+- **Choices:** in `components/ui/Choice.tsx`, all buttons with `aria-pressed`:
+  - Chip: a pill for filters and short either/or choices (Theme · Effects · Font, density,
+    speed, guest-list filters, recipients). It sits on the `cardBg` surface, so it reads on
+    the page ground too; selected lays `accentBg` over it with `accentText`.
+  - Choice tile: a tile in a picker grid (presets, base themes, fonts, effects, icons).
+    Selected reads `accentBg` with a 2px `accent` border.
+  - Swatch and custom swatch: round color samples named by the color; the custom swatch opens
+    the native color picker.
+- **Section list:** `NavItem` in `components/ui/NavItem.tsx` for a vertical list of sections
+  (the admin sidebar and drawer, the docs index). The current entry is an `accent` fill.
+- **Switch:** `Toggle` in `components/ui/Toggle.tsx`, for one on/off choice that applies at
+  once. The whole row is the 40px hit area, it has a name and an on/off state for assistive
+  technology, and when disabled it shows 0.45 opacity and a not-allowed cursor. Without a
+  description its label is a row label (`textSecondary`); with one, the label is the
+  setting's name (`textPrimary`) and the description sits under it.
+- **Fields:** `Field` in `components/ui/Field.tsx` wraps a label, the control, an optional
+  hint and an error, and ties them together. Labels are 12px bold in `textSecondary`; `Label`
+  alone is a group heading. Controls are `Input`, `Textarea`, `Select`, `Check` (checkbox or
+  radio), `Range`, `SecretInput` (a password-style field with a show/hide button) and
+  `ColorInput`, all in the theme's input colors with `inputPlaceholder` placeholders.
 - **Selects and date inputs:** native controls styled like inputs, always with a visible
   label. Never rely on the selected option or a placeholder as the name.
-- **Alerts:** `InlineAlert` for status lines (saving, saved, errors), next to the control
-  that caused them. Errors use `role="alert"`, everything else `role="status"`.
-- **Toast:** `FeedbackToast`, only for a page-level result that has no control to sit next to
-  (for example, after navigation). One toast component; no hand-built toasts.
+- **Alerts:** `InlineAlert` in `components/ui/Feedback.tsx` for status lines (saving, saved,
+  warnings, errors), next to the control that caused them, in the theme's `status` colors.
+  Errors use `role="alert"`, everything else `role="status"`.
+- **Toast:** `Toast`, only for a page-level result that has no control to sit next to (for
+  example, after navigation or a save from a switch far up the page). It sits on the theme's
+  card over its page ground, may carry one action (Undo) and a dismiss button, and renders
+  nothing when there is no message. One toast component; no hand-built toasts.
 - **Dialog:** `components/ui/Dialog.tsx` for every modal, with a labeled title, focus moved in
   and returned on close. Destructive actions use a confirm dialog built on it that says what
   will happen. Never use the browser's `confirm()`, `alert()` or `prompt()`.
-- **Status chip:** a small pill. Good states use `status.success` (`text` on `bg`), everything
-  else `inputBg` with `textSecondary`.
+- **Status chip:** `StatusChip`, a small pill. Good states use `status.success` (`text` on
+  `bg`), everything else `inputBg` with `textSecondary`.
 - **Upload:** a secondary or icon button (40px) that opens the file picker through
   `/api/upload`, with progress as text ("Compressing…", "Uploading…").
 
@@ -231,7 +264,7 @@ buttons.
 **Data table.** Admin tables keep a header row on wide screens. Under 480px each row stacks
 into label and value pairs, like the choice table, so the page never scrolls sideways.
 
-**Filter chips.** One row of chips that scrolls sideways inside its own container when it
+**Filter chips.** One row of `Chip`s that scrolls sideways inside its own container when it
 overflows. Counts are in `textSecondary`. Hide chips that would show zero results.
 
 **Stat tile.** A small card with a 12px bold label and one large number. Two per row on phones.
@@ -249,7 +282,8 @@ secondary button.
 **Header and host bar.** The global header (`components/ui/AppNav.tsx`) and the host's
 floating bar (`components/event/HostBar.tsx`) are app chrome. Whether app chrome stays on the
 dark app shell over event pages or takes a tint from the event theme is an open decision (see
-below). Until it's settled, don't add new chrome surfaces.
+below). Until it is settled, chrome controls read `chromeTheme(t)` (the dark shell with the
+event's accent), and don't add new chrome surfaces.
 
 ## Fonts and effects
 

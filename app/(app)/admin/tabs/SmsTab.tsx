@@ -1,9 +1,11 @@
 "use client";
 import { useTranslations } from "next-intl";
 
-import { Eye, EyeOff } from "lucide-react";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Field, Input, SecretInput } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 
 export function SmsTab({
   config,
@@ -11,8 +13,6 @@ export function SmsTab({
   handleSaveSmsConfig,
   twilioAccountSid,
   setTwilioAccountSid,
-  showTwilioToken,
-  setShowTwilioToken,
   twilioAuthToken,
   setTwilioAuthToken,
   twilioPhoneNumber,
@@ -28,8 +28,6 @@ export function SmsTab({
   handleSaveSmsConfig: (e: React.FormEvent) => void;
   twilioAccountSid: string;
   setTwilioAccountSid: React.Dispatch<React.SetStateAction<string>>;
-  showTwilioToken: boolean;
-  setShowTwilioToken: React.Dispatch<React.SetStateAction<boolean>>;
   twilioAuthToken: string;
   setTwilioAuthToken: React.Dispatch<React.SetStateAction<string>>;
   twilioPhoneNumber: string;
@@ -51,59 +49,14 @@ export function SmsTab({
           padding: "24px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}>
-              {tr("smsNotifications")}
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: APP_SHELL.textSecondary,
-                marginTop: "4px",
-                maxWidth: "420px",
-              }}
-            >
-              {tr("whenOnGuestsReceiveSmsConfirmationsBlastsRemindersAnd")}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleToggleSmsEnabled}
-            style={{
-              width: "50px",
-              height: "26px",
-              borderRadius: "13px",
-              border: "none",
-              backgroundColor:
-                config.sms_enabled === "true" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-              cursor: "pointer",
-              position: "relative",
-              transition: "background-color 0.2s",
-              padding: 0,
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                backgroundColor: "#fff",
-                position: "absolute",
-                top: "3px",
-                left: config.sms_enabled === "true" ? "27px" : "3px",
-                transition: "left 0.2s",
-              }}
-            />
-          </button>
-        </div>
+        <Toggle
+          theme={T}
+          label={tr("smsNotifications")}
+          description={tr("whenOnGuestsReceiveSmsConfirmationsBlastsRemindersAnd")}
+          value={config.sms_enabled === "true"}
+          onChange={handleToggleSmsEnabled}
+          style={{ marginBottom: 0 }}
+        />
       </div>
 
       <div
@@ -133,133 +86,43 @@ export function SmsTab({
 
         <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
 
-        <form
-          onSubmit={handleSaveSmsConfig}
-          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
-        >
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: 700,
-                color: APP_SHELL.textSecondary,
-                marginBottom: "6px",
-              }}
-            >
-              {tr("twilioAccountSidTwilioAccountSid")}
-            </label>
-            <input
+        <form onSubmit={handleSaveSmsConfig} style={{ display: "flex", flexDirection: "column" }}>
+          <Field theme={T} label={tr("twilioAccountSidTwilioAccountSid")}>
+            <Input
+              theme={T}
               type="text"
               placeholder={tr("eGAcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")}
               value={twilioAccountSid}
               onChange={(e) => setTwilioAccountSid(e.target.value)}
-              style={{
-                width: "100%",
-                backgroundColor: APP_SHELL.inputBg,
-                border: `1px solid ${APP_SHELL.inputBorder}`,
-                borderRadius: APP_SHELL.inputRadius,
-                padding: "10px 14px",
-                color: APP_SHELL.textPrimary,
-                fontSize: "13px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: 700,
-                color: APP_SHELL.textSecondary,
-                marginBottom: "6px",
-              }}
-            >
-              {tr("twilioAuthTokenTwilioAuthToken")}
-            </label>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <div style={{ position: "relative", flex: 1 }}>
-                <input
-                  type={showTwilioToken ? "text" : "password"}
-                  placeholder={tr("twilioAuthenticationToken")}
-                  value={twilioAuthToken}
-                  onChange={(e) => setTwilioAuthToken(e.target.value)}
-                  style={{
-                    width: "100%",
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    borderRadius: APP_SHELL.inputRadius,
-                    padding: "10px 40px 10px 14px",
-                    color: APP_SHELL.textPrimary,
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowTwilioToken(!showTwilioToken)}
-                  style={{
-                    position: "absolute",
-                    right: "10px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: APP_SHELL.textSecondary,
-                    padding: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  title={showTwilioToken ? tr("hideToken") : tr("showToken")}
-                >
-                  {showTwilioToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-          </div>
+          <Field theme={T} label={tr("twilioAuthTokenTwilioAuthToken")}>
+            <SecretInput
+              theme={T}
+              showLabel={tr("showToken")}
+              hideLabel={tr("hideToken")}
+              placeholder={tr("twilioAuthenticationToken")}
+              value={twilioAuthToken}
+              onChange={(e) => setTwilioAuthToken(e.target.value)}
+            />
+          </Field>
 
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: 700,
-                color: APP_SHELL.textSecondary,
-                marginBottom: "6px",
-              }}
-            >
-              {tr("twilioPhoneNumberTwilioPhoneNumber")}
-            </label>
-            <input
+          <Field theme={T} label={tr("twilioPhoneNumberTwilioPhoneNumber")}>
+            <Input
+              theme={T}
               type="text"
               placeholder={tr("eG1234567890")}
               value={twilioPhoneNumber}
               onChange={(e) => setTwilioPhoneNumber(e.target.value)}
-              style={{
-                width: "100%",
-                backgroundColor: APP_SHELL.inputBg,
-                border: `1px solid ${APP_SHELL.inputBorder}`,
-                borderRadius: APP_SHELL.inputRadius,
-                padding: "10px 14px",
-                color: APP_SHELL.textPrimary,
-                fontSize: "13px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
             />
-          </div>
+          </Field>
 
           <div
             style={{
               height: "1px",
               backgroundColor: APP_SHELL.navBorder,
-              margin: "10px 0",
+              margin: "4px 0 20px",
             }}
           />
 
@@ -284,65 +147,39 @@ export function SmsTab({
             </h4>
             <p
               style={{
-                fontSize: "11px",
+                fontSize: "13px",
                 color: APP_SHELL.textSecondary,
                 margin: "0 0 12px 0",
-                lineHeight: "1.4",
+                lineHeight: "19px",
               }}
             >
               {tr("verifyYourTwilioConnectionBySendingATestSms")}
             </p>
 
             <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    color: APP_SHELL.textSecondary,
-                    marginBottom: "4px",
-                  }}
-                >
-                  {tr("testRecipientPhoneNumber")}
-                </label>
-                <input
+              <Field
+                theme={T}
+                label={tr("testRecipientPhoneNumber")}
+                style={{ flex: 1, marginBottom: 0 }}
+              >
+                <Input
+                  theme={T}
                   type="text"
                   placeholder={tr("eG15550199")}
                   value={smsTestTo}
                   onChange={(e) => setSmsTestTo(e.target.value)}
-                  style={{
-                    width: "100%",
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    borderRadius: APP_SHELL.inputRadius,
-                    padding: "8px 12px",
-                    color: APP_SHELL.textPrimary,
-                    fontSize: "12px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
                 />
-              </div>
-              <button
+              </Field>
+              <Button
+                theme={T}
+                variant="secondary"
                 type="button"
                 disabled={isPending || isTestingSms}
                 onClick={handleTestSmsConfig}
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.08)",
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  color: APP_SHELL.textPrimary,
-                  borderRadius: "8px",
-                  padding: "8px 16px",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  cursor: isPending || isTestingSms ? "not-allowed" : "pointer",
-                  opacity: isPending || isTestingSms ? 0.6 : 1,
-                  whiteSpace: "nowrap",
-                  height: "33px",
-                }}
+                style={{ whiteSpace: "nowrap" }}
               >
                 {isTestingSms ? tr("sending") : tr("testConnection")}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -351,26 +188,12 @@ export function SmsTab({
               display: "flex",
               justifyContent: "flex-end",
               gap: "12px",
-              marginTop: "10px",
+              marginTop: "20px",
             }}
           >
-            <button
-              type="submit"
-              disabled={isPending || isTestingSms}
-              style={{
-                backgroundColor: APP_SHELL.accent,
-                border: "none",
-                color: "#fff",
-                borderRadius: "10px",
-                padding: "10px 20px",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: isPending || isTestingSms ? "not-allowed" : "pointer",
-                opacity: isPending || isTestingSms ? 0.6 : 1,
-              }}
-            >
+            <Button theme={T} variant="primary" type="submit" disabled={isPending || isTestingSms}>
               {tr("saveSettings")}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

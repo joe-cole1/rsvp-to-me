@@ -1,8 +1,10 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Field, Input, Select } from "@/components/ui/Field";
 import type { BackupFile } from "./types";
 
 export function BackupsTab({
@@ -77,105 +79,68 @@ export function BackupsTab({
           style={{ display: "flex", flexDirection: "column", gap: "16px" }}
         >
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                }}
-              >
-                {tr("backupSchedule")}
-              </label>
-              {(() => {
-                const isCustom = !BACKUP_PRESETS.some(
-                  (p) => p.value !== "custom" && p.value === backupSchedule
-                );
-                return (
-                  <>
-                    <select
-                      value={isCustom ? "custom" : backupSchedule}
-                      onChange={(e) => {
-                        if (e.target.value !== "custom") setBackupSchedule(e.target.value);
-                      }}
-                      style={{
-                        backgroundColor: APP_SHELL.inputBg,
-                        border: `1px solid ${APP_SHELL.inputBorder}`,
-                        borderRadius: "10px",
-                        padding: "10px 14px",
-                        fontSize: "14px",
-                        color: APP_SHELL.textPrimary,
-                        outline: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {BACKUP_PRESETS.map((p) => (
-                        <option key={p.value} value={p.value}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                    {isCustom && (
-                      <input
-                        type="text"
-                        value={backupSchedule}
-                        onChange={(e) => setBackupSchedule(e.target.value)}
-                        placeholder={tr("eG00OrDisabled")}
-                        required
-                        style={{
-                          backgroundColor: APP_SHELL.inputBg,
-                          border: `1px solid ${APP_SHELL.inputBorder}`,
-                          borderRadius: "10px",
-                          padding: "10px 14px",
-                          fontSize: "14px",
-                          color: APP_SHELL.textPrimary,
-                          outline: "none",
-                        }}
-                      />
-                    )}
-                    <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
-                      {isCustom
-                        ? tr("standard5FieldCronSyntaxMinuteHourDayOf")
-                        : backupSchedule === "disabled"
-                          ? tr("automatedBackupsOff")
-                          : tr("cronSchedule", { schedule: backupSchedule })}
-                    </span>
-                  </>
-                );
-              })()}
-            </div>
+            {(() => {
+              const isCustom = !BACKUP_PRESETS.some(
+                (p) => p.value !== "custom" && p.value === backupSchedule
+              );
+              return (
+                <Field
+                  theme={T}
+                  label={tr("backupSchedule")}
+                  hint={
+                    isCustom
+                      ? tr("standard5FieldCronSyntaxMinuteHourDayOf")
+                      : backupSchedule === "disabled"
+                        ? tr("automatedBackupsOff")
+                        : tr("cronSchedule", { schedule: backupSchedule })
+                  }
+                  style={{ marginBottom: 0 }}
+                >
+                  <Select
+                    theme={T}
+                    value={isCustom ? "custom" : backupSchedule}
+                    onChange={(e) => {
+                      if (e.target.value !== "custom") setBackupSchedule(e.target.value);
+                    }}
+                  >
+                    {BACKUP_PRESETS.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </Select>
+                  {isCustom && (
+                    <Input
+                      theme={T}
+                      type="text"
+                      aria-label={tr("backupSchedule")}
+                      value={backupSchedule}
+                      onChange={(e) => setBackupSchedule(e.target.value)}
+                      placeholder={tr("eG00OrDisabled")}
+                      required
+                      style={{ marginTop: "8px" }}
+                    />
+                  )}
+                </Field>
+              );
+            })()}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                }}
-              >
-                {tr("backupsToRetainRotationLimit")}
-              </label>
-              <input
+            <Field
+              theme={T}
+              label={tr("backupsToRetainRotationLimit")}
+              hint={tr("maximumNumberOfBackupFilesToKeepOlderBackups")}
+              style={{ marginBottom: 0 }}
+            >
+              <Input
+                theme={T}
                 type="number"
                 min="1"
                 max="100"
                 value={backupKeepCount}
                 onChange={(e) => setBackupKeepCount(parseInt(e.target.value, 10) || 7)}
                 required
-                style={{
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: "10px",
-                  padding: "10px 14px",
-                  fontSize: "14px",
-                  color: APP_SHELL.textPrimary,
-                  outline: "none",
-                }}
               />
-              <span style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
-                {tr("maximumNumberOfBackupFilesToKeepOlderBackups")}
-              </span>
-            </div>
+            </Field>
           </div>
 
           <div
@@ -191,23 +156,9 @@ export function BackupsTab({
               {lastBackupTime ? new Date(lastBackupTime).toLocaleString(locale) : tr("never")}
             </div>
 
-            <button
-              type="submit"
-              disabled={isSavingBackupConfig}
-              style={{
-                backgroundColor: APP_SHELL.accent,
-                border: "none",
-                color: "#fff",
-                borderRadius: "10px",
-                padding: "10px 20px",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: isSavingBackupConfig ? "not-allowed" : "pointer",
-                opacity: isSavingBackupConfig ? 0.6 : 1,
-              }}
-            >
+            <Button theme={T} variant="primary" type="submit" disabled={isSavingBackupConfig}>
               {isSavingBackupConfig ? tr("saving2") : tr("saveBackupSettings")}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -247,25 +198,16 @@ export function BackupsTab({
           </p>
         </div>
 
-        <button
+        <Button
+          theme={T}
+          variant="secondary"
           type="button"
           onClick={handleCreateBackup}
           disabled={isBackupRunning}
-          style={{
-            backgroundColor: "rgba(255, 255, 255, 0.08)",
-            border: `1px solid ${APP_SHELL.inputBorder}`,
-            color: APP_SHELL.textPrimary,
-            borderRadius: "10px",
-            padding: "12px 24px",
-            fontSize: "14px",
-            fontWeight: 700,
-            cursor: isBackupRunning ? "not-allowed" : "pointer",
-            opacity: isBackupRunning ? 0.6 : 1,
-            whiteSpace: "nowrap",
-          }}
+          style={{ whiteSpace: "nowrap" }}
         >
           {isBackupRunning ? tr("backingUp") : tr("createBackupNow")}
-        </button>
+        </Button>
       </div>
 
       {/* Section 3: Backup List */}
@@ -354,33 +296,22 @@ export function BackupsTab({
                         : `${(b.sizeBytes / 1024).toFixed(2)} KB`}
                     </td>
                     <td style={{ padding: "14px 12px", textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "16px" }}>
+                      <div style={{ display: "inline-flex", gap: "8px" }}>
                         <a
                           href={`/api/admin/backups/${b.filename}`}
                           download
-                          style={{
-                            color: APP_SHELL.accent,
-                            textDecoration: "none",
-                            fontWeight: 600,
-                            fontSize: "13px",
-                          }}
+                          {...buttonProps(T, { variant: "secondary", size: "sm" })}
                         >
                           {tr("download")}
                         </a>
-                        <button
+                        <Button
+                          theme={T}
+                          variant="destructive"
+                          size="sm"
                           onClick={() => handleDeleteBackup(b.filename)}
-                          style={{
-                            backgroundColor: "transparent",
-                            border: "none",
-                            color: "#ef4444",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                            fontSize: "13px",
-                            padding: 0,
-                          }}
                         >
                           {tr("delete")}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>

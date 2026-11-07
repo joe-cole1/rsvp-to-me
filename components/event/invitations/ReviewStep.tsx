@@ -5,11 +5,15 @@ import { useLocale, useTranslations } from "next-intl";
 import { Mail, MessageSquare } from "lucide-react";
 import { getEventEmailPreview } from "@/app/actions/event";
 import type { InvitationPreviewRecipient } from "@/lib/invitation-types";
-import { linkButtonStyle, mutedText } from "./styles";
+import type { ResolvedTheme } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
+import { Check } from "@/components/ui/Field";
+import { mutedText as mutedFor, problemText } from "./styles";
 
 const GROUPS = ["new", "invited", "responded", "conflict"] as const;
 
 export function ReviewStep({
+  theme,
   eventId,
   reviewKey,
   recipients,
@@ -17,6 +21,7 @@ export function ReviewStep({
   onToggle,
   disabled,
 }: {
+  theme: ResolvedTheme;
   eventId: string;
   /** Identifies the reviewed draft; previews for an older review are dropped. */
   reviewKey: string;
@@ -26,6 +31,7 @@ export function ReviewStep({
   disabled: boolean;
 }) {
   const t = useTranslations("Ui.Event.InvitationComposer");
+  const mutedText = mutedFor(theme);
   const locale = useLocale();
   const [open, setOpen] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ key: string; subject: string; html: string } | null>(
@@ -105,7 +111,7 @@ export function ReviewStep({
                     key={row.contact}
                     style={{
                       padding: "10px 12px",
-                      border: "1px solid var(--invite-border)",
+                      border: `1px solid ${theme.inputBorder}`,
                       borderRadius: "10px",
                       display: "grid",
                       gap: "6px",
@@ -115,9 +121,9 @@ export function ReviewStep({
                       identity
                     ) : (
                       <label style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                        <input
-                          type="checkbox"
-                          style={{ marginTop: "4px", width: "18px", height: "18px" }}
+                        <Check
+                          theme={theme}
+                          style={{ marginTop: "2px" }}
                           disabled={disabled}
                           checked={selected.has(row.contact)}
                           onChange={(event) => onToggle(row.contact, event.target.checked)}
@@ -141,14 +147,15 @@ export function ReviewStep({
                         </span>
                       )}
                       {group !== "conflict" && (
-                        <button
+                        <Button
+                          theme={theme}
+                          variant="link"
                           type="button"
-                          style={linkButtonStyle}
                           aria-expanded={previewOpen}
                           onClick={() => togglePreview(row)}
                         >
                           {previewOpen ? t("hidePreview") : t("preview")}
-                        </button>
+                        </Button>
                       )}
                     </div>
                     {previewOpen &&
@@ -157,7 +164,7 @@ export function ReviewStep({
                           {t("smsPreview", { name: row.guestName })}
                         </p>
                       ) : error ? (
-                        <p role="alert" style={{ margin: 0, color: "var(--invite-problem)" }}>
+                        <p role="alert" style={problemText(theme)}>
                           {error}
                         </p>
                       ) : preview?.key ===
@@ -173,7 +180,7 @@ export function ReviewStep({
                             style={{
                               width: "100%",
                               height: "420px",
-                              border: "1px solid var(--invite-border)",
+                              border: `1px solid ${theme.inputBorder}`,
                               borderRadius: "8px",
                               background: "white",
                             }}

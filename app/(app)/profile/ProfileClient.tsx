@@ -10,17 +10,12 @@ import {
   cancelMyAccountDeletion,
 } from "@/app/actions/profile";
 import { deleteEvent } from "@/app/actions/event";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
-import {
-  AppButton,
-  AppInput,
-  FeedbackToast,
-  FormField,
-  InlineAlert,
-  appCardStyle,
-  appInputStyle,
-} from "@/components/ui/AppPrimitives";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { InlineAlert, Toast, type ToastMessage } from "@/components/ui/Feedback";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 import { Dialog } from "@/components/ui/Dialog";
 import { compressImage } from "@/lib/client-image";
@@ -61,9 +56,7 @@ export default function ProfileClient({
 
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
-    null
-  );
+  const [feedback, setFeedback] = useState<ToastMessage | null>(null);
   const [infoMessages, setInfoMessages] = useState<string[]>([]);
 
   // Deletion flow state
@@ -95,26 +88,26 @@ export default function ProfileClient({
 
     if (verified === "1") {
       setFeedback({
-        type: "success",
+        tone: "success",
         message: t("verified"),
       });
       // Clean query params
       router.replace("/profile");
     } else if (error === "invalid-token") {
       setFeedback({
-        type: "error",
+        tone: "error",
         message: t("invalidLink"),
       });
       router.replace("/profile");
     } else if (error === "email-taken") {
       setFeedback({
-        type: "error",
+        tone: "error",
         message: t("emailTaken"),
       });
       router.replace("/profile");
     } else if (error === "phone-taken") {
       setFeedback({
-        type: "error",
+        tone: "error",
         message: t("phoneTaken"),
       });
       router.replace("/profile");
@@ -155,11 +148,11 @@ export default function ProfileClient({
         )
       );
 
-      setFeedback({ type: "success", message: t("avatarSaved") });
+      setFeedback({ tone: "success", message: t("avatarSaved") });
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : t("avatarFailed");
-      setFeedback({ type: "error", message });
+      setFeedback({ tone: "error", message });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -189,13 +182,13 @@ export default function ProfileClient({
           if (result.messages && result.messages.length > 0) {
             setInfoMessages(result.messages);
           } else {
-            setFeedback({ type: "success", message: t("saved") });
+            setFeedback({ tone: "success", message: t("saved") });
           }
           router.refresh();
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : t("saveFailed");
-        setFeedback({ type: "error", message });
+        setFeedback({ tone: "error", message });
       }
     });
   };
@@ -227,15 +220,11 @@ export default function ProfileClient({
           {t("description")}
         </p>
 
-        <FeedbackToast feedback={feedback} onDismiss={() => setFeedback(null)} />
+        <Toast theme={T} toast={feedback} onDismiss={() => setFeedback(null)} />
 
         {infoMessages.map((msg, idx) => (
-          <InlineAlert
-            key={idx}
-            tone="info"
-            style={{ padding: "16px", fontSize: "14px", fontWeight: 600 }}
-          >
-            ℹ️ {msg}
+          <InlineAlert key={idx} theme={T} tone="info">
+            {msg}
           </InlineAlert>
         ))}
 
@@ -327,88 +316,56 @@ export default function ProfileClient({
                   accept="image/*"
                   style={{ display: "none" }}
                 />
-                <button
+                <Button
+                  theme={T}
+                  variant="secondary"
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    backgroundColor: "rgba(255,255,255,0.06)",
-                    border: `1px solid ${APP_SHELL.cardBorder}`,
-                    color: APP_SHELL.textPrimary,
-                    borderRadius: "10px",
-                    padding: "8px 16px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "background 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)")
-                  }
                 >
                   {t("changePhoto")}
-                </button>
-                <div style={{ color: APP_SHELL.textMuted, fontSize: "11px", marginTop: "6px" }}>
+                </Button>
+                <div style={{ color: T.textSecondary, fontSize: "13px", marginTop: "6px" }}>
                   {t("photoHint")}
                 </div>
               </div>
             </div>
 
             {/* Inputs */}
-            <FormField label={t("fullName")} style={{ marginBottom: 0 }}>
-              <AppInput
+            <Field theme={T} label={t("fullName")} style={{ marginBottom: 0 }}>
+              <Input
+                theme={T}
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                style={{ padding: "12px 16px" }}
               />
-            </FormField>
+            </Field>
 
-            <FormField label={t("email")} style={{ marginBottom: 0 }}>
-              <AppInput
+            <Field theme={T} label={t("email")} style={{ marginBottom: 0 }}>
+              <Input
+                theme={T}
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{ padding: "12px 16px" }}
               />
-            </FormField>
+            </Field>
 
             {channelConfig.sms && (
-              <FormField label={t("phone")} style={{ marginBottom: 0 }}>
-                <AppInput
+              <Field theme={T} label={t("phone")} style={{ marginBottom: 0 }}>
+                <Input
+                  theme={T}
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+15555555555"
-                  style={{ padding: "12px 16px" }}
                 />
-              </FormField>
+              </Field>
             )}
 
-            <AppButton
-              type="submit"
-              disabled={isPending}
-              style={{
-                padding: "14px",
-                transition: "opacity 0.2s, transform 0.1s",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: isPending ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!isPending) e.currentTarget.style.opacity = "0.9";
-              }}
-              onMouseLeave={(e) => {
-                if (!isPending) e.currentTarget.style.opacity = "1";
-              }}
-            >
+            <Button theme={T} variant="primary" type="submit" disabled={isPending} fullWidth>
               {isPending ? t("saving") : t("save")}
-            </AppButton>
+            </Button>
           </div>
         </form>
 
@@ -418,21 +375,28 @@ export default function ProfileClient({
         <div
           style={{
             backgroundColor: APP_SHELL.cardBg,
-            border: "1px solid #ef444440",
+            border: `1px solid ${T.status.error.border}`,
             borderRadius: "16px",
             padding: "24px",
             marginTop: "8px",
           }}
         >
-          <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ef4444", marginBottom: "16px" }}>
+          <h2
+            style={{
+              fontSize: "16px",
+              fontWeight: 700,
+              color: T.status.error.text,
+              marginBottom: "16px",
+            }}
+          >
             {t("danger")}
           </h2>
 
           {scheduledDeletionDate ? (
             <div
               style={{
-                backgroundColor: "rgba(239,68,68,0.1)",
-                border: "1px solid #ef444460",
+                backgroundColor: T.status.error.bg,
+                border: `1px solid ${T.status.error.border}`,
                 borderRadius: "10px",
                 padding: "16px",
                 display: "flex",
@@ -441,7 +405,9 @@ export default function ProfileClient({
               }}
             >
               <div>
-                <p style={{ color: "#ef4444", fontWeight: 700, margin: 0 }}>{t("scheduled")}</p>
+                <p style={{ color: T.status.error.text, fontWeight: 700, margin: 0 }}>
+                  {t("scheduled")}
+                </p>
                 <p
                   style={{
                     color: "rgba(255,255,255,0.6)",
@@ -455,9 +421,12 @@ export default function ProfileClient({
                   })}
                 </p>
               </div>
-              <button
+              <Button
+                theme={T}
+                variant="primary"
                 type="button"
                 disabled={isPending}
+                style={{ alignSelf: "flex-start" }}
                 onClick={() => {
                   startTransition(async () => {
                     try {
@@ -465,56 +434,31 @@ export default function ProfileClient({
                       if (res.success) {
                         setScheduledDeletionDate(null);
                         setFeedback({
-                          type: "success",
+                          tone: "success",
                           message: t("cancelled"),
                         });
                         router.refresh();
                       }
                     } catch (err) {
                       setFeedback({
-                        type: "error",
+                        tone: "error",
                         message: err instanceof Error ? err.message : t("cancelFailed"),
                       });
                     }
                   });
                 }}
-                style={{
-                  alignSelf: "flex-start",
-                  backgroundColor: APP_SHELL.accent,
-                  border: "none",
-                  color: "#fff",
-                  borderRadius: "10px",
-                  padding: "8px 16px",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  cursor: isPending ? "not-allowed" : "pointer",
-                  opacity: isPending ? 0.6 : 1,
-                  transition: "opacity 0.2s",
-                }}
               >
                 {t("cancelDeletion")}
-              </button>
+              </Button>
             </div>
           ) : (
             <>
               <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
                 {t("deleteWarning")}
               </p>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                style={{
-                  backgroundColor: "transparent",
-                  border: "1px solid #ef4444",
-                  color: "#ef4444",
-                  borderRadius: "10px",
-                  padding: "10px 20px",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
+              <Button theme={T} variant="destructive" onClick={() => setShowDeleteModal(true)}>
                 {t("deleteAccount")}
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -578,7 +522,10 @@ export default function ProfileClient({
                   <span style={{ color: APP_SHELL.textPrimary, fontSize: "14px", fontWeight: 600 }}>
                     {ev.title}
                   </span>
-                  <button
+                  <Button
+                    theme={T}
+                    variant="destructive"
+                    size="sm"
                     disabled={isDeletingEvent === ev.id}
                     onClick={async () => {
                       setIsDeletingEvent(ev.id);
@@ -589,32 +536,21 @@ export default function ProfileClient({
                         );
                       } catch {
                         setFeedback({
-                          type: "error",
+                          tone: "error",
                           message: t("eventDeleteFailed", { title: ev.title }),
                         });
                       } finally {
                         setIsDeletingEvent(null);
                       }
                     }}
-                    style={{
-                      backgroundColor: "transparent",
-                      border: "1px solid #ef4444",
-                      color: "#ef4444",
-                      borderRadius: "6px",
-                      padding: "4px 12px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      cursor: isDeletingEvent === ev.id ? "not-allowed" : "pointer",
-                      opacity: isDeletingEvent === ev.id ? 0.5 : 1,
-                    }}
                   >
                     {isDeletingEvent === ev.id ? t("deleting") : t("deleteEvent")}
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
             {blockedEvents.length === 0 && (
-              <p style={{ color: "#22c55e", fontSize: "14px", marginBottom: "16px" }}>
+              <p style={{ color: T.status.success.text, fontSize: "14px", marginBottom: "16px" }}>
                 {t("allDeleted")}
               </p>
             )}
@@ -637,37 +573,34 @@ export default function ProfileClient({
             >
               {t("confirmHint")}
             </p>
-            <AppInput
+            <Input
+              theme={T}
               type="text"
+              aria-label={t("confirmHint")}
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE"
-              style={{ ...appInputStyle, marginBottom: "16px" }}
+              style={{ marginBottom: "16px" }}
             />
           </>
         )}
 
         <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-          <button
+          <Button
+            theme={T}
+            variant="secondary"
             onClick={() => {
               setShowDeleteModal(false);
               setDeleteConfirmText("");
               setBlockedEvents(null);
             }}
-            style={{
-              backgroundColor: "transparent",
-              border: `1px solid ${APP_SHELL.navBorder}`,
-              color: APP_SHELL.textSecondary,
-              borderRadius: "10px",
-              padding: "10px 20px",
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
           >
             {t("cancel")}
-          </button>
+          </Button>
           {(!blockedEvents || blockedEvents.length === 0) && (
-            <button
+            <Button
+              theme={T}
+              variant="destructive"
               disabled={deleteConfirmText !== "DELETE" || isDeletingAccount}
               onClick={async () => {
                 if (deleteConfirmText !== "DELETE") return;
@@ -682,29 +615,15 @@ export default function ProfileClient({
                   }
                 } catch {
                   setFeedback({
-                    type: "error",
+                    tone: "error",
                     message: t("deleteFailed"),
                   });
                   setIsDeletingAccount(false);
                 }
               }}
-              style={{
-                backgroundColor:
-                  deleteConfirmText === "DELETE" && !isDeletingAccount
-                    ? "#ef4444"
-                    : "rgba(239,68,68,0.3)",
-                border: "none",
-                color: "#fff",
-                borderRadius: "10px",
-                padding: "10px 20px",
-                fontSize: "14px",
-                fontWeight: 700,
-                cursor:
-                  deleteConfirmText === "DELETE" && !isDeletingAccount ? "pointer" : "not-allowed",
-              }}
             >
               {isDeletingAccount ? t("processing") : t("confirmDelete")}
-            </button>
+            </Button>
           )}
         </div>
       </Dialog>

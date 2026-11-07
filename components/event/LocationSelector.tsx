@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL_THEME } from "@/lib/theme";
 import { LocationFields, type LocationValue } from "./LocationFields";
 
 export default function LocationSelector() {
@@ -13,11 +13,6 @@ export default function LocationSelector() {
   });
 
   return (
-    <LocationFields
-      value={location}
-      onChange={setLocation}
-      theme={{ ...APP_SHELL, accentFg: APP_SHELL.textPrimary }}
-      submitNames
-    />
+    <LocationFields value={location} onChange={setLocation} theme={APP_SHELL_THEME} submitNames />
   );
 }

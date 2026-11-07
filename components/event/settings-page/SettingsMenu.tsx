@@ -74,8 +74,11 @@ export function SettingsMenu({
         <button
           key={sec.id}
           onClick={() => openSection(sec.id)}
+          className="rsvp-control"
           style={{
+            ["--rsvp-focus" as string]: t.accent,
             textAlign: "left",
+            fontFamily: "inherit",
             background: t.cardBg,
             border: `1px solid ${t.cardBorder}`,
             borderRadius: t.cardRadius,

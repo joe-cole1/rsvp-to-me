@@ -3,15 +3,11 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createEvent } from "@/app/actions/createEvent";
 import LocationSelector from "@/components/event/LocationSelector";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { getSessionUser } from "@/lib/session-user";
-import {
-  AppButton,
-  AppCard,
-  AppInput,
-  FormField,
-  appInputStyle,
-} from "@/components/ui/AppPrimitives";
+import { AppCard } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Check, Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { CaptchaForm } from "@/components/ui/CaptchaForm";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -54,30 +50,35 @@ export default async function NewEventPage() {
     <div style={{ maxWidth: "480px", margin: "0 auto", padding: "32px 16px 80px" }}>
       <CaptchaForm action={createEvent} captchaAction="event_create">
         <Card title={tr("Ui.Dashboard.eventDetails")}>
-          <FormField label={tr("Ui.Dashboard.eventName")} style={{ marginBottom: "14px" }}>
-            <AppInput name="title" required placeholder={tr("Ui.Dashboard.wineNightAtJaneS")} />
-          </FormField>
-          <FormField label={tr("Ui.Dashboard.description")} style={{ marginBottom: "14px" }}>
-            <textarea
+          <Field theme={T} label={tr("Ui.Dashboard.eventName")} style={{ marginBottom: "14px" }}>
+            <Input
+              theme={T}
+              name="title"
+              required
+              placeholder={tr("Ui.Dashboard.wineNightAtJaneS")}
+            />
+          </Field>
+          <Field theme={T} label={tr("Ui.Dashboard.description")} style={{ marginBottom: "14px" }}>
+            <Textarea
+              theme={T}
               name="description"
               placeholder={tr("Ui.Dashboard.comeHangOutBringABottleToShare")}
               rows={3}
-              style={{ ...appInputStyle, resize: "vertical" }}
             />
-          </FormField>
+          </Field>
         </Card>
 
         <Card title={tr("Ui.Dashboard.dateTime")}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <FormField label={tr("Ui.Dashboard.date")} style={{ marginBottom: "14px" }}>
-              <AppInput name="startDate" type="date" required />
-            </FormField>
-            <FormField label={tr("Ui.Dashboard.time")} style={{ marginBottom: "14px" }}>
-              <AppInput name="startTime" type="time" required />
-            </FormField>
+            <Field theme={T} label={tr("Ui.Dashboard.date")} style={{ marginBottom: "14px" }}>
+              <Input theme={T} name="startDate" type="date" required />
+            </Field>
+            <Field theme={T} label={tr("Ui.Dashboard.time")} style={{ marginBottom: "14px" }}>
+              <Input theme={T} name="startTime" type="time" required />
+            </Field>
           </div>
-          <FormField label={tr("Ui.Dashboard.timezone")} style={{ marginBottom: "14px" }}>
-            <select name="timezone" style={appInputStyle}>
+          <Field theme={T} label={tr("Ui.Dashboard.timezone")} style={{ marginBottom: "14px" }}>
+            <Select theme={T} name="timezone">
               <option value="America/New_York">{tr("Ui.Dashboard.easternEt")}</option>
               <option value="America/Chicago">{tr("Ui.Dashboard.centralCt")}</option>
               <option value="America/Denver">{tr("Ui.Dashboard.mountainMt")}</option>
@@ -88,8 +89,8 @@ export default async function NewEventPage() {
               <option value="Europe/Paris">{tr("Ui.Dashboard.parisCet")}</option>
               <option value="Asia/Tokyo">{tr("Ui.Dashboard.tokyoJst")}</option>
               <option value="Australia/Sydney">{tr("Ui.Dashboard.sydneyAest")}</option>
-            </select>
-          </FormField>
+            </Select>
+          </Field>
         </Card>
 
         <Card title={tr("Ui.Dashboard.location")}>
@@ -118,12 +119,13 @@ export default async function NewEventPage() {
                   cursor: "pointer",
                 }}
               >
-                <input
+                <Check
+                  theme={T}
                   type="radio"
                   name="visibility"
                   value={val}
                   defaultChecked={val === "UNLISTED"}
-                  style={{ marginTop: "2px", accentColor: APP_SHELL.accent }}
+                  style={{ marginTop: "2px" }}
                 />
                 <div>
                   <div style={{ fontSize: "14px", fontWeight: 600, color: APP_SHELL.textPrimary }}>
@@ -138,16 +140,9 @@ export default async function NewEventPage() {
           </div>
         </Card>
 
-        <AppButton
-          type="submit"
-          style={{
-            width: "100%",
-            padding: "15px",
-            fontSize: "16px",
-          }}
-        >
+        <Button theme={T} variant="primary" type="submit" fullWidth>
           {tr("Ui.Dashboard.createEvent")}
-        </AppButton>
+        </Button>
       </CaptchaForm>
     </div>
   );

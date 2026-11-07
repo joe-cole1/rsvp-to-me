@@ -5,8 +5,9 @@ import { useTranslations } from "next-intl";
 import { Users, X, Check } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
 import { EventCard } from "./EventCard";
+import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/Field";
 import { Dialog } from "@/components/ui/Dialog";
 
 export function PendingApprovalsCard({
@@ -66,45 +67,32 @@ export function PendingApprovalsCard({
                     {r.guestEmail ? ` · ${r.guestEmail}` : ""}
                   </div>
                 </div>
-                <button
+                <Button
+                  theme={t}
+                  variant="primary"
+                  size="sm"
                   onClick={() =>
                     setActiveApproval({ rsvpId: r.id, type: "APPROVE", guestName: r.guestName })
                   }
                   disabled={isPending}
-                  style={{
-                    background: t.accent,
-                    color: t.accentFg,
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "6px 14px",
-                    fontFamily: "inherit",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
+                  aria-label={`${translate("approve")}: ${r.guestName}`}
                   title={translate("approve")}
                 >
-                  <Check size={14} />
-                </button>
-                <button
+                  <Check size={14} aria-hidden="true" />
+                </Button>
+                <Button
+                  theme={t}
+                  variant="secondary"
+                  size="sm"
                   onClick={() =>
                     setActiveApproval({ rsvpId: r.id, type: "DECLINE", guestName: r.guestName })
                   }
                   disabled={isPending}
-                  style={{
-                    background: t.inputBg,
-                    color: t.textSecondary,
-                    border: `1px solid ${t.inputBorder}`,
-                    borderRadius: "8px",
-                    padding: "6px 14px",
-                    fontFamily: "inherit",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                  }}
+                  aria-label={`${translate("decline")}: ${r.guestName}`}
                   title={translate("decline")}
                 >
-                  <X size={14} />
-                </button>
+                  <X size={14} aria-hidden="true" />
+                </Button>
               </div>
             ))}
           </div>
@@ -116,7 +104,6 @@ export function PendingApprovalsCard({
 
 export function ApprovalMessageModal({
   t,
-  S,
   activeApproval,
   setActiveApproval,
   approvalMessage,
@@ -125,7 +112,6 @@ export function ApprovalMessageModal({
   handleDecline,
 }: {
   t: ResolvedTheme;
-  S: EventPageStyles;
   activeApproval: { rsvpId: string; type: "APPROVE" | "DECLINE"; guestName: string } | null;
   setActiveApproval: React.Dispatch<
     React.SetStateAction<{ rsvpId: string; type: "APPROVE" | "DECLINE"; guestName: string } | null>
@@ -172,30 +158,22 @@ export function ApprovalMessageModal({
               ? translate("approvalMessage", { name: activeApproval.guestName })
               : translate("declineMessage", { name: activeApproval.guestName })}
           </p>
-          <textarea
-            style={{ ...S.inp, resize: "none", marginBottom: "20px" } as React.CSSProperties}
+          <Textarea
+            theme={t}
+            style={{ resize: "none", marginBottom: "20px" }}
             rows={3}
+            aria-label={translate("typeOptionalMessage")}
             placeholder={translate("typeOptionalMessage")}
             value={approvalMessage}
             onChange={(e) => setApprovalMessage(e.target.value)}
           />
           <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-            <button
-              onClick={close}
-              style={{
-                padding: "10px 18px",
-                background: t.inputBg,
-                border: `1px solid ${t.inputBorder}`,
-                borderRadius: t.btnRadius,
-                color: t.textSecondary,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                fontWeight: 600,
-              }}
-            >
+            <Button theme={t} variant="secondary" onClick={close}>
               {translate("cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
+              theme={t}
+              variant={activeApproval.type === "APPROVE" ? "primary" : "destructive"}
               onClick={() => {
                 const rsvpId = activeApproval.rsvpId;
                 const type = activeApproval.type;
@@ -208,19 +186,9 @@ export function ApprovalMessageModal({
                   handleDecline(rsvpId, msg);
                 }
               }}
-              style={{
-                padding: "10px 18px",
-                background: activeApproval.type === "APPROVE" ? t.accent : "#ef4444",
-                border: "none",
-                borderRadius: t.btnRadius,
-                color: activeApproval.type === "APPROVE" ? t.accentFg : "#fff",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                fontWeight: 700,
-              }}
             >
               {activeApproval.type === "APPROVE" ? translate("approve") : translate("decline")}
-            </button>
+            </Button>
           </div>
         </>
       )}

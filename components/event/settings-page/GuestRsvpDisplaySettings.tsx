@@ -11,20 +11,18 @@ import {
   type GuestRsvpDisplayFields,
 } from "@/lib/guestRsvpDisplay";
 import { GuestRsvpGroup } from "../GuestRsvpGroup";
-import type { SettingsPageStyles } from "./styles";
+import { Field, Select } from "@/components/ui/Field";
 
 export function GuestRsvpDisplaySettings({
   value,
   onChange,
   guestListVis,
   t,
-  S,
 }: {
   value: GuestRsvpDisplayFields;
   onChange: (update: Partial<GuestRsvpDisplayFields>) => void;
   guestListVis: "ALL" | "GUESTS_ONLY" | "HOST_ONLY";
   t: ResolvedTheme;
-  S: SettingsPageStyles;
 }) {
   const shared = useTranslations("Ui.Event.shared");
   const translate = useTranslations("Ui.Event.GuestRsvpDisplaySettings");
@@ -75,41 +73,39 @@ export function GuestRsvpDisplaySettings({
                 gap: "12px",
               }}
             >
-              <label style={{ color: t.textSecondary, fontSize: "12px" }}>
-                {translate("guestNames")}{" "}
-                <select
+              <Field theme={t} label={translate("guestNames")} style={{ marginBottom: 0 }}>
+                <Select
+                  theme={t}
                   aria-label={translate("namesLabel", { label })}
                   value={value[listField]}
                   onChange={(event) =>
                     onChange({ [listField]: event.target.value as GuestListDisplay })
                   }
-                  style={{ ...S.inp, marginTop: "6px" }}
                 >
                   <option value="EXPANDED">{translate("showImmediately")}</option>
                   <option value="COLLAPSED">{translate("showAfterClick")}</option>
                   <option value="HIDDEN">{translate("doNotDisplay")}</option>
-                </select>
-              </label>
+                </Select>
+              </Field>
               {value[listField] !== "HIDDEN" && (
-                <label style={{ color: t.textSecondary, fontSize: "12px" }}>
-                  {translate("countShownGuests")}{" "}
-                  <select
+                <Field theme={t} label={translate("countShownGuests")} style={{ marginBottom: 0 }}>
+                  <Select
+                    theme={t}
                     aria-label={translate("countsLabel", { label })}
                     value={value[countField]}
                     onChange={(event) =>
                       onChange({ [countField]: event.target.value as GuestCountDisplay })
                     }
-                    style={{ ...S.inp, marginTop: "6px" }}
                   >
                     <option value="EXACT">{translate("exactCount")}</option>
                     <option value="HIDDEN">{translate("noCount")}</option>
                     {status === "NO" && <option value="CAPPED">{translate("limit3")}</option>}
-                  </select>
-                </label>
+                  </Select>
+                </Field>
               )}
             </div>
             {value[listField] !== "HIDDEN" && value[countField] === "CAPPED" && (
-              <p style={{ color: t.textMuted, fontSize: "12px" }}>
+              <p style={{ color: t.textSecondary, fontSize: "13px" }}>
                 {translate("guestsSee1Or2Smaller")}
               </p>
             )}

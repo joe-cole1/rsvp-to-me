@@ -273,22 +273,6 @@ export function EventPage({
     lineHeight: 1.5,
   };
 
-  const getChipStyle = (isCustom: boolean): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 14px",
-    borderRadius: "100px",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    transition: "all 0.2s ease",
-    background: t.cardBg,
-    border: isCustom ? `1.5px dashed ${t.accent}` : `1.5px solid ${t.accent}`,
-    color: t.accentText,
-  });
-
   // Derived
   const going = event.rsvps.filter((r) => r.status === "GOING");
   const maybe = event.rsvps.filter((r) => r.status === "MAYBE");
@@ -802,18 +786,6 @@ export function EventPage({
 
   return (
     <div style={S.page}>
-      <style>{`
-        .chip-button {
-          transition: all 0.2s ease !important;
-        }
-        .chip-button:hover {
-          opacity: 0.85 !important;
-          transform: scale(1.03) !important;
-        }
-        .chip-button:active {
-          transform: scale(0.97) !important;
-        }
-      `}</style>
       {/* ── Top nav ── */}
 
       <EventAtmosphere theme={t} effect={effect} />
@@ -840,7 +812,6 @@ export function EventPage({
         <InfoSectionsBlock
           event={event}
           t={t}
-          S={S}
           isHost={isHost}
           pendingDelete={pendingDelete}
           addingSection={addingSection}
@@ -851,7 +822,6 @@ export function EventPage({
           setEditingSection={setEditingSection}
           editDraft={editDraft}
           setEditDraft={setEditDraft}
-          getChipStyle={getChipStyle}
           commitInfoSection={commitInfoSection}
           deleteSection={deleteSection}
           undoDeleteSection={undoDeleteSection}
@@ -901,7 +871,6 @@ export function EventPage({
           event={event}
           isPending={isPending}
           t={t}
-          S={S}
           isHost={isHost}
           rsvpStatus={rsvpStatus}
           rsvpDone={rsvpDone}
@@ -917,7 +886,6 @@ export function EventPage({
         <PotluckSection
           event={event}
           t={t}
-          S={S}
           isHost={isHost}
           rsvpStatus={rsvpStatus}
           guestName={guestName}
@@ -949,7 +917,6 @@ export function EventPage({
           renderAvatar={renderAvatar}
           isPending={isPending}
           t={t}
-          S={S}
           isHost={isHost}
           isPendingGuest={isPendingGuest}
           isApprovedGuest={isApprovedGuest}
@@ -1013,7 +980,6 @@ export function EventPage({
 
       <ApprovalMessageModal
         t={t}
-        S={S}
         activeApproval={activeApproval}
         setActiveApproval={setActiveApproval}
         approvalMessage={approvalMessage}

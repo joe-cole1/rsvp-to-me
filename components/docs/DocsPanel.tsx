@@ -9,7 +9,9 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import type { Components } from "react-markdown";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME } from "@/lib/theme";
+import { Input } from "@/components/ui/Field";
+import { NavItem } from "@/components/ui/NavItem";
 import "highlight.js/styles/github-dark.css";
 import "./DocsPanel.css";
 
@@ -135,27 +137,18 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
               insetInlineStart: "12px",
               top: "50%",
               transform: "translateY(-50%)",
-              color: APP_SHELL.textMuted,
+              color: APP_SHELL_THEME.textSecondary,
+              pointerEvents: "none",
             }}
+            aria-hidden="true"
           />
-          <input
+          <Input
+            theme={APP_SHELL_THEME}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("search")}
             aria-label={t("search")}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              paddingBlock: "9px",
-              paddingInlineStart: "36px",
-              paddingInlineEnd: "12px",
-              background: APP_SHELL.inputBg,
-              border: `1px solid ${APP_SHELL.inputBorder}`,
-              borderRadius: APP_SHELL.inputRadius,
-              color: APP_SHELL.textPrimary,
-              fontSize: "14px",
-              outline: "none",
-            }}
+            style={{ paddingInlineStart: "36px" }}
           />
         </div>
 
@@ -188,33 +181,16 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
                 {group.items.map((d) => {
                   const active = d.slug === activeSlug;
                   return (
-                    <button
+                    <NavItem
                       key={d.slug}
+                      theme={APP_SHELL_THEME}
+                      active={active}
                       onClick={() => selectDoc(d.slug)}
-                      style={{
-                        textAlign: "start",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "9px 12px",
-                        borderRadius: "10px",
-                        fontSize: "14px",
-                        fontWeight: active ? 700 : 600,
-                        backgroundColor: active ? APP_SHELL.accent : "transparent",
-                        color: active ? "#fff" : APP_SHELL.textSecondary,
-                        transition: "background 0.15s, color 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!active)
-                          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) e.currentTarget.style.backgroundColor = "transparent";
-                      }}
                     >
                       <span lang={d.locale ?? "en-US"} dir={d.dir ?? "ltr"}>
                         {d.title}
                       </span>
-                    </button>
+                    </NavItem>
                   );
                 })}
               </div>

@@ -32,6 +32,8 @@ export const APP_SHELL = {
   inputBorder: "rgba(255,255,255,0.1)",
   inputRadius: "12px",
   btnRadius: "14px",
+  /** The solid surface of app chrome over event pages (host bar dialogs and sheets). */
+  chromeSurface: "rgba(15,15,20,0.98)",
 } as const;
 
 export const BASE_THEMES: {
@@ -1020,3 +1022,17 @@ export const APP_SHELL_THEME = resolveTheme(
   APP_SHELL.accentSecondary,
   APP_SHELL.accent
 );
+
+/** DARK-based themes (the app shell included) sit on a dark ground. */
+export function isDarkTheme(t: ResolvedTheme): boolean {
+  return t.pageDecoration === "dark-orbs";
+}
+
+/**
+ * App chrome over an event page (the host bar, its panels and dialogs) stays on the
+ * dark shell but keeps the event's accent. This is that look as a resolved theme: DARK
+ * built from the event's own colors, so chrome controls read theme fields too.
+ */
+export function chromeTheme(t: ResolvedTheme): ResolvedTheme {
+  return resolveTheme("DARK", t.gradientFrom, t.gradientTo, t.accent);
+}

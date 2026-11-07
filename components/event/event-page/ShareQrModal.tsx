@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
 
 import NextImage from "next/image";
 import type { ResolvedTheme } from "@/lib/theme";
@@ -89,22 +90,9 @@ export function ShareQrModal({
           </div>
         )}
       </div>
-      <button
-        onClick={close}
-        style={{
-          width: "100%",
-          padding: "12px",
-          background: t.accent,
-          color: t.accentFg,
-          border: "none",
-          borderRadius: t.btnRadius,
-          cursor: "pointer",
-          fontFamily: "inherit",
-          fontWeight: 700,
-        }}
-      >
+      <Button theme={t} variant="primary" fullWidth onClick={close}>
         {translate("close")}
-      </button>
+      </Button>
     </Dialog>
   );
 }

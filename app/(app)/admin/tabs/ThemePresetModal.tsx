@@ -1,8 +1,10 @@
 "use client";
 import { useTranslations } from "next-intl";
 
+import { X } from "lucide-react";
 import {
   APP_SHELL,
+  APP_SHELL_THEME as T,
   BASE_THEMES,
   ACCENT_PRESETS,
   getDefaultCardOpacity,
@@ -12,6 +14,9 @@ import {
 import { FONT_OPTIONS, getFontById } from "@/lib/fonts";
 import type { AdminThemePreset, ThemePresetFormState, ThemeSnapObj } from "./types";
 import { Dialog } from "@/components/ui/Dialog";
+import { Button, buttonProps, buttonStyle } from "@/components/ui/Button";
+import { ChoiceTile, CustomSwatch, Swatch } from "@/components/ui/Choice";
+import { Check, ColorInput, Field, Input, Label, Range, Select } from "@/components/ui/Field";
 
 type ComparableThemePreset = Pick<
   ThemePresetFormState,
@@ -61,6 +66,7 @@ export function ThemePresetModal({
 }) {
   const tr = useTranslations("Ui.Admin");
   const tEvent = useTranslations("Ui.Event");
+  const common = useTranslations("Ui.Common");
 
   return (
     <Dialog
@@ -112,58 +118,38 @@ export function ThemePresetModal({
                   {themePresetForm.id ? tr("editPreset") : tr("newPreset2")}
                 </h3>
                 {formDiffersFromDefault && defSnap && (
-                  <button
+                  <Button
+                    theme={T}
+                    variant="secondary"
+                    size="sm"
                     type="button"
                     onClick={() => setThemePresetForm((f) => f && { ...f, ...defSnap })}
-                    style={{
-                      background: "none",
-                      border: "1px solid rgba(139,92,246,0.5)",
-                      borderRadius: "7px",
-                      color: "#a78bfa",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      padding: "4px 8px",
-                      whiteSpace: "nowrap",
-                    }}
+                    style={{ whiteSpace: "nowrap" }}
                   >
                     {tr("resetToDefault")}
-                  </button>
+                  </Button>
                 )}
                 {origDiffersFromDefault && formDiffersFromOriginal && origSnap && (
-                  <button
+                  <Button
+                    theme={T}
+                    variant="secondary"
+                    size="sm"
                     type="button"
                     onClick={() => setThemePresetForm((f) => f && { ...f, ...origSnap })}
-                    style={{
-                      background: "none",
-                      border: `1px solid ${APP_SHELL.cardBorder}`,
-                      borderRadius: "7px",
-                      color: APP_SHELL.textSecondary,
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      padding: "4px 8px",
-                      whiteSpace: "nowrap",
-                    }}
+                    style={{ whiteSpace: "nowrap" }}
                   >
                     {tr("resetToOriginal")}
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  theme={T}
+                  variant="icon"
                   type="button"
+                  aria-label={common("close")}
                   onClick={() => setThemePresetForm(null)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: APP_SHELL.textSecondary,
-                    cursor: "pointer",
-                    fontSize: "20px",
-                    padding: "2px 6px",
-                    lineHeight: 1,
-                  }}
                 >
-                  ×
-                </button>
+                  <X size={20} aria-hidden="true" />
+                </Button>
               </div>
             );
           })()}
@@ -173,199 +159,72 @@ export function ThemePresetModal({
             style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
             {/* Name + emoji row */}
-            <div style={{ display: "grid", gridTemplateColumns: "60px 1fr", gap: "10px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: APP_SHELL.textSecondary,
-                  }}
-                >
-                  {tr("emoji")}
-                </label>
-                <input
+            <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: "10px" }}>
+              <Field theme={T} label={tr("emoji")} style={{ marginBottom: 0 }}>
+                <Input
+                  theme={T}
                   type="text"
                   value={themePresetForm.emoji}
                   onChange={(e) => setThemePresetForm((f) => f && { ...f, emoji: e.target.value })}
                   maxLength={2}
-                  style={{
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    borderRadius: "8px",
-                    padding: "9px",
-                    fontSize: "18px",
-                    textAlign: "center",
-                    color: APP_SHELL.textPrimary,
-                    outline: "none",
-                  }}
+                  style={{ textAlign: "center", padding: "10px 6px" }}
                 />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: APP_SHELL.textSecondary,
-                  }}
-                >
-                  {tr("name")}
-                </label>
-                <input
+              </Field>
+              <Field theme={T} label={tr("name")} style={{ marginBottom: 0 }}>
+                <Input
+                  theme={T}
                   type="text"
                   value={themePresetForm.name}
                   onChange={(e) => setThemePresetForm((f) => f && { ...f, name: e.target.value })}
                   required
                   placeholder={tr("eGMidnightPurple")}
-                  style={{
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    borderRadius: "8px",
-                    padding: "9px 12px",
-                    fontSize: "14px",
-                    color: APP_SHELL.textPrimary,
-                    outline: "none",
-                  }}
                 />
-              </div>
+              </Field>
             </div>
 
             {/* Base style */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                }}
-              >
-                {tr("baseStyle")}
-              </label>
+            <div>
+              <Label theme={T}>{tr("baseStyle")}</Label>
               <div style={{ display: "flex", gap: "8px" }}>
                 {BASE_THEMES.map((bt) => (
-                  <button
+                  <ChoiceTile
                     key={bt.id}
-                    type="button"
+                    theme={T}
+                    selected={themePresetForm.base === bt.id}
                     onClick={() => setThemePresetForm((f) => f && { ...f, base: bt.id })}
-                    style={{
-                      flex: 1,
-                      padding: "0",
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      border: `2px solid ${themePresetForm.base === bt.id ? APP_SHELL.accent : APP_SHELL.cardBorder}`,
-                      borderRadius: "10px",
-                      background: "none",
-                    }}
+                    style={{ flex: 1, padding: 0, gap: 0, overflow: "hidden" }}
                   >
-                    <div style={{ height: "36px", background: bt.preview }} />
-                    <div
-                      style={{
-                        padding: "5px 4px",
-                        color: APP_SHELL.textPrimary,
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        backgroundColor: APP_SHELL.inputBg,
-                      }}
-                    >
+                    <div style={{ height: "36px", width: "100%", background: bt.preview }} />
+                    <div style={{ padding: "6px 4px", fontSize: "12px", fontWeight: 600 }}>
                       {tEvent("shared.baseThemes." + bt.id)}
                     </div>
-                  </button>
+                  </ChoiceTile>
                 ))}
               </div>
             </div>
 
             {/* Gradient colors */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                }}
-              >
+              <Label theme={T} style={{ marginBottom: "2px" }}>
                 {tr("backgroundGradient")}
-              </label>
+              </Label>
               <div style={{ display: "flex", gap: "10px" }}>
-                <label
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 12px",
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "18px",
-                      height: "18px",
-                      borderRadius: "4px",
-                      background: themePresetForm.gradientFrom,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: APP_SHELL.textSecondary,
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {themePresetForm.gradientFrom}
-                  </span>
-                  <input
-                    type="color"
-                    value={themePresetForm.gradientFrom}
-                    onChange={(e) =>
-                      setThemePresetForm((f) => f && { ...f, gradientFrom: e.target.value })
-                    }
-                    style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-                  />
-                </label>
-                <label
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 12px",
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "18px",
-                      height: "18px",
-                      borderRadius: "4px",
-                      background: themePresetForm.gradientTo,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: APP_SHELL.textSecondary,
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {themePresetForm.gradientTo}
-                  </span>
-                  <input
-                    type="color"
-                    value={themePresetForm.gradientTo}
-                    onChange={(e) =>
-                      setThemePresetForm((f) => f && { ...f, gradientTo: e.target.value })
-                    }
-                    style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-                  />
-                </label>
+                <ColorInput
+                  theme={T}
+                  label={`${tr("backgroundGradient")} 1`}
+                  value={themePresetForm.gradientFrom}
+                  onChange={(value) =>
+                    setThemePresetForm((f) => f && { ...f, gradientFrom: value })
+                  }
+                  style={{ flex: 1 }}
+                />
+                <ColorInput
+                  theme={T}
+                  label={`${tr("backgroundGradient")} 2`}
+                  value={themePresetForm.gradientTo}
+                  onChange={(value) => setThemePresetForm((f) => f && { ...f, gradientTo: value })}
+                  style={{ flex: 1 }}
+                />
               </div>
               <div
                 style={{
@@ -379,66 +238,34 @@ export function ThemePresetModal({
 
             {/* Accent color */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                }}
-              >
+              <Label theme={T} style={{ marginBottom: "2px" }}>
                 {tr("accentColor")}
-              </label>
+              </Label>
               <div
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: "7px",
+                  gap: "8px",
                   marginBottom: "4px",
                 }}
               >
                 {ACCENT_PRESETS.map((p) => (
-                  <button
+                  <Swatch
                     key={p.value}
-                    type="button"
+                    theme={T}
+                    color={p.value}
+                    label={p.name}
+                    selected={themePresetForm.accentColor === p.value}
                     onClick={() => setThemePresetForm((f) => f && { ...f, accentColor: p.value })}
-                    title={p.name}
-                    style={{
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "50%",
-                      background: p.value,
-                      border: `2px solid ${themePresetForm.accentColor === p.value ? "#fff" : "transparent"}`,
-                      cursor: "pointer",
-                    }}
                   />
                 ))}
-                <label
-                  title={tr("custom")}
-                  style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "50%",
-                    background: themePresetForm.accentColor,
-                    border: "2px solid rgba(255,255,255,0.3)",
-                    cursor: "pointer",
-                    overflow: "hidden",
-                    position: "relative",
-                  }}
-                >
-                  <input
-                    type="color"
-                    value={themePresetForm.accentColor}
-                    onChange={(e) =>
-                      setThemePresetForm((f) => f && { ...f, accentColor: e.target.value })
-                    }
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      opacity: 0,
-                      cursor: "pointer",
-                    }}
-                  />
-                </label>
+                <CustomSwatch
+                  theme={T}
+                  label={tr("custom")}
+                  value={themePresetForm.accentColor}
+                  selected={!ACCENT_PRESETS.some((p) => p.value === themePresetForm.accentColor)}
+                  onChange={(value) => setThemePresetForm((f) => f && { ...f, accentColor: value })}
+                />
               </div>
             </div>
 
@@ -461,8 +288,8 @@ export function ThemePresetModal({
                   color: APP_SHELL.textPrimary,
                 }}
               >
-                <input
-                  type="checkbox"
+                <Check
+                  theme={T}
                   checked={themePresetForm.seasonal}
                   onChange={(e) =>
                     setThemePresetForm(
@@ -474,22 +301,17 @@ export function ThemePresetModal({
                         }
                     )
                   }
-                  style={{ width: "16px", height: "16px", cursor: "pointer" }}
                 />
                 {tr("seasonalPreset")}
               </label>
               {themePresetForm.seasonal && (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <label
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                    }}
-                  >
+                  <Label theme={T} htmlFor="theme-preset-month" style={{ marginBottom: 0 }}>
                     {tr("month112")}
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    theme={T}
+                    id="theme-preset-month"
                     type="number"
                     min={1}
                     max={12}
@@ -504,16 +326,7 @@ export function ThemePresetModal({
                       )
                     }
                     placeholder={tr("eG10")}
-                    style={{
-                      width: "72px",
-                      backgroundColor: APP_SHELL.inputBg,
-                      border: `1px solid ${APP_SHELL.inputBorder}`,
-                      borderRadius: "8px",
-                      padding: "7px 10px",
-                      fontSize: "14px",
-                      color: APP_SHELL.textPrimary,
-                      outline: "none",
-                    }}
+                    style={{ width: "80px" }}
                   />
                 </div>
               )}
@@ -521,45 +334,30 @@ export function ThemePresetModal({
 
             {/* Heading font */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                }}
-              >
-                {tr("headingFont")}
-              </label>
-              <select
-                value={themePresetForm.fontId ?? ""}
-                onChange={(e) =>
-                  setThemePresetForm((f) => f && { ...f, fontId: e.target.value || null })
-                }
-                style={{
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: "8px",
-                  padding: "8px 10px",
-                  fontSize: "14px",
-                  color: APP_SHELL.textPrimary,
-                  outline: "none",
-                }}
-              >
-                <option value="">{tr("themeDefault")}</option>
-                {FONT_OPTIONS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {tEvent("shared.fonts." + f.id)} ({tr("fontCategory." + f.category)})
-                  </option>
-                ))}
-              </select>
+              <Field theme={T} label={tr("headingFont")} style={{ marginBottom: 0 }}>
+                <Select
+                  theme={T}
+                  value={themePresetForm.fontId ?? ""}
+                  onChange={(e) =>
+                    setThemePresetForm((f) => f && { ...f, fontId: e.target.value || null })
+                  }
+                >
+                  <option value="">{tr("themeDefault")}</option>
+                  {FONT_OPTIONS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {tEvent("shared.fonts." + f.id)} ({tr("fontCategory." + f.category)})
+                    </option>
+                  ))}
+                </Select>
+              </Field>
               {themePresetForm.fontId && (
                 <div
                   style={{
                     padding: "8px 10px",
-                    borderRadius: "8px",
-                    backgroundColor: APP_SHELL.inputBg,
-                    border: `1px solid ${APP_SHELL.inputBorder}`,
-                    color: APP_SHELL.textPrimary,
+                    borderRadius: "10px",
+                    backgroundColor: T.inputBg,
+                    border: `1px solid ${T.inputBorder}`,
+                    color: T.textPrimary,
                     fontFamily: (() => {
                       const f = getFontById(themePresetForm.fontId);
                       return f ? `var(${f.cssVar}), ${f.fallback}` : "inherit";
@@ -579,18 +377,13 @@ export function ThemePresetModal({
               const currentOp = themePresetForm.cardOpacity ?? defaultOp;
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <label
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      color: APP_SHELL.textSecondary,
-                    }}
-                  >
+                  <Label theme={T} htmlFor="theme-preset-opacity" style={{ marginBottom: "2px" }}>
                     {tr("cardOpacity")}
-                  </label>
+                  </Label>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <input
-                      type="range"
+                    <Range
+                      theme={T}
+                      id="theme-preset-opacity"
                       min={MIN_CARD_OPACITY}
                       max={1}
                       step={0.05}
@@ -600,7 +393,6 @@ export function ThemePresetModal({
                           (f) => f && { ...f, cardOpacity: parseFloat(e.target.value) }
                         )
                       }
-                      style={{ flex: 1, accentColor: APP_SHELL.accent }}
                     />
                     <span
                       style={{
@@ -614,7 +406,7 @@ export function ThemePresetModal({
                       {Math.round(currentOp * 100)}%
                     </span>
                   </div>
-                  <div style={{ fontSize: "11px", color: APP_SHELL.textSecondary }}>
+                  <div style={{ fontSize: "13px", color: T.textSecondary }}>
                     {tr("controlsCardTransparencyDefaultFor")}
                     {themePresetForm.base}: {Math.round(defaultOp * 100)}%
                   </div>
@@ -694,20 +486,17 @@ export function ThemePresetModal({
                           {tr("saturday700Pm")}
                         </div>
                       </div>
-                      <button
+                      {/* A picture of the theme's primary button, not a control. */}
+                      <span
+                        aria-hidden="true"
+                        {...buttonProps(pv, { variant: "primary", size: "sm" })}
                         style={{
-                          background: pv.accent,
-                          color: pv.accentFg,
-                          border: "none",
-                          borderRadius: pv.btnRadius,
-                          padding: "5px 12px",
-                          fontSize: "11px",
-                          fontWeight: 700,
+                          ...buttonStyle(pv, { variant: "primary", size: "sm" }),
                           cursor: "default",
                         }}
                       >
                         {tr("rsvp")}
-                      </button>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -715,23 +504,15 @@ export function ThemePresetModal({
             })()}
 
             <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
-              <button
+              <Button
+                theme={T}
+                variant="secondary"
                 type="button"
                 onClick={() => setThemePresetForm(null)}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  background: "transparent",
-                  border: `1px solid ${APP_SHELL.cardBorder}`,
-                  borderRadius: "10px",
-                  color: APP_SHELL.textSecondary,
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
+                style={{ flex: 1 }}
               >
                 {tr("cancel")}
-              </button>
+              </Button>
               {themePresetForm.id &&
                 themePresetOriginal &&
                 (() => {
@@ -747,67 +528,41 @@ export function ThemePresetModal({
                     themePresetForm.cardOpacity !== themePresetOriginal.cardOpacity ||
                     (themePresetForm.fontId ?? null) !== (themePresetOriginal.fontId ?? null);
                   return isDirty ? (
-                    <button
+                    <Button
+                      theme={T}
+                      variant="secondary"
                       type="button"
                       onClick={() => setThemePresetForm(themePresetOriginal)}
-                      style={{
-                        flex: 1,
-                        padding: "12px",
-                        background: "transparent",
-                        border: `1px solid rgba(239,68,68,0.4)`,
-                        borderRadius: "10px",
-                        color: "#ef4444",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
+                      style={{ flex: 1 }}
                     >
                       {tr("reset")}
-                    </button>
+                    </Button>
                   ) : null;
                 })()}
-              <button
+              <Button
+                theme={T}
+                variant="primary"
                 type="submit"
                 disabled={isSavingPreset}
-                style={{
-                  flex: 2,
-                  padding: "12px",
-                  background: APP_SHELL.accent,
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#fff",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  opacity: isSavingPreset ? 0.7 : 1,
-                }}
+                style={{ flex: 2 }}
               >
                 {isSavingPreset
                   ? tr("saving")
                   : themePresetForm.id
                     ? tr("saveChanges")
                     : tr("createPreset")}
-              </button>
+              </Button>
               {themePresetForm.id && (
-                <button
+                <Button
+                  theme={T}
+                  variant="secondary"
                   type="button"
                   disabled={isSavingPreset}
                   onClick={handleSaveThemePresetAsDefault}
-                  style={{
-                    flex: 2,
-                    padding: "12px",
-                    background: "transparent",
-                    border: "1px solid rgba(139,92,246,0.5)",
-                    borderRadius: "10px",
-                    color: "#a78bfa",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    opacity: isSavingPreset ? 0.7 : 1,
-                  }}
+                  style={{ flex: 2 }}
                 >
                   {tr("saveAsDefault")}
-                </button>
+                </Button>
               )}
             </div>
           </form>

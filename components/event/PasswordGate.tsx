@@ -1,6 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { APP_SHELL_THEME } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -75,49 +79,34 @@ export function PasswordGate({ slug }: { slug: string }) {
           {translate("enterPasswordViewEvent")}
         </p>
         <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <input
+          <Input
+            theme={APP_SHELL_THEME}
             type="text"
+            aria-label={translate("eventPassword")}
             placeholder={translate("eventPassword")}
             value={pw}
             onChange={(e) => {
               setPw(e.target.value);
               setError(false);
             }}
+            aria-invalid={error || undefined}
             autoFocus
             disabled={loading}
-            style={{
-              padding: "12px 16px",
-              borderRadius: "12px",
-              background: "rgba(255,255,255,0.07)",
-              border: `1px solid ${error ? "#f87171" : "rgba(255,255,255,0.12)"}`,
-              color: "#fff",
-              fontFamily: "inherit",
-              fontSize: "15px",
-              outline: "none",
-            }}
           />
           {error && (
-            <div style={{ color: "#f87171", fontSize: "13px" }}>
+            <InlineAlert theme={APP_SHELL_THEME} style={{ marginBottom: 0 }}>
               {translate("incorrectPassword")}
-            </div>
+            </InlineAlert>
           )}
-          <button
+          <Button
+            theme={APP_SHELL_THEME}
+            variant="primary"
             type="submit"
+            fullWidth
             disabled={!pw.trim() || loading}
-            style={{
-              padding: "13px",
-              background: "#a855f7",
-              color: "#fff",
-              border: "none",
-              borderRadius: "12px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: "15px",
-              fontWeight: 700,
-            }}
           >
             {loading ? translate("verifying") : translate("enterEvent")}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

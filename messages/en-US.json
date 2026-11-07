@@ -3,6 +3,10 @@
     "Common": {
       "save": "Save",
       "cancel": "Cancel",
+      "close": "Close",
+      "remove": "Remove",
+      "back": "Back",
+      "edit": "Edit",
       "dismissNotification": "Dismiss notification",
       "siteDescription": "Beautiful, personal event pages for wine nights, dinner parties, and everything in between."
     },

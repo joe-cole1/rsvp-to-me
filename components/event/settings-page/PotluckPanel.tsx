@@ -6,8 +6,9 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { PotluckItemEntry } from "./types";
-import type { SettingsPageStyles } from "./styles";
 import { Section } from "./ui";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
 
 export function PotluckPanel({
   potluckItems,
@@ -20,7 +21,6 @@ export function PotluckPanel({
   handleUnclaimItem,
   isPending,
   t,
-  S,
 }: {
   potluckItems: PotluckItemEntry[];
   newPotluckLabel: string;
@@ -32,7 +32,6 @@ export function PotluckPanel({
   handleUnclaimItem: (itemId: string, guestName: string) => void;
   isPending: boolean;
   t: ResolvedTheme;
-  S: SettingsPageStyles;
 }) {
   const translate = useTranslations("Ui.Event.PotluckPanel");
 
@@ -44,10 +43,9 @@ export function PotluckPanel({
       {addingPotluck ? (
         <div
           style={{
-            background: "rgba(255, 255, 255, 0.03)",
             padding: "16px",
-            borderRadius: t.cardRadius,
-            border: `1px solid ${t.cardBorder}`,
+            borderRadius: "12px",
+            border: `1px solid ${t.inputBorder}`,
             marginBottom: "20px",
           }}
         >
@@ -62,8 +60,10 @@ export function PotluckPanel({
             {translate("addNewItem")}
           </div>
           <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-            <input
-              style={{ ...S.inp, flex: 1 }}
+            <Input
+              theme={t}
+              aria-label={translate("itemNameEGRedWine")}
+              style={{ flex: 1, width: "auto" }}
               placeholder={translate("itemNameEGRedWine")}
               value={newPotluckLabel}
               onChange={(e) => setNewPotluckLabel(e.target.value)}
@@ -71,10 +71,12 @@ export function PotluckPanel({
                 if (e.key === "Enter") handleAddPotluckItem();
               }}
             />
-            <input
+            <Input
+              theme={t}
+              aria-label={translate("qty")}
               type="number"
               min="1"
-              style={{ ...S.inp, width: "70px", textAlign: "center" }}
+              style={{ width: "72px", textAlign: "center", padding: "10px 6px" }}
               value={newPotluckQty}
               onChange={(e) => {
                 const val = e.target.value;
@@ -89,66 +91,44 @@ export function PotluckPanel({
             />
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button
+            <Button
+              theme={t}
+              variant="primary"
               type="button"
               onClick={() => {
                 handleAddPotluckItem();
                 setAddingPotluck(false);
               }}
               disabled={!newPotluckLabel.trim() || isPending}
-              style={{
-                ...S.smallBtn,
-                flex: 1,
-                padding: "10px",
-                borderRadius: "10px",
-                fontSize: "13px",
-              }}
+              style={{ flex: 1 }}
             >
               {translate("addItem")}
-            </button>
-            <button
+            </Button>
+            <Button
+              theme={t}
+              variant="secondary"
               type="button"
               onClick={() => {
                 setAddingPotluck(false);
                 setNewPotluckLabel("");
                 setNewPotluckQty(1);
               }}
-              style={{
-                ...S.smallBtn,
-                flex: 1,
-                padding: "10px",
-                borderRadius: "10px",
-                fontSize: "13px",
-                background: t.inputBg,
-                color: t.textSecondary,
-                border: `1px solid ${t.inputBorder}`,
-              }}
+              style={{ flex: 1 }}
             >
               {translate("cancel")}
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
-        <button
+        <Button
+          theme={t}
+          variant="add"
+          fullWidth
           onClick={() => setAddingPotluck(true)}
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            background: t.inputBg,
-            border: `1px dashed ${t.accentBorder}`,
-            borderRadius: "10px",
-            padding: "10px 14px",
-            color: t.textMuted,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: "13px",
-            width: "100%",
-          }}
+          style={{ marginBottom: "20px" }}
         >
-          <Plus size={14} /> {translate("addItem")}
-        </button>
+          <Plus size={14} aria-hidden="true" /> {translate("addItem")}
+        </Button>
       )}
 
       {/* List Existing Potluck Items */}
@@ -165,7 +145,7 @@ export function PotluckPanel({
           {potluckItems.length})
         </div>
         {potluckItems.length === 0 ? (
-          <div style={{ fontSize: "13px", color: t.textMuted, fontStyle: "italic" }}>
+          <div style={{ fontSize: "13px", color: t.textSecondary }}>
             {translate("noPotluckItemsAddedYetUse")}
           </div>
         ) : (
@@ -179,9 +159,8 @@ export function PotluckPanel({
                 <div
                   key={item.id}
                   style={{
-                    background: t.cardBg,
-                    border: `1px solid ${t.cardBorder}`,
-                    borderRadius: t.cardRadius,
+                    border: `1px solid ${t.inputBorder}`,
+                    borderRadius: "12px",
                     padding: "12px 16px",
                   }}
                 >
@@ -190,6 +169,7 @@ export function PotluckPanel({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
+                      gap: "8px",
                     }}
                   >
                     <div style={{ flex: 1 }}>
@@ -198,26 +178,22 @@ export function PotluckPanel({
                         {item.quantity > 1 && translate("neededQuantity", { count: item.quantity })}
                       </span>
                       {totalClaimed > 0 && (
-                        <span style={{ fontSize: "12px", color: t.textMuted, marginLeft: "8px" }}>
+                        <span
+                          style={{ fontSize: "12px", color: t.textSecondary, marginLeft: "8px" }}
+                        >
                           {translate("remainingQuantity", { count: remaining })}
                         </span>
                       )}
                     </div>
-                    <button
+                    <Button
+                      theme={t}
+                      variant="destructive"
+                      size="sm"
                       type="button"
                       onClick={() => handleRemovePotluckItem(item.id)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "#ef4444",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        padding: "4px",
-                      }}
                     >
                       {translate("remove")}
-                    </button>
+                    </Button>
                   </div>
                   {item.claims && item.claims.length > 0 && (
                     <div
@@ -234,11 +210,12 @@ export function PotluckPanel({
                         <div
                           key={claim.id}
                           style={{
-                            fontSize: "12px",
+                            fontSize: "13px",
                             color: t.textSecondary,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
+                            gap: "8px",
                           }}
                         >
                           <span>
@@ -247,22 +224,16 @@ export function PotluckPanel({
                               {translate("bringingQuantity", { count: claim.quantity })}
                             </span>
                           </span>
-                          <button
+                          <Button
+                            theme={t}
+                            variant="destructive"
+                            size="sm"
                             type="button"
                             onClick={() => handleUnclaimItem(item.id, claim.guestName)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              color: "#ef4444",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              padding: "2px 4px",
-                            }}
                             title={translate("removeClaim")}
                           >
                             {translate("unclaim")}
-                          </button>
+                          </Button>
                         </div>
                       ))}
                     </div>

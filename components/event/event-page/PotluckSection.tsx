@@ -2,16 +2,16 @@
 
 import { useTranslations } from "next-intl";
 
-import { Settings, UtensilsCrossed } from "lucide-react";
+import { Settings, UtensilsCrossed, X } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { EventPageStyles } from "./styles";
 import { EventCard } from "./EventCard";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
 
 export function PotluckSection({
   event,
   t,
-  S,
   isHost,
   rsvpStatus,
   guestName,
@@ -28,7 +28,6 @@ export function PotluckSection({
 }: {
   event: EventData;
   t: ResolvedTheme;
-  S: EventPageStyles;
   isHost: boolean;
   rsvpStatus: "GOING" | "MAYBE" | "NO" | "INVITED" | null;
   guestName: string;
@@ -119,24 +118,19 @@ export function PotluckSection({
                         !isHost &&
                         !isPendingGuest &&
                         claimingItemId !== item.id && (
-                          <button
+                          <Button
+                            theme={t}
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                               setClaimingItemId(item.id);
                               setClaimName(guestName);
                               setClaimQty(1);
                             }}
-                            style={{
-                              ...S.mutedBtn,
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              flexShrink: 0,
-                              background: `rgba(${t.accentRgb}, 0.12)`,
-                              border: `1px solid rgba(${t.accentRgb}, 0.25)`,
-                              color: t.accentText,
-                            }}
+                            style={{ flexShrink: 0 }}
                           >
                             {translate("iLlBring")}
-                          </button>
+                          </Button>
                         )}
                     </div>
 
@@ -172,26 +166,16 @@ export function PotluckSection({
                                 </span>
                               </span>
                               {canUnclaim && (
-                                <button
+                                <Button
+                                  theme={t}
+                                  variant="icon"
+                                  size="sm"
                                   onClick={() => unclaimItem(item.id, claim.guestName)}
-                                  style={{
-                                    background: "none",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    color: "#ef4444",
-                                    fontSize: "11px",
-                                    padding: "2px 6px",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    opacity: 0.8,
-                                  }}
+                                  aria-label={`${translate("removeClaim")}: ${claim.guestName}`}
                                   title={translate("removeClaim")}
-                                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
                                 >
-                                  ✕
-                                </button>
+                                  <X size={14} aria-hidden="true" />
+                                </Button>
                               )}
                             </div>
                           );
@@ -208,8 +192,10 @@ export function PotluckSection({
                           paddingLeft: "12px",
                         }}
                       >
-                        <input
-                          style={{ ...S.inp, flex: 1 }}
+                        <Input
+                          theme={t}
+                          style={{ flex: 1, width: "auto" }}
+                          aria-label={translate("name")}
                           placeholder={translate("name")}
                           value={claimName}
                           onChange={(e) => setClaimName(e.target.value)}
@@ -219,11 +205,13 @@ export function PotluckSection({
                           }}
                           autoFocus
                         />
-                        <input
+                        <Input
+                          theme={t}
                           type="number"
                           min="1"
                           max={remaining}
-                          style={{ ...S.inp, width: "70px", textAlign: "center" }}
+                          aria-label={translate("qty")}
+                          style={{ width: "72px", textAlign: "center", padding: "10px 6px" }}
                           value={claimQty}
                           onChange={(e) =>
                             setClaimQty(
@@ -232,24 +220,21 @@ export function PotluckSection({
                           }
                           placeholder={translate("qty")}
                         />
-                        <button
+                        <Button
+                          theme={t}
+                          variant="primary"
                           onClick={() => claimName.trim() && claimItem(item.id, claimName.trim())}
                           disabled={!claimName.trim()}
-                          style={{
-                            ...S.mutedBtn,
-                            width: "auto",
-                            padding: "10px 16px",
-                            opacity: !claimName.trim() ? 0.5 : 1,
-                            background: `rgba(${t.accentRgb}, 0.12)`,
-                            border: `1px solid rgba(${t.accentRgb}, 0.25)`,
-                            color: t.accentText,
-                          }}
                         >
                           {translate("claim")}
-                        </button>
-                        <button onClick={() => setClaimingItemId(null)} style={S.mutedBtn}>
+                        </Button>
+                        <Button
+                          theme={t}
+                          variant="secondary"
+                          onClick={() => setClaimingItemId(null)}
+                        >
                           {translate("cancel")}
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>

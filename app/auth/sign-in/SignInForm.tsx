@@ -5,14 +5,11 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { sendMagicLinkAction } from "@/app/actions/auth";
 import { AppShell } from "@/components/ui/AppShell";
-import { APP_SHELL } from "@/lib/theme";
-import {
-  AppButton,
-  AppCard,
-  AppInput,
-  FormField,
-  InlineAlert,
-} from "@/components/ui/AppPrimitives";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { AppCard } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 
 function looksLikePhone(s: string): boolean {
@@ -25,7 +22,7 @@ function TokenError() {
   const searchParams = useSearchParams();
   if (searchParams.get("error") !== "invalid-token") return null;
   return (
-    <InlineAlert style={{ marginBottom: "20px" }}>
+    <InlineAlert theme={T} style={{ marginBottom: "20px" }}>
       {tr("thatLinkHasExpiredOrAlreadyBeenUsedRequest")}
     </InlineAlert>
   );
@@ -157,52 +154,35 @@ export default function SignInForm({
                   ),
                 })}
               </p>
-              <button
+              <Button
+                theme={T}
+                variant="secondary"
                 onClick={() => {
                   setAuthFailed(false);
                   setIdentifier("");
                 }}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.btnRadius,
-                  color: APP_SHELL.textSecondary,
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  padding: "10px 20px",
-                  fontFamily: "inherit",
-                }}
               >
                 {tr("tryAgain")}
-              </button>
+              </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <FormField label={tr("emailOrPhoneNumber")} style={{ marginBottom: "20px" }}>
-                <AppInput
+              <Field theme={T} label={tr("emailOrPhoneNumber")} style={{ marginBottom: "20px" }}>
+                <Input
+                  theme={T}
                   type="text"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder={tr("youExampleComOr15550000000")}
-                  style={{ padding: "12px 14px", fontSize: "15px" }}
                 />
-              </FormField>
+              </Field>
 
-              {error && <InlineAlert>{error}</InlineAlert>}
+              {error && <InlineAlert theme={T}>{error}</InlineAlert>}
 
-              <AppButton
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "13px",
-                  fontSize: "15px",
-                }}
-              >
+              <Button theme={T} variant="primary" type="submit" disabled={loading} fullWidth>
                 {loading ? tr("sending") : tr("sendMagicLink")}
-              </AppButton>
+              </Button>
 
               <div style={{ textAlign: "center", marginTop: "20px" }}>
                 <a
@@ -210,7 +190,7 @@ export default function SignInForm({
                   style={{ color: APP_SHELL.textMuted, fontSize: "13px", textDecoration: "none" }}
                 >
                   {openRegistration ? tr("noAccount") : tr("newHost")}{" "}
-                  <span style={{ color: APP_SHELL.accent }}>{tr("createOne")}</span>
+                  <span style={{ color: T.accentText }}>{tr("createOne")}</span>
                 </a>
               </div>
             </form>

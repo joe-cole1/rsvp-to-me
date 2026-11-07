@@ -3,13 +3,10 @@
 import { useTranslations } from "next-intl";
 
 import type { ResolvedTheme } from "@/lib/theme";
+import { Chip } from "@/components/ui/Choice";
+import { Field, Input, Label } from "@/components/ui/Field";
 
 export type EditableLocationType = "PHYSICAL" | "VIRTUAL" | "TBD";
-
-type LocationFieldTheme = Pick<
-  ResolvedTheme,
-  "accent" | "accentFg" | "inputBg" | "inputBorder" | "textPrimary" | "textSecondary" | "textMuted"
-> & { inputRadius?: string };
 
 export type LocationValue = {
   type: EditableLocationType;
@@ -23,64 +20,28 @@ export function LocationFields({
   onChange,
   theme: t,
   submitNames = false,
-  compact = false,
 }: {
   value: LocationValue;
   onChange: (value: LocationValue) => void;
-  theme: LocationFieldTheme;
+  theme: ResolvedTheme;
   submitNames?: boolean;
-  compact?: boolean;
 }) {
   const translate = useTranslations("Ui.Event.LocationFields");
 
   const set = (next: Partial<LocationValue>) => onChange({ ...value, ...next });
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: compact ? "10px 12px" : "10px 14px",
-    background: t.inputBg,
-    border: `1px solid ${t.inputBorder}`,
-    borderRadius: t.inputRadius ?? "10px",
-    color: t.textPrimary,
-    fontSize: "14px",
-    outline: "none",
-    boxSizing: "border-box",
-    fontFamily: "inherit",
-  };
-  const fieldStyle: React.CSSProperties = { marginBottom: compact ? "10px" : "14px" };
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: compact ? "11px" : "12px",
-    fontWeight: 700,
-    letterSpacing: "0.02em",
-    color: t.textMuted,
-    marginBottom: "6px",
-  };
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1,
-    padding: compact ? "8px 4px" : "10px 8px",
-    background: active ? t.accent : t.inputBg,
-    color: active ? t.accentFg : t.textSecondary,
-    border: `1px solid ${active ? t.accent : t.inputBorder}`,
-    borderRadius: "10px",
-    fontFamily: "inherit",
-    fontSize: compact ? "12px" : "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  });
 
   return (
     <div>
       {submitNames && <input type="hidden" name="locationType" value={value.type} />}
-      <div style={fieldStyle}>
-        <span style={labelStyle}>{translate("type")}</span>
-        <div style={{ display: "flex", gap: compact ? "6px" : "8px" }}>
+      <div style={{ marginBottom: "16px" }}>
+        <Label theme={t}>{translate("type")}</Label>
+        <div style={{ display: "flex", gap: "8px" }}>
           {(["PHYSICAL", "VIRTUAL", "TBD"] as const).map((type) => (
-            <button
+            <Chip
               key={type}
-              type="button"
-              aria-pressed={value.type === type}
-              style={tabStyle(value.type === type)}
+              theme={t}
+              selected={value.type === type}
+              style={{ flex: 1 }}
               onClick={() => set({ type })}
             >
               {type === "PHYSICAL"
@@ -88,52 +49,56 @@ export function LocationFields({
                 : type === "VIRTUAL"
                   ? translate("virtual")
                   : translate("tbd")}
-            </button>
+            </Chip>
           ))}
         </div>
       </div>
 
       {value.type === "PHYSICAL" && (
         <>
-          <label style={fieldStyle}>
-            <span style={labelStyle}>{translate("venueName")}</span>
-            <input
+          <Field theme={t} label={translate("venueName")}>
+            <Input
+              theme={t}
               name={submitNames ? "locationName" : undefined}
               placeholder={translate("venueOrPlaceName")}
               value={value.name}
               onChange={(event) => set({ name: event.target.value })}
-              style={inputStyle}
             />
-          </label>
-          <label style={fieldStyle}>
-            <span style={labelStyle}>{translate("address")}</span>
-            <input
+          </Field>
+          <Field theme={t} label={translate("address")}>
+            <Input
+              theme={t}
               name={submitNames ? "locationAddress" : undefined}
               placeholder={translate("123MainStCity")}
               value={value.address}
               onChange={(event) => set({ address: event.target.value })}
-              style={inputStyle}
             />
-          </label>
+          </Field>
         </>
       )}
 
       {value.type === "VIRTUAL" && (
-        <label style={fieldStyle}>
-          <span style={labelStyle}>{translate("virtualLink")}</span>
-          <input
+        <Field theme={t} label={translate("virtualLink")}>
+          <Input
+            theme={t}
             name={submitNames ? "virtualUrl" : undefined}
             type="url"
             placeholder="https://zoom.us/j/..."
             value={value.virtualUrl}
             onChange={(event) => set({ virtualUrl: event.target.value })}
-            style={inputStyle}
           />
-        </label>
+        </Field>
       )}
 
       {value.type === "TBD" && (
-        <p style={{ fontSize: "13px", color: t.textMuted, margin: "6px 0 14px", lineHeight: 1.4 }}>
+        <p
+          style={{
+            fontSize: "13px",
+            color: t.textSecondary,
+            margin: "6px 0 16px",
+            lineHeight: 1.4,
+          }}
+        >
           {translate("weLlShowDeterminedTbdGuests")}
         </p>
       )}

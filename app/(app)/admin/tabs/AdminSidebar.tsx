@@ -1,7 +1,8 @@
 "use client";
 import { useTranslations } from "next-intl";
 
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL_THEME } from "@/lib/theme";
+import { NavItem } from "@/components/ui/NavItem";
 import type { AdminFeedback, TabId } from "./types";
 
 export function AdminSidebar({
@@ -30,35 +31,18 @@ export function AdminSidebar({
           { id: "docs", label: tr("documentation") },
         ] as const
       ).map((tab) => (
-        <button
+        <NavItem
           key={tab.id}
+          theme={APP_SHELL_THEME}
+          active={activeTab === tab.id}
           onClick={() => {
             handleTabChange(tab.id);
             setFeedback(null);
           }}
-          style={{
-            textAlign: "left",
-            padding: "10px 14px",
-            borderRadius: "12px",
-            border: "none",
-            backgroundColor: activeTab === tab.id ? APP_SHELL.accent : "transparent",
-            color: activeTab === tab.id ? "#fff" : APP_SHELL.textSecondary,
-            fontSize: "14px",
-            fontWeight: activeTab === tab.id ? 700 : 600,
-            cursor: "pointer",
-            transition: "background 0.2s, color 0.2s",
-            whiteSpace: "nowrap",
-          }}
-          onMouseEnter={(e) => {
-            if (activeTab !== tab.id)
-              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
-          }}
-          onMouseLeave={(e) => {
-            if (activeTab !== tab.id) e.currentTarget.style.backgroundColor = "transparent";
-          }}
+          style={{ whiteSpace: "nowrap" }}
         >
           {tab.label}
-        </button>
+        </NavItem>
       ))}
     </div>
   );

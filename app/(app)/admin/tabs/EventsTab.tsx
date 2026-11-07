@@ -1,8 +1,10 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 
-import { APP_SHELL } from "@/lib/theme";
-import { AppInput, appCardStyle } from "@/components/ui/AppPrimitives";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
 import type { AdminEvent } from "./types";
 
 export function EventsTab({
@@ -21,12 +23,13 @@ export function EventsTab({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <AppInput
+      <Input
+        theme={T}
         type="text"
+        aria-label={tr("searchEventsByTitleSlugOrHostDetails")}
         placeholder={tr("searchEventsByTitleSlugOrHostDetails")}
         value={eventSearch}
         onChange={(e) => handleEventSearch(e.target.value)}
-        style={{ padding: "12px 16px" }}
       />
 
       <div
@@ -103,33 +106,24 @@ export function EventsTab({
                       </span>
                     </td>
                     <td style={{ padding: "16px", textAlign: "right" }}>
-                      <a
-                        href={`/e/${e.slug}?admin=1`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          color: APP_SHELL.accent,
-                          textDecoration: "none",
-                          fontWeight: 600,
-                          fontSize: "13px",
-                          marginRight: "16px",
-                        }}
-                      >
-                        {tr("moderate")}
-                      </a>
-                      <button
-                        onClick={() => handleEventDelete(e.id, e.title)}
-                        style={{
-                          backgroundColor: "transparent",
-                          border: "none",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          fontWeight: 600,
-                          fontSize: "13px",
-                        }}
-                      >
-                        {tr("delete")}
-                      </button>
+                      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                        <a
+                          href={`/e/${e.slug}?admin=1`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          {...buttonProps(T, { variant: "secondary", size: "sm" })}
+                        >
+                          {tr("moderate")}
+                        </a>
+                        <Button
+                          theme={T}
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleEventDelete(e.id, e.title)}
+                        >
+                          {tr("delete")}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

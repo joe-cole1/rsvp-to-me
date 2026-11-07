@@ -17,6 +17,9 @@ import {
 } from "@/app/actions/event";
 import Image from "next/image";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Choice";
+import { Input } from "@/components/ui/Field";
 import {
   GUEST_RSVP_GROUPS,
   guestCountLabel,
@@ -230,20 +233,6 @@ export function GuestListFilter({
       ? [{ key: "INVITED" as Filter, label: translate("invited"), count: invited.length }]
       : []),
   ];
-
-  const chipStyle = (active: boolean): React.CSSProperties => ({
-    padding: "7px 16px",
-    borderRadius: "99px",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-    border: active ? "none" : `1px solid ${t.cardBorder}`,
-    background: active ? t.accent : t.cardBg,
-    color: active ? t.accentFg : t.textSecondary,
-    whiteSpace: "nowrap",
-    fontFamily: "inherit",
-    flexShrink: 0,
-  });
 
   const cardStyle: React.CSSProperties = {
     background: t.cardBg,
@@ -576,7 +565,8 @@ export function GuestListFilter({
             })}
           </div>
           <div style={{ display: "flex", gap: "8px", marginTop: "14px", flexWrap: "wrap" }}>
-            <input
+            <Input
+              theme={t}
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
@@ -584,47 +574,19 @@ export function GuestListFilter({
               }}
               placeholder={translate("searchNameEmailPhone")}
               aria-label={translate("searchGuestList")}
-              style={{
-                flex: "1 1 220px",
-                minWidth: 0,
-                padding: "9px 11px",
-                borderRadius: "8px",
-                border: `1px solid ${t.inputBorder}`,
-                background: t.inputBg,
-                color: t.textPrimary,
-                fontFamily: "inherit",
-              }}
+              style={{ flex: "1 1 220px", width: "auto" }}
             />
-            <a
-              href={`/e/${slug}/guests.csv`}
-              style={{
-                padding: "9px 12px",
-                borderRadius: "8px",
-                border: `1px solid ${t.cardBorder}`,
-                color: t.textSecondary,
-                textDecoration: "none",
-                fontSize: "13px",
-                fontWeight: 700,
-              }}
-            >
+            <a href={`/e/${slug}/guests.csv`} {...buttonProps(t, { variant: "secondary" })}>
               {translate("downloadCsv")}
             </a>
-            <button
+            <Button
+              theme={t}
+              variant={showWalkIn ? "secondary" : "primary"}
+              aria-expanded={showWalkIn}
               onClick={() => setShowWalkIn((value) => !value)}
-              style={{
-                padding: "9px 12px",
-                borderRadius: "8px",
-                border: "none",
-                background: t.accent,
-                color: t.accentFg,
-                fontFamily: "inherit",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
             >
               {showWalkIn ? translate("cancel") : translate("addWalk")}
-            </button>
+            </Button>
           </div>
           {showWalkIn && (
             <form
@@ -641,20 +603,17 @@ export function GuestListFilter({
                 borderTop: `1px solid ${t.cardBorder}`,
               }}
             >
-              <input
+              <Input
+                theme={t}
                 required
                 maxLength={100}
                 value={walkInName}
                 onChange={(event) => setWalkInName(event.target.value)}
                 placeholder={translate("guestName")}
                 aria-label={translate("walkGuestName")}
-                style={{
-                  padding: "9px",
-                  borderRadius: "8px",
-                  border: `1px solid ${t.inputBorder}`,
-                }}
               />
-              <input
+              <Input
+                theme={t}
                 required
                 type="number"
                 min={1}
@@ -663,64 +622,44 @@ export function GuestListFilter({
                 onChange={(event) => setWalkInPartySize(Number(event.target.value))}
                 aria-label={translate("totalPartySize")}
                 title={translate("totalPartySize")}
-                style={{
-                  padding: "9px",
-                  borderRadius: "8px",
-                  border: `1px solid ${t.inputBorder}`,
-                }}
               />
               {channelConfig.email && (
-                <input
+                <Input
+                  theme={t}
                   type="email"
                   maxLength={100}
                   value={walkInEmail}
                   onChange={(event) => setWalkInEmail(event.target.value)}
                   placeholder={translate("emailOptional")}
                   aria-label={translate("walkEmail")}
-                  style={{
-                    padding: "9px",
-                    borderRadius: "8px",
-                    border: `1px solid ${t.inputBorder}`,
-                  }}
                 />
               )}
               {channelConfig.sms && (
-                <input
+                <Input
+                  theme={t}
                   type="tel"
                   maxLength={30}
                   value={walkInPhone}
                   onChange={(event) => setWalkInPhone(event.target.value)}
                   placeholder={translate("phoneOptional")}
                   aria-label={translate("walkPhone")}
-                  style={{
-                    padding: "9px",
-                    borderRadius: "8px",
-                    border: `1px solid ${t.inputBorder}`,
-                  }}
                 />
               )}
-              <button
+              <Button
+                theme={t}
+                variant="primary"
                 type="submit"
                 disabled={isPending || !walkInName.trim()}
-                style={{
-                  padding: "9px 12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: t.accent,
-                  color: t.accentFg,
-                  fontWeight: 700,
-                  cursor: isPending ? "wait" : "pointer",
-                }}
               >
                 {isPending ? translate("adding") : translate("addCheck")}
-              </button>
+              </Button>
             </form>
           )}
           {attendanceError && (
             <div
               role="status"
               aria-live="polite"
-              style={{ color: "#f87171", fontSize: "12px", marginTop: "10px" }}
+              style={{ color: t.status.error.text, fontSize: "13px", marginTop: "10px" }}
             >
               {attendanceError}
             </div>
@@ -729,7 +668,7 @@ export function GuestListFilter({
             <div
               role="status"
               aria-live="polite"
-              style={{ color: t.textSecondary, fontSize: "12px", marginTop: "10px" }}
+              style={{ color: t.textSecondary, fontSize: "13px", marginTop: "10px" }}
             >
               {invitationMessage}
             </div>
@@ -746,20 +685,18 @@ export function GuestListFilter({
         }}
       >
         {chips.map(({ key, label, count }) => (
-          <button
+          <Chip
             key={key}
+            theme={t}
+            selected={filter === key}
             onClick={() => setFilter(key)}
-            aria-pressed={filter === key}
             aria-label={
               count !== null && count !== 0 && count !== "0" ? `${label} ${count}` : label
             }
-            style={chipStyle(filter === key)}
           >
             {label}
-            {count !== null && count !== 0 && count !== "0" && (
-              <span style={{ marginLeft: "5px", opacity: 0.75 }}>{count}</span>
-            )}
-          </button>
+            {count !== null && count !== 0 && count !== "0" && <span>{count}</span>}
+          </Chip>
         ))}
       </div>
 
@@ -945,20 +882,12 @@ export function GuestListFilter({
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}
                 >
-                  <button
+                  <Button
+                    theme={t}
+                    variant={r.checkIn ? "secondary" : "primary"}
+                    size="sm"
                     onClick={() => (r.checkIn ? handleUndoCheckIn(r) : handleCheckIn(r))}
                     disabled={checkInPendingId === r.id}
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      padding: "5px 10px",
-                      background: r.checkIn ? t.inputBg : t.accent,
-                      border: r.checkIn ? `1px solid ${t.cardBorder}` : "none",
-                      borderRadius: "8px",
-                      color: r.checkIn ? t.textSecondary : t.accentFg,
-                      cursor: checkInPendingId === r.id ? "wait" : "pointer",
-                      fontFamily: "inherit",
-                    }}
                   >
                     {checkInPendingId === r.id
                       ? translate("saving")
@@ -967,61 +896,37 @@ export function GuestListFilter({
                           ? translate("confirmUndo")
                           : translate("undoCheck")
                         : translate("check")}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    theme={t}
+                    variant="primary"
+                    size="sm"
                     onClick={() => handleApprove(r.id)}
                     disabled={isPending}
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      padding: "6px 12px",
-                      background: t.accent,
-                      color: t.accentFg,
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: isPending ? "not-allowed" : "pointer",
-                      fontFamily: "inherit",
-                    }}
                   >
                     {translate("approve")}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    theme={t}
+                    variant="destructive"
+                    size="sm"
                     onClick={() => handleDecline(r.id)}
                     disabled={isPending}
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      padding: "6px 12px",
-                      background: "rgba(239,68,68,0.1)",
-                      border: "1px solid rgba(239,68,68,0.2)",
-                      borderRadius: "8px",
-                      color: "#f87171",
-                      cursor: isPending ? "not-allowed" : "pointer",
-                      fontFamily: "inherit",
-                    }}
                   >
                     {translate("decline")}
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 isHost && (
                   <div
                     style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}
                   >
-                    <button
+                    <Button
+                      theme={t}
+                      variant={r.checkIn ? "secondary" : "primary"}
+                      size="sm"
                       onClick={() => (r.checkIn ? handleUndoCheckIn(r) : handleCheckIn(r))}
                       disabled={checkInPendingId === r.id}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        padding: "5px 10px",
-                        background: r.checkIn ? t.inputBg : t.accent,
-                        border: r.checkIn ? `1px solid ${t.cardBorder}` : "none",
-                        borderRadius: "8px",
-                        color: r.checkIn ? t.textSecondary : t.accentFg,
-                        cursor: checkInPendingId === r.id ? "wait" : "pointer",
-                        fontFamily: "inherit",
-                      }}
                     >
                       {checkInPendingId === r.id
                         ? translate("saving")
@@ -1030,41 +935,22 @@ export function GuestListFilter({
                             ? translate("confirmUndo")
                             : translate("undoCheck")
                           : translate("check")}
-                    </button>
+                    </Button>
                     <a
                       href={`/e/${slug}/rsvp?token=${r.editToken}&return=guests`}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        padding: "4px 10px",
-                        background: t.inputBg,
-                        border: `1px solid ${t.cardBorder}`,
-                        borderRadius: "8px",
-                        color: t.textSecondary,
-                        textDecoration: "none",
-                        display: "block",
-                        textAlign: "center",
-                      }}
+                      {...buttonProps(t, { variant: "secondary", size: "sm" })}
                     >
                       {translate("edit")}
                     </a>
-                    <button
+                    <Button
+                      theme={t}
+                      variant="destructive"
+                      size="sm"
                       onClick={() => handleDelete(r.id)}
                       disabled={deletingId === r.id}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        padding: "4px 10px",
-                        background: "rgba(239,68,68,0.1)",
-                        border: "1px solid rgba(239,68,68,0.2)",
-                        borderRadius: "8px",
-                        color: "#f87171",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
                     >
                       {translate("remove")}
-                    </button>
+                    </Button>
                   </div>
                 )
               )}
@@ -1174,22 +1060,14 @@ export function GuestListFilter({
                     style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}
                   >
                     {inv.rsvpId && (
-                      <button
+                      <Button
+                        theme={t}
+                        variant={inv.checkIn ? "secondary" : "primary"}
+                        size="sm"
                         onClick={() =>
                           inv.checkIn ? handleInvitedUndoCheckIn(inv) : handleInvitedCheckIn(inv)
                         }
                         disabled={checkInPendingId === inv.rsvpId}
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          padding: "5px 10px",
-                          background: inv.checkIn ? t.inputBg : t.accent,
-                          border: inv.checkIn ? `1px solid ${t.cardBorder}` : "none",
-                          borderRadius: "8px",
-                          color: inv.checkIn ? t.textSecondary : t.accentFg,
-                          cursor: checkInPendingId === inv.rsvpId ? "wait" : "pointer",
-                          fontFamily: "inherit",
-                        }}
                       >
                         {checkInPendingId === inv.rsvpId
                           ? translate("saving")
@@ -1198,82 +1076,47 @@ export function GuestListFilter({
                               ? translate("confirmUndo")
                               : translate("undoCheck")
                             : translate("check")}
-                      </button>
+                      </Button>
                     )}
-                    <button
+                    <Button
+                      theme={t}
+                      variant="secondary"
+                      size="sm"
                       onClick={() => handleResendInvite(inv)}
                       disabled={resendPendingId === inv.id}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        padding: "4px 10px",
-                        background: t.inputBg,
-                        border: `1px solid ${t.cardBorder}`,
-                        borderRadius: "8px",
-                        color: t.textSecondary,
-                        cursor: resendPendingId === inv.id ? "wait" : "pointer",
-                        fontFamily: "inherit",
-                      }}
                     >
                       {resendPendingId === inv.id
                         ? translate("sending")
                         : translate("resendInvite")}
-                    </button>
+                    </Button>
                     {inv.editToken && (
                       <>
                         <a
                           href={`/e/${slug}/rsvp?token=${inv.editToken}&return=guests`}
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            padding: "4px 10px",
-                            background: t.inputBg,
-                            border: `1px solid ${t.cardBorder}`,
-                            borderRadius: "8px",
-                            color: t.textSecondary,
-                            textDecoration: "none",
-                            display: "block",
-                            textAlign: "center",
-                          }}
+                          {...buttonProps(t, { variant: "secondary", size: "sm" })}
                         >
                           {translate("edit")}
                         </a>
-                        <button
+                        <Button
+                          theme={t}
+                          variant="destructive"
+                          size="sm"
                           onClick={() => handleDeleteInvited(inv.id)}
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            padding: "4px 10px",
-                            background: "rgba(239,68,68,0.1)",
-                            border: "1px solid rgba(239,68,68,0.2)",
-                            borderRadius: "8px",
-                            color: "#f87171",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                          }}
                         >
                           {translate("remove")}
-                        </button>
+                        </Button>
                       </>
                     )}
                     {!inv.rsvpId && (
-                      <button
+                      <Button
+                        theme={t}
+                        variant="destructive"
+                        size="sm"
                         onClick={() => handleDeleteInvitation(inv.id)}
                         disabled={deletingInvitationId === inv.id}
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          padding: "4px 10px",
-                          background: "rgba(239,68,68,0.1)",
-                          border: "1px solid rgba(239,68,68,0.2)",
-                          borderRadius: "8px",
-                          color: "#f87171",
-                          cursor: deletingInvitationId === inv.id ? "wait" : "pointer",
-                          fontFamily: "inherit",
-                        }}
                       >
                         {translate("remove")}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}

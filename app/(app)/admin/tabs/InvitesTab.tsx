@@ -1,8 +1,11 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import type { AdminInviteCode } from "./types";
 
 export function InvitesTab({
@@ -48,57 +51,14 @@ export function InvitesTab({
           padding: "24px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: "15px", color: APP_SHELL.textPrimary }}>
-              {tr("openHostRegistration")}
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: APP_SHELL.textSecondary,
-                marginTop: "4px",
-              }}
-            >
-              {tr("allowAnyoneToSignUpAsAHostWithout")}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleToggleOpenReg}
-            style={{
-              width: "50px",
-              height: "26px",
-              borderRadius: "13px",
-              border: "none",
-              backgroundColor:
-                config.open_registration === "true" ? APP_SHELL.accent : "rgba(255,255,255,0.1)",
-              cursor: "pointer",
-              position: "relative",
-              transition: "background-color 0.2s",
-              padding: 0,
-            }}
-          >
-            <div
-              style={{
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                backgroundColor: "#fff",
-                position: "absolute",
-                top: "3px",
-                left: config.open_registration === "true" ? "27px" : "3px",
-                transition: "left 0.2s",
-              }}
-            />
-          </button>
-        </div>
+        <Toggle
+          theme={T}
+          label={tr("openHostRegistration")}
+          description={tr("allowAnyoneToSignUpAsAHostWithout")}
+          value={config.open_registration === "true"}
+          onChange={handleToggleOpenReg}
+          style={{ marginBottom: 0 }}
+        />
       </div>
 
       {config.open_registration === "true" ? (
@@ -129,7 +89,7 @@ export function InvitesTab({
           {/* Form */}
           <form
             onSubmit={handleCreateCode}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-5"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-5"
             style={{
               ...appCardStyle,
               padding: "24px",
@@ -141,155 +101,57 @@ export function InvitesTab({
                   fontSize: "16px",
                   fontWeight: 700,
                   color: APP_SHELL.textPrimary,
-                  margin: 0,
+                  margin: "0 0 20px",
                 }}
               >
                 {tr("generateHostInviteCode")}
               </h3>
             </div>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                  marginBottom: "6px",
-                }}
-              >
-                {tr("inviteCodeString")}
-              </label>
-              <input
+            <Field theme={T} label={tr("inviteCodeString")}>
+              <Input
+                theme={T}
                 type="text"
                 required
                 placeholder={tr("eGViphost2026")}
                 value={newCode}
                 onChange={(e) => setNewCode(e.target.value)}
-                style={{
-                  width: "100%",
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.inputRadius,
-                  padding: "10px 14px",
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                  marginBottom: "6px",
-                }}
-              >
-                {tr("maxUsesOptional")}
-              </label>
-              <input
+            <Field theme={T} label={tr("maxUsesOptional")}>
+              <Input
+                theme={T}
                 type="number"
                 placeholder={tr("unlimitedIfEmpty")}
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value === "" ? "" : Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.inputRadius,
-                  padding: "10px 14px",
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                  marginBottom: "6px",
-                }}
-              >
-                {tr("expiresAtOptional")}
-              </label>
-              <input
+            <Field theme={T} label={tr("expiresAtOptional")}>
+              <Input
+                theme={T}
                 type="datetime-local"
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
-                style={{
-                  width: "100%",
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.inputRadius,
-                  padding: "10px 14px",
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: APP_SHELL.textSecondary,
-                  marginBottom: "6px",
-                }}
-              >
-                {tr("noteDescription")}
-              </label>
-              <input
+            <Field theme={T} label={tr("noteDescription")}>
+              <Input
+                theme={T}
                 type="text"
                 placeholder={tr("eGInviteCodeForVipSponsors")}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                style={{
-                  width: "100%",
-                  backgroundColor: APP_SHELL.inputBg,
-                  border: `1px solid ${APP_SHELL.inputBorder}`,
-                  borderRadius: APP_SHELL.inputRadius,
-                  padding: "10px 14px",
-                  color: APP_SHELL.textPrimary,
-                  fontSize: "13px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
               />
-            </div>
+            </Field>
 
-            <div className="col-span-1 sm:col-span-2 flex justify-end mt-2">
-              <button
-                type="submit"
-                disabled={isPending}
-                style={{
-                  backgroundColor: APP_SHELL.accent,
-                  border: "none",
-                  color: "#fff",
-                  borderRadius: "10px",
-                  padding: "10px 20px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  opacity: isPending ? 0.6 : 1,
-                }}
-              >
+            <div className="col-span-1 sm:col-span-2 flex justify-end">
+              <Button theme={T} variant="primary" type="submit" disabled={isPending}>
                 {tr("generateCode")}
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -339,7 +201,7 @@ export function InvitesTab({
                               fontFamily: "monospace",
                               fontSize: "14px",
                               fontWeight: 700,
-                              color: APP_SHELL.accent,
+                              color: T.accentText,
                             }}
                           >
                             {c.code}
@@ -350,19 +212,19 @@ export function InvitesTab({
                         </td>
                         <td style={{ padding: "16px" }}>
                           {c.expiresAt ? (
-                            <div style={{ fontSize: "12px", color: "#f87171" }}>
+                            <div style={{ fontSize: "12px", color: T.status.error.text }}>
                               {tr("expires")}
                               {new Date(c.expiresAt).toLocaleDateString(locale)}
                             </div>
                           ) : (
-                            <div style={{ fontSize: "12px", color: "#4ade80" }}>
+                            <div style={{ fontSize: "12px", color: T.status.success.text }}>
                               {tr("neverExpires")}
                             </div>
                           )}
                           {c.note && (
                             <div
                               style={{
-                                fontSize: "11px",
+                                fontSize: "12px",
                                 color: APP_SHELL.textMuted,
                                 marginTop: "2px",
                               }}
@@ -372,19 +234,14 @@ export function InvitesTab({
                           )}
                         </td>
                         <td style={{ padding: "16px", textAlign: "right" }}>
-                          <button
+                          <Button
+                            theme={T}
+                            variant="destructive"
+                            size="sm"
                             onClick={() => handleRevokeCode(c.id)}
-                            style={{
-                              backgroundColor: "transparent",
-                              border: "none",
-                              color: "#ef4444",
-                              cursor: "pointer",
-                              fontWeight: 600,
-                              fontSize: "13px",
-                            }}
                           >
                             {tr("revoke")}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))

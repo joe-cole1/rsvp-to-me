@@ -20,15 +20,8 @@ import { PasteListPanel } from "./invitations/PasteListPanel";
 import { RecipientRows } from "./invitations/RecipientRows";
 import { ReviewStep } from "./invitations/ReviewStep";
 import { SpreadsheetImportPanel } from "./invitations/SpreadsheetImportPanel";
-import {
-  buttonStyle,
-  footerStyle,
-  inviteVars,
-  linkButtonStyle,
-  mutedText,
-  primary,
-  primaryStyle,
-} from "./invitations/styles";
+import { DEFAULT_INVITE_THEME, footerStyle, mutedText, problemText } from "./invitations/styles";
+import { Button } from "@/components/ui/Button";
 
 type Review = { key: string; recipients: InvitationPreviewRecipient[] };
 type SendResult = { contact: string; status: string; guestName?: string; error?: string };
@@ -66,7 +59,7 @@ export function InvitationComposer({
 function InvitationFlow({
   eventId,
   channelConfig,
-  theme,
+  theme = DEFAULT_INVITE_THEME,
   draft,
   dispatch,
 }: {
@@ -249,21 +242,22 @@ function InvitationFlow({
 
   const sentCount = results.filter((row) => row.status === "sent").length;
   const failed = results.filter((row) => row.status !== "sent");
+  const muted = mutedText(theme);
   const stepStyle = (current: boolean): CSSProperties => ({
     fontWeight: current ? 700 : 500,
-    color: current ? "inherit" : "var(--invite-muted)",
+    color: current ? theme.textPrimary : theme.textSecondary,
   });
 
   return (
     <section
       aria-label={t("composer")}
       style={{
-        ...inviteVars(theme),
         display: "grid",
         gap: "14px",
         fontSize: "14px",
         lineHeight: 1.5,
         overflowWrap: "anywhere",
+        color: theme.textPrimary,
       }}
     >
       <ol
@@ -280,9 +274,10 @@ function InvitationFlow({
 
       {step === "edit" && (
         <>
-          <p style={{ ...mutedText, margin: 0 }}>{t("help")}</p>
+          <p style={{ ...muted, margin: 0 }}>{t("help")}</p>
           {panel?.kind === "paste" && (
             <PasteListPanel
+              theme={theme}
               onAdd={addRecipients}
               onCancel={() => setPanel(null)}
               onSpreadsheetPaste={(text) => setPanel({ kind: "spreadsheet", text })}
@@ -291,12 +286,14 @@ function InvitationFlow({
           {panel?.kind === "spreadsheet" && (
             <SpreadsheetImportPanel
               key={panel.text}
+              theme={theme}
               initialText={panel.text}
               onAdd={addRecipients}
               onCancel={() => setPanel(null)}
             />
           )}
           <RecipientRows
+            theme={theme}
             rows={draft.rows}
             statuses={statuses}
             revealAll={revealAll}
@@ -307,64 +304,81 @@ function InvitationFlow({
           />
           {!panel && (
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <button type="button" style={buttonStyle} onClick={() => setPanel({ kind: "paste" })}>
-                {t("pasteList")}
-              </button>
-              <button
+              <Button
+                theme={theme}
+                variant="secondary"
                 type="button"
-                style={buttonStyle}
+                onClick={() => setPanel({ kind: "paste" })}
+              >
+                {t("pasteList")}
+              </Button>
+              <Button
+                theme={theme}
+                variant="secondary"
+                type="button"
                 onClick={() => setPanel({ kind: "spreadsheet", text: "" })}
               >
                 {t("spreadsheet")}
-              </button>
+              </Button>
             </div>
           )}
           {status && (
-            <p role="status" style={{ ...mutedText, margin: 0 }}>
+            <p role="status" style={{ ...muted, margin: 0 }}>
               {status}
             </p>
           )}
           {error && (
-            <p role="alert" style={{ margin: 0, color: "var(--invite-problem)" }}>
+            <p role="alert" style={problemText(theme)}>
               {error}
             </p>
           )}
-          <div style={footerStyle}>
-            <span style={{ ...mutedText, flex: "1 1 220px" }}>
+          <div style={footerStyle(theme)}>
+            <span style={{ ...muted, flex: "1 1 220px" }}>
               {t("recipientCount", { count: filled })}
               {unnamed > 0 && <> · {t("withoutNames", { count: unnamed })}</>}
               {problemIndexes.length > 0 && (
                 <>
                   {" · "}
-                  <button type="button" style={linkButtonStyle} onClick={showProblems}>
+                  <Button theme={theme} variant="link" type="button" onClick={showProblems}>
                     {t("needsAttention", { count: problemIndexes.length })}
-                  </button>
+                  </Button>
                 </>
               )}
             </span>
             {draft.history.length > 0 && (
-              <button type="button" style={buttonStyle} onClick={() => dispatch({ type: "undo" })}>
+              <Button
+                theme={theme}
+                variant="secondary"
+                type="button"
+                onClick={() => dispatch({ type: "undo" })}
+              >
                 {t("undo")}
-              </button>
+              </Button>
             )}
             {filled > 0 && (
-              <button type="button" style={buttonStyle} onClick={() => dispatch({ type: "clear" })}>
+              <Button
+                theme={theme}
+                variant="secondary"
+                type="button"
+                onClick={() => dispatch({ type: "clear" })}
+              >
                 {t("clear")}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              theme={theme}
+              variant="primary"
               type="button"
-              style={primary(!ready.length || problemIndexes.length > 0)}
               disabled={!ready.length || problemIndexes.length > 0}
               onClick={() => startReview()}
             >
               {t("review", { count: ready.length })}
-            </button>
+            </Button>
             {problemIndexes.length > 0 && (
-              <p style={{ ...mutedText, margin: 0, flexBasis: "100%" }}>{t("fixFirst")}</p>
+              <p style={{ ...muted, margin: 0, flexBasis: "100%" }}>{t("fixFirst")}</p>
             )}
             {unnamed > 0 && !problemIndexes.length && (
-              <p style={{ ...mutedText, margin: 0, flexBasis: "100%" }}>{t("unnamedHelp")}</p>
+              <p style={{ ...muted, margin: 0, flexBasis: "100%" }}>{t("unnamedHelp")}</p>
             )}
           </div>
         </>
@@ -373,12 +387,13 @@ function InvitationFlow({
       {step === "review" && (
         <>
           {reviewing || !currentReview ? (
-            <p role="status" style={mutedText}>
+            <p role="status" style={muted}>
               {t("loading")}
             </p>
           ) : (
             <ReviewStep
               key={currentReview.key}
+              theme={theme}
               eventId={eventId}
               reviewKey={currentReview.key}
               recipients={currentReview.recipients}
@@ -395,23 +410,30 @@ function InvitationFlow({
             />
           )}
           {error && (
-            <p role="alert" style={{ margin: 0, color: "var(--invite-problem)" }}>
+            <p role="alert" style={problemText(theme)}>
               {error}
             </p>
           )}
-          <div style={footerStyle}>
-            <button type="button" style={buttonStyle} disabled={busy} onClick={backToEdit}>
-              ← {t("back")}
-            </button>
-            <span style={{ flex: 1 }} />
-            <button
+          <div style={footerStyle(theme)}>
+            <Button
+              theme={theme}
+              variant="secondary"
               type="button"
-              style={primary(busy || reviewing || !currentReview || !selected.size)}
+              disabled={busy}
+              onClick={backToEdit}
+            >
+              ← {t("back")}
+            </Button>
+            <span style={{ flex: 1 }} />
+            <Button
+              theme={theme}
+              variant="primary"
+              type="button"
               disabled={busy || reviewing || !currentReview || !selected.size}
               onClick={send}
             >
               {busy ? t("sending") : t("send", { count: selected.size })}
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -434,18 +456,19 @@ function InvitationFlow({
               </>
             )}
           </div>
-          <div style={footerStyle}>
+          <div style={footerStyle(theme)}>
             <span style={{ flex: 1 }} />
-            <button
+            <Button
+              theme={theme}
+              variant="primary"
               type="button"
-              style={primaryStyle}
               onClick={() => {
                 setResults([]);
                 setStep("edit");
               }}
             >
               {t("continue")}
-            </button>
+            </Button>
           </div>
         </>
       )}

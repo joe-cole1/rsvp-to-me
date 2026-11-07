@@ -4,8 +4,9 @@ import { useTranslations } from "next-intl";
 
 import type { ResolvedTheme } from "@/lib/theme";
 import type { SettingsOverrides } from "./types";
-import type { SettingsPageStyles } from "./styles";
-import { Label, Section, Toggle } from "./ui";
+import { Section } from "./ui";
+import { Field, Input, Label, Select } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import {
   NotificationPreferences,
   type SaveReport,
@@ -38,7 +39,6 @@ export function RsvpOptionsPanel({
   eventId,
   onNotificationStatus,
   t,
-  S,
 }: {
   plusOneAllowed: boolean;
   setPlusOneAllowed: React.Dispatch<React.SetStateAction<boolean>>;
@@ -67,18 +67,26 @@ export function RsvpOptionsPanel({
   eventId: string;
   onNotificationStatus: SaveReport;
   t: ResolvedTheme;
-  S: SettingsPageStyles;
 }) {
   const translate = useTranslations("Ui.Event.RsvpOptionsPanel");
   const notifications = useTranslations("Ui.Notifications");
+  const group = {
+    borderTop: `1px solid ${t.cardBorder}`,
+    margin: "16px -20px 16px -20px",
+    padding: "16px 20px 0 20px",
+  };
+  const hint = {
+    fontSize: "13px",
+    lineHeight: "19px",
+    color: t.textSecondary,
+    margin: "0 0 12px",
+  };
 
   return (
     <Section title={translate("rsvpOptions")} t={t}>
-      {/* Max plus-ones select dropdown */}
-      <div style={{ marginBottom: "16px" }}>
-        <Label t={t}>{translate("maxPlusOnesPerGuest")}</Label>
-        <select
-          style={{ ...S.inp, cursor: "pointer" }}
+      <Field theme={t} label={translate("maxPlusOnesPerGuest")}>
+        <Select
+          theme={t}
           value={plusOneAllowed ? plusOneMax : 0}
           onChange={(e) => {
             const val = parseInt(e.target.value, 10);
@@ -94,8 +102,8 @@ export function RsvpOptionsPanel({
               {translate("up")} {i + 1}
             </option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
 
       {plusOneAllowed && (
         <Toggle
@@ -105,29 +113,14 @@ export function RsvpOptionsPanel({
             setPlusOneNamesRequired(val);
             triggerSaveSettings({ plusOneNamesRequired: val });
           }}
-          t={t}
+          theme={t}
         />
       )}
 
-      <div
-        style={{
-          borderTop: `1px solid ${t.cardBorder}`,
-          margin: "16px -20px 16px -20px",
-          padding: "16px 20px 0 20px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 700,
-            textTransform: "none",
-            color: t.textMuted,
-            marginBottom: "12px",
-            letterSpacing: "0.02em",
-          }}
-        >
+      <div style={group}>
+        <Label theme={t} style={{ marginBottom: "12px" }}>
           {translate("rsvpApprovalOptions")}
-        </div>
+        </Label>
         <Toggle
           label={translate("requireHostApprovalEachRsvp")}
           value={approvalRequired}
@@ -135,7 +128,7 @@ export function RsvpOptionsPanel({
             setApprovalRequired(val);
             triggerSaveSettings({ approvalRequired: val });
           }}
-          t={t}
+          theme={t}
         />
         <Toggle
           label={translate("guestsCanRsvpMaybe")}
@@ -144,31 +137,14 @@ export function RsvpOptionsPanel({
             setMaybeEnabled(val);
             triggerSaveSettings({ maybeEnabled: val });
           }}
-          t={t}
+          theme={t}
         />
       </div>
-      <div
-        style={{
-          borderTop: `1px solid ${t.cardBorder}`,
-          margin: "16px -20px 16px -20px",
-          padding: "16px 20px 0 20px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 700,
-            textTransform: "none",
-            color: t.textMuted,
-            marginBottom: "12px",
-            letterSpacing: "0.02em",
-          }}
-        >
+      <div style={group}>
+        <Label theme={t} style={{ marginBottom: "12px" }}>
           {translate("notificationSettings")}
-        </div>
-        <div style={{ fontSize: "13px", color: t.textMuted, marginBottom: "12px" }}>
-          {translate("newRsvpAlertsGoCoHosts")}
-        </div>
+        </Label>
+        <p style={hint}>{translate("newRsvpAlertsGoCoHosts")}</p>
         <Toggle
           label={notifications("enableHostAlerts")}
           value={hostAlertEmail || hostAlertSms}
@@ -180,9 +156,9 @@ export function RsvpOptionsPanel({
               val ? { hostAlertEmail: true } : { hostAlertEmail: false, hostAlertSms: false }
             );
           }}
-          t={t}
+          theme={t}
         />
-        <Label t={t}>{notifications("organizerTitle")}</Label>
+        <Label theme={t}>{notifications("organizerTitle")}</Label>
         {hostAlertEmail || hostAlertSms ? (
           <NotificationPreferences
             scope={{ kind: "organizer", eventId }}
@@ -191,7 +167,7 @@ export function RsvpOptionsPanel({
             onStatus={onNotificationStatus}
           />
         ) : (
-          <Label t={t}>{notifications("organizerOff")}</Label>
+          <p style={hint}>{notifications("organizerOff")}</p>
         )}
       </div>
       <Toggle
@@ -201,12 +177,12 @@ export function RsvpOptionsPanel({
           setShowTimestamps(val);
           triggerSaveSettings({ showTimestamps: val });
         }}
-        t={t}
+        theme={t}
       />
 
-      <div style={{ marginBottom: "16px", marginTop: "16px" }}>
-        <Label t={t}>{translate("capacityLimitOptional")}</Label>
-        <input
+      <Field theme={t} label={translate("capacityLimitOptional")} style={{ marginTop: "16px" }}>
+        <Input
+          theme={t}
           type="number"
           placeholder={translate("noLimit")}
           value={capacity}
@@ -222,12 +198,11 @@ export function RsvpOptionsPanel({
               e.currentTarget.blur();
             }
           }}
-          style={S.inp}
         />
-      </div>
-      <div style={{ marginBottom: "16px" }}>
-        <Label t={t}>{translate("rsvpDeadlineOptional")}</Label>
-        <input
+      </Field>
+      <Field theme={t} label={translate("rsvpDeadlineOptional")}>
+        <Input
+          theme={t}
           type="datetime-local"
           value={rsvpDeadline}
           onChange={(e) => setRsvpDeadline(e.target.value)}
@@ -240,9 +215,8 @@ export function RsvpOptionsPanel({
               e.currentTarget.blur();
             }
           }}
-          style={S.inp}
         />
-      </div>
+      </Field>
       {rsvpDeadline && (
         <Toggle
           label={translate("allowEditingRsvpsAfterDeadline")}
@@ -251,7 +225,7 @@ export function RsvpOptionsPanel({
             setAllowEditAfterDeadline(val);
             triggerSaveSettings({ allowEditAfterDeadline: val });
           }}
-          t={t}
+          theme={t}
         />
       )}
     </Section>

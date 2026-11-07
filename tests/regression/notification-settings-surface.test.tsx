@@ -11,7 +11,7 @@ import "@/tests/helpers/english-request-locale";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@/tests/components/render";
 import { managementFixture } from "@/tests/helpers/notification-management";
-import { Toggle } from "@/components/event/settings-page/ui";
+import { Toggle } from "@/components/ui/Toggle";
 import { APP_SHELL_THEME } from "@/lib/theme";
 const m = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock("@/app/actions/notifications", () => ({
@@ -73,7 +73,7 @@ describe("notification settings surface", () => {
   it("names every settings switch and exposes its state", () => {
     const change = vi.fn();
     render(
-      <Toggle label="Notify organizers" value={false} onChange={change} t={APP_SHELL_THEME} />
+      <Toggle label="Notify organizers" value={false} onChange={change} theme={APP_SHELL_THEME} />
     );
     const toggle = screen.getByRole("switch", { name: "Notify organizers" });
     expect(toggle.getAttribute("aria-checked")).toBe("false");

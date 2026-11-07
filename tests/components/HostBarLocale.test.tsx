@@ -11,10 +11,19 @@ vi.mock("@/app/actions/event", () => ({
   sendGuestInvitations: vi.fn(),
 }));
 import { HostBar } from "@/components/event/HostBar";
+import { chromeTheme, hex2rgb } from "@/lib/theme";
+
+// Delivery feedback is a status line in the host bar's chrome theme.
+const status = chromeTheme(testTheme).status;
+const rgb = (hex: string) => {
+  const { r, g, b } = hex2rgb(hex);
+  return `rgb(${r}, ${g}, ${b})`;
+};
+
 describe("localized host messaging", () => {
   it.each([
-    [2, "E-mail verzonden naar 2 gasten.", "rgb(74, 222, 128)"],
-    [0, "Geen gasten met een e-mailadres gevonden.", "rgb(248, 113, 113)"],
+    [2, "E-mail verzonden naar 2 gasten.", rgb(status.success.text)],
+    [0, "Geen gasten met een e-mailadres gevonden.", rgb(status.error.text)],
   ])(
     "styles Dutch delivery feedback from the result for %i recipients",
     async (sent, message, color) => {
