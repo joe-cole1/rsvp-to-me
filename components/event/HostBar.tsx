@@ -286,8 +286,8 @@ export function HostBar({
                   borderRadius: "80px",
                   border: "none",
                   cursor: "pointer",
-                  background: activePanel === id ? `rgba(${t.accent},0.2)` : "transparent",
-                  color: activePanel === id ? t.accent : "rgba(255,255,255,0.7)",
+                  background: "transparent",
+                  color: "rgba(255,255,255,0.7)",
                   fontSize: "11px",
                   fontWeight: 600,
                   fontFamily: "inherit",
@@ -297,8 +297,7 @@ export function HostBar({
                   (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    activePanel === id ? `rgba(${t.accent},0.2)` : "transparent";
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
                 }}
               >
                 <Icon size={18} />
