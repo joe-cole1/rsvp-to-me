@@ -176,10 +176,14 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `components/rsvp/`; RSVP response labels and controls are centralized in
   `components/rsvp/status.tsx`.
 - Guest-facing list/count presentation is resolved by `lib/guestRsvpDisplay.ts`
-  for both the event card and the dedicated guest list. Host/co-host views always
-  resolve to full lists and exact counts. `GuestRsvpDisplaySettings` groups the
-  per-status controls and previews under Display Options. These preferences do
-  not change the access boundary in `lib/guestList.ts` or RSVP collection.
+  for both the event card and the dedicated guest list, with independent names
+  and count per row (Going, Maybe, Can't make it, Invited). Host/co-host views
+  always resolve to full reply lists and exact counts. `GuestRsvpDisplaySettings`
+  is the Display options choice table. These preferences do not change the
+  access boundary in `lib/guestList.ts` or RSVP collection; the one data rule they
+  add is `lib/guestList.ts#invitedGuestsForViewer`, which decides how much of the
+  Invited row (names only, or a count) a guest's payload may carry, and
+  `stripHostOnlyEventData` empties it whenever the guest list is not public.
 - Event mutations are split by domain under `app/actions/event/`: RSVP,
   check-ins/walk-ins, settings, invitations, co-hosts, polls, potluck, comments,
   blasts, custom questions, and email previews/tests.

@@ -68,6 +68,10 @@ export type EventData = Partial<GuestRsvpDisplayFields> & {
     createdAt: Date;
     user?: { avatarUrl: string | null } | null;
   }[];
+  /** Invited guests with no reply yet, when the host shows their names. */
+  invitedGuests?: { id: string; guestName: string }[];
+  /** Invited count, when the host shows it (at most 3 when capped). */
+  invitedCount?: number;
   comments: {
     id: string;
     guestName: string;

@@ -8,6 +8,8 @@ import {
   EFFECT_SIZE_MIN,
   EFFECT_SIZE_MAX,
   DEFAULT_EFFECT_SIZE,
+  EFFECT_AMOUNTS,
+  effectAmountFor,
   getEffectById,
   getSortedEffectSets,
   isValidEffectId,
@@ -52,6 +54,26 @@ describe("effects registry", () => {
       expect(minS).toBeGreaterThan(0);
       expect(maxS).toBeGreaterThan(minS);
     }
+  });
+
+  it("each Amount step writes a valid density and size, and Some is the old default", () => {
+    expect(EFFECT_AMOUNTS).toEqual({
+      less: { density: "sparse", size: 1 },
+      some: { density: "medium", size: 1 },
+      more: { density: "dense", size: 2 },
+    });
+    for (const { density, size } of Object.values(EFFECT_AMOUNTS)) {
+      expect(isValidEffectDensity(density)).toBe(true);
+      expect(isValidEffectSize(size)).toBe(true);
+    }
+  });
+
+  it("reads any stored density as an Amount step", () => {
+    expect(effectAmountFor("sparse")).toBe("less");
+    expect(effectAmountFor("medium")).toBe("some");
+    expect(effectAmountFor("dense")).toBe("more");
+    expect(effectAmountFor(null)).toBe("some");
+    expect(effectAmountFor("unknown")).toBe("some");
   });
 
   it("validators accept null (no effect) and reject unknown values", () => {

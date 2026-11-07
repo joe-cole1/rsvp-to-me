@@ -73,44 +73,73 @@ describe("ThemePanel tabs", () => {
     const { container, queryByText, getByPlaceholderText } = renderPanel();
     expect(getByPlaceholderText("Search themes…")).toBeTruthy();
     expect(queryByText("Customize colors")).toBeTruthy();
-    expect(queryByText("Density")).toBeNull();
+    expect(queryByText("Amount")).toBeNull();
     expect(queryByText("Theme default")).toBeNull();
     expect(container.querySelector('input[type="range"]')).toBeNull();
   });
 
-  it("Effects tab shows the picker with Density, Speed, and Size each on its own row", () => {
-    const { container, getByText, queryByPlaceholderText } = renderPanel();
-    fireEvent.click(getByText("✨ Effects"));
+  it("Effects tab shows the picker with Amount and Speed each on its own row, and no size slider", () => {
+    const { container, getByText, queryByText, queryByPlaceholderText } = renderPanel();
+    fireEvent.click(getByText("Effects"));
     expect(queryByPlaceholderText("Search themes…")).toBeNull();
     expect(getByText("None")).toBeTruthy();
-    // The three controls are stacked in a dedicated column container
-    const density = getByText("Density");
+    // The two controls are stacked in a dedicated column container
+    const amount = getByText("Amount");
     const speed = getByText("Speed");
-    const size = getByText("Size");
-    const column = density.parentElement!.parentElement as HTMLElement;
+    const column = amount.parentElement!.parentElement as HTMLElement;
     expect(column.style.flexDirection).toBe("column");
     expect(speed.parentElement!.parentElement).toBe(column);
-    expect(size.parentElement!.parentElement).toBe(column);
-    const slider = container.querySelector('input[type="range"]') as HTMLInputElement;
-    expect(slider.min).toBe("1");
-    expect(slider.max).toBe("10");
+    expect(queryByText("Density")).toBeNull();
+    expect(queryByText("Size")).toBeNull();
+    expect(container.querySelector('input[type="range"]')).toBeNull();
+  });
+
+  it("an Amount step saves density and size together", () => {
+    const setEffectDensity = vi.fn();
+    const setEffectSize = vi.fn();
+    const triggerSaveTheme = vi.fn();
+    const { getByText, getByRole } = renderPanel({
+      setEffectDensity,
+      setEffectSize,
+      triggerSaveTheme,
+    });
+    fireEvent.click(getByText("Effects"));
+    expect(getByRole("button", { name: "Some" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(getByRole("button", { name: "More" }));
+    expect(setEffectDensity).toHaveBeenCalledWith("dense");
+    expect(setEffectSize).toHaveBeenCalledWith(2);
+    expect(triggerSaveTheme).toHaveBeenCalledWith(
+      "DARK",
+      "#7c3aed",
+      "#1e40af",
+      "#a855f7",
+      undefined,
+      undefined,
+      { effectDensity: "dense", effectSize: 2 }
+    );
+  });
+
+  it("an older event reads as the Amount step its density maps to", () => {
+    const { getByText, getByRole } = renderPanel({ effectDensity: "sparse", effectSize: 6 });
+    fireEvent.click(getByText("Effects"));
+    expect(getByRole("button", { name: "Less" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("Font tab shows the font grid and live preview using event title", () => {
     const { getByText, queryByText } = renderPanel();
-    fireEvent.click(getByText("🔤 Font"));
+    fireEvent.click(getByText("Font"));
     expect(getByText("Theme default")).toBeTruthy();
     expect(getByText("Playfair Display")).toBeTruthy();
     expect(getByText("Summer Gala")).toBeTruthy();
-    expect(getByText("Event Title Font")).toBeTruthy();
-    expect(queryByText("Density")).toBeNull();
+    expect(getByText("Event title font")).toBeTruthy();
+    expect(queryByText("Amount")).toBeNull();
     expect(queryByText("Customize colors")).toBeNull();
   });
 
   it("the Customize colors accordion no longer contains the font picker", () => {
     const { queryByText } = renderPanel({ themeCustomizeOpen: true });
     // Accordion is open on the Theme tab: colors are there, fonts are not
-    expect(queryByText("Background Colors")).toBeTruthy();
+    expect(queryByText("Background colors")).toBeTruthy();
     expect(queryByText("Heading Font")).toBeNull();
     expect(queryByText("Theme default")).toBeNull();
   });
@@ -145,8 +174,8 @@ describe("localized theme descriptors", () => {
     expect(getByText("Kleuren aanpassen")).toBeVisible();
     fireEvent.click(getByTitle("Paars"));
     expect(noop).toHaveBeenCalledWith("#a855f7");
-    fireEvent.click(getByText("✨ Effecten"));
-    expect(getByText("Dichtheid")).toBeVisible();
+    fireEvent.click(getByText("Effecten"));
+    expect(getByText("Hoeveelheid")).toBeVisible();
     expect(getByText("Snelheid")).toBeVisible();
     expect(getByText("Harten")).toBeVisible();
     fireEvent.click(getByTitle("Harten"));

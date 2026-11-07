@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   locale: "en-US" as "en-US" | "nl-NL",
   find: vi.fn(),
   access: vi.fn(),
-  filter: vi.fn<(props: { guestRsvpDisplay: unknown }) => null>(() => null),
+  filter: vi.fn<
+    (props: { guestRsvpDisplay: unknown; guestInvited: unknown; invited: unknown }) => null
+  >(() => null),
 }));
 vi.mock("@/lib/db", () => ({
   db: {
@@ -71,6 +73,16 @@ const event = {
   ],
 };
 
+const invitedRsvps = ["Kai Invitee", "Lu Invitee"].map((guestName, i) => ({
+  ...rsvp,
+  id: `invited-${i + 1}`,
+  guestName,
+  guestEmail: "invitee@example.test",
+  editToken: "invite-token",
+  status: "INVITED",
+  plusOneCount: 0,
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.locale = "en-US";
@@ -110,10 +122,47 @@ describe("guest list page summary", () => {
   });
 
   it("does not expose omitted response types through the summary", async () => {
-    mocks.find.mockResolvedValue({ ...event, guestDeclinedList: "HIDDEN" });
+    mocks.find.mockResolvedValue({
+      ...event,
+      guestDeclinedList: "HIDDEN",
+      guestDeclinedCount: "HIDDEN",
+    });
     await renderPage();
     expect(screen.getByText("2 going")).toBeVisible();
     expect(screen.queryByText(/can't make it|responses/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a count in the summary when only that row's names are hidden", async () => {
+    mocks.find.mockResolvedValue({ ...event, guestDeclinedList: "HIDDEN" });
+    await renderPage();
+    expect(screen.getByText("2 going · 3+ can't make it")).toBeVisible();
+  });
+
+  it("sends guests no invited guests while the Invited row is off", async () => {
+    mocks.find.mockResolvedValue({ ...event, rsvps: [...event.rsvps, ...invitedRsvps] });
+    await renderPage();
+    expect(screen.queryByText(/invited/)).not.toBeInTheDocument();
+    expect(mocks.filter.mock.calls[0]?.[0]).toMatchObject({ guestInvited: [], invited: [] });
+  });
+
+  it("sends guests invited names only, and counts them, when the host shows them", async () => {
+    mocks.find.mockResolvedValue({
+      ...event,
+      guestInvitedList: "EXPANDED",
+      guestInvitedCount: "EXACT",
+      rsvps: [...event.rsvps, ...invitedRsvps],
+    });
+    await renderPage();
+    expect(screen.getByText("2 going · 3+ can't make it · 2 invited")).toBeVisible();
+    expect(mocks.filter.mock.calls[0]?.[0]).toMatchObject({
+      guestInvited: [
+        { id: "invited-1", guestName: "Kai Invitee" },
+        { id: "invited-2", guestName: "Lu Invitee" },
+      ],
+      invited: [],
+    });
+    const sent = JSON.stringify(mocks.filter.mock.calls[0]?.[0].guestInvited);
+    expect(sent).not.toMatch(/invitee@example\.test|invite-token/);
   });
 
   it("always shows hosts and co-hosts exact counts and the complete total", async () => {

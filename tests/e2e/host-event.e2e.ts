@@ -28,8 +28,8 @@ test.describe("Host event management", () => {
 
   test("host can open event settings", async ({ page }) => {
     await page.goto(`/e/${PUBLIC_EVENT_SLUG}/settings`);
-    await expect(page.getByRole("heading", { name: "Event Settings" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Display Options/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Event settings" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Display options/ })).toBeVisible();
   });
 
   test("host can create an event and see the published page", async ({ page }) => {

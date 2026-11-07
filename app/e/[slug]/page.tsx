@@ -10,7 +10,8 @@ import { EventPage } from "@/components/event/EventPage";
 import { PasswordGate } from "@/components/event/PasswordGate";
 import { AppShell } from "@/components/ui/AppShell";
 import { getChannelConfig } from "@/lib/config";
-import { stripHostOnlyEventData } from "@/lib/guestList";
+import { invitedGuestsForViewer, stripHostOnlyEventData } from "@/lib/guestList";
+import { isGuestRowShown, resolveGuestRsvpDisplay } from "@/lib/guestRsvpDisplay";
 import { buildEventSocialMetadata } from "@/lib/event-social";
 
 const getEventPageData = cache((slug: string) =>
@@ -205,6 +206,18 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       })
     : [];
 
+  // #811: Invited guests are queried only when the host shows that row, and
+  // reach the client only as names and/or a count (see invitedGuestsForViewer).
+  const invitedDisplay = resolveGuestRsvpDisplay(event, !!isHost).INVITED;
+  const invitedRows = isGuestRowShown(invitedDisplay)
+    ? await db.rSVP.findMany({
+        where: { eventId: event.id, status: "INVITED" },
+        select: { id: true, guestName: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+  const invited = invitedGuestsForViewer(invitedDisplay, invitedRows);
+
   const theme = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
     event.theme?.gradientFrom ?? "#7c3aed",
@@ -224,7 +237,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   // host emails; the guest list when the visibility gate hides it) for non-host
   // viewers before it crosses the client boundary.
   const eventForClient = stripHostOnlyEventData(
-    { ...event, pendingRsvps },
+    { ...event, pendingRsvps, ...invited },
     { isHost: !!isHost, isLoggedInGuest, hasValidToken }
   );
 

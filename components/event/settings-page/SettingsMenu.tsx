@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { ChevronRight } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
 import type { SettingsSection } from "./types";
 
@@ -105,9 +106,13 @@ export function SettingsMenu({
             >
               {sec.title}
             </h3>
-            <p style={{ fontSize: "13px", color: t.textMuted, margin: 0 }}>{sec.desc}</p>
+            <p style={{ fontSize: "13px", color: t.textSecondary, margin: 0 }}>{sec.desc}</p>
           </div>
-          <span style={{ fontSize: "18px", color: t.textMuted }}>➔</span>
+          <ChevronRight
+            size={18}
+            aria-hidden="true"
+            style={{ color: t.textSecondary, flexShrink: 0 }}
+          />
         </button>
       ))}
     </div>

@@ -193,7 +193,7 @@ a native button or link outside `components/ui` paints an accent fill.
   label (and adds a check icon), never the button's color.
 
 - **Choices:** in `components/ui/Choice.tsx`, all buttons with `aria-pressed`:
-  - Chip: a pill for filters and short either/or choices (Theme · Effects · Font, density,
+  - Chip: a pill for filters and short either/or choices (Theme · Effects · Font, effect amount,
     speed, guest-list filters, recipients). It sits on the `cardBg` surface, so it reads on
     the page ground too; selected lays `accentBg` over it with `accentText`.
   - Choice tile: a tile in a picker grid (presets, base themes, fonts, effects, icons).
@@ -245,6 +245,15 @@ column. Each checkbox's accessible name is "Row: Column". Layout lives in the
 description, then one labeled checkbox per column, with a little more space above the
 checkboxes than between them.
 
+When a column has more than two answers, its cells are `Select` menus instead of checkboxes
+(Display options' guest RSVP display: Names and Count per response). Add `rsvp-pref-cell-menu`
+to each cell and set `--rsvp-pref-col` to the menu width and `--rsvp-pref-gap` to 8px; each
+menu's accessible name is still "Row: Column", and under 480px the column name sits above its
+menu. One hint line under the table explains any answer that needs it. A table whose
+choices change what guests see may end with one live "What guests see" preview, set off by a
+`cardBorder` divider (not a box) and drawn with the same components guests get. Never put a
+preview in each row.
+
 **Grouped list with plus and minus.** Items are grouped under small headings (Email, Text).
 Each row shows the item, a status chip and a 40px minus button with an accessible name
 ("Remove …"). **+ Add** sits at the top of the card and offers only the kinds that can still be
@@ -275,7 +284,9 @@ buttons.
 into label and value pairs, like the choice table, so the page never scrolls sideways.
 
 **Filter chips.** One row of `Chip`s that scrolls sideways inside its own container when it
-overflows. Counts are in `textSecondary`. Hide chips that would show zero results.
+overflows. Give that container 3px of padding (and a matching negative margin) so focus rings
+aren't clipped. Counts are in `textSecondary`; a capped count such as "3+" is read as
+"3 or more". Hide chips that would show zero results.
 
 **Stat tile.** A small card with a 12px bold label and one large number. Two per row on phones.
 
@@ -381,10 +392,15 @@ These are undecided. Until they are, follow current behavior and don't extend it
 
 - Whether app chrome (header, host bar, dialogs) on event routes stays on the dark app shell or
   takes a tint from the event theme.
-- Whether Display Options keeps the "show names after a click" mode or reduces each response
-  to two checkboxes (names, count).
-- Whether effect density and size merge into one "Amount" control. (Decided 2026-11-06 in #807:
-  the lowest card opacity stays 0.40, and text colors are derived from each theme's actual
-  opacity; see the contrast contract.)
 - Whether the private guest notifications page keeps the app-shell look.
 - Whether Geist (loaded in `app/layout.tsx` but unused) is removed or becomes the body face.
+
+Decided:
+
+- **Display options** (#811, 2026-11-07): one choice table with a row per response (Going,
+  Maybe, Can't make it, Invited) and two menus, Names (Shown, Collapsed, Hidden) and Count
+  (Exact, 3+, Hidden). Count is independent of names, every row may use 3+, and Invited
+  (host-added guests with no reply yet) starts hidden.
+- **Effect controls** (#811, 2026-11-07): density and size merge into one Amount (Less, Some,
+  More); Speed stays. The lowest card opacity stays 0.40 (#807): text colors are derived from
+  each theme's actual opacity; see the contrast contract.

@@ -221,15 +221,15 @@
     "Event": {
       "ThemePanel": {
         "theme": "Thema",
-        "theme2": "🎨 Thema",
-        "effects": "✨ Effecten",
-        "font": "🔤 Lettertype",
+        "theme2": "Thema",
+        "effects": "Effecten",
+        "font": "Lettertype",
         "searchThemes": "Zoek thema’s…",
         "all": "Alles",
-        "seasonal": "🎉 Seizoensgebonden",
-        "general": "🎨 Algemeen",
-        "light": "☀️ Licht",
-        "dark": "🌙 Donker",
+        "seasonal": "Seizoensgebonden",
+        "general": "Algemeen",
+        "light": "Licht",
+        "dark": "Donker",
         "reset": "↺ Herstellen",
         "restore": "↺ Herstellen naar de standaardinstellingen van ‘",
         "defaults": "’",
@@ -247,9 +247,8 @@
         "effect": "Effect",
         "optionalFloatingMotifsBehindEventPage": "Optionele zwevende motieven achter je evenementpagina. Standaard uitgeschakeld. Combineer elk effect met elk thema.",
         "none": "Geen",
-        "density": "Dichtheid",
+        "amount": "Hoeveelheid",
         "speed": "Snelheid",
-        "size": "Grootte",
         "eventTitleFont": "Lettertype van de evenementtitel",
         "appliedOnlyMainEventTitleSome": "Alleen voor de hoofdtitel van je evenement. Sommige thema’s kiezen automatisch een passend lettertype. Kies hier een ander lettertype om dat te wijzigen.",
         "themeDefault": "Standaard van het thema",
@@ -257,22 +256,22 @@
         "restorePreset": "↺ Standaardinstellingen van ‘{name}’ herstellen"
       },
       "SettingsMenu": {
-        "hostsCoHosts": "👥 Organisatoren en mede-organisatoren",
-        "displayOptions": "🔒 Weergaveopties",
+        "hostsCoHosts": "Organisatoren en mede-organisatoren",
+        "displayOptions": "Weergaveopties",
         "guestListAccessGuestRsvpDisplay": "Toegang tot de gastenlijst, weergave van aanmeldingen en privacy van het evenement",
-        "rsvpOptions": "✉️ Aanmeldopties",
+        "rsvpOptions": "Aanmeldopties",
         "1SettingsRsvpApprovalMaybeOptions": "Instellingen voor extra gasten, goedkeuring van aanmeldingen en de misschien-optie",
-        "theme": "🎨 Thema",
+        "theme": "Thema",
         "changeBaseThemeAccentColor": "Wijzig het basisthema en de accentkleur",
-        "autoReminders": "🔔 Automatische herinneringen",
+        "autoReminders": "Automatische herinneringen",
         "setUpAutomaticEmailsTextsBefore": "Stel automatische e-mails en sms-berichten in voor en na het evenement",
-        "emails": "💌 E-mails",
+        "emails": "E-mails",
         "previewEventSThemedEmailsSend": "Bekijk de e-mails voor dit evenement en stuur jezelf een test",
-        "polls": "📊 Peilingen",
+        "polls": "Peilingen",
         "createManagePollsGuests": "Maak peilingen voor gasten en beheer ze",
-        "questionnaire": "📋 Vragenlijst",
+        "questionnaire": "Vragenlijst",
         "askCustomQuestionsGuestsDuringRsvp": "Stel gasten aangepaste vragen tijdens hun aanmelding",
-        "potluck": "🍽️ Meeneemlijst",
+        "potluck": "Meeneemlijst",
         "manageItemsGuestsCanSignUp": "Beheer wat gasten kunnen toezeggen om mee te nemen",
         "manageWhoCanEditEvent": "Beheer wie dit evenement kan bewerken",
         "viewHostsManageCoHostProfile": "Bekijk de organisatoren en beheer je mede-organisatorprofiel"
@@ -378,25 +377,29 @@
       },
       "GuestRsvpDisplaySettings": {
         "guestFacingRsvpDisplay": "Weergave van aanmeldingen voor gasten",
-        "chooseHowGuestsSeeResponseLists": "Kies hoe gasten de aanmeldingen en aantallen zien op de evenementpagina en in de volledige gastenlijst.",
-        "showImmediatelyDisplaysNamesWhenPage": "Direct tonen geeft de namen weer zodra de pagina opent. Tonen na een klik laat gasten de lijst zelf openen. Niet weergeven verbergt dit antwoordtype en het aantal voor gasten. Deze keuzes wijzigen geen aanmeldingen.",
+        "intro": "Kies wat gasten bij elke reactie zien. Organisatoren en mede-organisatoren zien altijd alle namen en aantallen.",
         "guestListCurrentlyHostOnlyThese": "Je gastenlijst is momenteel alleen zichtbaar voor organisatoren. Deze weergavekeuzes gelden zodra je gasten toegang geeft.",
-        "guestNames": "Namen van gasten",
-        "showImmediately": "Direct tonen",
-        "showAfterClick": "Tonen na een klik",
-        "doNotDisplay": "Niet weergeven",
-        "countShownGuests": "Aantal dat gasten zien",
-        "exactCount": "Exact aantal",
-        "noCount": "Geen aantal",
-        "limit3": "Beperken tot 3+",
-        "guestsSee1Or2Smaller": "Gasten zien 1 of 2 voor kleinere lijsten en 3+ voor lijsten van drie of meer, ook nadat ze de lijst openen. Organisatoren en mede-organisatoren zien het exacte aantal.",
-        "guestPreviewExampleResponses": "Voorbeeld voor gasten · voorbeeldaanmeldingen",
-        "responseTypeNotDisplayedGuests": "Dit antwoordtype wordt niet aan gasten getoond.",
-        "guestNamesAppearHere": "Hier verschijnen de namen van gasten.",
-        "theseDisplayPreferencesGuestListVisibility": "Dit zijn weergavevoorkeuren. De zichtbaarheid van de gastenlijst hierboven bepaalt wie toegang heeft. Als organisator zie je alle gegevens. Gebruik de gastvoorbeelden om deze keuzes te bekijken.",
-        "namesLabel": "{label}: namen van gasten",
-        "countsLabel": "{label}: aantal dat gasten zien",
-        "hostDetails": "Organisatoren en mede-organisatoren zien altijd alle namen en exacte aantallen."
+        "tableName": "Weergave van aanmeldingen voor gasten",
+        "columnResponse": "Reactie",
+        "columnNames": "Namen",
+        "columnCount": "Aantal",
+        "invitedHint": "Nog geen reactie",
+        "names": {
+          "EXPANDED": "Zichtbaar",
+          "COLLAPSED": "Ingeklapt",
+          "HIDDEN": "Verborgen"
+        },
+        "count": {
+          "EXACT": "Exact",
+          "CAPPED": "3+",
+          "HIDDEN": "Verborgen"
+        },
+        "cellLabel": "{row}: {column}",
+        "footnote": "Ingeklapte namen blijven verborgen tot een gast op de kop tikt. 3+ toont het echte aantal tot 2, daarna 3+.",
+        "previewHeading": "Wat gasten zien",
+        "previewEmpty": "Gasten zien geen reacties.",
+        "previewMore": "+{count} meer",
+        "previewTotal": "{count, plural, one {# aanmelding} other {# aanmeldingen}}"
       },
       "EmailsPanel": {
         "emails": "E-mails",
@@ -418,8 +421,8 @@
         "set": "INGESTELD",
         "hidePassword": "Wachtwoord verbergen",
         "showPassword": "Wachtwoord tonen",
-        "replaceCurrentPassword": "⚠️ Dit vervangt het huidige wachtwoord.",
-        "savingRemovePasswordRequirement": "⚠️ Opslaan verwijdert de wachtwoordbeveiliging.",
+        "replaceCurrentPassword": "Dit vervangt het huidige wachtwoord.",
+        "savingRemovePasswordRequirement": "Opslaan verwijdert de wachtwoordbeveiliging.",
         "saveNewPassword": "Nieuw wachtwoord opslaan",
         "removePassword": "Wachtwoord verwijderen",
         "cancel": "Annuleren",
@@ -556,7 +559,8 @@
         "rsvpSettings": "Aanmeldinstellingen",
         "going": "Aanwezig",
         "maybe": "Misschien",
-        "canTMake": "Afwezig"
+        "canTMake": "Afwezig",
+        "invited": "Uitgenodigd"
       },
       "GuestInviteFriendCard": {
         "inviteFriend": "Nodig een vriend uit",
@@ -867,10 +871,10 @@
           "zelle": "Zelle",
           "venmo": "Venmo"
         },
-        "density": {
-          "sparse": "Laag",
-          "medium": "Gemiddeld",
-          "dense": "Hoog"
+        "amount": {
+          "less": "Weinig",
+          "some": "Gemiddeld",
+          "more": "Veel"
         },
         "speed": {
           "gentle": "Rustig",
@@ -880,8 +884,10 @@
         "guestStatuses": {
           "GOING": "Aanwezig",
           "MAYBE": "Misschien",
-          "NO": "Afwezig"
+          "NO": "Afwezig",
+          "INVITED": "Uitgenodigd"
         },
+        "countAtLeast": "{count} of meer",
         "placeholders": {
           "link": "Linkgegevens (bijv. groepschat of afspeellijst)…",
           "gift": "Cadeaulijstgegevens (bijv. winkel of webshop)…",
@@ -924,6 +930,7 @@
         "going": "{count} aanwezig",
         "maybe": "{count} misschien",
         "declined": "{count} afwezig",
+        "invited": "{count} uitgenodigd",
         "pending": "{count} wacht op goedkeuring",
         "back": "← Terug naar het evenement",
         "title": "Gastenlijst",

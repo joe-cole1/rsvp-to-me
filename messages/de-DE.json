@@ -221,15 +221,15 @@
     "Event": {
       "ThemePanel": {
         "theme": "Design",
-        "theme2": "🎨 Design",
-        "effects": "✨ Effekte",
-        "font": "🔤 Schriftart",
+        "theme2": "Design",
+        "effects": "Effekte",
+        "font": "Schriftart",
         "searchThemes": "Designs suchen…",
         "all": "Alle",
-        "seasonal": "🎉 Saisonal",
-        "general": "🎨 Allgemein",
-        "light": "☀️ Hell",
-        "dark": "🌙 Dunkel",
+        "seasonal": "Saisonal",
+        "general": "Allgemein",
+        "light": "Hell",
+        "dark": "Dunkel",
         "reset": "↺ Zurücksetzen",
         "restore": "↺ Zurück zu „",
         "defaults": "“-Standardeinstellungen",
@@ -247,9 +247,8 @@
         "effect": "Effekt",
         "optionalFloatingMotifsBehindEventPage": "Optionale schwebende Motive hinter deiner Veranstaltungsseite. Standardmäßig deaktiviert — kombiniere jeden Effekt mit jedem Design.",
         "none": "Keiner",
-        "density": "Dichte",
+        "amount": "Menge",
         "speed": "Geschwindigkeit",
-        "size": "Größe",
         "eventTitleFont": "Schriftart des Veranstaltungstitels",
         "appliedOnlyMainEventTitleSome": "Gilt nur für deinen Haupttitel. Einige Designvorlagen wählen automatisch eine passende Schriftart — hier kannst du sie ersetzen.",
         "themeDefault": "Designstandard",
@@ -257,22 +256,22 @@
         "restorePreset": "↺ Auf die Standardeinstellungen von „{name}“ zurücksetzen"
       },
       "SettingsMenu": {
-        "hostsCoHosts": "👥 Veranstalter & Mitveranstalter",
-        "displayOptions": "🔒 Anzeigeoptionen",
+        "hostsCoHosts": "Veranstalter & Mitveranstalter",
+        "displayOptions": "Anzeigeoptionen",
         "guestListAccessGuestRsvpDisplay": "Zugriff auf die Gästeliste, Anzeige der Rückmeldungen und Privatsphäre der Veranstaltung",
-        "rsvpOptions": "✉️ Rückmeldeoptionen",
+        "rsvpOptions": "Rückmeldeoptionen",
         "1SettingsRsvpApprovalMaybeOptions": "Einstellungen für Begleitpersonen, Genehmigungen und Vielleicht-Antworten",
-        "theme": "🎨 Design",
+        "theme": "Design",
         "changeBaseThemeAccentColor": "Basisdesign und Akzentfarbe ändern",
-        "autoReminders": "🔔 Automatische Erinnerungen",
+        "autoReminders": "Automatische Erinnerungen",
         "setUpAutomaticEmailsTextsBefore": "Automatische E-Mails und SMS vor/nach der Veranstaltung einrichten",
-        "emails": "💌 E-Mails",
+        "emails": "E-Mails",
         "previewEventSThemedEmailsSend": "E-Mails im Veranstaltungsdesign ansehen und dir eine Testnachricht senden",
-        "polls": "📊 Umfragen",
+        "polls": "Umfragen",
         "createManagePollsGuests": "Umfragen für Gäste erstellen und verwalten",
-        "questionnaire": "📋 Fragebogen",
+        "questionnaire": "Fragebogen",
         "askCustomQuestionsGuestsDuringRsvp": "Gästen bei der Rückmeldung eigene Fragen stellen",
-        "potluck": "🍽️ Mitbringliste",
+        "potluck": "Mitbringliste",
         "manageItemsGuestsCanSignUp": "Dinge verwalten, die Gäste mitbringen können",
         "manageWhoCanEditEvent": "Verwalten, wer diese Veranstaltung bearbeiten darf",
         "viewHostsManageCoHostProfile": "Veranstalter ansehen und dein Mitveranstalterprofil verwalten"
@@ -378,25 +377,29 @@
       },
       "GuestRsvpDisplaySettings": {
         "guestFacingRsvpDisplay": "Anzeige der Rückmeldungen für Gäste",
-        "chooseHowGuestsSeeResponseLists": "Wähle, wie Gäste die Antwortlisten und Anzahlen auf der Veranstaltungsseite und in der vollständigen Gästeliste sehen.",
-        "showImmediatelyDisplaysNamesWhenPage": "„Sofort anzeigen“ zeigt die Namen beim Öffnen der Seite. Bei „Nach Klick anzeigen“ öffnen Gäste die Liste selbst. „Nicht anzeigen“ entfernt diesen Antworttyp und seine Anzahl aus den Listen für Gäste. Diese Auswahl ändert keine Rückmeldung.",
+        "intro": "Lege fest, was Gäste bei jeder Antwort sehen. Veranstalter und Mitveranstalter sehen immer alle Namen und Zahlen.",
         "guestListCurrentlyHostOnlyThese": "Deine Gästeliste ist derzeit nur für Veranstalter sichtbar. Diese gespeicherten Anzeigeoptionen gelten, sobald du Gästen Zugriff auf die Liste erlaubst.",
-        "guestNames": "Gästenamen",
-        "showImmediately": "Sofort anzeigen",
-        "showAfterClick": "Nach Klick anzeigen",
-        "doNotDisplay": "Nicht anzeigen",
-        "countShownGuests": "Für Gäste sichtbare Anzahl",
-        "exactCount": "Genaue Anzahl",
-        "noCount": "Keine Anzahl",
-        "limit3": "Auf 3+ begrenzen",
-        "guestsSee1Or2Smaller": "Gäste sehen bei kleineren Listen 1 oder 2 und bei Listen mit mindestens drei Personen 3+, auch nach dem Öffnen. Veranstalter und Mitveranstalter sehen weiterhin die genaue Anzahl.",
-        "guestPreviewExampleResponses": "Gästevorschau · Beispielantworten",
-        "responseTypeNotDisplayedGuests": "Dieser Antworttyp wird Gästen nicht angezeigt.",
-        "guestNamesAppearHere": "Hier erscheinen die Namen der Gäste.",
-        "theseDisplayPreferencesGuestListVisibility": "Dies sind Anzeigeoptionen. Die Sichtbarkeit der Gästeliste oben bestimmt, wer auf die Liste zugreifen kann. Deine Veranstalteransicht zeigt weiterhin alle Details; die Gästevorschauen zeigen diese Auswahl.",
-        "namesLabel": "{label}: Gästenamen",
-        "countsLabel": "{label}: für Gäste sichtbare Anzahl",
-        "hostDetails": "Veranstalter und Mitveranstalter sehen immer alle Namen und die genauen Anzahlen."
+        "tableName": "Anzeige der Rückmeldungen für Gäste",
+        "columnResponse": "Antwort",
+        "columnNames": "Namen",
+        "columnCount": "Anzahl",
+        "invitedHint": "Noch keine Antwort",
+        "names": {
+          "EXPANDED": "Angezeigt",
+          "COLLAPSED": "Eingeklappt",
+          "HIDDEN": "Ausgeblendet"
+        },
+        "count": {
+          "EXACT": "Genau",
+          "CAPPED": "3+",
+          "HIDDEN": "Ausgeblendet"
+        },
+        "cellLabel": "{row}: {column}",
+        "footnote": "Eingeklappte Namen bleiben verborgen, bis ein Gast auf die Überschrift tippt. 3+ zeigt die genaue Zahl bis 2, danach 3+.",
+        "previewHeading": "Das sehen Gäste",
+        "previewEmpty": "Gäste sehen keine Antworten.",
+        "previewMore": "+{count} weitere",
+        "previewTotal": "{count, plural, one {# Rückmeldung} other {# Rückmeldungen}}"
       },
       "EmailsPanel": {
         "emails": "E-Mails",
@@ -418,8 +421,8 @@
         "set": "GESETZT",
         "hidePassword": "Passwort verbergen",
         "showPassword": "Passwort anzeigen",
-        "replaceCurrentPassword": "⚠️ Dies ersetzt das aktuelle Passwort.",
-        "savingRemovePasswordRequirement": "⚠️ Beim Speichern wird die Passwortpflicht aufgehoben.",
+        "replaceCurrentPassword": "Dies ersetzt das aktuelle Passwort.",
+        "savingRemovePasswordRequirement": "Beim Speichern wird die Passwortpflicht aufgehoben.",
         "saveNewPassword": "Neues Passwort speichern",
         "removePassword": "Passwort entfernen",
         "cancel": "Abbrechen",
@@ -556,7 +559,8 @@
         "rsvpSettings": "Rückmeldeeinstellungen",
         "going": "Dabei",
         "maybe": "Vielleicht",
-        "canTMake": "Nicht dabei"
+        "canTMake": "Nicht dabei",
+        "invited": "Eingeladen"
       },
       "GuestInviteFriendCard": {
         "inviteFriend": "Freund einladen",
@@ -867,10 +871,10 @@
           "zelle": "Zelle",
           "venmo": "Venmo"
         },
-        "density": {
-          "sparse": "Gering",
-          "medium": "Mittel",
-          "dense": "Hoch"
+        "amount": {
+          "less": "Wenig",
+          "some": "Mittel",
+          "more": "Viel"
         },
         "speed": {
           "gentle": "Sanft",
@@ -880,8 +884,10 @@
         "guestStatuses": {
           "GOING": "Dabei",
           "MAYBE": "Vielleicht",
-          "NO": "Nicht dabei"
+          "NO": "Nicht dabei",
+          "INVITED": "Eingeladen"
         },
+        "countAtLeast": "{count} oder mehr",
         "placeholders": {
           "link": "Linkdetails (z. B. Gruppenchat, Playlist)...",
           "gift": "Details zur Geschenkliste (z. B. Target, Amazon)...",
@@ -924,6 +930,7 @@
         "going": "{count} dabei",
         "maybe": "{count} vielleicht",
         "declined": "{count} nicht dabei",
+        "invited": "{count} eingeladen",
         "pending": "{count} warten auf Genehmigung",
         "back": "← Zurück zur Veranstaltung",
         "title": "Gästeliste",

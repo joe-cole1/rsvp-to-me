@@ -7,7 +7,11 @@ import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
 import { GuestRsvpGroup } from "../GuestRsvpGroup";
-import { resolveGuestRsvpDisplay, showGuestResponseTotal } from "@/lib/guestRsvpDisplay";
+import {
+  isGuestRowShown,
+  resolveGuestRsvpDisplay,
+  showGuestResponseTotal,
+} from "@/lib/guestRsvpDisplay";
 
 export function GuestListSection({
   event,
@@ -36,7 +40,13 @@ export function GuestListSection({
 
   const display = resolveGuestRsvpDisplay(event, isHost);
   const showTotal = showGuestResponseTotal(display);
-  const hasVisibleRsvps = event.rsvps.some((r) => display[r.status]?.list !== "HIDDEN");
+  const invitedGuests = event.invitedGuests ?? [];
+  const invitedCount = event.invitedCount ?? 0;
+  const showInvited =
+    isGuestRowShown(display.INVITED) && (invitedGuests.length > 0 || invitedCount > 0);
+  const hasVisibleRsvps =
+    showInvited ||
+    event.rsvps.some((r) => (display[r.status] ? isGuestRowShown(display[r.status]) : true));
   return (
     <>
       {/* ── Guest List ── */}
@@ -187,6 +197,40 @@ export function GuestListSection({
                     }}
                   >
                     {renderAvatar(r.guestName, r.id, {
+                      width: "20px",
+                      height: "20px",
+                      fontSize: "10px",
+                      minWidth: "20px",
+                    })}
+                    <span>{r.guestName}</span>
+                  </div>
+                ))}
+              </div>
+            </GuestRsvpGroup>
+          )}
+          {showInvited && (
+            <GuestRsvpGroup
+              label={translate("invited")}
+              count={invitedCount}
+              display={display.INVITED}
+              t={t}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "8px" }}>
+                {invitedGuests.map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "6px 12px",
+                      borderRadius: "14px",
+                      background: t.pillBg,
+                      border: `1px solid ${t.pillBorder}`,
+                      fontSize: "13px",
+                    }}
+                  >
+                    {renderAvatar(r.guestName, null, {
                       width: "20px",
                       height: "20px",
                       fontSize: "10px",

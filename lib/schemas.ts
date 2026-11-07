@@ -90,6 +90,10 @@ export const AddRsvpSchema = z.object({
     .optional(),
 });
 
+const GuestListDisplaySchema = z.enum(["EXPANDED", "COLLAPSED", "HIDDEN"]);
+// Every response row may show an exact count, a "3+" cap, or no count.
+const GuestCountDisplaySchema = z.enum(["EXACT", "CAPPED", "HIDDEN"]);
+
 // SEC-20: explicit allow-list for `saveEventSettings`. Server actions do not
 // enforce their TS parameter types at runtime, so without this schema a crafted
 // call could spread arbitrary Event scalar columns (status, slug, hostId, …)
@@ -104,12 +108,14 @@ export const SaveEventSettingsSchema = z.object({
   allowEditAfterDeadline: z.boolean().optional(),
   capacity: z.number().int().min(0).nullable().optional(),
   guestListVis: z.enum(["ALL", "GUESTS_ONLY", "HOST_ONLY"]).optional(),
-  guestGoingList: z.enum(["EXPANDED", "COLLAPSED", "HIDDEN"]).optional(),
-  guestGoingCount: z.enum(["EXACT", "HIDDEN"]).optional(),
-  guestMaybeList: z.enum(["EXPANDED", "COLLAPSED", "HIDDEN"]).optional(),
-  guestMaybeCount: z.enum(["EXACT", "HIDDEN"]).optional(),
-  guestDeclinedList: z.enum(["EXPANDED", "COLLAPSED", "HIDDEN"]).optional(),
-  guestDeclinedCount: z.enum(["EXACT", "CAPPED", "HIDDEN"]).optional(),
+  guestGoingList: GuestListDisplaySchema.optional(),
+  guestGoingCount: GuestCountDisplaySchema.optional(),
+  guestMaybeList: GuestListDisplaySchema.optional(),
+  guestMaybeCount: GuestCountDisplaySchema.optional(),
+  guestDeclinedList: GuestListDisplaySchema.optional(),
+  guestDeclinedCount: GuestCountDisplaySchema.optional(),
+  guestInvitedList: GuestListDisplaySchema.optional(),
+  guestInvitedCount: GuestCountDisplaySchema.optional(),
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).optional(),
   maybeEnabled: z.boolean().optional(),
   questionnaireEnabled: z.boolean().optional(),

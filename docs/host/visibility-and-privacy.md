@@ -8,9 +8,13 @@ order: 40
 
 # Visibility & Privacy
 
-Control who can find and view your event from **Settings → Display Options**.
+Control who can find and view your event from **Settings → Display options**.
 Event visibility appears first, with its private-event options directly below it,
 followed by the guest controls.
+
+Guests you invited who haven't replied yet stay off every guest-facing list unless
+you turn on the **Invited** row under **Guest RSVP display**. See
+[Guest list](guest-list.md#showing-invited-guests) for what that shows.
 
 ## Browser Page Protection
 

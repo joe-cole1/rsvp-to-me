@@ -4,6 +4,8 @@
 // page. So for non-hosts we omit editToken (guest impersonation), guestEmail /
 // guestPhone (contact-info leak), and questionnaire answers (private responses).
 
+import { GUEST_COUNT_CAP, type GuestStatusDisplay } from "@/lib/guestRsvpDisplay";
+
 export type RsvpStatus = "GOING" | "MAYBE" | "NO" | "INVITED";
 
 export type GuestListRsvpInput = {
@@ -80,8 +82,36 @@ type StrippableEvent = {
   host: { email: string | null };
   coHosts: { user: { email: string | null } }[];
   rsvps: unknown[];
+  invitedGuests?: InvitedGuestName[];
+  invitedCount?: number;
   activityEvents?: { type: string }[];
 };
+
+/** The only fields an Invited guest ever exposes to other guests. */
+export type InvitedGuestName = { id: string; guestName: string };
+
+/**
+ * #811: Invited guests (host-added, no reply yet) cross the client boundary
+ * only as far as the event's Invited display allows. Names ship only when the
+ * names show, and a count ships only when the count shows; a "3+" cap ships
+ * no more than the cap. Contact details and edit tokens never ship here.
+ */
+export function invitedGuestsForViewer(
+  display: GuestStatusDisplay,
+  rows: InvitedGuestName[]
+): { invitedGuests: InvitedGuestName[]; invitedCount: number } {
+  const count =
+    display.count === "HIDDEN"
+      ? 0
+      : display.count === "CAPPED"
+        ? Math.min(rows.length, GUEST_COUNT_CAP)
+        : rows.length;
+  return {
+    invitedGuests:
+      display.list === "HIDDEN" ? [] : rows.map(({ id, guestName }) => ({ id, guestName })),
+    invitedCount: count,
+  };
+}
 
 const RSVP_IDENTITY_ACTIVITY_TYPES = new Set([
   "rsvp_new",
@@ -102,6 +132,7 @@ const ATTENDANCE_ACTIVITY_TYPES = new Set(["check_in", "check_in_undo", "walk_in
  *   - empty the approved guest list whenever the guest-list visibility gate
  *     would hide it in the UI (`guestListVis !== "ALL"`), so hidden rows aren't
  *     shipped behind a render-only guard.
+ *   - empty the Invited names and count under the same gate;
  *   - remove RSVP identity activity whenever the same viewer cannot see the
  *     guest list, and always remove host-only attendance activity.
  * Hosts get the object unchanged.
@@ -118,6 +149,12 @@ export function stripHostOnlyEventData<E extends StrippableEvent>(
     host: { ...event.host, email: null },
     coHosts: event.coHosts.map((ch) => ({ ...ch, user: { ...ch.user, email: null } })),
     rsvps: event.guestListVis === "ALL" ? event.rsvps : [],
+    ...(event.invitedGuests !== undefined || event.invitedCount !== undefined
+      ? {
+          invitedGuests: event.guestListVis === "ALL" ? (event.invitedGuests ?? []) : [],
+          invitedCount: event.guestListVis === "ALL" ? (event.invitedCount ?? 0) : 0,
+        }
+      : {}),
     ...(event.activityEvents
       ? {
           activityEvents: event.activityEvents.filter(

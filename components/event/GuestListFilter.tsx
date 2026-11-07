@@ -22,6 +22,7 @@ import { Chip } from "@/components/ui/Choice";
 import { Input } from "@/components/ui/Field";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import {
+  GUEST_DISPLAY_ROWS,
   GUEST_RSVP_GROUPS,
   guestCountLabel,
   resolveGuestRsvpDisplay,
@@ -68,6 +69,7 @@ export function GuestListFilter({
   no: initialNo,
   pending: initialPending = [],
   invited: initialInvited,
+  guestInvited = [],
   isHost,
   eventId,
   slug,
@@ -81,6 +83,8 @@ export function GuestListFilter({
   no: RSVP[];
   pending?: RSVP[];
   invited: InvitedGuest[];
+  /** Guest view only: invited names the host chose to show (no contact data). */
+  guestInvited?: { id: string; guestName: string }[];
   isHost: boolean;
   eventId: string;
   slug: string;
@@ -169,10 +173,20 @@ export function GuestListFilter({
       );
   const collapsedGroups =
     !isHost && filter === "ALL"
-      ? GUEST_RSVP_GROUPS.filter(
+      ? GUEST_DISPLAY_ROWS.filter(
           ({ status }) =>
-            display[status].list === "COLLAPSED" && allRsvps.some((r) => r.status === status)
+            display[status].list === "COLLAPSED" &&
+            (status === "INVITED"
+              ? guestInvited.length > 0
+              : allRsvps.some((r) => r.status === status))
         )
+      : [];
+  // Guest view of Invited: names only, shown like any other response row.
+  const shownGuestInvited =
+    !isHost &&
+    display.INVITED.list !== "HIDDEN" &&
+    (filter === "INVITED" || (filter === "ALL" && display.INVITED.list === "EXPANDED"))
+      ? guestInvited
       : [];
   const normalizedSearch = search.trim().toLowerCase();
   const displayedRsvps = normalizedSearch
@@ -233,8 +247,20 @@ export function GuestListFilter({
     ),
     ...(isHost
       ? [{ key: "INVITED" as Filter, label: translate("invited"), count: invited.length }]
-      : []),
+      : display.INVITED.list !== "HIDDEN"
+        ? [
+            {
+              key: "INVITED" as Filter,
+              label: translate("invited"),
+              count: guestCountLabel(guestInvited.length, display.INVITED),
+            },
+          ]
+        : []),
   ];
+  const spokenCount = (count: number | string) =>
+    typeof count === "string" && count.endsWith("+")
+      ? shared("countAtLeast", { count: count.slice(0, -1) })
+      : String(count);
 
   const cardStyle: React.CSSProperties = {
     background: t.cardBg,
@@ -706,7 +732,9 @@ export function GuestListFilter({
             selected={filter === key}
             onClick={() => setFilter(key)}
             aria-label={
-              count !== null && count !== 0 && count !== "0" ? `${label} ${count}` : label
+              count !== null && count !== 0 && count !== "0"
+                ? `${label} ${spokenCount(count)}`
+                : label
             }
           >
             {label}
@@ -727,6 +755,7 @@ export function GuestListFilter({
 
       {displayedRsvps.length === 0 &&
       (!showInvited || displayedInvited.length === 0) &&
+      shownGuestInvited.length === 0 &&
       filter !== "INVITED" ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted }}>
           {collapsedGroups.length > 0
@@ -1138,11 +1167,60 @@ export function GuestListFilter({
               </div>
             ))}
 
-          {filter === "INVITED" && displayedInvited.length === 0 && (
-            <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted }}>
-              {translate("noPendingInvites")}
+          {shownGuestInvited.map((guest) => (
+            <div key={guest.id} style={cardStyle}>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "50%",
+                  background: t.pillBg,
+                  border: `1px solid ${t.cardBorder}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 800,
+                  fontSize: "15px",
+                  flexShrink: 0,
+                  color: t.textSecondary,
+                }}
+              >
+                {guest.guestName[0]?.toUpperCase() || "?"}
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontWeight: 700, fontSize: "15px" }}>{guest.guestName}</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: "99px",
+                    background: t.pillBg,
+                    color: t.textSecondary,
+                  }}
+                >
+                  {translate("noReply")}
+                </span>
+              </div>
             </div>
-          )}
+          ))}
+
+          {filter === "INVITED" &&
+            (isHost ? displayedInvited.length === 0 : shownGuestInvited.length === 0) && (
+              <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted }}>
+                {isHost ? translate("noPendingInvites") : translate("noGuestsDisplayView")}
+              </div>
+            )}
         </>
       )}
     </>
