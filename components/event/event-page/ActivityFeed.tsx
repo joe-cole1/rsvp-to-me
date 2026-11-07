@@ -19,6 +19,7 @@ import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
 import { Button } from "@/components/ui/Button";
 import { Check, Input, Textarea } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 import { NotificationDeliveryFeedback } from "./NotificationDeliveryFeedback";
 import type { NotificationFeedback } from "@/lib/notifications/types";
 
@@ -41,6 +42,7 @@ export function ActivityFeed({
   setReplyingToId,
   replyText,
   setReplyText,
+  replyError,
   feedPage,
   setFeedPage,
   updateDraft,
@@ -77,6 +79,8 @@ export function ActivityFeed({
   setReplyingToId: React.Dispatch<React.SetStateAction<string | null>>;
   replyText: string;
   setReplyText: React.Dispatch<React.SetStateAction<string>>;
+  /** Why the last reply failed, shown under that comment's reply box. */
+  replyError?: { parentId: string; message: string } | null;
   feedPage: number;
   setFeedPage: React.Dispatch<React.SetStateAction<number>>;
   updateDraft: string;
@@ -609,6 +613,11 @@ export function ActivityFeed({
                                   <Send size={14} aria-hidden="true" />
                                 </Button>
                               </div>
+                            )}
+                            {replyingToId === item.id && replyError?.parentId === item.id && (
+                              <InlineAlert theme={t} style={{ margin: "8px 0 0" }}>
+                                {replyError.message}
+                              </InlineAlert>
                             )}
                           </div>
                         </div>

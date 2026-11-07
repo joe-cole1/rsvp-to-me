@@ -525,7 +525,8 @@
         "addLocation": "Add Location",
         "saving": "Saving…",
         "save": "Save",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "editLocation": "Edit location"
       },
       "InlineEdit": {
         "clickEdit": "Click to edit"
@@ -581,7 +582,9 @@
         "description": "Description",
         "addDescription": "Add a description…",
         "coverAlt": "{title} cover",
-        "organizer": "Hosted by {name}"
+        "organizer": "Hosted by {name}",
+        "editTitle": "Edit title",
+        "editDescription": "Edit description"
       },
       "DateEdit": {
         "clickEditDateTime": "Click to edit date/time",
@@ -593,7 +596,8 @@
         "cancel": "Cancel",
         "addCalendar": "Add to Calendar",
         "googleCalendar": "Google Calendar",
-        "icalOutlookIcs": "iCal / Outlook (.ics)"
+        "icalOutlookIcs": "iCal / Outlook (.ics)",
+        "editDateTime": "Edit date and time"
       },
       "NotificationDeliveryFeedback": {
         "summary": "Update posted. Notifications: {accepted} accepted, {skipped} skipped, {failed} failed, {uncertain} uncertain.",
@@ -727,10 +731,6 @@
         "notArrived": "Not arrived",
         "pendingApproval": "Pending Approval",
         "invited": "Invited",
-        "removeRsvpCannotUndone": "Remove this RSVP? This cannot be undone.",
-        "removeGuestCannotUndone": "Remove this guest? This cannot be undone.",
-        "removeInvitationCannotUndone": "Remove this invitation? This cannot be undone.",
-        "declineRemoveRsvpRequest": "Decline and remove this RSVP request?",
         "eventAttendance": "Event attendance",
         "label": "of",
         "parties": "parties ·",
@@ -783,7 +783,13 @@
         "resendConflict": "More than one guest matches this contact. Resolve the guest records before resending.",
         "inviteResent": "Invite resent to {destination}.",
         "attendanceSummary": "{checkedParties} of {parties} parties · {checkedPeople} of {people} people arrived",
-        "collapsedHint": "To see {responses} names, select that response above."
+        "collapsedHint": "To see {responses} names, select that response above.",
+        "removeRsvpTitle": "Remove this RSVP?",
+        "removeGuestTitle": "Remove this guest?",
+        "removeInvitationTitle": "Remove this invitation?",
+        "cannotBeUndone": "This can't be undone.",
+        "declineRequestTitle": "Decline this RSVP request?",
+        "declineRequestMessage": "We'll let the guest know, and the request is removed. This can't be undone."
       },
       "EventPage": {
         "failedAddReply": "Failed to add reply",
@@ -1208,7 +1214,6 @@
       "saved": "Saved",
       "resetToDefault2": "Reset to default",
       "resetFailed": "Reset failed",
-      "resetAllEmailTemplatesToTheirDefaultsThisClears": "Reset ALL email templates to their defaults? This clears every saved subject, body, and toggle override for all templates. This can't be undone.",
       "s": "s",
       "allTemplatesWereAlreadyAtTheirDefaults": "All templates were already at their defaults",
       "resetAllFailed": "Reset all failed",
@@ -1374,7 +1379,6 @@
       "presetCreated": "Preset created.",
       "failedToSavePreset": "Failed to save preset.",
       "presetSavedAndSetAsNewDefault": "Preset saved and set as new default.",
-      "deleteThisThemePresetEventsUsingItWillKeep": "Delete this theme preset? Events using it will keep their current colors.",
       "presetDeleted": "Preset deleted.",
       "failedToDeletePreset": "Failed to delete preset.",
       "failedToUpdatePreset": "Failed to update preset.",
@@ -1424,17 +1428,13 @@
       "rsvpsMessage": "{value0} RSVPs",
       "noteMessage": "Note:{value0}",
       "backupCreatedValue0Message": "Backup created: {value0}",
-      "areYouSureYouWantToDeleteBackupValue0Message": "Are you sure you want to delete backup {value0}?",
       "testEmailSentSuccessfullyToValue0PleaseCheckYourMessage": "Test email sent successfully to {value0}. Please check your inbox (and spam folder)!",
       "testConnectionFailedValue0Message": "Test connection failed: {value0}",
       "testSmsFailedValue0Message": "Test SMS failed: {value0}",
-      "scheduleValue0SAccountForDeletionTheyWillBeMessage": "Schedule {value0}'s account for deletion? They will be signed out immediately and their data anonymized after a 30-day grace period. You can restore the account before that window closes.",
       "cannotScheduleDeletionValue0HasUpcomingPublishedEventsValue1Message": "Cannot schedule deletion — {value0} has upcoming published events: {value1}. Delete those events first.",
       "value0SAccountScheduledForDeletionOnValue1Message": "{value0}'s account scheduled for deletion on {value1}.",
       "value0SAccountHasBeenRestoredMessage": "{value0}'s account has been restored.",
-      "warningAreYouAbsolutelySureYouWantToPermanentlyMessage": "WARNING: Are you absolutely sure you want to permanently delete and anonymize {value0}'s account immediately? This will bypass the 30-day grace period, reassign all hosted events to the System, and cannot be undone.",
       "value0SAccountHasBeenPermanentlyDeletedAnonymizedMessage": "{value0}'s account has been permanently deleted/anonymized.",
-      "areYouSureYouWantToModerateDeleteTheMessage": "Are you sure you want to moderate/delete the event \"{value0}\"? This is permanent.",
       "openRegistrationToggledToValue0Message": "Open registration toggled to {value0}.",
       "guestEmailNotificationsValue0Message": "Guest email notifications {value0}.",
       "smsNotificationsValue0Message": "SMS notifications {value0}.",
@@ -1474,7 +1474,29 @@
       "EmailTab": {
         "setupSubtitle": "Guest notifications toggle, delivery provider, and connection test",
         "templatesSubtitle": "Customize copy and content blocks, preview each themed email, and send yourself a test"
-      }
+      },
+      "resetTemplatesTitle": "Reset all email templates?",
+      "resetTemplatesMessage": "This clears every saved subject, body and switch for all templates. It can't be undone.",
+      "resetAllAction": "Reset all",
+      "deleteBackupTitle": "Delete this backup?",
+      "deleteBackupMessage": "{filename} is deleted permanently.",
+      "scheduleDeletionTitle": "Schedule {name}'s account for deletion?",
+      "scheduleDeletionMessage": "They're signed out now, and their data is anonymized after 30 days. You can restore the account until then.",
+      "scheduleDeletionAction": "Schedule deletion",
+      "deleteNowTitle": "Delete {name}'s account now?",
+      "deleteNowMessage": "This skips the 30-day grace period: the account is anonymized now and their hosted events move to the System account. It can't be undone.",
+      "deleteNowAction": "Delete now",
+      "deleteEventTitle": "Delete the event “{title}”?",
+      "deleteEventMessage": "The event and its guest list are removed permanently.",
+      "deleteEventAction": "Delete event",
+      "deletePresetTitle": "Delete this theme preset?",
+      "deletePresetMessage": "Events using it keep their current colors.",
+      "deleteAction": "Delete",
+      "replaceWorkerSecretTitle": "Replace the worker API secret?",
+      "replaceWorkerSecretMessage": "A secret is already saved. A new one overwrites it, so update WORKER_API_SECRET in your Cloudflare dashboard to match.",
+      "replaceWorkerSecretAction": "Generate new secret",
+      "roleFilterLabel": "Role",
+      "statusFilterLabel": "Status"
     },
     "Dashboard": {
       "eventDetails": "Event Details",
@@ -1560,7 +1582,9 @@
       "welcome": "Welcome back, {name}!",
       "noUpcomingEvents": "You don’t have any upcoming events right now.",
       "upcomingEventCount": "You have {count, plural, one {# upcoming event} other {# upcoming events}} scheduled.",
-      "eventMenu": "Options for {title}"
+      "eventMenu": "Options for {title}",
+      "activityTypeLabel": "Activity type",
+      "activityEventLabel": "Event"
     },
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "That link has expired or already been used. Request a new one below.",

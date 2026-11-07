@@ -102,8 +102,9 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   inputs), `Toggle.tsx`, `NavItem.tsx` and `Feedback.tsx` (inline alerts, status
   chips, the toast). Their focus and hover states live in the `.rsvp-control`,
   `.rsvp-press` and `.rsvp-field` classes in `app/globals.css`.
-  `AppPrimitives.tsx` keeps only the app-shell card, and `Dialog.tsx` owns
-  accessible modal behavior.
+  `AppPrimitives.tsx` keeps only the app-shell card, `Dialog.tsx` owns
+  accessible modal behavior, and `ConfirmDialog.tsx` (`useConfirm()`) is the one
+  confirm step for destructive actions in place of the browser's `confirm()`.
 - `app/page.tsx` is the public landing page.
 - `app/e/[slug]/page.tsx` is the main public event page.
 - `app/(app)/dashboard/page.tsx` is the host dashboard.

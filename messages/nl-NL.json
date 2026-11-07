@@ -525,7 +525,8 @@
         "addLocation": "Locatie toevoegen",
         "saving": "Bezig met opslaan…",
         "save": "Opslaan",
-        "cancel": "Annuleren"
+        "cancel": "Annuleren",
+        "editLocation": "Locatie bewerken"
       },
       "InlineEdit": {
         "clickEdit": "Klik om te bewerken"
@@ -581,7 +582,9 @@
         "description": "Beschrijving",
         "addDescription": "Voeg een beschrijving toe…",
         "coverAlt": "Omslag van {title}",
-        "organizer": "Georganiseerd door {name}"
+        "organizer": "Georganiseerd door {name}",
+        "editTitle": "Titel bewerken",
+        "editDescription": "Beschrijving bewerken"
       },
       "DateEdit": {
         "clickEditDateTime": "Klik om datum en tijd te bewerken",
@@ -593,7 +596,8 @@
         "cancel": "Annuleren",
         "addCalendar": "Aan agenda toevoegen",
         "googleCalendar": "Google Agenda",
-        "icalOutlookIcs": "iCal / Outlook (.ics)"
+        "icalOutlookIcs": "iCal / Outlook (.ics)",
+        "editDateTime": "Datum en tijd bewerken"
       },
       "NotificationDeliveryFeedback": {
         "summary": "Mededeling geplaatst. Meldingen: {accepted} geaccepteerd, {skipped} overgeslagen, {failed} mislukt, {uncertain} onzeker.",
@@ -727,10 +731,6 @@
         "notArrived": "Nog niet aangekomen",
         "pendingApproval": "Wacht op goedkeuring",
         "invited": "Uitgenodigd",
-        "removeRsvpCannotUndone": "Deze aanmelding verwijderen? Dit kan niet ongedaan worden gemaakt.",
-        "removeGuestCannotUndone": "Deze gast verwijderen? Dit kan niet ongedaan worden gemaakt.",
-        "removeInvitationCannotUndone": "Deze uitnodiging verwijderen? Dit kan niet ongedaan worden gemaakt.",
-        "declineRemoveRsvpRequest": "Deze aanmeldingsaanvraag afwijzen en verwijderen?",
         "eventAttendance": "Aanwezigheid bij het evenement",
         "label": "van",
         "parties": "gezelschappen ·",
@@ -783,7 +783,13 @@
         "resendConflict": "Meerdere gasten komen overeen met dit contact. Los de gastgegevens op voordat je opnieuw verstuurt.",
         "inviteResent": "Uitnodiging opnieuw verstuurd naar {destination}.",
         "attendanceSummary": "{checkedParties} van {parties} gezelschappen · {checkedPeople} van {people} personen aangekomen",
-        "collapsedHint": "Selecteer hierboven {responses} om de namen te zien."
+        "collapsedHint": "Selecteer hierboven {responses} om de namen te zien.",
+        "removeRsvpTitle": "Deze reactie verwijderen?",
+        "removeGuestTitle": "Deze gast verwijderen?",
+        "removeInvitationTitle": "Deze uitnodiging verwijderen?",
+        "cannotBeUndone": "Dit kan niet ongedaan worden gemaakt.",
+        "declineRequestTitle": "Dit verzoek afwijzen?",
+        "declineRequestMessage": "We laten het de gast weten en het verzoek wordt verwijderd. Dit kan niet ongedaan worden gemaakt."
       },
       "EventPage": {
         "failedAddReply": "Antwoord plaatsen is mislukt",
@@ -1208,7 +1214,6 @@
       "saved": "Opgeslagen",
       "resetToDefault2": "Standaard herstellen",
       "resetFailed": "Herstellen mislukt",
-      "resetAllEmailTemplatesToTheirDefaultsThisClears": "Alle e-mailsjablonen terugzetten naar de standaardwaarden? Dit verwijdert alle opgeslagen aanpassingen aan onderwerpen, teksten en inhoudsopties. Dit kan niet ongedaan worden gemaakt.",
       "s": "en",
       "allTemplatesWereAlreadyAtTheirDefaults": "Alle sjablonen gebruikten al de standaardwaarden",
       "resetAllFailed": "Alles herstellen is mislukt",
@@ -1374,7 +1379,6 @@
       "presetCreated": "Thema aangemaakt.",
       "failedToSavePreset": "Opslaan van het thema is mislukt.",
       "presetSavedAndSetAsNewDefault": "Thema opgeslagen en ingesteld als standaard.",
-      "deleteThisThemePresetEventsUsingItWillKeep": "Dit thema verwijderen? Evenementen die het gebruiken, behouden hun huidige kleuren.",
       "presetDeleted": "Thema verwijderd.",
       "failedToDeletePreset": "Verwijderen van het thema is mislukt.",
       "failedToUpdatePreset": "Bijwerken van het thema is mislukt.",
@@ -1424,17 +1428,13 @@
       "rsvpsMessage": "{value0} RSVPs",
       "noteMessage": "Notitie: {value0}",
       "backupCreatedValue0Message": "Back-up gemaakt: {value0}",
-      "areYouSureYouWantToDeleteBackupValue0Message": "Weet je zeker dat je back-up {value0} wilt verwijderen?",
       "testEmailSentSuccessfullyToValue0PleaseCheckYourMessage": "Testmail verstuurd naar {value0}. Bekijk je inbox (en spammap).",
       "testConnectionFailedValue0Message": "Verbindingstest mislukt: {value0}",
       "testSmsFailedValue0Message": "Test-sms mislukt: {value0}",
-      "scheduleValue0SAccountForDeletionTheyWillBeMessage": "Het account van {value0} inplannen voor verwijdering? De gebruiker wordt direct uitgelogd en de gegevens worden na 30 dagen geanonimiseerd. Je kunt het account binnen die periode herstellen.",
       "cannotScheduleDeletionValue0HasUpcomingPublishedEventsValue1Message": "Verwijdering kan niet worden ingepland: {value0} heeft aankomende gepubliceerde evenementen: {value1}. Verwijder eerst die evenementen.",
       "value0SAccountScheduledForDeletionOnValue1Message": "Het account van {value0} staat gepland voor verwijdering op {value1}.",
       "value0SAccountHasBeenRestoredMessage": "Het account van {value0} is hersteld.",
-      "warningAreYouAbsolutelySureYouWantToPermanentlyMessage": "WAARSCHUWING: weet je zeker dat je het account van {value0} nu permanent wilt verwijderen en anonimiseren? De bedenktijd van 30 dagen vervalt en alle georganiseerde evenementen worden overgedragen aan het systeem. Dit kan niet ongedaan worden gemaakt.",
       "value0SAccountHasBeenPermanentlyDeletedAnonymizedMessage": "Het account van {value0} is permanent verwijderd/geanonimiseerd.",
-      "areYouSureYouWantToModerateDeleteTheMessage": "Weet je zeker dat je het evenement \"{value0}\" wilt modereren/verwijderen? Dit is permanent.",
       "openRegistrationToggledToValue0Message": "Open registratie is nu {value0}.",
       "guestEmailNotificationsValue0Message": "E-mailmeldingen voor gasten zijn {value0}.",
       "smsNotificationsValue0Message": "Sms-meldingen zijn {value0}.",
@@ -1474,7 +1474,29 @@
       "EmailTab": {
         "setupSubtitle": "Gastmeldingen in- of uitschakelen, bezorgprovider en verbindingstest",
         "templatesSubtitle": "Pas tekst en inhoudsblokken aan, bekijk e-mails met elk thema en stuur jezelf een testmail"
-      }
+      },
+      "resetTemplatesTitle": "Alle e-mailsjablonen herstellen?",
+      "resetTemplatesMessage": "Hiermee worden alle opgeslagen onderwerpen, teksten en schakelaars van alle sjablonen gewist. Dit kan niet ongedaan worden gemaakt.",
+      "resetAllAction": "Alles herstellen",
+      "deleteBackupTitle": "Deze back-up verwijderen?",
+      "deleteBackupMessage": "{filename} wordt definitief verwijderd.",
+      "scheduleDeletionTitle": "Verwijdering van het account van {name} plannen?",
+      "scheduleDeletionMessage": "Deze persoon wordt nu afgemeld en de gegevens worden na 30 dagen geanonimiseerd. Tot die tijd kun je het account herstellen.",
+      "scheduleDeletionAction": "Verwijdering plannen",
+      "deleteNowTitle": "Account van {name} nu verwijderen?",
+      "deleteNowMessage": "De bedenktijd van 30 dagen wordt overgeslagen: het account wordt nu geanonimiseerd en de georganiseerde evenementen gaan naar het systeemaccount. Dit kan niet ongedaan worden gemaakt.",
+      "deleteNowAction": "Nu verwijderen",
+      "deleteEventTitle": "Het evenement ‘{title}’ verwijderen?",
+      "deleteEventMessage": "Het evenement en de gastenlijst worden definitief verwijderd.",
+      "deleteEventAction": "Evenement verwijderen",
+      "deletePresetTitle": "Deze themavoorinstelling verwijderen?",
+      "deletePresetMessage": "Evenementen die deze gebruiken, behouden hun huidige kleuren.",
+      "deleteAction": "Verwijderen",
+      "replaceWorkerSecretTitle": "Het worker-API-geheim vervangen?",
+      "replaceWorkerSecretMessage": "Er is al een geheim opgeslagen. Een nieuw geheim overschrijft het, dus werk WORKER_API_SECRET bij in je Cloudflare-dashboard.",
+      "replaceWorkerSecretAction": "Nieuw geheim genereren",
+      "roleFilterLabel": "Rol",
+      "statusFilterLabel": "Status"
     },
     "Dashboard": {
       "eventDetails": "Evenementgegevens",
@@ -1560,7 +1582,9 @@
       "welcome": "Welkom terug, {name}!",
       "noUpcomingEvents": "Je hebt op dit moment geen aankomende evenementen.",
       "upcomingEventCount": "Je hebt {count, plural, one {# aankomend evenement} other {# aankomende evenementen}} gepland.",
-      "eventMenu": "Opties voor {title}"
+      "eventMenu": "Opties voor {title}",
+      "activityTypeLabel": "Type activiteit",
+      "activityEventLabel": "Evenement"
     },
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Deze link is verlopen of al gebruikt. Vraag hieronder een nieuwe aan.",

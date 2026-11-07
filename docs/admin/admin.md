@@ -84,6 +84,8 @@ If you already have one active Admin account, you can promote other users:
 
 Every button, field, switch and message in the Admin Panel uses the same shared controls as the rest of the site, so a primary action, a secondary action and a delete look the same on every tab. Deletes and revokes are shown in the error color, and in-row actions (**Restore**, **Delete now**, **Download**, **Revoke**) are the compact size. On phones, the menu button at the top opens the section list.
 
+Anything that deletes or overwrites (deleting a user, event, backup or theme preset, resetting all email templates, replacing the worker API secret) opens a confirmation dialog first. It names the action and says what will happen; **Cancel** or Escape leaves everything unchanged.
+
 The **Overview** tab shows a snapshot of your installation:
 
 | Stat             | What it counts                                                |
@@ -135,7 +137,7 @@ You can delete and manage users from the **Users** tab.
 
 ### Filtering Users
 
-The **Users** list can be filtered using the dropdown selectors:
+The **Users** list can be filtered using the **Role** and **Status** selectors next to the search box:
 
 - **Role Filter**: Filter users by account type (`All Roles`, `ADMIN`, `HOST`, `GUEST`).
 - **Status Filter**: Filter users by account state (`All Statuses`, `Active` (default), `Pending Deletion`, `Deleted / Anonymized`).

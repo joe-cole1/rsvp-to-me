@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
 import { Button } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Field";
+import { Field, Input, Select } from "@/components/ui/Field";
 import type { AdminUser } from "./types";
 
 export function UsersTab({
@@ -43,7 +43,7 @@ export function UsersTab({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "12px", alignItems: "flex-end", flexWrap: "wrap" }}>
         <Input
           theme={T}
           type="text"
@@ -54,33 +54,35 @@ export function UsersTab({
           style={{ flex: "1 1 200px", width: "auto" }}
         />
 
-        {/* Role Filter */}
-        <Select
-          theme={T}
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as "ALL" | "HOST" | "GUEST" | "ADMIN")}
-          style={{ width: "auto", minWidth: "130px" }}
-        >
-          <option value="ALL">{tr("allRoles")}</option>
-          <option value="ADMIN">{tr("admin")}</option>
-          <option value="HOST">{tr("host")}</option>
-          <option value="GUEST">{tr("guest")}</option>
-        </Select>
+        <Field theme={T} label={tr("roleFilterLabel")} style={{ marginBottom: 0 }}>
+          <Select
+            theme={T}
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as "ALL" | "HOST" | "GUEST" | "ADMIN")}
+            style={{ width: "auto", minWidth: "130px" }}
+          >
+            <option value="ALL">{tr("allRoles")}</option>
+            <option value="ADMIN">{tr("admin")}</option>
+            <option value="HOST">{tr("host")}</option>
+            <option value="GUEST">{tr("guest")}</option>
+          </Select>
+        </Field>
 
-        {/* Status Filter */}
-        <Select
-          theme={T}
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED")
-          }
-          style={{ width: "auto", minWidth: "160px" }}
-        >
-          <option value="ALL">{tr("allStatuses")}</option>
-          <option value="ACTIVE">{tr("active")}</option>
-          <option value="PENDING_DELETE">{tr("pendingDeletion")}</option>
-          <option value="DELETED">{tr("deletedAnonymized")}</option>
-        </Select>
+        <Field theme={T} label={tr("statusFilterLabel")} style={{ marginBottom: 0 }}>
+          <Select
+            theme={T}
+            value={statusFilter}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as "ALL" | "PENDING_DELETE" | "ACTIVE" | "DELETED")
+            }
+            style={{ width: "auto", minWidth: "160px" }}
+          >
+            <option value="ALL">{tr("allStatuses")}</option>
+            <option value="ACTIVE">{tr("active")}</option>
+            <option value="PENDING_DELETE">{tr("pendingDeletion")}</option>
+            <option value="DELETED">{tr("deletedAnonymized")}</option>
+          </Select>
+        </Field>
 
         <Button
           theme={T}

@@ -525,7 +525,8 @@
         "addLocation": "Ort hinzufügen",
         "saving": "Wird gespeichert…",
         "save": "Speichern",
-        "cancel": "Abbrechen"
+        "cancel": "Abbrechen",
+        "editLocation": "Ort bearbeiten"
       },
       "InlineEdit": {
         "clickEdit": "Zum Bearbeiten klicken"
@@ -581,7 +582,9 @@
         "description": "Beschreibung",
         "addDescription": "Beschreibung hinzufügen…",
         "coverAlt": "Titelbild für {title}",
-        "organizer": "Veranstaltet von {name}"
+        "organizer": "Veranstaltet von {name}",
+        "editTitle": "Titel bearbeiten",
+        "editDescription": "Beschreibung bearbeiten"
       },
       "DateEdit": {
         "clickEditDateTime": "Klicken, um Datum/Uhrzeit zu bearbeiten",
@@ -593,7 +596,8 @@
         "cancel": "Abbrechen",
         "addCalendar": "Zum Kalender hinzufügen",
         "googleCalendar": "Google Calendar",
-        "icalOutlookIcs": "iCal / Outlook (.ics)"
+        "icalOutlookIcs": "iCal / Outlook (.ics)",
+        "editDateTime": "Datum und Uhrzeit bearbeiten"
       },
       "NotificationDeliveryFeedback": {
         "summary": "Update veröffentlicht. Benachrichtigungen: {accepted} angenommen, {skipped} übersprungen, {failed} fehlgeschlagen, {uncertain} ungewiss.",
@@ -727,10 +731,6 @@
         "notArrived": "Nicht angekommen",
         "pendingApproval": "Genehmigung ausstehend",
         "invited": "Eingeladen",
-        "removeRsvpCannotUndone": "Diese Rückmeldung entfernen? Dies kann nicht rückgängig gemacht werden.",
-        "removeGuestCannotUndone": "Diesen Gast entfernen? Dies kann nicht rückgängig gemacht werden.",
-        "removeInvitationCannotUndone": "Diese Einladung entfernen? Dies kann nicht rückgängig gemacht werden.",
-        "declineRemoveRsvpRequest": "Diese Rückmeldeanfrage ablehnen und entfernen?",
         "eventAttendance": "Anwesenheit bei der Veranstaltung",
         "label": "von",
         "parties": "Gruppen ·",
@@ -783,7 +783,13 @@
         "resendConflict": "Mehrere Gäste stimmen mit diesem Kontakt überein. Kläre die Gasteinträge vor dem erneuten Senden.",
         "inviteResent": "Einladung erneut an {destination} gesendet.",
         "attendanceSummary": "{checkedParties} von {parties} Gruppen · {checkedPeople} von {people} Personen angekommen",
-        "collapsedHint": "Um die Namen für {responses} zu sehen, wähle oben diese Antwort aus."
+        "collapsedHint": "Um die Namen für {responses} zu sehen, wähle oben diese Antwort aus.",
+        "removeRsvpTitle": "Diese Antwort entfernen?",
+        "removeGuestTitle": "Diesen Gast entfernen?",
+        "removeInvitationTitle": "Diese Einladung entfernen?",
+        "cannotBeUndone": "Das lässt sich nicht rückgängig machen.",
+        "declineRequestTitle": "Diese Anfrage ablehnen?",
+        "declineRequestMessage": "Wir benachrichtigen den Gast und die Anfrage wird entfernt. Das lässt sich nicht rückgängig machen."
       },
       "EventPage": {
         "failedAddReply": "Antwort konnte nicht hinzugefügt werden",
@@ -1208,7 +1214,6 @@
       "saved": "Gespeichert",
       "resetToDefault2": "Auf Standard zurücksetzen",
       "resetFailed": "Zurücksetzen fehlgeschlagen",
-      "resetAllEmailTemplatesToTheirDefaultsThisClears": "ALLE E-Mail-Vorlagen auf die Standardwerte zurücksetzen? Dadurch werden alle gespeicherten Anpassungen an Betreff, Text und Inhaltsschaltern für sämtliche Vorlagen gelöscht. Das kann nicht rückgängig gemacht werden.",
       "s": "s",
       "allTemplatesWereAlreadyAtTheirDefaults": "Alle Vorlagen entsprachen bereits den Standardwerten",
       "resetAllFailed": "Zurücksetzen aller Vorlagen fehlgeschlagen",
@@ -1374,7 +1379,6 @@
       "presetCreated": "Vorlage erstellt.",
       "failedToSavePreset": "Vorlage konnte nicht gespeichert werden.",
       "presetSavedAndSetAsNewDefault": "Vorlage gespeichert und als neuer Standard festgelegt.",
-      "deleteThisThemePresetEventsUsingItWillKeep": "Diese Designvorlage löschen? Veranstaltungen, die sie verwenden, behalten ihre aktuellen Farben.",
       "presetDeleted": "Vorlage gelöscht.",
       "failedToDeletePreset": "Vorlage konnte nicht gelöscht werden.",
       "failedToUpdatePreset": "Vorlage konnte nicht aktualisiert werden.",
@@ -1424,17 +1428,13 @@
       "rsvpsMessage": "{value0} Rückmeldungen",
       "noteMessage": "Notiz:{value0}",
       "backupCreatedValue0Message": "Sicherung erstellt: {value0}",
-      "areYouSureYouWantToDeleteBackupValue0Message": "Möchtest du die Sicherung {value0} wirklich löschen?",
       "testEmailSentSuccessfullyToValue0PleaseCheckYourMessage": "Test-E-Mail erfolgreich an {value0} gesendet. Bitte prüfe deinen Posteingang (und den Spamordner)!",
       "testConnectionFailedValue0Message": "Verbindungstest fehlgeschlagen: {value0}",
       "testSmsFailedValue0Message": "Test-SMS fehlgeschlagen: {value0}",
-      "scheduleValue0SAccountForDeletionTheyWillBeMessage": "Löschung des Kontos von {value0} planen? Die Person wird sofort abgemeldet und ihre Daten werden nach einer 30-tägigen Frist anonymisiert. Du kannst das Konto vor Ablauf dieser Frist wiederherstellen.",
       "cannotScheduleDeletionValue0HasUpcomingPublishedEventsValue1Message": "Löschung kann nicht geplant werden — {value0} hat bevorstehende veröffentlichte Veranstaltungen: {value1}. Lösche zuerst diese Veranstaltungen.",
       "value0SAccountScheduledForDeletionOnValue1Message": "Die Löschung des Kontos von {value0} ist für den {value1} geplant.",
       "value0SAccountHasBeenRestoredMessage": "Das Konto von {value0} wurde wiederhergestellt.",
-      "warningAreYouAbsolutelySureYouWantToPermanentlyMessage": "WARNUNG: Möchtest du das Konto von {value0} wirklich sofort dauerhaft löschen und anonymisieren? Dadurch wird die 30-tägige Frist übersprungen, alle veranstalteten Veranstaltungen werden dem System zugewiesen und der Vorgang kann nicht rückgängig gemacht werden.",
       "value0SAccountHasBeenPermanentlyDeletedAnonymizedMessage": "Das Konto von {value0} wurde dauerhaft gelöscht/anonymisiert.",
-      "areYouSureYouWantToModerateDeleteTheMessage": "Möchtest du die Veranstaltung „{value0}“ wirklich moderieren/löschen? Das ist endgültig.",
       "openRegistrationToggledToValue0Message": "Offene Registrierung auf {value0} gesetzt.",
       "guestEmailNotificationsValue0Message": "E-Mail-Benachrichtigungen für Gäste {value0}.",
       "smsNotificationsValue0Message": "SMS-Benachrichtigungen {value0}.",
@@ -1474,7 +1474,29 @@
       "EmailTab": {
         "setupSubtitle": "Gästebenachrichtigungen ein- oder ausschalten, Versandanbieter auswählen und Verbindung testen",
         "templatesSubtitle": "Texte und Inhaltsblöcke anpassen, E-Mails in jedem Design vorab ansehen und dir einen Test senden"
-      }
+      },
+      "resetTemplatesTitle": "Alle E-Mail-Vorlagen zurücksetzen?",
+      "resetTemplatesMessage": "Damit werden alle gespeicherten Betreffzeilen, Texte und Schalter aller Vorlagen gelöscht. Das lässt sich nicht rückgängig machen.",
+      "resetAllAction": "Alle zurücksetzen",
+      "deleteBackupTitle": "Diese Sicherung löschen?",
+      "deleteBackupMessage": "{filename} wird endgültig gelöscht.",
+      "scheduleDeletionTitle": "Löschung des Kontos von {name} planen?",
+      "scheduleDeletionMessage": "Die Person wird sofort abgemeldet und ihre Daten werden nach 30 Tagen anonymisiert. Bis dahin kannst du das Konto wiederherstellen.",
+      "scheduleDeletionAction": "Löschung planen",
+      "deleteNowTitle": "Konto von {name} jetzt löschen?",
+      "deleteNowMessage": "Die 30-tägige Frist wird übersprungen: Das Konto wird sofort anonymisiert und ihre Veranstaltungen gehen an das System-Konto. Das lässt sich nicht rückgängig machen.",
+      "deleteNowAction": "Jetzt löschen",
+      "deleteEventTitle": "Die Veranstaltung „{title}“ löschen?",
+      "deleteEventMessage": "Die Veranstaltung und ihre Gästeliste werden endgültig entfernt.",
+      "deleteEventAction": "Veranstaltung löschen",
+      "deletePresetTitle": "Diese Design-Vorlage löschen?",
+      "deletePresetMessage": "Veranstaltungen, die sie verwenden, behalten ihre aktuellen Farben.",
+      "deleteAction": "Löschen",
+      "replaceWorkerSecretTitle": "Worker-API-Geheimnis ersetzen?",
+      "replaceWorkerSecretMessage": "Es ist bereits ein Geheimnis gespeichert. Ein neues überschreibt es, also passe WORKER_API_SECRET in deinem Cloudflare-Dashboard an.",
+      "replaceWorkerSecretAction": "Neues Geheimnis erzeugen",
+      "roleFilterLabel": "Rolle",
+      "statusFilterLabel": "Status"
     },
     "Dashboard": {
       "eventDetails": "Veranstaltungsdetails",
@@ -1560,7 +1582,9 @@
       "welcome": "Willkommen zurück, {name}!",
       "noUpcomingEvents": "Du hast derzeit keine bevorstehenden Veranstaltungen.",
       "upcomingEventCount": "Du hast {count, plural, one {# bevorstehende Veranstaltung} other {# bevorstehende Veranstaltungen}} geplant.",
-      "eventMenu": "Optionen für {title}"
+      "eventMenu": "Optionen für {title}",
+      "activityTypeLabel": "Aktivitätstyp",
+      "activityEventLabel": "Veranstaltung"
     },
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Dieser Link ist abgelaufen oder wurde bereits verwendet. Fordere unten einen neuen an.",

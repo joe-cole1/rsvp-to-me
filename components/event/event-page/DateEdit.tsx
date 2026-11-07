@@ -222,16 +222,20 @@ export function DateEdit({
             </div>
           </div>
           {isHost && (
-            <Pencil
-              size={12}
-              style={{
-                color: t.heroTextMuted,
-                cursor: "pointer",
-                marginTop: "6px",
-                flexShrink: 0,
+            <Button
+              theme={t}
+              variant="icon"
+              onGround
+              type="button"
+              aria-label={translate("editDateTime")}
+              aria-expanded={open}
+              onClick={(e) => {
+                e.stopPropagation();
+                openPopover();
               }}
-              onClick={openPopover}
-            />
+            >
+              <Pencil size={14} aria-hidden="true" />
+            </Button>
           )}
         </div>
 

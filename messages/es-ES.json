@@ -525,7 +525,8 @@
         "addLocation": "Añadir ubicación",
         "saving": "Guardando…",
         "save": "Guardar",
-        "cancel": "Cancelar"
+        "cancel": "Cancelar",
+        "editLocation": "Editar ubicación"
       },
       "InlineEdit": {
         "clickEdit": "Haz clic para editar"
@@ -581,7 +582,9 @@
         "description": "Descripción",
         "addDescription": "Añade una descripción…",
         "coverAlt": "Portada de {title}",
-        "organizer": "Organizado por {name}"
+        "organizer": "Organizado por {name}",
+        "editTitle": "Editar título",
+        "editDescription": "Editar descripción"
       },
       "DateEdit": {
         "clickEditDateTime": "Haz clic para editar la fecha y hora",
@@ -593,7 +596,8 @@
         "cancel": "Cancelar",
         "addCalendar": "Añadir al calendario",
         "googleCalendar": "Google Calendar",
-        "icalOutlookIcs": "iCal / Outlook (.ics)"
+        "icalOutlookIcs": "iCal / Outlook (.ics)",
+        "editDateTime": "Editar fecha y hora"
       },
       "NotificationDeliveryFeedback": {
         "summary": "Actualización publicada. Notificaciones: {accepted} aceptadas, {skipped} omitidas, {failed} fallidas, {uncertain} inciertas.",
@@ -727,10 +731,6 @@
         "notArrived": "No han llegado",
         "pendingApproval": "Pendientes de aprobación",
         "invited": "Invitados",
-        "removeRsvpCannotUndone": "¿Eliminar esta respuesta? Esta acción no se puede deshacer.",
-        "removeGuestCannotUndone": "¿Eliminar a este invitado? Esta acción no se puede deshacer.",
-        "removeInvitationCannotUndone": "¿Eliminar esta invitación? Esta acción no se puede deshacer.",
-        "declineRemoveRsvpRequest": "¿Rechazar y eliminar esta solicitud de asistencia?",
         "eventAttendance": "Asistencia al evento",
         "label": "de",
         "parties": "grupos ·",
@@ -783,7 +783,13 @@
         "resendConflict": "Varios invitados coinciden con este contacto. Revisa sus registros antes de reenviar.",
         "inviteResent": "Invitación reenviada a {destination}.",
         "attendanceSummary": "Han llegado {checkedParties} de {parties} grupos · {checkedPeople} de {people} personas",
-        "collapsedHint": "Para ver los nombres de quienes han respondido «{responses}», selecciona esa respuesta arriba."
+        "collapsedHint": "Para ver los nombres de quienes han respondido «{responses}», selecciona esa respuesta arriba.",
+        "removeRsvpTitle": "¿Quitar esta respuesta?",
+        "removeGuestTitle": "¿Quitar a este invitado?",
+        "removeInvitationTitle": "¿Quitar esta invitación?",
+        "cannotBeUndone": "No se puede deshacer.",
+        "declineRequestTitle": "¿Rechazar esta solicitud?",
+        "declineRequestMessage": "Avisaremos al invitado y la solicitud se eliminará. No se puede deshacer."
       },
       "EventPage": {
         "failedAddReply": "No se ha podido añadir la respuesta",
@@ -1208,7 +1214,6 @@
       "saved": "Guardado",
       "resetToDefault2": "Restablecer valores predeterminados",
       "resetFailed": "No se ha podido restablecer",
-      "resetAllEmailTemplatesToTheirDefaultsThisClears": "¿Restablecer TODAS las plantillas de correo a sus valores predeterminados? Se borrarán todos los asuntos, cuerpos y ajustes de visibilidad personalizados de todas las plantillas. Esta acción no se puede deshacer.",
       "s": "s",
       "allTemplatesWereAlreadyAtTheirDefaults": "Todas las plantillas ya tenían los valores predeterminados",
       "resetAllFailed": "No se han podido restablecer todas las plantillas",
@@ -1374,7 +1379,6 @@
       "presetCreated": "Tema predefinido creado.",
       "failedToSavePreset": "No se ha podido guardar el tema predefinido.",
       "presetSavedAndSetAsNewDefault": "Tema guardado y establecido como nuevo valor predeterminado.",
-      "deleteThisThemePresetEventsUsingItWillKeep": "¿Eliminar este tema predefinido? Los eventos que lo usen conservarán sus colores actuales.",
       "presetDeleted": "Tema predefinido eliminado.",
       "failedToDeletePreset": "No se ha podido eliminar el tema predefinido.",
       "failedToUpdatePreset": "No se ha podido actualizar el tema predefinido.",
@@ -1424,17 +1428,13 @@
       "rsvpsMessage": "{value0} respuestas de asistencia",
       "noteMessage": "Nota:{value0}",
       "backupCreatedValue0Message": "Copia de seguridad creada: {value0}",
-      "areYouSureYouWantToDeleteBackupValue0Message": "¿Seguro que quieres eliminar la copia de seguridad {value0}?",
       "testEmailSentSuccessfullyToValue0PleaseCheckYourMessage": "Correo de prueba enviado correctamente a {value0}. ¡Revisa tu bandeja de entrada y la carpeta de spam!",
       "testConnectionFailedValue0Message": "Error al probar la conexión: {value0}",
       "testSmsFailedValue0Message": "Error al enviar el SMS de prueba: {value0}",
-      "scheduleValue0SAccountForDeletionTheyWillBeMessage": "¿Programar la eliminación de la cuenta de {value0}? Su sesión se cerrará inmediatamente y sus datos se anonimizarán tras un periodo de gracia de 30 días. Puedes restaurar la cuenta antes de que termine ese plazo.",
       "cannotScheduleDeletionValue0HasUpcomingPublishedEventsValue1Message": "No se puede programar la eliminación: {value0} tiene próximos eventos publicados: {value1}. Elimina primero esos eventos.",
       "value0SAccountScheduledForDeletionOnValue1Message": "La eliminación de la cuenta de {value0} está programada para el {value1}.",
       "value0SAccountHasBeenRestoredMessage": "Se ha restaurado la cuenta de {value0}.",
-      "warningAreYouAbsolutelySureYouWantToPermanentlyMessage": "ADVERTENCIA: ¿Estás totalmente seguro de que quieres eliminar y anonimizar permanentemente la cuenta de {value0} de inmediato? Se omitirá el periodo de gracia de 30 días, se reasignarán todos sus eventos como anfitrión al Sistema y la acción no se podrá deshacer.",
       "value0SAccountHasBeenPermanentlyDeletedAnonymizedMessage": "La cuenta de {value0} se ha eliminado/anonimizado permanentemente.",
-      "areYouSureYouWantToModerateDeleteTheMessage": "¿Seguro que quieres moderar/eliminar el evento \"{value0}\"? Esta acción es permanente.",
       "openRegistrationToggledToValue0Message": "El registro abierto ha cambiado a {value0}.",
       "guestEmailNotificationsValue0Message": "Notificaciones por correo para invitados {value0}.",
       "smsNotificationsValue0Message": "Notificaciones por SMS {value0}.",
@@ -1474,7 +1474,29 @@
       "EmailTab": {
         "setupSubtitle": "Activación de notificaciones para invitados, proveedor de envío y prueba de conexión",
         "templatesSubtitle": "Personaliza el texto y los bloques de contenido, previsualiza cada correo con su tema y envíate una prueba"
-      }
+      },
+      "resetTemplatesTitle": "¿Restablecer todas las plantillas de correo?",
+      "resetTemplatesMessage": "Se borran todos los asuntos, textos e interruptores guardados de todas las plantillas. No se puede deshacer.",
+      "resetAllAction": "Restablecer todo",
+      "deleteBackupTitle": "¿Eliminar esta copia de seguridad?",
+      "deleteBackupMessage": "{filename} se eliminará de forma permanente.",
+      "scheduleDeletionTitle": "¿Programar la eliminación de la cuenta de {name}?",
+      "scheduleDeletionMessage": "Se cerrará su sesión ahora y sus datos se anonimizarán a los 30 días. Hasta entonces puedes restaurar la cuenta.",
+      "scheduleDeletionAction": "Programar eliminación",
+      "deleteNowTitle": "¿Eliminar ahora la cuenta de {name}?",
+      "deleteNowMessage": "Se omite el periodo de gracia de 30 días: la cuenta se anonimiza ahora y sus eventos pasan a la cuenta del sistema. No se puede deshacer.",
+      "deleteNowAction": "Eliminar ahora",
+      "deleteEventTitle": "¿Eliminar el evento «{title}»?",
+      "deleteEventMessage": "El evento y su lista de invitados se eliminarán de forma permanente.",
+      "deleteEventAction": "Eliminar evento",
+      "deletePresetTitle": "¿Eliminar este tema predefinido?",
+      "deletePresetMessage": "Los eventos que lo usan conservan sus colores actuales.",
+      "deleteAction": "Eliminar",
+      "replaceWorkerSecretTitle": "¿Reemplazar el secreto de la API del worker?",
+      "replaceWorkerSecretMessage": "Ya hay un secreto guardado. Uno nuevo lo sobrescribe, así que actualiza WORKER_API_SECRET en tu panel de Cloudflare.",
+      "replaceWorkerSecretAction": "Generar nuevo secreto",
+      "roleFilterLabel": "Rol",
+      "statusFilterLabel": "Estado"
     },
     "Dashboard": {
       "eventDetails": "Detalles del evento",
@@ -1560,7 +1582,9 @@
       "welcome": "¡Te damos la bienvenida de nuevo, {name}!",
       "noUpcomingEvents": "Ahora mismo no tienes próximos eventos.",
       "upcomingEventCount": "Tienes {count, plural, one {# próximo evento programado} other {# próximos eventos programados}}.",
-      "eventMenu": "Opciones de {title}"
+      "eventMenu": "Opciones de {title}",
+      "activityTypeLabel": "Tipo de actividad",
+      "activityEventLabel": "Evento"
     },
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Ese enlace ha caducado o ya se ha utilizado. Solicita uno nuevo a continuación.",

@@ -23,7 +23,7 @@ import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Choice";
-import { Input, Select } from "@/components/ui/Field";
+import { Field, Input, Select } from "@/components/ui/Field";
 import type { DashboardEvent, DashboardInvite, DashboardActivity } from "@/app/actions/event";
 
 export interface DashboardGridItem {
@@ -572,40 +572,42 @@ export function DashboardClient({
                         marginBottom: "20px",
                       }}
                     >
-                      <Select
-                        theme={T}
-                        aria-label={tr("allActivityTypes")}
-                        value={activityTypeFilter}
-                        onChange={(e) => {
-                          setActivityTypeFilter(
-                            e.target.value as "all" | "rsvp" | "potluck" | "comment" | "event"
-                          );
-                          setActivityPage(1);
-                        }}
-                      >
-                        <option value="all">{tr("allActivityTypes")}</option>
-                        <option value="rsvp">{tr("rsvpsOnly")}</option>
-                        <option value="potluck">{tr("potluckSignUps")}</option>
-                        <option value="comment">{tr("commentsOnly")}</option>
-                        <option value="event">{tr("eventUpdates")}</option>
-                      </Select>
+                      <Field theme={T} label={tr("activityTypeLabel")} style={{ marginBottom: 0 }}>
+                        <Select
+                          theme={T}
+                          value={activityTypeFilter}
+                          onChange={(e) => {
+                            setActivityTypeFilter(
+                              e.target.value as "all" | "rsvp" | "potluck" | "comment" | "event"
+                            );
+                            setActivityPage(1);
+                          }}
+                        >
+                          <option value="all">{tr("allActivityTypes")}</option>
+                          <option value="rsvp">{tr("rsvpsOnly")}</option>
+                          <option value="potluck">{tr("potluckSignUps")}</option>
+                          <option value="comment">{tr("commentsOnly")}</option>
+                          <option value="event">{tr("eventUpdates")}</option>
+                        </Select>
+                      </Field>
 
-                      <Select
-                        theme={T}
-                        aria-label={tr("allEvents")}
-                        value={activityEventFilter}
-                        onChange={(e) => {
-                          setActivityEventFilter(e.target.value);
-                          setActivityPage(1);
-                        }}
-                      >
-                        <option value="all">{tr("allEvents")}</option>
-                        {activityEventsList.map((e) => (
-                          <option key={e.id} value={e.id}>
-                            {e.title}
-                          </option>
-                        ))}
-                      </Select>
+                      <Field theme={T} label={tr("activityEventLabel")} style={{ marginBottom: 0 }}>
+                        <Select
+                          theme={T}
+                          value={activityEventFilter}
+                          onChange={(e) => {
+                            setActivityEventFilter(e.target.value);
+                            setActivityPage(1);
+                          }}
+                        >
+                          <option value="all">{tr("allEvents")}</option>
+                          {activityEventsList.map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.title}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
                     </div>
 
                     {filteredActivities.length === 0 ? (
@@ -889,9 +891,12 @@ function EventCard({
           e.currentTarget.style.transform = "scale(1)";
         }}
       >
-        {/* Clickable Image Cover Link */}
+        {/* Clickable cover. The title link below is the named, focusable one, so this
+            duplicate stays out of the tab order and the accessibility tree. */}
         <Link
           href={`/e/${item.slug}`}
+          tabIndex={-1}
+          aria-hidden="true"
           style={{
             position: "absolute",
             top: 0,

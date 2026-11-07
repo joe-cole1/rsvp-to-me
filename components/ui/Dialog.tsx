@@ -9,6 +9,7 @@ export function Dialog({
   open,
   onClose,
   titleId,
+  describedBy,
   children,
   panelStyle,
   overlayStyle,
@@ -17,6 +18,8 @@ export function Dialog({
   open: boolean;
   onClose: () => void;
   titleId: string;
+  /** Id of the sentence that says what the dialog is about, read after the title. */
+  describedBy?: string;
   children: ReactNode;
   panelStyle?: React.CSSProperties;
   overlayStyle?: React.CSSProperties;
@@ -99,6 +102,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={describedBy}
         tabIndex={-1}
         style={{ width: "100%", maxHeight: "90vh", overflowY: "auto", ...panelStyle }}
       >

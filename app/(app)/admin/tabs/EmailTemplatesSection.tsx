@@ -6,6 +6,7 @@ import { RotateCcw, Send } from "lucide-react";
 import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { Button } from "@/components/ui/Button";
 import { Check, Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import {
   getEmailTemplatesAdmin,
   previewEmailTemplateAction,
@@ -30,6 +31,7 @@ export function EmailTemplatesSection() {
   const tr = useTranslations("Ui.Admin");
   const locale = useLocale();
   const tEvent = useTranslations("Ui.Event");
+  const { confirm, dialog: confirmDialog } = useConfirm(T);
 
   const [templates, setTemplates] = useState<TemplateEntry[]>([]);
   const [selectedId, setSelectedId] = useState<TemplateId>("invite");
@@ -147,9 +149,12 @@ export function EmailTemplatesSection() {
   };
 
   const handleResetAll = async () => {
-    if (!window.confirm(tr("resetAllEmailTemplatesToTheirDefaultsThisClears"))) {
-      return;
-    }
+    const ok = await confirm({
+      title: tr("resetTemplatesTitle"),
+      message: tr("resetTemplatesMessage"),
+      confirmLabel: tr("resetAllAction"),
+    });
+    if (!ok) return;
     setBusy(true);
     setStatus(null);
     try {
@@ -210,6 +215,7 @@ export function EmailTemplatesSection() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {confirmDialog}
       {/* Template picker + test send */}
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
         <Field theme={T} label={tr("template")} style={{ flex: "1 1 260px", marginBottom: 0 }}>

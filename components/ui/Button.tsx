@@ -28,9 +28,10 @@ export interface ButtonLook {
   disabled?: boolean;
   fullWidth?: boolean;
   /**
-   * For a link placed straight on the page ground (outside any card), such as "← Back to
-   * event" above a page title: it reads `heroTextSecondary`, which is checked against the
-   * ground, instead of `accentText`, which is checked against cards.
+   * For a link or icon button placed straight on the page ground (outside any card), such
+   * as "← Back to event" above a page title or the hero's "Edit title" pencil: a link reads
+   * `heroTextSecondary` and an icon `heroTextMuted`, which are checked against the ground,
+   * instead of `accentText` and `textSecondary`, which are checked against cards.
    */
   onGround?: boolean;
 }
@@ -150,7 +151,8 @@ export function buttonStyle(
         minWidth: `${height}px`,
         height: `${height}px`,
         padding: 0,
-        color: t.textSecondary,
+        // On the page ground an icon reads `heroTextMuted`, checked 3:1 against it.
+        color: onGround ? t.heroTextMuted : t.textSecondary,
         flexShrink: 0,
       } as StyleWithVars;
     case "link":

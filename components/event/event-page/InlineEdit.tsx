@@ -15,6 +15,8 @@ export function InlineEdit({
   style,
   isHost,
   outerRef,
+  label,
+  focusColor,
 }: {
   value: string;
   onSave: (v: string) => void;
@@ -24,6 +26,10 @@ export function InlineEdit({
   style?: React.CSSProperties;
   isHost: boolean;
   outerRef?: React.RefObject<HTMLSpanElement | null>;
+  /** The field's name while editing, e.g. "Event title". Defaults to the placeholder. */
+  label?: string;
+  /** The focus ring color while editing: the theme's `accent`. */
+  focusColor?: string;
 }) {
   const translate = useTranslations("Ui.Event.InlineEdit");
 
@@ -62,9 +68,10 @@ export function InlineEdit({
         }
       },
       autoFocus: true,
+      "aria-label": label ?? placeholder,
       style: {
         ...style,
-        outline: "none",
+        ...(focusColor ? { "--rsvp-focus": focusColor } : {}),
         background: multiline ? "rgba(127, 127, 127, 0.08)" : "transparent",
         width: "100%",
         border: multiline ? "1px solid rgba(127, 127, 127, 0.22)" : "none",
@@ -81,8 +88,8 @@ export function InlineEdit({
         fontWeight: "inherit",
         color: "inherit",
         letterSpacing: "inherit",
-      },
-      className,
+      } as React.CSSProperties,
+      className: className ? `rsvp-control ${className}` : "rsvp-control",
     };
     return multiline ? (
       <textarea rows={6} {...(shared as React.TextareaHTMLAttributes<HTMLTextAreaElement>)} />

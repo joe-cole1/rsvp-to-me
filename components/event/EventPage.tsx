@@ -188,6 +188,7 @@ export function EventPage({
   const [commentText, setCommentText] = useState("");
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [replyError, setReplyError] = useState<{ parentId: string; message: string } | null>(null);
   const [feedPage, setFeedPage] = useState(1);
   const [addingSection, setAddingSection] = useState(false);
   const [sectionDraft, setSectionDraft] = useState({
@@ -374,6 +375,7 @@ export function EventPage({
   const submitReply = async (parentId: string) => {
     if (!replyText.trim()) return;
     const name = selfAuthorName;
+    setReplyError(null);
 
     startTransition(async () => {
       const result = await runWithCaptcha("comment", (token) =>
@@ -414,7 +416,7 @@ export function EventPage({
         }));
         setFeedPage(1);
       } else {
-        alert(result.error || translate("failedAddReply"));
+        setReplyError({ parentId, message: result.error || translate("failedAddReply") });
       }
     });
   };
@@ -930,6 +932,7 @@ export function EventPage({
           replyingToId={replyingToId}
           setReplyingToId={setReplyingToId}
           replyText={replyText}
+          replyError={replyError}
           setReplyText={setReplyText}
           feedPage={feedPage}
           setFeedPage={setFeedPage}
