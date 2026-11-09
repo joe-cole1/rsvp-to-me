@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 
+import { presetPresentation } from "@/lib/theme-preset-presentation";
+import { PresetIcon } from "../PresetIcon";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import {
@@ -14,7 +17,7 @@ import {
 } from "@/lib/theme";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import type { LibraryIconSummary } from "@/lib/effect-catalog-shared";
-import type { DbThemePreset, EventInput, ThemeExtrasOverrides, ThemeSnapObj } from "./types";
+import type { DbThemePreset, EventInput, ThemeExtrasOverrides } from "./types";
 import { effectStatesEqual, initialEffectState, type EffectEditorState } from "./effect-state";
 import { EffectsPanel } from "./EffectsPanel";
 import { Section } from "./ui";
@@ -58,9 +61,9 @@ export function ThemePanel({
   visibleThemePresets: DbThemePreset[];
   themeSearch: string;
   setThemeSearch: React.Dispatch<React.SetStateAction<string>>;
-  themeFilter: "all" | "seasonal" | "general" | "light" | "dark";
+  themeFilter: "all" | "seasonal" | "occasion" | "general" | "light" | "dark";
   setThemeFilter: React.Dispatch<
-    React.SetStateAction<"all" | "seasonal" | "general" | "light" | "dark">
+    React.SetStateAction<"all" | "seasonal" | "occasion" | "general" | "light" | "dark">
   >;
   themeCustomizeOpen: boolean;
   setThemeCustomizeOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -98,6 +101,59 @@ export function ThemePanel({
 
   // Sub-tab within the Theme section; purely visual, so plain local state (no URL sync)
   const [activeTab, setActiveTab] = useState<"theme" | "effects" | "font">("theme");
+  const { confirm, dialog } = useConfirm(t);
+  // One baseline for hosts: the applied preset's current settings. Selecting a
+  // tile, the customization check and Restore all use it, so a freshly applied
+  // preset never counts as customized. The administrator's default/original
+  // snapshots are admin-only reset points.
+  const appliedPreset = themePresetId
+    ? (themePresets.find((p) => p.id === themePresetId) ?? null)
+    : null;
+  const customized =
+    !!appliedPreset &&
+    (base !== appliedPreset.base ||
+      gradientFrom !== appliedPreset.gradientFrom ||
+      gradientTo !== appliedPreset.gradientTo ||
+      accent !== appliedPreset.accentColor ||
+      cardOpacity !== (appliedPreset.cardOpacity ?? getDefaultCardOpacity(appliedPreset.base)) ||
+      fontId !== (appliedPreset.fontId ?? null) ||
+      !effectStatesEqual(
+        effect,
+        initialEffectState(presetPresentation(appliedPreset.presentation).effect)
+      ));
+  const applyPreset = async (p: DbThemePreset, mode: "apply" | "restore" = "apply") => {
+    const confirmed =
+      !customized ||
+      (mode === "restore"
+        ? await confirm({
+            title: translate("restoreTitle", { name: p.name }),
+            message: translate("restoreMessage"),
+            confirmLabel: translate("restoreConfirm"),
+            tone: "primary",
+          })
+        : await confirm({
+            title: translate("replaceTitle"),
+            message: translate("replaceMessage"),
+            confirmLabel: translate("apply"),
+            tone: "primary",
+          }));
+    if (!confirmed) return;
+    const id = p.id;
+    const opacity = p.cardOpacity ?? getDefaultCardOpacity(p.base);
+    const nextEffect = initialEffectState(presetPresentation(p.presentation).effect);
+    setBase(p.base);
+    setGradientFrom(p.gradientFrom);
+    setGradientTo(p.gradientTo);
+    setAccent(p.accentColor);
+    setCardOpacity(opacity);
+    setFontId(p.fontId ?? null);
+    setThemePresetId(id);
+    setEffect(nextEffect);
+    triggerSaveTheme(p.base, p.gradientFrom, p.gradientTo, p.accentColor, id, opacity, {
+      fontId: p.fontId ?? null,
+      effect: nextEffect,
+    });
+  };
   const hint: React.CSSProperties = {
     fontSize: "13px",
     lineHeight: "19px",
@@ -106,6 +162,7 @@ export function ThemePanel({
   };
   return (
     <Section title={translate("theme")} t={t}>
+      {dialog}
       {/* Sub-tabs: color presets / animated effects / event-title font */}
       <div style={{ display: "flex", gap: "6px", marginBottom: "14px" }}>
         {(
@@ -159,18 +216,6 @@ export function ThemePanel({
               cardOpacity !== savedOpacity ||
               fontId !== savedFontId ||
               !effectStatesEqual(effect, savedEffect);
-            const appliedPreset = themePresetId
-              ? themePresets.find((p) => p.id === themePresetId)
-              : null;
-            const presetDefault = (appliedPreset?.defaultSnapshot as ThemeSnapObj | null) ?? null;
-            const divergedFromPreset =
-              presetDefault &&
-              (base !== presetDefault.base ||
-                gradientFrom !== presetDefault.gradientFrom ||
-                gradientTo !== presetDefault.gradientTo ||
-                accent !== presetDefault.accentColor ||
-                (presetDefault.cardOpacity != null && cardOpacity !== presetDefault.cardOpacity) ||
-                fontId !== (presetDefault.fontId ?? null));
             return (
               <>
                 <div
@@ -193,24 +238,28 @@ export function ThemePanel({
                       margin: "-3px",
                     }}
                   >
-                    {(["all", "seasonal", "general", "light", "dark"] as const).map((f) => (
-                      <Chip
-                        key={f}
-                        theme={t}
-                        selected={themeFilter === f}
-                        onClick={() => setThemeFilter(f)}
-                      >
-                        {f === "all"
-                          ? translate("all")
-                          : f === "seasonal"
-                            ? translate("seasonal")
-                            : f === "general"
-                              ? translate("general")
-                              : f === "light"
-                                ? translate("light")
-                                : translate("dark")}
-                      </Chip>
-                    ))}
+                    {(["all", "seasonal", "occasion", "general", "light", "dark"] as const).map(
+                      (f) => (
+                        <Chip
+                          key={f}
+                          theme={t}
+                          selected={themeFilter === f}
+                          onClick={() => setThemeFilter(f)}
+                        >
+                          {f === "occasion"
+                            ? translate("occasions")
+                            : f === "all"
+                              ? translate("all")
+                              : f === "seasonal"
+                                ? translate("seasonal")
+                                : f === "general"
+                                  ? translate("general")
+                                  : f === "light"
+                                    ? translate("light")
+                                    : translate("dark")}
+                        </Chip>
+                      )
+                    )}
                   </div>
                   {hasChanged && (
                     <Button
@@ -241,32 +290,13 @@ export function ThemePanel({
                     </Button>
                   )}
                 </div>
-                {divergedFromPreset && presetDefault && appliedPreset && (
+                {customized && appliedPreset && (
                   <Button
                     theme={t}
                     variant="secondary"
                     fullWidth
                     type="button"
-                    onClick={() => {
-                      const defaultOpacity =
-                        presetDefault.cardOpacity ?? getDefaultCardOpacity(presetDefault.base);
-                      const defaultFontId = presetDefault.fontId ?? null;
-                      setBase(presetDefault.base);
-                      setGradientFrom(presetDefault.gradientFrom);
-                      setGradientTo(presetDefault.gradientTo);
-                      setAccent(presetDefault.accentColor);
-                      setCardOpacity(defaultOpacity);
-                      setFontId(defaultFontId);
-                      triggerSaveTheme(
-                        presetDefault.base,
-                        presetDefault.gradientFrom,
-                        presetDefault.gradientTo,
-                        presetDefault.accentColor,
-                        themePresetId,
-                        defaultOpacity,
-                        { fontId: defaultFontId }
-                      );
-                    }}
+                    onClick={() => void applyPreset(appliedPreset, "restore")}
                     style={{ marginBottom: "8px" }}
                   >
                     {translate("restorePreset", { name: appliedPreset.name })}
@@ -296,26 +326,7 @@ export function ThemePanel({
                   key={p.id}
                   theme={t}
                   selected={isActive}
-                  onClick={() => {
-                    const defaultOpacity = p.cardOpacity ?? getDefaultCardOpacity(p.base);
-                    const presetFontId = p.fontId ?? null;
-                    setBase(p.base);
-                    setGradientFrom(p.gradientFrom);
-                    setGradientTo(p.gradientTo);
-                    setAccent(p.accentColor);
-                    setCardOpacity(defaultOpacity);
-                    setFontId(presetFontId);
-                    setThemePresetId(p.id);
-                    triggerSaveTheme(
-                      p.base,
-                      p.gradientFrom,
-                      p.gradientTo,
-                      p.accentColor,
-                      p.id,
-                      defaultOpacity,
-                      { fontId: presetFontId }
-                    );
-                  }}
+                  onClick={() => void applyPreset(p)}
                   style={{ padding: 0, gap: 0, overflow: "hidden", alignItems: "stretch" }}
                 >
                   <div
@@ -329,7 +340,7 @@ export function ThemePanel({
                     <span
                       style={{ position: "absolute", top: "3px", left: "4px", fontSize: "12px" }}
                     >
-                      {p.emoji}
+                      <PresetIcon id={presetPresentation(p.presentation).tileIconId} size={18} />
                     </span>
                     <div
                       style={{

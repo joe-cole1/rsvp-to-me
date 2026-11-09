@@ -136,6 +136,8 @@
         "tooManyTestEmailsTryAgainLater": "Too many test emails. Try again later.",
         "backupRetentionCountMustBeAtLeast1": "Backup retention count must be at least 1.",
         "unknownFont": "Unknown font",
+        "invalidPresetPresentation": "Choose a valid category, tile icon and effect for this preset.",
+        "invalidPresetIcons": "Choose up to four available icons.",
         "emailIsRequired": "Email is required.",
         "pleaseEnterAValidEmailAddress": "Please enter a valid email address.",
         "invalidRole": "Invalid role.",
@@ -247,7 +249,7 @@
         "nearSolidCards": "Near-solid cards",
         "balancedTransparency": "Balanced transparency",
         "effect": "Effect",
-        "optionalFloatingMotifsBehindEventPage": "Optional floating motifs behind your event page. Off by default — mix any effect with any theme.",
+        "optionalFloatingMotifsBehindEventPage": "Optional floating motifs behind your event page. Customize a preset’s effects or mix your own.",
         "none": "None",
         "amount": "Amount",
         "speed": "Speed",
@@ -256,7 +258,7 @@
         "exactSize": "Exact size",
         "movement": "Movement",
         "searchIcons": "Search icons",
-        "searchIconsHint": "Search in English, Dutch, German or Spanish, or paste an emoji. Mix up to three icons.",
+        "searchIconsHint": "Search icons or paste an emoji. Mix up to three icons.",
         "searchIconsPlaceholder": "cat, gato, Herz, 🎉",
         "selectedIcons": "Your mix",
         "removeIcon": "Remove {name}",
@@ -273,7 +275,14 @@
         "appliedOnlyMainEventTitleSome": "Applied only to your main event title. Some theme presets pick a matching font automatically — choose one here to override it.",
         "themeDefault": "Theme default",
         "reInvited": "You’re Invited!",
-        "restorePreset": "↺ Restore to “{name}” defaults"
+        "restorePreset": "↺ Restore to “{name}” defaults",
+        "occasions": "Occasions",
+        "replaceTitle": "Replace customized settings?",
+        "replaceMessage": "Applying this preset replaces your customized theme, font and effects.",
+        "apply": "Apply",
+        "restoreTitle": "Restore “{name}” defaults?",
+        "restoreMessage": "This replaces your customized theme, font and effects with the preset’s defaults.",
+        "restoreConfirm": "Restore"
       },
       "SettingsMenu": {
         "hostsCoHosts": "Hosts and co-hosts",
@@ -1533,7 +1542,12 @@
       "replaceWorkerSecretMessage": "A secret is already saved. A new one overwrites it, so update WORKER_API_SECRET in your Cloudflare dashboard to match.",
       "replaceWorkerSecretAction": "Generate new secret",
       "roleFilterLabel": "Role",
-      "statusFilterLabel": "Status"
+      "statusFilterLabel": "Status",
+      "presetCategory": "Category",
+      "presetTileIcon": "Tile icon",
+      "searchTileIcons": "Search tile icons",
+      "generalCategory": "General",
+      "seasonalCategory": "Seasonal"
     },
     "Dashboard": {
       "eventDetails": "Event Details",

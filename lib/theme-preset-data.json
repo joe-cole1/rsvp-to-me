@@ -1,0 +1,400 @@
+{
+  "dark-night": {
+    "category": "general",
+    "tileIconId": "noto:crescent-moon",
+    "effect": null
+  },
+  "midnight-indigo": {
+    "category": "general",
+    "tileIconId": "noto:sparkles",
+    "effect": null
+  },
+  "obsidian": {
+    "category": "general",
+    "tileIconId": "noto:black-heart",
+    "effect": null
+  },
+  "emerald-night": {
+    "category": "general",
+    "tileIconId": "noto:herb",
+    "effect": null
+  },
+  "retro-synthwave": {
+    "category": "general",
+    "tileIconId": "noto:control-knobs",
+    "effect": null
+  },
+  "cyberpunk": {
+    "category": "general",
+    "tileIconId": "noto:robot",
+    "effect": null
+  },
+  "rose-cloud": {
+    "category": "general",
+    "tileIconId": "noto:cherry-blossom",
+    "effect": null
+  },
+  "peach-cream": {
+    "category": "general",
+    "tileIconId": "noto:peach",
+    "effect": null
+  },
+  "garden-party": {
+    "category": "general",
+    "tileIconId": "noto:tulip",
+    "effect": null
+  },
+  "lavender-fields": {
+    "category": "general",
+    "tileIconId": "noto:purple-heart",
+    "effect": null
+  },
+  "sunset": {
+    "category": "general",
+    "tileIconId": "noto:sunrise",
+    "effect": null
+  },
+  "electric-blue": {
+    "category": "general",
+    "tileIconId": "noto:high-voltage",
+    "effect": null
+  },
+  "deep-sea": {
+    "category": "general",
+    "tileIconId": "noto:water-wave",
+    "effect": null
+  },
+  "miami-vice": {
+    "category": "general",
+    "tileIconId": "noto:palm-tree",
+    "effect": null
+  },
+  "tropical-punch": {
+    "category": "general",
+    "tileIconId": "noto:tropical-drink",
+    "effect": null
+  },
+  "aurora": {
+    "category": "general",
+    "tileIconId": "noto:milky-way",
+    "effect": null
+  },
+  "ultraviolet": {
+    "category": "general",
+    "tileIconId": "noto:crystal-ball",
+    "effect": null
+  },
+  "citrus-pop": {
+    "category": "general",
+    "tileIconId": "noto:lemon",
+    "effect": null
+  },
+  "flamingo": {
+    "category": "general",
+    "tileIconId": "noto:flamingo",
+    "effect": null
+  },
+  "blue-raspberry": {
+    "category": "general",
+    "tileIconId": "noto:ice",
+    "effect": null
+  },
+  "grape-soda": {
+    "category": "general",
+    "tileIconId": "noto:grapes",
+    "effect": null
+  },
+  "valentines": {
+    "category": "seasonal",
+    "tileIconId": "noto:red-heart",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:red-heart", "noto:rose"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "st-patricks": {
+    "category": "seasonal",
+    "tileIconId": "noto:four-leaf-clover",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:shamrock", "noto:four-leaf-clover"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "spring": {
+    "category": "seasonal",
+    "tileIconId": "noto:seedling",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:seedling", "noto:cherry-blossom", "noto:butterfly"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "down"
+    }
+  },
+  "easter": {
+    "category": "seasonal",
+    "tileIconId": "noto:hatching-chick",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:hatching-chick", "noto:egg", "noto:rabbit"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "cherry-blossom": {
+    "category": "seasonal",
+    "tileIconId": "noto:cherry-blossom",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:cherry-blossom"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "down"
+    }
+  },
+  "mothers-day": {
+    "category": "seasonal",
+    "tileIconId": "noto:rose",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:rose", "noto:bouquet", "noto:red-heart"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "summer": {
+    "category": "seasonal",
+    "tileIconId": "noto:sun",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:sun", "noto:palm-tree", "noto:beach-with-umbrella"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "fourth-of-july": {
+    "category": "seasonal",
+    "tileIconId": "noto:fireworks",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:fireworks", "noto:sparkler"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "medium",
+      "effectMovement": "random"
+    }
+  },
+  "fall": {
+    "category": "seasonal",
+    "tileIconId": "noto:fallen-leaf",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:maple-leaf", "noto:fallen-leaf"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "down"
+    }
+  },
+  "halloween": {
+    "category": "seasonal",
+    "tileIconId": "noto:jack-o-lantern",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:jack-o-lantern", "noto:ghost", "noto:bat"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "medium",
+      "effectMovement": "random"
+    }
+  },
+  "thanksgiving": {
+    "category": "seasonal",
+    "tileIconId": "noto:turkey",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:turkey", "noto:maple-leaf", "noto:fallen-leaf"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "down"
+    }
+  },
+  "winter-holidays": {
+    "category": "seasonal",
+    "tileIconId": "noto:christmas-tree",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:christmas-tree", "noto:wrapped-gift", "noto:snowflake"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "down"
+    }
+  },
+  "winter": {
+    "category": "seasonal",
+    "tileIconId": "noto:snowflake",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:snowflake"],
+      "effectDensity": "dense",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "down"
+    }
+  },
+  "new-years": {
+    "category": "seasonal",
+    "tileIconId": "noto:clinking-glasses",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:clinking-glasses", "noto:party-popper", "noto:fireworks"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "medium",
+      "effectMovement": "random"
+    }
+  },
+  "disco": {
+    "category": "general",
+    "tileIconId": "noto:mirror-ball",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:mirror-ball", "noto:musical-note", "noto:sparkles"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "medium",
+      "effectMovement": "random"
+    }
+  },
+  "enchanted-forest": {
+    "category": "general",
+    "tileIconId": "noto:evergreen-tree",
+    "effect": null
+  },
+  "masquerade": {
+    "category": "general",
+    "tileIconId": "noto:performing-arts",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:performing-arts", "noto:sparkles"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "birthday": {
+    "category": "occasion",
+    "tileIconId": "noto:birthday-cake",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:birthday-cake", "noto:balloon", "noto:party-popper"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "medium",
+      "effectMovement": "random"
+    }
+  },
+  "graduation": {
+    "category": "occasion",
+    "tileIconId": "noto:graduation-cap",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:graduation-cap", "noto:scroll", "noto:confetti-ball"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "medium",
+      "effectMovement": "random"
+    }
+  },
+  "wedding": {
+    "category": "occasion",
+    "tileIconId": "noto:ring",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:wedding", "noto:ring", "noto:bouquet"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "baby-shower": {
+    "category": "occasion",
+    "tileIconId": "noto:baby-bottle",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:baby-bottle", "noto:balloon", "noto:sparkles"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "anniversary": {
+    "category": "occasion",
+    "tileIconId": "noto:ring",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:ring", "noto:red-heart", "noto:sparkles"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "retirement": {
+    "category": "occasion",
+    "tileIconId": "noto:clinking-glasses",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:party-popper", "noto:clinking-glasses", "noto:sparkles"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "housewarming": {
+    "category": "occasion",
+    "tileIconId": "noto:house",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:house", "noto:key", "noto:potted-plant"],
+      "effectDensity": "medium",
+      "effectSize": 3,
+      "effectSpeed": "gentle",
+      "effectMovement": "random"
+    }
+  },
+  "reunion": {
+    "category": "occasion",
+    "tileIconId": "noto:party-popper",
+    "effect": {
+      "effectId": "custom",
+      "effectIconIds": ["noto:party-popper", "noto:clinking-glasses", "noto:sparkles"],
+      "effectDensity": "medium",
+      "effectSize": 5,
+      "effectSpeed": "medium",
+      "effectMovement": "random"
+    }
+  }
+}

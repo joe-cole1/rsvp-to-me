@@ -1,8 +1,9 @@
 "use client";
+import { presetCategory } from "@/lib/theme-preset-presentation";
 
 import { useTranslations } from "next-intl";
 
-import { useState, useTransition, useEffect, useMemo } from "react";
+import { useState, useTransition, useEffect, useMemo, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InlineAlert, Toast } from "@/components/ui/Feedback";
@@ -115,9 +116,9 @@ export function SettingsPage({
       ...Object.fromEntries(icons.map((icon) => [icon.id, icon])),
     }));
   const [themeSearch, setThemeSearch] = useState("");
-  const [themeFilter, setThemeFilter] = useState<"all" | "seasonal" | "general" | "light" | "dark">(
-    "all"
-  );
+  const [themeFilter, setThemeFilter] = useState<
+    "all" | "seasonal" | "occasion" | "general" | "light" | "dark"
+  >("all");
   const [themeCustomizeOpen, setThemeCustomizeOpen] = useState(false);
 
   // ── RSVP Options State ──
@@ -264,8 +265,8 @@ export function SettingsPage({
   const sortedThemePresets = useMemo(() => getSortedPresets(themePresets), [themePresets]);
   const visibleThemePresets = useMemo(() => {
     let result = sortedThemePresets;
-    if (themeFilter === "seasonal") result = result.filter((p) => p.seasonal);
-    if (themeFilter === "general") result = result.filter((p) => !p.seasonal);
+    if (themeFilter === "seasonal" || themeFilter === "occasion" || themeFilter === "general")
+      result = result.filter((p) => presetCategory(p) === themeFilter);
     if (themeFilter === "light")
       result = result.filter((p) => p.base === "SOFT" || p.base === "BOLD");
     if (themeFilter === "dark") result = result.filter((p) => p.base === "DARK");
@@ -276,6 +277,18 @@ export function SettingsPage({
     return result;
   }, [sortedThemePresets, themeFilter, themeSearch]);
 
+  const confirmedTheme = useRef({
+    base,
+    gradientFrom,
+    gradientTo,
+    accent,
+    cardOpacity,
+    themePresetId,
+    fontId,
+    effect,
+  });
+  const themeSaveQueue = useRef<Promise<void>>(Promise.resolve());
+  const themeSaveVersion = useRef(0);
   // ── Theme Auto-Save ──
   const triggerSaveTheme = (
     newBase: BaseTheme,
@@ -286,33 +299,58 @@ export function SettingsPage({
     newCardOpacity?: number,
     extras?: ThemeExtrasOverrides
   ) => {
+    const version = ++themeSaveVersion.current;
     setSaveStatus("SAVING");
     setErr(null);
     startTransition(async () => {
-      try {
-        await runWithCaptcha("event_theme", (token) =>
-          saveEventTheme(
-            event.id,
-            newBase,
-            newFrom,
-            newTo,
-            newAccent,
-            presetId !== undefined ? presetId : themePresetId,
-            newCardOpacity !== undefined ? newCardOpacity : cardOpacity,
-            {
-              fontId: extras?.fontId !== undefined ? extras.fontId : fontId,
-              // Always the complete effect, so a color or font save can never
-              // drop a custom mixture or an explicit movement.
-              ...effectStateToFields(extras?.effect ?? effect),
-            },
-            token
-          )
-        );
-        setSaveStatus("SAVED");
-      } catch {
-        setSaveStatus("ERROR");
-        setErr(translate("failedSaveThemeSettings"));
-      }
+      const job = themeSaveQueue.current.then(async () => {
+        try {
+          await runWithCaptcha("event_theme", (token) =>
+            saveEventTheme(
+              event.id,
+              newBase,
+              newFrom,
+              newTo,
+              newAccent,
+              presetId !== undefined ? presetId : themePresetId,
+              newCardOpacity !== undefined ? newCardOpacity : cardOpacity,
+              {
+                fontId: extras?.fontId !== undefined ? extras.fontId : fontId,
+                // Always the complete effect, so a color or font save can never
+                // drop a custom mixture or an explicit movement.
+                ...effectStateToFields(extras?.effect ?? effect),
+              },
+              token
+            )
+          );
+          confirmedTheme.current = {
+            base: newBase,
+            gradientFrom: newFrom,
+            gradientTo: newTo,
+            accent: newAccent,
+            cardOpacity: newCardOpacity ?? cardOpacity,
+            themePresetId: presetId === undefined ? themePresetId : presetId,
+            fontId: extras?.fontId === undefined ? fontId : extras.fontId,
+            effect: extras?.effect ?? effect,
+          };
+          if (version === themeSaveVersion.current) setSaveStatus("SAVED");
+        } catch {
+          if (version !== themeSaveVersion.current) return;
+          const previous = confirmedTheme.current;
+          setBase(previous.base);
+          setGradientFrom(previous.gradientFrom);
+          setGradientTo(previous.gradientTo);
+          setAccent(previous.accent);
+          setCardOpacity(previous.cardOpacity);
+          setThemePresetId(previous.themePresetId);
+          setFontId(previous.fontId);
+          setEffect(previous.effect);
+          setSaveStatus("ERROR");
+          setErr(translate("failedSaveThemeSettings"));
+        }
+      });
+      themeSaveQueue.current = job;
+      await job;
     });
   };
 

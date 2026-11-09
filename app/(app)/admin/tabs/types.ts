@@ -68,6 +68,7 @@ export type ThemeSnapObj = {
   month?: number | null;
   cardOpacity?: number | null;
   fontId?: string | null;
+  presentation?: unknown;
 };
 
 export interface AdminThemePreset {
@@ -84,6 +85,7 @@ export interface AdminThemePreset {
   month?: number | null;
   cardOpacity?: number | null;
   fontId?: string | null;
+  presentation?: unknown;
   createdAt: Date;
   originalSnapshot: unknown;
   defaultSnapshot: unknown;
@@ -101,6 +103,7 @@ export type ThemePresetFormState = {
   month?: number | null;
   cardOpacity?: number | null;
   fontId?: string | null;
+  presentation?: unknown;
 };
 
 export type AdminFeedback = { type: "success" | "error"; message: string };

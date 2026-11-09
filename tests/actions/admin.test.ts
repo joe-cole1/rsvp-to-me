@@ -200,6 +200,7 @@ import {
   createThemePreset,
   updateThemePreset,
   deleteThemePreset,
+  getPresetIconSummaries,
   resetAllEmailTemplatesAction,
   getEmailTemplatesAdmin,
   previewEmailTemplateAction,
@@ -653,6 +654,56 @@ describe("app/actions/admin.ts", () => {
         expect(res).toEqual({ success: true });
         expect(mockThemePresetDelete).toHaveBeenCalledWith({ where: { id: "dark-night" } });
       });
+
+      // 01a1baab: preset presentation is checked against the local Noto catalog.
+      const PRESENTATION = {
+        category: "occasion",
+        tileIconId: "noto:birthday-cake",
+        effect: {
+          effectId: "custom",
+          effectIconIds: ["noto:balloon"],
+          effectDensity: "medium",
+          effectSpeed: "medium",
+          effectSize: 5,
+          effectMovement: "random",
+        },
+      };
+
+      it("updateThemePreset saves a valid catalog presentation", async () => {
+        mockThemePresetUpdate.mockResolvedValue({});
+        await updateThemePreset("birthday", { presentation: PRESENTATION });
+        expect(mockThemePresetUpdate).toHaveBeenCalledWith({
+          where: { id: "birthday" },
+          data: { presentation: PRESENTATION },
+        });
+      });
+
+      it("rejects an unknown category, tile icon or mixture icon with a localized message", async () => {
+        for (const presentation of [
+          { ...PRESENTATION, category: "holiday" },
+          { ...PRESENTATION, tileIconId: "noto:not-a-real-icon" },
+          {
+            ...PRESENTATION,
+            effect: { ...PRESENTATION.effect, effectIconIds: ["noto:not-a-real-icon"] },
+          },
+        ])
+          await expect(updateThemePreset("birthday", { presentation })).rejects.toThrow(
+            "Choose a valid category, tile icon and effect for this preset."
+          );
+        expect(mockThemePresetUpdate).not.toHaveBeenCalled();
+      });
+
+      it("getPresetIconSummaries labels at most four well-formed icons", async () => {
+        const items = await getPresetIconSummaries(["noto:balloon"]);
+        expect(items.map((item) => item.id)).toEqual(["noto:balloon"]);
+        const tooMany = ["a", "b", "c", "d", "e"].map((name) => `noto:${name}`);
+        await expect(getPresetIconSummaries(tooMany)).rejects.toThrow(
+          "Choose up to four available icons."
+        );
+        await expect(getPresetIconSummaries("noto:x" as unknown as string[])).rejects.toThrow(
+          "Choose up to four available icons."
+        );
+      });
     });
   });
 
@@ -682,6 +733,11 @@ describe("app/actions/admin.ts", () => {
     it("updateThemePreset throws Forbidden for non-admin", async () => {
       mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
       await expect(updateThemePreset("dark-night", { active: false })).rejects.toThrow("Forbidden");
+    });
+
+    it("getPresetIconSummaries throws Forbidden for non-admin", async () => {
+      mockGetSession.mockResolvedValue({ userId: "u-1", email: "u@example.com", role: "HOST" });
+      await expect(getPresetIconSummaries(["noto:balloon"])).rejects.toThrow("Forbidden");
     });
 
     it("deleteThemePreset throws Forbidden for non-admin", async () => {

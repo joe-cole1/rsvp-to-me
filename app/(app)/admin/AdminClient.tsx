@@ -1,4 +1,5 @@
 "use client";
+import { presetPresentation } from "@/lib/theme-preset-presentation";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useState, useEffect, useTransition } from "react";
@@ -749,6 +750,11 @@ export default function AdminClient({
           month: themePresetForm.month ?? null,
           cardOpacity: themePresetForm.cardOpacity ?? null,
           fontId: themePresetForm.fontId ?? null,
+          presentation: JSON.parse(
+            JSON.stringify(
+              presetPresentation(themePresetForm.presentation, themePresetForm.seasonal)
+            )
+          ) as import("@/app/generated/prisma/client").Prisma.InputJsonValue,
         });
         setThemePresets((prev) =>
           prev.map((p) => (p.id === themePresetForm.id ? { ...p, ...themePresetForm } : p))
@@ -766,6 +772,11 @@ export default function AdminClient({
           month: themePresetForm.month ?? null,
           cardOpacity: themePresetForm.cardOpacity ?? null,
           fontId: themePresetForm.fontId ?? null,
+          presentation: JSON.parse(
+            JSON.stringify(
+              presetPresentation(themePresetForm.presentation, themePresetForm.seasonal)
+            )
+          ) as import("@/app/generated/prisma/client").Prisma.InputJsonValue,
         });
         setThemePresets((prev) => [...prev, created as AdminThemePreset]);
         setFeedback({ type: "success", message: tr("presetCreated") });
@@ -805,6 +816,9 @@ export default function AdminClient({
         month: themePresetForm.month ?? null,
         cardOpacity: themePresetForm.cardOpacity ?? null,
         fontId: themePresetForm.fontId ?? null,
+        presentation: JSON.parse(
+          JSON.stringify(presetPresentation(themePresetForm.presentation, themePresetForm.seasonal))
+        ) as import("@/app/generated/prisma/client").Prisma.InputJsonValue,
       };
       setThemePresets((prev) =>
         prev.map((p) => (p.id === themePresetForm.id ? { ...p, defaultSnapshot: snap } : p))

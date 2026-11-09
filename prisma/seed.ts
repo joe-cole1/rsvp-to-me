@@ -1,3 +1,4 @@
+import { BUILTIN_PRESENTATIONS } from "../lib/theme-preset-presentation";
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { db } from "../lib/db";
@@ -142,7 +143,9 @@ async function main() {
     create: { code, note: "Default invite code from seed" },
   });
 
-  // Upsert theme presets so seed stays in sync with THEME_PRESETS (migration already inserted defaults)
+  // Upsert theme presets so seed stays in sync with THEME_PRESETS (migration already inserted defaults).
+  // Existing rows keep their seasonal flag and month: those follow the administrator's
+  // category (01a1baab). New rows still get the built-in values.
   for (let i = 0; i < THEME_PRESETS.length; i++) {
     const p = THEME_PRESETS[i];
     await db.themePreset.upsert({
@@ -154,8 +157,6 @@ async function main() {
         gradientFrom: p.gradientFrom,
         gradientTo: p.gradientTo,
         accentColor: p.accentColor,
-        seasonal: p.seasonal ?? false,
-        month: p.month ?? null,
         fontId: p.fontId ?? null,
         sortOrder: i,
       },
@@ -163,6 +164,9 @@ async function main() {
         id: p.id,
         name: p.name,
         emoji: p.emoji,
+        presentation: BUILTIN_PRESENTATIONS[
+          p.id
+        ] as unknown as import("../app/generated/prisma/client").Prisma.InputJsonValue,
         base: p.base,
         gradientFrom: p.gradientFrom,
         gradientTo: p.gradientTo,
@@ -175,6 +179,9 @@ async function main() {
         originalSnapshot: {
           name: p.name,
           emoji: p.emoji,
+          presentation: BUILTIN_PRESENTATIONS[
+            p.id
+          ] as unknown as import("../app/generated/prisma/client").Prisma.InputJsonValue,
           base: p.base,
           gradientFrom: p.gradientFrom,
           gradientTo: p.gradientTo,
@@ -186,6 +193,9 @@ async function main() {
         defaultSnapshot: {
           name: p.name,
           emoji: p.emoji,
+          presentation: BUILTIN_PRESENTATIONS[
+            p.id
+          ] as unknown as import("../app/generated/prisma/client").Prisma.InputJsonValue,
           base: p.base,
           gradientFrom: p.gradientFrom,
           gradientTo: p.gradientTo,

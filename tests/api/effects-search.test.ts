@@ -54,6 +54,28 @@ describe("GET /api/effects/search", () => {
     expect(mockAssert).toHaveBeenCalledWith("evt-2");
   });
 
+  // 01a1baab: the admin preset editor searches with eventId "admin".
+  it("lets an admin search for the preset editor without an event", async () => {
+    mockSession.mockResolvedValue({
+      userId: "admin-1",
+      email: "admin@example.com",
+      role: "ADMIN",
+    } as never);
+    const res = await get({ eventId: "admin", q: "cake" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(mockAssert).not.toHaveBeenCalled();
+    expect(mockRateLimit).toHaveBeenCalledWith("effect-search:admin-1", 120, 60);
+  });
+
+  it("sends a non-admin's eventId=admin through the normal event guard", async () => {
+    mockAssert.mockRejectedValue(new Error("Forbidden"));
+    const res = await get({ eventId: "admin", q: "cake" });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "forbidden" });
+    expect(mockAssert).toHaveBeenCalledWith("admin");
+  });
+
   it("limits each signed-in user to 120 searches a minute, with retry timing", async () => {
     mockRateLimit.mockResolvedValue({
       success: false,

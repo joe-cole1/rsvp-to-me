@@ -66,7 +66,7 @@ const EMPTY_SEARCH: SearchState = {
   error: null,
 };
 
-function useIconSearch(eventId: string, query: string, locale: string) {
+export function useIconSearch(eventId: string, query: string, locale: string) {
   const [state, setState] = useState<SearchState>(EMPTY_SEARCH);
   const seq = useRef(0);
   const controller = useRef<AbortController | null>(null);
@@ -157,7 +157,9 @@ export function EffectsPanel({
   libraryIcons,
   onPreview,
   onCommit,
+  libraryOnly = false,
 }: {
+  libraryOnly?: boolean;
   eventId: string;
   t: ResolvedTheme;
   effect: EffectEditorState;
@@ -171,7 +173,7 @@ export function EffectsPanel({
   const shared = useTranslations("Ui.Event.shared");
   const translate = useTranslations("Ui.Event.ThemePanel");
   const locale = useLocale();
-  const sortedEffectSets = getSortedEffectSets();
+  const sortedEffectSets = libraryOnly ? [] : getSortedEffectSets();
   const [query, setQuery] = useState("");
   const { search, pending, loadMore, retry } = useIconSearch(eventId, query, locale);
   const [limitNotice, setLimitNotice] = useState(false);

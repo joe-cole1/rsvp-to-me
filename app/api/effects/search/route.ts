@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     if (!eventId || eventId.length > 64) return fail(400, "invalid_request");
 
     try {
-      await assertHostOrCohost(eventId);
+      if (!(eventId === "admin" && session.role === "ADMIN")) await assertHostOrCohost(eventId);
     } catch (error) {
       return error instanceof Error && error.message === "Unauthorized"
         ? fail(401, "unauthorized")
