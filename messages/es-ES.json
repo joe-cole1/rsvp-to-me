@@ -136,6 +136,8 @@
         "tooManyTestEmailsTryAgainLater": "Demasiados correos de prueba. Inténtalo de nuevo más tarde.",
         "backupRetentionCountMustBeAtLeast1": "El número de copias de seguridad que se conservan debe ser al menos 1.",
         "unknownFont": "Fuente desconocida",
+        "invalidPresetPresentation": "Elige una categoría, un icono y un efecto válidos para este tema.",
+        "invalidPresetIcons": "Elige hasta cuatro iconos disponibles.",
         "emailIsRequired": "El correo electrónico es obligatorio.",
         "pleaseEnterAValidEmailAddress": "Introduce una dirección de correo electrónico válida.",
         "invalidRole": "El rol no es válido.",
@@ -247,7 +249,7 @@
         "nearSolidCards": "Tarjetas casi opacas",
         "balancedTransparency": "Transparencia equilibrada",
         "effect": "Efecto",
-        "optionalFloatingMotifsBehindEventPage": "Motivos flotantes opcionales detrás de la página de tu evento. Desactivados de forma predeterminada: combina cualquier efecto con cualquier tema.",
+        "optionalFloatingMotifsBehindEventPage": "Motivos opcionales detrás de tu evento. Personaliza los efectos o crea tu propia mezcla.",
         "none": "Ninguno",
         "amount": "Cantidad",
         "speed": "Velocidad",
@@ -256,7 +258,7 @@
         "exactSize": "Tamaño exacto",
         "movement": "Movimiento",
         "searchIcons": "Buscar iconos",
-        "searchIconsHint": "Busca en inglés, neerlandés, alemán o español, o pega un emoji. Combina hasta tres iconos.",
+        "searchIconsHint": "Busca iconos o pega un emoji. Combina hasta tres iconos.",
         "searchIconsPlaceholder": "gato, kat, Herz, 🎉",
         "selectedIcons": "Tu mezcla",
         "removeIcon": "Quitar {name}",
@@ -273,7 +275,14 @@
         "appliedOnlyMainEventTitleSome": "Solo se aplica al título principal del evento. Algunos temas eligen automáticamente una fuente a juego; selecciona una aquí para cambiarla.",
         "themeDefault": "Predeterminada del tema",
         "reInvited": "¡Estás invitado!",
-        "restorePreset": "↺ Restaurar los valores predeterminados de «{name}»"
+        "restorePreset": "↺ Restaurar los valores predeterminados de «{name}»",
+        "occasions": "Ocasiones",
+        "replaceTitle": "¿Reemplazar ajustes personalizados?",
+        "replaceMessage": "Este tema reemplaza tu diseño, fuente y efectos personalizados.",
+        "apply": "Aplicar",
+        "restoreTitle": "¿Restaurar los valores predeterminados de «{name}»?",
+        "restoreMessage": "Esto reemplaza tu diseño, fuente y efectos personalizados por los valores predeterminados del tema.",
+        "restoreConfirm": "Restaurar"
       },
       "SettingsMenu": {
         "hostsCoHosts": "Anfitriones y coanfitriones",
@@ -1533,7 +1542,12 @@
       "replaceWorkerSecretMessage": "Ya hay un secreto guardado. Uno nuevo lo sobrescribe, así que actualiza WORKER_API_SECRET en tu panel de Cloudflare.",
       "replaceWorkerSecretAction": "Generar nuevo secreto",
       "roleFilterLabel": "Rol",
-      "statusFilterLabel": "Estado"
+      "statusFilterLabel": "Estado",
+      "presetCategory": "Categoría",
+      "presetTileIcon": "Icono del tema",
+      "searchTileIcons": "Buscar iconos del tema",
+      "generalCategory": "General",
+      "seasonalCategory": "Estacional"
     },
     "Dashboard": {
       "eventDetails": "Detalles del evento",

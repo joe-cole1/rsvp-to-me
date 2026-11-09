@@ -136,6 +136,8 @@
         "tooManyTestEmailsTryAgainLater": "Zu viele Test-E-Mails. Versuche es später erneut.",
         "backupRetentionCountMustBeAtLeast1": "Es muss mindestens 1 Sicherung aufbewahrt werden.",
         "unknownFont": "Unbekannte Schriftart",
+        "invalidPresetPresentation": "Wähle eine gültige Kategorie, ein Kachelsymbol und einen Effekt für diese Vorlage.",
+        "invalidPresetIcons": "Wähle bis zu vier verfügbare Symbole.",
         "emailIsRequired": "Eine E-Mail-Adresse ist erforderlich.",
         "pleaseEnterAValidEmailAddress": "Bitte gib eine gültige E-Mail-Adresse ein.",
         "invalidRole": "Ungültige Rolle.",
@@ -247,7 +249,7 @@
         "nearSolidCards": "Fast undurchsichtige Karten",
         "balancedTransparency": "Ausgewogene Transparenz",
         "effect": "Effekt",
-        "optionalFloatingMotifsBehindEventPage": "Optionale schwebende Motive hinter deiner Veranstaltungsseite. Standardmäßig deaktiviert — kombiniere jeden Effekt mit jedem Design.",
+        "optionalFloatingMotifsBehindEventPage": "Optionale bewegte Motive hinter deiner Veranstaltung. Passe Effekte an oder erstelle eine eigene Mischung.",
         "none": "Keiner",
         "amount": "Menge",
         "speed": "Geschwindigkeit",
@@ -256,7 +258,7 @@
         "exactSize": "Genaue Größe",
         "movement": "Bewegung",
         "searchIcons": "Symbole suchen",
-        "searchIconsHint": "Suche auf Englisch, Niederländisch, Deutsch oder Spanisch oder füge ein Emoji ein. Kombiniere bis zu drei Symbole.",
+        "searchIconsHint": "Suche Symbole oder füge ein Emoji ein. Kombiniere bis zu drei Symbole.",
         "searchIconsPlaceholder": "Katze, gato, heart, 🎉",
         "selectedIcons": "Deine Mischung",
         "removeIcon": "{name} entfernen",
@@ -273,7 +275,14 @@
         "appliedOnlyMainEventTitleSome": "Gilt nur für deinen Haupttitel. Einige Designvorlagen wählen automatisch eine passende Schriftart — hier kannst du sie ersetzen.",
         "themeDefault": "Designstandard",
         "reInvited": "Du bist eingeladen!",
-        "restorePreset": "↺ Auf die Standardeinstellungen von „{name}“ zurücksetzen"
+        "restorePreset": "↺ Auf die Standardeinstellungen von „{name}“ zurücksetzen",
+        "occasions": "Anlässe",
+        "replaceTitle": "Angepasste Einstellungen ersetzen?",
+        "replaceMessage": "Diese Vorlage ersetzt dein angepasstes Design, deine Schriftart und deine Effekte.",
+        "apply": "Anwenden",
+        "restoreTitle": "Standardeinstellungen von „{name}“ wiederherstellen?",
+        "restoreMessage": "Dein angepasstes Design, deine Schriftart und deine Effekte werden durch die Standardeinstellungen der Vorlage ersetzt.",
+        "restoreConfirm": "Wiederherstellen"
       },
       "SettingsMenu": {
         "hostsCoHosts": "Veranstalter & Mitveranstalter",
@@ -1533,7 +1542,12 @@
       "replaceWorkerSecretMessage": "Es ist bereits ein Geheimnis gespeichert. Ein neues überschreibt es, also passe WORKER_API_SECRET in deinem Cloudflare-Dashboard an.",
       "replaceWorkerSecretAction": "Neues Geheimnis erzeugen",
       "roleFilterLabel": "Rolle",
-      "statusFilterLabel": "Status"
+      "statusFilterLabel": "Status",
+      "presetCategory": "Kategorie",
+      "presetTileIcon": "Kachelsymbol",
+      "searchTileIcons": "Kachelsymbole suchen",
+      "generalCategory": "Allgemein",
+      "seasonalCategory": "Saisonal"
     },
     "Dashboard": {
       "eventDetails": "Veranstaltungsdetails",

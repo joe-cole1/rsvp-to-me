@@ -1,4 +1,11 @@
 "use client";
+import {
+  normalizePresetDefaults,
+  presentationsEqual,
+  presetPresentation,
+} from "@/lib/theme-preset-presentation";
+import { PresetIcon } from "@/components/event/PresetIcon";
+import { PresetPresentationEditor } from "./PresetPresentationEditor";
 import { useTranslations } from "next-intl";
 
 import { X } from "lucide-react";
@@ -12,11 +19,11 @@ import {
   MIN_CARD_OPACITY,
 } from "@/lib/theme";
 import { FONT_OPTIONS, getFontById } from "@/lib/fonts";
-import type { AdminThemePreset, ThemePresetFormState, ThemeSnapObj } from "./types";
+import type { AdminThemePreset, ThemePresetFormState } from "./types";
 import { Dialog } from "@/components/ui/Dialog";
 import { Button, buttonProps, buttonStyle } from "@/components/ui/Button";
 import { ChoiceTile, CustomSwatch, Swatch } from "@/components/ui/Choice";
-import { Check, ColorInput, Field, Input, Label, Range, Select } from "@/components/ui/Field";
+import { ColorInput, Field, Input, Label, Range, Select } from "@/components/ui/Field";
 
 type ComparableThemePreset = Pick<
   ThemePresetFormState,
@@ -30,10 +37,12 @@ type ComparableThemePreset = Pick<
   | "month"
   | "cardOpacity"
   | "fontId"
+  | "presentation"
 >;
 
 function themePresetDiffers(left: ComparableThemePreset, right: ComparableThemePreset) {
   return (
+    !presentationsEqual(left.presentation, right.presentation, left.seasonal, right.seasonal) ||
     left.name !== right.name ||
     left.emoji !== right.emoji ||
     left.base !== right.base ||
@@ -88,8 +97,12 @@ export function ThemePresetModal({
             const editingPreset = themePresetForm.id
               ? themePresets.find((p) => p.id === themePresetForm.id)
               : null;
-            const defSnap = (editingPreset?.defaultSnapshot as ThemeSnapObj | null) ?? null;
-            const origSnap = (editingPreset?.originalSnapshot as ThemeSnapObj | null) ?? null;
+            const defSnap = editingPreset?.defaultSnapshot
+              ? normalizePresetDefaults(editingPreset, editingPreset.defaultSnapshot)
+              : null;
+            const origSnap = editingPreset?.originalSnapshot
+              ? normalizePresetDefaults(editingPreset, editingPreset.originalSnapshot)
+              : null;
             const formDiffersFromDefault = defSnap && themePresetDiffers(themePresetForm, defSnap);
             const origDiffersFromDefault =
               origSnap && defSnap && themePresetDiffers(origSnap, defSnap);
@@ -158,18 +171,7 @@ export function ThemePresetModal({
             onSubmit={handleSaveThemePreset}
             style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
-            {/* Name + emoji row */}
-            <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: "10px" }}>
-              <Field theme={T} label={tr("emoji")} style={{ marginBottom: 0 }}>
-                <Input
-                  theme={T}
-                  type="text"
-                  value={themePresetForm.emoji}
-                  onChange={(e) => setThemePresetForm((f) => f && { ...f, emoji: e.target.value })}
-                  maxLength={2}
-                  style={{ textAlign: "center", padding: "10px 6px" }}
-                />
-              </Field>
+            <div>
               <Field theme={T} label={tr("name")} style={{ marginBottom: 0 }}>
                 <Input
                   theme={T}
@@ -182,6 +184,22 @@ export function ThemePresetModal({
               </Field>
             </div>
 
+            <PresetPresentationEditor
+              key={themePresetForm.id ?? "new"}
+              value={themePresetForm.presentation}
+              seasonal={themePresetForm.seasonal}
+              onChange={(p) =>
+                setThemePresetForm(
+                  (f) =>
+                    f && {
+                      ...f,
+                      presentation: p,
+                      seasonal: p.category === "seasonal",
+                      month: p.category === "seasonal" ? f.month : null,
+                    }
+                )
+              }
+            />
             {/* Base style */}
             <div>
               <Label theme={T}>{tr("baseStyle")}</Label>
@@ -269,7 +287,7 @@ export function ThemePresetModal({
               </div>
             </div>
 
-            {/* Seasonal toggle + month */}
+            {/* Seasonal month (category is selected above) */}
             <div
               style={{
                 display: "flex",
@@ -278,32 +296,6 @@ export function ThemePresetModal({
                 flexWrap: "wrap",
               }}
             >
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  color: APP_SHELL.textPrimary,
-                }}
-              >
-                <Check
-                  theme={T}
-                  checked={themePresetForm.seasonal}
-                  onChange={(e) =>
-                    setThemePresetForm(
-                      (f) =>
-                        f && {
-                          ...f,
-                          seasonal: e.target.checked,
-                          month: e.target.checked ? f.month : null,
-                        }
-                    )
-                  }
-                />
-                {tr("seasonalPreset")}
-              </label>
               {themePresetForm.seasonal && (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <Label theme={T} htmlFor="theme-preset-month" style={{ marginBottom: 0 }}>
@@ -453,7 +445,13 @@ export function ThemePresetModal({
                         fontFamily: pv.headingFont,
                       }}
                     >
-                      {themePresetForm.emoji} {themePresetForm.name || tr("untitled")}
+                      <PresetIcon
+                        id={
+                          presetPresentation(themePresetForm.presentation, themePresetForm.seasonal)
+                            .tileIconId
+                        }
+                      />{" "}
+                      {themePresetForm.name || tr("untitled")}
                     </span>
                   </div>
                   {/* Card zone */}
@@ -517,6 +515,12 @@ export function ThemePresetModal({
                 themePresetOriginal &&
                 (() => {
                   const isDirty =
+                    !presentationsEqual(
+                      themePresetForm.presentation,
+                      themePresetOriginal.presentation,
+                      themePresetForm.seasonal,
+                      themePresetOriginal.seasonal
+                    ) ||
                     themePresetForm.name !== themePresetOriginal.name ||
                     themePresetForm.emoji !== themePresetOriginal.emoji ||
                     themePresetForm.base !== themePresetOriginal.base ||

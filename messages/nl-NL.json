@@ -136,6 +136,8 @@
         "tooManyTestEmailsTryAgainLater": "Te veel testmails. Probeer het later opnieuw.",
         "backupRetentionCountMustBeAtLeast1": "Er moet minimaal één back-up bewaard blijven.",
         "unknownFont": "Onbekend lettertype",
+        "invalidPresetPresentation": "Kies een geldige categorie, tegelpictogram en effect voor deze voorinstelling.",
+        "invalidPresetIcons": "Kies maximaal vier beschikbare pictogrammen.",
         "emailIsRequired": "E-mailadres is vereist.",
         "pleaseEnterAValidEmailAddress": "Vul een geldig e-mailadres in.",
         "invalidRole": "Ongeldige rol.",
@@ -247,7 +249,7 @@
         "nearSolidCards": "Bijna ondoorzichtige kaarten",
         "balancedTransparency": "Evenwichtige transparantie",
         "effect": "Effect",
-        "optionalFloatingMotifsBehindEventPage": "Optionele zwevende motieven achter je evenementpagina. Standaard uitgeschakeld. Combineer elk effect met elk thema.",
+        "optionalFloatingMotifsBehindEventPage": "Optionele bewegende motieven achter je evenement. Pas effecten aan of maak je eigen mix.",
         "none": "Geen",
         "amount": "Hoeveelheid",
         "speed": "Snelheid",
@@ -256,7 +258,7 @@
         "exactSize": "Exacte grootte",
         "movement": "Beweging",
         "searchIcons": "Pictogrammen zoeken",
-        "searchIconsHint": "Zoek in het Engels, Nederlands, Duits of Spaans, of plak een emoji. Combineer maximaal drie pictogrammen.",
+        "searchIconsHint": "Zoek pictogrammen of plak een emoji. Combineer maximaal drie pictogrammen.",
         "searchIconsPlaceholder": "kat, gato, Herz, 🎉",
         "selectedIcons": "Jouw mix",
         "removeIcon": "{name} verwijderen",
@@ -273,7 +275,14 @@
         "appliedOnlyMainEventTitleSome": "Alleen voor de hoofdtitel van je evenement. Sommige thema’s kiezen automatisch een passend lettertype. Kies hier een ander lettertype om dat te wijzigen.",
         "themeDefault": "Standaard van het thema",
         "reInvited": "Je bent uitgenodigd!",
-        "restorePreset": "↺ Standaardinstellingen van ‘{name}’ herstellen"
+        "restorePreset": "↺ Standaardinstellingen van ‘{name}’ herstellen",
+        "occasions": "Gelegenheden",
+        "replaceTitle": "Aangepaste instellingen vervangen?",
+        "replaceMessage": "Deze voorinstelling vervangt je aangepaste thema, lettertype en effecten.",
+        "apply": "Toepassen",
+        "restoreTitle": "Standaardinstellingen van ‘{name}’ herstellen?",
+        "restoreMessage": "Dit vervangt je aangepaste thema, lettertype en effecten door de standaardinstellingen van de voorinstelling.",
+        "restoreConfirm": "Herstellen"
       },
       "SettingsMenu": {
         "hostsCoHosts": "Organisatoren en mede-organisatoren",
@@ -1533,7 +1542,12 @@
       "replaceWorkerSecretMessage": "Er is al een geheim opgeslagen. Een nieuw geheim overschrijft het, dus werk WORKER_API_SECRET bij in je Cloudflare-dashboard.",
       "replaceWorkerSecretAction": "Nieuw geheim genereren",
       "roleFilterLabel": "Rol",
-      "statusFilterLabel": "Status"
+      "statusFilterLabel": "Status",
+      "presetCategory": "Categorie",
+      "presetTileIcon": "Tegelpictogram",
+      "searchTileIcons": "Zoek tegelpictogrammen",
+      "generalCategory": "Algemeen",
+      "seasonalCategory": "Seizoensgebonden"
     },
     "Dashboard": {
       "eventDetails": "Evenementgegevens",

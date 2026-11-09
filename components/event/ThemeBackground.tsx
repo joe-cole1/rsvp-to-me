@@ -38,38 +38,16 @@ export function ThemeBackground({ theme: t }: { theme: ResolvedTheme }) {
         </>
       )}
       {t.pageDecoration === "soft-blobs" && (
-        <>
+        <div className="rsvp-soft-ground" aria-hidden="true">
           <div
-            aria-hidden="true"
-            style={{
-              position: "fixed",
-              top: "-10%",
-              right: "-10%",
-              width: "500px",
-              height: "500px",
-              borderRadius: "50%",
-              background: t.pageDecorationBg1,
-              filter: "blur(60px)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
+            className="rsvp-soft-cloud rsvp-soft-cloud-one"
+            style={{ background: t.pageDecorationBg1 }}
           />
           <div
-            aria-hidden="true"
-            style={{
-              position: "fixed",
-              bottom: "20%",
-              left: "-5%",
-              width: "400px",
-              height: "400px",
-              borderRadius: "50%",
-              background: t.pageDecorationBg2,
-              filter: "blur(60px)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
+            className="rsvp-soft-cloud rsvp-soft-cloud-two"
+            style={{ background: t.pageDecorationBg2 }}
           />
-        </>
+        </div>
       )}
       {t.pageDecoration === "bold-hero" && (
         <div

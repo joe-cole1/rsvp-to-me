@@ -265,6 +265,7 @@ model ThemePreset {
   createdAt        DateTime  @default(now())
   originalSnapshot Json?
   defaultSnapshot  Json?
+  presentation     Json? // category, Noto tile icon and editable default effect
 }
 
 // Partiful-style info chips: Dress Code, Food, Parking, Link, Custom

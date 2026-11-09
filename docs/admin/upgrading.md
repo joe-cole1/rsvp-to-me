@@ -778,3 +778,33 @@ new preferences. Before downgrading, stop notification production or restore a
 consistent pre-upgrade database/application backup. Destination challenges,
 connections and event bindings contain private contact information; protect
 backups accordingly and never copy verification codes or private links into logs.
+
+## Theme preset defaults (01a1baab)
+
+The additive preset-presentation migration adds eleven presets, Noto tile artwork,
+categories and complete default effects. It fills empty effects once on existing
+events linked to the affected built-in presets, including customized theme colors.
+Existing active effects and theme colors are preserved. Older explicit None choices
+cannot be distinguished from untouched empty effects and receive the new defaults.
+The migration does not run again on later visits; subsequent None choices persist.
+Effects and animation remain web-only and do not enter email.
+
+Administrators can select a preset category, search the local Noto library for a tile
+icon, and edit a default mixture of up to three icons with its amount, size, speed and
+movement. Save as default includes this metadata; reset restores it too.
+
+The local preflight formatter caps command batches at 64 KB so the Noto asset catalog
+does not exceed the npx shell-command argument limit. The file set and checks are unchanged.
+
+Hosts compare against, and Restore to, the applied preset's current settings, so an
+administrator's Save reaches hosts at once and never makes a freshly applied preset look
+customized. Save as default and the original snapshot remain administrator reset points;
+older snapshots that omit newer settings such as font or card opacity inherit the current
+preset's values there, while explicit saved values are preserved. No database rewrite is
+needed.
+
+The seed keeps the seasonal flag and month of existing preset rows, so an administrator's
+category choice survives restarts; new rows still receive the built-in values. Presets
+saved before categories existed show as Seasonal when their seasonal flag is set. If the
+icon catalog cannot load, the event settings page still opens, without effect icon labels,
+and logs a warning.

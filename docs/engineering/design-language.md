@@ -430,3 +430,30 @@ Decided:
   independent of each other and of the motif. Stored sizes, including ones an #811 Amount
   wrote, are kept as they are. The lowest card opacity stays 0.40 (#807): text colors are derived from
   each theme's actual opacity; see the contrast contract.
+
+## Preset defaults and soft motion
+
+Soft & Dreamy uses two broad translucent color fields with independent slow transform
+animations. Reduced motion keeps the same enlarged fields static. Decorations never
+capture input. Contrast includes the overlapping fields.
+
+Preset tiles use local Noto artwork. Occasions groups life-event presets separately
+from Seasonal and General; light/dark filters still describe the base style.
+A preset includes a tile icon, category and optional complete effect defaults.
+Applying or restoring it loads the effects into the normal editable Your mix controls.
+"Customized" means different from the applied preset's current settings, the same values
+its tile applies, so a freshly applied preset never shows Restore. Replacing customization
+asks first, with Cancel before the verb: selecting a preset asks "Replace customized
+settings?" with Apply; Restore asks "Restore “name” defaults?" with Restore. With no
+applied preset, selecting a preset applies directly.
+
+Dialogs mount through a portal directly under the document body. Their fixed backdrop
+covers the viewport, including navigation, and centers the panel independently of blurred
+cards, scrolling containers and transformed ancestors. Existing focus and dismissal
+behavior applies equally on desktop and phone layouts.
+
+A preset's category is its stored one, or Seasonal when a preset saved before categories
+existed has its seasonal flag set; filters, badges and the administrator editor share that
+rule. The administrator's Reset to default and Reset to original snapshots inherit fields
+they omit from the current preset; explicit saved values, including null, remain
+authoritative.

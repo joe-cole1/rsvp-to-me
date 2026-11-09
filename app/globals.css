@@ -193,3 +193,50 @@ select {
     display: none;
   }
 }
+
+/* Soft & Dreamy: broad translucent fields, clipped without blocking content. */
+.rsvp-soft-ground {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.rsvp-soft-cloud {
+  position: absolute;
+  width: max(85vw, 650px);
+  height: max(85vh, 650px);
+  border-radius: 50%;
+  filter: blur(60px);
+}
+.rsvp-soft-cloud-one {
+  top: -25%;
+  right: -15%;
+  animation: rsvp-soft-drift-one 32s ease-in-out infinite alternate;
+}
+.rsvp-soft-cloud-two {
+  bottom: -25%;
+  left: -15%;
+  animation: rsvp-soft-drift-two 39s ease-in-out infinite alternate;
+}
+@keyframes rsvp-soft-drift-one {
+  from {
+    transform: translate(-8%, 0) scale(1);
+  }
+  to {
+    transform: translate(10%, 18%) scale(1.12);
+  }
+}
+@keyframes rsvp-soft-drift-two {
+  from {
+    transform: translate(0, 8%) scale(1.08);
+  }
+  to {
+    transform: translate(18%, -14%) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rsvp-soft-cloud {
+    animation: none;
+  }
+}

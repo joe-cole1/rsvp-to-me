@@ -133,13 +133,14 @@ step "Prettier — format check"
 # Check existing tracked and non-ignored candidate files rather than recursively
 # walking the repository. Docker volume directories can be unreadable to the WSL
 # user before Prettier applies .prettierignore, while deleted tracked paths must
-# not be passed to Prettier at all.
+# not be passed to Prettier at all. Cap batches below Linux’s single-argument
+# limit: npx joins its arguments into one shell command before launching Prettier.
 while IFS= read -r -d '' file; do
   if [ -e "$file" ]; then
     printf '%s\0' "$file"
   fi
 done < <(git ls-files -co --exclude-standard -z) \
-  | xargs -0 -r npx prettier --check --ignore-unknown
+  | xargs -0 -r -s 65536 npx prettier --check --ignore-unknown
 
 step "ESLint"
 npm run lint

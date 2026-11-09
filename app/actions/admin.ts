@@ -1,4 +1,7 @@
 "use server";
+import { validPresetPresentation } from "@/lib/theme-preset-presentation";
+import { getLibraryIconSummaries, areLibraryIconIdsKnown } from "@/lib/effect-catalog";
+import { isLibraryIconIdShape } from "@/lib/effects";
 import { getRequestLocale, getRequestTranslator } from "@/i18n/server";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 
@@ -730,6 +733,16 @@ export async function updateBackupConfigAction(schedule: string, keepCount: numb
 
 // ── Theme Presets (admin CRUD) ────────────────────────────────────────────────
 
+/** Category, tile icon and default mixture must be well formed and in the local catalog. */
+async function validatePresentation(value: unknown, message: string) {
+  if (value === undefined) return;
+  if (
+    !validPresetPresentation(value) ||
+    !(await areLibraryIconIdsKnown([value.tileIconId, ...(value.effect?.effectIconIds ?? [])]))
+  )
+    throw new Error(message);
+}
+
 export async function getThemePresets() {
   return db.themePreset.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
 }
@@ -745,11 +758,13 @@ export async function createThemePreset(data: {
   month?: number | null;
   cardOpacity?: number | null;
   fontId?: string | null;
+  presentation?: import("@/app/generated/prisma/client").Prisma.InputJsonValue;
 }) {
   const tr = await getRequestTranslator();
 
   await assertAdmin();
   if (!isValidFontId(data.fontId)) throw new Error(tr("Ui.Errors.Admin.unknownFont"));
+  await validatePresentation(data.presentation, tr("Ui.Errors.Admin.invalidPresetPresentation"));
   const maxOrder = await db.themePreset.aggregate({ _max: { sortOrder: true } });
   const snapshot = {
     name: data.name,
@@ -762,6 +777,7 @@ export async function createThemePreset(data: {
     month: data.month ?? null,
     cardOpacity: data.cardOpacity ?? null,
     fontId: data.fontId ?? null,
+    presentation: data.presentation ?? null,
   };
   const preset = await db.themePreset.create({
     data: {
@@ -790,6 +806,7 @@ export async function saveThemePresetDefault(id: string) {
     month: preset.month ?? null,
     cardOpacity: preset.cardOpacity ?? null,
     fontId: preset.fontId ?? null,
+    presentation: preset.presentation,
   };
   await db.themePreset.update({ where: { id }, data: { defaultSnapshot: snapshot } });
   revalidatePath("/admin");
@@ -810,6 +827,7 @@ export async function updateThemePreset(
     month: number | null;
     cardOpacity: number | null;
     fontId: string | null;
+    presentation: import("@/app/generated/prisma/client").Prisma.InputJsonValue;
   }>
 ) {
   const tr = await getRequestTranslator();
@@ -817,6 +835,7 @@ export async function updateThemePreset(
   await assertAdmin();
   if ("fontId" in data && !isValidFontId(data.fontId))
     throw new Error(tr("Ui.Errors.Admin.unknownFont"));
+  await validatePresentation(data.presentation, tr("Ui.Errors.Admin.invalidPresetPresentation"));
   await db.themePreset.update({ where: { id }, data });
   revalidatePath("/admin");
   return { success: true };
@@ -917,4 +936,14 @@ export async function deleteUserAccountImmediately(userId: string) {
 
   revalidatePath("/admin");
   return { success: true };
+}
+
+/** Labels for the admin preset editor: a tile icon plus up to three mixture icons. */
+export async function getPresetIconSummaries(ids: string[]) {
+  const tr = await getRequestTranslator();
+  await assertAdmin();
+  // Server-action input is untrusted at runtime, whatever its declared type.
+  if (!Array.isArray(ids) || ids.length > 4 || !ids.every(isLibraryIconIdShape))
+    throw new Error(tr("Ui.Errors.Admin.invalidPresetIcons"));
+  return getLibraryIconSummaries(ids);
 }

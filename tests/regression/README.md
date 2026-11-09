@@ -187,3 +187,13 @@ outright, so `notification-legacy-writer.test.ts` was deleted with them.
   offers a reload.
 - `notification-unexpected-error-logging.test.ts`: unexpected notification action failures
   left no trace in the server log; they now log the error's kind and code, never its message.
+
+Task 01a1baab: theme-preset-defaults.test.tsx covers Noto tile assets, full preset effect application, overwrite cancellation, and broad Soft & Dreamy motion.
+
+Task 01a1baab: theme-autosave-order.test.tsx verifies rapid effect edits queue behind the current CAPTCHA-protected save and preserve the complete latest selection.
+
+Task 01a1baab: dialog-viewport-portal.test.tsx covers viewport placement outside filtered cards; theme-preset-defaults.test.tsx also covers legacy missing fonts without false customization and preserves explicit administrator defaults.
+
+Task 01a1baab (review): theme-preset-defaults.test.tsx also covers the live preset baseline, so an administrator's plain Save no longer makes a freshly applied preset show Restore, and the Restore-specific confirmation and Cancel. theme-autosave-order.test.tsx also covers newest-only failure rollback and a saved None staying None on a preset-linked event (replacing a tautological integration case).
+
+Task 01a1baab (review): settings-icon-summaries-fallback.test.ts covers the settings page surviving an unavailable icon catalog, which had dropped its fallback. preset-admin-category.test.tsx covers legacy seasonal presets keeping their category in the admin editor and presentation comparison that ignores JSONB key order.

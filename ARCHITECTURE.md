@@ -402,3 +402,28 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 - Treat unreferenced files as review candidates, not automatically safe
   deletions; direct public URLs, deployment downloads, and external automation
   may not appear in static imports.
+
+### Preset presentation
+
+ThemePreset.presentation stores the category, validated Noto tile icon and optional
+complete effect defaults. lib/theme-preset-presentation.ts narrows this small JSON
+boundary, compares it by value (PostgreSQL JSONB reorders keys) and owns the single
+category rule: a valid stored category, otherwise the preset's `seasonal` flag.
+lib/theme-preset-data.json defines built-in defaults for seed creation; the one-time
+PostgreSQL migration carries a literal copy that tests/lib/theme-preset-parity.test.ts
+keeps identical. The seed syncs built-in names, colors and fonts but keeps existing rows'
+seasonal flag and month, which follow the administrator's category.
+
+The settings route resolves the stored and preset-default effect icons server-side into
+localized summaries (lib/editor-icon-summaries.ts, which degrades to none if the catalog
+cannot load) before passing them to the existing Effects editor. Administrator icon
+searches use the same rate-limited route, with an explicit database-verified admin
+session instead of an event guard.
+
+For hosts, the applied preset's live settings are the single baseline: selecting a tile,
+the customization check and Restore all use them. defaultSnapshot and originalSnapshot are
+administrator reset points only; omitted legacy fields there inherit the current preset,
+while explicit values, including null, survive.
+
+Shared Dialog renders through a document-body portal, escaping backdrop-filter containing
+blocks in event cards.

@@ -101,6 +101,7 @@ export type EventInput = Partial<GuestRsvpDisplayFields> & {
         appliedPresetId?: string | null;
         cardOpacity?: number | null;
         fontId?: string | null;
+        presentation?: unknown;
       } & StoredEffectFields)
     | null;
   reminderSettings: {
@@ -152,6 +153,7 @@ export type ThemeSnapObj = {
   month?: number | null;
   cardOpacity?: number | null;
   fontId?: string | null;
+  presentation?: unknown;
 };
 
 export type DbThemePreset = {
@@ -166,6 +168,7 @@ export type DbThemePreset = {
   month?: number | null;
   cardOpacity?: number | null;
   fontId?: string | null;
+  presentation?: unknown;
   defaultSnapshot?: unknown;
 };
 
@@ -175,6 +178,7 @@ export type DbThemePreset = {
  */
 export interface ThemeExtrasOverrides {
   fontId?: string | null;
+  presentation?: unknown;
   effect?: EffectEditorState;
 }
 

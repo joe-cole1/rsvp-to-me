@@ -122,3 +122,23 @@ Info sections show short, scannable details — parking, dress code, links — a
 - **Icons:** choose from a set (shirt, utensils, parking, link, phone, and more).
 - **Links:** only regular web links (`http://` or `https://`) are accepted; a bare link like `example.com/page` gets `https://` added for you.
 - **Ordering:** drag and drop chips to reorder them.
+
+## Preset effects and occasions
+
+Occasions includes Birthday, Graduation, Wedding, Baby Shower, Anniversary, Retirement,
+Housewarming and Reunion. Seasonal and party presets can include effects. General color
+styles have no effect by default (including Enchanted Forest).
+
+Selecting a preset applies its theme and effects together. In Effects, remove any icon
+from Your mix, search for replacements, or select None. Amount, Size, Speed and Movement
+remain independent. None stays off until you choose another effect or apply a preset.
+Restoring defaults brings back the preset's current theme, font and effect after you
+confirm with **Restore**. Choosing a different preset while your settings are customized
+asks before replacing them.
+
+Soft & Dreamy spreads translucent colors across the page and drifts slowly. Reduced
+motion shows the same colors without animation.
+
+A preset you just applied never shows a customization warning or a Restore button. If an
+administrator later changes the preset, Restore brings your page to its new settings.
+Confirmation dialogs center on the screen and shade the entire viewport.

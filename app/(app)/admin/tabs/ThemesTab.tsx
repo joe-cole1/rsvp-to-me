@@ -1,4 +1,6 @@
 "use client";
+import { presetCategory, presetPresentation } from "@/lib/theme-preset-presentation";
+import { PresetIcon } from "@/components/event/PresetIcon";
 import { useTranslations } from "next-intl";
 
 import { X } from "lucide-react";
@@ -153,7 +155,7 @@ export function ThemesTab({
                       fontSize: "16px",
                     }}
                   >
-                    {preset.emoji}
+                    <PresetIcon id={presetPresentation(preset.presentation).tileIconId} />
                   </div>
                 </div>
                 {/* Info row */}
@@ -182,7 +184,7 @@ export function ThemesTab({
                     }}
                   >
                     {preset.base}
-                    {preset.seasonal ? tr("seasonal") : ""}
+                    {presetCategory(preset) === "seasonal" ? tr("seasonal") : ""}
                   </div>
                   <div style={{ display: "flex", gap: "6px" }}>
                     <Button
@@ -202,6 +204,7 @@ export function ThemesTab({
                           month: preset.month ?? null,
                           cardOpacity: preset.cardOpacity ?? null,
                           fontId: preset.fontId ?? null,
+                          presentation: preset.presentation,
                         };
                         setThemePresetForm(vals);
                         setThemePresetOriginal(vals);

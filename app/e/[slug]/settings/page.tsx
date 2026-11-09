@@ -1,3 +1,4 @@
+import { getEditorIconSummaries } from "@/lib/editor-icon-summaries";
 import { getRequestTranslator } from "@/i18n/server";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -7,7 +8,6 @@ import { SettingsPage } from "@/components/event/SettingsPage";
 import { getActiveThemePresets } from "@/app/actions/event";
 import { getChannelConfig } from "@/lib/config";
 import { CUSTOM_EFFECT_ID } from "@/lib/effects";
-import { getLibraryIconSummaries } from "@/lib/effect-catalog";
 
 export async function generateMetadata(props: PageProps<"/e/[slug]/settings">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -73,11 +73,13 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
   // #825: seed labels for only the stored mixture's icons (never the catalog).
   const storedIconIds =
     event.theme?.effectId === CUSTOM_EFFECT_ID ? (event.theme.effectIconIds ?? []) : [];
-  const [themePresets, channelConfig, initialLibraryIcons] = await Promise.all([
+  const [themePresets, channelConfig] = await Promise.all([
     getActiveThemePresets(),
     getChannelConfig(),
-    getLibraryIconSummaries(storedIconIds).catch(() => []),
   ]);
+
+  // Preset default mixtures load into the editor, so their labels are seeded too.
+  const initialLibraryIcons = await getEditorIconSummaries(storedIconIds, themePresets);
 
   return (
     <SettingsPage
