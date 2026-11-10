@@ -87,6 +87,14 @@ use a disposable local database. After switching branches, run
 - Keep dependency changes separate from unrelated features. Explain why an update
   is needed and preserve the existing security overrides and coordinated version
   constraints unless the change explicitly addresses them.
+- Make every test tolerate compatible dependency updates: derive tool versions
+  from the installed package or runtime configuration, compare numeric CSS and
+  parsed DOM values, and use documented security minimums rather than the latest
+  selected release. Check compatibility of packages actually used together;
+  overlapping manifest ranges and isolated toolchains need not be identical.
+  Security checks cover all present resolutions and allow a transitive package
+  to disappear. Add newer-version fixtures alongside known-bad cases, and keep
+  functional failures and coverage thresholds blocking.
 - Keep generated output, local data, credentials, and unrelated formatting changes
   out of the diff. Review and understand everything you submit, including work
   produced with automated tools.

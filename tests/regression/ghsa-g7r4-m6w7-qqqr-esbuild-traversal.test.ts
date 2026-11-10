@@ -1,58 +1,42 @@
-// GHSA-g7r4-m6w7-qqqr — esbuild's development server allowed arbitrary file
-// reads on Windows through backslash-based path traversal.
-//
-// Bug (found 2026-07, dependency security review): @react-email/ui pinned
-// esbuild 0.28.0, whose POSIX-only request-path cleanup did not treat Windows
-// backslashes as separators. A crafted servedir request could therefore escape
-// the configured root. The fix globally overrides esbuild to patched version
-// 0.28.1 and guards both the manifest constraint and every lockfile resolution.
-
-import { readFileSync } from "fs";
-import { join } from "path";
+// GHSA-g7r4-m6w7-qqqr: esbuild 0.28.1 fixed Windows path traversal.
+// November 2026 (d4ae35f3): the old guard required exactly that override,
+// rejecting later fixes and upstream removing the dependency altogether.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-
-const REPO_ROOT = join(__dirname, "..", "..");
-
-type PackageManifest = {
-  overrides?: Record<string, string>;
-};
-
-type PackageLock = {
-  packages?: Record<string, { version?: string }>;
-};
-
-function readJson<T>(filename: string): T {
-  return JSON.parse(readFileSync(join(REPO_ROOT, filename), "utf8")) as T;
-}
-
-function isVulnerable(version: string): boolean {
-  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
-  if (!match) return true;
-
-  const [, major, minor, patch] = match.map(Number);
-  return major === 0 && (minor === 27 ? patch >= 3 : minor === 28 && patch < 1);
-}
+import { assertResolvedFloor, type LockedPackages } from "@/tests/helpers/dependency-versions";
 
 describe("GHSA-g7r4-m6w7-qqqr: patched esbuild dependency", () => {
-  it("keeps a patched global override in package.json", () => {
-    const manifest = readJson<PackageManifest>("package.json");
+  it.each(["package-lock.json", "worker/package-lock.json"])(
+    "rejects vulnerable esbuild resolutions in %s",
+    (filename) => {
+      const lock = JSON.parse(readFileSync(join(__dirname, "../..", filename), "utf8")) as {
+        packages: LockedPackages;
+      };
+      assertResolvedFloor(lock.packages, "esbuild", "0.28.1");
+    }
+  );
 
-    expect(manifest.overrides?.esbuild).toBe("0.28.1");
+  it.each(["0.28.1", "0.28.2", "0.29.0", "1.0.0"])("accepts patched esbuild %s", (version) => {
+    expect(() =>
+      assertResolvedFloor({ "node_modules/esbuild": { version } }, "esbuild", "0.28.1")
+    ).not.toThrow();
   });
 
-  it("contains no vulnerable esbuild resolution in package-lock.json", () => {
-    const lock = readJson<PackageLock>("package-lock.json");
-    const resolutions = Object.entries(lock.packages ?? {}).filter(
-      ([path]) => path === "node_modules/esbuild" || path.endsWith("/node_modules/esbuild")
-    );
-
-    expect(resolutions.length).toBeGreaterThan(0);
-    for (const [path, entry] of resolutions) {
-      expect(entry.version, `${path} must have a version`).toBeDefined();
-      expect(
-        isVulnerable(entry.version!),
-        `${path} resolves vulnerable esbuild ${entry.version}`
-      ).toBe(false);
+  it.each(["0.27.3", "0.28.0", "0.29.0-rc.1", "invalid"])(
+    "rejects unsupported esbuild %s",
+    (version) => {
+      expect(() =>
+        assertResolvedFloor(
+          { "node_modules/tool/node_modules/esbuild": { version } },
+          "esbuild",
+          "0.28.1"
+        )
+      ).toThrow();
     }
+  );
+
+  it("allows upstream to remove esbuild and its override", () => {
+    expect(() => assertResolvedFloor({}, "esbuild", "0.28.1")).not.toThrow();
   });
 });

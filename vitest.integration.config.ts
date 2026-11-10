@@ -14,10 +14,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "server-only": path.resolve(
-        __dirname,
-        "node_modules/next/dist/compiled/server-only/empty.js"
-      ),
+      "server-only": path.resolve(__dirname, "tests/helpers/server-only.ts"),
       "@": path.resolve(__dirname, "."),
     },
   },

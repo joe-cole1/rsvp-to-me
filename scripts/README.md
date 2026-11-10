@@ -26,6 +26,12 @@ and build-tool advisories are still printed, but do not fail preflight when upst
 has not published a patched release. The production image separately installs with
 `npm ci --omit=dev`, so those build-only packages are not copied into the runtime image.
 
+Both modes always reconcile dependencies with `npm ci`. The installed Playwright
+package selects its exact browser image through `playwright-image.cjs`, shared by
+`check-playwright-docker.sh` and `run-e2e-docker.sh`. Package updates therefore
+update the browser environment automatically; no image-release pin is copied
+into a shell script. Browser failures remain blocking.
+
 Full preflight requires port 3001 to be free before E2E startup. It refuses to
 continue if another listener is present, so the health check cannot accept a
 stale application instance. The E2E app runs in its own process group, which is

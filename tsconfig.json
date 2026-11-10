@@ -34,5 +34,5 @@
     ".next-e2e/types/**/*.ts",
     ".next-e2e/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "worker"]
+  "exclude": ["node_modules", "worker", ".vitest", ".claude"]
 }

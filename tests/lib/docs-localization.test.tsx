@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import React from "react";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -31,11 +32,22 @@ function renderMarkdown(content: string) {
 }
 
 function headingIds(content: string) {
-  return [...renderMarkdown(content).matchAll(/<h[1-6] id="([^"]+)"/g)].map((match) => match[1]);
+  return Array.from(
+    parseHtml(renderMarkdown(content)).querySelectorAll(
+      "h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]"
+    ),
+    (heading) => heading.id
+  );
 }
 
 function linkTargets(content: string) {
-  return [...renderMarkdown(content).matchAll(/<a href="([^"]+)"/g)].map((match) => match[1]);
+  return Array.from(parseHtml(renderMarkdown(content)).querySelectorAll("a[href]"), (link) =>
+    link.getAttribute("href")!
+  );
+}
+
+function parseHtml(html: string) {
+  return new DOMParser().parseFromString(html, "text/html");
 }
 
 describe("localized documentation integrity", () => {
@@ -67,8 +79,8 @@ describe("localized documentation integrity", () => {
           const blocks = (content: string) => content.match(/```[^\n]*\n[\s\S]*?```/g) ?? [];
           expect(blocks(doc.content), `${doc.slug} code blocks`).toEqual(blocks(canonical.content));
           const images = (content: string) =>
-            [...renderMarkdown(content).matchAll(/<img[^>]+src="([^"]+)"/g)].map(
-              (match) => match[1]
+            Array.from(parseHtml(renderMarkdown(content)).querySelectorAll("img[src]"), (image) =>
+              image.getAttribute("src")
             );
           expect(images(doc.content), `${doc.slug} image targets`).toEqual(
             images(canonical.content)
@@ -99,9 +111,9 @@ describe("localized documentation integrity", () => {
     const html = renderMarkdown(
       '## Inloggen {#signing-in}\n\n## Unsafe {#x" onclick="bad}\n\n<script>alert(1)</script>'
     );
-    expect(html).toContain('<h2 id="signing-in">Inloggen</h2>');
-    expect(html).not.toContain('onclick="bad"');
-    expect(html).not.toContain("<script>");
+    const document = parseHtml(html);
+    expect(document.querySelector("h2#signing-in")?.textContent).toBe("Inloggen");
+    expect(document.querySelector("[onclick], script")).toBeNull();
   });
 
   it("renders translated navigation but marks an English fallback article English/LTR", async () => {
@@ -117,9 +129,14 @@ describe("localized documentation integrity", () => {
         <DocsPanel docs={[fallback]} />
       </NextIntlClientProvider>
     );
-    expect(html).toContain('placeholder="Handleidingen doorzoeken…"');
-    expect(html).toContain('class="md-body" lang="en-US" dir="ltr"');
-    expect(html).toContain("Creating Your Event");
+    const document = parseHtml(html);
+    expect(document.querySelector("input")?.getAttribute("placeholder")).toBe(
+      "Handleidingen doorzoeken…"
+    );
+    const article = document.querySelector(".md-body");
+    expect(article?.getAttribute("lang")).toBe("en-US");
+    expect(article?.getAttribute("dir")).toBe("ltr");
+    expect(article?.textContent).toContain("Creating Your Event");
   });
 
   it("preserves a fixture article's RTL language independently from the UI locale", () => {
@@ -144,7 +161,10 @@ describe("localized documentation integrity", () => {
         />
       </NextIntlClientProvider>
     );
-    expect(html).toContain('class="md-body" lang="ar" dir="rtl"');
-    expect(html).toContain('<h2 id="welcome">مرحبا</h2>');
+    const document = parseHtml(html);
+    const article = document.querySelector(".md-body");
+    expect(article?.getAttribute("lang")).toBe("ar");
+    expect(article?.getAttribute("dir")).toBe("rtl");
+    expect(article?.querySelector("h2#welcome")?.textContent).toBe("مرحبا");
   });
 });

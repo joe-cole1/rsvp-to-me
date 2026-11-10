@@ -13,7 +13,7 @@ import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 
 type Expand = (pattern: string) => string[];
-type LegacyMinimatch = {
+type Minimatch = {
   (path: string, pattern: string): boolean;
   braceExpand: Expand;
 };
@@ -23,7 +23,10 @@ type ExpansionAdapter = Expand & {
 
 const rootRequire = createRequire(import.meta.url);
 const eslintRequire = createRequire(rootRequire.resolve("eslint/package.json"));
-const legacyMinimatch = eslintRequire("minimatch") as LegacyMinimatch;
+const eslintMinimatch = eslintRequire("minimatch") as
+  Minimatch | { minimatch: Minimatch; braceExpand: Expand };
+const eslintMatch =
+  typeof eslintMinimatch === "function" ? eslintMinimatch : eslintMinimatch.minimatch;
 const adapter = rootRequire("brace-expansion") as ExpansionAdapter;
 const patched = rootRequire("brace-expansion-patched") as { expand: Expand };
 const modernMinimatchModule = rootRequire("minimatch");
@@ -34,9 +37,8 @@ describe("GHSA-mh99-v99m-4gvg brace-expansion compatibility", () => {
     const pattern = "file{1..3}.js";
     const expected = ["file1.js", "file2.js", "file3.js"];
 
-    expect(typeof legacyMinimatch).toBe("function");
-    expect(legacyMinimatch.braceExpand(pattern)).toEqual(expected);
-    expect(legacyMinimatch("file2.js", pattern)).toBe(true);
+    expect(eslintMinimatch.braceExpand(pattern)).toEqual(expected);
+    expect(eslintMatch("file2.js", pattern)).toBe(true);
     expect(modernMinimatchFn("file2.js", pattern)).toBe(true);
   });
 

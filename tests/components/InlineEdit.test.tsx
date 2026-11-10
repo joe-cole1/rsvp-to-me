@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/tests/components/render";
 import { InlineEdit } from "@/components/event/event-page/InlineEdit";
+import { cssValue } from "@/tests/helpers/css";
 
 describe("InlineEdit", () => {
   it("opens a full-width, content-sized description editor with a mobile height cap", () => {
@@ -23,7 +24,9 @@ describe("InlineEdit", () => {
     expect(editor.style.boxSizing).toBe("border-box");
     expect(editor.style.fieldSizing).toBe("content");
     expect(editor.style.minHeight).toBe("10rem");
-    expect(editor.style.maxHeight).toBe("min(60dvh, 480px)");
+    expect(editor.style.maxHeight).toBe(
+      cssValue("max-height", "min(60dvh, 480px)", editor.ownerDocument)
+    );
     expect(editor.style.overflowY).toBe("auto");
     expect(editor.style.resize).toBe("vertical");
   });

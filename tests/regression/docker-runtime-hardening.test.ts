@@ -9,18 +9,52 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { atLeast } from "@/tests/helpers/dependency-versions";
 
 const REPO_ROOT = join(__dirname, "..", "..");
 const dockerfile = readFileSync(join(REPO_ROOT, "Dockerfile"), "utf8");
 const dockerignore = readFileSync(join(REPO_ROOT, ".dockerignore"), "utf8");
 const entrypoint = readFileSync(join(REPO_ROOT, "scripts", "docker-entrypoint.sh"), "utf8");
 const runner = dockerfile.split(/FROM\s+\$\{NODE_IMAGE\}\s+AS\s+runner/)[1] ?? "";
+const selectedNode = readFileSync(join(REPO_ROOT, ".nvmrc"), "utf8").trim();
+
+// The contract is a reproducible image on the supported runtime, rather than
+// the Node/Alpine patch selected when this regression test was first written.
+function assertPinnedNodeImage(image: string, minimum: string) {
+  const match = /^node:(\d+\.\d+\.\d+)-alpine\d+\.\d+(?:\.\d+)?@sha256:[a-f0-9]{64}$/.exec(image);
+  expect(match, "Node image must have an exact version, Alpine tag and digest").not.toBeNull();
+  if (!match) return;
+  expect(match[1].split(".")[0], "Node image must use the supported runtime major").toBe(
+    minimum.split(".")[0]
+  );
+  expect(atLeast(match[1], minimum), "Node image must meet the selected runtime minimum").toBe(
+    true
+  );
+}
 
 describe("Docker production image hardening", () => {
   it("pins every build stage to one exact multi-architecture Node image", () => {
-    expect(dockerfile).toMatch(/^ARG NODE_IMAGE=node:22\.23\.1-alpine3\.24@sha256:[a-f0-9]{64}$/m);
+    assertPinnedNodeImage(dockerfile.match(/^ARG NODE_IMAGE=(\S+)$/m)?.[1] ?? "", selectedNode);
     expect(dockerfile.match(/^FROM \$\{NODE_IMAGE\} AS [\w-]+$/gm)).toHaveLength(4);
     expect(dockerfile).not.toMatch(/^FROM\s+node:[^@\s]+\s/m);
+  });
+
+  it.each(["22.23.1-alpine3.24", "22.24.0-alpine3.25", "22.99.1-alpine4.0"])(
+    "accepts supported pinned image updates: %s",
+    (tag) => {
+      expect(() =>
+        assertPinnedNodeImage(`node:${tag}@sha256:${"a".repeat(64)}`, "22.23.1")
+      ).not.toThrow();
+    }
+  );
+
+  it.each([
+    "node:22-alpine",
+    "node:22.24.0-alpine3.25",
+    `node:22.22.0-alpine3.24@sha256:${"a".repeat(64)}`,
+    `node:24.0.0-alpine3.24@sha256:${"a".repeat(64)}`,
+  ])("rejects unpinned or unsupported runtimes: %s", (image) => {
+    expect(() => assertPinnedNodeImage(image, "22.23.1")).toThrow();
   });
 
   it("drops the final application to the fixed non-root account", () => {

@@ -9,6 +9,7 @@ export default defineConfig({
       "**/node_modules/**",
       // Agent worktrees (other checkouts of this repo) live under .claude/.
       "**/.claude/**",
+      "**/.vitest/**",
       "tests/components/**",
       "tests/integration/**",
       "tests/e2e/**",
@@ -46,10 +47,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "server-only": path.resolve(
-        __dirname,
-        "node_modules/next/dist/compiled/server-only/empty.js"
-      ),
+      "server-only": path.resolve(__dirname, "tests/helpers/server-only.ts"),
       "@": path.resolve(__dirname, "."),
     },
   },

@@ -32,3 +32,11 @@ updates:
         patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
       vitest:
         patterns: ["vitest", "@vitest/*"]
+      react-email:
+        patterns: ["react-email", "@react-email/*"]
+
+  - package-ecosystem: "npm"
+    directory: "/worker"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10

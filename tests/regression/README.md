@@ -14,10 +14,32 @@ For every bug fix merged to main:
 
 October 2026 (`8a8fb7bf`) extends `dependency-security-baseline.test.ts` with updated security floors and package-group synchronization checks. PR #775 (`01a19bc3`) adds stable minimum floors for the Cloudflare worker toolchain so compatible lockfile upgrades do not fail exact-version assertions. #779/#603 (`01a19ceb`) extend this policy to runtime `tsx`, reject reintroduced deepmerge-ts overrides, and require Joi 18.3.1 for GHSA-4528-x5fx-h6hg.
 
-PR #818 (`01a1b35c`) adds fixtures to `dependency-security-baseline.test.ts` that
-accept coordinated Vitest upgrades and reject partial manifest or resolved-version
-updates. The original failure resolved both packages to 5.1.0 while leaving the
-runner declared at `^5.0.5` and coverage at `^5.1.0`.
+PR #818 (`01a1b35c`) originally required identical Vitest manifest ranges. Task
+`d4ae35f3` replaces that administrative constraint with compatible resolved
+versions: overlapping ranges that resolve together pass, while mismatched root
+packages still fail. Nested independent toolchains may select their own versions.
+
+Task `d4ae35f3` audits all dependency and test infrastructure after #831/#832.
+`dependency-update-contracts.test.ts` covers newer patched versions, removal of
+transitive dependencies, missing required packages, vulnerable nested versions,
+and equivalent CSS ratios. `playwright-docker-parity.test.ts` exercises both
+Docker entry points against installed-package fixtures across releases and keeps
+browser failures blocking. `docker-runtime-hardening.test.ts` accepts supported
+Node/Alpine image updates while requiring an exact tag and digest. The esbuild
+and Sharp regressions enforce patched resolutions in both projects without
+requiring an old override or identical independent toolchains. EventHero's
+component tests cover landscape, portrait and square images; DOM/style tests
+check semantics and the font-build test checks emitted assets.
+
+The same task validates Prisma configuration and builds the font fixture through
+the installed public CLIs. `notification-stale-client.test.tsx` stubs the public
+Next.js classifier for UI tests, verifies generic errors stay generic, and no
+longer imports a private framework constructor or depends on its message.
+
+`generated-test-workspaces.test.ts` checks effective ESLint and TypeScript
+discovery: `.vitest/` build fixtures and `.claude/` worktrees stay outside
+application checks while real source remains checked. The unit discovery guard
+also excludes generated fixture tests.
 
 ## Index
 

@@ -106,9 +106,11 @@ scripts/preflight.sh --fast
 Use fast preflight for normal application behavior, tests, refactors, and
 tooling changes. It checks formatting, linting, generated Prisma client,
 migrations against an isolated database, unit/integration/component tests,
-build, and type checking. Both modes also check that the pinned Playwright
-Docker image matches the installed package and smoke-test its bundled Chromium
-with `scripts/check-playwright-docker.sh`.
+build, and type checking. Both modes perform a clean `npm ci` so branch or
+lockfile changes cannot reuse an old installed tree. They derive the exact
+Playwright Docker image from the installed package through
+`scripts/playwright-image.cjs` and smoke-test its bundled Chromium with
+`scripts/check-playwright-docker.sh`.
 
 ```bash
 scripts/preflight.sh
