@@ -144,12 +144,31 @@ upstream releases and coordinated removal checklist.
 
 ## Dependency updates
 
-Dependabot checks npm dependencies daily and keeps up to 10 version-update PRs
-open. Additional updates can appear as earlier PRs close, so check the queue
-again after each batch.
+Dependabot checks the application and independent `worker/` npm project daily,
+with up to 10 version-update PRs open per project. Additional updates can appear
+as earlier PRs close, so check the queue again after each batch. React Email's
+CLI and UI packages share an update group.
 
-Next.js and `eslint-config-next` share one update group and must stay pinned to
-the same exact release. The regression baseline requires Next.js 16.3.8 or
+All dependency tests check application behavior, documented security minimums,
+or compatibility of resolved packages. A compatible update must not require
+editing a test's copy of the selected release. Security guards check every
+present resolution and allow upstream to remove a transitive dependency.
+Independent toolchains may use different patched versions; overlapping manifest
+ranges need not have identical text. Keep functional tests, runtime security
+audits, and coverage thresholds blocking. Parse DOM attributes and numeric CSS
+values when formatting is not part of the application contract.
+
+CI selects Node from `.nvmrc`, and its cache identities include that selection.
+Both preflight modes run a clean `npm ci` even when `node_modules` already exists,
+so switching branches or lockfiles cannot silently test an old dependency tree.
+Vitest's `server-only` marker is repository-owned; production builds retain
+Next.js's actual client/server boundary checks.
+Generated test/build workspaces under `.vitest/` and agent worktrees under
+`.claude/` are excluded from application lint, type checks and unit discovery,
+so generated dependency-test artifacts cannot introduce unrelated failures.
+
+Next.js and `eslint-config-next` share one update group and must resolve to
+the same release. The regression baseline requires Next.js 16.4.1 or
 later, including every locked Next.js runtime, native compiler, and ESLint
 package. This is a minimum security version, so a coordinated later patch
 does not require changing the test just to accept the new version. Keep the
@@ -180,8 +199,8 @@ exact pins: Wrangler 4.147.0, Undici 7.29.1, and
 rejects missing, malformed, and prerelease versions, while allowing later
 patched lockfile releases.
 
-Vitest and `@vitest/coverage-v8` use 5.0.2, which supports the repository's Node
-22 runtime. Component setup imports `@testing-library/jest-dom/vitest` so its
+Vitest and `@vitest/coverage-v8` must resolve to the same release at or above
+the documented security minimum. Component setup imports `@testing-library/jest-dom/vitest` so its
 runtime matchers and TypeScript declarations attach to Vitest. Keep hoisted
 mock calls at module scope and await asynchronous assertions; Vitest 5 enforces
 both and clears mock call history before each test by default.
@@ -232,17 +251,17 @@ review event-dispatch or `act()` warnings. For Prettier updates, check formattin
 across tracked files before merging and review any resulting rewrites. A
 formatter patch can change Markdown or embedded template-literal output.
 
-Keep `@playwright/test` and `PLAYWRIGHT_IMAGE` in `scripts/run-e2e-docker.sh`
-on the same release. Playwright 1.64 uses the `v1.64.0-noble` image, based on
-Ubuntu 24.04. Native Playwright runs no longer support Ubuntu 20.04; use a
+Both Playwright Docker entry points call `scripts/playwright-image.cjs`, which
+derives the exact `v<installed-version>-noble` image tag from the installed
+`@playwright/test` package. No second release pin needs updating when Dependabot
+changes the lockfile. The Noble image is based on Ubuntu 24.04. Use a
 supported WSL distribution such as Ubuntu 22.04 or 24.04. The application
 continues to use the Node version in `.nvmrc`.
 
 After a Playwright update, run the full preflight and browser suite. CI and both
-preflight modes run `scripts/check-playwright-docker.sh`, which checks the Docker
-image version against the installed package and launches its bundled Chromium
-to verify rendering, clicks, and screenshots. The shared check reads the pinned
-image from `scripts/run-e2e-docker.sh` and mounts the repository read-only. This
+preflight modes run `scripts/check-playwright-docker.sh`, which selects the
+matching image and launches its bundled Chromium to verify rendering, clicks,
+and screenshots. The shared check mounts the repository read-only. This
 image check runs without network access or a database; the full application
 flows run in the separate E2E step. Linux ARM64 uses Chrome for Testing starting in 1.63.
 

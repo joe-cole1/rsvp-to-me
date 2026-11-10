@@ -8,10 +8,20 @@
 // message, which can carry an address).
 import "@/tests/helpers/english-request-locale";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 import { fireEvent, render, screen, waitFor } from "@/tests/components/render";
 import { profileFixture } from "@/tests/helpers/notification-management";
-const m = vi.hoisted(() => ({ get: vi.fn(), save: vi.fn(), begin: vi.fn() }));
+const m = vi.hoisted(() => ({
+  get: vi.fn(),
+  save: vi.fn(),
+  begin: vi.fn(),
+  staleError: new Error("classified stale action fixture"),
+}));
+// Unit-test the public classifier boundary, not a private Next constructor's
+// location or message. Production builds and browser tests use the real API.
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  unstable_isUnrecognizedActionError: vi.fn((error: unknown) => error === m.staleError),
+}));
 vi.mock("@/app/actions/notifications", () => ({
   getNotificationManagement: m.get,
   saveNotificationPreferences: m.save,
@@ -28,7 +38,7 @@ vi.mock("@/components/ui/CaptchaProvider", () => ({
 }));
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 
-const stale = () => new UnrecognizedActionError('Server Action "abc" was not found on the server.');
+const stale = () => m.staleError;
 beforeEach(() => {
   vi.clearAllMocks();
   m.get.mockResolvedValue({ success: true, data: profileFixture() });
@@ -60,6 +70,13 @@ describe("a page from an older build", () => {
   });
   it("keeps the generic message for other failures", async () => {
     m.save.mockRejectedValue(new Error("network"));
+    render(<NotificationPreferences scope={{ kind: "profile" }} />);
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Event updates: Email" }));
+    expect(await screen.findByText("Could not save. Reload and try again.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reload" })).toBeNull();
+  });
+  it("does not infer a stale client from dependency error prose", async () => {
+    m.save.mockRejectedValue(new Error('Server Action "abc" was not found on the server.'));
     render(<NotificationPreferences scope={{ kind: "profile" }} />);
     fireEvent.click(await screen.findByRole("checkbox", { name: "Event updates: Email" }));
     expect(await screen.findByText("Could not save. Reload and try again.")).toBeTruthy();

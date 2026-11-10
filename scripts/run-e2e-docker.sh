@@ -1,7 +1,8 @@
 #!/bin/bash
-set -e
+set -Eeuo pipefail
 
-PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.64.1-noble
+cd "$(git rev-parse --show-toplevel)"
+PLAYWRIGHT_IMAGE=$(node scripts/playwright-image.cjs)
 
 echo "=== Ensuring E2E Test Database Exists ==="
 docker exec rsvp-to-me-postgres-1 psql -U postgres -c "CREATE DATABASE rsvp_test;" 2>/dev/null || true

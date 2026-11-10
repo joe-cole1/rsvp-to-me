@@ -53,7 +53,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
           cache: "npm"
 
       - name: Cache Playwright Browser
@@ -61,15 +61,15 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v4.3.0
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-node-22-playwright-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-playwright-${{ hashFiles('package-lock.json') }}
 
       - name: Cache Next.js Build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v4.3.0
         with:
           path: ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-node-22-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-node-22-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-nextjs-${{ hashFiles('package-lock.json') }}-
 
       - name: Install dependencies
         run: npm ci

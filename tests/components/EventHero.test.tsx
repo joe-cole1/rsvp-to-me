@@ -5,6 +5,7 @@ import { testTheme } from "./helpers/theme";
 import { EventHero } from "@/components/event/event-page/EventHero";
 import React from "react";
 import type { EventData } from "@/components/event/event-page/types";
+import { aspectRatio } from "@/tests/helpers/css";
 
 // Mock global.Image
 let mockImageInstance: MockImage | null = null;
@@ -113,7 +114,11 @@ describe("EventHero", () => {
     expect(coverContainer?.style.maxHeight).toBe("260px");
   });
 
-  it("renders with fallback height initially when a cover image is provided, then adapts after loading", () => {
+  it.each([
+    [1600, 900],
+    [900, 1600],
+    [900, 900],
+  ])("adapts from fallback height after a %i×%i cover loads", (width, height) => {
     const eventWithCover = {
       ...baseEvent,
       theme: {
@@ -158,17 +163,17 @@ describe("EventHero", () => {
     expect(coverContainer?.style.minHeight).toBe("200px");
     expect(coverContainer?.style.maxHeight).toBe("450px");
 
-    // Simulate image onload with a 16:9 image (1600x900)
+    // Simulate image onload with landscape, portrait and square dimensions.
     expect(mockImageInstance).not.toBeNull();
     act(() => {
-      mockImageInstance!.naturalWidth = 1600;
-      mockImageInstance!.naturalHeight = 900;
+      mockImageInstance!.naturalWidth = width;
+      mockImageInstance!.naturalHeight = height;
       mockImageInstance!.onload?.();
     });
 
     // Now height should be auto, and aspect ratio should be set
     expect(coverContainer?.style.height).toBe("auto");
-    expect(coverContainer?.style.aspectRatio).toContain("1.7777777777777777");
+    expect(aspectRatio(coverContainer!.style.aspectRatio)).toBeCloseTo(width / height, 4);
   });
 
   it("applies the theme font to the event title but not the Description section heading", () => {

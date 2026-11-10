@@ -15,8 +15,10 @@ describe("shared frontend primitives", () => {
 
     const card = screen.getByText("Event content");
     expect(card.tagName).toBe("SECTION");
-    expect(card.style.background.replaceAll(" ", "")).toBe(testTheme.cardBg.replaceAll(" ", ""));
-    expect(card.style.borderRadius).toBe(testTheme.cardRadius);
+    expect(card).toHaveStyle({
+      backgroundColor: testTheme.cardBg,
+      borderRadius: testTheme.cardRadius,
+    });
   });
 
   it("uses one semantic app-shell card surface", () => {

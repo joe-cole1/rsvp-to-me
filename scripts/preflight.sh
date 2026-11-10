@@ -94,7 +94,9 @@ fi
 ok "services up"
 
 step "Install dependencies (npm ci)"
-[ -d node_modules ] || npm ci
+# Match CI after branch or dependency changes; an existing directory can contain
+# packages from a different lockfile and is not proof of a reconciled install.
+npm ci
 ok "deps ready"
 
 step "Verify Playwright Docker browser"

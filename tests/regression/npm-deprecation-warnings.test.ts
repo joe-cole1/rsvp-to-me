@@ -19,11 +19,24 @@ type PackageManifest = {
 };
 
 type PackageLock = {
-  packages?: Record<string, unknown>;
+  packages?: Record<string, { version?: string; deprecated?: string }>;
 };
 
 function readJson<T>(filename: string): T {
   return JSON.parse(readFileSync(join(REPO_ROOT, filename), "utf8")) as T;
+}
+
+function knownWarnings(packages: NonNullable<PackageLock["packages"]>) {
+  const knownPackages = ["@types/bcryptjs", "scmp", "twilio"];
+  return Object.entries(packages)
+    .filter(
+      ([path, entry]) =>
+        entry.deprecated &&
+        knownPackages.some(
+          (name) => path === `node_modules/${name}` || path.endsWith(`/node_modules/${name}`)
+        )
+    )
+    .map(([path]) => path);
 }
 
 describe("deprecated npm dependency cleanup", () => {
@@ -34,16 +47,21 @@ describe("deprecated npm dependency cleanup", () => {
     expect(manifest.dependencies).not.toHaveProperty("twilio");
   });
 
-  it("does not resolve deprecated warning packages in package-lock.json", () => {
+  it("does not reintroduce the known deprecation warnings through transitive dependencies", () => {
     const lock = readJson<PackageLock>("package-lock.json");
-    const forbiddenPackages = ["@types/bcryptjs", "scmp", "twilio"];
-    const resolutions = Object.keys(lock.packages ?? {}).filter((path) =>
-      forbiddenPackages.some(
-        (packageName) =>
-          path === `node_modules/${packageName}` || path.endsWith(`/node_modules/${packageName}`)
-      )
-    );
+    expect(knownWarnings(lock.packages ?? {})).toEqual([]);
+  });
 
-    expect(resolutions).toEqual([]);
+  it("allows a maintained transitive release of a formerly deprecated package", () => {
+    expect(knownWarnings({ "node_modules/tool/node_modules/scmp": { version: "4.0.0" } })).toEqual(
+      []
+    );
+  });
+
+  it("still detects a known deprecated release nested under an upgraded tool", () => {
+    const path = "node_modules/tool/node_modules/scmp";
+    expect(
+      knownWarnings({ [path]: { version: "2.1.0", deprecated: "use a maintained implementation" } })
+    ).toEqual([path]);
   });
 });

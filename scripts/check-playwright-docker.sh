@@ -4,12 +4,7 @@ set -Eeuo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 # Exercise the image used by the Docker helper, including its browser binaries.
-image=$(awk -F= '$1 == "PLAYWRIGHT_IMAGE" { print $2 }' scripts/run-e2e-docker.sh)
-version=$(node -p "require('@playwright/test/package.json').version")
-if [ "$image" != "mcr.microsoft.com/playwright:v$version-noble" ]; then
-  echo "::error::Playwright Docker image must match installed @playwright/test $version"
-  exit 1
-fi
+image=$(node scripts/playwright-image.cjs)
 docker run --rm --init --ipc=host --network none \
   --volume "$PWD:/app:ro" --workdir /app "$image" node -e '
     const { chromium, expect } = require("@playwright/test");

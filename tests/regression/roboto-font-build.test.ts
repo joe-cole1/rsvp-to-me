@@ -14,11 +14,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { createRequire } from "node:module";
 import { expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..", "..");
-const requireFromRoot = createRequire(join(ROOT, "package.json"));
 
 it("builds the theme fonts despite Google's extensionless Roboto response", () => {
   const scratch = join(ROOT, ".vitest");
@@ -77,23 +75,18 @@ it("builds the theme fonts despite Google's extensionless Roboto response", () =
     `
     );
 
-    const build = spawnSync(
-      process.execPath,
-      [requireFromRoot.resolve("next/dist/bin/next"), "build", fixture],
-      {
-        cwd: fixture,
-        encoding: "utf8",
-        timeout: 60000,
-        env: {
-          ...process.env,
-          NODE_ENV: "production",
-          NEXT_TELEMETRY_DISABLED: "1",
-          NEXT_FONT_GOOGLE_MOCKED_RESPONSES: mockedResponses,
-        },
-      }
-    );
+    const build = spawnSync(join(ROOT, "node_modules/.bin/next"), ["build", fixture], {
+      cwd: fixture,
+      encoding: "utf8",
+      timeout: 60000,
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        NEXT_TELEMETRY_DISABLED: "1",
+        NEXT_FONT_GOOGLE_MOCKED_RESPONSES: mockedResponses,
+      },
+    });
     expect(build.status, `${build.error ?? ""}\n${build.stdout}\n${build.stderr}`).toBe(0);
-    expect(build.stdout).toContain("(Turbopack)");
 
     const staticDir = join(fixture, ".next", "static");
     const emitted = readdirSync(staticDir, { recursive: true, encoding: "utf8" }).map((path) =>

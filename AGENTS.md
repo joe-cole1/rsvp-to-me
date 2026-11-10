@@ -143,6 +143,22 @@ Do not add/remove/change dependencies unless the approved plan explicitly author
 
 Unexpected package/lockfile changes must be explained.
 
+Apply these rules to every dependency and every test:
+
+- Derive selected tool/runtime versions from their existing source of truth.
+  Never duplicate the current release in a test or test-environment image pin.
+- Version assertions must express documented security minimums or compatibility
+  between packages used together. Compare resolved versions; overlapping
+  manifest ranges and isolated nested toolchains need not be identical.
+- Check every present transitive resolution against its security requirement,
+  while allowing upstream to remove that package. Require direct dependencies
+  that the application still uses.
+- Assert observable behavior and parsed DOM/CSS values. Do not freeze harmless
+  serialization, generated class names, build log wording, or dependency error
+  prose unless that representation is itself an application contract.
+- Cover valid newer-version fixtures as well as known-bad cases when changing
+  a dependency guard. Keep behavior, security and coverage failures blocking.
+
 ## Documentation and Roadmap
 
 Feature, behavior, configuration, environment-variable, or workflow changes require an appropriate:

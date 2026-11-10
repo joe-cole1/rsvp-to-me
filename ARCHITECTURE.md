@@ -364,7 +364,8 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 | `tests/e2e/`, `playwright.config.ts`                        | End-to-end public/auth/host flows.                                                                             |
 | `tests/regression/`                                         | Root-cause-specific bug and security regression guards.                                                        |
 | `scripts/preflight.sh`                                      | Local CI orchestration with isolated PostgreSQL/Redis.                                                         |
-| `scripts/check-playwright-docker.sh`                        | Shared CI/preflight version guard and Chromium smoke test; image pin lives in `scripts/run-e2e-docker.sh`.     |
+| `scripts/playwright-image.cjs`                              | Resolves the exact Docker browser image from installed Playwright for both Docker entry points.                |
+| `scripts/check-playwright-docker.sh`                        | Shared CI/preflight Chromium smoke test using the resolved browser image.                                      |
 | `.github/workflows/container-qc.yml`                        | Builds and smoke-tests production images on AMD64 and ARM64 without publishing.                                |
 | `scripts/container-smoke.sh`, `scripts/container-smoke.cjs` | Disposable PostgreSQL/Redis startup, permissions, health, seed, backup restore, and native image-codec checks. |
 

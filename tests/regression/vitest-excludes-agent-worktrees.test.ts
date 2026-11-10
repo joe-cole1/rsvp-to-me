@@ -10,4 +10,7 @@ describe("unit test discovery", () => {
   it("skips agent worktrees nested under .claude/", () => {
     expect(config.test?.exclude).toContain("**/.claude/**");
   });
+  it("skips generated test/build fixtures nested under .vitest/", () => {
+    expect(config.test?.exclude).toContain("**/.vitest/**");
+  });
 });

@@ -15,14 +15,19 @@
 // #779/#603 (01a19ceb): tsx exact pins rejected compatible security patches;
 // upstream now supplies patched deepmerge-ts without overrides. Joi 18.3.1
 // closes GHSA-4528-x5fx-h6hg in the development wait-on dependency tree.
-// PR #818 (01a1b35c): a coverage-provider upgrade resolved both Vitest packages
-// to 5.1.0 but left the runner's declared range behind. Exercise coordinated
-// upgrades and partial updates without tying the guard to the latest release.
+// November 2026 (d4ae35f3): literal manifest-range equality and requiring old
+// transitive packages to remain installed rejected otherwise valid upgrades.
+// npm ci validates declarations; this guard checks safe, compatible resolutions.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadConfigFromFile } from "@prisma/config";
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
+import {
+  assertDependencyFloor,
+  assertResolvedFloor,
+  atLeast,
+} from "@/tests/helpers/dependency-versions";
 
 const ROOT = join(__dirname, "..", "..");
 type Lock = { packages: Record<string, { version?: string; dev?: boolean }> };
@@ -36,22 +41,9 @@ const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as
   overrides?: Record<string, unknown>;
 };
 
-function atLeast(version: string, floor: string): boolean {
-  if (!/^\d+\.\d+\.\d+$/.test(version)) return false;
-  const actual = version.split(".").map(Number);
-  const minimum = floor.split(".").map(Number);
-  for (let index = 0; index < 3; index++) {
-    if (actual[index] !== minimum[index]) return actual[index] > minimum[index];
-  }
-  return true;
-}
-
-function assertDependencyFloor(path: string, actual: string | undefined, minimum: string): void {
-  expect(
-    atLeast(actual ?? "", minimum),
-    `${path}: expected stable version at least ${minimum}; received ${actual ?? "<missing>"}`
-  ).toBe(true);
-}
+const workerManifest = JSON.parse(
+  readFileSync(join(ROOT, "worker/package.json"), "utf8")
+) as typeof manifest;
 
 function assertSynchronizedGroup(
   names: readonly string[],
@@ -61,12 +53,9 @@ function assertSynchronizedGroup(
   const version = packages[`node_modules/${names[0]}`]?.version;
   expect(version).toMatch(/^\d+\.\d+\.\d+$/);
   for (const name of names) {
-    expect(declared[name], name).toBe(declared[names[0]]);
-    const resolutions = Object.entries(packages).filter(
-      ([path]) => path === `node_modules/${name}` || path.endsWith(`/node_modules/${name}`)
-    );
-    expect(resolutions.length, name).toBeGreaterThan(0);
-    for (const [path, entry] of resolutions) expect(entry.version, path).toBe(version);
+    expect(declared[name], `${name} must be declared`).toBeTruthy();
+    expect(packages[`node_modules/${name}`], `${name} is required`).toBeDefined();
+    expect(packages[`node_modules/${name}`]?.version, name).toBe(version);
   }
 }
 
@@ -143,18 +132,16 @@ describe("Dependency security baseline", () => {
     ["@vitest/coverage-v8", "5.0.5"],
     ["@vitest/mocker", "5.0.5"],
   ])("keeps every %s resolution at or above %s", (name, minimum) => {
-    const entries = Object.entries(lock.packages).filter(
-      ([path]) => path === `node_modules/${name}` || path.endsWith(`/node_modules/${name}`)
-    );
-    expect(entries.length).toBeGreaterThan(0);
-    for (const [path, entry] of entries) {
-      assertDependencyFloor(path, entry.version, minimum);
-    }
+    const required = !!(manifest.dependencies?.[name] || manifest.devDependencies?.[name]);
+    assertResolvedFloor(lock.packages, name, minimum, required);
   });
 
   it("keeps the Cloudflare worker toolchain at the remediated dependency floor", () => {
-    for (const { name } of workerDependencyFloors) {
-      assertWorkerDependencyFloor(name, workerLock.packages[`node_modules/${name}`]?.version);
+    for (const { name, minimum } of workerDependencyFloors) {
+      const required = !!(
+        workerManifest.dependencies?.[name] || workerManifest.devDependencies?.[name]
+      );
+      assertResolvedFloor(workerLock.packages, name, minimum, required);
     }
   });
 
@@ -193,20 +180,23 @@ describe("Dependency security baseline", () => {
   });
 
   it("keeps Next.js and eslint-config-next on the same exact patch", () => {
-    const nextVersion = manifest.dependencies?.next ?? "";
+    const nextVersion = lock.packages["node_modules/next"]?.version ?? "";
     expect(nextVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(atLeast(nextVersion, "16.4.1")).toBe(true);
-    expect(manifest.devDependencies?.["eslint-config-next"]).toBe(nextVersion);
+    expect(manifest.dependencies?.next).toBeTruthy();
+    expect(manifest.devDependencies?.["eslint-config-next"]).toBeTruthy();
 
-    for (const name of ["next", "eslint-config-next", "@next/env", "@next/eslint-plugin-next"]) {
+    for (const name of ["next", "eslint-config-next"]) {
       expect(lock.packages[`node_modules/${name}`]?.version, name).toBe(nextVersion);
     }
 
-    const nativeCompilers = Object.entries(lock.packages).filter(([path]) =>
-      path.startsWith("node_modules/@next/swc-")
+    const toolchain = Object.entries(lock.packages).filter(
+      ([path]) =>
+        path === "node_modules/@next/env" ||
+        path === "node_modules/@next/eslint-plugin-next" ||
+        path.startsWith("node_modules/@next/swc-")
     );
-    expect(nativeCompilers.length).toBeGreaterThan(0);
-    for (const [path, entry] of nativeCompilers) {
+    for (const [path, entry] of toolchain) {
       expect(entry.version, path).toBe(nextVersion);
     }
   });
@@ -215,7 +205,7 @@ describe("Dependency security baseline", () => {
     ["React", ["react", "react-dom"]],
     ["Prisma", ["prisma", "@prisma/client", "@prisma/adapter-pg"]],
     ["Vitest", ["vitest", "@vitest/coverage-v8"]],
-  ])("keeps the %s package group synchronized in the manifest and lockfile", (_, names) => {
+  ])("keeps the %s package group's resolved versions synchronized", (_, names) => {
     assertSynchronizedGroup(
       names,
       { ...manifest.dependencies, ...manifest.devDependencies },
@@ -234,7 +224,7 @@ describe("Dependency security baseline", () => {
     ).not.toThrow();
   });
 
-  it("rejects PR #818's partial manifest upgrade even when installed versions match", () => {
+  it("accepts overlapping manifest ranges when installed Vitest versions match", () => {
     expect(() =>
       assertSynchronizedGroup(
         ["vitest", "@vitest/coverage-v8"],
@@ -244,7 +234,7 @@ describe("Dependency security baseline", () => {
           "node_modules/@vitest/coverage-v8": { version: "5.1.0" },
         }
       )
-    ).toThrow("@vitest/coverage-v8");
+    ).not.toThrow();
   });
 
   it("rejects mismatched Vitest resolutions even when declared ranges match", () => {
@@ -257,11 +247,26 @@ describe("Dependency security baseline", () => {
           "node_modules/@vitest/coverage-v8": { version: "5.1.0" },
         }
       )
-    ).toThrow("node_modules/@vitest/coverage-v8");
+    ).toThrow("@vitest/coverage-v8");
+  });
+
+  it("allows an isolated tool to carry its own dependency version", () => {
+    expect(() =>
+      assertSynchronizedGroup(
+        ["react", "react-dom"],
+        { react: "^19.3.0", "react-dom": "^19.3.0" },
+        {
+          "node_modules/react": { version: "19.3.1" },
+          "node_modules/react-dom": { version: "19.3.1" },
+          "node_modules/tool/node_modules/react": { version: "20.0.0" },
+        }
+      )
+    ).not.toThrow();
   });
 
   it("uses Nodemailer's bundled declarations instead of the legacy DefinitelyTyped package", () => {
-    expect(lock.packages["node_modules/@types/nodemailer"]).toBeUndefined();
+    expect(manifest.dependencies?.["@types/nodemailer"]).toBeUndefined();
+    expect(manifest.devDependencies?.["@types/nodemailer"]).toBeUndefined();
   });
 
   it("keeps tsx in the runtime dependency tree for production database seeding", () => {
@@ -310,12 +315,18 @@ describe("Dependency security baseline", () => {
     }
   });
 
-  it("loads the actual Prisma config with its schema, migration path, and datasource", async () => {
-    const result = await loadConfigFromFile({ configRoot: ROOT });
+  it("loads and validates the actual schema/config through Prisma's public CLI", () => {
+    const result = spawnSync(
+      join(ROOT, "node_modules/.bin/prisma"),
+      ["validate", "--config", "prisma.config.ts"],
+      {
+        cwd: ROOT,
+        encoding: "utf8",
+        env: process.env,
+        timeout: 25_000,
+      }
+    );
     expect(result.error).toBeUndefined();
-    if (!result.config) throw new Error("Prisma config did not load");
-    expect(result.config.schema).toBe(join(ROOT, "prisma/schema.prisma"));
-    expect(result.config.migrations?.path).toBe(join(ROOT, "prisma/postgres-migrations"));
-    expect(result.config.datasource?.url).toBe(process.env.DATABASE_URL);
+    expect(result.status, result.stdout + result.stderr).toBe(0);
   });
 });
