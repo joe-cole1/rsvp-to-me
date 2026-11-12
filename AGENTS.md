@@ -242,6 +242,10 @@ Use:
 
 as the canonical shipping mechanism after authorization.
 
+When the approved work is already committed on the branch (for example one commit per fix), use `scripts/ship.sh "<PR title>" --committed ...` instead; it runs the same checks on the branch's diff from `origin/main` and makes no new commit.
+
+`ship.sh` does not rerun preflight when that exact working tree already passed it in the same or a stronger mode. Run the required preflight once and ship without changing files in between. `--rerun-preflight` forces a new run.
+
 Use `--pr-handoff` only where `gh` cannot open PRs; check the branch's PR state
 through the GitHub integration before invoking it, then create/update the
 appropriate PR and monitor CI through the integration after pushing.

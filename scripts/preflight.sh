@@ -11,6 +11,10 @@
 #   scripts/preflight.sh          # full CI parity, including Playwright E2E
 #   scripts/preflight.sh --fast   # everything except E2E (much faster)
 #
+# A pass is recorded for the exact working tree it checked (see
+# scripts/lib/preflight-stamp.sh), so ship.sh does not repeat it on identical
+# content. Network steps retry transient DNS/connection failures.
+#
 set -Eeuo pipefail
 
 # ---- Load the repository's Node version in interactive/noninteractive shells -
@@ -18,6 +22,13 @@ cd "$(git rev-parse --show-toplevel)"
 
 # shellcheck source=scripts/lib/preflight-process-group.sh
 . scripts/lib/preflight-process-group.sh
+# shellcheck source=scripts/lib/preflight-stamp.sh
+. scripts/lib/preflight-stamp.sh
+# shellcheck source=scripts/lib/net-retry.sh
+. scripts/lib/net-retry.sh
+
+# The content this run checks; recorded on success only if it is unchanged then.
+PREFLIGHT_TREE="$(preflight_tree_id)"
 
 # Codex/Desktop-launched WSL shells can inherit Windows temp paths. Keep Node
 # tooling on the native WSL filesystem for reliability and performance.
@@ -73,6 +84,17 @@ export OPEN_REGISTRATION="true"
 step() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
 ok()   { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
 
+# record_pass <full|fast>: stamp the checked tree, unless files changed meanwhile.
+record_pass() {
+  local now
+  now="$(preflight_tree_id)" || return 0
+  if [ "$now" = "$PREFLIGHT_TREE" ]; then
+    preflight_record_pass "$1" "$now"
+  else
+    echo "⚠ Files changed while preflight ran, so no pass was recorded for ship.sh." >&2
+  fi
+}
+
 step "Starting ephemeral Postgres + Redis (ports ${PG_PORT}/${REDIS_PORT})"
 docker rm -f "$PG_NAME" "$REDIS_NAME" >/dev/null 2>&1 || true
 docker run -d --name "$PG_NAME" \
@@ -96,20 +118,20 @@ ok "services up"
 step "Install dependencies (npm ci)"
 # Match CI after branch or dependency changes; an existing directory can contain
 # packages from a different lockfile and is not proof of a reconciled install.
-npm ci
+net_retry npm ci
 ok "deps ready"
 
 step "Verify Playwright Docker browser"
 scripts/check-playwright-docker.sh
 
 step "Audit production dependencies"
-npm audit --omit=dev --audit-level=high
+net_retry npm audit --omit=dev --audit-level=high
 
 step "Install email worker dependencies"
-npm ci --prefix worker
+net_retry npm ci --prefix worker
 
 step "Audit shipped worker dependencies"
-npm audit --prefix worker --omit=dev --audit-level=high
+net_retry npm audit --prefix worker --omit=dev --audit-level=high
 
 step "Dry-run email worker bundle"
 (
@@ -125,8 +147,8 @@ npx tsc --ignoreConfig --noEmit --strict --skipLibCheck --target ES2022 --module
 step "Report build-tool dependency advisories (non-blocking)"
 root_audit_status=0
 worker_audit_status=0
-npm audit --audit-level=high || root_audit_status=$?
-npm audit --prefix worker --audit-level=high || worker_audit_status=$?
+net_retry npm audit --audit-level=high || root_audit_status=$?
+net_retry npm audit --prefix worker --audit-level=high || worker_audit_status=$?
 if [ "$root_audit_status" -ne 0 ] || [ "$worker_audit_status" -ne 0 ]; then
   echo "⚠ Build-tool dependency advisories remain. Runtime dependency audits passed." >&2
 fi
@@ -178,6 +200,7 @@ step "Type-check (tsc --noEmit)"
 npx tsc --noEmit
 
 if [ "$FAST" = 1 ]; then
+  record_pass fast
   ok "PREFLIGHT PASSED — fast mode (E2E skipped)"
   exit 0
 fi
@@ -213,9 +236,10 @@ if ! preflight_process_group_alive "$SERVER_PGID"; then
 fi
 
 step "E2E — ensuring Playwright Chromium is installed"
-npx playwright install chromium >/dev/null
+net_retry npx playwright install chromium >/dev/null
 
 step "E2E — Playwright tests"
 PLAYWRIGHT_BASE_URL="http://localhost:${E2E_PORT}" npm run test:e2e -- --output "$E2E_OUTPUT_DIR"
 
+record_pass full
 ok "PREFLIGHT PASSED — full CI parity ✅"

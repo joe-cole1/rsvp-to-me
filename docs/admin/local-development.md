@@ -324,6 +324,12 @@ create or update the appropriate PR and monitor CI through the integration.
 See [Developer Scripts](https://github.com/joe-cole1/rsvp-to-me/blob/main/scripts/README.md)
 for usage and the PR-state caveat.
 
+`scripts/ship.sh` does not repeat a preflight that already passed on the exact
+files being shipped (`--rerun-preflight` forces a run). It retries `npm`, `git push`
+and `gh` steps that fail with a transient DNS or connection error, and ships
+commits already on the branch with `--committed`. The PR title is the commit
+message's first line.
+
 `gh auth status` can report a stale token stored in `hosts.yml` even when a
 different credential source is successfully authenticating live GitHub
 requests. Treat that output as a troubleshooting hint, not proof that GitHub
