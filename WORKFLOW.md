@@ -75,8 +75,9 @@ Start the app separately when needed:
 npm run dev
 ```
 
-The server watches source files. Restart it only after a dependency or
-environment change, or when it is unhealthy. Development data is disposable,
+The server watches source files. Restart it with `scripts/dev-restart.sh` after
+switching branches, pulling, a dependency or environment change, a full
+preflight, or when it is unhealthy. It replaces the server already on :3000. Development data is disposable,
 but deleting Docker data remains an explicit user-approved action.
 
 To discard and recreate the disposable local database and cache:
