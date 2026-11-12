@@ -6,19 +6,8 @@ import { getSessionUser } from "@/lib/session-user";
 import GlobalHeader from "@/components/ui/GlobalHeader";
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Geist, Geist_Mono } from "next/font/google";
 import { themeFontVariables } from "./fonts";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 const baseMetadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
@@ -59,7 +48,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={locales[locale].dir}
-      className={`${geistSans.variable} ${geistMono.variable} ${themeFontVariables} h-full antialiased`}
+      className={`${themeFontVariables} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider locale={locale} messages={{ Ui: messages.Ui }}>
