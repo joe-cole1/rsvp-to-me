@@ -4,11 +4,21 @@
 # commit, push, and open a PR. It never stages every changed file automatically.
 #
 #   scripts/ship.sh "<commit message>" [options] -- <reviewed files...>
+#   scripts/ship.sh "<PR title>" --committed [options]
+#
+# The PR title is the message's first line, so a commit body and trailers stay
+# out of it. --committed ships commits already on the branch (no staging or new
+# commit) after the same checks on the branch's diff from origin/<base>.
+#
+# Preflight is skipped when it already passed for this exact working tree in the
+# requested mode or stronger (a full pass covers --fast); --rerun-preflight
+# forces a new run. Push and gh calls retry transient network failures.
 #
 # Examples:
 #   scripts/ship.sh "fix(auth): tighten session check" --label bug --pr-body-file /tmp/pr.md -- app/auth.ts
 #   scripts/ship.sh "chore: add local CI scripts" --label chore --fast --pr-body-file /tmp/pr.md -- scripts/ship.sh
 #   scripts/ship.sh "chore: update tooling" --pr-handoff --label chore --fast --pr-body-file /tmp/pr.md -- scripts/ship.sh
+#   scripts/ship.sh "fix: two separately committed fixes" --committed --label bug --pr-body-file /tmp/pr.md
 #
 set -Eeuo pipefail
 
@@ -28,9 +38,19 @@ if command -v nvm >/dev/null 2>&1; then
 fi
 command -v node >/dev/null 2>&1 || { echo "✗ node not found — run: nvm install" >&2; exit 1; }
 
+# shellcheck source=scripts/lib/preflight-stamp.sh
+. scripts/lib/preflight-stamp.sh
+# shellcheck source=scripts/lib/net-retry.sh
+. scripts/lib/net-retry.sh
+
+USAGE='usage: scripts/ship.sh "<commit message>" [options] -- <reviewed files...>
+       scripts/ship.sh "<PR title>" --committed [options]'
+
 MSG="${1:-}"
-[ -z "$MSG" ] && { echo "usage: scripts/ship.sh \"<commit message>\" [options] -- <reviewed files...>" >&2; exit 1; }
+[ -z "$MSG" ] && { echo "$USAGE" >&2; exit 1; }
 shift
+# The PR title is the subject line only, never the commit body or trailers.
+TITLE="${MSG%%$'\n'*}"
 
 LABEL="chore"
 BASE="main"
@@ -38,6 +58,8 @@ FASTFLAG=""
 DRAFT=""
 ALLOW_OPEN_PR=0
 PR_HANDOFF=0
+COMMITTED=0
+RERUN_PREFLIGHT=0
 PR_BODY_FILE=""
 FILES=()
 while [ $# -gt 0 ]; do
@@ -56,6 +78,8 @@ while [ $# -gt 0 ]; do
     --draft) DRAFT="--draft"; shift;;
     --allow-open-pr) ALLOW_OPEN_PR=1; shift;;
     --pr-handoff) PR_HANDOFF=1; shift;;
+    --committed) COMMITTED=1; shift;;
+    --rerun-preflight) RERUN_PREFLIGHT=1; shift;;
     --pr-body-file)
       [ $# -ge 2 ] || { echo "✗ --pr-body-file requires a value." >&2; exit 1; }
       PR_BODY_FILE="$2"
@@ -70,10 +94,18 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ "${#FILES[@]}" -gt 0 ] || {
-  echo "✗ Provide the reviewed files after -- (for example: -- app/page.tsx tests/page.test.tsx)." >&2
-  exit 1
-}
+if [ "$COMMITTED" -eq 1 ]; then
+  [ "${#FILES[@]}" -eq 0 ] || {
+    echo "✗ --committed ships existing commits; do not list files after --." >&2
+    exit 1
+  }
+else
+  [ "${#FILES[@]}" -gt 0 ] || {
+    echo "✗ Provide the reviewed files after -- (for example: -- app/page.tsx tests/page.test.tsx)," >&2
+    echo "  or use --committed to ship commits already on the branch." >&2
+    exit 1
+  }
+fi
 
 case "$LABEL" in
   feature|ui/ux|bug|refactor|performance|documentation|tests|chore) ;;
@@ -103,7 +135,7 @@ else
     exit 1
   }
 
-  OPEN_PR="$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url')"
+  OPEN_PR="$(net_retry gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url')"
   if [ -n "$OPEN_PR" ] && [ "$ALLOW_OPEN_PR" -ne 1 ]; then
     echo "✗ This branch already has an open PR: $OPEN_PR" >&2
     echo "  Obtain explicit approval before rerunning with --allow-open-pr." >&2
@@ -135,80 +167,109 @@ if ! git diff --cached --quiet; then
 fi
 
 say() { printf '\n\033[1;35m» %s\033[0m\n' "$*"; }
+ok_msg() { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
 
-# 1) Format only reviewed paths that still exist. Deleted files are valid ship
-# inputs but cannot be passed to Prettier.
-FORMAT_FILES=()
-for file in "${FILES[@]}"; do
-  [ -e "$file" ] && FORMAT_FILES+=("$file")
-done
-if [ "${#FORMAT_FILES[@]}" -gt 0 ]; then
-  say "Formatting reviewed files"
-  npx prettier --write --ignore-unknown "${FORMAT_FILES[@]}"
+# Leftover changes outside the reviewed paths (or, with --committed, any at all).
+fail_on_leftovers() {
+  local unstaged untracked
+  unstaged="$(git diff --name-only)"
+  untracked="$(git ls-files --others --exclude-standard)"
+  if [ -n "$unstaged" ] || [ -n "$untracked" ]; then
+    echo "✗ $1" >&2
+    [ -z "$unstaged" ] || printf '%s\n' "$unstaged" >&2
+    [ -z "$untracked" ] || printf '%s\n' "$untracked" >&2
+    echo "  Review them or remove them before shipping." >&2
+    exit 1
+  fi
+}
+
+if [ "$COMMITTED" -eq 1 ]; then
+  fail_on_leftovers "--committed ships commits only, but the working tree has uncommitted changes:"
+  net_retry git fetch --quiet origin "$BASE"
+  AHEAD="$(git rev-list --count "origin/$BASE..HEAD")"
+  [ "$AHEAD" -gt 0 ] || { echo "✗ No commits ahead of origin/$BASE to ship." >&2; exit 1; }
+else
+  # 1) Format only reviewed paths that still exist. Deleted files are valid ship
+  # inputs but cannot be passed to Prettier.
+  FORMAT_FILES=()
+  for file in "${FILES[@]}"; do
+    [ -e "$file" ] && FORMAT_FILES+=("$file")
+  done
+  if [ "${#FORMAT_FILES[@]}" -gt 0 ]; then
+    say "Formatting reviewed files"
+    npx prettier --write --ignore-unknown "${FORMAT_FILES[@]}"
+  fi
 fi
 
-# 2) Local CI — aborts the whole script on any failure (set -e).
-say "Running local CI (scripts/preflight.sh ${FASTFLAG:-full})"
-scripts/preflight.sh $FASTFLAG
+# 2) Local CI — aborts the whole script on any failure (set -e), unless this
+# exact tree already passed in this mode or a stronger one.
+MODE=full
+[ -n "$FASTFLAG" ] && MODE=fast
+TREE="$(preflight_tree_id)"
+if [ "$RERUN_PREFLIGHT" -eq 0 ] && preflight_stamp_covers "$MODE" "$TREE"; then
+  say "Local CI (scripts/preflight.sh ${FASTFLAG:-full})"
+  ok_msg "already passed for this exact working tree; not rerun (--rerun-preflight forces it)"
+else
+  say "Running local CI (scripts/preflight.sh ${FASTFLAG:-full})"
+  scripts/preflight.sh $FASTFLAG
+fi
 
-# 3) Stage only the explicitly reviewed paths, then self-review the staged diff.
-git add -- "${FILES[@]}"
+# 3) Stage only the explicitly reviewed paths, then self-review what ships.
+if [ "$COMMITTED" -eq 1 ]; then
+  REVIEW_RANGE=("origin/$BASE...HEAD")
+else
+  git add -- "${FILES[@]}"
+  REVIEW_RANGE=(--cached)
+fi
 say "Self-review guardrails"
 
-STAGED="$(git diff --cached --name-only)"
-[ -z "$STAGED" ] && { echo "✗ Nothing staged to commit." >&2; exit 1; }
+SHIPPED="$(git diff --name-only "${REVIEW_RANGE[@]}")"
+[ -z "$SHIPPED" ] && { echo "✗ Nothing staged to commit." >&2; exit 1; }
 
-UNSTAGED="$(git diff --name-only)"
-UNTRACKED="$(git ls-files --others --exclude-standard)"
-if [ -n "$UNSTAGED" ] || [ -n "$UNTRACKED" ]; then
-  echo "✗ Unstaged changes remain after staging the reviewed paths:" >&2
-  [ -z "$UNSTAGED" ] || printf '%s\n' "$UNSTAGED" >&2
-  [ -z "$UNTRACKED" ] || printf '%s\n' "$UNTRACKED" >&2
-  echo "  Review them or remove them before shipping." >&2
-  exit 1
-fi
+[ "$COMMITTED" -eq 1 ] || fail_on_leftovers "Unstaged changes remain after staging the reviewed paths:"
 
 fail=0
 
 # a) Never commit an environment file.
-if printf '%s\n' "$STAGED" | grep -qE '(^|/)\.env($|\.)'; then
+if printf '%s\n' "$SHIPPED" | grep -qE '(^|/)\.env($|\.)'; then
   echo "✗ A .env file is staged — remove it (git restore --staged) before shipping."
   fail=1
 fi
 
 # b) Block .only() in staged tests (silences the rest of the suite in CI).
 #    .skip()/it.todo() are allowed — sometimes a deliberately-parked test.
-if git diff --cached -U0 -- '*.test.ts' '*.test.tsx' '*.spec.ts' '*.spec.tsx' \
+if git diff "${REVIEW_RANGE[@]}" -U0 -- '*.test.ts' '*.test.tsx' '*.spec.ts' '*.spec.tsx' \
    | grep -qE '^\+.*\b(it|test|describe)\.only\('; then
   echo "✗ A .only() is staged in a test file — it would silence CI. Remove it."
   fail=1
 fi
 
 # c) Block stray debug artifacts in staged APP source (scripts/prisma/tests exempt).
-if git diff --cached -U0 -- app/ components/ lib/ \
+if git diff "${REVIEW_RANGE[@]}" -U0 -- app/ components/ lib/ \
    | grep -qE '^\+[^+].*(console\.(log|debug)|(^|[^.])\bdebugger\b)'; then
   echo "✗ A console.log/console.debug/debugger is staged in app source — remove it."
   fail=1
 fi
 
 [ "$fail" -eq 1 ] && { echo "Self-review failed — fix the above and re-run." >&2; exit 1; }
-ok_msg() { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
 ok_msg "self-review clean"
 
 # 4) Commit (husky hook runs for real — Node is present in WSL).
-say "Committing"
-git commit -m "$MSG"
+if [ "$COMMITTED" -eq 0 ]; then
+  say "Committing"
+  git commit -m "$MSG"
+fi
 
 # 5) Push.
 say "Pushing '$BRANCH'"
-git push -u origin "$BRANCH"
+net_retry git push -u origin "$BRANCH"
 
 # 6) Hand off PR handling, open a PR, or report the existing one.
 if [ "$PR_HANDOFF" -eq 1 ]; then
   say "PR handoff"
   printf '  Base: %s\n' "$BASE"
   printf '  Head: %s\n' "$BRANCH"
-  printf '  Title: %s\n' "$MSG"
+  printf '  Title: %s\n' "$TITLE"
   printf '  Label: %s\n' "$LABEL"
   printf '  Body file: %s\n' "$PR_BODY_FILE"
   printf '  Draft flag: %s\n' "${DRAFT:-(none)}"
@@ -216,12 +277,12 @@ if [ "$PR_HANDOFF" -eq 1 ]; then
   exit 0
 fi
 
-if gh pr view "$BRANCH" >/dev/null 2>&1; then
+if net_retry gh pr view "$BRANCH" >/dev/null 2>&1; then
   say "PR already open:"
-  gh pr view "$BRANCH" --json url --jq .url
+  net_retry gh pr view "$BRANCH" --json url --jq .url
 else
   say "Opening PR"
-  gh pr create --base "$BASE" --head "$BRANCH" --title "$MSG" --body-file "$PR_BODY_FILE" --label "$LABEL" $DRAFT
+  net_retry gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" --body-file "$PR_BODY_FILE" --label "$LABEL" $DRAFT
 fi
 
 printf '\n\033[1;32m✅ Shipped: %s\033[0m\n' "$BRANCH"

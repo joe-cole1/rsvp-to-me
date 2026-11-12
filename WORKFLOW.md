@@ -140,6 +140,12 @@ specified label. New PRs require a body file containing `## Summary`,
 `## Verification`, and `## Documentation` sections. The script stops if the
 branch has an open PR unless the user has explicitly authorized an update.
 
+The PR title is the commit message's first line. If the preflight from step 4
+already passed on the exact files being shipped, `ship.sh` does not run it
+again. Pass `--rerun-preflight` to force a run. Network steps retry transient
+DNS failures on their own. For work that is already committed on the branch,
+use `scripts/ship.sh "<PR title>" --committed ...` without a file list.
+
 Use `--pr-handoff` only where `gh` cannot open PRs. Check the branch's open,
 closed, and merged PR state through the GitHub integration first, then use the
 printed handoff to create or update the appropriate PR after pushing.

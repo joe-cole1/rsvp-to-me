@@ -72,6 +72,36 @@ The PR body file must contain `## Summary`, `## Verification`, and
 `## Documentation` headings. The script rejects unsupported release labels,
 pre-existing staged work, and unreviewed tracked or untracked changes.
 
+The PR title is the commit message's first line. The commit itself keeps the
+full message, including its body and `Co-Authored-By` trailer.
+
+**Preflight reuse.** Every passing `preflight.sh` run records the exact working
+tree it checked: HEAD plus every tracked change and untracked, non-ignored file.
+It is computed in a throwaway index and stored in the git directory as
+`rsvp-preflight-pass`. When that tree has already passed in the requested mode
+or a stronger one, `ship.sh` skips preflight; a full pass covers `--fast`, but
+not the other way round. Changing any file, including through Prettier, means a
+new run. `--rerun-preflight` forces one.
+
+**Network retries.** `npm ci`, the npm audits, the Playwright browser install,
+`git push`, and the `gh` calls go through `scripts/lib/net-retry.sh`. It retries
+up to three times, five seconds apart, but only when the output shows a
+transient network error such as a DNS `EAI_AGAIN`. A vulnerable package, a
+rejected push, or a GitHub validation error fails at once.
+
+**Shipping existing commits.** When the work is already committed on the branch
+(for example one commit per fix, or a merge of `main`), use `--committed`
+without a file list:
+
+```bash
+scripts/ship.sh "[<tag>] fix: two separate fixes" --committed --label bug --pr-body-file /tmp/pr.md
+```
+
+It requires a clean working tree and at least one commit ahead of
+`origin/<base>`. It runs the same preflight and self-review guards on the
+branch's diff from `origin/<base>`, then pushes and opens or reports the PR
+without making a new commit.
+
 Where `gh` cannot open PRs, use `--pr-handoff` and finish PR handling through
 the GitHub integration:
 
