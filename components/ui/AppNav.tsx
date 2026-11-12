@@ -10,7 +10,9 @@ const navBase: React.CSSProperties = {
   alignItems: "center",
 };
 
-const fixedNavStyle: React.CSSProperties = {
+// App chrome over event pages: one solid dark bar on every theme, so it never reads as a
+// gray or tinted wash over a light page (#812).
+const chromeNavStyle: React.CSSProperties = {
   position: "fixed",
   top: 0,
   left: 0,
@@ -18,11 +20,11 @@ const fixedNavStyle: React.CSSProperties = {
   zIndex: 200,
   height: "53px",
   padding: "0 16px",
-  background: "rgba(15,15,20,0.9)",
+  background: APP_SHELL.chromeSurface,
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
-  color: "#ffffff",
+  borderBottom: `1px solid ${APP_SHELL.navBorder}`,
+  color: APP_SHELL.textPrimary,
 };
 
 export function AppNavLogo({
@@ -76,21 +78,12 @@ export function AppTopNav({
   user: DropdownUser | null;
   onLocaleChange?: (locale: Locale) => Promise<void>;
   href?: string;
-  variant?: "default" | "fixed" | "event-overlay";
+  variant?: "default" | "chrome";
 }) {
   const variantStyle =
-    variant === "default"
-      ? { background: APP_SHELL.pageBg, color: APP_SHELL.textPrimary }
-      : {
-          ...fixedNavStyle,
-          ...(variant === "event-overlay"
-            ? {
-                height: "52px",
-                background: "rgba(0,0,0,0.45)",
-                borderBottom: "1px solid rgba(255,255,255,0.07)",
-              }
-            : undefined),
-        };
+    variant === "chrome"
+      ? chromeNavStyle
+      : { background: APP_SHELL.pageBg, color: APP_SHELL.textPrimary };
 
   return (
     <AppNavLogo

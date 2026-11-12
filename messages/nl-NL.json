@@ -8,7 +8,8 @@
       "back": "Terug",
       "edit": "Bewerken",
       "dismissNotification": "Melding sluiten",
-      "siteDescription": "Mooie, persoonlijke evenementpagina’s voor wijnavonden, etentjes en alles daartussenin."
+      "siteDescription": "Mooie, persoonlijke evenementpagina’s voor wijnavonden, etentjes en alles daartussenin.",
+      "loading": "Laden…"
     },
     "Navigation": {
       "user": "Gebruiker",
@@ -85,7 +86,8 @@
       "deleteFailed": "Het account kon niet worden verwijderd. Probeer het opnieuw.",
       "scheduledDate": "Anonimisering vindt plaats op of na {date}. Je kunt dit verzoek tot die tijd annuleren.",
       "eventDeleteFailed": "\"{title}\" kon niet worden verwijderd.",
-      "user": "Gebruiker"
+      "user": "Gebruiker",
+      "metadataTitle": "Profiel"
     },
     "Errors": {
       "Auth": {
@@ -220,6 +222,10 @@
         "invitationReviewChanged": "Deze gast is gewijzigd sinds het voorbeeld. Controleer de uitnodiging opnieuw.",
         "invitationChannelDisabled": "Dit kanaal voor uitnodigingen is uitgeschakeld.",
         "invitationSendFailed": "De uitnodiging kon niet worden verstuurd. Controleer deze ontvanger en probeer het opnieuw."
+      },
+      "NotFound": {
+        "title": "We konden die pagina niet vinden",
+        "description": "Misschien is de link verkeerd getypt, of is het evenement niet meer beschikbaar."
       }
     },
     "Event": {
@@ -1383,16 +1389,16 @@
       "actions2": "ACTIES",
       "noBackupArchivesFoundCreateOneManuallyOrConfigure": "Geen back-uparchieven gevonden. Maak handmatig een back-up of stel een schema in.",
       "download": "Downloaden",
-      "overview2": "📊 Overzicht",
-      "userManagement": "👥 Gebruikersbeheer",
-      "eventModeration": "🎈 Evenementenbeheer",
-      "hostSettings": "🔑 Organisatie-instellingen",
-      "emailSettings": "📧 E-mailinstellingen",
-      "smsSettings": "💬 Sms-instellingen",
-      "themePresets2": "🎨 Thema-voorinstellingen",
-      "databaseBackups": "💾 Databaseback-ups",
-      "documentation": "📚 Documentatie",
-      "adminNavigation": "🛡️ Beheernavigatie",
+      "overview2": "Overzicht",
+      "userManagement": "Gebruikersbeheer",
+      "eventModeration": "Evenementenbeheer",
+      "hostSettings": "Organisatie-instellingen",
+      "emailSettings": "E-mailinstellingen",
+      "smsSettings": "Sms-instellingen",
+      "themePresets2": "Thema-voorinstellingen",
+      "databaseBackups": "Databaseback-ups",
+      "documentation": "Documentatie",
+      "adminNavigation": "Beheernavigatie",
       "failedToCreateBackup": "Back-up maken is mislukt.",
       "backupDeletedSuccessfully": "Back-up verwijderd.",
       "failedToDeleteBackup": "Back-up verwijderen is mislukt.",
@@ -1484,7 +1490,7 @@
       "openRegistrationToggledToValue0Message": "Open registratie is nu {value0}.",
       "guestEmailNotificationsValue0Message": "E-mailmeldingen voor gasten zijn {value0}.",
       "smsNotificationsValue0Message": "Sms-meldingen zijn {value0}.",
-      "metadataTitle": "Beheerpaneel | RSVP",
+      "metadataTitle": "Beheerpaneel",
       "metadataDescription": "Systeembeheer voor RSVP to Me",
       "unknownError": "Onbekende fout",
       "yourEmail": "je e-mailadres",

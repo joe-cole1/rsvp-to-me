@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session-user";
 import { loadDocs } from "@/lib/docs";
 import { AppShell } from "@/components/ui/AppShell";
-import { APP_SHELL } from "@/lib/theme";
+import { APP_SHELL_THEME } from "@/lib/theme";
 import DocsPanel from "@/components/docs/DocsPanel";
 
 export async function generateMetadata() {
@@ -28,11 +28,11 @@ export default async function HelpPage() {
           style={{
             fontSize: "26px",
             fontWeight: 800,
-            color: APP_SHELL.textPrimary,
+            color: APP_SHELL_THEME.textPrimary,
             margin: "0 0 24px",
           }}
         >
-          📖 {tr("Ui.Dashboard.helpMetadataTitle")}
+          {tr("Ui.Dashboard.helpMetadataTitle")}
         </h1>
         <DocsPanel docs={docs} />
       </div>

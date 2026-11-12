@@ -239,76 +239,39 @@ export function HostBar({
             bottom: "24px",
             left: "50%",
             transform: "translateX(-50%)",
-            background: "rgba(15,15,20,0.85)",
+            background: APP_SHELL.chromeSurface,
             backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: "100px",
-            padding: "8px 16px",
+            border: `1px solid ${ct.cardBorder}`,
+            borderRadius: "999px",
+            padding: "6px 8px",
             display: "flex",
-            gap: "4px",
+            gap: "2px",
             zIndex: 100,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            boxShadow: APP_SHELL.chromeShadow,
+            // Never wider than the screen: longer languages scroll inside the bar.
+            boxSizing: "border-box",
+            maxWidth: "calc(100vw - 16px)",
+            overflowX: "auto",
+            scrollbarWidth: "none",
           }}
         >
           {actions.map(({ id, icon: Icon, label, href }) =>
             href ? (
-              <a
-                key={id}
-                href={href}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "3px",
-                  padding: "8px 14px",
-                  borderRadius: "80px",
-                  textDecoration: "none",
-                  color: "rgba(255,255,255,0.7)",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  background: "transparent",
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }}
-              >
-                <Icon size={18} />
+              <a key={id} href={href} {...buttonProps(ct, { variant: "toolbar" })}>
+                <Icon size={18} aria-hidden="true" />
                 {label}
               </a>
             ) : (
-              <button
+              <Button
                 key={id}
+                theme={ct}
+                variant="toolbar"
+                type="button"
                 onClick={() => setActivePanel(activePanel === id ? null : id)}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "3px",
-                  padding: "8px 14px",
-                  borderRadius: "80px",
-                  border: "none",
-                  cursor: "pointer",
-                  background: "transparent",
-                  color: "rgba(255,255,255,0.7)",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  fontFamily: "inherit",
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }}
               >
-                <Icon size={18} />
+                <Icon size={18} aria-hidden="true" />
                 {label}
-              </button>
+              </Button>
             )
           )}
         </div>
@@ -782,7 +745,7 @@ function SlideUp({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 90 }}
+        style={{ position: "fixed", inset: 0, background: APP_SHELL.chromeBackdrop, zIndex: 90 }}
       />
       {/* Panel */}
       <div
@@ -792,14 +755,14 @@ function SlideUp({
           left: 0,
           right: 0,
           zIndex: 95,
-          background: "rgba(15,15,20,0.95)",
+          background: APP_SHELL.chromeSurface,
           backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          border: `1px solid ${theme.cardBorder}`,
           borderRadius: "24px 24px 0 0",
           padding: "24px 20px 40px",
           maxWidth: "480px",
           margin: "0 auto",
-          color: "#fff",
+          color: theme.textPrimary,
         }}
       >
         <div
@@ -810,7 +773,7 @@ function SlideUp({
             marginBottom: "16px",
           }}
         >
-          <h3 style={{ color: "#fff", fontWeight: 700, fontSize: "17px" }}>{title}</h3>
+          <h3 style={{ color: theme.textPrimary, fontWeight: 700, fontSize: "17px" }}>{title}</h3>
           <Button theme={theme} variant="icon" onClick={onClose} aria-label={closeLabel}>
             <X size={20} aria-hidden="true" />
           </Button>

@@ -8,7 +8,8 @@
       "back": "Zurück",
       "edit": "Bearbeiten",
       "dismissNotification": "Benachrichtigung schließen",
-      "siteDescription": "Schöne, persönliche Veranstaltungsseiten für Weinabende, Dinnerpartys und alles dazwischen."
+      "siteDescription": "Schöne, persönliche Veranstaltungsseiten für Weinabende, Dinnerpartys und alles dazwischen.",
+      "loading": "Wird geladen …"
     },
     "Navigation": {
       "user": "Benutzer",
@@ -85,7 +86,8 @@
       "deleteFailed": "Das Konto konnte nicht gelöscht werden. Bitte versuche es erneut.",
       "scheduledDate": "Die Anonymisierung erfolgt am oder nach dem {date}. Du kannst diesen Antrag bis dahin jederzeit zurückziehen.",
       "eventDeleteFailed": "„{title}“ konnte nicht gelöscht werden.",
-      "user": "Benutzer"
+      "user": "Benutzer",
+      "metadataTitle": "Profil"
     },
     "Errors": {
       "Auth": {
@@ -220,6 +222,10 @@
         "invitationReviewChanged": "Dieser Gast hat sich seit der Vorschau geändert. Prüfe die Einladung erneut.",
         "invitationChannelDisabled": "Dieser Einladungskanal ist deaktiviert.",
         "invitationSendFailed": "Die Einladung konnte nicht gesendet werden. Prüfe diesen Empfänger und versuche es erneut."
+      },
+      "NotFound": {
+        "title": "Diese Seite haben wir nicht gefunden",
+        "description": "Vielleicht ist der Link falsch geschrieben oder die Veranstaltung ist nicht mehr verfügbar."
       }
     },
     "Event": {
@@ -1383,16 +1389,16 @@
       "actions2": "AKTIONEN",
       "noBackupArchivesFoundCreateOneManuallyOrConfigure": "Keine Sicherungsarchive gefunden. Erstelle manuell eines oder richte einen Zeitplan ein.",
       "download": "Herunterladen",
-      "overview2": "📊 Übersicht",
-      "userManagement": "👥 Benutzerverwaltung",
-      "eventModeration": "🎈 Veranstaltungsmoderation",
-      "hostSettings": "🔑 Veranstaltereinstellungen",
-      "emailSettings": "📧 E-Mail-Einstellungen",
-      "smsSettings": "💬 SMS-Einstellungen",
-      "themePresets2": "🎨 Designvorlagen",
-      "databaseBackups": "💾 Datenbanksicherungen",
-      "documentation": "📚 Dokumentation",
-      "adminNavigation": "🛡️ Admin-Navigation",
+      "overview2": "Übersicht",
+      "userManagement": "Benutzerverwaltung",
+      "eventModeration": "Veranstaltungsmoderation",
+      "hostSettings": "Veranstaltereinstellungen",
+      "emailSettings": "E-Mail-Einstellungen",
+      "smsSettings": "SMS-Einstellungen",
+      "themePresets2": "Designvorlagen",
+      "databaseBackups": "Datenbanksicherungen",
+      "documentation": "Dokumentation",
+      "adminNavigation": "Admin-Navigation",
       "failedToCreateBackup": "Sicherung konnte nicht erstellt werden.",
       "backupDeletedSuccessfully": "Sicherung erfolgreich gelöscht.",
       "failedToDeleteBackup": "Sicherung konnte nicht gelöscht werden.",
@@ -1484,7 +1490,7 @@
       "openRegistrationToggledToValue0Message": "Offene Registrierung auf {value0} gesetzt.",
       "guestEmailNotificationsValue0Message": "E-Mail-Benachrichtigungen für Gäste {value0}.",
       "smsNotificationsValue0Message": "SMS-Benachrichtigungen {value0}.",
-      "metadataTitle": "Admin-Bereich | RSVP",
+      "metadataTitle": "Admin-Bereich",
       "metadataDescription": "Bereich zur Systemverwaltung von RSVP to Me",
       "unknownError": "Unbekannter Fehler",
       "yourEmail": "deine E-Mail-Adresse",

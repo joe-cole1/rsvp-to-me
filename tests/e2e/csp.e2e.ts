@@ -120,8 +120,9 @@ test.describe("CSP nonce enforcement", () => {
     await assertNonceDocument(page, "/auth/sign-in");
     await assertNonceDocument(page, `/e/${PUBLIC_EVENT_SLUG}`);
 
+    // The app's own not-found page (#812), served with a 404 status and the request nonce.
     const notFound = await assertNonceDocument(page, "/csp-does-not-exist", 404);
-    expect(notFound.html).toContain("404");
+    expect(notFound.html).toContain("The link may be mistyped");
   });
 
   test("uses a fresh nonce per document request", async ({ page }) => {

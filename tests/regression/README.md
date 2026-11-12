@@ -219,3 +219,15 @@ Task 01a1baab: dialog-viewport-portal.test.tsx covers viewport placement outside
 Task 01a1baab (review): theme-preset-defaults.test.tsx also covers the live preset baseline, so an administrator's plain Save no longer makes a freshly applied preset show Restore, and the Restore-specific confirmation and Cancel. theme-autosave-order.test.tsx also covers newest-only failure rollback and a saved None staying None on a preset-linked event (replacing a tautological integration case).
 
 Task 01a1baab (review): settings-icon-summaries-fallback.test.ts covers the settings page surviving an unavailable icon catalog, which had dropped its fallback. preset-admin-category.test.tsx covers legacy seasonal presets keeping their category in the admin editor and presentation comparison that ignores JSONB key order.
+
+Task ed4ddceb (#812, design review batch 9):
+
+- `issue-812-app-shell.test.tsx`: the header over event pages was a hard-coded 45% black
+  wash (a gray slab on SOFT, a brown band on BOLD) and the host bar used literal surfaces,
+  11px labels and JS hover; both now read the solid chrome surface and shared controls. It
+  also covers the app-shell 404 that replaced Next's unstyled default, the dashboard's one
+  row of filter chips without zero-result chips, the users table that forced 700px inside a
+  phone card, and admin headings whose gradient-clipped text hid their emoji.
+- `issue-812-guest-list-title.test.tsx`: the guest list drew its own title in the card's
+  text color and the body font; it now shares the event hero's title block (heading font,
+  hero ink), and its document title names the event only where the link preview would.

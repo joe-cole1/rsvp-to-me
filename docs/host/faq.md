@@ -40,7 +40,8 @@ Each guest's edit link is unique and arrives in their confirmation email. If the
 
 - **Private event:** only invited guests and hosts can view it. Make sure they were invited.
 - **Password-protected:** they need the password you set (shared separately from the link).
-- Confirm you've shared the correct event link.
+- Confirm you've shared the correct event link. A link to an event that doesn't exist, or
+  that was cancelled or deleted, shows a "We couldn't find that page" screen with a way home.
 
 ## A guest didn't get an email or text
 

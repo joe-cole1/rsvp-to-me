@@ -6,7 +6,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Menu } from "lucide-react";
 import DocsPanel, { type PanelDoc } from "@/components/docs/DocsPanel";
-import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { APP_SHELL_THEME as T } from "@/lib/theme";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Feedback";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
@@ -943,18 +943,11 @@ export default function AdminClient({
             </Button>
           </div>
           <div>
-            <h2
-              style={{
-                fontSize: "28px",
-                fontWeight: 800,
-                background: `linear-gradient(135deg, ${APP_SHELL.textPrimary}, ${APP_SHELL.textSecondary})`,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
+            {/* Plain text: gradient-clipped text turned emoji into blank boxes (#812). */}
+            <h1 style={{ fontSize: "28px", fontWeight: 800, color: T.textPrimary }}>
               {TAB_META[activeTab].title}
-            </h2>
-            <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", marginTop: "4px" }}>
+            </h1>
+            <p style={{ color: T.textSecondary, fontSize: "14px", marginTop: "4px" }}>
               {TAB_META[activeTab].description}
             </p>
           </div>

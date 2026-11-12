@@ -4,17 +4,6 @@ import { AppTopNav } from "./AppNav";
 import type { DropdownUser } from "./ProfileDropdown";
 export default function GlobalHeader({ user }: { user: DropdownUser | null }) {
   const path = usePathname();
-  const event = path.startsWith("/e/");
-  return (
-    <AppTopNav
-      user={user}
-      variant={
-        event
-          ? path.split("/").filter(Boolean).length === 2
-            ? "event-overlay"
-            : "fixed"
-          : "default"
-      }
-    />
-  );
+  // Over every event route the header is app chrome: one fixed dark bar (#812).
+  return <AppTopNav user={user} variant={path.startsWith("/e/") ? "chrome" : "default"} />;
 }

@@ -52,8 +52,9 @@ them are shown at once in a grid that grows with the page, with the applied pres
 
 Buttons, fields, switches and save messages on your event page, its **Settings** and the RSVP
 form all take your theme's colors and button style, so they look the same on every screen and
-stay readable on light and dark themes alike. The host bar at the bottom of your page and its
-dialogs stay dark, with your accent color.
+stay readable on light and dark themes alike. The site's own controls stay dark on every theme,
+with your accent color: the header at the top of the page, the **Settings** bar, and the host
+bar at the bottom of your page with its dialogs.
 
 Text colors adjust automatically so guests can read them on your colors and card opacity. On a
 **Bold & Colorful** page, the title, host line and date turn dark on light gradients, and on

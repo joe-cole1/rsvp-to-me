@@ -1,4 +1,4 @@
-import type { ResolvedTheme } from "@/lib/theme";
+import { APP_SHELL, type ResolvedTheme } from "@/lib/theme";
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -20,11 +20,13 @@ export function buildStyles(t: ResolvedTheme) {
       position: "relative" as const,
       zIndex: 1,
     },
+    // App chrome, like the global header above it: the dark shell on every theme.
+    // Its contents read chromeTheme(t).
     header: {
       position: "sticky" as const,
       top: "53px",
-      background: t.cardBg,
-      borderBottom: `1px solid ${t.cardBorder}`,
+      background: APP_SHELL.chromeSurface,
+      borderBottom: `1px solid ${APP_SHELL.navBorder}`,
       padding: "12px 20px",
       display: "flex",
       alignItems: "center",

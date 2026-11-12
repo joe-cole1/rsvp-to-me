@@ -39,7 +39,7 @@ You can access the Admin Panel in two ways:
 
 The Admin Panel is strictly gated to users with the `ADMIN` role. If you attempt to access `/admin` with a lower-privilege account, the app redirects you to the main dashboard.
 
-The panel is organized into a sidebar of tabs: **Overview**, **Users**, **Events**, **Host Settings**, **Email**, **SMS**, **Backups**, **Themes**, and **Documentation**. On phones and small tablets the sidebar is replaced by a hamburger button (☰) in the top-left of the page — tap it to open a slide-in drawer with the same tabs. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
+The panel is organized into a sidebar of tabs: **Overview**, **User management**, **Event moderation**, **Host settings**, **Email settings**, **SMS settings**, **Theme presets**, **Database backups**, and **Documentation**. On phones and small tablets the sidebar is replaced by a hamburger button (☰) in the top-left of the page — tap it to open a slide-in drawer with the same tabs. The active tab is reflected in the URL (e.g. `/admin?tab=backups`), so you can bookmark or refresh without losing your place.
 
 > **Tip:** All of these admin guides — this one plus installation, configuration, email, SMS, and upgrading — are also readable inside the app in the **Documentation** tab at the bottom of the Admin Panel menu.
 
@@ -72,7 +72,7 @@ recovering the initial administrator.
 
 If you already have one active Admin account, you can promote other users:
 
-1. Navigate to `/admin` > **Users**.
+1. Navigate to `/admin` > **User management**.
 2. Search for the user by name or email address.
 3. Click the user's row to open their details.
 4. Select `ADMIN` from the **Role** dropdown.
@@ -100,7 +100,9 @@ The **Overview** tab shows a snapshot of your installation:
 
 ## User Management
 
-Go to `/admin` > **Users** to view and manage accounts.
+Go to `/admin` > **User management** to view and manage accounts. On wide screens the users
+are a table with a header row; on a phone each user is a stacked block of labeled values
+(User, Contact, Role, Actions), so nothing scrolls sideways.
 
 ### Searching Users
 
@@ -127,7 +129,7 @@ When you create the user, a 48-hour magic sign-in link is emailed to them so the
 
 ### Deleting and Restoring Users
 
-You can delete and manage users from the **Users** tab.
+You can delete and manage users from the **User management** tab.
 
 - **Standard Deletion (Grace Period)**: By default, deleting a user schedules their account to be permanently deleted and anonymized in 30 days. During this 30-day grace period, the user's account is suspended, but an admin can click **Restore** to cancel the deletion request and re-enable the account.
 - **Immediate Deletion Override**: Admins can bypass the 30-day grace period and immediately anonymize/delete a pending user by clicking **Delete Now** in the user's action column (requires confirmation).
@@ -146,7 +148,7 @@ The **Users** list can be filtered using the **Role** and **Status** selectors n
 
 ## Event Moderation
 
-Go to `/admin` > **Events** to inspect event pages across your installation.
+Go to `/admin` > **Event moderation** to inspect event pages across your installation.
 
 ### Search and Moderation
 
@@ -166,7 +168,7 @@ Search for events by title, slug, or the host's email, and filter by status.
 
 ## Host Settings (Invite Codes & Registration)
 
-Go to `/admin` > **Host Settings** to control how new hosts join the platform.
+Go to `/admin` > **Host settings** to control how new hosts join the platform.
 
 ### Open Registration
 
@@ -198,7 +200,7 @@ Toggle the status next to any code in the table to deactivate or reactivate it i
 
 ## Email Settings
 
-Go to `/admin` > **Email** to configure outbound email. Settings saved here are stored in the database and override the matching `.env` values immediately, without a container restart.
+Go to `/admin` > **Email settings** to configure outbound email. Settings saved here are stored in the database and override the matching `.env` values immediately, without a container restart.
 
 - **Guest Email Notifications toggle:** when off, no emails are sent to guests (RSVP confirmations, blast updates, reminders, invites). Host sign-in links and admin emails are always sent regardless of this setting.
 - **Email Provider:** choose **SMTP**, **Cloudflare Worker**, or **Cloudflare REST API**.
@@ -211,7 +213,7 @@ See the [Email Setup Guide](email.md) for provider-by-provider walkthroughs.
 
 ## SMS Settings
 
-Go to `/admin` > **SMS** to configure Twilio.
+Go to `/admin` > **SMS settings** to configure Twilio.
 
 - **SMS Notifications toggle:** when on, guests receive SMS confirmations, blast updates, reminders, and invites. It defaults to on automatically when Twilio credentials are present, and requires those credentials to work.
 - Enter your Twilio **Account SID**, **Auth Token** (hidden by default; use the eye button to show it), and **phone number**.
@@ -223,7 +225,7 @@ See the [SMS Setup Guide](sms.md) for the full Twilio walkthrough.
 
 ## Database Backups
 
-Go to `/admin` > **Backups** to manage PostgreSQL database snapshots. Backups are created with `pg_dump` and saved to the persistent `/app/data/backups` volume.
+Go to `/admin` > **Database backups** to manage PostgreSQL database snapshots. Backups are created with `pg_dump` and saved to the persistent `/app/data/backups` volume.
 
 ### Backup Schedule
 
@@ -241,7 +243,7 @@ Pick a schedule from the preset dropdown: **Disabled**, **Every hour**, **Every 
 
 ## Theme Presets
 
-Go to `/admin` > **Themes** to manage the preset themes hosts can choose from in their event settings.
+Go to `/admin` > **Theme presets** to manage the preset themes hosts can choose from in their event settings.
 
 - **Create / Edit / Delete presets:** configure a preset's base style, accent colors, gradients, decorations, title, and description.
 - **Heading font:** each preset can optionally carry a **heading font** chosen from the curated registry (`lib/fonts.ts`) — 12 Google Fonts self-hosted at build time (no runtime requests to Google, works offline/air-gapped). Hosts applying the preset get the font automatically and can override it per event. Leave it on **Theme default** to use the base style's built-in typography.

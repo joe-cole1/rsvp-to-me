@@ -40,6 +40,10 @@ After signing in, your **Dashboard** is home base. It shows:
 - **Events you're attending** (where you've RSVP'd Going or Maybe)
 - **Pending approvals** — a heads-up when guests are waiting for you to approve their RSVP
 
+Filter chips at the top (**Upcoming**, **Hosting**, **Open invite**, **Attended** and **All past
+events**) show how many events each one holds. Chips with nothing in them are hidden, and on a
+phone the row scrolls sideways.
+
 ---
 
 ## The Typical Workflow

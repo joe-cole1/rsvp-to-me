@@ -3,6 +3,7 @@
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 
 import { createPortal } from "react-dom";
+import { APP_SHELL } from "@/lib/theme";
 
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
@@ -95,7 +96,7 @@ export function Dialog({
         position: "fixed",
         inset: 0,
         zIndex: 1000,
-        background: "rgba(0,0,0,0.65)",
+        background: APP_SHELL.chromeBackdrop,
         backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
