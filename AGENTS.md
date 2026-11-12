@@ -67,6 +67,12 @@ Native Next.js dev server:
 
 `http://localhost:3000`
 
+After switching branches, pulling, or a full preflight (which reinstalls `node_modules` under a running server), restart it with:
+
+`scripts/dev-restart.sh`
+
+It stops the previous Next.js server on :3000 and its npm wrappers, syncs services, clears the Turbopack dev cache, and runs `next dev` in the foreground. Keep it in a terminal or a background task. A copy detached with `setsid nohup` from a one-off `wsl.exe` call dies when that call returns. Don't free the port with `lsof`: in WSL it does not list Node's listening sockets, so use `ss -ltnp` or `scripts/dev-restart.sh --stop-only`. The script reinstalls locked dependencies only when `package-lock.json` is newer than the last install; that installs exactly what the branch locks and changes no dependency.
+
 `docker-compose.override.yml` disables the Compose app and exposes:
 
 - Postgres `127.0.0.1:5432`

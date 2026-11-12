@@ -55,6 +55,22 @@ seed baseline data. Pass `--deps` after cloning or changing dependencies.
 for Postgres and Redis, then recreates and reseeds them. It must never be used
 against a production deployment.
 
+### `dev-restart.sh` — restart the dev server
+
+`scripts/dev-restart.sh` serves the current checkout on :3000. It stops any
+Next.js server already listening there, together with its `npm run dev` /
+`next dev` wrappers, and waits for the port to close. Then it runs `dev-sync.sh`
+(with `--deps` only when `package-lock.json` is newer than the last install),
+removes the Turbopack dev cache in `.next/dev`, and starts `next dev` in the
+foreground. A listener that is not a Next.js process is reported and left alone.
+`--stop-only` stops the server without starting a new one, and `PORT` overrides
+the port.
+
+The listener is found with `ss`, because `lsof -i` does not list Node's
+listening sockets in WSL. The dev cache is cleared because a cache built before
+`npm ci` replaced `node_modules` fails every page with
+`Cannot find module '@vercel/turbopack/postcss'`.
+
 ### `ship.sh` — one-shot commit + push + PR
 
 Runs `preflight.sh`, and **only if everything passes** commits, pushes, and opens the PR.

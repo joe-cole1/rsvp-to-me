@@ -102,7 +102,19 @@ npm run dev
 ```
 
 Visit `http://localhost:3000`. The Next.js dev server watches source files, so
-restart it only after a dependency or environment change.
+restart it only after switching branches, pulling, a dependency or environment
+change, or a full `scripts/preflight.sh` run (which reinstalls `node_modules`).
+To restart, run:
+
+```bash
+scripts/dev-restart.sh
+```
+
+It stops the server already on port 3000, syncs services, rebuilds the dev
+cache, and starts a new server in the foreground. If port 3000 is held by
+something other than a Next.js server, it names that process and stops without
+touching it. To stop the server without starting a new one, run
+`scripts/dev-restart.sh --stop-only`.
 
 The full `scripts/preflight.sh` check uses port 3001 for its temporary E2E app.
 That port must be free before the E2E phase starts; preflight exits with a clear
