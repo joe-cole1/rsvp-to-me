@@ -58,6 +58,10 @@ describe.each(THEMES)("shared controls on %s", (_name, t) => {
     expect(destructive.backgroundColor).toBe(t.status.error.bg);
     expect(buttonStyle(t, { variant: "link" }).color).toBe(t.accentText);
     expect(buttonStyle(t, { variant: "add" }).color).toBe(t.accentText);
+    const toolbar = buttonStyle(t, { variant: "toolbar" });
+    expect(toolbar.color).toBe(t.textSecondary);
+    expect(px(toolbar.fontSize)).toBeGreaterThanOrEqual(12);
+    expect(px(toolbar.minHeight)).toBeGreaterThanOrEqual(44);
   });
 
   it("styles inputs and labels from the theme's input and text fields", () => {
@@ -104,6 +108,7 @@ describe("one button component", () => {
     "add",
     "link",
     "overlay",
+    "toolbar",
   ])("%s buttons fade to 0.45 and show not-allowed when disabled", (variant) => {
     render(
       <Button theme={APP_SHELL_THEME} variant={variant} disabled>

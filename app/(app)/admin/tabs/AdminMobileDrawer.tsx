@@ -33,7 +33,7 @@ export function AdminMobileDrawer({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            backgroundColor: APP_SHELL.chromeBackdrop,
             backdropFilter: "blur(4px)",
             zIndex: 999,
             display: "flex",
@@ -55,9 +55,9 @@ export function AdminMobileDrawer({
             style={{
               width: "280px",
               height: "100%",
-              backgroundColor: "#13091f",
-              borderRight: "1px solid rgba(255, 255, 255, 0.10)",
-              padding: "24px",
+              backgroundColor: APP_SHELL.chromeSurface,
+              borderInlineEnd: `1px solid ${APP_SHELL.navBorder}`,
+              padding: "24px 20px",
               boxSizing: "border-box",
               display: "flex",
               flexDirection: "column",
@@ -68,7 +68,7 @@ export function AdminMobileDrawer({
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3 style={{ fontSize: "16px", fontWeight: 800, color: APP_SHELL.textPrimary }}>
+              <h3 style={{ fontSize: "16px", fontWeight: 800, color: APP_SHELL_THEME.textPrimary }}>
                 {tr("adminNavigation")}
               </h3>
               <Button
@@ -84,6 +84,8 @@ export function AdminMobileDrawer({
 
             <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
 
+            {/* The 4px padding (and matching negative margin) keeps the items' fills and
+                focus rings clear of the scroll container's edge. */}
             <div
               style={{
                 display: "flex",
@@ -91,6 +93,8 @@ export function AdminMobileDrawer({
                 gap: "4px",
                 overflowY: "auto",
                 flex: 1,
+                padding: "4px",
+                margin: "-4px",
               }}
             >
               {(

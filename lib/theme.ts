@@ -32,8 +32,25 @@ export const APP_SHELL = {
   inputBorder: "rgba(255,255,255,0.1)",
   inputRadius: "12px",
   btnRadius: "14px",
-  /** The solid surface of app chrome over event pages (host bar dialogs and sheets). */
+  /**
+   * The solid surface of app chrome over event pages: the global header, the settings bar,
+   * the host bar and its dialogs and sheets. One dark surface on every theme (#812).
+   */
   chromeSurface: "rgba(15,15,20,0.98)",
+  /** The dimmed backdrop behind a modal dialog or sheet. */
+  chromeBackdrop: "rgba(0,0,0,0.65)",
+  /** The shadow under floating chrome (the host bar), so it stands off light pages too. */
+  chromeShadow: "0 8px 32px rgba(0,0,0,0.4)",
+} as const;
+
+/**
+ * Controls and labels laid on a photo (a cover image, an event card): dark glass with white
+ * text, the same on every theme because the photo, not the theme, is underneath.
+ */
+export const PHOTO_OVERLAY = {
+  background: "rgba(0,0,0,0.55)",
+  border: "rgba(255,255,255,0.2)",
+  text: "#ffffff",
 } as const;
 
 export const BASE_THEMES: {

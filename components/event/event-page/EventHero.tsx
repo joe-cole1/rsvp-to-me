@@ -13,6 +13,7 @@ import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
 import { HeroScrim } from "./HeroScrim";
+import { heroTitleStyle } from "./EventTitleBlock";
 
 export function EventHero({
   event,
@@ -112,18 +113,7 @@ export function EventHero({
             paddingInline: isHost ? "44px" : undefined,
           }}
         >
-          <h1
-            style={{
-              fontSize: "36px",
-              fontWeight: 900,
-              letterSpacing: "-0.02em",
-              fontFamily: t.headingFont,
-              color: t.heroText,
-              textShadow: t.heroTextShadow,
-              margin: 0,
-              textAlign: "center",
-            }}
-          >
+          <h1 style={heroTitleStyle(t)}>
             <InlineEdit
               outerRef={titleRef}
               value={event.title}

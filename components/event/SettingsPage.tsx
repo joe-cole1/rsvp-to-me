@@ -7,7 +7,13 @@ import { useState, useTransition, useEffect, useMemo, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InlineAlert, Toast } from "@/components/ui/Feedback";
-import { type BaseTheme, resolveTheme, getSortedPresets, getDefaultCardOpacity } from "@/lib/theme";
+import {
+  type BaseTheme,
+  chromeTheme,
+  resolveTheme,
+  getSortedPresets,
+  getDefaultCardOpacity,
+} from "@/lib/theme";
 import { resolveEffectConfig } from "@/lib/effects";
 import type { LibraryIconSummary } from "@/lib/effect-catalog-shared";
 import {
@@ -863,6 +869,8 @@ export function SettingsPage({
   );
 
   const S = buildStyles(t);
+  // The settings bar is app chrome: the dark shell with the event's accent.
+  const ct = chromeTheme(t);
 
   return (
     <div style={S.page}>
@@ -878,7 +886,7 @@ export function SettingsPage({
       {/* ── Settings sub-nav ── */}
       <div style={S.header}>
         <Button
-          theme={t}
+          theme={ct}
           variant="icon"
           aria-label={common("back")}
           onClick={() => {
@@ -895,14 +903,14 @@ export function SettingsPage({
           style={{
             fontSize: "17px",
             fontWeight: 700,
-            color: t.textPrimary,
+            color: ct.textPrimary,
             flex: 1,
             marginLeft: "12px",
           }}
         >
           {activeSection ? (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <Button theme={t} variant="link" type="button" onClick={closeSection}>
+              <Button theme={ct} variant="link" type="button" onClick={closeSection}>
                 {translate("settings")}
               </Button>
               <span style={{ opacity: 0.4 }}>/</span>
@@ -929,7 +937,7 @@ export function SettingsPage({
               alignItems: "center",
               gap: "6px",
               fontSize: "12px",
-              color: t.textMuted,
+              color: ct.textMuted,
             }}
           >
             <span
@@ -938,7 +946,7 @@ export function SettingsPage({
                 width: "12px",
                 height: "12px",
                 borderRadius: "50%",
-                border: `2px solid ${t.accent}`,
+                border: `2px solid ${ct.accent}`,
                 borderTopColor: "transparent",
                 animation: "spin 0.6s linear infinite",
                 boxSizing: "border-box",

@@ -94,158 +94,151 @@ export function UsersTab({
         </Button>
       </div>
 
+      {/* Data table: a header row on wide cards; under 480px of card width each row
+          stacks into label and value pairs (.rsvp-table in app/globals.css), so the
+          page never scrolls sideways. Roles keep the table semantics once rows stack. */}
       <div
-        style={{
-          ...appCardStyle,
-          overflowX: "auto",
-        }}
+        className="rsvp-table-wrap"
+        style={
+          {
+            ...appCardStyle,
+            "--rsvp-table-label": T.textSecondary,
+            "--rsvp-table-rule": APP_SHELL.navBorder,
+          } as React.CSSProperties
+        }
       >
-        <div style={{ minWidth: "700px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-            <thead>
-              <tr
-                style={{
-                  borderBottom: `1px solid ${APP_SHELL.navBorder}`,
-                  color: APP_SHELL.textSecondary,
-                  textAlign: "left",
-                }}
-              >
-                <th style={{ padding: "16px" }}>{tr("user")}</th>
-                <th style={{ padding: "16px" }}>{tr("contact")}</th>
-                <th style={{ padding: "16px" }}>{tr("role")}</th>
-                <th style={{ padding: "16px", textAlign: "right" }}>{tr("actions")}</th>
+        <table role="table" className="rsvp-table" style={{ fontSize: "14px" }}>
+          <thead role="rowgroup">
+            <tr role="row" style={{ color: T.textSecondary }}>
+              <th role="columnheader">{tr("user")}</th>
+              <th role="columnheader">{tr("contact")}</th>
+              <th role="columnheader">{tr("role")}</th>
+              <th role="columnheader" className="rsvp-table-end">
+                {tr("actions")}
+              </th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            {filteredUsers.length === 0 ? (
+              <tr role="row">
+                <td
+                  role="cell"
+                  colSpan={4}
+                  style={{ padding: "32px", textAlign: "center", color: T.textSecondary }}
+                >
+                  {tr("noUsersFound")}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    style={{
-                      padding: "32px",
-                      textAlign: "center",
-                      color: APP_SHELL.textMuted,
-                    }}
-                  >
-                    {tr("noUsersFound")}
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((u) => (
-                  <tr key={u.id} style={{ borderBottom: `1px solid ${APP_SHELL.navBorder}` }}>
-                    <td style={{ padding: "16px" }}>
-                      <div style={{ fontWeight: 700, color: APP_SHELL.textPrimary }}>
-                        {u.name || tr("unnamedUser")}
-                      </div>
-                      <div style={{ fontSize: "11px", color: APP_SHELL.textMuted }}>
-                        {tr("registeredOn", {
-                          date: new Date(u.createdAt).toLocaleDateString(locale),
-                        })}
-                      </div>
-                      {u.deletionScheduledAt && (
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: T.status.error.text,
-                            fontWeight: 600,
-                            marginTop: "4px",
-                          }}
-                        >
-                          {tr("deletionRequestedOn")}{" "}
-                          {u.deletionRequestedAt
-                            ? new Date(u.deletionRequestedAt).toLocaleDateString(locale)
-                            : "unknown"}{" "}
-                          {tr("scheduledFor")}
-                          {new Date(u.deletionScheduledAt).toLocaleDateString(locale)}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "16px" }}>
-                      <div style={{ color: APP_SHELL.textPrimary }}>{u.email || "-"}</div>
-                      <div style={{ fontSize: "12px", color: APP_SHELL.textSecondary }}>
-                        {u.phone || "-"}
-                      </div>
-                    </td>
-                    <td style={{ padding: "16px" }}>
-                      <Select
-                        theme={T}
-                        aria-label={tr("role")}
-                        value={u.role}
-                        onChange={(e) =>
-                          handleRoleChange(u.id, e.target.value as "GUEST" | "HOST" | "ADMIN")
-                        }
-                        disabled={u.id === sessionUserId}
-                        style={{ width: "auto" }}
+            ) : (
+              filteredUsers.map((u) => (
+                <tr role="row" key={u.id}>
+                  <td role="cell" data-label={tr("user")}>
+                    <div style={{ fontWeight: 700, color: T.textPrimary }}>
+                      {u.name || tr("unnamedUser")}
+                    </div>
+                    <div style={{ fontSize: "12px", color: T.textMuted }}>
+                      {tr("registeredOn", {
+                        date: new Date(u.createdAt).toLocaleDateString(locale),
+                      })}
+                    </div>
+                    {u.deletionScheduledAt && (
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: T.status.error.text,
+                          fontWeight: 600,
+                          marginTop: "4px",
+                        }}
                       >
-                        <option value="GUEST">{tr("guest")}</option>
-                        <option value="HOST">{tr("host")}</option>
-                        <option value="ADMIN">{tr("admin")}</option>
-                      </Select>
-                    </td>
-                    <td style={{ padding: "16px", textAlign: "right" }}>
-                      {u.id === sessionUserId ? (
-                        <span
-                          style={{
-                            color: APP_SHELL.textMuted,
-                            fontSize: "13px",
-                            fontStyle: "italic",
-                          }}
+                        {tr("deletionRequestedOn")}{" "}
+                        {u.deletionRequestedAt
+                          ? new Date(u.deletionRequestedAt).toLocaleDateString(locale)
+                          : "unknown"}{" "}
+                        {tr("scheduledFor")}
+                        {new Date(u.deletionScheduledAt).toLocaleDateString(locale)}
+                      </div>
+                    )}
+                  </td>
+                  <td role="cell" data-label={tr("contact")}>
+                    <div style={{ color: T.textPrimary, overflowWrap: "anywhere" }}>
+                      {u.email || "-"}
+                    </div>
+                    <div style={{ fontSize: "12px", color: T.textSecondary }}>{u.phone || "-"}</div>
+                  </td>
+                  <td role="cell" data-label={tr("role")}>
+                    <Select
+                      theme={T}
+                      aria-label={tr("role")}
+                      value={u.role}
+                      onChange={(e) =>
+                        handleRoleChange(u.id, e.target.value as "GUEST" | "HOST" | "ADMIN")
+                      }
+                      disabled={u.id === sessionUserId}
+                      style={{ width: "auto" }}
+                    >
+                      <option value="GUEST">{tr("guest")}</option>
+                      <option value="HOST">{tr("host")}</option>
+                      <option value="ADMIN">{tr("admin")}</option>
+                    </Select>
+                  </td>
+                  <td role="cell" data-label={tr("actions")} className="rsvp-table-end">
+                    {u.id === sessionUserId ? (
+                      <span
+                        style={{
+                          color: T.textSecondary,
+                          fontSize: "13px",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {tr("currentSession")}
+                      </span>
+                    ) : !u.email && !u.phone ? null : u.deletionScheduledAt ? ( // Already deleted / anonymized user: show nothing
+                      <div
+                        className="rsvp-table-actions"
+                        style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}
+                      >
+                        <Button
+                          theme={T}
+                          variant="secondary"
+                          size="sm"
+                          onClick={() =>
+                            handleCancelDeletion(u.id, u.name || u.email || tr("unknownUser"))
+                          }
                         >
-                          {tr("currentSession")}
-                        </span>
-                      ) : !u.email &&
-                        !u.phone ? null : u // Already Deleted / Anonymized user - show nothing
-                        .deletionScheduledAt ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "8px",
-                            justifyContent: "flex-end",
-                          }}
-                        >
-                          <Button
-                            theme={T}
-                            variant="secondary"
-                            size="sm"
-                            onClick={() =>
-                              handleCancelDeletion(u.id, u.name || u.email || tr("unknownUser"))
-                            }
-                          >
-                            {tr("restore")}
-                          </Button>
-                          <Button
-                            theme={T}
-                            variant="destructive"
-                            size="sm"
-                            onClick={() =>
-                              handleUserDeleteImmediately(
-                                u.id,
-                                u.name || u.email || tr("unknownUser")
-                              )
-                            }
-                          >
-                            {tr("deleteNow")}
-                          </Button>
-                        </div>
-                      ) : (
+                          {tr("restore")}
+                        </Button>
                         <Button
                           theme={T}
                           variant="destructive"
                           size="sm"
                           onClick={() =>
-                            handleUserDelete(u.id, u.name || u.email || tr("unknownUser"))
+                            handleUserDeleteImmediately(
+                              u.id,
+                              u.name || u.email || tr("unknownUser")
+                            )
                           }
                         >
-                          {tr("delete")}
+                          {tr("deleteNow")}
                         </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        theme={T}
+                        variant="destructive"
+                        size="sm"
+                        onClick={() =>
+                          handleUserDelete(u.id, u.name || u.email || tr("unknownUser"))
+                        }
+                      >
+                        {tr("delete")}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

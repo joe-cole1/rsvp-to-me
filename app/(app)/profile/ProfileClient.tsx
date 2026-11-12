@@ -10,7 +10,7 @@ import {
   cancelMyAccountDeletion,
 } from "@/app/actions/profile";
 import { deleteEvent } from "@/app/actions/event";
-import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T, PHOTO_OVERLAY } from "@/lib/theme";
 import { AppShell } from "@/components/ui/AppShell";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
 import { Button } from "@/components/ui/Button";
@@ -206,17 +206,17 @@ export default function ProfileClient({
           boxSizing: "border-box",
         }}
       >
-        <h2
+        <h1
           style={{
             fontSize: "28px",
             fontWeight: 800,
-            color: APP_SHELL.textPrimary,
+            color: T.textPrimary,
             marginBottom: "8px",
           }}
         >
           {t("title")}
-        </h2>
-        <p style={{ color: APP_SHELL.textSecondary, marginBottom: "32px", fontSize: "14px" }}>
+        </h1>
+        <p style={{ color: T.textSecondary, marginBottom: "32px", fontSize: "14px" }}>
           {t("description")}
         </p>
 
@@ -272,8 +272,8 @@ export default function ProfileClient({
                       width: "80px",
                       height: "80px",
                       borderRadius: "50%",
-                      background: `linear-gradient(135deg, ${APP_SHELL.accent}, ${APP_SHELL.accentSecondary})`,
-                      color: "#fff",
+                      background: T.avatarGradient,
+                      color: T.accentFg,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -294,12 +294,12 @@ export default function ProfileClient({
                       width: "80px",
                       height: "80px",
                       borderRadius: "50%",
-                      backgroundColor: "rgba(0, 0, 0, 0.6)",
+                      backgroundColor: PHOTO_OVERLAY.background,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#fff",
-                      fontSize: "11px",
+                      color: PHOTO_OVERLAY.text,
+                      fontSize: "12px",
                       fontWeight: 700,
                     }}
                   >
@@ -410,7 +410,7 @@ export default function ProfileClient({
                 </p>
                 <p
                   style={{
-                    color: "rgba(255,255,255,0.6)",
+                    color: T.textSecondary,
                     fontSize: "14px",
                     marginTop: "6px",
                     marginBottom: 0,
@@ -453,7 +453,7 @@ export default function ProfileClient({
             </div>
           ) : (
             <>
-              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginBottom: "16px" }}>
+              <p style={{ color: T.textSecondary, fontSize: "14px", marginBottom: "16px" }}>
                 {t("deleteWarning")}
               </p>
               <Button theme={T} variant="destructive" onClick={() => setShowDeleteModal(true)}>
@@ -475,7 +475,7 @@ export default function ProfileClient({
         titleId="delete-account-dialog-title"
         closeOnBackdrop={!isDeletingAccount}
         panelStyle={{
-          backgroundColor: "#1a1228",
+          backgroundColor: APP_SHELL.chromeSurface,
           border: `1px solid ${APP_SHELL.navBorder}`,
           borderRadius: "16px",
           padding: "28px",
@@ -487,7 +487,7 @@ export default function ProfileClient({
           style={{
             fontSize: "20px",
             fontWeight: 800,
-            color: APP_SHELL.textPrimary,
+            color: T.textPrimary,
             marginBottom: "12px",
           }}
         >
@@ -496,7 +496,7 @@ export default function ProfileClient({
 
         {blockedEvents && blockedEvents.length > 0 ? (
           <>
-            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "16px" }}>
+            <p style={{ color: T.textSecondary, fontSize: "14px", marginBottom: "16px" }}>
               {t("blocked")}
             </p>
             <div
@@ -514,12 +514,12 @@ export default function ProfileClient({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    backgroundColor: "rgba(255,255,255,0.05)",
+                    backgroundColor: T.inputBg,
                     borderRadius: "8px",
                     padding: "10px 14px",
                   }}
                 >
-                  <span style={{ color: APP_SHELL.textPrimary, fontSize: "14px", fontWeight: 600 }}>
+                  <span style={{ color: T.textPrimary, fontSize: "14px", fontWeight: 600 }}>
                     {ev.title}
                   </span>
                   <Button
@@ -557,15 +557,15 @@ export default function ProfileClient({
           </>
         ) : (
           <>
-            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", marginBottom: "8px" }}>
+            <p style={{ color: T.textSecondary, fontSize: "14px", marginBottom: "8px" }}>
               {t("anonymize")}
             </p>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", marginBottom: "16px" }}>
+            <p style={{ color: T.textSecondary, fontSize: "13px", marginBottom: "16px" }}>
               {t("reverse")}
             </p>
             <p
               style={{
-                color: APP_SHELL.textSecondary,
+                color: T.textSecondary,
                 fontSize: "13px",
                 marginBottom: "8px",
                 fontWeight: 600,

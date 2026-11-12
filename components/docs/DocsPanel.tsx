@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import type { Components } from "react-markdown";
-import { APP_SHELL, APP_SHELL_THEME } from "@/lib/theme";
+import { APP_SHELL_THEME } from "@/lib/theme";
 import { Input } from "@/components/ui/Field";
 import { NavItem } from "@/components/ui/NavItem";
 import "highlight.js/styles/github-dark.css";
@@ -83,6 +83,12 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
   }, [matches, docs]);
 
   const markdownComponents: Components = {
+    // The page (Help, or the admin tab) owns the one h1; an article's own title is an h2
+    // styled as the article title.
+    h1({ node: _node, className, ...rest }) {
+      void _node;
+      return <h2 {...rest} className={["md-title", className].filter(Boolean).join(" ")} />;
+    },
     a({ href, children, ...rest }) {
       const target = href ?? "";
       const isExternal = /^(https?:)?\/\//i.test(target) || target.startsWith("mailto:");
@@ -123,7 +129,11 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
   };
 
   if (docs.length === 0) {
-    return <div style={{ color: APP_SHELL.textMuted, fontSize: "14px" }}>{t("unavailable")}</div>;
+    return (
+      <div style={{ color: APP_SHELL_THEME.textSecondary, fontSize: "14px" }}>
+        {t("unavailable")}
+      </div>
+    );
   }
 
   return (
@@ -157,7 +167,9 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
           style={{ display: "flex", flexDirection: "column", gap: "16px" }}
         >
           {grouped.length === 0 && (
-            <div style={{ color: APP_SHELL.textMuted, fontSize: "13px", padding: "8px 4px" }}>
+            <div
+              style={{ color: APP_SHELL_THEME.textSecondary, fontSize: "13px", padding: "8px 4px" }}
+            >
               {t("noMatches")}
             </div>
           )}
@@ -165,11 +177,9 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
             <div key={group.category}>
               <div
                 style={{
-                  fontSize: "11px",
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: APP_SHELL.textMuted,
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: APP_SHELL_THEME.textSecondary,
                   padding: "0 8px 8px",
                 }}
               >
@@ -210,17 +220,15 @@ export default function DocsPanel({ docs }: { docs: PanelDoc[] }) {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              color: APP_SHELL.textMuted,
+              color: APP_SHELL_THEME.textSecondary,
               fontSize: "12px",
               fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
               marginBottom: "6px",
             }}
           >
-            <FileText size={13} /> {activeDoc.category}
+            <FileText size={13} aria-hidden="true" /> {activeDoc.category}
           </div>
-          <div style={{ color: APP_SHELL.textSecondary, fontSize: "14px" }}>
+          <div style={{ color: APP_SHELL_THEME.textSecondary, fontSize: "14px" }}>
             <span lang={activeDoc.locale ?? "en-US"} dir={activeDoc.dir ?? "ltr"}>
               {activeDoc.description}
             </span>

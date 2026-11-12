@@ -91,9 +91,16 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `strict-dynamic` permits this without requiring it to match the initial
   document nonce.
 - `app/(app)/layout.tsx` supplies shared navigation and the cached session user
-  for authenticated application pages.
-- `components/ui/AppNav.tsx` owns the shared top-bar variants and composes the
-  signed-in profile or signed-out viewer menu from `components/ui/ProfileDropdown.tsx`.
+  for authenticated application pages; `app/(app)/loading.tsx` is their card-shaped
+  skeleton. Event routes have no skeleton because their look depends on the event's theme.
+- `app/not-found.tsx` (every `notFound()` and unknown URL) and the `error.tsx`
+  boundaries render `components/ui/StatePage.tsx`: the app shell with a title, one
+  sentence and a way back.
+- `components/ui/AppNav.tsx` owns the shared top-bar variants (the shell header, and
+  one solid `chrome` bar over every event route, chosen by `GlobalHeader.tsx`) and
+  composes the signed-in profile or signed-out viewer menu from
+  `components/ui/ProfileDropdown.tsx`. App chrome over events (that bar, the settings
+  bar, the host bar and its sheets) reads `APP_SHELL.chromeSurface` and `chromeTheme()`.
 - `components/ui/` owns the one shared control set, each control reading the
   `ResolvedTheme` it is given (`APP_SHELL_THEME` on app pages, the event's theme on
   event pages, `chromeTheme()` in host-bar chrome): `Button.tsx` (every button
@@ -101,7 +108,9 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `Field.tsx` (labels, inputs, selects, checkboxes, sliders, secret and color
   inputs), `Toggle.tsx`, `NavItem.tsx` and `Feedback.tsx` (inline alerts, status
   chips, the toast). Their focus and hover states live in the `.rsvp-control`,
-  `.rsvp-press` and `.rsvp-field` classes in `app/globals.css`.
+  `.rsvp-press` and `.rsvp-field` classes in `app/globals.css`, which also holds the
+  responsive layout of the choice table (`.rsvp-pref-*`) and the admin data table
+  (`.rsvp-table*`).
   `AppPrimitives.tsx` keeps only the app-shell card, `Dialog.tsx` owns
   accessible modal behavior, and `ConfirmDialog.tsx` (`useConfirm()`) is the one
   confirm step for destructive actions in place of the browser's `confirm()`.

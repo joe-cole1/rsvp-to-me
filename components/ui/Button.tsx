@@ -1,5 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes, type CSSProperties } from "react";
-import { isDarkTheme, type ResolvedTheme } from "@/lib/theme";
+import { PHOTO_OVERLAY, isDarkTheme, type ResolvedTheme } from "@/lib/theme";
 
 /**
  * The one button set (docs/engineering/design-language.md, Components → Buttons).
@@ -15,11 +15,13 @@ import { isDarkTheme, type ResolvedTheme } from "@/lib/theme";
  * - icon: a 40px square with an accessible name.
  * - overlay: a control laid on a photo (cover image, event card): dark glass with white
  *   text, the same on every theme because the photo, not the theme, is underneath.
+ * - toolbar: an item in a bar of actions (the host bar): an icon over a 12px label in
+ *   `textSecondary`, with no fill until hovered. Pass the chrome theme.
  *
  * `size="sm"` (32px) is only for actions inside a list or table row, or on a photo.
  */
 export type ButtonVariant =
-  "primary" | "secondary" | "destructive" | "add" | "link" | "icon" | "overlay";
+  "primary" | "secondary" | "destructive" | "add" | "link" | "icon" | "overlay" | "toolbar";
 export type ButtonSize = "md" | "sm";
 
 export interface ButtonLook {
@@ -46,12 +48,16 @@ const HEIGHT: Record<ButtonVariant, Record<ButtonSize, number>> = {
   overlay: { md: 40, sm: 32 },
   icon: { md: 40, sm: 32 },
   link: { md: 24, sm: 24 },
+  toolbar: { md: 48, sm: 48 },
 };
 
 type StyleWithVars = CSSProperties & Record<`--${string}`, string>;
 
-/** The hover wash laid over a fill: light on dark fills, dark on light ones. */
-function hoverWash(onDarkFill: boolean): string {
+/**
+ * The hover wash laid over a fill: light on dark fills, dark on light ones. Exported for
+ * menu rows that use the `.rsvp-press` class without a button look.
+ */
+export function hoverWash(onDarkFill: boolean): string {
   return onDarkFill ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
 }
 
@@ -134,14 +140,14 @@ export function buttonStyle(
     case "overlay":
       return {
         ...base,
-        "--rsvp-focus": "#ffffff",
+        "--rsvp-focus": PHOTO_OVERLAY.text,
         "--rsvp-hover": hoverWash(true),
         padding: size === "sm" ? "0 12px" : "0 16px",
-        border: "1px solid rgba(255,255,255,0.2)",
+        border: `1px solid ${PHOTO_OVERLAY.border}`,
         borderRadius: "999px",
-        backgroundColor: "rgba(0,0,0,0.55)",
+        backgroundColor: PHOTO_OVERLAY.background,
         backdropFilter: "blur(8px)",
-        color: "#ffffff",
+        color: PHOTO_OVERLAY.text,
         fontSize: "13px",
       } as StyleWithVars;
     case "icon":
@@ -154,6 +160,18 @@ export function buttonStyle(
         // On the page ground an icon reads `heroTextMuted`, checked 3:1 against it.
         color: onGround ? t.heroTextMuted : t.textSecondary,
         flexShrink: 0,
+      } as StyleWithVars;
+    case "toolbar":
+      return {
+        ...base,
+        flexDirection: "column",
+        gap: "3px",
+        padding: "6px 10px",
+        borderRadius: "999px",
+        flexShrink: 0,
+        whiteSpace: "nowrap",
+        color: t.textSecondary,
+        fontSize: "12px",
       } as StyleWithVars;
     case "link":
       return {

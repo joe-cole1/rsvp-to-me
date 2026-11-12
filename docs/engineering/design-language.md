@@ -186,7 +186,10 @@ a native button or link outside `components/ui` paints an accent fill.
     (outside any card) pass `onGround`, so the icon reads `heroTextMuted` like the other
     hero icons; `onGround` on a Link reads `heroTextSecondary`.
   - Overlay: a control laid on a photo (the cover image, an event card): dark glass with
-    white text, because the photo, not the theme, is underneath.
+    white text, because the photo, not the theme, is underneath. Labels laid on a photo
+    (a dashboard card's date and status) use the same `PHOTO_OVERLAY` glass.
+  - Toolbar: an item in a bar of actions (the host bar): an icon over a 12px label in
+    `textSecondary`, no fill until hovered, at least 44px tall. Give it the chrome theme.
 
   `size="sm"` (32px, 13px text) is only for actions inside a list or table row, or on a photo.
   Disabled is 0.45 opacity with a not-allowed cursor. A copied or saved state changes the
@@ -235,6 +238,9 @@ a native button or link outside `components/ui` paints an accent fill.
   `bg`), everything else `inputBg` with `textSecondary`.
 - **Upload:** a secondary or icon button (40px) that opens the file picker through
   `/api/upload`, with progress as text ("Compressing…", "Uploading…").
+- **State page:** `StatePage` in `components/ui/StatePage.tsx`, for missing pages and
+  errors: the app shell's ground and card with an `h1` title, one sentence and one or two
+  buttons (the way back first, a retry where one makes sense). No emoji.
 
 ## Patterns
 
@@ -267,8 +273,9 @@ or an `avatarGradient` placeholder, the date and the location. Text outside a ca
 "text on the page ground" fields. The title, byline, cover and date sit in one `HeroScrim`
 (`components/event/event-page/HeroScrim.tsx`): when the theme sets `heroScrim`, it draws one
 soft wash behind that band, reaching past the text and feathered at the edges, without creating
-a stacking context. Nothing else goes on the ground. The guest list and RSVP pages repeat the same title block,
-so the event reads the same on every route. Host edit controls are Icon buttons ("Edit
+a stacking context. Nothing else goes on the ground. Routes that repeat the title (the guest
+list) use `EventTitleBlock` (`components/event/event-page/EventTitleBlock.tsx`), which shares
+the hero's title style, so the event reads the same on every route. Host edit controls are Icon buttons ("Edit
 title", with `onGround` in the hero), never clickable icons, and the inline field they open is
 named ("Event title"). Triggers such as "2 others" are buttons that report `aria-expanded`.
 
@@ -280,8 +287,12 @@ in an `InlineAlert` at the step.
 primary action, and an overflow menu for the rest (Edit, Remove). Rows don't stack three
 buttons.
 
-**Data table.** Admin tables keep a header row on wide screens. Under 480px each row stacks
-into label and value pairs, like the choice table, so the page never scrolls sideways.
+**Data table.** Admin tables keep a header row on wide screens. Under 480px of card width
+each row stacks into label and value pairs, like the choice table, so the page never scrolls
+sideways. Use the `.rsvp-table` classes in `app/globals.css`: wrap the table in
+`.rsvp-table-wrap`, name each cell's column in `data-label`, mark the end column
+`.rsvp-table-end`, and set `--rsvp-table-label` (`textSecondary`) and `--rsvp-table-rule`.
+Give the table explicit table roles so it stays a table when its rows stack.
 
 **Filter chips.** One row of `Chip`s that scrolls sideways inside its own container when it
 overflows. Give that container 3px of padding (and a matching negative margin) so focus rings
@@ -291,9 +302,12 @@ aren't clipped. Counts are in `textSecondary`; a capped count such as "3+" is re
 **Stat tile.** A small card with a 12px bold label and one large number. Two per row on phones.
 
 **Empty, loading and error states.** An empty list says what will appear and offers the one
-action that fills it. Route segments that fetch data have a `loading.tsx` skeleton in card
-shapes. Errors and missing pages (`error.tsx`, `not-found.tsx`) use the app shell with a title,
-one sentence and a way back.
+action that fills it. App pages have a `loading.tsx` skeleton in card shapes
+(`app/(app)/loading.tsx`) that names itself "Loading…" to assistive technology and holds
+still under reduced motion. Event routes have none: their look comes from the event's
+theme, which isn't known until the event loads, and an app-shell skeleton would flash dark
+before a light theme. Errors and missing pages (`error.tsx`, `app/not-found.tsx`) use
+`StatePage`.
 
 **Theme picker.** Preset tiles are buttons with `aria-pressed` for the applied preset, in a
 grid that grows with the page (no scrolling box inside the page). Switching between Theme,
@@ -317,11 +331,15 @@ and **Movement** (Up, Down, Random). A size that isn't 3, 5 or 7 selects no chip
 choice saves at once; the slider previews while it moves and saves when released, by
 pointer, touch, key or blur.
 
-**Header and host bar.** The global header (`components/ui/AppNav.tsx`) and the host's
-floating bar (`components/event/HostBar.tsx`) are app chrome. Whether app chrome stays on the
-dark app shell over event pages or takes a tint from the event theme is an open decision (see
-below). Until it is settled, chrome controls read `chromeTheme(t)` (the dark shell with the
-event's accent), and don't add new chrome surfaces.
+**Header and host bar.** The global header (`components/ui/AppNav.tsx`), the settings bar,
+and the host's floating bar (`components/event/HostBar.tsx`) with its dialogs and sheets are
+app chrome. Over event pages app chrome stays on the dark app shell on every theme (#812):
+surfaces are `APP_SHELL.chromeSurface` with an `APP_SHELL.navBorder` edge (floating chrome
+adds `chromeShadow`, modals sit on `chromeBackdrop`), and every control reads `chromeTheme(t)`
+(the dark shell with the event's accent). The header over every event route is the same
+fixed `chrome` bar. Never a translucent wash over the page, never a literal color, and never
+hover colors set in JS: chrome controls are shared components (the host bar's items are
+Toolbar buttons).
 
 ## Fonts and effects
 
@@ -410,8 +428,6 @@ When building or reviewing a screen, check that:
 
 These are undecided. Until they are, follow current behavior and don't extend it.
 
-- Whether app chrome (header, host bar, dialogs) on event routes stays on the dark app shell or
-  takes a tint from the event theme.
 - Whether the private guest notifications page keeps the app-shell look.
 - Whether Geist (loaded in `app/layout.tsx` but unused) is removed or becomes the body face.
 
@@ -430,6 +446,10 @@ Decided:
   independent of each other and of the motif. Stored sizes, including ones an #811 Amount
   wrote, are kept as they are. The lowest card opacity stays 0.40 (#807): text colors are derived from
   each theme's actual opacity; see the contrast contract.
+- **App chrome on event routes** (#812, 2026-11-12): the header, settings bar, host bar and
+  their dialogs stay on the dark app shell, one solid surface on every theme, carrying the
+  event's accent through `chromeTheme(t)`. They take no tint from the event theme; see
+  Header and host bar.
 
 ## Preset defaults and soft motion
 

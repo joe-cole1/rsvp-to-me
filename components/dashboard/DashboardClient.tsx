@@ -19,9 +19,9 @@ import {
   MessageSquare,
   MoreHorizontal,
 } from "lucide-react";
-import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
+import { APP_SHELL, APP_SHELL_THEME as T, PHOTO_OVERLAY } from "@/lib/theme";
 import { appCardStyle } from "@/components/ui/AppPrimitives";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonStyle, hoverWash } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Choice";
 import { Field, Input, Select } from "@/components/ui/Field";
 import type { DashboardEvent, DashboardInvite, DashboardActivity } from "@/app/actions/event";
@@ -238,30 +238,30 @@ export function DashboardClient({
     return date.toLocaleDateString(locale, { month: "short", day: "numeric" });
   };
 
-  // Activity type icon lookup
+  // Activity type icon lookup: colors come from the shell theme's accent and status set.
   const getActivityMeta = (type: string) => {
     switch (type) {
       case "rsvp_new":
-        return { Icon: UserCheck, color: "#a855f7" }; // Purple
+        return { Icon: UserCheck, color: T.accentText };
       case "rsvp_update":
-        return { Icon: Edit3, color: "#6366f1" }; // Indigo
+        return { Icon: Edit3, color: T.status.info.text };
       case "rsvp_delete":
-        return { Icon: Trash2, color: "#ef4444" }; // Red
+        return { Icon: Trash2, color: T.status.error.text };
       case "comment_new":
-        return { Icon: MessageSquare, color: "#10b981" }; // Green
+        return { Icon: MessageSquare, color: T.status.success.text };
       case "potluck_claim":
-        return { Icon: Utensils, color: "#10b981" }; // Green
+        return { Icon: Utensils, color: T.status.success.text };
       case "potluck_unclaim":
-        return { Icon: Trash2, color: "#f59e0b" }; // Orange
+        return { Icon: Trash2, color: T.status.warning.text };
       case "event_title":
       case "event_description":
-        return { Icon: Edit3, color: "#3b82f6" }; // Blue
+        return { Icon: Edit3, color: T.status.info.text };
       case "event_date":
-        return { Icon: Calendar, color: "#ec4899" }; // Pink
+        return { Icon: Calendar, color: T.status.info.text };
       case "event_location":
-        return { Icon: MapPin, color: "#ef4444" }; // Red
+        return { Icon: MapPin, color: T.status.info.text };
       default:
-        return { Icon: Activity, color: "#a855f7" };
+        return { Icon: Activity, color: T.accentText };
     }
   };
 
@@ -277,7 +277,7 @@ export function DashboardClient({
     <div style={{ maxWidth: "1150px", margin: "0 auto", padding: "40px 24px 100px" }}>
       <style>{`
         @media (max-width: 640px) {
-          .new-event-card { aspect-ratio: auto !important; padding: 20px 16px; }
+          .new-event-card { aspect-ratio: auto !important; padding: 20px 16px !important; }
         }
       `}</style>
 
@@ -287,14 +287,14 @@ export function DashboardClient({
           style={{
             fontSize: "36px",
             fontWeight: 900,
-            color: "#fff",
+            color: T.textPrimary,
             marginBottom: "8px",
             letterSpacing: "-0.03em",
           }}
         >
           {tr("welcome", { name: userName })}
         </h1>
-        <p style={{ color: APP_SHELL.textSecondary, fontSize: "15px", margin: 0 }}>
+        <p style={{ color: T.textSecondary, fontSize: "15px", margin: 0 }}>
           {counts.upcoming === 0 ? (
             <>
               {tr("noUpcomingEvents")}{" "}
@@ -313,14 +313,17 @@ export function DashboardClient({
         </p>
       </div>
 
-      {/* 2. Filter Pills row */}
+      {/* 2. Filter chips: one row that scrolls sideways inside itself (design language,
+          Filter chips). The 3px padding and matching negative margin keep focus rings
+          unclipped. Chips with no results are hidden; Upcoming and the selected chip stay. */}
       <div
         style={{
           display: "flex",
-          gap: "10px",
-          flexWrap: "wrap",
+          gap: "8px",
           alignItems: "center",
-          marginBottom: "32px",
+          overflowX: "auto",
+          padding: "3px",
+          margin: "-3px -3px 29px",
         }}
       >
         {/* Search Toggle Pill */}
@@ -332,49 +335,34 @@ export function DashboardClient({
             setShowSearchInput(!showSearchInput);
             if (showSearchInput) setSearchQuery("");
           }}
+          style={{ flexShrink: 0 }}
         >
           <Search size={14} strokeWidth={2.5} aria-hidden="true" />
           {tr("search")}
         </Chip>
 
-        {/* Filter Tab Pills */}
-        <PillTab
-          filter="upcoming"
-          active={activeFilter}
-          label={tr("upcoming")}
-          count={counts.upcoming}
-          onClick={setActiveFilter}
-        />
-        {userRole !== "GUEST" && (
-          <PillTab
-            filter="hosting"
-            active={activeFilter}
-            label={tr("hosting")}
-            count={counts.hosting}
-            onClick={setActiveFilter}
-          />
-        )}
-        <PillTab
-          filter="invites"
-          active={activeFilter}
-          label={tr("openInvite")}
-          count={counts.invites}
-          onClick={setActiveFilter}
-        />
-        <PillTab
-          filter="attended"
-          active={activeFilter}
-          label={tr("attended")}
-          count={counts.attended}
-          onClick={setActiveFilter}
-        />
-        <PillTab
-          filter="past"
-          active={activeFilter}
-          label={tr("allPastEvents")}
-          count={counts.past}
-          onClick={setActiveFilter}
-        />
+        {(
+          [
+            ["upcoming", tr("upcoming")],
+            ...(userRole !== "GUEST" ? ([["hosting", tr("hosting")]] as const) : []),
+            ["invites", tr("openInvite")],
+            ["attended", tr("attended")],
+            ["past", tr("allPastEvents")],
+          ] as const
+        )
+          .filter(
+            ([filter]) => filter === "upcoming" || filter === activeFilter || counts[filter] > 0
+          )
+          .map(([filter, label]) => (
+            <PillTab
+              key={filter}
+              filter={filter}
+              active={activeFilter}
+              label={label}
+              count={counts[filter]}
+              onClick={setActiveFilter}
+            />
+          ))}
       </div>
 
       {/* Inline Search Input */}
@@ -405,11 +393,20 @@ export function DashboardClient({
                 ...appCardStyle,
               }}
             >
-              <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
-              <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "6px" }}>
+              <div aria-hidden="true" style={{ fontSize: "36px", marginBottom: "12px" }}>
+                🎉
+              </div>
+              <h3
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 700,
+                  color: T.textPrimary,
+                  marginBottom: "6px",
+                }}
+              >
                 {tr("noEventsFound")}
               </h3>
-              <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", margin: 0 }}>
+              <p style={{ color: T.textSecondary, fontSize: "14px", margin: 0 }}>
                 {searchQuery
                   ? tr("tryADifferentSearchQuery")
                   : tr("whenYouHostOrGetInvitedTheyWillShow")}
@@ -425,40 +422,22 @@ export function DashboardClient({
             >
               {/* + New Event Card (if active and allowed) */}
               {displayNewEventPlaceholder && (
+                // The Add look (dashed accentBorder, accentText), drawn as a grid tile.
                 <Link
                   href={userRole === "GUEST" ? "/auth/register" : "/dashboard/events/new"}
-                  style={{ textDecoration: "none" }}
+                  className="rsvp-control rsvp-press new-event-card"
+                  style={{
+                    ...buttonStyle(T, { variant: "add" }),
+                    aspectRatio: "4/3",
+                    width: "100%",
+                    borderRadius: "16px",
+                    flexDirection: "column",
+                    fontSize: "14px",
+                    fontWeight: 800,
+                  }}
                 >
-                  <div
-                    className="new-event-card"
-                    style={{
-                      aspectRatio: "4/3",
-                      borderRadius: "16px",
-                      border: "2px dashed rgba(255,255,255,0.15)",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      color: APP_SHELL.textSecondary,
-                      cursor: "pointer",
-                      transition: "all 0.2s ease-in-out",
-                      background: "rgba(255,255,255,0.01)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = APP_SHELL.accent;
-                      e.currentTarget.style.color = "#fff";
-                      e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-                      e.currentTarget.style.color = APP_SHELL.textSecondary;
-                      e.currentTarget.style.background = "rgba(255,255,255,0.01)";
-                    }}
-                  >
-                    <Plus size={24} strokeWidth={2.5} />
-                    <span style={{ fontSize: "14px", fontWeight: 800 }}>{tr("newEvent")}</span>
-                  </div>
+                  <Plus size={24} strokeWidth={2.5} aria-hidden="true" />
+                  {tr("newEvent")}
                 </Link>
               )}
 
@@ -495,8 +474,8 @@ export function DashboardClient({
             <div
               style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "18px" }}
             >
-              <Clock size={16} color={APP_SHELL.accent} />
-              <h3 style={{ fontSize: "14px", fontWeight: 800, color: APP_SHELL.textPrimary }}>
+              <Clock size={16} color={T.accent} aria-hidden="true" />
+              <h3 style={{ fontSize: "15px", fontWeight: 800, color: T.textPrimary }}>
                 {tr("recentActivity")}
               </h3>
             </div>
@@ -505,12 +484,13 @@ export function DashboardClient({
                 style={{
                   padding: "30px 10px",
                   textAlign: "center",
-                  color: APP_SHELL.textMuted,
+                  color: T.textSecondary,
                   fontSize: "13px",
                 }}
               >
                 <Sparkles
                   size={24}
+                  aria-hidden="true"
                   style={{ display: "block", margin: "0 auto 8px", opacity: 0.5 }}
                 />
                 {tr("noActivityLoggedYetWhenGuestsRsvpOrComments")}
@@ -615,8 +595,8 @@ export function DashboardClient({
                         style={{
                           padding: "20px 10px",
                           textAlign: "center",
-                          color: APP_SHELL.textMuted,
-                          fontSize: "12px",
+                          color: T.textSecondary,
+                          fontSize: "13px",
                         }}
                       >
                         {tr("noMatchingActivitiesFound")}
@@ -630,12 +610,10 @@ export function DashboardClient({
                           >
                             <div
                               style={{
-                                fontSize: "10px",
-                                fontWeight: 800,
-                                textTransform: "uppercase",
-                                color: APP_SHELL.textMuted,
-                                letterSpacing: "0.05em",
-                                borderBottom: `1px solid rgba(255,255,255,0.05)`,
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                color: T.textSecondary,
+                                borderBottom: `1px solid ${T.cardBorder}`,
                                 paddingBottom: "4px",
                                 marginTop: "4px",
                               }}
@@ -657,13 +635,13 @@ export function DashboardClient({
                                       width: "32px",
                                       height: "32px",
                                       borderRadius: "50%",
-                                      background: `linear-gradient(135deg, ${APP_SHELL.accent}, ${APP_SHELL.accentSecondary})`,
-                                      color: "#fff",
+                                      background: T.avatarGradient,
+                                      color: T.accentFg,
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
                                       fontWeight: 700,
-                                      fontSize: "11px",
+                                      fontSize: "12px",
                                       flexShrink: 0,
                                       position: "relative",
                                       marginTop: "2px",
@@ -671,24 +649,24 @@ export function DashboardClient({
                                     }}
                                   >
                                     {actorInitials}
-                                    {/* Mini overlay icon */}
+                                    {/* Mini type badge: the type's color on the dark shell */}
                                     <div
+                                      aria-hidden="true"
                                       style={{
                                         position: "absolute",
-                                        bottom: "-2px",
-                                        right: "-2px",
-                                        width: "14px",
-                                        height: "14px",
+                                        bottom: "-3px",
+                                        right: "-3px",
+                                        width: "16px",
+                                        height: "16px",
                                         borderRadius: "50%",
-                                        background: color,
+                                        background: APP_SHELL.chromeSurface,
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        border: `1px solid ${APP_SHELL.cardBg}`,
-                                        boxShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                                        border: `1px solid ${T.cardBorder}`,
                                       }}
                                     >
-                                      <Icon size={8} color="#fff" />
+                                      <Icon size={10} color={color} />
                                     </div>
                                   </div>
 
@@ -696,8 +674,8 @@ export function DashboardClient({
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <p
                                       style={{
-                                        color: APP_SHELL.textPrimary,
-                                        fontSize: "12px",
+                                        color: T.textPrimary,
+                                        fontSize: "13px",
                                         lineHeight: "1.4",
                                         margin: 0,
                                         wordBreak: "break-word",
@@ -732,13 +710,12 @@ export function DashboardClient({
                                         {act.event.title}
                                       </Link>
                                       <span
-                                        style={{ color: APP_SHELL.textTertiary, fontSize: "11px" }}
+                                        aria-hidden="true"
+                                        style={{ color: T.textMuted, fontSize: "12px" }}
                                       >
                                         ·
                                       </span>
-                                      <span
-                                        style={{ color: APP_SHELL.textMuted, fontSize: "11px" }}
-                                      >
+                                      <span style={{ color: T.textMuted, fontSize: "12px" }}>
                                         {formatRelativeTime(act.createdAt)}
                                       </span>
                                     </div>
@@ -772,7 +749,7 @@ export function DashboardClient({
                         >
                           {tr("prev")}
                         </Button>
-                        <span style={{ color: APP_SHELL.textSecondary, fontSize: "12px" }}>
+                        <span style={{ color: T.textSecondary, fontSize: "12px" }}>
                           {tr("pageOfMessage", { value0: currentPage, value1: totalPages })}
                         </span>
                         <Button
@@ -811,9 +788,9 @@ interface PillTabProps {
 function PillTab({ filter, active, label, count, onClick }: PillTabProps) {
   const isActive = active === filter;
   return (
-    <Chip theme={T} selected={isActive} onClick={() => onClick(filter)}>
-      {label}
-      <span>{count}</span>
+    <Chip theme={T} selected={isActive} onClick={() => onClick(filter)} style={{ flexShrink: 0 }}>
+      {/* The space keeps the accessible name "Upcoming 3", not "Upcoming3". */}
+      {label} <span style={{ color: T.textSecondary }}>{count}</span>
     </Chip>
   );
 }
@@ -839,28 +816,48 @@ function EventCard({
   const tr = useTranslations("Ui.Dashboard");
   const locale = useLocale();
 
-  const accent = item.theme?.accentColor ?? APP_SHELL.accent;
   const coverUrl = item.theme?.coverImageUrl;
   const isInvite = item.isInvite;
+  // A placeholder uses the event's own gradient, like avatarGradient on event pages.
+  const placeholderBg = item.theme
+    ? `linear-gradient(135deg, ${item.theme.gradientFrom}, ${item.theme.gradientTo})`
+    : T.avatarGradient;
 
-  // Status/Badge mapping
+  // Status badge: photo-overlay glass with white text; a dot in the status color.
   let overlayText = "";
-  let overlayColor = "rgba(0,0,0,0.75)";
+  let overlayDot: string | null = null;
 
   if (!isInvite) {
     overlayText = item.isCohost ? tr("cohostBadge") : tr("hostingBadge");
   } else {
     if (item.userRsvpStatus === "GOING") {
       overlayText = tr("goingBadge");
-      overlayColor = "rgba(16,185,129,0.9)"; // green
+      overlayDot = T.status.success.text;
     } else if (item.userRsvpStatus === "MAYBE") {
       overlayText = tr("maybeBadge");
-      overlayColor = "rgba(245,158,11,0.9)"; // amber
+      overlayDot = T.status.warning.text;
     } else if (item.userRsvpStatus === "NO") {
       overlayText = tr("declinedBadge");
-      overlayColor = "rgba(239,68,68,0.9)"; // red
+      overlayDot = T.status.error.text;
     }
   }
+
+  const photoLabel: React.CSSProperties = {
+    position: "absolute",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    background: PHOTO_OVERLAY.background,
+    border: `1px solid ${PHOTO_OVERLAY.border}`,
+    backdropFilter: "blur(8px)",
+    color: PHOTO_OVERLAY.text,
+    fontSize: "12px",
+    fontWeight: 700,
+    padding: "4px 10px",
+    borderRadius: "99px",
+    zIndex: 2,
+    pointerEvents: "none", // click passes through to the Link
+  };
 
   const hostName =
     item.hostDisplayName ||
@@ -878,17 +875,7 @@ function EventCard({
           paddingBottom: "75%", // 4:3 Aspect ratio
           borderRadius: "16px",
           overflow: "hidden",
-          background: coverUrl
-            ? "transparent"
-            : `linear-gradient(135deg, #18181b 0%, ${accent}aa 100%)`,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-          transition: "transform 0.2s ease-in-out",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "scale(1.01)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "scale(1)";
+          background: coverUrl ? "transparent" : placeholderBg,
         }}
       >
         {/* Clickable cover. The title link below is the named, focusable one, so this
@@ -939,23 +926,7 @@ function EventCard({
         </Link>
 
         {/* Date Overlay (Top-Left) */}
-        <div
-          style={{
-            position: "absolute",
-            top: "12px",
-            left: "12px",
-            background: "rgba(255, 255, 255, 0.95)",
-            color: "#000",
-            fontSize: "11px",
-            fontWeight: 800,
-            padding: "5px 10px",
-            borderRadius: "99px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            letterSpacing: "-0.01em",
-            zIndex: 2,
-            pointerEvents: "none", // click passes through to the Link
-          }}
-        >
+        <div style={{ ...photoLabel, top: "12px", left: "12px" }}>
           {formatPartifulDate(item.startAt)}
         </div>
 
@@ -985,12 +956,12 @@ function EventCard({
                 position: "absolute",
                 top: "34px",
                 right: 0,
-                background: "#18181b",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: APP_SHELL.chromeSurface,
+                border: `1px solid ${T.cardBorder}`,
                 borderRadius: "10px",
                 padding: "6px",
-                minWidth: "120px",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                minWidth: "140px",
+                boxShadow: APP_SHELL.chromeShadow,
                 zIndex: 50,
                 display: "flex",
                 flexDirection: "column",
@@ -1019,23 +990,19 @@ function EventCard({
 
         {/* Status Overlay Badge (Bottom-Right) */}
         {overlayText && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "12px",
-              right: "12px",
-              background: overlayColor,
-              color: "#fff",
-              fontSize: "10px",
-              fontWeight: 900,
-              padding: "4px 10px",
-              borderRadius: "6px",
-              letterSpacing: "0.03em",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-              zIndex: 2,
-              pointerEvents: "none", // click passes through to the Link
-            }}
-          >
+          <div style={{ ...photoLabel, bottom: "12px", right: "12px" }}>
+            {overlayDot && (
+              <span
+                aria-hidden="true"
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  background: overlayDot,
+                  flexShrink: 0,
+                }}
+              />
+            )}
             {overlayText}
           </div>
         )}
@@ -1046,29 +1013,31 @@ function EventCard({
         {/* Title */}
         <Link
           href={`/e/${item.slug}`}
-          style={{
-            fontSize: "15px",
-            fontWeight: 800,
-            color: "#fff",
-            textDecoration: "none",
-            display: "-webkit-box",
-            WebkitLineClamp: 1,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-            transition: "color 0.15s ease-in-out",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = accent)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#fff")}
+          className="rsvp-control rsvp-link"
+          style={
+            {
+              "--rsvp-focus": T.accent,
+              fontSize: "15px",
+              fontWeight: 800,
+              color: T.textPrimary,
+              textDecoration: "none",
+              borderRadius: "4px",
+              display: "-webkit-box",
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            } as React.CSSProperties
+          }
         >
           {item.title}
         </Link>
 
         {/* Hosted By & Avatars */}
         <div style={{ display: "flex", alignItems: "center", marginTop: "4px", gap: "6px" }}>
-          <span style={{ color: APP_SHELL.textSecondary, fontSize: "11px" }}>{tr("hostedBy")}</span>
+          <span style={{ color: T.textSecondary, fontSize: "12px" }}>{tr("hostedBy")}</span>
           <div style={{ display: "flex", alignItems: "center" }}>
             {/* Host avatar */}
-            <AvatarBubble name={hostName} avatarUrl={item.host?.avatarUrl} accentColor={accent} />
+            <AvatarBubble name={hostName} avatarUrl={item.host?.avatarUrl} />
             {/* Co-hosts avatars */}
             {item.coHosts &&
               item.coHosts.map((ch: CoHostProfile) => (
@@ -1076,7 +1045,6 @@ function EventCard({
                   key={ch.id}
                   name={ch.name || ch.email?.split("@")[0] || tr("cohostFallback")}
                   avatarUrl={ch.avatarUrl}
-                  accentColor={accent}
                   isSibling
                 />
               ))}
@@ -1090,15 +1058,15 @@ function EventCard({
             alignItems: "center",
             gap: "10px",
             marginTop: "6px",
-            color: APP_SHELL.textTertiary,
-            fontSize: "11px",
+            color: T.textMuted,
+            fontSize: "12px",
           }}
         >
           <span>{tr("goingMessage", { value0: item.going })}</span>
           {item.commentCount > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-              <span>·</span>
-              <MessageSquare size={10} />
+              <span aria-hidden="true">·</span>
+              <MessageSquare size={12} aria-hidden="true" />
               <span>{item.commentCount}</span>
             </div>
           )}
@@ -1117,12 +1085,12 @@ function EventCard({
                     display: "flex",
                     alignItems: "center",
                     gap: "3px",
-                    color: hasPassed ? "#ef4444" : APP_SHELL.textTertiary,
+                    color: hasPassed ? T.status.error.text : T.textMuted,
                     fontWeight: hasPassed ? 700 : 500,
                   }}
                 >
-                  <span>·</span>
-                  <Clock size={10} />
+                  <span aria-hidden="true">·</span>
+                  <Clock size={12} aria-hidden="true" />
                   <span>{hasPassed ? tr("rsvpsClosed") : tr("rsvpsBy", { date: formatted })}</span>
                 </div>
               );
@@ -1140,24 +1108,20 @@ function DropdownLink({ href, children }: { href: string; children: React.ReactN
   return (
     <Link
       href={href}
-      style={{
-        display: "block",
-        padding: "6px 12px",
-        color: APP_SHELL.textSecondary,
-        fontSize: "12px",
-        fontWeight: 600,
-        textDecoration: "none",
-        borderRadius: "6px",
-        transition: "all 0.15s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-        e.currentTarget.style.color = "#fff";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.color = APP_SHELL.textSecondary;
-      }}
+      className="rsvp-control rsvp-press"
+      style={
+        {
+          "--rsvp-focus": T.accent,
+          "--rsvp-hover": hoverWash(true),
+          display: "block",
+          padding: "10px 12px",
+          color: T.textPrimary,
+          fontSize: "13px",
+          fontWeight: 600,
+          textDecoration: "none",
+          borderRadius: "6px",
+        } as React.CSSProperties
+      }
     >
       {children}
     </Link>
@@ -1170,12 +1134,10 @@ function DropdownLink({ href, children }: { href: string; children: React.ReactN
 function AvatarBubble({
   name,
   avatarUrl,
-  accentColor,
   isSibling,
 }: {
   name: string;
   avatarUrl: string | null | undefined;
-  accentColor: string;
   isSibling?: boolean;
 }) {
   const initial = name ? name.charAt(0).toUpperCase() : "?";
@@ -1183,27 +1145,27 @@ function AvatarBubble({
     <div
       title={name}
       style={{
-        width: "18px",
-        height: "18px",
+        width: "24px",
+        height: "24px",
         borderRadius: "50%",
-        background: avatarUrl
-          ? "transparent"
-          : `rgba(${parseInt(accentColor.slice(1, 3), 16)}, ${parseInt(accentColor.slice(3, 5), 16)}, ${parseInt(accentColor.slice(5, 7), 16)}, 0.3)`,
-        border: "1.5px solid #09090b",
+        background: avatarUrl ? "transparent" : T.avatarGradient,
+        // The ring separates overlapping avatars against the dark shell.
+        border: `2px solid ${APP_SHELL.chromeSurface}`,
+        boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: "8px",
+        fontSize: "12px",
         fontWeight: 800,
-        color: "#fff",
-        marginLeft: isSibling ? "-5px" : "0",
+        color: T.accentFg,
+        marginLeft: isSibling ? "-6px" : "0",
         overflow: "hidden",
         position: "relative",
         flexShrink: 0,
       }}
     >
       {avatarUrl ? (
-        <Image src={avatarUrl} alt={name} fill sizes="18px" style={{ objectFit: "cover" }} />
+        <Image src={avatarUrl} alt={name} fill sizes="24px" style={{ objectFit: "cover" }} />
       ) : (
         initial
       )}

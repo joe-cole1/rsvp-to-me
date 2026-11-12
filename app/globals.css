@@ -148,6 +148,89 @@ select {
   }
 }
 
+/* ── Data table (admin tables) ───────────────────────────────────────────────
+   A header row on wide cards. Under 480px of card width each row stacks into label
+   and value pairs, so the page never scrolls sideways. Each cell names its column
+   in data-label. Colors come from variables the wrapper sets (theme tokens). */
+
+.rsvp-table-wrap {
+  container-type: inline-size;
+}
+
+.rsvp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rsvp-table th {
+  padding: 16px;
+  text-align: start;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rsvp-table td {
+  padding: 16px;
+  vertical-align: top;
+}
+
+.rsvp-table tr {
+  border-bottom: 1px solid var(--rsvp-table-rule, transparent);
+}
+
+.rsvp-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.rsvp-table .rsvp-table-end {
+  text-align: end;
+}
+
+@container (max-width: 479px) {
+  .rsvp-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .rsvp-table,
+  .rsvp-table tbody,
+  .rsvp-table tr,
+  .rsvp-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .rsvp-table tr {
+    padding: 8px 0;
+  }
+
+  .rsvp-table td {
+    padding: 6px 16px;
+  }
+
+  .rsvp-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: var(--rsvp-table-label, inherit);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .rsvp-table .rsvp-table-end {
+    text-align: start;
+  }
+
+  .rsvp-table .rsvp-table-actions {
+    justify-content: flex-start !important;
+  }
+}
+
 /* ── Animated background effects (ParticleLayer)─────────────────────────────
    GPU-only properties (transform, opacity) so the drift stays at 60fps without
    layout or paint work. Outer node travels the viewport; inner node handles

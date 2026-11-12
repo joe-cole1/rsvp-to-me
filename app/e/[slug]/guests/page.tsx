@@ -1,7 +1,10 @@
 import { getRequestTranslator } from "@/i18n/server";
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { buttonProps } from "@/components/ui/Button";
+import { EventTitleBlock } from "@/components/event/event-page/EventTitleBlock";
+import { SITE_NAME, isEventTitlePublic } from "@/lib/event-social";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
 import { serializeGuestRsvp, canViewGuestListPage, invitedGuestsForViewer } from "@/lib/guestList";
@@ -16,6 +19,24 @@ import {
   resolveGuestRsvpDisplay,
   showGuestResponseTotal,
 } from "@/lib/guestRsvpDisplay";
+
+// "Guest list · Event | RSVP to Me". The event's title only appears where its link preview
+// would show it too (published, not private, no password); otherwise "Guest list | RSVP to Me".
+// Absolute, because the event layout's own title stops the root title template from
+// reaching this child route.
+export async function generateMetadata(props: PageProps<"/e/[slug]/guests">): Promise<Metadata> {
+  const { slug } = await props.params;
+  const [event, translate] = await Promise.all([
+    db.event.findUnique({
+      where: { slug },
+      select: { title: true, status: true, visibility: true, passwordHash: true },
+    }),
+    getRequestTranslator(),
+  ]);
+  const page = translate("Ui.Event.GuestsRoute.title");
+  const title = event && isEventTitlePublic(event) ? `${page} · ${event.title}` : page;
+  return { title: { absolute: `${title} | ${SITE_NAME}` } };
+}
 
 export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">) {
   const translate = await getRequestTranslator();
@@ -153,21 +174,23 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
           zIndex: 1,
         }}
       >
-        {/* Header */}
-        <div style={{ marginBottom: "28px" }}>
-          <p style={{ margin: "0 0 16px", fontSize: "14px" }}>
+        {/* Header: the back link, then the event hero's title block (same font, ink and
+            scrim as the event page) with the response summary under it. */}
+        <div style={{ marginBottom: "32px" }}>
+          <p style={{ margin: "0 0 24px", fontSize: "14px" }}>
             <Link href={`/e/${slug}`} {...buttonProps(t, { variant: "link", onGround: true })}>
               {translate("Ui.Event.GuestsRoute.back")}
             </Link>
           </p>
-          <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "4px" }}>{event.title}</h1>
-          <p style={{ color: t.textMuted, fontSize: "14px" }}>
-            {countSummary || translate("Ui.Event.GuestsRoute.title")}
-          </p>
+          <EventTitleBlock
+            theme={t}
+            title={event.title}
+            subtitle={countSummary || translate("Ui.Event.GuestsRoute.title")}
+          />
         </div>
 
         {event.rsvps.length === 0 && pendingInvitations.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted }}>
+          <div style={{ textAlign: "center", padding: "60px 20px", color: t.heroTextSecondary }}>
             {translate("Ui.Event.GuestsRoute.empty")}
           </div>
         ) : (

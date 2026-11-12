@@ -4,6 +4,9 @@ import english from "@/messages/en-US.json";
 
 export const SOCIAL_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 
+/** The site's name, as link previews and document titles show it. */
+export const SITE_NAME = "RSVP to Me";
+
 export type SocialEvent = {
   slug: string;
   title: string;
@@ -47,15 +50,25 @@ export function absoluteAppUrl(path: string): string {
   return new URL(path, `${getAppOrigin()}/`).toString();
 }
 
-export function isEventSociallyShareable(
-  event: SocialEvent | null | undefined
-): event is SocialEvent {
+/**
+ * Whether an event's title may appear where anyone can read it (link previews, document
+ * titles): published, not private, and not password-protected.
+ */
+export function isEventTitlePublic(
+  event: Pick<SocialEvent, "status" | "visibility" | "passwordHash"> | null | undefined
+): boolean {
   return !!(
     event &&
     event.status === "PUBLISHED" &&
     event.visibility !== "PRIVATE" &&
     !event.passwordHash
   );
+}
+
+export function isEventSociallyShareable(
+  event: SocialEvent | null | undefined
+): event is SocialEvent {
+  return isEventTitlePublic(event);
 }
 
 export function formatSocialEventDate(
@@ -117,7 +130,7 @@ export function buildEventSocialMetadata(
     openGraph: {
       type: "website",
       locale: locale.replaceAll("-", "_"),
-      siteName: "RSVP to Me",
+      siteName: SITE_NAME,
       title,
       description,
       url: canonicalPath,

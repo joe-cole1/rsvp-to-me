@@ -8,7 +8,8 @@
       "back": "Atrás",
       "edit": "Editar",
       "dismissNotification": "Descartar notificación",
-      "siteDescription": "Páginas de eventos bonitas y personales para noches de vino, cenas y todo lo que se te ocurra."
+      "siteDescription": "Páginas de eventos bonitas y personales para noches de vino, cenas y todo lo que se te ocurra.",
+      "loading": "Cargando…"
     },
     "Navigation": {
       "user": "Usuario",
@@ -85,7 +86,8 @@
       "deleteFailed": "No se ha podido eliminar la cuenta. Inténtalo de nuevo.",
       "scheduledDate": "La anonimización se realizará a partir del {date}. Puedes cancelar esta solicitud en cualquier momento antes de esa fecha.",
       "eventDeleteFailed": "No se ha podido eliminar \"{title}\".",
-      "user": "Usuario"
+      "user": "Usuario",
+      "metadataTitle": "Perfil"
     },
     "Errors": {
       "Auth": {
@@ -220,6 +222,10 @@
         "invitationReviewChanged": "Este invitado ha cambiado desde la vista previa. Revisa la invitación de nuevo.",
         "invitationChannelDisabled": "Este canal de invitación está desactivado.",
         "invitationSendFailed": "No se pudo enviar la invitación. Revisa este destinatario y vuelve a intentarlo."
+      },
+      "NotFound": {
+        "title": "No hemos encontrado esa página",
+        "description": "Puede que el enlace esté mal escrito o que el evento ya no esté disponible."
       }
     },
     "Event": {
@@ -1383,16 +1389,16 @@
       "actions2": "ACCIONES",
       "noBackupArchivesFoundCreateOneManuallyOrConfigure": "No se han encontrado archivos de copia de seguridad. Crea una copia manualmente o configura una programación.",
       "download": "Descargar",
-      "overview2": "📊 Resumen",
-      "userManagement": "👥 Gestión de usuarios",
-      "eventModeration": "🎈 Moderación de eventos",
-      "hostSettings": "🔑 Configuración de anfitriones",
-      "emailSettings": "📧 Configuración del correo",
-      "smsSettings": "💬 Configuración de SMS",
-      "themePresets2": "🎨 Temas predefinidos",
-      "databaseBackups": "💾 Copias de seguridad de la base de datos",
-      "documentation": "📚 Documentación",
-      "adminNavigation": "🛡️ Navegación de administración",
+      "overview2": "Resumen",
+      "userManagement": "Gestión de usuarios",
+      "eventModeration": "Moderación de eventos",
+      "hostSettings": "Configuración de anfitriones",
+      "emailSettings": "Configuración del correo",
+      "smsSettings": "Configuración de SMS",
+      "themePresets2": "Temas predefinidos",
+      "databaseBackups": "Copias de seguridad de la base de datos",
+      "documentation": "Documentación",
+      "adminNavigation": "Navegación de administración",
       "failedToCreateBackup": "No se ha podido crear la copia de seguridad.",
       "backupDeletedSuccessfully": "Copia de seguridad eliminada correctamente.",
       "failedToDeleteBackup": "No se ha podido eliminar la copia de seguridad.",
@@ -1484,7 +1490,7 @@
       "openRegistrationToggledToValue0Message": "El registro abierto ha cambiado a {value0}.",
       "guestEmailNotificationsValue0Message": "Notificaciones por correo para invitados {value0}.",
       "smsNotificationsValue0Message": "Notificaciones por SMS {value0}.",
-      "metadataTitle": "Panel de administración | RSVP",
+      "metadataTitle": "Panel de administración",
       "metadataDescription": "Panel de administración del sistema RSVP to Me",
       "unknownError": "Error desconocido",
       "yourEmail": "tu correo electrónico",

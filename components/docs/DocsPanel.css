@@ -18,7 +18,9 @@
   scroll-margin-top: 80px;
 }
 
-.md-body h1 {
+/* The article title: Markdown's "#" renders as an h2 (.md-title); the page owns the h1. */
+.md-body h1,
+.md-body h2.md-title {
   font-size: 28px;
   margin: 0 0 20px;
   padding-bottom: 12px;
