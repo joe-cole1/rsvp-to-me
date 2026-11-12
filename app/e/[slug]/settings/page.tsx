@@ -65,10 +65,13 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
 
   if (!event) notFound();
 
-  // allow cohosts to access settings too
+  // Owners, co-hosts and moderating admins. The stored role decides — never a URL flag —
+  // matching the settings actions' assertHost/assertHostOrCohost guards. Admins get the
+  // co-host view: owner-only controls (danger zone, co-host management) stay hidden.
   const isOwner = event.hostId === sessionUser.id;
   const isCohost = event.coHosts.some((ch) => ch.user.id === sessionUser.id);
-  if (!isOwner && !isCohost) redirect(`/e/${slug}`);
+  const isAdminModerating = sessionUser.role === "ADMIN" && !isOwner && !isCohost;
+  if (!isOwner && !isCohost && !isAdminModerating) redirect(`/e/${slug}`);
 
   // #825: seed labels for only the stored mixture's icons (never the catalog).
   const storedIconIds =
@@ -85,6 +88,7 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
     <SettingsPage
       event={event as Parameters<typeof SettingsPage>[0]["event"]}
       isOwner={isOwner}
+      adminModerating={isAdminModerating}
       themePresets={themePresets}
       sessionUser={sessionUser}
       channelConfig={channelConfig}

@@ -38,6 +38,7 @@ export function RsvpOptionsPanel({
   triggerSaveSettings,
   eventId,
   onNotificationStatus,
+  adminModerating = false,
   t,
 }: {
   plusOneAllowed: boolean;
@@ -66,6 +67,8 @@ export function RsvpOptionsPanel({
   triggerSaveSettings: (overrides: SettingsOverrides) => void;
   eventId: string;
   onNotificationStatus: SaveReport;
+  /** An ADMIN who doesn't host the event: no organizer alerts of their own. */
+  adminModerating?: boolean;
   t: ResolvedTheme;
 }) {
   const translate = useTranslations("Ui.Event.RsvpOptionsPanel");
@@ -158,16 +161,22 @@ export function RsvpOptionsPanel({
           }}
           theme={t}
         />
-        <Label theme={t}>{notifications("organizerTitle")}</Label>
-        {hostAlertEmail || hostAlertSms ? (
-          <NotificationPreferences
-            scope={{ kind: "organizer", eventId }}
-            theme={t}
-            embedded
-            onStatus={onNotificationStatus}
-          />
-        ) : (
-          <p style={hint}>{notifications("organizerOff")}</p>
+        {/* The viewer's own alert channels, so only for the event's organizers: a
+            moderating admin has none to choose. */}
+        {!adminModerating && (
+          <>
+            <Label theme={t}>{notifications("organizerTitle")}</Label>
+            {hostAlertEmail || hostAlertSms ? (
+              <NotificationPreferences
+                scope={{ kind: "organizer", eventId }}
+                theme={t}
+                embedded
+                onStatus={onNotificationStatus}
+              />
+            ) : (
+              <p style={hint}>{notifications("organizerOff")}</p>
+            )}
+          </>
         )}
       </div>
       <Toggle
