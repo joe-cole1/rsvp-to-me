@@ -413,7 +413,6 @@ These are undecided. Until they are, follow current behavior and don't extend it
 - Whether app chrome (header, host bar, dialogs) on event routes stays on the dark app shell or
   takes a tint from the event theme.
 - Whether the private guest notifications page keeps the app-shell look.
-- Whether Geist (loaded in `app/layout.tsx` but unused) is removed or becomes the body face.
 
 Decided:
 
@@ -430,6 +429,9 @@ Decided:
   independent of each other and of the motif. Stored sizes, including ones an #811 Amount
   wrote, are kept as they are. The lowest card opacity stays 0.40 (#807): text colors are derived from
   each theme's actual opacity; see the contrast contract.
+- **Body face** (#813, 2026-11-12): Geist and Geist Mono, which were loaded on every page but
+  never used, are removed. Body text, labels and controls stay Arial/Helvetica; only the
+  event title takes the theme's `headingFont`.
 
 ## Preset defaults and soft motion
 
