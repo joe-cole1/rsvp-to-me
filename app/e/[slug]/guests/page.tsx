@@ -7,6 +7,7 @@ import { EventTitleBlock } from "@/components/event/event-page/EventTitleBlock";
 import { SITE_NAME, isEventTitlePublic } from "@/lib/event-social";
 import { db } from "@/lib/db";
 import { resolveEventAccess } from "@/lib/eventAccess";
+import { eventPagePath } from "@/lib/admin-moderation";
 import { serializeGuestRsvp, canViewGuestListPage, invitedGuestsForViewer } from "@/lib/guestList";
 import { resolveTheme } from "@/lib/theme";
 import { GuestListFilter } from "@/components/event/GuestListFilter";
@@ -70,11 +71,10 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
 
   // Enforce the same visibility/password gate as the event page — a PRIVATE or
   // password-protected event must not expose its guest list to anonymous visitors.
-  const { isHost, isLoggedInGuest, hasValidToken, decision } = await resolveEventAccess(
-    event,
-    slug,
-    { token }
-  );
+  // The guest list is a host tool, so an ADMIN always gets it as a moderator (the
+  // check-in and resend actions behind it already accept the ADMIN role).
+  const { isHost, isAdminModerating, isLoggedInGuest, hasValidToken, decision } =
+    await resolveEventAccess(event, slug, { token, admin: true });
   if (decision !== "granted") redirect(`/e/${slug}`);
 
   // SEC-33: layer the guest-list-visibility setting on top of the access gate.
@@ -178,7 +178,10 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
             scrim as the event page) with the response summary under it. */}
         <div style={{ marginBottom: "32px" }}>
           <p style={{ margin: "0 0 24px", fontSize: "14px" }}>
-            <Link href={`/e/${slug}`} {...buttonProps(t, { variant: "link", onGround: true })}>
+            <Link
+              href={eventPagePath(slug, isAdminModerating)}
+              {...buttonProps(t, { variant: "link", onGround: true })}
+            >
               {translate("Ui.Event.GuestsRoute.back")}
             </Link>
           </p>

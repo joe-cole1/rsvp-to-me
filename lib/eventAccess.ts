@@ -35,6 +35,8 @@ export type EventAccessDecision = "granted" | "password" | "private-blocked";
 export type EventAccess = {
   sessionUser: SessionUser | null;
   isHost: boolean;
+  /** An ADMIN who neither owns nor co-hosts the event, granted the host view to moderate it. */
+  isAdminModerating: boolean;
   isUnlocked: boolean;
   hasValidToken: boolean;
   isLoggedInGuest: boolean;
@@ -74,7 +76,8 @@ export async function resolveEventAccess(
   const sessionUser = await getSessionUser();
   const isHostOwner = sessionUser?.id === event.hostId;
   const isCohost = event.coHosts.some((ch) => ch.userId === sessionUser?.id);
-  const isAdminModerating = sessionUser?.role === "ADMIN" && admin;
+  const isAdminModerating =
+    !isPreview && sessionUser?.role === "ADMIN" && admin && !isHostOwner && !isCohost;
   const isHost = !isPreview && (isHostOwner || isCohost || isAdminModerating);
 
   // Signed unlock cookie set after the guest enters the event password.
@@ -124,6 +127,7 @@ export async function resolveEventAccess(
   return {
     sessionUser,
     isHost,
+    isAdminModerating,
     isUnlocked,
     hasValidToken,
     isLoggedInGuest,

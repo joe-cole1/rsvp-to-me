@@ -69,12 +69,14 @@ import { PotluckPanel } from "./settings-page/PotluckPanel";
 import { EmailsPanel } from "./settings-page/EmailsPanel";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { guestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
+import { eventPagePath } from "@/lib/admin-moderation";
 
 export type { SessionUser } from "./settings-page/types";
 
 export function SettingsPage({
   event,
   isOwner,
+  adminModerating = false,
   themePresets = [],
   sessionUser = null,
   channelConfig = { email: true, sms: true },
@@ -82,6 +84,8 @@ export function SettingsPage({
 }: {
   event: EventInput;
   isOwner: boolean;
+  /** An ADMIN who doesn't host the event; the back link returns to its host view. */
+  adminModerating?: boolean;
   themePresets?: DbThemePreset[];
   sessionUser?: SessionUser | null;
   channelConfig?: { email: boolean; sms: boolean };
@@ -893,7 +897,7 @@ export function SettingsPage({
             if (activeSection) {
               closeSection();
             } else {
-              window.location.href = `/e/${event.slug}`;
+              window.location.href = eventPagePath(event.slug, adminModerating);
             }
           }}
         >
@@ -1070,6 +1074,7 @@ export function SettingsPage({
             triggerSaveSettings={triggerSaveSettings}
             eventId={event.id}
             onNotificationStatus={reportNotificationStatus}
+            adminModerating={adminModerating}
             t={t}
           />
         )}
