@@ -20,6 +20,8 @@ const {
   mockMagicTokenUpdateMany,
   mockMagicTokenUpdate,
   mockMagicTokenFindUnique,
+  mockMagicTokenFindFirst,
+  mockExecuteRaw,
   mockRsvpUpdateMany,
   mockHostInviteCodeFindFirst,
   mockHostInviteCodeUpdate,
@@ -37,6 +39,8 @@ const {
   mockMagicTokenUpdateMany: vi.fn(),
   mockMagicTokenUpdate: vi.fn(),
   mockMagicTokenFindUnique: vi.fn(),
+  mockMagicTokenFindFirst: vi.fn(),
+  mockExecuteRaw: vi.fn(),
   mockRsvpUpdateMany: vi.fn(),
   mockHostInviteCodeFindFirst: vi.fn(),
   mockHostInviteCodeUpdate: vi.fn(),
@@ -60,6 +64,7 @@ vi.mock("@/lib/db", () => ({
       updateMany: mockMagicTokenUpdateMany,
       update: mockMagicTokenUpdate,
       findUnique: mockMagicTokenFindUnique,
+      findFirst: mockMagicTokenFindFirst,
     },
     rSVP: {
       updateMany: mockRsvpUpdateMany,
@@ -72,6 +77,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: mockSystemConfigFindUnique,
     },
     $transaction: mockTransaction,
+    $executeRaw: mockExecuteRaw,
   },
 }));
 
@@ -82,6 +88,8 @@ vi.mock("@/lib/session", () => ({
 
 import {
   createMagicLink,
+  createLoginChallenge,
+  verifySignInCode,
   isSafeRedirect,
   linkRsvpsToUser,
   verifyMagicToken,
@@ -92,6 +100,11 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockMagicTokenUpdateMany.mockResolvedValue({ count: 1 });
+  mockTransaction.mockImplementation(async (ops) => {
+    const { db } = await import("@/lib/db");
+    return typeof ops === "function" ? ops(db) : Promise.all(ops);
+  });
   process.env.INITIAL_ADMIN_EMAIL = "admin@example.com";
 });
 
@@ -381,8 +394,8 @@ describe("verifyMagicToken", () => {
 
     const result = await verifyMagicToken(token);
     expect(result).toBe(true);
-    expect(mockMagicTokenUpdate).toHaveBeenCalledWith({
-      where: { id: "tok-id" },
+    expect(mockMagicTokenUpdateMany).toHaveBeenCalledWith({
+      where: { id: "tok-id", used: false },
       data: { used: true },
     });
     expect(mockCreateSession).toHaveBeenCalledWith({
@@ -583,5 +596,136 @@ describe("isOpenRegistrationActive", () => {
     mockSystemConfigFindUnique.mockResolvedValue({ key: "open_registration", value: "false" });
     const result = await isOpenRegistrationActive();
     expect(result).toBe(false);
+  });
+});
+
+describe("sign-in code challenges (#844)", () => {
+  const user = { id: "code-user", email: "code@example.com", phone: null, role: "HOST" };
+  beforeEach(() => {
+    mockUserFindUnique.mockResolvedValue(user);
+    mockMagicTokenFindFirst.mockResolvedValue(null);
+  });
+  it("stores hashes for a paired link and six-digit code with one 15-minute expiry", async () => {
+    const { hashToken } = await import("@/lib/hash");
+    const before = Date.now();
+    const challenge = await createLoginChallenge(" CODE@example.com ");
+    expect(challenge?.code).toMatch(/^\d{6}$/);
+    const rawToken = new URL(challenge!.link).searchParams.get("token")!;
+    const data = mockMagicTokenCreate.mock.calls[0][0].data;
+    expect(data).toMatchObject({
+      type: "LOGIN",
+      codeHash: hashToken(challenge!.code),
+      token: hashToken(rawToken),
+      codeAttempts: 0,
+    });
+    expect(data.expiresAt.getTime()).toBeGreaterThanOrEqual(before + 15 * 60 * 1000);
+    expect(data.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 15 * 60 * 1000);
+    expect(mockExecuteRaw.mock.calls[0][1]).toBe("login-code:code-user");
+  });
+  it.each(["12345", "1234567", "12a456", "１２３４５６"])(
+    "rejects invalid format %s before lookup",
+    async (code) => {
+      expect(await verifySignInCode("code@example.com", code)).toBe(false);
+      expect(mockUserFindUnique).not.toHaveBeenCalled();
+    }
+  );
+  it("rejects unknown accounts and missing/expired challenges without sessions", async () => {
+    mockUserFindUnique.mockResolvedValueOnce(null);
+    expect(await verifySignInCode("missing@example.com", "000000")).toBe(false);
+    expect(await verifySignInCode("code@example.com", "000000")).toBe(false);
+    expect(mockMagicTokenFindFirst).toHaveBeenCalledWith({
+      where: {
+        userId: user.id,
+        type: "LOGIN",
+        used: false,
+        expiresAt: { gt: expect.any(Date) },
+        codeHash: { not: null },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(mockCreateSession).not.toHaveBeenCalled();
+  });
+  it.each([0, 3, 4])("counts a wrong attempt from %i and retires the fifth", async (attempts) => {
+    const { hashToken } = await import("@/lib/hash");
+    mockMagicTokenFindFirst.mockResolvedValue({
+      id: "code-token",
+      codeHash: hashToken("012345"),
+      codeAttempts: attempts,
+    });
+    expect(await verifySignInCode("code@example.com", "999999")).toBe(false);
+    expect(mockMagicTokenUpdateMany).toHaveBeenCalledWith({
+      where: { id: "code-token", used: false },
+      data: { codeAttempts: { increment: 1 }, ...(attempts === 4 ? { used: true } : {}) },
+    });
+    expect(mockCreateSession).not.toHaveBeenCalled();
+  });
+  it("rejects locked challenges even when the code matches", async () => {
+    const { hashToken } = await import("@/lib/hash");
+    mockMagicTokenFindFirst.mockResolvedValue({
+      id: "code-token",
+      codeHash: hashToken("012345"),
+      codeAttempts: 5,
+    });
+    expect(await verifySignInCode("code@example.com", "012345")).toBe(false);
+    expect(mockMagicTokenUpdateMany).not.toHaveBeenCalled();
+  });
+  it("accepts leading zeros, links RSVPs and creates a session only after atomic consumption", async () => {
+    const { hashToken } = await import("@/lib/hash");
+    mockMagicTokenFindFirst.mockResolvedValue({
+      id: "code-token",
+      codeHash: hashToken("012345"),
+      codeAttempts: 0,
+    });
+    expect(await verifySignInCode(" CODE@example.com ", "012345")).toBe(true);
+    expect(mockUserFindUnique).toHaveBeenCalledWith({ where: { email: user.email } });
+    expect(mockMagicTokenUpdateMany).toHaveBeenCalledWith({
+      where: { id: "code-token", used: false },
+      data: { used: true, codeAttempts: { increment: 1 } },
+    });
+    expect(mockRsvpUpdateMany).toHaveBeenCalled();
+    expect(mockCreateSession).toHaveBeenCalledWith({
+      userId: user.id,
+      email: user.email,
+      role: "HOST",
+    });
+  });
+  it("normalizes phone lookup", async () => {
+    await verifySignInCode(" +1 (555) 123-4567 ", "012345");
+    expect(mockUserFindUnique).toHaveBeenCalledWith({ where: { phone: "+15551234567" } });
+  });
+  it("does not create a session if the paired link won consumption", async () => {
+    const { hashToken } = await import("@/lib/hash");
+    mockMagicTokenFindFirst.mockResolvedValue({
+      id: "code-token",
+      codeHash: hashToken("012345"),
+      codeAttempts: 0,
+    });
+    mockMagicTokenUpdateMany.mockResolvedValue({ count: 0 });
+    expect(await verifySignInCode(user.email, "012345")).toBe(false);
+    expect(mockCreateSession).not.toHaveBeenCalled();
+  });
+  it("does not create a session if the paired code won link consumption", async () => {
+    mockMagicTokenFindUnique.mockResolvedValue({
+      id: "code-token",
+      userId: user.id,
+      type: "LOGIN",
+      used: false,
+      expiresAt: new Date(Date.now() + 60000),
+    });
+    mockMagicTokenUpdateMany.mockResolvedValue({ count: 0 });
+    expect(await verifyMagicToken("paired-link")).toBe(false);
+    expect(mockCreateSession).not.toHaveBeenCalled();
+  });
+  it("promotes the initial admin only after a verified LOGIN code", async () => {
+    const { hashToken } = await import("@/lib/hash");
+    mockUserFindUnique.mockResolvedValue({ ...user, email: "admin@example.com" });
+    mockUserCount.mockResolvedValue(0);
+    mockMagicTokenFindFirst.mockResolvedValue({
+      id: "code-token",
+      codeHash: hashToken("012345"),
+      codeAttempts: 0,
+    });
+    expect(await verifySignInCode("admin@example.com", "012345")).toBe(true);
+    expect(mockCreateSession).toHaveBeenCalledWith(expect.objectContaining({ role: "ADMIN" }));
   });
 });

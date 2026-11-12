@@ -234,3 +234,9 @@ Task ed4ddceb (#812, design review batch 9):
 - `issue-812-guest-list-title.test.tsx`: the guest list drew its own title in the card's
   text color and the body font; it now shares the event hero's title block (heading font,
   hero ink), and its document title names the event only where the link preview would.
+
+Issue #844 extends `sec-40-45-signin-enumeration-shared-ip.test.ts` to cover uniform code-verification failures and normalized identifier limits without a shared loopback bucket.
+
+`signin-code-session-cookie.test.ts` covers action-created sessions honoring `DISABLE_HSTS` like link verification, allowing code sign-in on HTTP installations (#844).
+
+Issue #844 also extends `sec-48-initial-admin-login-only.test.ts`: a link that loses atomic consumption to its paired code must not promote the initial administrator or create another session.

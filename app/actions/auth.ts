@@ -4,17 +4,22 @@ import { db } from "@/lib/db";
 import { cookies } from "next/headers";
 import { resolveLocale, LOCALE_COOKIE } from "@/i18n/config";
 import { getRequestTranslator } from "@/i18n/server";
-import { createMagicLink, registerHost, isOpenRegistrationActive } from "@/lib/auth";
+import {
+  createLoginChallenge,
+  registerHost,
+  isOpenRegistrationActive,
+  looksLikePhone,
+  normalizeLoginIdentifier,
+  loginIdentifierWhere,
+  verifySignInCode,
+  isSafeRedirect,
+} from "@/lib/auth";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
-import { SendMagicLinkSchema, RegisterHostSchema } from "@/lib/schemas";
+import { SendMagicLinkSchema, RegisterHostSchema, VerifySignInCodeSchema } from "@/lib/schemas";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { assertCaptcha } from "@/lib/captcha";
-
-function looksLikePhone(s: string): boolean {
-  return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
-}
 
 export async function sendMagicLinkAction(
   rawIdentifier: string,
@@ -27,7 +32,7 @@ export async function sendMagicLinkAction(
   if (!parseResult.success) {
     return { success: false, error: t("Ui.Errors.Auth.invalidIdentifier") };
   }
-  const identifier = parseResult.data.identifier;
+  const identifier = normalizeLoginIdentifier(parseResult.data.identifier);
   await assertCaptcha("signin", captchaToken);
 
   // SEC-45: only apply the per-IP limiter when a trusted proxy IP is configured.
@@ -57,22 +62,20 @@ export async function sendMagicLinkAction(
   }
 
   const isPhone = looksLikePhone(identifier);
-  const link = await createMagicLink(identifier, redirect);
+  const challenge = await createLoginChallenge(identifier, redirect);
 
-  // SEC-40: never reveal whether an account exists. When createMagicLink returns
+  // SEC-40: never reveal whether an account exists. When createLoginChallenge returns
   // null (no user for this identifier) we send nothing but return the SAME
   // success response as a real send — otherwise the sign-in screen renders a
   // distinct "sign-in failed" state for unknown identifiers, letting an attacker
   // enumerate registered emails/phones. This refines SEC-14a, which unified the
   // error CODE but still branched success vs. failure on account existence.
-  if (!link) {
+  if (!challenge) {
     return { success: true };
   }
 
   const recipient = await db.user.findUnique({
-    where: isPhone
-      ? { phone: identifier.trim().replace(/[\s\-().]/g, "") }
-      : { email: identifier.toLowerCase().trim() },
+    where: loginIdentifierWhere(identifier),
     select: { preferredLocale: true },
   });
   const recipientLocale =
@@ -81,10 +84,9 @@ export async function sendMagicLinkAction(
       : resolveLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   try {
     if (isPhone) {
-      const phone = identifier.trim().replace(/[\s\-().]/g, "");
-      await sendMagicLinkSms(phone, link, recipientLocale);
+      await sendMagicLinkSms(identifier, challenge.link, recipientLocale, challenge.code);
     } else {
-      await sendMagicLinkEmail(identifier.toLowerCase().trim(), link, recipientLocale);
+      await sendMagicLinkEmail(identifier, challenge.link, recipientLocale, challenge.code);
     }
   } catch (err) {
     console.error("[auth] Magic link delivery failed:", err);
@@ -132,19 +134,44 @@ export async function registerHostAction(
   const result = await registerHost(email, name, inviteCode ?? "");
 
   if (result.success) {
-    const link = await createMagicLink(email);
-    if (link) {
+    const challenge = await createLoginChallenge(email);
+    if (challenge) {
       const recipient = await db.user.findUnique({
-        where: { email: email.toLowerCase().trim() },
+        where: loginIdentifierWhere(email),
         select: { preferredLocale: true },
       });
       const locale =
         recipient?.preferredLocale != null
           ? resolveLocale(recipient.preferredLocale)
           : resolveLocale((await cookies()).get(LOCALE_COOKIE)?.value);
-      await sendMagicLinkEmail(email, link, locale);
+      await sendMagicLinkEmail(email, challenge.link, locale, challenge.code);
     }
   }
 
   return result;
+}
+
+export async function verifySignInCodeAction(
+  rawIdentifier: string,
+  rawCode: string,
+  redirect?: string
+): Promise<{ success: false; error: string } | { success: true; redirectTo: string }> {
+  const t = await getRequestTranslator();
+  // SEC-40: every rejected code challenge has the same public response.
+  const failure = { success: false as const, error: t("Ui.Errors.Auth.invalidCode") };
+  const parsed = VerifySignInCodeSchema.safeParse({ identifier: rawIdentifier, code: rawCode });
+  const identifier = normalizeLoginIdentifier(
+    typeof rawIdentifier === "string" ? rawIdentifier : ""
+  );
+  // SEC-45: never turn the loopback fallback into a shared sign-in bucket.
+  if (isTrustedIpConfigured()) {
+    const ip = await getClientIp();
+    if (!(await rateLimit(`ip:${ip}:signin-code`, 20, 600)).success) return failure;
+  }
+  if (!(await rateLimit(`id:${identifier}:signin-code`, 10, 600)).success) return failure;
+  if (!parsed.success || !(await verifySignInCode(identifier, parsed.data.code))) return failure;
+  return {
+    success: true,
+    redirectTo: redirect && isSafeRedirect(redirect) ? redirect : "/dashboard",
+  };
 }

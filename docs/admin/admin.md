@@ -61,11 +61,11 @@ INITIAL_ADMIN_EMAIL="youraddress@domain.com"
 docker compose restart app
 ```
 
-The first time you complete sign-in by opening a valid `LOGIN` magic link for this email, your
+The first time you complete sign-in by opening a valid `LOGIN` magic link or entering its paired 6-digit code for this email, your
 account is automatically promoted to `ADMIN` (provided there are currently no other administrators
 in the system). This is a bootstrap mechanism for first-time installation. Registration, an
 existing session, dashboard/profile access, profile-change links, and co-host invitation acceptance
-cannot trigger this promotion; request and verify a fresh sign-in magic link when bootstrapping or
+cannot trigger this promotion; request and verify a fresh sign-in link or code when bootstrapping or
 recovering the initial administrator.
 
 ### Method 2: Promotion via the Admin Panel
@@ -115,7 +115,7 @@ Click **+ Create User** to open the creation modal and fill in:
 - **Name**, **Email**, and (optionally) **Phone** — email and phone must be unique.
 - **Role** — `GUEST`, `HOST`, or `ADMIN`.
 
-When you create the user, a 48-hour magic sign-in link is emailed to them so they can log in immediately. If email delivery fails, the account is still created — the email step is non-blocking.
+When you create the user, a link-only welcome email with a 48-hour magic sign-in link is sent to them so they can log in immediately. If email delivery fails, the account is still created — the email step is non-blocking.
 
 ### User Roles
 

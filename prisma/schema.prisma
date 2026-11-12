@@ -55,16 +55,20 @@ enum MagicTokenType {
 }
 
 model MagicToken {
-  id        String         @id @default(cuid())
-  userId    String
-  token     String         @unique
-  expiresAt DateTime
-  createdAt DateTime       @default(now())
-  used      Boolean        @default(false)
-  type      MagicTokenType @default(LOGIN)
-  metadata  String?
+  id           String         @id @default(cuid())
+  userId       String
+  token        String         @unique
+  expiresAt    DateTime
+  createdAt    DateTime       @default(now())
+  used         Boolean        @default(false)
+  type         MagicTokenType @default(LOGIN)
+  metadata     String?
+  codeHash     String?
+  codeAttempts Int            @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, used, expiresAt])
 }
 
 model SystemConfig {

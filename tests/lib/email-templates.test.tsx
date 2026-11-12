@@ -144,3 +144,25 @@ describe("registry metadata", () => {
     expect(inv.showCoverImage).toBe(false);
   });
 });
+
+describe("MagicLinkEmail sign-in code (#844)", () => {
+  it("keeps leading zeros intact in HTML and plain text", async () => {
+    const { MagicLinkEmail } = await import("@/emails/templates/MagicLinkEmail");
+    const { html, text } = await renderEmail(
+      <MagicLinkEmail
+        theme={theme}
+        body="Sign in"
+        magicLink="https://example.test/auth/verify?token=test"
+        code="000012"
+      />
+    );
+    expect(html).toContain(">000012</span>");
+    expect(text).toContain("000012");
+    expect(text).not.toContain("0 0 0 0 1 2");
+  });
+  it("keeps welcome previews magic-link-only", async () => {
+    const { text } = await renderEmail((await buildSampleEmail("welcome", theme)).element);
+    expect(text).toContain("48 hours");
+    expect(text).not.toContain("482910");
+  });
+});

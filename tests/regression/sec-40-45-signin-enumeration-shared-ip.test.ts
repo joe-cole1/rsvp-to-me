@@ -28,15 +28,18 @@ vi.mock("@/lib/db", () => ({
   db: { user: { findUnique: vi.fn(async () => ({ preferredLocale: null })) } },
 }));
 const mocks = vi.hoisted(() => ({
-  mockCreateMagicLink: vi.fn(),
+  mockCreateLoginChallenge: vi.fn(),
+  mockVerifySignInCode: vi.fn(),
   mockSendMagicLinkEmail: vi.fn().mockResolvedValue(undefined),
   mockSendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
   mockRateLimit: vi.fn().mockResolvedValue({ success: true }),
   mockHeadersGet: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  createMagicLink: mocks.mockCreateMagicLink,
+vi.mock("@/lib/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth")>()),
+  createLoginChallenge: mocks.mockCreateLoginChallenge,
+  verifySignInCode: mocks.mockVerifySignInCode,
   registerHost: vi.fn(),
   isOpenRegistrationActive: vi.fn().mockResolvedValue(false),
 }));
@@ -48,10 +51,11 @@ vi.mock("next/headers", () => ({
   headers: vi.fn().mockResolvedValue({ get: mocks.mockHeadersGet }),
 }));
 
-import { sendMagicLinkAction } from "@/app/actions/auth";
+import { sendMagicLinkAction, verifySignInCodeAction } from "@/app/actions/auth";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.mockHeadersGet.mockReset().mockReturnValue("127.0.0.1");
   mocks.mockRateLimit.mockResolvedValue({ success: true });
   delete process.env.TRUSTED_IP_HEADER;
 });
@@ -62,7 +66,7 @@ afterEach(() => {
 
 describe("SEC-40: no account enumeration on sign-in", () => {
   it("returns the same success response for an unknown identifier and sends nothing", async () => {
-    mocks.mockCreateMagicLink.mockResolvedValue(null); // no user
+    mocks.mockCreateLoginChallenge.mockResolvedValue(null); // no user
 
     const unknown = await sendMagicLinkAction("nobody@example.com");
 
@@ -72,10 +76,13 @@ describe("SEC-40: no account enumeration on sign-in", () => {
   });
 
   it("is indistinguishable from a real send to a registered identifier", async () => {
-    mocks.mockCreateMagicLink.mockResolvedValueOnce(null); // unknown
+    mocks.mockCreateLoginChallenge.mockResolvedValueOnce(null); // unknown
     const unknown = await sendMagicLinkAction("nobody@example.com");
 
-    mocks.mockCreateMagicLink.mockResolvedValueOnce("http://localhost:3000/auth/verify?token=abc"); // known
+    mocks.mockCreateLoginChallenge.mockResolvedValueOnce({
+      link: "http://localhost:3000/auth/verify?token=abc",
+      code: "012345",
+    }); // known
     const known = await sendMagicLinkAction("host@example.com");
 
     // The client cannot tell the two apart: identical response shape.
@@ -86,7 +93,10 @@ describe("SEC-40: no account enumeration on sign-in", () => {
 
 describe("SEC-45: no shared-bucket sign-in lockout", () => {
   it("does not consult a global loopback IP bucket when no trusted proxy is configured", async () => {
-    mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=abc");
+    mocks.mockCreateLoginChallenge.mockResolvedValue({
+      link: "http://localhost:3000/auth/verify?token=abc",
+      code: "012345",
+    });
 
     await sendMagicLinkAction("user@example.com");
 
@@ -101,10 +111,45 @@ describe("SEC-45: no shared-bucket sign-in lockout", () => {
     mocks.mockHeadersGet.mockImplementation((h: string) =>
       h === "x-forwarded-for" ? "203.0.113.7" : null
     );
-    mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=abc");
+    mocks.mockCreateLoginChallenge.mockResolvedValue({
+      link: "http://localhost:3000/auth/verify?token=abc",
+      code: "012345",
+    });
 
     await sendMagicLinkAction("user@example.com");
 
     expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:203.0.113.7:magic-link", 20, 600);
+  });
+});
+
+// #844: code verification must preserve SEC-40's uniform response and SEC-45's
+// trusted-IP boundary, including equivalent formatting of the same identifier.
+describe("SEC-40/45: sign-in code verification", () => {
+  it("returns identical failures for invalid format and rejected challenges", async () => {
+    mocks.mockVerifySignInCode.mockResolvedValue(false);
+    const malformed = await verifySignInCodeAction("host@example.com", "abc");
+    for (const identifier of ["nobody@example.com", "host@example.com"]) {
+      expect(await verifySignInCodeAction(identifier, "012345")).toEqual(malformed);
+    }
+    expect(malformed).toEqual({
+      success: false,
+      error: "Invalid or expired code. Check your code or request a new one.",
+    });
+  });
+  it("uses only a normalized identifier bucket without a trusted IP", async () => {
+    delete process.env.TRUSTED_IP_HEADER;
+    await verifySignInCodeAction(" +1 (555) 123-4567 ", "012345");
+    expect(mocks.mockRateLimit).toHaveBeenCalledExactlyOnceWith(
+      "id:+15551234567:signin-code",
+      10,
+      600
+    );
+  });
+  it("adds the IP bucket only when a trusted proxy is configured", async () => {
+    process.env.TRUSTED_IP_HEADER = "x-real-ip";
+    mocks.mockHeadersGet.mockReturnValue("203.0.113.7");
+    await verifySignInCodeAction(" HOST@example.com ", "012345");
+    expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:203.0.113.7:signin-code", 20, 600);
+    expect(mocks.mockRateLimit).toHaveBeenCalledWith("id:host@example.com:signin-code", 10, 600);
   });
 });

@@ -149,12 +149,20 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 ### Authentication and access control
 
 1. `app/actions/auth.ts` validates sign-in/registration input and calls
-   `lib/auth.ts` to create or verify magic-link tokens.
+   `lib/auth.ts` to create paired magic-link/code LOGIN challenges or verify tokens.
+   Both methods share a 15-minute expiry and atomic single-use consumption; code
+   verification/resend serialize per user with a PostgreSQL advisory lock. Five
+   incorrect code attempts retire the pair. Identifier normalization is shared
+   by issuance, recipient locale lookup, and verification.
+   `app/auth/SignInCodeForm.tsx` owns code entry and CAPTCHA-protected resend for
+   both sign-in and registration.
 2. Verification route handlers under `app/auth/` create encrypted session
    cookies through `lib/session.ts`. `INITIAL_ADMIN_EMAIL` bootstrap promotion
-   belongs exclusively to successful `LOGIN` magic-token verification in
+   belongs exclusively to successful `LOGIN` link or code verification in
    `lib/auth.ts` and `app/auth/verify/route.ts`; session reads and non-LOGIN
-   verification flows must never promote roles.
+   verification flows must never promote roles. `completeLoginForUser` shares
+   promotion, locale adoption, RSVP linking and session creation between the core
+   link/code verifiers; the HTTP link route retains response-cookie handling.
 3. `lib/session-user.ts` wraps the current-user lookup in `React.cache()` for
    Server Component reuse.
 4. Host and administrator mutations must use guards from `lib/auth-guards.ts`.

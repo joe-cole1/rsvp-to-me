@@ -179,7 +179,7 @@ export async function createSession(data: Omit<SessionData, "sessionId">): Promi
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, sealed, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.DISABLE_HSTS !== "true",
     sameSite: "lax",
     maxAge: TTL,
     path: "/",

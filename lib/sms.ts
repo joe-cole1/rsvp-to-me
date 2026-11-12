@@ -165,10 +165,10 @@ async function renderConfirmationSms(opts: Parameters<typeof sendRsvpConfirmatio
   );
 }
 
-export async function sendMagicLinkSms(to: string, link: string, locale: Locale) {
+export async function sendMagicLinkSms(to: string, link: string, locale: Locale, code?: string) {
   if (!(await isChannelEnabled("sms"))) return;
   const t = await getTranslator(locale);
-  return send(to, t("Sms.magicLink", { link }));
+  return send(to, code ? t("Sms.magicLink", { link, code }) : t("Sms.verificationLink", { link }));
 }
 
 export async function sendEventInviteSms(

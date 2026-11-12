@@ -115,11 +115,12 @@ export const EMAIL_TEMPLATE_META: Record<TemplateId, EmailTemplateMeta> = {
   },
   magicLink: {
     id: "magicLink",
-    label: "Sign-in link",
-    description: "Passwordless sign-in email.",
+    label: "Sign-in link and code",
+    description: "Passwordless sign-in email with a magic link and a one-time code.",
     eventScoped: false,
-    defaultSubject: "Your sign-in link for RSVP to Me",
-    defaultBody: "Click the button below to sign in. This link expires in 15 minutes.",
+    defaultSubject: "Your sign-in link and code for RSVP to Me",
+    defaultBody:
+      "Click the button below or enter the 6-digit code on the sign-in screen. Both expire in 15 minutes and can only be used once.",
     bodyEditable: true,
     placeholders: [],
     toggles: [],
@@ -376,6 +377,7 @@ function buildSampleEmailElement(
         subject,
         element: (
           <MagicLinkEmail
+            code="482910"
             theme={theme}
             body={body}
             magicLink={`${APP_URL}/auth/verify?token=sample-token`}

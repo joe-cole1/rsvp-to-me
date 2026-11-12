@@ -104,7 +104,8 @@
         "emailExists": "An account with this email already exists.",
         "phoneExists": "An account with this phone number already exists.",
         "hostExists": "An account with this email already exists. Sign in with a magic link instead.",
-        "invalidInvite": "Invalid or expired invite code."
+        "invalidInvite": "Invalid or expired invite code.",
+        "invalidCode": "Invalid or expired code. Check your code or request a new one."
       },
       "Profile": {
         "unauthorized": "Unauthorized",
@@ -1646,7 +1647,7 @@
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "That link has expired or already been used. Request a new one below.",
       "rsvp": "RSVP",
-      "signInWithAMagicLink": "Sign in with a magic link",
+      "signInWithAMagicLink": "Sign in with a magic link or code",
       "checkYourTexts": "Check your texts",
       "checkYourEmail": "Check your email",
       "signInFailed": "Sign-in failed",
@@ -1654,13 +1655,13 @@
       "emailOrPhoneNumber": "Email or phone number",
       "youExampleComOr15550000000": "you@example.com or +1 555 000 0000",
       "sending": "Sending…",
-      "sendMagicLink": "Send magic link",
+      "sendMagicLink": "Send sign-in link and code",
       "noAccount": "No account?",
       "newHost": "New host?",
       "createOne": "Create one →",
       "createAnAccount": "Create an account",
       "accountCreated": "Account created!",
-      "checkYourEmailForAMagicLinkToSign": "Check your email for a magic link to sign in.",
+      "checkYourEmailForAMagicLinkToSign": "Your account is ready. Check your email for a magic link and a 6-digit code to sign in.",
       "goToSignIn": "Go to sign in",
       "yourName": "Your name",
       "janeSmith": "Jane Smith",
@@ -1671,12 +1672,19 @@
       "creatingAccount": "Creating account…",
       "createAccount": "Create account",
       "alreadyHaveAnAccountSignInMessage": "<part0> Already have an account? <part1>Sign in →</part1> </part0>",
-      "weSentAMagicLinkToClickItMessage": "We sent a magic link to <part0>{value0}</part0>. Click it to sign in — it expires in 15 minutes.",
+      "weSentAMagicLinkToClickItMessage": "We sent a magic link and a 6-digit code to <part0>{value0}</part0>. Use either to sign in — both expire in 15 minutes.",
       "weCouldnTCompleteYourRequestIfYourMessage": "We couldn't complete your request. If your email or phone is registered, please check your connection and try again. For self-hosters, check the container logs for details or fallbacks (look for <part0> [auth:magic-link-fallback] </part0>).",
       "securityCheckFailed": "Security check failed.",
       "somethingWentWrong": "Something went wrong.",
       "signInMetadataTitle": "Sign In",
-      "registerMetadataTitle": "Create Account"
+      "registerMetadataTitle": "Create Account",
+      "signInCode": "6-digit code",
+      "codeExpiry": "The link and code expire in 15 minutes.",
+      "codeResent": "A new link and code have been sent.",
+      "signingIn": "Signing in…",
+      "signIn": "Sign in",
+      "resend": "Resend",
+      "useDifferentIdentifier": "Use a different email or phone"
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",
@@ -1823,10 +1831,10 @@
         "defaultBody": ""
       },
       "magicLink": {
-        "label": "Sign-in link",
-        "description": "Passwordless sign-in email.",
-        "defaultSubject": "Your sign-in link for RSVP to Me",
-        "defaultBody": "Click the button below to sign in. This link expires in 15 minutes."
+        "label": "Sign-in link and code",
+        "description": "Passwordless sign-in email with a magic link and a one-time code.",
+        "defaultSubject": "Your sign-in link and code for RSVP to Me",
+        "defaultBody": "Click the button below or enter the 6-digit code on the sign-in screen. Both expire in 15 minutes and can only be used once."
       },
       "welcome": {
         "label": "Account welcome",
@@ -1904,9 +1912,14 @@
       "counts": "Current headcount: {goingCount} going · {maybeCount} maybe · {noCount} can''t go"
     },
     "magicLink": {
-      "preview": "Your sign-in link for RSVP to Me",
+      "preview": "Your sign-in link and 6-digit code for RSVP to Me",
       "title": "Sign in",
-      "ignore": "If you didn''t request this, you can safely ignore this email."
+      "ignore": "If you didn''t request this, you can safely ignore this email.",
+      "codeLabel": "Or enter this code on the sign-in screen:",
+      "expiry": "The link and code expire in 15 minutes. Using either retires both.",
+      "linkOnlySubject": "Your sign-in link for RSVP to Me",
+      "linkOnlyBody": "Click the button below to sign in. This link expires in 15 minutes.",
+      "linkOnlyPreview": "Your sign-in link for RSVP to Me"
     },
     "welcome": {
       "preview": "Welcome to RSVP to Me",
@@ -1934,7 +1947,7 @@
   "Sms": {
     "test": "Test SMS from RSVP to Me. Your SMS configuration is correct!",
     "confirmation": "{guestName}, you''re {status} for {eventTitle}! Update your RSVP: {editUrl}",
-    "magicLink": "Your sign-in link for RSVP to Me: {link}\n(expires in 15 minutes)",
+    "magicLink": "Your RSVP to Me sign-in code: {code}\nOr use this link: {link}\nBoth expire in 15 minutes. Using either retires both.",
     "invite": "{hostName} invited you to {eventTitle}! Reply YES to confirm, NO to decline{maybeClause}. Or RSVP at: {rsvpUrl}",
     "maybeClause": ", MAYBE to say maybe",
     "blast": "{hostName} ({eventTitle}): {message} {eventUrl}",
@@ -1963,7 +1976,8 @@
       }
     },
     "configRequired": "Twilio Account SID, Auth Token, and Phone Number are required.",
-    "configFailed": "Twilio request failed. Verify your Account SID, Auth Token, and Phone number."
+    "configFailed": "Twilio request failed. Verify your Account SID, Auth Token, and Phone number.",
+    "verificationLink": "Your sign-in link for RSVP to Me: {link}\n(expires in 15 minutes)"
   },
   "Reminders": {
     "email_week": "Just a reminder — {eventTitle} is one week away! We can''t wait to see you.",

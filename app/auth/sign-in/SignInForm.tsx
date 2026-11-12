@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { sendMagicLinkAction } from "@/app/actions/auth";
+import SignInCodeForm from "../SignInCodeForm";
 import { AppShell } from "@/components/ui/AppShell";
 import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { AppCard } from "@/components/ui/AppPrimitives";
@@ -75,7 +76,6 @@ export default function SignInForm({
     <AppShell center>
       <div style={{ width: "100%", maxWidth: "400px" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
           <h1
             style={{
               color: APP_SHELL.textPrimary,
@@ -97,7 +97,6 @@ export default function SignInForm({
           </Suspense>
           {submitted ? (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>{isPhone ? "📱" : "📬"}</div>
               <h2
                 style={{
                   color: APP_SHELL.textPrimary,
@@ -110,16 +109,26 @@ export default function SignInForm({
               </h2>
               <p style={{ color: APP_SHELL.textSecondary, fontSize: "14px", lineHeight: 1.6 }}>
                 {tr.rich("weSentAMagicLinkToClickItMessage", {
-                  part0: (chunks) => (
-                    <strong style={{ color: "rgba(255,255,255,0.8)" }}>{chunks}</strong>
-                  ),
+                  part0: (chunks) => <strong style={{ color: T.textPrimary }}>{chunks}</strong>,
                   value0: identifier,
                 })}
               </p>
+              <SignInCodeForm identifier={identifier} redirect={redirect} />
+              <Button
+                theme={T}
+                variant="link"
+                type="button"
+                style={{ marginTop: "16px" }}
+                onClick={() => {
+                  setSubmitted(false);
+                  setError(null);
+                }}
+              >
+                {tr("useDifferentIdentifier")}
+              </Button>
             </div>
           ) : authFailed ? (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
               <h2
                 style={{
                   color: APP_SHELL.textPrimary,
@@ -142,11 +151,11 @@ export default function SignInForm({
                   part0: (chunks) => (
                     <code
                       style={{
-                        background: "rgba(255,255,255,0.08)",
+                        background: T.inputBg,
                         borderRadius: "4px",
                         padding: "1px 5px",
                         fontSize: "12px",
-                        color: "rgba(255,255,255,0.7)",
+                        color: T.textSecondary,
                       }}
                     >
                       {chunks}

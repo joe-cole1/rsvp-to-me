@@ -104,7 +104,8 @@
         "emailExists": "Ya existe una cuenta con este correo electrónico.",
         "phoneExists": "Ya existe una cuenta con este número de teléfono.",
         "hostExists": "Ya existe una cuenta con este correo electrónico. Inicia sesión con un enlace de acceso.",
-        "invalidInvite": "El código de invitación no es válido o ha caducado."
+        "invalidInvite": "El código de invitación no es válido o ha caducado.",
+        "invalidCode": "Código incorrecto o caducado. Comprueba el código o solicita uno nuevo."
       },
       "Profile": {
         "unauthorized": "Sin autorización",
@@ -1646,7 +1647,7 @@
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Ese enlace ha caducado o ya se ha utilizado. Solicita uno nuevo a continuación.",
       "rsvp": "RSVP",
-      "signInWithAMagicLink": "Inicia sesión con un enlace de acceso",
+      "signInWithAMagicLink": "Inicia sesión con un enlace o código",
       "checkYourTexts": "Revisa tus SMS",
       "checkYourEmail": "Revisa tu correo",
       "signInFailed": "No se ha podido iniciar sesión",
@@ -1654,13 +1655,13 @@
       "emailOrPhoneNumber": "Correo electrónico o número de teléfono",
       "youExampleComOr15550000000": "you@example.com o +1 555 000 0000",
       "sending": "Enviando…",
-      "sendMagicLink": "Enviar enlace de acceso",
+      "sendMagicLink": "Enviar enlace y código",
       "noAccount": "¿No tienes cuenta?",
       "newHost": "¿Quieres organizar eventos?",
       "createOne": "Crear una →",
       "createAnAccount": "Crear una cuenta",
       "accountCreated": "¡Cuenta creada!",
-      "checkYourEmailForAMagicLinkToSign": "Revisa tu correo para encontrar el enlace de acceso e iniciar sesión.",
+      "checkYourEmailForAMagicLinkToSign": "Tu cuenta está lista. Revisa tu correo para encontrar un enlace y un código de 6 dígitos para iniciar sesión.",
       "goToSignIn": "Ir a iniciar sesión",
       "yourName": "Tu nombre",
       "janeSmith": "Jane Smith",
@@ -1671,12 +1672,19 @@
       "creatingAccount": "Creando cuenta…",
       "createAccount": "Crear cuenta",
       "alreadyHaveAnAccountSignInMessage": "<part0> ¿Ya tienes una cuenta? <part1>Iniciar sesión →</part1> </part0>",
-      "weSentAMagicLinkToClickItMessage": "Hemos enviado un enlace de acceso a <part0>{value0}</part0>. Haz clic en él para iniciar sesión; caduca en 15 minutos.",
+      "weSentAMagicLinkToClickItMessage": "Hemos enviado un enlace y un código de 6 dígitos a <part0>{value0}</part0>. Usa cualquiera para iniciar sesión — ambos caducan en 15 minutos.",
       "weCouldnTCompleteYourRequestIfYourMessage": "No hemos podido completar tu solicitud. Si tu correo o teléfono está registrado, comprueba la conexión e inténtalo de nuevo. Si alojas el sitio, consulta los registros del contenedor para obtener detalles o alternativas (busca <part0> [auth:magic-link-fallback] </part0>).",
       "securityCheckFailed": "La comprobación de seguridad ha fallado.",
       "somethingWentWrong": "Algo ha salido mal.",
       "signInMetadataTitle": "Iniciar sesión",
-      "registerMetadataTitle": "Crear cuenta"
+      "registerMetadataTitle": "Crear cuenta",
+      "signInCode": "Código de 6 dígitos",
+      "codeExpiry": "El enlace y el código caducan en 15 minutos.",
+      "codeResent": "Se han enviado un enlace y un código nuevos.",
+      "signingIn": "Iniciando sesión…",
+      "signIn": "Iniciar sesión",
+      "resend": "Reenviar",
+      "useDifferentIdentifier": "Usar otro correo o teléfono"
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",
@@ -1823,10 +1831,10 @@
         "defaultBody": ""
       },
       "magicLink": {
-        "label": "Enlace de acceso",
-        "description": "Correo para iniciar sesión sin contraseña.",
-        "defaultSubject": "Tu enlace de acceso a RSVP to Me",
-        "defaultBody": "Haz clic en el botón de abajo para iniciar sesión. Este enlace caduca en 15 minutos."
+        "label": "Enlace y código de acceso",
+        "description": "Correo de acceso sin contraseña con un enlace y un código de un solo uso.",
+        "defaultSubject": "Tu enlace y código de acceso a RSVP to Me",
+        "defaultBody": "Pulsa el botón o introduce el código de 6 dígitos en la pantalla de inicio de sesión. Ambos caducan en 15 minutos y solo se pueden usar una vez."
       },
       "welcome": {
         "label": "Bienvenida a la cuenta",
@@ -1904,9 +1912,14 @@
       "counts": "Recuento actual: {goingCount} asistirán · {maybeCount} quizá · {noCount} no asistirán"
     },
     "magicLink": {
-      "preview": "Tu enlace de acceso a RSVP to Me",
+      "preview": "Tu enlace y código de 6 dígitos de acceso a RSVP to Me",
       "title": "Iniciar sesión",
-      "ignore": "Si no lo has solicitado, puedes ignorar este correo sin problema."
+      "ignore": "Si no lo has solicitado, puedes ignorar este correo sin problema.",
+      "codeLabel": "O introduce este código en la pantalla de inicio de sesión:",
+      "expiry": "El enlace y el código caducan en 15 minutos. Al usar uno, ambos quedan invalidados.",
+      "linkOnlySubject": "Tu enlace de acceso a RSVP to Me",
+      "linkOnlyBody": "Haz clic en el botón de abajo para iniciar sesión. Este enlace caduca en 15 minutos.",
+      "linkOnlyPreview": "Tu enlace de acceso a RSVP to Me"
     },
     "welcome": {
       "preview": "Te damos la bienvenida a RSVP to Me",
@@ -1934,7 +1947,7 @@
   "Sms": {
     "test": "SMS de prueba de RSVP to Me. ¡La configuración de SMS es correcta!",
     "confirmation": "{guestName}, tu respuesta para {eventTitle}: {status}. Actualízala aquí: {editUrl}",
-    "magicLink": "Tu enlace de acceso a RSVP to Me: {link}\n(caduca en 15 minutos)",
+    "magicLink": "Tu código de acceso a RSVP to Me: {code}\nO usa este enlace: {link}\nAmbos caducan en 15 minutos. Al usar uno, ambos quedan invalidados.",
     "invite": "¡{hostName} te ha invitado a {eventTitle}! Responde YES para confirmar, NO para rechazar{maybeClause}. O confirma tu asistencia en: {rsvpUrl}",
     "maybeClause": ", MAYBE para indicar quizá",
     "blast": "{hostName} ({eventTitle}): {message} {eventUrl}",
@@ -1963,7 +1976,8 @@
       }
     },
     "configRequired": "Se necesitan el Account SID, el Auth Token y el número de teléfono de Twilio.",
-    "configFailed": "La solicitud a Twilio ha fallado. Comprueba el Account SID, el Auth Token y el número de teléfono."
+    "configFailed": "La solicitud a Twilio ha fallado. Comprueba el Account SID, el Auth Token y el número de teléfono.",
+    "verificationLink": "Tu enlace de acceso a RSVP to Me: {link}\n(caduca en 15 minutos)"
   },
   "Reminders": {
     "email_week": "Te recordamos que queda una semana para {eventTitle}. ¡Tenemos muchas ganas de verte!",

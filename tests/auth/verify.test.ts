@@ -13,7 +13,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     magicToken: {
       findUnique: mockFindUniqueMagicToken,
-      update: mockUpdateMagicToken,
+      updateMany: mockUpdateMagicToken,
     },
     user: {
       findUnique: mockFindUniqueUser,
@@ -50,7 +50,7 @@ const futureDate = new Date(Date.now() + 60 * 60 * 1000);
 describe("GET /auth/verify", () => {
   beforeEach(() => {
     mockFindUniqueMagicToken.mockReset();
-    mockUpdateMagicToken.mockReset();
+    mockUpdateMagicToken.mockReset().mockResolvedValue({ count: 1 });
     mockFindUniqueUser.mockReset();
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
   });
@@ -111,7 +111,7 @@ describe("GET /auth/verify", () => {
       userId: "user1",
       type: "LOGIN",
     });
-    mockUpdateMagicToken.mockResolvedValue({});
+    mockUpdateMagicToken.mockResolvedValue({ count: 1 });
     mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
 
     const res = await GET(makeRequest("valid-token"));
@@ -131,12 +131,12 @@ describe("GET /auth/verify", () => {
       userId: "user1",
       type: "LOGIN",
     });
-    mockUpdateMagicToken.mockResolvedValue({});
+    mockUpdateMagicToken.mockResolvedValue({ count: 1 });
     mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
 
     await GET(makeRequest("valid-token"));
     expect(mockUpdateMagicToken).toHaveBeenCalledWith({
-      where: { id: "tok-id" },
+      where: { id: "tok-id", used: false },
       data: { used: true },
     });
   });
@@ -174,7 +174,7 @@ describe("GET /auth/verify", () => {
 
     it("redirects to ?redirect= path when it is a safe relative path", async () => {
       mockFindUniqueMagicToken.mockResolvedValue(validRecord);
-      mockUpdateMagicToken.mockResolvedValue({});
+      mockUpdateMagicToken.mockResolvedValue({ count: 1 });
       mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
 
       const res = await GET(makeRequest("valid-token", "/e/panton-wine-night"));
@@ -184,7 +184,7 @@ describe("GET /auth/verify", () => {
 
     it("falls back to /dashboard when redirect is a protocol-relative URL (open redirect attempt)", async () => {
       mockFindUniqueMagicToken.mockResolvedValue(validRecord);
-      mockUpdateMagicToken.mockResolvedValue({});
+      mockUpdateMagicToken.mockResolvedValue({ count: 1 });
       mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
 
       const res = await GET(makeRequest("valid-token", "//evil.com"));
@@ -193,7 +193,7 @@ describe("GET /auth/verify", () => {
 
     it("falls back to /dashboard when redirect is an absolute URL", async () => {
       mockFindUniqueMagicToken.mockResolvedValue(validRecord);
-      mockUpdateMagicToken.mockResolvedValue({});
+      mockUpdateMagicToken.mockResolvedValue({ count: 1 });
       mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
 
       const res = await GET(makeRequest("valid-token", "https://evil.com/steal"));
@@ -202,7 +202,7 @@ describe("GET /auth/verify", () => {
 
     it("falls back to /dashboard when redirect is a javascript: URI", async () => {
       mockFindUniqueMagicToken.mockResolvedValue(validRecord);
-      mockUpdateMagicToken.mockResolvedValue({});
+      mockUpdateMagicToken.mockResolvedValue({ count: 1 });
       mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
 
       const res = await GET(makeRequest("valid-token", "javascript:alert(1)"));
@@ -211,7 +211,7 @@ describe("GET /auth/verify", () => {
 
     it("falls back to /dashboard when no redirect param is provided", async () => {
       mockFindUniqueMagicToken.mockResolvedValue(validRecord);
-      mockUpdateMagicToken.mockResolvedValue({});
+      mockUpdateMagicToken.mockResolvedValue({ count: 1 });
       mockFindUniqueUser.mockResolvedValue({ id: "user1", email: "host@example.com" });
 
       const res = await GET(makeRequest("valid-token"));
@@ -229,7 +229,7 @@ describe("GET /auth/verify", () => {
         userId: "user1",
         type: "LOGIN",
       });
-      mockUpdateMagicToken.mockResolvedValue({});
+      mockUpdateMagicToken.mockResolvedValue({ count: 1 });
       mockFindUniqueUser.mockResolvedValue({
         id: "user1",
         email: "admin@example.com",
@@ -240,4 +240,19 @@ describe("GET /auth/verify", () => {
       expect(res.status).toBe(307);
     });
   });
+});
+
+it("rejects a link consumed concurrently by its code without creating a session", async () => {
+  vi.clearAllMocks();
+  mockFindUniqueMagicToken.mockResolvedValue({
+    id: "paired",
+    userId: "user1",
+    type: "LOGIN",
+    used: false,
+    expiresAt: futureDate,
+  });
+  mockUpdateMagicToken.mockResolvedValue({ count: 0 });
+  const res = await GET(makeRequest("paired-link"));
+  expect(res.headers.get("location")).toContain("error=invalid-token");
+  expect(mockCreateSession).not.toHaveBeenCalled();
 });

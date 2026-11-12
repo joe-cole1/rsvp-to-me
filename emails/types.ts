@@ -73,6 +73,7 @@ export interface MagicLinkEmailProps extends EmailI18nProps {
   theme: EmailTheme;
   body: string;
   magicLink: string;
+  code: string;
 }
 
 export interface WelcomeEmailProps extends EmailI18nProps {

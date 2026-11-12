@@ -7,7 +7,8 @@ vi.mock("@/i18n/server", async (importOriginal) => {
 });
 
 const mocks = vi.hoisted(() => ({
-  mockCreateMagicLink: vi.fn(),
+  mockCreateLoginChallenge: vi.fn(),
+  mockVerifySignInCode: vi.fn(),
   mockRegisterHost: vi.fn(),
   mockIsOpenRegistrationActive: vi.fn().mockResolvedValue(false),
   mockSendMagicLinkEmail: vi.fn().mockResolvedValue(undefined),
@@ -19,8 +20,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/db", () => ({ db: { user: { findUnique: mocks.mockRecipient } } }));
-vi.mock("@/lib/auth", () => ({
-  createMagicLink: mocks.mockCreateMagicLink,
+vi.mock("@/lib/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth")>()),
+  createLoginChallenge: mocks.mockCreateLoginChallenge,
+  verifySignInCode: mocks.mockVerifySignInCode,
   registerHost: mocks.mockRegisterHost,
   isOpenRegistrationActive: mocks.mockIsOpenRegistrationActive,
 }));
@@ -44,10 +47,15 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-import { sendMagicLinkAction, registerHostAction } from "@/app/actions/auth";
+import {
+  sendMagicLinkAction,
+  registerHostAction,
+  verifySignInCodeAction,
+} from "@/app/actions/auth";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.mockHeadersGet.mockReset().mockReturnValue("127.0.0.1");
   mocks.mockRateLimit.mockResolvedValue({ success: true });
   // SEC-45: the per-IP sign-in limiter only runs when a trusted proxy IP is
   // configured. Default it on here so the two-tier (IP then identifier) tests
@@ -85,7 +93,10 @@ describe("sendMagicLinkAction", () => {
     // IP-keyed limiter would be one global bucket that self-DoSes all sign-ins.
     // The action must fall through to the identifier limiter only.
     delete process.env.TRUSTED_IP_HEADER;
-    mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=abc");
+    mocks.mockCreateLoginChallenge.mockResolvedValue({
+      link: "http://localhost:3000/auth/verify?token=abc",
+      code: "012345",
+    });
 
     const result = await sendMagicLinkAction("user@example.com");
 
@@ -96,7 +107,7 @@ describe("sendMagicLinkAction", () => {
   });
 
   it("returns success and sends nothing when user is not found (no enumeration, SEC-40)", async () => {
-    mocks.mockCreateMagicLink.mockResolvedValue(null);
+    mocks.mockCreateLoginChallenge.mockResolvedValue(null);
 
     const result = await sendMagicLinkAction("notfound@example.com");
     // Same response as a real send — must NOT reveal the account is absent.
@@ -107,7 +118,10 @@ describe("sendMagicLinkAction", () => {
   });
 
   it("returns auth_failed when email delivery throws an error", async () => {
-    mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=abc");
+    mocks.mockCreateLoginChallenge.mockResolvedValue({
+      link: "http://localhost:3000/auth/verify?token=abc",
+      code: "012345",
+    });
     mocks.mockSendMagicLinkEmail.mockRejectedValueOnce(new Error("SMTP down"));
 
     const result = await sendMagicLinkAction("user@example.com");
@@ -117,29 +131,44 @@ describe("sendMagicLinkAction", () => {
 
   it("sends email and returns success:true when user is found regardless of redirect", async () => {
     const link = "http://localhost:3000/auth/verify?token=abc&redirect=%2Fe%2Fpanton-wine-night";
-    mocks.mockCreateMagicLink.mockResolvedValue(link);
+    mocks.mockCreateLoginChallenge.mockResolvedValue({ link, code: "012345" });
 
     const result = await sendMagicLinkAction("host@example.com", "/e/panton-wine-night");
     expect(result.success).toBe(true);
-    expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith("host@example.com", link, "en-US");
+    expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith(
+      "host@example.com",
+      link,
+      "en-US",
+      "012345"
+    );
   });
 
   it("calls sendMagicLinkEmail when input is an email and user exists", async () => {
     const link = "http://localhost:3000/auth/verify?token=abc";
-    mocks.mockCreateMagicLink.mockResolvedValue(link);
+    mocks.mockCreateLoginChallenge.mockResolvedValue({ link, code: "012345" });
 
     const result = await sendMagicLinkAction("user@example.com");
     expect(result.success).toBe(true);
-    expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith("user@example.com", link, "en-US");
+    expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith(
+      "user@example.com",
+      link,
+      "en-US",
+      "012345"
+    );
   });
 
   it("calls sendMagicLinkSms with normalized phone when input is a phone and user exists", async () => {
     const link = "http://localhost:3000/auth/verify?token=abc";
-    mocks.mockCreateMagicLink.mockResolvedValue(link);
+    mocks.mockCreateLoginChallenge.mockResolvedValue({ link, code: "012345" });
 
     const result = await sendMagicLinkAction("+1 (555) 123-4567");
     expect(result.success).toBe(true);
-    expect(mocks.mockSendMagicLinkSms).toHaveBeenCalledWith("+15551234567", link, "en-US");
+    expect(mocks.mockSendMagicLinkSms).toHaveBeenCalledWith(
+      "+15551234567",
+      link,
+      "en-US",
+      "012345"
+    );
   });
 });
 
@@ -239,7 +268,10 @@ describe("magic-link recipient language", () => {
   beforeEach(() => {
     mocks.mockRecipient.mockResolvedValue({ preferredLocale: null });
     mocks.mockCookieGet.mockReturnValue(undefined);
-    mocks.mockCreateMagicLink.mockResolvedValue("http://localhost:3000/auth/verify?token=language");
+    mocks.mockCreateLoginChallenge.mockResolvedValue({
+      link: "http://localhost:3000/auth/verify?token=language",
+      code: "012345",
+    });
   });
   it("uses saved recipient preference ahead of requesting browser", async () => {
     mocks.mockRecipient.mockResolvedValue({ preferredLocale: "nl-NL" });
@@ -248,7 +280,8 @@ describe("magic-link recipient language", () => {
     expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith(
       "known@example.com",
       expect.any(String),
-      "nl-NL"
+      "nl-NL",
+      "012345"
     );
   });
   it("uses browser cookie for an unset recipient without persisting it", async () => {
@@ -257,7 +290,8 @@ describe("magic-link recipient language", () => {
     expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith(
       "known@example.com",
       expect.any(String),
-      "nl-NL"
+      "nl-NL",
+      "012345"
     );
     expect(mocks.mockRecipient).toHaveBeenCalledWith({
       where: { email: "known@example.com" },
@@ -271,7 +305,58 @@ describe("magic-link recipient language", () => {
     expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith(
       "known@example.com",
       expect.any(String),
-      "en-US"
+      "en-US",
+      "012345"
     );
+  });
+});
+
+it("registration delivers the paired code and link to the normalized email", async () => {
+  mocks.mockIsOpenRegistrationActive.mockResolvedValue(true);
+  mocks.mockRegisterHost.mockResolvedValue({ success: true });
+  mocks.mockCreateLoginChallenge.mockResolvedValue({
+    link: "https://example.test/auth/verify?token=fixture",
+    code: "012345",
+  });
+  mocks.mockRecipient.mockResolvedValue({ preferredLocale: "nl-NL" });
+  expect(await registerHostAction(" HOST@example.com ", "Host", "")).toEqual({ success: true });
+  expect(mocks.mockCreateLoginChallenge).toHaveBeenCalledWith("host@example.com");
+  expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith(
+    "host@example.com",
+    "https://example.test/auth/verify?token=fixture",
+    "nl-NL",
+    "012345"
+  );
+});
+
+describe("verifySignInCodeAction", () => {
+  it("normalizes identifiers and returns a safe destination", async () => {
+    mocks.mockVerifySignInCode.mockResolvedValue(true);
+    expect(await verifySignInCodeAction(" USER@example.com ", "012345", "/e/event")).toEqual({
+      success: true,
+      redirectTo: "/e/event",
+    });
+    expect(mocks.mockVerifySignInCode).toHaveBeenCalledWith("user@example.com", "012345");
+    expect(mocks.mockRateLimit).toHaveBeenCalledWith("id:user@example.com:signin-code", 10, 600);
+    expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:127.0.0.1:signin-code", 20, 600);
+  });
+  it.each([undefined, "https://evil.test", "//evil.test", "/\\evil.test"])(
+    "defaults unsafe/missing redirect %s to dashboard",
+    async (redirect) => {
+      mocks.mockVerifySignInCode.mockResolvedValue(true);
+      expect(await verifySignInCodeAction("user@example.com", "012345", redirect)).toEqual({
+        success: true,
+        redirectTo: "/dashboard",
+      });
+    }
+  );
+  it("rejects invalid formats without attempting verification", async () => {
+    expect((await verifySignInCodeAction("user@example.com", "12345")).success).toBe(false);
+    expect(mocks.mockVerifySignInCode).not.toHaveBeenCalled();
+  });
+  it("rejects throttled attempts without attempting verification", async () => {
+    mocks.mockRateLimit.mockResolvedValueOnce({ success: false });
+    expect((await verifySignInCodeAction("user@example.com", "012345")).success).toBe(false);
+    expect(mocks.mockVerifySignInCode).not.toHaveBeenCalled();
   });
 });
