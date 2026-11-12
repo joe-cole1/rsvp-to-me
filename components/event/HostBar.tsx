@@ -16,6 +16,7 @@ import { Chip, choiceTileStyle } from "@/components/ui/Choice";
 import { Check as CheckBox, Label, Textarea } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
 import { emptyInvitationDraft, invitationDraftReducer } from "@/lib/invitation-draft-rows";
+import { guestPreviewUrl } from "@/lib/admin-moderation";
 import { InvitationComposer } from "./InvitationComposer";
 
 type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -704,7 +705,7 @@ export function HostBar({
             variant="primary"
             fullWidth
             onClick={() => {
-              window.open(window.location.href + "?preview=1", "_blank");
+              window.open(guestPreviewUrl(window.location.href), "_blank");
               setActivePanel(null);
             }}
           >
