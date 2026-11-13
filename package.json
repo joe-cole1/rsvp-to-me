@@ -95,7 +95,7 @@
   "devDependencies": {
     "@formatjs/icu-messageformat-parser": "^3.5.23",
     "@playwright/test": "^1.65.0",
-    "@react-email/ui": "^6.11.8",
+    "@react-email/ui": "^6.11.10",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -113,7 +113,7 @@
     "jsdom": "^31.0.0",
     "lint-staged": "^17",
     "prettier": "^3.9.10",
-    "react-email": "^6.11.8",
+    "react-email": "^6.11.10",
     "tailwindcss": "^4",
     "typescript": "^6",
     "vitest": "^5.1.0",
