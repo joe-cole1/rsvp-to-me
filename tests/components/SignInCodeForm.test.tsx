@@ -27,8 +27,21 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-async function submitSignIn(identifier = "host@example.com") {
-  render(<SignInForm openRegistration redirect="/e/example" />);
+function stubLocationAssign() {
+  const assign = vi.fn();
+  const originalWindow = window;
+  vi.stubGlobal(
+    "window",
+    new Proxy(originalWindow, {
+      get: (target, property) =>
+        property === "location" ? { assign } : Reflect.get(target, property),
+    })
+  );
+  return assign;
+}
+
+async function submitSignIn(identifier = "host@example.com", redirect = "/e/example") {
+  render(<SignInForm openRegistration redirect={redirect} />);
   fireEvent.change(screen.getByRole("textbox"), { target: { value: identifier } });
   fireEvent.click(screen.getByRole("button", { name: "Send sign-in link and code" }));
   await screen.findByRole("heading", {
@@ -69,20 +82,12 @@ describe("SignInForm and shared code entry", () => {
     fireEvent.change(screen.getByLabelText("6-digit code"), { target: { value: "012345" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid or expired code.");
-    expect(mocks.verify).toHaveBeenCalledWith("host@example.com", "012345", "/e/example");
+    expect(mocks.verify).toHaveBeenCalledWith("host@example.com", "012345");
   });
-  it("navigates the whole document on verified sign-in", async () => {
-    const assign = vi.fn();
-    mocks.verify.mockResolvedValue({ success: true, redirectTo: "/e/example" });
+  it("navigates the whole document to the validated redirect on verified sign-in", async () => {
+    const assign = stubLocationAssign();
+    mocks.verify.mockResolvedValue({ success: true });
     await submitSignIn();
-    const originalWindow = window;
-    vi.stubGlobal(
-      "window",
-      new Proxy(originalWindow, {
-        get: (target, property) =>
-          property === "location" ? { assign } : Reflect.get(target, property),
-      })
-    );
     fireEvent.change(screen.getByLabelText("6-digit code"), { target: { value: "012345" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("/e/example"));
@@ -118,7 +123,7 @@ describe("RegisterForm code entry", () => {
     fireEvent.change(screen.getByLabelText("6-digit code"), { target: { value: "012345" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await screen.findByRole("alert");
-    expect(mocks.verify).toHaveBeenCalledWith("host@example.com", "012345", undefined);
+    expect(mocks.verify).toHaveBeenCalledWith("host@example.com", "012345");
     expect(mocks.register).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("link", { name: "Go to sign in" })).toHaveAttribute(
       "href",

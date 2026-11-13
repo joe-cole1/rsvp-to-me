@@ -9,6 +9,7 @@ import { createSession } from "./session";
 import { retireChangedAccountConnection } from "@/lib/notifications/lifecycle";
 import { hashToken } from "./hash";
 import { promoteInitialAdmin } from "./admin-promotion";
+import { isSafeRedirect } from "./safe-redirect";
 
 const TOKEN_TTL_MINUTES = 15;
 
@@ -22,17 +23,7 @@ export function normalizePhone(s: string): string {
   return s.trim().replace(/[\s\-().]/g, "");
 }
 
-// Only allow relative paths. Blocks protocol-relative (//), absolute URLs (contain :),
-// and backslash tricks (/\ normalised to // by some browsers).
-export function isSafeRedirect(path: string): boolean {
-  return (
-    typeof path === "string" &&
-    path.startsWith("/") &&
-    !path.startsWith("//") &&
-    !path.startsWith("/\\") &&
-    !path.includes(":")
-  );
-}
+export { isSafeRedirect };
 
 export function normalizeLoginIdentifier(identifier: string): string {
   return looksLikePhone(identifier) ? normalizePhone(identifier) : identifier.toLowerCase().trim();

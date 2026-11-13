@@ -144,6 +144,25 @@ describe("isSafeRedirect", () => {
   it("rejects a bare domain with no leading slash", () => {
     expect(isSafeRedirect("evil.com")).toBe(false);
   });
+
+  it.each([
+    "/\t/evil.com",
+    "/\n/evil.com",
+    "/\r/evil.com",
+    "/\t\\evil.com",
+    "/e/\u0000x",
+    "/e/\u007f",
+  ])("rejects control characters the URL parser strips or normalises: %j", (path) => {
+    expect(isSafeRedirect(path)).toBe(false);
+  });
+
+  it("rejects a backslash anywhere in the path", () => {
+    expect(isSafeRedirect("/e\\slug")).toBe(false);
+  });
+
+  it("accepts encoded characters and spaces that stay on the same origin", () => {
+    expect(isSafeRedirect("/e/my%20slug?q=a b#rsvp")).toBe(true);
+  });
 });
 
 describe("createMagicLink", () => {

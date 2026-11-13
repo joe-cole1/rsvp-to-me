@@ -155,7 +155,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
    incorrect code attempts retire the pair. Identifier normalization is shared
    by issuance, recipient locale lookup, and verification.
    `app/auth/SignInCodeForm.tsx` owns code entry and CAPTCHA-protected resend for
-   both sign-in and registration.
+   both sign-in and registration. `lib/safe-redirect.ts` is the single,
+   client-safe validator for post-sign-in `redirect` paths (re-exported by
+   `lib/auth.ts`); link issuance, the verify route and code-form navigation all
+   use it, and server actions never echo a client-supplied redirect back.
 2. Verification route handlers under `app/auth/` create encrypted session
    cookies through `lib/session.ts`. `INITIAL_ADMIN_EMAIL` bootstrap promotion
    belongs exclusively to successful `LOGIN` link or code verification in

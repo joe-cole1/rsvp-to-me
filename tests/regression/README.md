@@ -240,3 +240,5 @@ Issue #844 extends `sec-40-45-signin-enumeration-shared-ip.test.ts` to cover uni
 `signin-code-session-cookie.test.ts` covers action-created sessions honoring `DISABLE_HSTS` like link verification, allowing code sign-in on HTTP installations (#844).
 
 Issue #844 also extends `sec-48-initial-admin-login-only.test.ts`: a link that loses atomic consumption to its paired code must not promote the initial administrator or create another session.
+
+`sec-49-signin-code-open-redirect.test.tsx` (PR #862): `isSafeRedirect` accepted `/\t/evil.example` because URL parsing strips tab/CR/LF, and code sign-in navigated to that relative path, so a crafted sign-in link redirected off-site after a genuine sign-in. The validator now lives in `lib/safe-redirect.ts`, rejects control characters and backslashes and confirms the path resolves to the same origin; the code action no longer echoes the redirect.

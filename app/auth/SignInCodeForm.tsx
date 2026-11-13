@@ -7,6 +7,7 @@ import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { APP_SHELL_THEME as T } from "@/lib/theme";
 
 export default function SignInCodeForm({
@@ -31,9 +32,9 @@ export default function SignInCodeForm({
     setError(null);
     setResent(false);
     try {
-      const result = await verifySignInCodeAction(identifier, code, redirect);
+      const result = await verifySignInCodeAction(identifier, code);
       if (result.success) {
-        window.location.assign(result.redirectTo);
+        window.location.assign(safeRedirectPath(redirect));
       } else {
         setError(result.error);
       }

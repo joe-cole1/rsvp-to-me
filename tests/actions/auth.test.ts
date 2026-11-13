@@ -330,28 +330,26 @@ it("registration delivers the paired code and link to the normalized email", asy
 });
 
 describe("verifySignInCodeAction", () => {
-  it("normalizes identifiers and returns a safe destination", async () => {
+  it("normalizes identifiers and returns success without a destination", async () => {
     mocks.mockVerifySignInCode.mockResolvedValue(true);
-    expect(await verifySignInCodeAction(" USER@example.com ", "012345", "/e/event")).toEqual({
+    expect(await verifySignInCodeAction(" USER@example.com ", "012345")).toEqual({
       success: true,
-      redirectTo: "/e/event",
     });
     expect(mocks.mockVerifySignInCode).toHaveBeenCalledWith("user@example.com", "012345");
     expect(mocks.mockRateLimit).toHaveBeenCalledWith("id:user@example.com:signin-code", 10, 600);
     expect(mocks.mockRateLimit).toHaveBeenCalledWith("ip:127.0.0.1:signin-code", 20, 600);
   });
-  it.each([undefined, "https://evil.test", "//evil.test", "/\\evil.test"])(
-    "defaults unsafe/missing redirect %s to dashboard",
-    async (redirect) => {
-      mocks.mockVerifySignInCode.mockResolvedValue(true);
-      expect(await verifySignInCodeAction("user@example.com", "012345", redirect)).toEqual({
-        success: true,
-        redirectTo: "/dashboard",
-      });
-    }
-  );
   it("rejects invalid formats without attempting verification", async () => {
     expect((await verifySignInCodeAction("user@example.com", "12345")).success).toBe(false);
+    expect(mocks.mockVerifySignInCode).not.toHaveBeenCalled();
+  });
+  it.each([
+    ["an oversized identifier", "a".repeat(5000), "012345"],
+    ["a non-string identifier", 42 as unknown as string, "012345"],
+  ])("rejects %s before keying the rate limiter", async (_label, identifier, code) => {
+    const result = await verifySignInCodeAction(identifier, code);
+    expect(result).toEqual(await verifySignInCodeAction("user@example.com", "abc"));
+    expect(mocks.mockRateLimit).not.toHaveBeenCalled();
     expect(mocks.mockVerifySignInCode).not.toHaveBeenCalled();
   });
   it("rejects throttled attempts without attempting verification", async () => {

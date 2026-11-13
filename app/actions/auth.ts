@@ -12,7 +12,6 @@ import {
   normalizeLoginIdentifier,
   loginIdentifierWhere,
   verifySignInCode,
-  isSafeRedirect,
 } from "@/lib/auth";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
@@ -151,27 +150,25 @@ export async function registerHostAction(
   return result;
 }
 
+// The caller navigates with safeRedirectPath(); echoing a client-supplied
+// redirect back from here would only hand it unvalidated input to trust.
 export async function verifySignInCodeAction(
   rawIdentifier: string,
-  rawCode: string,
-  redirect?: string
-): Promise<{ success: false; error: string } | { success: true; redirectTo: string }> {
+  rawCode: string
+): Promise<{ success: false; error: string } | { success: true }> {
   const t = await getRequestTranslator();
   // SEC-40: every rejected code challenge has the same public response.
   const failure = { success: false as const, error: t("Ui.Errors.Auth.invalidCode") };
   const parsed = VerifySignInCodeSchema.safeParse({ identifier: rawIdentifier, code: rawCode });
-  const identifier = normalizeLoginIdentifier(
-    typeof rawIdentifier === "string" ? rawIdentifier : ""
-  );
+  // Malformed input can never verify, and must not mint arbitrary limiter keys.
+  if (!parsed.success) return failure;
+  const identifier = normalizeLoginIdentifier(parsed.data.identifier);
   // SEC-45: never turn the loopback fallback into a shared sign-in bucket.
   if (isTrustedIpConfigured()) {
     const ip = await getClientIp();
     if (!(await rateLimit(`ip:${ip}:signin-code`, 20, 600)).success) return failure;
   }
   if (!(await rateLimit(`id:${identifier}:signin-code`, 10, 600)).success) return failure;
-  if (!parsed.success || !(await verifySignInCode(identifier, parsed.data.code))) return failure;
-  return {
-    success: true,
-    redirectTo: redirect && isSafeRedirect(redirect) ? redirect : "/dashboard",
-  };
+  if (!(await verifySignInCode(identifier, parsed.data.code))) return failure;
+  return { success: true };
 }
