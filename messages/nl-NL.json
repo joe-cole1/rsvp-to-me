@@ -104,7 +104,8 @@
         "emailExists": "Er bestaat al een account met dit e-mailadres.",
         "phoneExists": "Er bestaat al een account met dit telefoonnummer.",
         "hostExists": "Er bestaat al een account met dit e-mailadres. Log in met een inloglink.",
-        "invalidInvite": "Ongeldige of verlopen uitnodigingscode."
+        "invalidInvite": "Ongeldige of verlopen uitnodigingscode.",
+        "invalidCode": "Ongeldige of verlopen code. Controleer de code of vraag een nieuwe aan."
       },
       "Profile": {
         "unauthorized": "Geen toegang",
@@ -1646,7 +1647,7 @@
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Deze link is verlopen of al gebruikt. Vraag hieronder een nieuwe aan.",
       "rsvp": "RSVP",
-      "signInWithAMagicLink": "Inloggen met een inloglink",
+      "signInWithAMagicLink": "Log in met een inloglink of code",
       "checkYourTexts": "Bekijk je sms-berichten",
       "checkYourEmail": "Bekijk je e-mail",
       "signInFailed": "Inloggen mislukt",
@@ -1654,13 +1655,13 @@
       "emailOrPhoneNumber": "E-mail of telefoonnummer",
       "youExampleComOr15550000000": "jij@voorbeeld.nl of 06 12345678",
       "sending": "Versturen…",
-      "sendMagicLink": "Inloglink versturen",
+      "sendMagicLink": "Inloglink en code versturen",
       "noAccount": "Nog geen account?",
       "newHost": "Nieuwe organisator?",
       "createOne": "Account aanmaken →",
       "createAnAccount": "Account aanmaken",
       "accountCreated": "Account aangemaakt!",
-      "checkYourEmailForAMagicLinkToSign": "Bekijk je e-mail voor een link om in te loggen.",
+      "checkYourEmailForAMagicLinkToSign": "Je account is klaar. Bekijk je e-mail voor een inloglink en een 6-cijferige code om in te loggen.",
       "goToSignIn": "Naar inloggen",
       "yourName": "Je naam",
       "janeSmith": "Jan de Vries",
@@ -1671,12 +1672,19 @@
       "creatingAccount": "Account aanmaken…",
       "createAccount": "Account aanmaken",
       "alreadyHaveAnAccountSignInMessage": "<part0>Heb je al een account? <part1>Inloggen →</part1></part0>",
-      "weSentAMagicLinkToClickItMessage": "We hebben een inloglink gestuurd naar <part0>{value0}</part0>. Klik erop om in te loggen. De link verloopt over 15 minuten.",
+      "weSentAMagicLinkToClickItMessage": "We hebben een inloglink en een 6-cijferige code gestuurd naar <part0>{value0}</part0>. Gebruik een van beide om in te loggen — beide verlopen over 15 minuten.",
       "weCouldnTCompleteYourRequestIfYourMessage": "We konden je aanvraag niet afronden. Als je e-mail of telefoonnummer geregistreerd is, controleer dan je verbinding en probeer het opnieuw. Beheer je zelf de server? Bekijk de containerlogboeken voor details of alternatieven (zoek naar <part0>[auth:magic-link-fallback]</part0>).",
       "securityCheckFailed": "De beveiligingscontrole is mislukt.",
       "somethingWentWrong": "Er is iets misgegaan.",
       "signInMetadataTitle": "Inloggen",
-      "registerMetadataTitle": "Account aanmaken"
+      "registerMetadataTitle": "Account aanmaken",
+      "signInCode": "6-cijferige code",
+      "codeExpiry": "De link en code verlopen over 15 minuten.",
+      "codeResent": "Er zijn een nieuwe link en code verstuurd.",
+      "signingIn": "Bezig met inloggen…",
+      "signIn": "Inloggen",
+      "resend": "Opnieuw versturen",
+      "useDifferentIdentifier": "Een ander e-mailadres of telefoonnummer gebruiken"
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",
@@ -1823,10 +1831,10 @@
         "defaultBody": ""
       },
       "magicLink": {
-        "label": "Inloglink",
-        "description": "E-mail om zonder wachtwoord in te loggen.",
-        "defaultSubject": "Je inloglink voor RSVP to Me",
-        "defaultBody": "Klik op de onderstaande knop om in te loggen. Deze link verloopt na 15 minuten."
+        "label": "Inloglink en code",
+        "description": "E-mail om zonder wachtwoord in te loggen met een inloglink en een eenmalige code.",
+        "defaultSubject": "Je inloglink en code voor RSVP to Me",
+        "defaultBody": "Klik op de knop of voer de 6-cijferige code in op het inlogscherm. Beide verlopen over 15 minuten en kunnen maar één keer worden gebruikt."
       },
       "welcome": {
         "label": "Welkomstmail account",
@@ -1904,9 +1912,14 @@
       "counts": "Huidige aantallen: {goingCount} aanwezig · {maybeCount} misschien · {noCount} afwezig"
     },
     "magicLink": {
-      "preview": "Je inloglink voor RSVP to Me",
+      "preview": "Je inloglink en 6-cijferige code voor RSVP to Me",
       "title": "Inloggen",
-      "ignore": "Heb je deze inloglink niet aangevraagd? Dan kun je deze veilig negeren."
+      "ignore": "Heb je deze inloglink niet aangevraagd? Dan kun je deze veilig negeren.",
+      "codeLabel": "Of voer deze code in op het inlogscherm:",
+      "expiry": "De link en code verlopen over 15 minuten. Als je er een gebruikt, worden beide ongeldig.",
+      "linkOnlySubject": "Je inloglink voor RSVP to Me",
+      "linkOnlyBody": "Klik op de onderstaande knop om in te loggen. Deze link verloopt na 15 minuten.",
+      "linkOnlyPreview": "Je inloglink voor RSVP to Me"
     },
     "welcome": {
       "preview": "Welkom bij RSVP to Me",
@@ -1934,7 +1947,7 @@
   "Sms": {
     "test": "Test-sms van RSVP to Me. Je sms-instellingen zijn correct!",
     "confirmation": "{guestName}, je aanmelding voor {eventTitle}: {status}! Wijzig je aanmelding: {editUrl}",
-    "magicLink": "Je inloglink voor RSVP to Me: {link}\n(verloopt na 15 minuten)",
+    "magicLink": "Je inlogcode voor RSVP to Me: {code}\nOf gebruik deze link: {link}\nBeide verlopen over 15 minuten. Als je er een gebruikt, worden beide ongeldig.",
     "invite": "{hostName} nodigt je uit voor {eventTitle}! Antwoord YES als je komt of NO als je niet komt{maybeClause}. Of meld je aan via: {rsvpUrl}",
     "maybeClause": ", MAYBE als je het nog niet weet",
     "blast": "{hostName} ({eventTitle}): {message} {eventUrl}",
@@ -1963,7 +1976,8 @@
       }
     },
     "configRequired": "Twilio Account SID, Auth Token en telefoonnummer zijn verplicht.",
-    "configFailed": "Het Twilio-verzoek is mislukt. Controleer je Account SID, Auth Token en telefoonnummer."
+    "configFailed": "Het Twilio-verzoek is mislukt. Controleer je Account SID, Auth Token en telefoonnummer.",
+    "verificationLink": "Je inloglink voor RSVP to Me: {link}\n(verloopt na 15 minuten)"
   },
   "Reminders": {
     "email_week": "Even een herinnering: {eventTitle} is over een week! We kijken ernaar uit je te zien.",

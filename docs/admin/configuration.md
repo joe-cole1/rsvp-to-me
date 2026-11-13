@@ -174,7 +174,9 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 
 **Rate-limited surfaces:** magic-link sign-in (per identifier: 5 per 10 minutes always; per client IP: 20 per 10 minutes **only when `TRUSTED_IP_HEADER` is set**), host registration, RSVP submission (per client IP: 15 per 10 minutes; per event + client IP: 8 per 10 minutes), password-gated event unlock (10 attempts per event + client IP per 10 minutes), host guest invites (max 200 recipients per request; per client IP: 15/hour; per host + event: 10/hour), and guest-to-guest invites on private events (per client IP: 30/hour; per inviting guest: 10 per 10 minutes burst and 20 per day). Setting this header correctly behind a proxy ensures these limits track the real client rather than the proxy IP.
 
-> **No account enumeration (SEC-40):** The sign-in screen shows the same "check your inbox" confirmation whether or not the identifier has an account — it never reveals which emails or phone numbers are registered. Self-hosters diagnosing a missing link should check the mail/SMS logs (look for `[auth:magic-link-fallback]`) rather than the on-screen state.
+**Code verification (`signin-code`):** Always limited to 10 attempts per normalized email/phone per 10 minutes (`id:<identifier>:signin-code`). The additional `ip:<ip>:signin-code` bucket allows 20 per 10 minutes only when `TRUSTED_IP_HEADER` is configured (SEC-45). Each token also allows at most five incorrect attempts, then retires both code and link. Codes and links share a 15-minute expiry and single-use state; resend invalidates previous tokens. These limits also apply to verification after registration. Administrator-created welcome links remain link-only with a 48-hour expiry.
+
+> **No account enumeration (SEC-40):** The sign-in screen shows the same "check your inbox" confirmation whether or not the identifier has an account — it never reveals which emails or phone numbers are registered. Self-hosters diagnosing a missing link should check the mail/SMS logs (look for `[auth:magic-link-fallback]`) rather than the on-screen state. Code format, unknown account, wrong code, expiration and lockout return the same error.
 
 ---
 
@@ -276,7 +278,7 @@ before reverting to an older image. Key rotation is a separate operation.
 - **Type**: Email address string
 
 **What it does:** Designated email address to bootstrap the admin account. The matching user is
-granted the `ADMIN` role _if and only if_ they successfully verify a `LOGIN` magic link and there are
+granted the `ADMIN` role _if and only if_ they successfully verify a `LOGIN` magic link or its paired 6-digit code and there are
 currently no active administrators in the system. Email matching is normalized for case and
 surrounding whitespace. Registration, ordinary session access, dashboard/profile reads, profile
 change links, and co-host invitation acceptance do not run bootstrap promotion.
@@ -346,7 +348,7 @@ At `"debug"`, the app also surfaces errors from non-critical background work (ac
 
 ## Email Configuration
 
-RSVP to Me uses email for magic link logins, notifications, and guest invites. If no email is configured, magic links will be printed to container logs (useful for local development).
+RSVP to Me uses email for magic link logins, notifications, and guest invites. In non-production local development, sign-in links and codes are printed with `[auth:magic-link-fallback]`. Production requires working email delivery and never logs these credentials.
 
 You configure your email provider either in the **Admin Panel** (recommended) or with environment variables. If the Admin Panel has an email provider set, that choice always wins. Otherwise the app auto-detects a provider from your environment variables in this order: **Cloudflare Worker** (when `CLOUDFLARE_WORKER_EMAIL_URL` is set) → **SMTP** (when `SMTP_HOST` is set) → **console logging**. The **Cloudflare REST API** provider is available only by selecting it in the Admin Panel (it is not auto-detected from environment variables).
 
@@ -438,7 +440,7 @@ _Format:_ `"Display Name <email@domain.com>"` (e.g. `"Sarah's Birthday <rsvp@sar
 
 ## SMS Configuration (Twilio)
 
-SMS is optional. When enabled, it allows magic link logins via SMS, text invitations, confirmation texts, and host blasts.
+SMS is optional. When enabled, it allows sign-in links and 6-digit codes via SMS, text invitations, confirmation texts, and host blasts.
 
 ### TWILIO_ACCOUNT_SID
 
@@ -549,7 +551,7 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 | `HEALTH_CHECK_TOKEN`           | No              | _(none)_            | Token for the `x-health-token` header that unlocks the detailed `/api/health` body (migration state).           |
 | `ENCRYPTION_KEY`               | No              | _(falls back)_      | Encryption key for database-stored credentials.                                                                 |
 | `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                                                         |
-| `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email promoted after verified LOGIN magic-link use if no other admins exist.                                    |
+| `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email promoted after verified LOGIN link/code use if no other admins exist.                                     |
 | `OPEN_REGISTRATION`            | No              | `"false"`           | If `"true"`, allows host signups without invite codes.                                                          |
 | `HOST_INVITE_CODE`             | Yes (if closed) | `"letmein"`         | Code required by new hosts to register.                                                                         |
 | `SEED_TEST_DATA`               | No              | `"false"`           | If `"true"`, seeds mock test events on first run.                                                               |

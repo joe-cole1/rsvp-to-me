@@ -23,6 +23,11 @@ export const SendMagicLinkSchema = z.object({
   identifier: z.string().trim().check(minCodeUnits(3)).check(maxCodeUnits(100)),
 });
 
+export const VerifySignInCodeSchema = z.object({
+  identifier: SendMagicLinkSchema.shape.identifier,
+  code: z.string().regex(/^\d{6}$/),
+});
+
 export const RegisterHostSchema = z.object({
   email: z.string().trim().email().toLowerCase().check(maxCodeUnits(100)),
   name: z.string().trim().min(1).check(maxCodeUnits(100)),

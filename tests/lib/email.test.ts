@@ -101,14 +101,15 @@ describe("lib/email.ts", () => {
       await sendMagicLinkEmail(
         "user@example.com",
         "http://localhost:3000/auth/verify?token=abc",
-        "en-US"
+        "en-US",
+        "012345"
       );
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "user@example.com",
-          subject: "Your sign-in link for RSVP to Me",
+          subject: "Your sign-in link and code for RSVP to Me",
           html: expect.stringContaining("http://localhost:3000/auth/verify?token=abc"),
-          text: expect.stringContaining("http://localhost:3000/auth/verify?token=abc"),
+          text: expect.stringContaining("012345"),
         })
       );
     });

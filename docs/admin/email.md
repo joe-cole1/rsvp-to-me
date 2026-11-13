@@ -118,7 +118,7 @@ _Note on Themed Templates:_ Every event email (invite, RSVP confirmation, approv
 
 If no email settings are configured in `.env` or the Admin Panel, the application falls back to **console logging** instead of sending.
 
-**In development** (`NODE_ENV` not `production`), the full message — recipient, subject, and body, including magic links — is written to standard output so you can grab a sign-in link locally. Sign-in requests also print a dedicated `[auth:magic-link-fallback]` line in development.
+**In development** (`NODE_ENV` not `production`), the full message — recipient, subject, and body, including magic links — is written to standard output so you can grab a sign-in link locally. Sign-in and sign-up requests also print a dedicated `[auth:magic-link-fallback]` line with both the link and 6-digit code in development.
 
 For a container-based test setup, read the **app container logs**. For example, if your test app uses the source-build Compose file:
 
@@ -130,13 +130,13 @@ Use the same Compose file selection as the running test stack, then look for `Ma
 
 If you use the optional [native WSL development workflow](local-development.md), the app runs outside Docker: read the terminal running `npm run dev` instead. PostgreSQL and Redis logs do not contain application sign-in links.
 
-**In production**, the fallback deliberately does **not** write recipients, message bodies, or magic-link/RSVP tokens to the logs — those are live credentials and must not sit in log storage. Instead it logs only a generic warning that no transport is configured:
+**In production**, the fallback deliberately does **not** write recipients, message bodies, or magic-link/RSVP tokens to the logs — codes are also live credentials and must not sit in log storage. Instead it logs only a generic warning that no transport is configured:
 
 ```
 [email:dev] No email transport configured — message not sent. Configure SMTP or a Cloudflare provider.
 ```
 
-_Note:_ The console fallback is for local development only. A production deployment **must** configure a real email provider (SMTP or Cloudflare) — otherwise magic-link sign-in and all notifications silently fail to send.
+_Note:_ The console fallback is for local development only. A production deployment **must** configure a real email provider (SMTP or Cloudflare) — otherwise link/code sign-in and all notifications silently fail to send.
 
 The published image and the repository's Dockerfile both run in production mode. `SEED_TEST_DATA=true` loads sample content; it does not enable development logging or make production magic links appear in container logs.
 
@@ -504,3 +504,9 @@ v=DMARC1; p=quarantine; pct=100; rua=mailto:dmarc-reports@yourdomain.com
 ### Where to Add Records
 
 Log in to the dashboard of the company where you purchased your domain (e.g. Cloudflare, GoDaddy, Namecheap, Name.com) and navigate to **DNS Settings** > **DNS Records** to add these TXT and CNAME values.
+
+## Sign-in links and codes
+
+Sign-in and host registration emails include both a magic link and a 6-digit code. The code appears in a themed box and in the plain-text part, even when an administrator overrides the email body. Both expire together after 15 minutes; using either invalidates both. Five incorrect code attempts retire the pair. **Resend** issues a new pair and invalidates earlier tokens. SMS sign-in includes the same link and code.
+
+Administrator-created accounts retain the link-only **Account welcome** email and its 48-hour expiry. Profile contact-change verification also remains link-only. The `magicLink` default subject, preview and body mention both sign-in methods; existing administrator overrides stay as written. Development fallback logging includes both credentials only outside production. Code-verification limits are documented under [TRUSTED_IP_HEADER](configuration.md#trusted_ip_header).

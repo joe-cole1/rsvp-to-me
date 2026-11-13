@@ -14,18 +14,22 @@ order: 10
 
 ## Signing In
 
-RSVP to Me is **passwordless** — you sign in with a magic link instead of a password.
+RSVP to Me is **passwordless** — you sign in with a magic link or a 6-digit code.
 
 1. On the Sign In page, enter your email address (or phone number, if texting is enabled).
-2. A one-time sign-in link is emailed or texted to you.
-3. Click the link to sign in.
+2. A one-time magic link and 6-digit code are emailed or texted to you.
+3. Click the link, or enter the code on the “Check your email” or “Check your texts” screen and select **Sign in**. You can read the code on a different device.
+
+Creating a host account sends the same link and code and lets you enter the code immediately. Use **Resend** for a new pair; registration resend does not create another account or reuse your invite code.
 
 A few things to know:
 
-- Magic links expire after **15 minutes** and can only be used once.
-- Once you're in, your session lasts **7 days** before you'll need a fresh link.
+- The link and code share a **15-minute** expiry. Using either invalidates both. Five incorrect code attempts invalidate both; use **Resend** to request a fresh pair.
+- **Resend** invalidates previous credentials. On sign-in, use **Use a different email or phone** to correct your address; after registration, use **Go to sign in**.
+- Administrator-created accounts receive a link-only welcome email with a **48-hour** expiry.
+- Once you're in, your session lasts **7 days** before you'll need a fresh link or code.
 - To sign out, click your avatar in the top navigation and choose **Sign Out**.
-- To protect user privacy and prevent email/phone enumeration, the sign-in page displays a generic "Sign-in failed" card if the email or phone is not linked to an active account, or if the delivery fails. If you see this, check that you have typed your address correctly or contact the administrator to verify your registration.
+- To protect privacy, the confirmation looks the same whether an account exists or not. Invalid, expired, incorrect and locked-out codes show the same error. Check the identifier and request a fresh pair if you cannot sign in.
 
 See [Your Profile & Account](faq.md) for managing your name, photo, and notification preferences.
 

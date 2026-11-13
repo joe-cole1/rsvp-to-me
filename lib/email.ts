@@ -39,11 +39,17 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 async function templateCopy(
   id: TemplateId,
   vars: Record<string, string | undefined>,
-  locale: Locale
+  locale: Locale,
+  linkOnly = false
 ) {
   const t = await getTranslator(locale);
   const overrides = await getEmailTemplateSettings(id);
   const merged = mergeWithDefaults(id, overrides, t, vars);
+  // Profile contact verification shares this adapter but has no sign-in code.
+  if (id === "magicLink" && linkOnly) {
+    if (!overrides.subject) merged.subject = t("Email.magicLink.linkOnlySubject");
+    if (!overrides.body) merged.body = t("Email.magicLink.linkOnlyBody");
+  }
   return {
     subject: overrides.subject ? substitutePlaceholders(overrides.subject, vars) : merged.subject,
     body: overrides.body ? substitutePlaceholders(merged.body, vars) : merged.body,
@@ -395,14 +401,16 @@ export async function sendRenderedEmail(opts: {
   return send(opts);
 }
 
-export async function sendMagicLinkEmail(to: string, magicLink: string, locale: Locale) {
+export async function sendMagicLinkEmail(to: string, magicLink: string, locale: Locale, code = "") {
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[auth:magic-link-fallback] Magic link for ${to} is: ${magicLink}`);
+    console.info(
+      `[auth:magic-link-fallback] Magic link for ${to} is: ${magicLink}${code ? `; code: ${code}` : ""}`
+    );
   }
 
-  const { subject, body } = await templateCopy("magicLink", {}, locale);
+  const { subject, body } = await templateCopy("magicLink", {}, locale, !code);
   const { html, text } = await renderEmail(
-    createElement(MagicLinkEmail, { theme: appShellEmailTheme(), body, magicLink }),
+    createElement(MagicLinkEmail, { theme: appShellEmailTheme(), body, magicLink, code }),
     locale
   );
   return send({ to, subject, html, text });

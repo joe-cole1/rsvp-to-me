@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 
 import { useState } from "react";
 import { registerHostAction } from "@/app/actions/auth";
+import SignInCodeForm from "../SignInCodeForm";
 import { AppShell } from "@/components/ui/AppShell";
 import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { AppCard } from "@/components/ui/AppPrimitives";
@@ -48,7 +49,6 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
     <AppShell center>
       <div style={{ width: "100%", maxWidth: "400px" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎉</div>
           <h1
             style={{
               color: APP_SHELL.textPrimary,
@@ -67,7 +67,6 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
         <AppCard style={{ borderRadius: APP_SHELL.authCardRadius, padding: "32px" }}>
           {submitted ? (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>🎊</div>
               <h2
                 style={{
                   color: APP_SHELL.textPrimary,
@@ -76,7 +75,7 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
                   marginBottom: "8px",
                 }}
               >
-                {tr("accountCreated")}
+                {tr("checkYourEmail")}
               </h2>
               <p
                 style={{
@@ -88,7 +87,8 @@ export default function RegisterForm({ openRegistration }: { openRegistration: b
               >
                 {tr("checkYourEmailForAMagicLinkToSign")}
               </p>
-              <a href="/auth/sign-in" {...buttonProps(T, { variant: "primary" })}>
+              <SignInCodeForm identifier={email} />
+              <a href="/auth/sign-in" {...buttonProps(T, { variant: "link" })}>
                 {tr("goToSignIn")}
               </a>
             </div>

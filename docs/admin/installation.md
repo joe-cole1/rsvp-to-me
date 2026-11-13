@@ -153,7 +153,7 @@ You must set at least these variables before launching:
    - _CLI (Windows PowerShell):_ Run `[Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Max 256) }))`.
    - _Web:_ Generate it via [generate-secret.vercel.app/32](https://generate-secret.vercel.app/32).
 4. **`NEXT_PUBLIC_APP_URL`**: The public URL that users and guests will visit (e.g. `https://rsvp.yourdomain.com`). No trailing slash.
-5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Successfully verifying a sign-in magic link for
+5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Successfully verifying a sign-in magic link or its paired 6-digit code for
    this email promotes the account to Administrator only when no administrator exists. Registration,
    existing sessions, profile links, and co-host invitations cannot trigger bootstrap promotion.
 6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). The `.env.example` placeholder (`CHANGE_THIS_TO_A_STRONG_RANDOM_CODE`) is rejected at startup in production — replace it with a strong value (e.g. `openssl rand -hex 8`).
@@ -254,9 +254,9 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 1. Open your browser and go to the URL you configured in `NEXT_PUBLIC_APP_URL`.
 2. Click **Sign In** and type the email address you put in `INITIAL_ADMIN_EMAIL`.
-3. Check your email inbox for the magic link. Click it to log in.
-   - Configure SMTP or the optional email worker using the [Email Setup Guide](./email.md) before the first sign-in. Production images do not print magic links in logs.
-4. The promotion occurs only when that valid sign-in link is verified. Once logged in, go to the
+3. Check your email for the magic link and 6-digit code. Click the link or enter the code on the confirmation screen and select **Sign in**. Both expire after 15 minutes; using either invalidates both. Registration uses the same methods.
+   - Configure SMTP or the optional email worker using the [Email Setup Guide](./email.md) before the first sign-in. Production images do not print sign-in links or codes in logs.
+4. The promotion occurs only when that valid sign-in link or code is verified. Once logged in, go to the
    `/admin` URL in your browser to confirm you have access to the Admin Panel.
 
 ---
@@ -423,7 +423,7 @@ Run `docker compose -f docker-compose.release.yml logs app` to inspect the logs.
 
 ### I didn't receive a magic link email
 
-1. Configure SMTP or the optional email worker using the [Email Setup Guide](./email.md). Production images do not print magic links in logs; check provider credentials and delivery logs if a sign-in email is missing.
+1. Configure SMTP or the optional email worker using the [Email Setup Guide](./email.md). Production images do not print sign-in links or codes in logs; check provider credentials and delivery logs if a sign-in email is missing.
 2. Check your spam folder.
 3. If configured, go to `/admin` > **System Configuration** > **Send Test Email** to check for configuration errors.
 

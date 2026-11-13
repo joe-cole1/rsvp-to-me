@@ -196,10 +196,12 @@ describe("lib/sms.ts", () => {
 
     it("sendMagicLinkSms sends correct body", async () => {
       const { sendMagicLinkSms } = await loadModule();
-      await sendMagicLinkSms("+15551112222", "http://magic-link", "en-US");
+      await sendMagicLinkSms("+15551112222", "http://magic-link", "en-US", "012345");
       const { form } = getTwilioRequest();
       expect(form.get("To")).toBe("+15551112222");
       expect(form.get("Body")).toContain("http://magic-link");
+      expect(form.get("Body")).toContain("012345");
+      expect(form.get("Body")).toContain("15 minutes");
     });
 
     it("sendApprovalSms sends approved or declined message", async () => {

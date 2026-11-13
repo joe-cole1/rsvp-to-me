@@ -2,16 +2,18 @@ import { cookies } from "next/headers";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { adoptLoginLocale, writeLocaleCookie } from "@/i18n/preferences";
 import { getRequestTranslator } from "@/i18n/server";
-import { randomBytes } from "crypto";
+import { randomBytes, randomInt, timingSafeEqual } from "crypto";
+import type { User } from "@/app/generated/prisma/client";
 import { db } from "./db";
 import { createSession } from "./session";
 import { retireChangedAccountConnection } from "@/lib/notifications/lifecycle";
 import { hashToken } from "./hash";
 import { promoteInitialAdmin } from "./admin-promotion";
+import { isSafeRedirect } from "./safe-redirect";
 
 const TOKEN_TTL_MINUTES = 15;
 
-function looksLikePhone(s: string): boolean {
+export function looksLikePhone(s: string): boolean {
   // Accepts +1234567890 or 10+ digit strings with optional spaces/dashes/parens
   return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
 }
@@ -21,52 +23,56 @@ export function normalizePhone(s: string): string {
   return s.trim().replace(/[\s\-().]/g, "");
 }
 
-// Only allow relative paths. Blocks protocol-relative (//), absolute URLs (contain :),
-// and backslash tricks (/\ normalised to // by some browsers).
-export function isSafeRedirect(path: string): boolean {
-  return (
-    typeof path === "string" &&
-    path.startsWith("/") &&
-    !path.startsWith("//") &&
-    !path.startsWith("/\\") &&
-    !path.includes(":")
-  );
+export { isSafeRedirect };
+
+export function normalizeLoginIdentifier(identifier: string): string {
+  return looksLikePhone(identifier) ? normalizePhone(identifier) : identifier.toLowerCase().trim();
+}
+
+export function loginIdentifierWhere(identifier: string) {
+  const normalized = normalizeLoginIdentifier(identifier);
+  return looksLikePhone(identifier) ? { phone: normalized } : { email: normalized };
+}
+
+export async function createLoginChallenge(
+  identifier: string,
+  redirect?: string
+): Promise<{ link: string; code: string } | null> {
+  const user = await db.user.findUnique({ where: loginIdentifierWhere(identifier) });
+  if (!user) return null;
+
+  const token = randomBytes(32).toString("hex");
+  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+  // Serialize resends with verification so only the newest challenge remains active.
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`login-code:${user.id}`}, 0))`;
+    await tx.magicToken.updateMany({
+      where: { userId: user.id, used: false },
+      data: { used: true },
+    });
+    await tx.magicToken.create({
+      data: {
+        userId: user.id,
+        type: "LOGIN",
+        token: hashToken(token),
+        codeHash: hashToken(code),
+        codeAttempts: 0,
+        expiresAt: new Date(Date.now() + TOKEN_TTL_MINUTES * 60 * 1000),
+      },
+    });
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const redirectSuffix =
+    redirect && isSafeRedirect(redirect) ? `&redirect=${encodeURIComponent(redirect)}` : "";
+  return { link: `${appUrl}/auth/verify?token=${token}${redirectSuffix}`, code };
 }
 
 export async function createMagicLink(
   identifier: string,
   redirect?: string
 ): Promise<string | null> {
-  let user;
-
-  if (looksLikePhone(identifier)) {
-    const phone = normalizePhone(identifier);
-    user = await db.user.findUnique({ where: { phone } });
-  } else {
-    const email = identifier.toLowerCase().trim();
-    user = await db.user.findUnique({ where: { email } });
-  }
-
-  if (!user) return null;
-
-  // Invalidate old tokens for this user
-  await db.magicToken.updateMany({
-    where: { userId: user.id, used: false },
-    data: { used: true },
-  });
-
-  const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60 * 1000);
-  const hashedToken = hashToken(token);
-
-  await db.magicToken.create({
-    data: { userId: user.id, token: hashedToken, expiresAt },
-  });
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const redirectSuffix =
-    redirect && isSafeRedirect(redirect) ? `&redirect=${encodeURIComponent(redirect)}` : "";
-  return `${appUrl}/auth/verify?token=${token}${redirectSuffix}`;
+  return (await createLoginChallenge(identifier, redirect))?.link ?? null;
 }
 
 export async function isOpenRegistrationActive(): Promise<boolean> {
@@ -126,15 +132,24 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
 
-  if (!record || record.used || record.expiresAt < new Date() || record.type !== "LOGIN") {
+  if (!record || record.used || record.expiresAt <= new Date() || record.type !== "LOGIN") {
     return false;
   }
 
-  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
+  const consumed = await db.magicToken.updateMany({
+    where: { id: record.id, used: false },
+    data: { used: true },
+  });
+  if (consumed.count !== 1) return false;
 
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) return false;
 
+  await completeLoginForUser(user);
+  return true;
+}
+
+export async function completeLoginForUser(user: User): Promise<void> {
   let role = user.role;
   if (role !== "ADMIN") {
     const promoted = await promoteInitialAdmin(user.id, user.email);
@@ -154,6 +169,40 @@ export async function verifyMagicToken(token: string): Promise<boolean> {
     email: user.email ?? user.phone ?? "",
     role: role as "HOST" | "ADMIN" | "GUEST",
   });
+}
+
+export async function verifySignInCode(identifier: string, code: string): Promise<boolean> {
+  if (!/^\d{6}$/.test(code)) return false;
+  const user = await db.user.findUnique({ where: loginIdentifierWhere(identifier) });
+  if (!user) return false;
+
+  const verified = await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`login-code:${user.id}`}, 0))`;
+    const record = await tx.magicToken.findFirst({
+      where: {
+        userId: user.id,
+        type: "LOGIN",
+        used: false,
+        expiresAt: { gt: new Date() },
+        codeHash: { not: null },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!record?.codeHash || record.codeAttempts >= 5) return false;
+    const expected = Buffer.from(record.codeHash);
+    const actual = Buffer.from(hashToken(code));
+    const matches = expected.length === actual.length && timingSafeEqual(expected, actual);
+    const consumed = await tx.magicToken.updateMany({
+      where: { id: record.id, used: false },
+      data: {
+        codeAttempts: { increment: 1 },
+        ...(matches || record.codeAttempts + 1 >= 5 ? { used: true } : {}),
+      },
+    });
+    return matches && consumed.count === 1;
+  });
+  if (!verified) return false;
+  await completeLoginForUser(user);
   return true;
 }
 

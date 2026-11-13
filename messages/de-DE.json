@@ -104,7 +104,8 @@
         "emailExists": "Ein Konto mit dieser E-Mail-Adresse existiert bereits.",
         "phoneExists": "Ein Konto mit dieser Telefonnummer existiert bereits.",
         "hostExists": "Ein Konto mit dieser E-Mail-Adresse existiert bereits. Melde dich stattdessen mit einem Anmeldelink an.",
-        "invalidInvite": "Ungültiger oder abgelaufener Einladungscode."
+        "invalidInvite": "Ungültiger oder abgelaufener Einladungscode.",
+        "invalidCode": "Ungültiger oder abgelaufener Code. Prüfe den Code oder fordere einen neuen an."
       },
       "Profile": {
         "unauthorized": "Nicht autorisiert",
@@ -1646,7 +1647,7 @@
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Dieser Link ist abgelaufen oder wurde bereits verwendet. Fordere unten einen neuen an.",
       "rsvp": "RSVP",
-      "signInWithAMagicLink": "Mit einem Anmeldelink anmelden",
+      "signInWithAMagicLink": "Mit Anmeldelink oder Code anmelden",
       "checkYourTexts": "Sieh in deinen SMS nach",
       "checkYourEmail": "Sieh in deinem E-Mail-Postfach nach",
       "signInFailed": "Anmeldung fehlgeschlagen",
@@ -1654,13 +1655,13 @@
       "emailOrPhoneNumber": "E-Mail-Adresse oder Telefonnummer",
       "youExampleComOr15550000000": "you@example.com oder +1 555 000 0000",
       "sending": "Wird gesendet…",
-      "sendMagicLink": "Anmeldelink senden",
+      "sendMagicLink": "Anmeldelink und Code senden",
       "noAccount": "Noch kein Konto?",
       "newHost": "Zum ersten Mal Veranstalter?",
       "createOne": "Konto erstellen →",
       "createAnAccount": "Ein Konto erstellen",
       "accountCreated": "Konto erstellt!",
-      "checkYourEmailForAMagicLinkToSign": "Sieh in deinem E-Mail-Postfach nach dem Link zur Anmeldung.",
+      "checkYourEmailForAMagicLinkToSign": "Dein Konto ist bereit. In deiner E-Mail findest du einen Anmeldelink und einen 6-stelligen Code.",
       "goToSignIn": "Zur Anmeldung",
       "yourName": "Dein Name",
       "janeSmith": "Jane Smith",
@@ -1671,12 +1672,19 @@
       "creatingAccount": "Konto wird erstellt…",
       "createAccount": "Konto erstellen",
       "alreadyHaveAnAccountSignInMessage": "<part0> Hast du bereits ein Konto? <part1>Anmelden →</part1> </part0>",
-      "weSentAMagicLinkToClickItMessage": "Wir haben einen Anmeldelink an <part0>{value0}</part0> gesendet. Klicke darauf, um dich anzumelden — er läuft in 15 Minuten ab.",
+      "weSentAMagicLinkToClickItMessage": "Wir haben einen Anmeldelink und einen 6-stelligen Code an <part0>{value0}</part0> gesendet. Melde dich mit einem davon an — beide sind 15 Minuten gültig.",
       "weCouldnTCompleteYourRequestIfYourMessage": "Deine Anfrage konnte nicht abgeschlossen werden. Wenn deine E-Mail-Adresse oder Telefonnummer registriert ist, prüfe bitte deine Verbindung und versuche es erneut. Wenn du die Anwendung selbst betreibst, prüfe die Containerprotokolle auf Details oder Ersatzlinks (suche nach <part0> [auth:magic-link-fallback] </part0>).",
       "securityCheckFailed": "Sicherheitsprüfung fehlgeschlagen.",
       "somethingWentWrong": "Etwas ist schiefgelaufen.",
       "signInMetadataTitle": "Anmelden",
-      "registerMetadataTitle": "Konto erstellen"
+      "registerMetadataTitle": "Konto erstellen",
+      "signInCode": "6-stelliger Code",
+      "codeExpiry": "Link und Code sind 15 Minuten gültig.",
+      "codeResent": "Ein neuer Link und Code wurden gesendet.",
+      "signingIn": "Anmeldung läuft…",
+      "signIn": "Anmelden",
+      "resend": "Erneut senden",
+      "useDifferentIdentifier": "Andere E-Mail-Adresse oder Telefonnummer verwenden"
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",
@@ -1823,10 +1831,10 @@
         "defaultBody": ""
       },
       "magicLink": {
-        "label": "Anmeldelink",
-        "description": "E-Mail zur Anmeldung ohne Passwort.",
-        "defaultSubject": "Dein Anmeldelink für RSVP to Me",
-        "defaultBody": "Klicke auf die Schaltfläche unten, um dich anzumelden. Dieser Link läuft in 15 Minuten ab."
+        "label": "Anmeldelink und Code",
+        "description": "E-Mail zur passwortlosen Anmeldung mit Anmeldelink und Einmalcode.",
+        "defaultSubject": "Dein Anmeldelink und Code für RSVP to Me",
+        "defaultBody": "Klicke auf die Schaltfläche oder gib den 6-stelligen Code auf der Anmeldeseite ein. Beide sind 15 Minuten gültig und nur einmal verwendbar."
       },
       "welcome": {
         "label": "Begrüßung zum neuen Konto",
@@ -1904,9 +1912,14 @@
       "counts": "Aktueller Stand: {goingCount} dabei · {maybeCount} vielleicht · {noCount} nicht dabei"
     },
     "magicLink": {
-      "preview": "Dein Anmeldelink für RSVP to Me",
+      "preview": "Dein Anmeldelink und 6-stelliger Code für RSVP to Me",
       "title": "Anmelden",
-      "ignore": "Wenn du dies nicht angefordert hast, kannst du diese E-Mail einfach ignorieren."
+      "ignore": "Wenn du dies nicht angefordert hast, kannst du diese E-Mail einfach ignorieren.",
+      "codeLabel": "Oder gib diesen Code auf der Anmeldeseite ein:",
+      "expiry": "Link und Code sind 15 Minuten gültig. Wenn du einen verwendest, werden beide ungültig.",
+      "linkOnlySubject": "Dein Anmeldelink für RSVP to Me",
+      "linkOnlyBody": "Klicke auf die Schaltfläche unten, um dich anzumelden. Dieser Link läuft in 15 Minuten ab.",
+      "linkOnlyPreview": "Dein Anmeldelink für RSVP to Me"
     },
     "welcome": {
       "preview": "Willkommen bei RSVP to Me",
@@ -1934,7 +1947,7 @@
   "Sms": {
     "test": "Test-SMS von RSVP to Me. Deine SMS-Konfiguration ist korrekt!",
     "confirmation": "{guestName}, deine Rückmeldung für {eventTitle}: {status}! Rückmeldung ändern: {editUrl}",
-    "magicLink": "Dein Anmeldelink für RSVP to Me: {link}\n(läuft in 15 Minuten ab)",
+    "magicLink": "Dein Anmeldecode für RSVP to Me: {code}\nOder nutze diesen Link: {link}\nBeide sind 15 Minuten gültig. Wenn du einen verwendest, werden beide ungültig.",
     "invite": "{hostName} hat dich zu {eventTitle} eingeladen! Antworte mit YES, um zuzusagen, oder NO, um abzusagen{maybeClause}. Oder antworte unter: {rsvpUrl}",
     "maybeClause": ", MAYBE für vielleicht",
     "blast": "{hostName} ({eventTitle}): {message} {eventUrl}",
@@ -1963,7 +1976,8 @@
       }
     },
     "configRequired": "Twilio Account SID, Auth Token und Telefonnummer sind erforderlich.",
-    "configFailed": "Twilio-Anfrage fehlgeschlagen. Prüfe deine Account SID, dein Auth Token und deine Telefonnummer."
+    "configFailed": "Twilio-Anfrage fehlgeschlagen. Prüfe deine Account SID, dein Auth Token und deine Telefonnummer.",
+    "verificationLink": "Dein Anmeldelink für RSVP to Me: {link}\n(läuft in 15 Minuten ab)"
   },
   "Reminders": {
     "email_week": "Kurze Erinnerung — {eventTitle} ist in einer Woche! Wir freuen uns auf dich.",

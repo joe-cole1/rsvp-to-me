@@ -37,11 +37,17 @@ export async function GET(request: NextRequest) {
 
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
-  if (!record || record.used || record.expiresAt < new Date() || record.type !== "LOGIN") {
+  if (!record || record.used || record.expiresAt <= new Date() || record.type !== "LOGIN") {
     return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
   }
 
-  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
+  const consumed = await db.magicToken.updateMany({
+    where: { id: record.id, used: false },
+    data: { used: true },
+  });
+  if (consumed.count !== 1) {
+    return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
+  }
 
   const user = await db.user.findUnique({ where: { id: record.userId } });
   if (!user) {

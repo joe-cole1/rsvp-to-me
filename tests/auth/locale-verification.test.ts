@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { hashToken } from "@/lib/hash";
 import { NextRequest } from "next/server";
 const state = vi.hoisted(() => ({
   account: {
@@ -25,9 +26,20 @@ vi.mock("@/lib/db", () => ({
         type: state.type,
       })),
       update: vi.fn(),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+      findFirst: vi.fn(async () =>
+        state.type === "LOGIN"
+          ? { id: "token", codeHash: hashToken("012345"), codeAttempts: 0 }
+          : null
+      ),
     },
     rSVP: { updateMany: vi.fn() },
     session: { create: vi.fn() },
+    $executeRaw: vi.fn(),
+    $transaction: vi.fn(async (fn) => {
+      const { db } = await import("@/lib/db");
+      return fn(db);
+    }),
   },
 }));
 vi.mock("next/headers", () => ({
@@ -45,9 +57,9 @@ vi.mock("@/lib/session", () => ({
 }));
 vi.mock("@/lib/admin-promotion", () => ({ promoteInitialAdmin: vi.fn(async () => false) }));
 vi.mock("@/lib/redis", () => ({ isRedisEnabled: () => false, redisSet: vi.fn() }));
-import { verifyMagicToken } from "@/lib/auth";
+import { verifyMagicToken, verifySignInCode } from "@/lib/auth";
 import { GET } from "@/app/auth/verify/route";
-describe.each(["action", "route"] as const)("verified LOGIN language via %s", (entry) => {
+describe.each(["action", "route", "code"] as const)("verified LOGIN language via %s", (entry) => {
   beforeEach(() => {
     vi.clearAllMocks();
     state.account.preferredLocale = null;
@@ -59,8 +71,12 @@ describe.each(["action", "route"] as const)("verified LOGIN language via %s", (e
     });
   });
   async function verify() {
-    if (entry === "action") {
-      expect(await verifyMagicToken("valid")).toBe(true);
+    if (entry !== "route") {
+      expect(
+        await (entry === "code"
+          ? verifySignInCode(state.account.email, "012345")
+          : verifyMagicToken("valid"))
+      ).toBe(true);
       return null;
     }
     const request = new NextRequest("http://localhost:3000/auth/verify?token=valid", {
@@ -96,7 +112,12 @@ describe.each(["action", "route"] as const)("verified LOGIN language via %s", (e
   it("never adopts for a non-LOGIN token", async () => {
     state.type = "EMAIL_CHANGE";
     state.browser = "nl-NL";
-    if (entry === "action") expect(await verifyMagicToken("valid")).toBe(false);
+    if (entry !== "route")
+      expect(
+        await (entry === "code"
+          ? verifySignInCode(state.account.email, "012345")
+          : verifyMagicToken("valid"))
+      ).toBe(false);
     else
       await GET(
         new NextRequest("http://localhost:3000/auth/verify?token=valid", {

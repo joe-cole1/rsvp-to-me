@@ -283,6 +283,14 @@ named ("Event title"). Triggers such as "2 others" are buttons that report `aria
 current step with `aria-current="step"`, keep Back and Next in the same place, and show errors
 in an `InlineAlert` at the step.
 
+**Sign-in challenge.** Sign-in and registration keep the confirmation and code entry in the
+same `AppCard`. `app/auth/SignInCodeForm.tsx` owns one labeled 6-digit `Input` (numeric
+keyboard, one-time-code autofill), an explicit primary **Sign in** button, `InlineAlert`
+feedback and a secondary **Resend** action. Typing six digits enables the button; it does
+not submit automatically. The sign-in screen also offers **Use a different email or phone**;
+registration links to **Go to sign in**. Neither screen uses segmented digit boxes or a
+second card.
+
 **List row.** Guest and admin lists: avatar, name, a one-line detail, a status chip, one
 primary action, and an overflow menu for the rest (Edit, Remove). Rows don't stack three
 buttons.

@@ -5,10 +5,14 @@ import { EmailButton } from "../components/EmailButton";
 import { splitParagraphs } from "../render";
 import type { MagicLinkEmailProps } from "../types";
 
-export function MagicLinkEmail({ i18n, theme, body, magicLink }: MagicLinkEmailProps) {
+export function MagicLinkEmail({ i18n, theme, body, magicLink, code }: MagicLinkEmailProps) {
   const { t } = requireEmailI18n(i18n);
   return (
-    <EmailLayout i18n={i18n} theme={theme} preview={t("Email.magicLink.preview")}>
+    <EmailLayout
+      i18n={i18n}
+      theme={theme}
+      preview={t(code ? "Email.magicLink.preview" : "Email.magicLink.linkOnlyPreview")}
+    >
       <Hero
         theme={theme}
         kicker="RSVP to Me"
@@ -61,6 +65,44 @@ export function MagicLinkEmail({ i18n, theme, body, magicLink }: MagicLinkEmailP
                   </tr>
                 </tbody>
               </table>
+              {code && (
+                <div style={{ marginTop: "24px", textAlign: "center" }}>
+                  <p
+                    className="dm-text-secondary"
+                    style={{ color: theme.textSecondary, fontSize: "14px" }}
+                  >
+                    {t("Email.magicLink.codeLabel")}
+                  </p>
+                  <div
+                    className="dm-block"
+                    style={{
+                      backgroundColor: theme.cardBg,
+                      border: `1px solid ${theme.cardBorder}`,
+                      borderRadius: theme.cardRadius,
+                      padding: "20px",
+                    }}
+                  >
+                    <span
+                      className="dm-text-primary"
+                      style={{
+                        color: theme.textPrimary,
+                        fontSize: "32px",
+                        fontWeight: 700,
+                        letterSpacing: "6px",
+                        fontFamily: theme.bodyFont,
+                      }}
+                    >
+                      {code}
+                    </span>
+                  </div>
+                  <p
+                    className="dm-text-secondary"
+                    style={{ color: theme.textSecondary, fontSize: "13px" }}
+                  >
+                    {t("Email.magicLink.expiry")}
+                  </p>
+                </div>
+              )}
               <p
                 className="dm-text-muted"
                 style={{ margin: "24px 0 0", fontSize: "12px", color: theme.textMuted }}

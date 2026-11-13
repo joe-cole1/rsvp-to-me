@@ -15,7 +15,7 @@ import { NextRequest } from "next/server";
 
 const {
   mockMagicTokenFindUnique,
-  mockMagicTokenUpdate,
+  mockMagicTokenUpdateMany,
   mockUserFindUnique,
   mockUserCount,
   mockUserUpdate,
@@ -26,7 +26,7 @@ const {
   mockSealSession,
 } = vi.hoisted(() => ({
   mockMagicTokenFindUnique: vi.fn(),
-  mockMagicTokenUpdate: vi.fn(),
+  mockMagicTokenUpdateMany: vi.fn(),
   mockUserFindUnique: vi.fn(),
   mockUserCount: vi.fn(),
   mockUserUpdate: vi.fn(),
@@ -41,7 +41,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     magicToken: {
       findUnique: mockMagicTokenFindUnique,
-      update: mockMagicTokenUpdate,
+      updateMany: mockMagicTokenUpdateMany,
     },
     user: {
       findUnique: mockUserFindUnique,
@@ -104,7 +104,7 @@ beforeEach(() => {
     used: false,
     expiresAt: new Date(Date.now() + 60_000),
   });
-  mockMagicTokenUpdate.mockResolvedValue({});
+  mockMagicTokenUpdateMany.mockResolvedValue({ count: 1 });
   mockUserFindUnique.mockResolvedValue(matchingHost());
   mockUserCount.mockResolvedValue(0);
   mockUserUpdate.mockResolvedValue({ ...matchingHost(), role: "ADMIN" });
@@ -129,6 +129,20 @@ describe("SEC-48: initial-admin promotion is LOGIN-token-only", () => {
     expect(mockSealSession).toHaveBeenCalledWith(
       expect.objectContaining({ userId: "user-1", role: "ADMIN" })
     );
+  });
+
+  it("does not promote or create a session after a paired code already consumed the link", async () => {
+    mockMagicTokenUpdateMany.mockResolvedValue({ count: 0 });
+    const response = await verifyLogin(loginRequest());
+    expect(response.headers.get("location")).toContain("error=invalid-token");
+    expect(mockMagicTokenUpdateMany).toHaveBeenCalledWith({
+      where: { id: "login-token-1", used: false },
+      data: { used: true },
+    });
+    expect(mockUserCount).not.toHaveBeenCalled();
+    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(mockSessionCreate).not.toHaveBeenCalled();
+    expect(mockSealSession).not.toHaveBeenCalled();
   });
 
   it("does not promote a verified LOGIN user whose email does not match", async () => {

@@ -67,12 +67,12 @@ describe("admin, dashboard and auth locale rendering", () => {
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "alex@example.com" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Inloglink versturen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inloglink en code versturen" }));
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Bekijk je e-mail" })).toBeInTheDocument()
     );
     expect(screen.getByText("alex@example.com")).toBeInTheDocument();
-    expect(screen.getByText(/De link verloopt over 15 minuten/)).toBeInTheDocument();
+    expect(screen.getByText(/beide verlopen over 15 minuten/)).toBeInTheDocument();
     expect(sendMagicLink).toHaveBeenCalledWith("alex@example.com", undefined, null);
   });
   it("shows English registration defaults and Dutch invite code labels", () => {
