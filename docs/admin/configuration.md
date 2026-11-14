@@ -304,8 +304,8 @@ change links, and co-host invitation acceptance do not run bootstrap promotion.
 
 ### HOST_INVITE_CODE
 
-- **Required**: Yes (if `OPEN_REGISTRATION` is `"false"`)
-- **Default**: `"letmein"`
+- **Required**: Yes for baseline seeding, including when registration is open
+- **Default**: None
 - **Type**: String (at least 10 characters in production)
 
 **What it does:** The invite code new hosts must type during registration to create a Host account.
@@ -318,7 +318,11 @@ change links, and co-host invitation acceptance do not run bootstrap promotion.
   ```
 - **Web alternative:** Use [random.org](https://www.random.org/strings/?num=1&len=12&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new).
 
-> **Warning:** The built-in fallback code `letmein` (used only when the variable is unset) and the `.env.example` placeholder `CHANGE_THIS_TO_A_STRONG_RANDOM_CODE` are both rejected in production, as is any code shorter than 10 characters — the app throws a startup validation error until you set a strong custom value.
+Seeding fails before writing any rows if this variable is missing or blank.
+There is no fallback invite code, and the configured code is not printed in
+seed logs. Container startup and `scripts/dev-sync.sh` both run baseline seeding.
+
+> **Warning:** The old fallback code `letmein` and the `.env.example` placeholder `CHANGE_THIS_TO_A_STRONG_RANDOM_CODE` are both rejected in production with closed registration, as is any code shorter than 10 characters — the app throws a startup validation error until you set a strong custom value.
 
 ---
 
@@ -329,6 +333,10 @@ change links, and co-host invitation acceptance do not run bootstrap promotion.
 - **Type**: Boolean string (`"true"` or `"false"`)
 
 **What it does:** If set to `"true"` and the database is completely empty on startup, the application runs a seed script creating 20 test guests and 10 comprehensive sample events. The fixtures cover draft, published, cancelled, past, and upcoming events; all location and visibility modes; password protection; RSVP deadlines, approval, invited/unresponded guests, capacity, plus-ones, and all questionnaire field types; email/SMS invitation history; co-hosts and pending co-host invitations; guest-list privacy; polls, comments, potlucks, updates, reminders, activity, regular check-ins, and walk-ins; and representative theme presets, heading fonts, animated effects, and effect controls.
+
+Both source-build and release Compose files honor this value from `.env`; they
+do not force sample data on. Baseline rows are still seeded when it is false,
+using an explicit `HOST_INVITE_CODE`.
 
 > **Warning:** Turn this off (`"false"`) before inviting real guests to avoid cluttering your dashboard with fake test data.
 
@@ -553,7 +561,7 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 | `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                                                         |
 | `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email promoted after verified LOGIN link/code use if no other admins exist.                                     |
 | `OPEN_REGISTRATION`            | No              | `"false"`           | If `"true"`, allows host signups without invite codes.                                                          |
-| `HOST_INVITE_CODE`             | Yes (if closed) | `"letmein"`         | Code required by new hosts to register.                                                                         |
+| `HOST_INVITE_CODE`             | Yes for seeding | None                | Explicit seed invite code; requested at registration when closed.                                               |
 | `SEED_TEST_DATA`               | No              | `"false"`           | If `"true"`, seeds mock test events on first run.                                                               |
 | `LOG_LEVEL`                    | No              | `"info"`            | Logging verbosity (`debug`, `info`, `warn`, `error`).                                                           |
 | `EMAIL_FROM`                   | No              | _(noreply address)_ | From header display name and email address.                                                                     |

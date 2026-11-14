@@ -40,7 +40,7 @@ command -v ss >/dev/null 2>&1 || { echo "✗ ss (iproute2) is required to find t
 
 # PIDs listening on $PORT (IPv4 or IPv6).
 listener_pids() {
-  ss -H -ltnp "sport = :$PORT" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u
+  ss -H -ltnp "sport = :$PORT" | awk '{ while (match($0, /pid=[0-9]+/)) { print substr($0, RSTART + 4, RLENGTH - 4); $0 = substr($0, RSTART + RLENGTH) } }' | sort -u
 }
 
 args_of() { ps -o args= -p "$1" 2>/dev/null || true; }

@@ -43,6 +43,17 @@ also excludes generated fixture tests.
 
 ## Index
 
+Task `01a1d8f5` covers the CI/sample-data portion of #851 in
+`issue-851-ci-parity.test.ts` and `issue-851-seed-defaults.test.ts`: CI checks the
+submitted tree with read-only permissions, both gates share format checks and
+resolve Redis from deployment configuration, E2E fixtures and retry policy match,
+Compose respects sample-data configuration, and seed rejects missing invite
+codes before writes. `dev-restart-empty-port.test.ts` covers empty-port startup,
+stop-only behavior, safe replacement, foreign listeners and socket errors.
+The CodeQL follow-up in `issue-851-ci-parity.test.ts` requires event-default
+checkout while retaining manual dispatch, PR/main-push validation, and npm,
+Playwright and Next.js caches.
+
 Task `01a1b4d4` addresses #825 (batch 11 of #814) in
 `issue-825-amount-size-independence.test.tsx`: #811's Amount choice wrote both the
 stored density and the stored size, so picking an Amount overwrote a host's size and

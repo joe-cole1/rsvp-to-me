@@ -135,7 +135,12 @@ function assertRichSeedCoverage(eventTemplates: EventTemplate[]) {
 }
 
 async function main() {
-  const code = process.env.HOST_INVITE_CODE ?? "letmein";
+  const code = process.env.HOST_INVITE_CODE?.trim();
+  if (!code) {
+    throw new Error(
+      "HOST_INVITE_CODE is required before seeding; configure an explicit invite code."
+    );
+  }
 
   await db.hostInviteCode.upsert({
     where: { code },
@@ -217,7 +222,7 @@ async function main() {
   });
   console.log("Upserted SYSTEM tombstone user.");
 
-  console.log(`Seed complete. Default invite code: "${code}"`);
+  console.log("Baseline seed complete.");
 
   // Check if we should seed heavy test data
   const seedTestData = process.env.SEED_TEST_DATA === "true";

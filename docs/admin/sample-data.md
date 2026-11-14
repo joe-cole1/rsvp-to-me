@@ -20,7 +20,7 @@ The seed script creates three organizer accounts, 20 sample guests, and 10 event
 | `cohost@test.com` | Host                     | Co-hosts selected sample events.                                                             |
 | `admin@test.com`  | Administrator            | Explores the admin tools.                                                                    |
 
-The rich seed runs only when `SEED_TEST_DATA=true` **and the database has no events**. Set this variable on the app service before the first startup of a separate test instance. The source-build `docker-compose.yml` already sets it to `true`; the release setup defaults to `false` through `.env.example`.
+The rich seed runs only when `SEED_TEST_DATA=true` **and the database has no events**. Set this variable on the app service before the first startup of a separate test instance. Both source-build and release setups honor `.env`; `.env.example` defaults to `false`. Seeding requires an explicit non-empty `HOST_INVITE_CODE` before writing any baseline or sample rows; there is no fallback invite code. The code is not printed in seed logs.
 
 To run the seed explicitly in an already-running source-build test container:
 

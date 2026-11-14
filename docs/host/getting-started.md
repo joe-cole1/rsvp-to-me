@@ -37,6 +37,9 @@ See [Your Profile & Account](faq.md) for managing your name, photo, and notifica
 
 ## The Host Dashboard
 
+New installations start without demo events or accounts. An administrator can
+enable sample data on a separate test instance for trying the event workflow.
+
 After signing in, your **Dashboard** is home base. It shows:
 
 - **Upcoming events you're hosting**

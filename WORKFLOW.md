@@ -119,8 +119,25 @@ scripts/preflight.sh
 
 Use full preflight for migrations, authentication, public RSVP flows, or
 release-critical work. It additionally starts an isolated app on port 3001 and
-runs Playwright E2E tests. Both modes use ephemeral containers on ports 55432
-and 56399 and never touch the dev database.
+runs Playwright E2E tests. CI and full preflight explicitly seed the same rich
+fixtures before starting the E2E server, with an explicit test invite code.
+Playwright uses zero retries locally and in CI so a failed first attempt fails
+the gate. Both modes use ephemeral containers on ports 55432 and 56399 and never
+touch the dev database.
+
+CI checks the submitted tree without formatting, lint fixes, commits, or pushes.
+It has read-only repository permissions. Checkout uses the triggering event's
+default revision: the temporary PR merge with `main`, the pushed commit, or the
+branch/tag selected for a manual run. Keep that default instead of overriding
+it with a PR-controlled branch name in this mixed-trigger workflow. Manual
+runs and the npm, Playwright, and Next.js caches remain enabled; GitHub scopes
+PR-created caches to that PR's merge ref. Both gates run
+`bash scripts/check-format.sh` and strict lint checks. They resolve the Redis
+image from `docker-compose.yml` through `scripts/compose-service-image.cjs`,
+without loading local environment values or the development override; update
+the deployment image there rather than adding a separate test image pin.
+The supplemental enabled-Turnstile CSP test still requires both provider keys
+and is skipped when they are unset; this is not covered by the default gate.
 
 ## 5. Review and ship
 

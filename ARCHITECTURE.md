@@ -389,6 +389,13 @@ load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
 | `.github/workflows/container-qc.yml`                        | Builds and smoke-tests production images on AMD64 and ARM64 without publishing.                                |
 | `scripts/container-smoke.sh`, `scripts/container-smoke.cjs` | Disposable PostgreSQL/Redis startup, permissions, health, seed, backup restore, and native image-codec checks. |
 
+`scripts/check-format.sh` is the shared check-only formatting entry point for CI
+and preflight. `scripts/compose-service-image.cjs` resolves test service images
+from `docker-compose.yml` without expanding environment values or including the
+WSL override. CI has read-only repository permissions; it never rewrites or
+pushes the submitted tree. CI and full preflight explicitly seed E2E fixtures
+and use the same no-retry Playwright policy.
+
 ## Common change routing
 
 | Change                   | Start here                                 | Usually also inspect                                              |
