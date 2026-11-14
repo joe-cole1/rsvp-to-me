@@ -30,7 +30,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     magicToken: {
       findUnique: mockFindUniqueMagicToken,
-      update: mockUpdateMagicToken,
+      updateMany: mockUpdateMagicToken,
     },
     user: {
       findUnique: mockFindUniqueUser,
@@ -74,6 +74,7 @@ const futureDate = new Date(Date.now() + 60 * 60 * 1000);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUpdateMagicToken.mockResolvedValue({ count: 1 });
   process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
 });
 
@@ -109,7 +110,7 @@ describe("GET /auth/verify-change", () => {
       type: "EMAIL_CHANGE",
       metadata: "new@example.com",
     });
-    mockUpdateMagicToken.mockResolvedValue({});
+    mockUpdateMagicToken.mockResolvedValue({ count: 1 });
     mockFindUniqueUser.mockResolvedValue({ id: "user1", role: "HOST" });
     mockFindFirstUser.mockResolvedValue(null); // not taken
     mockUpdateUser.mockResolvedValue({});

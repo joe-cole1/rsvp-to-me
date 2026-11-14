@@ -546,6 +546,8 @@ model PotluckItem {
 model PotluckClaim {
   id            String   @id @default(cuid())
   potluckItemId String
+  rsvpId        String?
+  userId        String?
   guestName     String
   quantity      Int      @default(1)
   createdAt     DateTime @default(now())
@@ -635,6 +637,7 @@ model PollVote {
   id           String   @id @default(cuid())
   pollId       String
   pollOptionId String
+  rsvpId       String?
   voterName    String // Name of the guest or host voting
   userId       String? // Link to User if they are logged in
   createdAt    DateTime @default(now())
@@ -642,7 +645,8 @@ model PollVote {
   poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   option PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
-  @@unique([pollOptionId, voterName])
+  @@unique([pollOptionId, rsvpId])
+  @@unique([pollOptionId, userId])
 }
 
 // ──────────────────────────────────────────────

@@ -68,3 +68,10 @@ A visitor gets through only if they are a host or co-host, an invited guest open
 - Hosting something open to the community? **Public.**
 - Sharing with a specific group but don't need it hidden behind a login? **Unlisted.**
 - Sensitive or invite-only gathering? **Private**, optionally with a password.
+
+## Password changes and participation
+
+Changing an event password requires visitors with an old unlock to enter the new
+password. RSVP and comment submissions enforce the event's access rules on the
+server, and new submissions are accepted only for published events. Host-only
+check-in activity stays private, including in guests' dashboard activity feeds.

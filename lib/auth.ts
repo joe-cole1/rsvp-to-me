@@ -1,3 +1,4 @@
+import { RegisterHostSchema } from "@/lib/schemas";
 import { cookies } from "next/headers";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { adoptLoginLocale, writeLocaleCookie } from "@/i18n/preferences";
@@ -36,7 +37,8 @@ export function loginIdentifierWhere(identifier: string) {
 
 export async function createLoginChallenge(
   identifier: string,
-  redirect?: string
+  redirect?: string,
+  registration?: string
 ): Promise<{ link: string; code: string } | null> {
   const user = await db.user.findUnique({ where: loginIdentifierWhere(identifier) });
   if (!user) return null;
@@ -46,14 +48,19 @@ export async function createLoginChallenge(
   // Serialize resends with verification so only the newest challenge remains active.
   await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`login-code:${user.id}`}, 0))`;
+    const previous = await tx.magicToken.findFirst({
+      where: { userId: user.id, type: "LOGIN", used: false, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+    });
     await tx.magicToken.updateMany({
-      where: { userId: user.id, used: false },
+      where: { userId: user.id, type: "LOGIN", used: false },
       data: { used: true },
     });
     await tx.magicToken.create({
       data: {
         userId: user.id,
         type: "LOGIN",
+        metadata: registration ?? previous?.metadata ?? null,
         token: hashToken(token),
         codeHash: hashToken(code),
         codeAttempts: 0,
@@ -125,28 +132,64 @@ export async function linkRsvpsToUser(userId: string) {
   });
 }
 
-export async function verifyMagicToken(token: string): Promise<boolean> {
-  if (token.length > 128) {
-    return false;
-  }
-  const hashedToken = hashToken(token);
-  const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
-
-  if (!record || record.used || record.expiresAt <= new Date() || record.type !== "LOGIN") {
-    return false;
-  }
-
+/** Consumption is shared by the HTTP route and programmatic verifier. */
+export async function consumeLoginToken(token: string): Promise<User | null> {
+  if (token.length > 128) return null;
+  const record = await db.magicToken.findUnique({ where: { token: hashToken(token) } });
+  if (!record || record.used || record.expiresAt <= new Date() || record.type !== "LOGIN")
+    return null;
   const consumed = await db.magicToken.updateMany({
-    where: { id: record.id, used: false },
+    where: { id: record.id, used: false, type: "LOGIN", expiresAt: { gt: new Date() } },
     data: { used: true },
   });
-  if (consumed.count !== 1) return false;
-
+  if (consumed.count !== 1) return null;
   const user = await db.user.findUnique({ where: { id: record.userId } });
-  if (!user) return false;
+  return user ? applyVerifiedRegistration(user, record.metadata) : null;
+}
 
+export async function verifyMagicToken(token: string): Promise<boolean> {
+  const user = await consumeLoginToken(token);
+  if (!user) return false;
   await completeLoginForUser(user);
   return true;
+}
+
+// Registration intent belongs to a short-lived LOGIN challenge, never to the
+// unverified account. Resends carry it forward; only proof can apply it.
+async function applyVerifiedRegistration(
+  user: User,
+  metadata: string | null
+): Promise<User | null> {
+  if (!metadata || user.role !== "GUEST") return user;
+  let intent: { registrationName?: unknown; inviteId?: unknown };
+  try {
+    intent = JSON.parse(metadata);
+  } catch {
+    return null;
+  }
+  if (typeof intent.registrationName !== "string") return user;
+  const name = RegisterHostSchema.shape.name.parse(intent.registrationName);
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+    const current = await tx.user.findUnique({ where: { id: user.id } });
+    if (!current || current.role !== "GUEST") return current;
+    if (typeof intent.inviteId === "string") {
+      await tx.$executeRaw`SELECT id FROM "HostInviteCode" WHERE id = ${intent.inviteId} FOR UPDATE`;
+      const invite = await tx.hostInviteCode.findUnique({ where: { id: intent.inviteId } });
+      if (
+        !invite ||
+        !invite.active ||
+        (invite.expiresAt && invite.expiresAt <= new Date()) ||
+        (invite.maxUses !== null && invite.uses >= invite.maxUses)
+      )
+        return null;
+      await tx.hostInviteCode.update({
+        where: { id: invite.id },
+        data: { uses: { increment: 1 } },
+      });
+    }
+    return tx.user.update({ where: { id: user.id }, data: { role: "HOST", name } });
+  });
 }
 
 export async function completeLoginForUser(user: User): Promise<void> {
@@ -188,7 +231,7 @@ export async function verifySignInCode(identifier: string, code: string): Promis
       },
       orderBy: { createdAt: "desc" },
     });
-    if (!record?.codeHash || record.codeAttempts >= 5) return false;
+    if (!record?.codeHash || record.codeAttempts >= 5) return null;
     const expected = Buffer.from(record.codeHash);
     const actual = Buffer.from(hashToken(code));
     const matches = expected.length === actual.length && timingSafeEqual(expected, actual);
@@ -199,10 +242,12 @@ export async function verifySignInCode(identifier: string, code: string): Promis
         ...(matches || record.codeAttempts + 1 >= 5 ? { used: true } : {}),
       },
     });
-    return matches && consumed.count === 1;
+    return matches && consumed.count === 1 ? { metadata: record.metadata } : null;
   });
   if (!verified) return false;
-  await completeLoginForUser(user);
+  const verifiedUser = await applyVerifiedRegistration(user, verified.metadata);
+  if (!verifiedUser) return false;
+  await completeLoginForUser(verifiedUser);
   return true;
 }
 
@@ -216,7 +261,7 @@ export async function verifyChangeToken(
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
 
-  if (!record || record.used || record.expiresAt < new Date()) {
+  if (!record || record.used || record.expiresAt <= new Date()) {
     return { success: false, error: t("Ui.Errors.Auth.invalidLink") };
   }
 
@@ -248,7 +293,16 @@ export async function verifyChangeToken(
     }
   }
 
-  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
+  const consumed = await db.magicToken.updateMany({
+    where: {
+      id: record.id,
+      used: false,
+      expiresAt: { gt: new Date() },
+      type: { in: ["EMAIL_CHANGE", "PHONE_CHANGE"] },
+    },
+    data: { used: true },
+  });
+  if (consumed.count !== 1) return { success: false, error: t("Ui.Errors.Auth.invalidLink") };
 
   if (isEmail) {
     await db.user.update({
@@ -284,85 +338,34 @@ export async function registerHost(
   email: string,
   name: string,
   inviteCode: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; challenge?: { link: string; code: string } }> {
   const t = await getRequestTranslator();
-  const normalizedEmail = email.toLowerCase().trim();
-  const openRegistration = await isOpenRegistrationActive();
-
-  const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
-  if (existing) {
-    if (existing.role === "HOST" || existing.role === "ADMIN") {
-      return {
-        success: false,
-        error: t("Ui.Errors.Auth.hostExists"),
-      };
-    }
-
-    // Upgrade guest to host
-    if (openRegistration) {
-      await db.user.update({
-        where: { id: existing.id },
-        data: { name, role: "HOST" },
-      });
-      await linkRsvpsToUser(existing.id);
-      return { success: true };
-    }
-
-    const now = new Date();
-    const validCode = await db.hostInviteCode.findFirst({
+  const parsed = RegisterHostSchema.parse({ email, name, inviteCode });
+  let inviteId: string | undefined;
+  if (!(await isOpenRegistrationActive())) {
+    const invite = await db.hostInviteCode.findFirst({
       where: {
-        code: inviteCode,
+        code: parsed.inviteCode,
         active: true,
-        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
     });
-
-    if (!validCode || (validCode.maxUses !== null && validCode.uses >= validCode.maxUses)) {
+    if (!invite || (invite.maxUses !== null && invite.uses >= invite.maxUses)) {
       return { success: false, error: t("Ui.Errors.Auth.invalidInvite") };
     }
-
-    await db.$transaction([
-      db.user.update({
-        where: { id: existing.id },
-        data: { name, role: "HOST" },
-      }),
-      db.hostInviteCode.update({
-        where: { id: validCode.id },
-        data: { uses: { increment: 1 } },
-      }),
-    ]);
-
-    await linkRsvpsToUser(existing.id);
-    return { success: true };
+    inviteId = invite.id;
   }
-
-  if (openRegistration) {
-    const newUser = await db.user.create({ data: { email: normalizedEmail, name, role: "HOST" } });
-    await linkRsvpsToUser(newUser.id);
-    return { success: true };
-  }
-
-  const now = new Date();
-  const validCode = await db.hostInviteCode.findFirst({
-    where: {
-      code: inviteCode,
-      active: true,
-      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
-    },
+  // Existing names, roles, RSVP links and invitation usage stay unchanged until
+  // the recipient proves ownership. All account states get the same response.
+  await db.user.upsert({
+    where: { email: parsed.email },
+    create: { email: parsed.email, role: "GUEST" },
+    update: {},
   });
-
-  if (!validCode || (validCode.maxUses !== null && validCode.uses >= validCode.maxUses)) {
-    return { success: false, error: t("Ui.Errors.Auth.invalidInvite") };
-  }
-
-  const [newUser] = await db.$transaction([
-    db.user.create({ data: { email: normalizedEmail, name, role: "HOST" } }),
-    db.hostInviteCode.update({
-      where: { id: validCode.id },
-      data: { uses: { increment: 1 } },
-    }),
-  ]);
-
-  await linkRsvpsToUser(newUser.id);
-  return { success: true };
+  const challenge = await createLoginChallenge(
+    parsed.email,
+    undefined,
+    JSON.stringify({ registrationName: parsed.name, ...(inviteId ? { inviteId } : {}) })
+  );
+  return { success: true, ...(challenge ? { challenge } : {}) };
 }

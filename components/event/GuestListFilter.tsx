@@ -15,7 +15,7 @@ import {
   sendGuestInvitations,
   undoCheckIn,
 } from "@/app/actions/event";
-import Image from "next/image";
+import Image from "@/components/ui/UploadedImage";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { Button, buttonProps } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Choice";

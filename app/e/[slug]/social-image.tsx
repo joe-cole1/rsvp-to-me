@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- ImageResponse renders social artwork, not page content. */
+import { safeUploadPath } from "@/lib/upload-path";
 import { ImageResponse } from "next/og";
 import { db } from "@/lib/db";
 import {
@@ -42,8 +43,8 @@ export async function renderEventSocialImage(slug: string, presentation?: Social
   const gradientFrom = shareable ? (event.theme?.gradientFrom ?? "#7c3aed") : "#312e81";
   const gradientTo = shareable ? (event.theme?.gradientTo ?? "#1e40af") : "#7c3aed";
   const accent = shareable ? (event.theme?.accentColor ?? "#a855f7") : "#c084fc";
-  const coverImage =
-    shareable && event.theme?.coverImageUrl ? absoluteAppUrl(event.theme.coverImageUrl) : null;
+  const coverPath = safeUploadPath(event?.theme?.coverImageUrl);
+  const coverImage = shareable && coverPath ? absoluteAppUrl(coverPath) : null;
   const titleSize = title.length > 60 ? 54 : title.length > 36 ? 64 : 76;
 
   return new ImageResponse(

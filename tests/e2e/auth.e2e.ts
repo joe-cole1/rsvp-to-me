@@ -12,7 +12,9 @@ test.describe("Auth flow", () => {
     await page.waitForURL("**/dashboard**", { timeout: 15_000 });
     await expect(page).toHaveURL(/dashboard/);
 
-    await page.goto("/auth/sign-out");
+    expect((await page.request.get("/auth/sign-out")).status()).toBe(405);
+    await page.getByRole("button", { name: "Open profile menu" }).click();
+    await page.getByRole("menuitem", { name: /Sign Out/ }).click();
     await expect(page).toHaveURL(/\/auth\/sign-in/);
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/auth\/sign-in/);
@@ -93,7 +95,8 @@ test.describe("code sign-in (#844)", () => {
     await page.getByLabel("6-digit code", { exact: true }).fill("012345");
     await submit.click();
     await expect(page).toHaveURL(/dashboard/);
-    await page.goto("/auth/sign-out");
+    await page.getByRole("button", { name: "Open profile menu" }).click();
+    await page.getByRole("menuitem", { name: /Sign Out/ }).click();
     await page.goto(`/auth/verify?token=${raw}`);
     await expect(page).toHaveURL(/error=invalid-token/);
     await page.goto("/dashboard");
@@ -125,4 +128,60 @@ test.describe("code sign-in (#844)", () => {
       await other.close();
     }
   });
+});
+
+test("co-host invitation requires sign-in and explicit acceptance", async ({ page }) => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const recipientId = randomUUID();
+  const hostId = randomUUID();
+  const eventId = randomUUID();
+  const invitationId = randomUUID();
+  const slug = `cohost-proof-${randomUUID()}`;
+  const token = randomBytes(32).toString("hex");
+  const login = randomBytes(32).toString("hex");
+  const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+  try {
+    await pool.query(
+      `INSERT INTO "User" (id, email, role, "createdAt") VALUES ($1, $2, 'HOST', now()), ($3, $4, 'GUEST', now())`,
+      [hostId, `${hostId}@test.internal`, recipientId, `${recipientId}@test.internal`]
+    );
+    await pool.query(
+      `INSERT INTO "Event" (id, slug, title, "hostId", "startAt", status, "createdAt", "updatedAt") VALUES ($1, $2, 'Co-host acceptance', $3, now() + interval '1 day', 'PUBLISHED', now(), now())`,
+      [eventId, slug, hostId]
+    );
+    await pool.query(
+      `INSERT INTO "CoHostInvitation" (id, "eventId", email, token, "expiresAt", "createdAt") VALUES ($1, $2, $3, $4, now() + interval '1 day', now())`,
+      [invitationId, eventId, `${recipientId}@test.internal`, hash(token)]
+    );
+    await pool.query(
+      `INSERT INTO "MagicToken" (id, "userId", token, type, "expiresAt", "createdAt") VALUES ($1, $2, $3, 'LOGIN', now() + interval '15 minutes', now())`,
+      [randomUUID(), recipientId, hash(login)]
+    );
+    await page.goto(`/auth/verify-cohost?token=${token}`);
+    await expect(page).toHaveURL(/auth\/sign-in\?redirect=/);
+    expect(
+      (await pool.query('SELECT id FROM "EventCoHost" WHERE "eventId" = $1', [eventId])).rowCount
+    ).toBe(0);
+    expect(
+      (await pool.query('SELECT id FROM "Session" WHERE "userId" = $1', [recipientId])).rowCount
+    ).toBe(0);
+    const destination = `/auth/accept-cohost?token=${token}`;
+    await page.goto(`/auth/verify?token=${login}&redirect=${encodeURIComponent(destination)}`);
+    await expect(page.getByRole("button", { name: "Accept invitation" })).toBeVisible();
+    expect(
+      (await pool.query('SELECT id FROM "EventCoHost" WHERE "eventId" = $1', [eventId])).rowCount
+    ).toBe(0);
+    await page.getByRole("button", { name: "Accept invitation" }).click();
+    await expect(page).toHaveURL(new RegExp(`/e/${slug}/settings`));
+    expect(
+      (await pool.query('SELECT "userId" FROM "EventCoHost" WHERE "eventId" = $1', [eventId])).rows
+    ).toEqual([{ userId: recipientId }]);
+    expect(
+      (await pool.query('SELECT id FROM "CoHostInvitation" WHERE id = $1', [invitationId])).rowCount
+    ).toBe(0);
+  } finally {
+    await pool.query('DELETE FROM "Event" WHERE id = $1', [eventId]);
+    await pool.query('DELETE FROM "User" WHERE id IN ($1, $2)', [hostId, recipientId]);
+    await pool.end();
+  }
 });

@@ -1,3 +1,4 @@
+import { getAppOrigin } from "@/lib/event-social";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
@@ -9,9 +10,7 @@ import { hashToken } from "@/lib/hash";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
-  const host = request.headers.get("host") || "localhost:3000";
-  const protocol = request.headers.get("x-forwarded-proto") || "http";
-  const origin = `${protocol}://${host}`;
+  const origin = getAppOrigin();
 
   const redirectWithNoReferrer = (url: string) => {
     const res = NextResponse.redirect(url);
@@ -29,7 +28,12 @@ export async function GET(request: NextRequest) {
 
   const hashedToken = hashToken(token);
   const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
-  if (!record || record.used || record.expiresAt < new Date() || record.type === "LOGIN") {
+  if (
+    !record ||
+    record.used ||
+    record.expiresAt <= new Date() ||
+    !["EMAIL_CHANGE", "PHONE_CHANGE"].includes(record.type)
+  ) {
     return redirectWithNoReferrer(`${origin}/profile?error=invalid-token`);
   }
 
@@ -57,7 +61,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  await db.magicToken.update({ where: { id: record.id }, data: { used: true } });
+  const consumed = await db.magicToken.updateMany({
+    where: {
+      id: record.id,
+      used: false,
+      expiresAt: { gt: new Date() },
+      type: { in: ["EMAIL_CHANGE", "PHONE_CHANGE"] },
+    },
+    data: { used: true },
+  });
+  if (consumed.count !== 1) return redirectWithNoReferrer(`${origin}/profile?error=invalid-token`);
 
   if (isEmail) {
     await db.user.update({

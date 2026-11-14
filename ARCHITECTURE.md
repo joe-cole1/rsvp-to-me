@@ -166,6 +166,14 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
    verification flows must never promote roles. `completeLoginForUser` shares
    promotion, locale adoption, RSVP linking and session creation between the core
    link/code verifiers; the HTTP link route retains response-cookie handling.
+   Registration intent lives in the LOGIN challenge until verified; both code
+   and link paths apply it through `lib/auth.ts`. Co-host invitation GETs route
+   to `app/auth/accept-cohost/`, where the invited signed-in account explicitly
+   accepts through a Server Action. Sign-out is a same-origin POST.
+   `lib/session.ts#getSession` always checks PostgreSQL session validity and the
+   current account role; Redis snapshots are never an authority.
+   `revokeUserSessions` removes database sessions and their known cache entries.
+   See [ADR 0004](docs/engineering/decisions/0004-account-proof-and-participation.md).
 3. `lib/session-user.ts` wraps the current-user lookup in `React.cache()` for
    Server Component reuse.
 4. Host and administrator mutations must use guards from `lib/auth-guards.ts`.
@@ -208,6 +216,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - Event mutations are split by domain under `app/actions/event/`: RSVP,
   check-ins/walk-ins, settings, invitations, co-hosts, polls, potluck, comments,
   blasts, custom questions, and email previews/tests.
+- Poll votes and potluck claims use server-resolved RSVP/account identities,
+  with per-parent PostgreSQL row locks for single-choice replacement and claim
+  capacity. Client payloads receive only per-viewer `isMine` flags, not account
+  ownership ids. Historical rows are preserved without guessed RSVP ownership.
 - Shared validation belongs in `lib/schemas.ts`; shared authorization belongs
   in `lib/auth-guards.ts` or `lib/eventAccess.ts`.
 - Client submissions request fresh Turnstile tokens through
@@ -317,7 +329,9 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 ### Files and background work
 
 - Uploads enter through `app/api/upload/route.ts` and are served only through
-  `app/api/uploads/[filename]/route.ts`.
+  `app/api/uploads/[filename]/route.ts`. `lib/upload-path.ts` validates stored
+  image references for action schemas, `components/ui/UploadedImage.tsx` and
+  social artwork; malformed historical paths never reach the image loader.
 - `lib/backup.ts` and `app/api/admin/backups/[filename]/route.ts` own ordinary
   backup creation/listing/download behavior. `scripts/pre-migration-backups.cjs`
   shares startup retention and metadata listing between migration tooling and

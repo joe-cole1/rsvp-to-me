@@ -7,6 +7,8 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getTranslator } from "@/i18n/server";
 
 import { revalidatePath } from "next/cache";
+import { CoHostEmailSchema } from "@/lib/schemas";
+import { rateLimit } from "@/lib/rateLimit";
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
@@ -22,7 +24,13 @@ export async function addCoHost(eventId: string, email: string, captchaToken?: s
   await assertCaptcha("cohost_manage", captchaToken);
   const session = await getSession();
 
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = CoHostEmailSchema.parse(email);
+  if (
+    !(await rateLimit(`cohost:${eventId}:${session!.userId}`, 10, 3600)).success ||
+    !(await rateLimit(`cohost:recipient:${hashToken(normalizedEmail)}`, 5, 3600)).success
+  ) {
+    return { success: false, error: await eventActionMessage("forbidden") };
+  }
 
   // Check if they are inviting themselves
   if (normalizedEmail === session?.email?.toLowerCase().trim()) {
@@ -55,6 +63,14 @@ export async function addCoHost(eventId: string, email: string, captchaToken?: s
   if (existingInvite) {
     return { success: false, error: await eventActionMessage("alreadyInvited") };
   }
+
+  // The invitation never authenticates its bearer. A new recipient needs a
+  // guest account so the normal short-lived sign-in proof can reach their inbox.
+  await db.user.upsert({
+    where: { email: normalizedEmail },
+    create: { email: normalizedEmail, role: "GUEST" },
+    update: {},
+  });
 
   // Create co-host invitation
   const token = randomBytes(32).toString("hex");

@@ -47,6 +47,11 @@ describe("event action request language", () => {
   });
   it("translates the deadline failure in the browser/request language", async () => {
     findEvent.mockResolvedValue({
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      passwordHash: null,
+      hostId: "host",
+      coHosts: [],
       startAt: new Date(Date.now() + 86400000),
       rsvpDeadline: new Date(Date.now() - 1000),
     });
@@ -57,6 +62,11 @@ describe("event action request language", () => {
   });
   it("translates capacity failure without creating an RSVP", async () => {
     findEvent.mockResolvedValue({
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      passwordHash: null,
+      hostId: "host",
+      coHosts: [],
       startAt: new Date(Date.now() + 86400000),
       rsvpDeadline: null,
       capacity: 1,
@@ -64,3 +74,7 @@ describe("event action request language", () => {
     expect(await addRSVP(input)).toEqual({ success: false, error: "Het evenement is vol" });
   });
 });
+
+vi.mock("@/lib/session-user", () => ({ getSessionUser: async () => null }));
+
+vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));

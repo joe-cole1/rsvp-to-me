@@ -55,6 +55,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: mockUserFindUnique,
       findFirst: mockUserFindFirst,
       create: mockUserCreate,
+      upsert: vi.fn(),
       update: mockUserUpdate,
       count: mockUserCount,
       updateMany: mockUserUpdateMany,
@@ -215,7 +216,7 @@ describe("createMagicLink", () => {
 
     await createMagicLink("user@example.com");
     expect(mockMagicTokenUpdateMany).toHaveBeenCalledWith({
-      where: { userId: "user-1", used: false },
+      where: { userId: "user-1", type: "LOGIN", used: false },
       data: { used: true },
     });
   });
@@ -414,7 +415,7 @@ describe("verifyMagicToken", () => {
     const result = await verifyMagicToken(token);
     expect(result).toBe(true);
     expect(mockMagicTokenUpdateMany).toHaveBeenCalledWith({
-      where: { id: "tok-id", used: false },
+      where: { id: "tok-id", used: false, type: "LOGIN", expiresAt: { gt: expect.any(Date) } },
       data: { used: true },
     });
     expect(mockCreateSession).toHaveBeenCalledWith({
@@ -564,43 +565,31 @@ describe("verifyChangeToken", () => {
 });
 
 describe("registerHost", () => {
-  const inviteCode = "code-123";
-  const email = "test@example.com";
-  const name = "Joe";
-
-  it("returns error when existing HOST tries to re-register", async () => {
-    mockSystemConfigFindUnique.mockResolvedValue(null);
-    mockUserFindUnique.mockResolvedValue({ id: "user-1", role: "HOST" });
-
-    const result = await registerHost(email, name, inviteCode);
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("exists");
-  });
-
-  it("upgrades existing GUEST to HOST under open registration (no invite code)", async () => {
-    // Open registration active
-    mockSystemConfigFindUnique.mockResolvedValue({ key: "open_registration", value: "true" });
-    mockUserFindUnique.mockResolvedValue({ id: "user-1", role: "GUEST" });
-    mockUserUpdate.mockResolvedValue({});
-
-    const result = await registerHost(email, name, "");
-    expect(result.success).toBe(true);
-    expect(mockUserUpdate).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: { name, role: "HOST" },
-    });
-  });
-
-  it("upgrades existing GUEST to HOST with valid invite code, increments uses in $transaction", async () => {
-    mockSystemConfigFindUnique.mockResolvedValue(null);
-    process.env.OPEN_REGISTRATION = "false";
-    mockUserFindUnique.mockResolvedValue({ id: "user-1", role: "GUEST" });
-    mockHostInviteCodeFindFirst.mockResolvedValue({ id: "code-id", code: inviteCode });
-    mockTransaction.mockResolvedValue([{}, {}]);
-
-    const result = await registerHost(email, name, inviteCode);
-    expect(result.success).toBe(true);
-    expect(mockTransaction).toHaveBeenCalled();
+  it.each(["HOST", "ADMIN", "GUEST"])(
+    "returns a challenge without changing an existing %s",
+    async (role) => {
+      mockSystemConfigFindUnique.mockResolvedValue({ value: "true" });
+      mockUserFindUnique.mockResolvedValue({ id: "user-1", email: "test@example.com", role });
+      const result = await registerHost("test@example.com", "New Name", "");
+      expect(result.success).toBe(true);
+      expect(result.challenge?.code).toMatch(/^\d{6}$/);
+      expect(mockUserUpdate).not.toHaveBeenCalled();
+      expect(mockRsvpUpdateMany).not.toHaveBeenCalled();
+      expect(mockHostInviteCodeUpdate).not.toHaveBeenCalled();
+      expect(mockMagicTokenCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            metadata: JSON.stringify({ registrationName: "New Name" }),
+          }),
+        })
+      );
+    }
+  );
+  it("rejects invalid invite codes before preparing registration", async () => {
+    mockSystemConfigFindUnique.mockResolvedValue({ value: "false" });
+    mockHostInviteCodeFindFirst.mockResolvedValue(null);
+    expect((await registerHost("test@example.com", "Name", "bad")).success).toBe(false);
+    expect(mockMagicTokenCreate).not.toHaveBeenCalled();
   });
 });
 

@@ -75,7 +75,6 @@ export function PollsSection({
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {event.polls?.map((poll) => {
               const totalVotes = poll.options.reduce((sum, o) => sum + o.votes.length, 0);
-              const voter = isHost ? "Host" : guestName;
               const isEligibleToVote =
                 isHost ||
                 (rsvpDone && !isPendingGuest && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
@@ -160,7 +159,7 @@ export function PollsSection({
                       const optVotesCount = opt.votes.length;
                       const percent =
                         totalVotes > 0 ? Math.round((optVotesCount / totalVotes) * 100) : 0;
-                      const isVoted = opt.votes.some((v) => v.voterName === voter);
+                      const isVoted = opt.votes.some((v) => v.isMine);
 
                       return (
                         <div

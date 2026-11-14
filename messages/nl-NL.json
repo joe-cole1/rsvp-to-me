@@ -112,8 +112,8 @@
         "userNotFound": "Gebruiker niet gevonden",
         "emailExists": "Er bestaat al een account met dit e-mailadres.",
         "phoneExists": "Er bestaat al een account met dit telefoonnummer.",
-        "emailSent": "Er is een verificatielink naar je nieuwe e-mailadres verzonden. Klik erop om de wijziging te bevestigen.",
-        "phoneSent": "Er is een verificatielink naar je nieuwe telefoonnummer verzonden. Klik erop om de wijziging te bevestigen."
+        "emailSent": "Als het e-mailadres beschikbaar is, wordt een verificatielink gestuurd om de wijziging te bevestigen.",
+        "phoneSent": "Als het telefoonnummer beschikbaar is, wordt een verificatielink gestuurd om de wijziging te bevestigen."
       },
       "Common": {
         "title": "Er ging iets mis",
@@ -1684,7 +1684,13 @@
       "signingIn": "Bezig met inloggen…",
       "signIn": "Inloggen",
       "resend": "Opnieuw versturen",
-      "useDifferentIdentifier": "Een ander e-mailadres of telefoonnummer gebruiken"
+      "useDifferentIdentifier": "Een ander e-mailadres of telefoonnummer gebruiken",
+      "CoHost": {
+        "title": "Uitnodiging voor medeorganisator",
+        "confirm": "Accepteer deze uitnodiging om het evenement te helpen beheren.",
+        "wrongAccount": "Log in met het e-mailadres dat deze uitnodiging heeft ontvangen. De uitnodiging kan ook verlopen zijn.",
+        "accept": "Uitnodiging accepteren"
+      }
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { invalidateUserSessions } from "./session";
+import { revokeUserSessions } from "./session";
 
 export async function scheduleUserDeletion(userId: string) {
   const now = new Date();
@@ -19,7 +19,7 @@ export async function scheduleUserDeletion(userId: string) {
     data: { deletionRequestedAt: now, deletionScheduledAt: scheduledAt },
   });
 
-  await invalidateUserSessions(userId);
+  await revokeUserSessions(userId);
 
   return { success: true as const, scheduledAt };
 }
@@ -40,7 +40,7 @@ export async function performImmediateUserDeletion(userId: string): Promise<void
 
   // Clean up auth tokens and sessions
   await db.magicToken.deleteMany({ where: { userId } });
-  await db.session.deleteMany({ where: { userId } });
+  await revokeUserSessions(userId);
 
   // Reassign hosted events to the SYSTEM tombstone user
   await db.event.updateMany({ where: { hostId: userId }, data: { hostId: "system" } });

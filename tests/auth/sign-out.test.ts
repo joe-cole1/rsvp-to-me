@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { mockDestroySession, mockRedirect } = vi.hoisted(() => ({
@@ -13,7 +14,7 @@ vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
 
-import { GET } from "@/app/auth/sign-out/route";
+import { POST } from "@/app/auth/sign-out/route";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -22,9 +23,16 @@ beforeEach(() => {
   });
 });
 
-describe("GET /auth/sign-out", () => {
+describe("POST /auth/sign-out", () => {
   it("calls destroySession and redirects to sign-in", async () => {
-    await expect(GET()).rejects.toThrow("REDIRECT:/auth/sign-in");
+    await expect(
+      POST(
+        new NextRequest("http://localhost:3000/auth/sign-out", {
+          method: "POST",
+          headers: { origin: "http://localhost:3000" },
+        })
+      )
+    ).rejects.toThrow("REDIRECT:/auth/sign-in");
     expect(mockDestroySession).toHaveBeenCalled();
   });
 });

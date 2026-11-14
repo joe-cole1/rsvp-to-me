@@ -146,7 +146,7 @@ export function PotluckSection({
                         }}
                       >
                         {item.claims.map((claim) => {
-                          const canUnclaim = isHost || claim.guestName === guestName;
+                          const canUnclaim = isHost || claim.isMine;
                           return (
                             <div
                               key={claim.id}
@@ -170,7 +170,7 @@ export function PotluckSection({
                                   theme={t}
                                   variant="icon"
                                   size="sm"
-                                  onClick={() => unclaimItem(item.id, claim.guestName)}
+                                  onClick={() => unclaimItem(item.id, claim.id)}
                                   aria-label={`${translate("removeClaim")}: ${claim.guestName}`}
                                   title={translate("removeClaim")}
                                 >

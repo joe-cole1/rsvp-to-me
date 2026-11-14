@@ -178,6 +178,14 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 
 > **No account enumeration (SEC-40):** The sign-in screen shows the same "check your inbox" confirmation whether or not the identifier has an account — it never reveals which emails or phone numbers are registered. Self-hosters diagnosing a missing link should check the mail/SMS logs (look for `[auth:magic-link-fallback]`) rather than the on-screen state. Code format, unknown account, wrong code, expiration and lockout return the same error.
 
+Registration returns the same confirmation for new and existing accounts. Names
+and host privileges are applied only after the recipient verifies the short-lived
+link or code; invite-code usage is consumed at that point. Profile contact-change
+requests also use a generic confirmation and rate limits. Co-host invitations
+require a separate normal sign-in and explicit acceptance by the invited account.
+All authentication-link redirects use `NEXT_PUBLIC_APP_URL`, with localhost as
+the development fallback; forwarded Host headers never select the destination.
+
 ---
 
 ### Cloudflare Turnstile

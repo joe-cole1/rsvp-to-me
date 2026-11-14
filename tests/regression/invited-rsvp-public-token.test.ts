@@ -10,6 +10,10 @@ import "@/tests/helpers/english-request-locale";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({ invited: vi.fn(), notify: vi.fn() }));
 const event = {
+  status: "PUBLISHED",
+  visibility: "PUBLIC",
+  passwordHash: null,
+  hostId: "host",
   id: "event",
   slug: "party",
   title: "Party",
@@ -86,3 +90,7 @@ describe("public RSVP form and invitations", () => {
     expect(await addRSVP(input)).toMatchObject({ success: true, editToken: "fresh-token" });
   });
 });
+
+vi.mock("@/lib/session-user", () => ({ getSessionUser: async () => null }));
+
+vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));

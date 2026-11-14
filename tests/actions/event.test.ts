@@ -271,10 +271,23 @@ function asHost() {
 }
 
 function hostEventRow(overrides = {}) {
-  return { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [], ...overrides };
+  return {
+    id: EVENT_ID,
+    status: "PUBLISHED",
+    visibility: "PUBLIC",
+    passwordHash: null,
+    hostId: HOST_ID,
+    slug: EVENT_SLUG,
+    coHosts: [],
+    ...overrides,
+  };
 }
 
 const BASE_EVENT = {
+  status: "PUBLISHED",
+  visibility: "PUBLIC",
+  passwordHash: null,
+  hostId: HOST_ID,
   id: EVENT_ID,
   slug: EVENT_SLUG,
   title: "Test Party",
@@ -284,6 +297,7 @@ const BASE_EVENT = {
   startAt: new Date("2026-12-01T20:00:00Z"),
   locationName: "My House",
   host: { name: "Joe" },
+  coHosts: [],
   // SEC-38: addRSVP validates answer keys against the event's own question ids
   rsvpFields: [{ id: "field-1" }],
 };
@@ -346,7 +360,7 @@ describe("saveEventField", () => {
   });
 
   it("throws for a disallowed field name", async () => {
-    await expect(saveEventField(EVENT_ID, "hostId", "evil")).rejects.toThrow("Field not allowed");
+    await expect(saveEventField(EVENT_ID, "hostId", "evil")).rejects.toThrow();
     expect(mockEventUpdate).not.toHaveBeenCalled();
   });
 
@@ -720,7 +734,11 @@ describe("addComment", () => {
   beforeEach(() => {
     mockGetSession.mockResolvedValue(HOST_SESSION);
     mockEventFindUnique.mockResolvedValue({
+      id: EVENT_ID,
       slug: EVENT_SLUG,
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      passwordHash: null,
       commentsEnabled: true,
       hostId: HOST_ID,
       coHosts: [],
@@ -1438,7 +1456,7 @@ describe("unclaimPotluckItem", () => {
   });
 
   it("deletes the PotluckClaim and returns success", async () => {
-    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    const result = await unclaimPotluckItem(ITEM_ID, "claim-1");
     expect(result).toMatchObject({ success: true });
     expect(mockPotluckClaimDelete).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1448,14 +1466,14 @@ describe("unclaimPotluckItem", () => {
   });
 
   it("returns error when claim is not found", async () => {
-    const result = await unclaimPotluckItem(ITEM_ID, "Bob");
+    const result = await unclaimPotluckItem(ITEM_ID, "missing-claim");
     expect(result).toEqual({ success: false, error: "Claim not found" });
     expect(mockPotluckClaimDelete).not.toHaveBeenCalled();
   });
 
   it("allows host to unclaim another guest's claim", async () => {
     mockGetSession.mockResolvedValue({ userId: HOST_ID, email: "host@example.com" });
-    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    const result = await unclaimPotluckItem(ITEM_ID, "claim-1");
     expect(result).toMatchObject({ success: true });
     expect(mockPotluckClaimDelete).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1473,7 +1491,7 @@ describe("unclaimPotluckItem", () => {
       claims: [{ id: "claim-1", guestName: "Alice", quantity: 2, createdAt: new Date() }],
       event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [{ userId: "cohost-id" }] },
     });
-    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    const result = await unclaimPotluckItem(ITEM_ID, "claim-1");
     expect(result).toMatchObject({ success: true });
   });
 
@@ -1485,12 +1503,12 @@ describe("unclaimPotluckItem", () => {
       claims: [],
       event: { hostId: HOST_ID, slug: EVENT_SLUG, coHosts: [] },
     });
-    const result = await unclaimPotluckItem(ITEM_ID, "Alice");
+    const result = await unclaimPotluckItem(ITEM_ID, "claim-1");
     expect(result).toEqual({ success: false, error: "Claim not found" });
   });
 
   it("revalidates the event page", async () => {
-    await unclaimPotluckItem(ITEM_ID, "Alice");
+    await unclaimPotluckItem(ITEM_ID, "claim-1");
     expect(revalidatePath).toHaveBeenCalledWith(`/e/${EVENT_SLUG}`);
   });
 });
@@ -1783,11 +1801,14 @@ describe("saveCoverImage", () => {
   });
 
   it("calls eventTheme.upsert with coverImageUrl", async () => {
-    await saveCoverImage(EVENT_ID, "http://image.jpg");
+    await saveCoverImage(EVENT_ID, "/api/uploads/12345678-1234-4123-8123-123456789abc.jpg");
     expect(mockEventThemeUpsert).toHaveBeenCalledWith({
       where: { eventId: EVENT_ID },
-      update: { coverImageUrl: "http://image.jpg" },
-      create: { eventId: EVENT_ID, coverImageUrl: "http://image.jpg" },
+      update: { coverImageUrl: "/api/uploads/12345678-1234-4123-8123-123456789abc.jpg" },
+      create: {
+        eventId: EVENT_ID,
+        coverImageUrl: "/api/uploads/12345678-1234-4123-8123-123456789abc.jpg",
+      },
     });
   });
 });

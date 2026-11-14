@@ -68,21 +68,21 @@ describe("getUnlockSignature", () => {
   });
 
   it("returns a 64-char lowercase hex string", () => {
-    const sig = getUnlockSignature("my-slug");
+    const sig = getUnlockSignature("my-slug", null);
     expect(sig).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("is deterministic: same slug always returns same signature", () => {
-    expect(getUnlockSignature("my-slug")).toBe(getUnlockSignature("my-slug"));
+    expect(getUnlockSignature("my-slug", null)).toBe(getUnlockSignature("my-slug", null));
   });
 
   it("different slugs produce different signatures", () => {
-    expect(getUnlockSignature("slug-1")).not.toBe(getUnlockSignature("slug-2"));
+    expect(getUnlockSignature("slug-1", null)).not.toBe(getUnlockSignature("slug-2", null));
   });
 
   it("throws when SESSION_SECRET is not set", () => {
     delete process.env.SESSION_SECRET;
-    expect(() => getUnlockSignature("my-slug")).toThrow(/SESSION_SECRET/);
+    expect(() => getUnlockSignature("my-slug", null)).toThrow(/SESSION_SECRET/);
   });
 });
 

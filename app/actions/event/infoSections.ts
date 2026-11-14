@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { logActivity, iconLabel } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
-import { HttpUrlSchema } from "@/lib/schemas";
+import { HttpUrlSchema, InfoSectionSchema, UpdateInfoSectionSchema } from "@/lib/schemas";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
 
@@ -30,6 +30,7 @@ export async function addInfoSection(
   },
   captchaToken?: string | null
 ) {
+  data = InfoSectionSchema.parse(data);
   const event = await assertHostOrCohost(data.eventId);
   await assertCaptcha("event_content", captchaToken);
   const section = await db.eventInfoSection.create({
@@ -57,6 +58,7 @@ export async function updateInfoSection(
   data: { type?: string; title?: string | null; content: string; url: string | null },
   captchaToken?: string | null
 ) {
+  data = UpdateInfoSectionSchema.parse(data);
   const section = await db.eventInfoSection.findUnique({
     where: { id: sectionId },
     include: { event: { select: { slug: true } } },
@@ -105,7 +107,7 @@ export async function reorderInfoSections(eventId: string, orderedSectionIds: st
   await db.$transaction(
     orderedSectionIds.map((id, index) =>
       db.eventInfoSection.update({
-        where: { id },
+        where: { id, eventId },
         data: { order: index },
       })
     )

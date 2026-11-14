@@ -14,7 +14,7 @@ Planning with someone else? Add them as a co-host so you can share the work.
 
 ## Adding a Co-Host
 
-From the event's host controls, search for any registered user by name or email and add them as a co-host. They'll be able to help manage the event right away.
+From the event's **Hosts** settings, enter the person's email address to send an invitation. They open the invitation, sign in with that same email address, and choose **Accept invitation**. Opening or forwarding the invitation alone does not sign anyone in or add a co-host. A person without an account can use the normal sign-in email sent to the invited address.
 
 ---
 

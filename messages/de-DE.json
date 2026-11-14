@@ -112,8 +112,8 @@
         "userNotFound": "Benutzer nicht gefunden",
         "emailExists": "Ein Konto mit dieser E-Mail-Adresse existiert bereits.",
         "phoneExists": "Ein Konto mit dieser Telefonnummer existiert bereits.",
-        "emailSent": "Ein Bestätigungslink wurde an deine neue E-Mail-Adresse gesendet. Klicke darauf, um die Änderung zu bestätigen.",
-        "phoneSent": "Ein Bestätigungslink wurde an deine neue Telefonnummer gesendet. Klicke darauf, um die Änderung zu bestätigen."
+        "emailSent": "Wenn die E-Mail-Adresse verfügbar ist, erhält sie einen Link zur Bestätigung der Änderung.",
+        "phoneSent": "Wenn die Telefonnummer verfügbar ist, erhält sie einen Link zur Bestätigung der Änderung."
       },
       "Common": {
         "title": "Etwas ist schiefgelaufen",
@@ -1687,7 +1687,13 @@
       "signingIn": "Anmeldung läuft…",
       "signIn": "Anmelden",
       "resend": "Erneut senden",
-      "useDifferentIdentifier": "Andere E-Mail-Adresse oder Telefonnummer verwenden"
+      "useDifferentIdentifier": "Andere E-Mail-Adresse oder Telefonnummer verwenden",
+      "CoHost": {
+        "title": "Einladung zur Mitorganisation",
+        "confirm": "Nimm diese Einladung an, um die Veranstaltung mitzuverwalten.",
+        "wrongAccount": "Melde dich mit der E-Mail-Adresse an, die diese Einladung erhalten hat. Die Einladung kann auch abgelaufen sein.",
+        "accept": "Einladung annehmen"
+      }
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",

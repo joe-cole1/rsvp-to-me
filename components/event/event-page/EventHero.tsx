@@ -1,10 +1,11 @@
 "use client";
 
+import { safeUploadPath } from "@/lib/upload-path";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 import { useEffect, useState } from "react";
-import NextImage from "next/image";
+import NextImage from "@/components/ui/UploadedImage";
 import { FileText, Pencil, Settings } from "lucide-react";
 import { InlineEdit } from "./InlineEdit";
 import { DateEdit } from "./DateEdit";
@@ -73,8 +74,9 @@ export function EventHero({
     };
   }, [showHostsPopup]);
 
+  const coverImageUrl = safeUploadPath(event.theme?.coverImageUrl);
   useEffect(() => {
-    const imageUrl = event.theme?.coverImageUrl;
+    const imageUrl = coverImageUrl;
     if (imageUrl) {
       const img = new Image();
       img.src = imageUrl;
@@ -89,9 +91,9 @@ export function EventHero({
         setAspectRatio(null);
       });
     }
-  }, [event.theme?.coverImageUrl]);
+  }, [coverImageUrl]);
 
-  const hasCover = !!event.theme?.coverImageUrl;
+  const hasCover = !!coverImageUrl;
   const containerHeight = hasCover ? (aspectRatio ? "auto" : "260px") : "260px";
   const containerAspectRatio = hasCover && aspectRatio ? `${aspectRatio}` : undefined;
   const containerMinHeight = hasCover ? "200px" : "260px";
@@ -301,10 +303,10 @@ export function EventHero({
         </div>
 
         {/* ── Cover image ── */}
-        {(event.theme?.coverImageUrl || isHost) && (
+        {(safeUploadPath(event.theme?.coverImageUrl) || isHost) && (
           <div
             style={{
-              background: event.theme?.coverImageUrl
+              background: coverImageUrl
                 ? "transparent"
                 : `linear-gradient(135deg, ${t.accent} 0%, #ec4899 100%)`,
               width: "100%",
@@ -327,9 +329,9 @@ export function EventHero({
                     : "none",
             }}
           >
-            {event.theme?.coverImageUrl && (
+            {coverImageUrl && (
               <NextImage
-                src={event.theme.coverImageUrl}
+                src={coverImageUrl!}
                 alt={translate("coverAlt", { title: event.title })}
                 fill
                 priority
@@ -337,7 +339,7 @@ export function EventHero({
                 style={{ objectFit: "cover" }}
               />
             )}
-            {!event.theme?.coverImageUrl && <span style={{ fontSize: "72px" }}>🎉</span>}
+            {!coverImageUrl && <span style={{ fontSize: "72px" }}>🎉</span>}
             {isHost && coverUploadEnabled && (
               <div
                 style={{
@@ -362,7 +364,7 @@ export function EventHero({
                       ? translate("uploading")
                       : translate("cover")}
                 </Button>
-                {event.theme?.coverImageUrl && (
+                {coverImageUrl && (
                   <Button
                     theme={t}
                     variant="overlay"

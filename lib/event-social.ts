@@ -43,7 +43,7 @@ export function resolveSocialPresentation(presentation: SocialPresentation = {})
 }
 
 export function getAppOrigin(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  return (process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000").replace(/\/+$/, "");
 }
 
 export function absoluteAppUrl(path: string): string {

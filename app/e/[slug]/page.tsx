@@ -70,6 +70,8 @@ const getEventPageData = cache((slug: string) =>
                 select: {
                   id: true,
                   voterName: true,
+                  rsvpId: true,
+                  userId: true,
                   createdAt: true,
                 },
               },
@@ -237,7 +239,28 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   // host emails; the guest list when the visibility gate hides it) for non-host
   // viewers before it crosses the client boundary.
   const eventForClient = stripHostOnlyEventData(
-    { ...event, pendingRsvps, ...invited },
+    {
+      ...event,
+      pendingRsvps,
+      ...invited,
+      potluckItems: event.potluckItems.map((item) => ({
+        ...item,
+        claims: item.claims.map(({ rsvpId, userId, ...claim }) => ({
+          ...claim,
+          isMine: isHost ? userId === sessionUser?.id : !!guestRsvp && rsvpId === guestRsvp.id,
+        })),
+      })),
+      polls: event.polls.map((poll) => ({
+        ...poll,
+        options: poll.options.map((option) => ({
+          ...option,
+          votes: option.votes.map(({ rsvpId, userId, ...vote }) => ({
+            ...vote,
+            isMine: isHost ? userId === sessionUser?.id : !!guestRsvp && rsvpId === guestRsvp.id,
+          })),
+        })),
+      })),
+    },
     { isHost: !!isHost, isLoggedInGuest, hasValidToken }
   );
 

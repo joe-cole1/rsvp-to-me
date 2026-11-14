@@ -82,7 +82,7 @@ export async function resolveEventAccess(
 
   // Signed unlock cookie set after the guest enters the event password.
   const unlockedCookie = (await cookies()).get(`rsvp-unlocked-${slug}`)?.value;
-  const isUnlocked = unlockedCookie === getUnlockSignature(slug);
+  const isUnlocked = unlockedCookie === getUnlockSignature(slug, event.passwordHash);
 
   // A URL token that maps to a real RSVP lets INVITED guests through.
   const hasValidToken = token

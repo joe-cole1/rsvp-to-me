@@ -1,3 +1,4 @@
+vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn(async () => ({ success: true })) }));
 import "@/tests/helpers/english-request-locale";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -37,6 +38,7 @@ vi.mock("@/lib/db", () => {
     db: {
       event: { findUnique: mockEventFindUnique },
       user: {
+        upsert: vi.fn(),
         findUnique: mockUserFindUnique,
         findMany: vi.fn().mockResolvedValue([]),
         create: vi.fn(),
@@ -146,14 +148,14 @@ describe("Widget section reordering actions", () => {
     expect(mockEventInfoSectionUpdate).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: { id: "sec-1" },
+        where: { id: "sec-1", eventId: EVENT_ID },
         data: { order: 0 },
       })
     );
     expect(mockEventInfoSectionUpdate).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        where: { id: "sec-2" },
+        where: { id: "sec-2", eventId: EVENT_ID },
         data: { order: 1 },
       })
     );

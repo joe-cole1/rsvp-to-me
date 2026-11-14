@@ -1,5 +1,8 @@
 "use server";
 
+import { ProfileSettingsSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/rateLimit";
 import { resolveLocale } from "@/i18n/config";
 import { getRequestTranslator } from "@/i18n/server";
 import { db } from "@/lib/db";
@@ -22,6 +25,7 @@ export async function updateProfileSettings(
   },
   captchaToken?: string | null
 ) {
+  data = ProfileSettingsSchema.parse(data);
   const t = await getRequestTranslator();
   const sessionUser = await getSessionUser();
   if (!sessionUser) throw new Error(t("Ui.Errors.Profile.unauthorized"));
@@ -48,34 +52,41 @@ export async function updateProfileSettings(
     if (newEmail !== (user.email ?? "")) {
       // Check if another user already has this email
       const existing = await db.user.findUnique({ where: { email: newEmail } });
-      if (existing) {
-        throw new Error(t("Ui.Errors.Profile.emailExists"));
+      const allowed =
+        (await rateLimit(`profile-change:user:${user.id}`, 5, 900)).success &&
+        (await rateLimit(`profile-change:email:${hashToken(newEmail)}`, 3, 3600)).success;
+      if (existing || !allowed) {
+        messages.push(t("Ui.Errors.Profile.emailSent"));
+      } else {
+        // Invalidate any previous pending email-change tokens
+        await db.magicToken.updateMany({
+          where: { userId: user.id, type: "EMAIL_CHANGE", used: false },
+          data: { used: true },
+        });
+
+        // Generate verification token
+        const token = randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+        const hashedToken = hashToken(token);
+
+        await db.magicToken.create({
+          data: {
+            userId: user.id,
+            token: hashedToken,
+            expiresAt,
+            type: "EMAIL_CHANGE",
+            metadata: newEmail,
+          },
+        });
+
+        const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
+        await sendMagicLinkEmail(newEmail, verifyUrl, resolveLocale(user.preferredLocale)).catch(
+          () => {
+            logger.warn("Profile email verification delivery failed.");
+          }
+        );
+        messages.push(t("Ui.Errors.Profile.emailSent"));
       }
-
-      // Invalidate any previous pending email-change tokens
-      await db.magicToken.updateMany({
-        where: { userId: user.id, type: "EMAIL_CHANGE", used: false },
-        data: { used: true },
-      });
-
-      // Generate verification token
-      const token = randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
-      const hashedToken = hashToken(token);
-
-      await db.magicToken.create({
-        data: {
-          userId: user.id,
-          token: hashedToken,
-          expiresAt,
-          type: "EMAIL_CHANGE",
-          metadata: newEmail,
-        },
-      });
-
-      const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
-      await sendMagicLinkEmail(newEmail, verifyUrl, resolveLocale(user.preferredLocale));
-      messages.push(t("Ui.Errors.Profile.emailSent"));
     }
   }
 
@@ -84,34 +95,41 @@ export async function updateProfileSettings(
     const newPhone = data.phone.trim().replace(/[\s\-().]/g, "");
     if (newPhone !== (user.phone ?? "")) {
       const existing = await db.user.findUnique({ where: { phone: newPhone } });
-      if (existing) {
-        throw new Error(t("Ui.Errors.Profile.phoneExists"));
+      const allowed =
+        (await rateLimit(`profile-change:user:${user.id}`, 5, 900)).success &&
+        (await rateLimit(`profile-change:phone:${hashToken(newPhone)}`, 3, 3600)).success;
+      if (existing || !allowed) {
+        messages.push(t("Ui.Errors.Profile.phoneSent"));
+      } else {
+        // Invalidate any previous pending phone-change tokens
+        await db.magicToken.updateMany({
+          where: { userId: user.id, type: "PHONE_CHANGE", used: false },
+          data: { used: true },
+        });
+
+        // Generate verification token
+        const token = randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+        const hashedToken = hashToken(token);
+
+        await db.magicToken.create({
+          data: {
+            userId: user.id,
+            token: hashedToken,
+            expiresAt,
+            type: "PHONE_CHANGE",
+            metadata: newPhone,
+          },
+        });
+
+        const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
+        await sendMagicLinkSms(newPhone, verifyUrl, resolveLocale(user.preferredLocale)).catch(
+          () => {
+            logger.warn("Profile phone verification delivery failed.");
+          }
+        );
+        messages.push(t("Ui.Errors.Profile.phoneSent"));
       }
-
-      // Invalidate any previous pending phone-change tokens
-      await db.magicToken.updateMany({
-        where: { userId: user.id, type: "PHONE_CHANGE", used: false },
-        data: { used: true },
-      });
-
-      // Generate verification token
-      const token = randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-      const hashedToken = hashToken(token);
-
-      await db.magicToken.create({
-        data: {
-          userId: user.id,
-          token: hashedToken,
-          expiresAt,
-          type: "PHONE_CHANGE",
-          metadata: newPhone,
-        },
-      });
-
-      const verifyUrl = `${appUrl}/auth/verify-change?token=${token}`;
-      await sendMagicLinkSms(newPhone, verifyUrl, resolveLocale(user.preferredLocale));
-      messages.push(t("Ui.Errors.Profile.phoneSent"));
     }
   }
 

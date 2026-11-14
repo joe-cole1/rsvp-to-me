@@ -714,17 +714,15 @@ export function SettingsPage({
     });
   };
 
-  const handleUnclaimItem = (itemId: string, guestName: string) => {
+  const handleUnclaimItem = (itemId: string, claimId: string) => {
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        const result = await unclaimPotluckItem(itemId, guestName);
+        const result = await unclaimPotluckItem(itemId, claimId);
         if (result.success) {
           setPotluckItems((prev) =>
             prev.map((i) =>
-              i.id === itemId
-                ? { ...i, claims: i.claims.filter((c) => c.guestName !== guestName) }
-                : i
+              i.id === itemId ? { ...i, claims: i.claims.filter((c) => c.id !== claimId) } : i
             )
           );
           setSaveStatus("SAVED");

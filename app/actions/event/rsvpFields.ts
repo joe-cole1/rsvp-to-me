@@ -3,6 +3,7 @@
 import { eventActionMessage } from "./localization";
 
 import { revalidatePath } from "next/cache";
+import { RsvpFieldSchema, UpdateRsvpFieldSchema } from "@/lib/schemas";
 import { db } from "@/lib/db";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
@@ -20,6 +21,7 @@ export async function addRsvpField(
   },
   captchaToken?: string | null
 ) {
+  data = RsvpFieldSchema.parse(data);
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("rsvp_field", captchaToken);
   const field = await db.rSVPField.create({
@@ -42,6 +44,7 @@ export async function updateRsvpField(
   data: { label?: string; required?: boolean; options?: string; fieldType?: string },
   captchaToken?: string | null
 ) {
+  data = UpdateRsvpFieldSchema.parse(data);
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
     include: { event: { select: { slug: true } } },

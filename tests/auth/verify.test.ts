@@ -136,7 +136,7 @@ describe("GET /auth/verify", () => {
 
     await GET(makeRequest("valid-token"));
     expect(mockUpdateMagicToken).toHaveBeenCalledWith({
-      where: { id: "tok-id", used: false },
+      where: { id: "tok-id", used: false, type: "LOGIN", expiresAt: { gt: expect.any(Date) } },
       data: { used: true },
     });
   });
@@ -152,14 +152,14 @@ describe("GET /auth/verify", () => {
     expect(res.headers.get("location")).toContain("http://localhost:3000");
   });
 
-  it("falls back to the request host header when NEXT_PUBLIC_APP_URL is unset", async () => {
+  it("uses localhost when configuration is absent, never trusting Host", async () => {
     delete process.env.NEXT_PUBLIC_APP_URL;
     mockFindUniqueMagicToken.mockResolvedValue(null);
     const req = new NextRequest("http://rsvp.thecolefam.com/auth/verify?token=any-token", {
       headers: { host: "rsvp.thecolefam.com" },
     });
     const res = await GET(req);
-    expect(res.headers.get("location")).toContain("http://rsvp.thecolefam.com");
+    expect(res.headers.get("location")).toContain("http://localhost:3000");
   });
 
   describe("post-login redirect", () => {
