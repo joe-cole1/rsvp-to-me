@@ -66,8 +66,9 @@ passwords (URL-encode reserved characters when needed):
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000`                                            |
 
 Use a local test address for `INITIAL_ADMIN_EMAIL` if you need admin access. Set
-`HOST_INVITE_CODE` for local host registration, or set `OPEN_REGISTRATION=true`
-while developing. Keep the actual `.env` file out of commits.
+`HOST_INVITE_CODE` before syncing or seeding. You can set `OPEN_REGISTRATION=true`
+to skip asking users for that code while developing; baseline seeding still
+requires it. Keep the actual `.env` file out of commits.
 
 Repository scripts select `.nvmrc` automatically. When running raw Node or npm
 commands from a noninteractive shell, load `$HOME/.nvm/nvm.sh` first. If that
@@ -348,3 +349,18 @@ If those live calls succeed, no authentication repair is needed. If a call
 fails because a sandbox or restricted shell blocks the network, retry it with
 normal network access. Run `gh auth refresh` or `gh auth login` only after the
 live identity and repository checks continue to fail with authentication errors.
+
+## CI checks and restarting development
+
+CI checks formatting and lint without rewriting or pushing files. Local
+preflight uses the same format checker, a Redis image resolved from the source
+Compose deployment, and zero Playwright retries. Full preflight and CI seed rich
+fixtures explicitly before E2E; ordinary development and container startup
+honor `SEED_TEST_DATA` from `.env`. Set a non-empty `HOST_INVITE_CODE` before
+running `scripts/dev-sync.sh` or seeding; no default invite code is installed.
+
+After changing branches, pulling, or running preflight, use
+`scripts/dev-restart.sh`. It starts normally when port 3000 is empty, replaces
+an existing Next.js server, and refuses to stop a different service. Socket
+inspection failures remain blocking and are reported. `--stop-only` succeeds
+when there is no server to stop.

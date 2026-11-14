@@ -100,7 +100,8 @@ docker rm -f "$PG_NAME" "$REDIS_NAME" >/dev/null 2>&1 || true
 docker run -d --name "$PG_NAME" \
   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=rsvp_test -e POSTGRES_USER=postgres \
   -p "${PG_PORT}:5432" postgres:18-alpine >/dev/null
-docker run -d --name "$REDIS_NAME" -p "${REDIS_PORT}:6379" redis:7-alpine >/dev/null
+REDIS_IMAGE="$(node scripts/compose-service-image.cjs redis)"
+docker run -d --name "$REDIS_NAME" -p "${REDIS_PORT}:6379" "$REDIS_IMAGE" >/dev/null
 db_ready=0
 for _ in $(seq 1 30); do
   if docker exec "$PG_NAME" pg_isready -U postgres >/dev/null 2>&1; then
@@ -154,17 +155,7 @@ if [ "$root_audit_status" -ne 0 ] || [ "$worker_audit_status" -ne 0 ]; then
 fi
 
 step "Prettier — format check"
-# Check existing tracked and non-ignored candidate files rather than recursively
-# walking the repository. Docker volume directories can be unreadable to the WSL
-# user before Prettier applies .prettierignore, while deleted tracked paths must
-# not be passed to Prettier at all. Cap batches below Linux’s single-argument
-# limit: npx joins its arguments into one shell command before launching Prettier.
-while IFS= read -r -d '' file; do
-  if [ -e "$file" ]; then
-    printf '%s\0' "$file"
-  fi
-done < <(git ls-files -co --exclude-standard -z) \
-  | xargs -0 -r -s 65536 npx prettier --check --ignore-unknown
+bash scripts/check-format.sh
 
 step "ESLint"
 npm run lint

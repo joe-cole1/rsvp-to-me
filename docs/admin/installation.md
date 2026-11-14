@@ -198,7 +198,7 @@ _What this command does:_
 - Runs database migrations automatically on first startup.
 - Launches all containers in the background.
 
-> **Production data:** Keep `SEED_TEST_DATA="false"` in `.env`, as in the example. The release Compose file does not enable sample data.
+> **Production data:** Keep `SEED_TEST_DATA="false"` in `.env`, as in the example. Both release and source-build Compose files honor this setting and do not force sample data on. Baseline seeding requires an explicit non-empty `HOST_INVITE_CODE`; there is no fallback invite code.
 
 Verify the container status:
 
