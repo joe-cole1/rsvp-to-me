@@ -1,6 +1,9 @@
 // #851: CI fixed/pushed the tree before validating it, retried E2E only in CI,
 // omitted rich E2E seeds, and tested an older Redis than deployments used.
 // Compose also overrode operators' explicit SEED_TEST_DATA=false setting.
+// CodeQL follow-up: the custom PR-head checkout was flagged in this workflow's
+// cache-write-capable manual-trigger path. Use the event's default checkout;
+// preserve manual runs, PR integration checks and every existing cache.
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -9,8 +12,14 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { load } = createRequire(import.meta.url)("js-yaml") as { load: (yaml: string) => unknown };
-type Step = { run?: string; with?: Record<string, unknown>; env?: Record<string, string> };
+type Step = {
+  uses?: string;
+  run?: string;
+  with?: Record<string, unknown>;
+  env?: Record<string, string>;
+};
 const ci = load(readFileSync(resolve(".github/workflows/ci.yml"), "utf8")) as {
+  on: Record<string, unknown>;
   permissions: Record<string, string>;
   jobs: { ci: { steps: Step[]; permissions?: Record<string, string> } };
 };
@@ -23,6 +32,28 @@ afterEach(() => {
 });
 
 describe("#851 CI validates the submitted tree", () => {
+  it("uses the event checkout without a custom PR-controlled revision", () => {
+    const checkout = steps.find((step) => step.uses?.startsWith("actions/checkout@"));
+    expect(checkout).toBeDefined();
+    expect(checkout?.with).not.toHaveProperty("ref");
+    expect(checkout?.with?.["persist-credentials"]).toBe(false);
+  });
+
+  it("retains manual runs, PR and main-push validation, and all three caches", () => {
+    expect(ci.on).toHaveProperty("workflow_dispatch");
+    expect(ci.on.pull_request).toEqual(expect.objectContaining({ branches: ["main"] }));
+    expect(ci.on.push).toEqual(expect.objectContaining({ branches: ["main"] }));
+    expect(steps.find((step) => step.uses?.startsWith("actions/setup-node@"))?.with?.cache).toBe(
+      "npm"
+    );
+    const cachePaths = steps
+      .filter((step) => step.uses?.startsWith("actions/cache@"))
+      .map((step) => step.with?.path)
+      .filter((path): path is string => typeof path === "string")
+      .map((path) => path.replace(/^\$\{\{\s*github\.workspace\s*\}\}\//, ""));
+    expect(cachePaths).toEqual(expect.arrayContaining(["~/.cache/ms-playwright", ".next/cache"]));
+  });
+
   it("has read-only permissions and never runs fix/stage/commit/push operations", () => {
     expect(ci.permissions).toEqual({ contents: "read" });
     expect(ci.jobs.ci.permissions).toBeUndefined();

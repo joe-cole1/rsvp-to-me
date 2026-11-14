@@ -353,7 +353,13 @@ live identity and repository checks continue to fail with authentication errors.
 ## CI checks and restarting development
 
 CI checks formatting and lint without rewriting or pushing files. Local
-preflight uses the same format checker, a Redis image resolved from the source
+work uses the selected branch; PR CI checks GitHub's temporary merge with
+`main`. Push runs check the triggering commit, and manual runs still check the
+selected branch or tag. The workflow uses checkout's event default and retains
+all npm, Playwright and Next.js caches; PR cache writes stay within the PR's
+merge-ref scope.
+
+Local preflight uses the same format checker, a Redis image resolved from the source
 Compose deployment, and zero Playwright retries. Full preflight and CI seed rich
 fixtures explicitly before E2E; ordinary development and container startup
 honor `SEED_TEST_DATA` from `.env`. Set a non-empty `HOST_INVITE_CODE` before
