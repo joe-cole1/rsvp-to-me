@@ -2,7 +2,7 @@ import { sealData, unsealData } from "iron-session";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
-import { redisGet, redisSet, redisDel, isRedisEnabled } from "@/lib/redis";
+import { redisSet, redisDel, isRedisEnabled } from "@/lib/redis";
 import { logSafe } from "./logger";
 
 export interface SessionData {
@@ -71,72 +71,22 @@ export async function getSession(): Promise<SessionData | null> {
     });
     if (!session || !session.sessionId) return null;
 
-    const cacheKey = `session:${session.sessionId}`;
-    let dbSession: { id: string; userId: string; expiresAt: Date; user: { role: string } } | null =
-      null;
-
-    if (isRedisEnabled()) {
-      const cached = await redisGet(cacheKey);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached) as CachedSession;
-          const expiresAtDate = new Date(parsed.expiresAt);
-          if (expiresAtDate > new Date()) {
-            dbSession = {
-              id: parsed.id,
-              userId: parsed.userId,
-              expiresAt: expiresAtDate,
-              user: { role: parsed.userRole },
-            };
-          }
-        } catch (e) {
-          console.error("[session] Failed to parse cached session:", e);
-        }
-      }
-    }
-
-    // If cache miss or Redis disabled, read from database
-    if (!dbSession) {
-      const dbSessionRecord = await db.session.findUnique({
-        where: { id: session.sessionId },
-        include: { user: { select: { role: true } } },
-      });
-
-      if (dbSessionRecord && dbSessionRecord.expiresAt > new Date()) {
-        dbSession = {
-          id: dbSessionRecord.id,
-          userId: dbSessionRecord.userId,
-          expiresAt: dbSessionRecord.expiresAt,
-          user: { role: dbSessionRecord.user.role },
-        };
-
-        // Cache the session in Redis if enabled
-        if (isRedisEnabled()) {
-          const ttlSeconds = Math.max(
-            0,
-            Math.floor((dbSession.expiresAt.getTime() - Date.now()) / 1000)
-          );
-          if (ttlSeconds > 0) {
-            const cacheValue: CachedSession = {
-              id: dbSession.id,
-              userId: dbSession.userId,
-              expiresAt: dbSession.expiresAt.toISOString(),
-              userRole: dbSession.user.role as "HOST" | "ADMIN" | "GUEST",
-            };
-            await redisSet(cacheKey, JSON.stringify(cacheValue), ttlSeconds);
-          }
-        }
-      }
-    }
-
-    if (!dbSession) {
+    // PostgreSQL is the revocation and role authority. Redis can be stale after
+    // an outage or a concurrent cache fill; it must never resurrect a session.
+    const record = await db.session.findUnique({
+      where: { id: session.sessionId },
+      include: { user: { select: { role: true, email: true, phone: true } } },
+    });
+    if (
+      !record ||
+      record.userId !== session.userId ||
+      record.expiresAt <= new Date() ||
+      (record.user.email === null && record.user.phone === null)
+    ) {
       return null;
     }
-
-    // Sync database role changes with the active session
-    if (dbSession.user.role !== session.role) {
-      session.role = dbSession.user.role as "HOST" | "ADMIN" | "GUEST";
-    }
+    session.role = record.user.role;
+    session.email = record.user.email ?? record.user.phone ?? session.email;
 
     return session;
   } catch {
@@ -226,4 +176,13 @@ export async function invalidateUserSessions(userId: string): Promise<void> {
   } catch (err) {
     console.error("[session] Failed to invalidate sessions for user:", err);
   }
+}
+
+/** Revoke database credentials even when Redis is unavailable. */
+export async function revokeUserSessions(userId: string): Promise<void> {
+  const sessions = await db.session.findMany({ where: { userId }, select: { id: true } });
+  // Capture keys before removing rows. Revoke authority before best-effort
+  // cache cleanup so a Redis outage cannot delay credential revocation.
+  await db.session.deleteMany({ where: { userId } });
+  await Promise.all(sessions.map(({ id }) => redisDel(`session:${id}`)));
 }

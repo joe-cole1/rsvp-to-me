@@ -10,6 +10,7 @@ import type { sendRsvpConfirmationEmail, sendHostRsvpAlertEmail } from "@/lib/em
 import { notifyRsvp, notifyHostAlert } from "@/lib/notifications/service";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
+import { resolveEventAccess } from "@/lib/eventAccess";
 import { AddRsvpSchema, UpdateRsvpSchema } from "@/lib/schemas";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
@@ -51,7 +52,7 @@ export async function verifyEventPassword(
   }
 
   const cookieStore = await cookies();
-  const signature = getUnlockSignature(slug);
+  const signature = getUnlockSignature(slug, event.passwordHash);
 
   cookieStore.set(`rsvp-unlocked-${slug}`, signature, {
     httpOnly: true,
@@ -200,6 +201,10 @@ export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
       id: true,
       slug: true,
       title: true,
+      status: true,
+      visibility: true,
+      passwordHash: true,
+      hostId: true,
       approvalRequired: true,
       rsvpDeadline: true,
       capacity: true,
@@ -215,12 +220,21 @@ export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
       hostAlertSms: true,
       host: { select: { name: true, email: true, phone: true, preferredLocale: true } },
       coHosts: {
-        select: { user: { select: { email: true, phone: true, preferredLocale: true } } },
+        select: {
+          userId: true,
+          user: { select: { email: true, phone: true, preferredLocale: true } },
+        },
       },
       rsvpFields: { select: { id: true } },
     },
   });
   if (!event) return { success: false, error: await eventActionMessage("eventNotFound") };
+  if (
+    event.status !== "PUBLISHED" ||
+    (await resolveEventAccess(event, event.slug)).decision !== "granted"
+  ) {
+    return { success: false, error: await eventActionMessage("forbidden") };
+  }
   if (event.startAt <= new Date()) {
     return { success: false, error: await eventActionMessage("eventStarted") };
   }

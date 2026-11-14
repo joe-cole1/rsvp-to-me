@@ -1,25 +1,18 @@
+import { getAppOrigin } from "@/lib/event-social";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { adoptLoginLocale, localeCookieOptions } from "@/i18n/preferences";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sealSession, COOKIE_NAME, SESSION_TTL } from "@/lib/session";
-import { linkRsvpsToUser, isSafeRedirect } from "@/lib/auth";
+import { linkRsvpsToUser, isSafeRedirect, consumeLoginToken } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { isRedisEnabled, redisSet } from "@/lib/redis";
-import { hashToken } from "@/lib/hash";
 import { promoteInitialAdmin } from "@/lib/admin-promotion";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const rawRedirect = request.nextUrl.searchParams.get("redirect");
-  // SEC-41: prefer the configured canonical origin — deriving it from the
-  // request Host / x-forwarded-proto headers is a redirect/link-poisoning
-  // vector behind proxies that don't pin Host. Header fallback is for dev
-  // installs that never set NEXT_PUBLIC_APP_URL.
-  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
-  const host = request.headers.get("host") || "localhost:3000";
-  const protocol = request.headers.get("x-forwarded-proto") || "http";
-  const origin = configuredOrigin || `${protocol}://${host}`;
+  const origin = getAppOrigin();
 
   const redirectWithNoReferrer = (url: string) => {
     const res = NextResponse.redirect(url);
@@ -35,24 +28,8 @@ export async function GET(request: NextRequest) {
     return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
   }
 
-  const hashedToken = hashToken(token);
-  const record = await db.magicToken.findUnique({ where: { token: hashedToken } });
-  if (!record || record.used || record.expiresAt <= new Date() || record.type !== "LOGIN") {
-    return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
-  }
-
-  const consumed = await db.magicToken.updateMany({
-    where: { id: record.id, used: false },
-    data: { used: true },
-  });
-  if (consumed.count !== 1) {
-    return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
-  }
-
-  const user = await db.user.findUnique({ where: { id: record.userId } });
-  if (!user) {
-    return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
-  }
+  const user = await consumeLoginToken(token);
+  if (!user) return redirectWithNoReferrer(`${origin}/auth/sign-in?error=invalid-token`);
 
   let role = user.role;
   if (role !== "ADMIN" && (await promoteInitialAdmin(user.id, user.email))) {

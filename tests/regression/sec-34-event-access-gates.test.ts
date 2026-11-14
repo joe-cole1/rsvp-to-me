@@ -139,7 +139,7 @@ describe("SEC-34: resolveEventAccess grants legitimate access paths", () => {
 
   it("grants a visitor holding the signed unlock cookie", async () => {
     mockCookieGet.mockImplementation((name: string) =>
-      name === `rsvp-unlocked-${SLUG}` ? { value: getUnlockSignature(SLUG) } : undefined
+      name === `rsvp-unlocked-${SLUG}` ? { value: getUnlockSignature(SLUG, null) } : undefined
     );
     const { decision } = await resolveEventAccess(ev(), SLUG);
     expect(decision).toBe("granted");

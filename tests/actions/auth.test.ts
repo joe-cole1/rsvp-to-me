@@ -313,14 +313,16 @@ describe("magic-link recipient language", () => {
 
 it("registration delivers the paired code and link to the normalized email", async () => {
   mocks.mockIsOpenRegistrationActive.mockResolvedValue(true);
-  mocks.mockRegisterHost.mockResolvedValue({ success: true });
-  mocks.mockCreateLoginChallenge.mockResolvedValue({
-    link: "https://example.test/auth/verify?token=fixture",
-    code: "012345",
+  mocks.mockRegisterHost.mockResolvedValue({
+    success: true,
+    challenge: {
+      link: "https://example.test/auth/verify?token=fixture",
+      code: "012345",
+    },
   });
   mocks.mockRecipient.mockResolvedValue({ preferredLocale: "nl-NL" });
   expect(await registerHostAction(" HOST@example.com ", "Host", "")).toEqual({ success: true });
-  expect(mocks.mockCreateLoginChallenge).toHaveBeenCalledWith("host@example.com");
+  expect(mocks.mockRegisterHost).toHaveBeenCalledWith("host@example.com", "Host", "");
   expect(mocks.mockSendMagicLinkEmail).toHaveBeenCalledWith(
     "host@example.com",
     "https://example.test/auth/verify?token=fixture",

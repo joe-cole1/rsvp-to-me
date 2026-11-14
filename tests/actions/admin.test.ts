@@ -150,6 +150,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/session", () => ({
   getSession: mockGetSession,
   invalidateUserSessions: vi.fn(),
+  revokeUserSessions: vi.fn(),
 }));
 vi.mock("@/i18n/server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/i18n/server")>();
@@ -949,7 +950,7 @@ describe("app/actions/admin.ts", () => {
         expect(mockRsvpDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
         expect(mockCoHostDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
         expect(mockMagicTokenDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
-        expect(mockSessionDeleteMany).toHaveBeenCalledWith({ where: { userId: "u-1" } });
+        expect((await import("@/lib/session")).revokeUserSessions).toHaveBeenCalledWith("u-1");
         expect(mockEventUpdateMany).toHaveBeenCalledWith({
           where: { hostId: "u-1" },
           data: { hostId: "system" },

@@ -68,6 +68,8 @@ describe("SEC-13: cross-event parent comment", () => {
     mockEventFindUnique.mockResolvedValue({
       slug: "event-a",
       commentsEnabled: true,
+      status: "PUBLISHED",
+      passwordHash: null,
       hostId: "host-A",
       coHosts: [],
     });

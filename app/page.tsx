@@ -6,7 +6,7 @@ import { APP_SHELL, APP_SHELL_THEME } from "@/lib/theme";
 import { buttonProps } from "@/components/ui/Button";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/UploadedImage";
 import { resolveTheme } from "@/lib/theme";
 import { MessageSquare } from "lucide-react";
 

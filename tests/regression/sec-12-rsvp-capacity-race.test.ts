@@ -66,6 +66,11 @@ vi.mock("@/lib/sms", () => ({
 import { addRSVP } from "@/app/actions/event";
 
 const EVENT = {
+  status: "PUBLISHED",
+  visibility: "PUBLIC",
+  passwordHash: null,
+  hostId: "host",
+  coHosts: [],
   id: "evt-1",
   slug: "party",
   title: "Party",

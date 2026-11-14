@@ -3,6 +3,7 @@
 import { eventActionMessage } from "./localization";
 
 import { revalidatePath } from "next/cache";
+import { CreatePollSchema, PollOptionSchema, PollSettingsSchema } from "@/lib/schemas";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
@@ -21,6 +22,13 @@ export async function createPoll(
   hideVoters: boolean = false,
   captchaToken?: string | null
 ) {
+  ({ question, options, multiChoice, allowGuestsToAdd, hideVoters } = CreatePollSchema.parse({
+    question,
+    options,
+    multiChoice,
+    allowGuestsToAdd,
+    hideVoters,
+  }));
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("poll_manage", captchaToken);
   if (!question.trim()) throw new Error(await eventActionMessage("questionEmpty"));
@@ -116,55 +124,49 @@ export async function castVote(
   const isCohost = poll.event.coHosts.some((ch) => ch.userId === session?.userId);
   const isHost = isOwner || isCohost;
 
+  let rsvpId: string | null = null;
   if (!isHost) {
     // SEC-24: authorize by secret editToken; the voter name is the RSVP's,
     // never the client-supplied one (both rsvpId and guestName are public).
     const rsvp = await findApprovedGuestByToken(guestEditToken, poll.eventId);
     if (!rsvp) throw new Error(await eventActionMessage("voteRsvpRequired"));
     voterName = rsvp.guestName;
+    rsvpId = rsvp.id;
   }
 
+  if (isHost) {
+    const user = await db.user.findUnique({
+      where: { id: session!.userId },
+      select: { name: true },
+    });
+    voterName = user?.name || "Host";
+  }
+  const identity = rsvpId ? { rsvpId } : { userId: session!.userId, rsvpId: null };
+
   const option = await db.pollOption.findUnique({
-    where: { id: pollOptionId },
+    where: { id: pollOptionId, pollId },
     select: { text: true },
   });
   if (!option) throw new Error(await eventActionMessage("optionNotFound"));
 
-  if (isVoted) {
-    if (!poll.multiChoice) {
-      // Single-choice poll: delete any other votes by this voter in this poll
-      await db.pollVote.deleteMany({
-        where: {
-          pollId,
-          voterName,
-        },
+  // Serialize single-choice replacement and re-check lock/option ownership.
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT id FROM "Poll" WHERE id = ${pollId} FOR UPDATE`;
+    const current = await tx.poll.findUnique({ where: { id: pollId } });
+    if (!current || current.locked) throw new Error(await eventActionMessage("pollLocked"));
+    const ownedOption = await tx.pollOption.findUnique({ where: { id: pollOptionId, pollId } });
+    if (!ownedOption) throw new Error(await eventActionMessage("optionNotFound"));
+    if (isVoted) {
+      await tx.pollVote.deleteMany({
+        where: { pollId, ...identity, ...(current.multiChoice ? { pollOptionId } : {}) },
       });
+      await tx.pollVote.create({
+        data: { pollId, pollOptionId, voterName, rsvpId, userId: rsvpId ? null : session!.userId },
+      });
+    } else {
+      await tx.pollVote.deleteMany({ where: { pollId, pollOptionId, ...identity } });
     }
-
-    await db.pollVote.upsert({
-      where: {
-        pollOptionId_voterName: {
-          pollOptionId,
-          voterName,
-        },
-      },
-      create: {
-        pollId,
-        pollOptionId,
-        voterName,
-        userId: session?.userId,
-      },
-      update: {},
-    });
-  } else {
-    // Retract vote
-    await db.pollVote.deleteMany({
-      where: {
-        pollOptionId,
-        voterName,
-      },
-    });
-  }
+  });
 
   // Log activity if the poll is public (not anonymous)
   if (!poll.hideVoters) {
@@ -189,6 +191,7 @@ export async function addPollOption(
   guestEditToken?: string,
   captchaToken?: string | null
 ) {
+  text = PollOptionSchema.parse(text);
   if (!text.trim()) throw new Error(await eventActionMessage("optionEmpty"));
   await assertCaptcha("poll_option", captchaToken);
 
@@ -262,6 +265,7 @@ export async function updatePollSettings(
   captchaToken?: string | null
 ) {
   await assertCaptcha("poll_manage", captchaToken);
+  data = PollSettingsSchema.parse(data);
   const poll = await db.poll.findUnique({
     where: { id: pollId },
     select: { eventId: true, question: true },
@@ -315,13 +319,13 @@ export async function deletePollOption(pollId: string, optionId: string) {
   const event = await assertHostOrCohost(poll.eventId);
 
   const option = await db.pollOption.findUnique({
-    where: { id: optionId },
+    where: { id: optionId, pollId },
     select: { text: true },
   });
   if (!option) throw new Error(await eventActionMessage("optionNotFound"));
 
   await db.pollOption.delete({
-    where: { id: optionId },
+    where: { id: optionId, pollId },
   });
 
   const session = await getSession();

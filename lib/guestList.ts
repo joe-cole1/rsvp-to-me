@@ -122,6 +122,19 @@ const RSVP_IDENTITY_ACTIVITY_TYPES = new Set([
 
 const ATTENDANCE_ACTIVITY_TYPES = new Set(["check_in", "check_in_undo", "walk_in"]);
 
+/** Shared by the event page and dashboard activity boundary. */
+export function canViewActivity(
+  type: string,
+  guestListVis: string,
+  viewer: GuestListViewer
+): boolean {
+  return (
+    viewer.isHost ||
+    (!ATTENDANCE_ACTIVITY_TYPES.has(type) &&
+      (canViewGuestListPage(guestListVis, viewer) || !RSVP_IDENTITY_ACTIVITY_TYPES.has(type)))
+  );
+}
+
 /**
  * SEC-32 / SEC-39: remove restricted data before an event object is serialized into the
  * RSC payload of the public event page (a Client Component boundary — every
@@ -143,7 +156,6 @@ export function stripHostOnlyEventData<E extends StrippableEvent>(
 ): E {
   if (viewer.isHost) return event;
 
-  const canViewRsvpIdentity = canViewGuestListPage(event.guestListVis, viewer);
   return {
     ...event,
     host: { ...event.host, email: null },
@@ -157,10 +169,8 @@ export function stripHostOnlyEventData<E extends StrippableEvent>(
       : {}),
     ...(event.activityEvents
       ? {
-          activityEvents: event.activityEvents.filter(
-            (activity) =>
-              !ATTENDANCE_ACTIVITY_TYPES.has(activity.type) &&
-              (canViewRsvpIdentity || !RSVP_IDENTITY_ACTIVITY_TYPES.has(activity.type))
+          activityEvents: event.activityEvents.filter((activity) =>
+            canViewActivity(activity.type, event.guestListVis, viewer)
           ),
         }
       : {}),

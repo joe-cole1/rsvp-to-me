@@ -43,6 +43,19 @@ also excludes generated fixture tests.
 
 ## Index
 
+Task `01a1dc08` bundles GHSA-wx7r-qqc6-2v5v, GHSA-mrf6-4xh5-7p47,
+GHSA-wch3-85cq-qp5f and GHSA-8r3w-c2hj-fv38.
+`private-advisory-boundaries.test.tsx` covers runtime input/image validation,
+RSVP/comment access, password-cookie revocation, dashboard privacy, contact-mail
+throttling and canonical/non-mutating link behavior.
+`private-advisory-social-image.test.tsx` keeps arbitrary stored URLs out of
+server-rendered social artwork.
+`private-advisory-security.integration.ts` runs through
+`tests/integration/lib/advisory-security.test.ts` under the integration config:
+real PostgreSQL/Redis session revocation, proof-gated registration, concurrent
+single-use tokens/acceptance, cross-parent ownership, same-name participation,
+capacity races and historical-row migration preservation.
+
 #851 follow-up (`01a1d9ed`) adds `issue-851-turnstile-gate.test.ts` for both
 blocking CSP modes, `issue-851-migration-backups.test.ts` for private atomic dumps,
 retention after success, legacy recovery and path safeguards,

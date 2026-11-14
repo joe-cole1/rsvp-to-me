@@ -112,8 +112,8 @@
         "userNotFound": "No se ha encontrado al usuario",
         "emailExists": "Ya existe una cuenta con este correo electrónico.",
         "phoneExists": "Ya existe una cuenta con este número de teléfono.",
-        "emailSent": "Se ha enviado un enlace de verificación a tu nueva dirección de correo. Haz clic en él para confirmar el cambio.",
-        "phoneSent": "Se ha enviado un enlace de verificación a tu nuevo número de teléfono. Haz clic en él para confirmar el cambio."
+        "emailSent": "Si la dirección de correo está disponible, recibirá un enlace para confirmar el cambio.",
+        "phoneSent": "Si el número de teléfono está disponible, recibirá un enlace para confirmar el cambio."
       },
       "Common": {
         "title": "Algo ha salido mal",
@@ -1687,7 +1687,13 @@
       "signingIn": "Iniciando sesión…",
       "signIn": "Iniciar sesión",
       "resend": "Reenviar",
-      "useDifferentIdentifier": "Usar otro correo o teléfono"
+      "useDifferentIdentifier": "Usar otro correo o teléfono",
+      "CoHost": {
+        "title": "Invitación de coanfitrión",
+        "confirm": "Acepta esta invitación para ayudar a gestionar el evento.",
+        "wrongAccount": "Inicia sesión con el correo electrónico que recibió esta invitación. También es posible que haya caducado.",
+        "accept": "Aceptar invitación"
+      }
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",

@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { useState, useRef, useEffect, useTransition } from "react";
-import NextImage from "next/image";
+import NextImage from "@/components/ui/UploadedImage";
 import type { ResolvedTheme } from "@/lib/theme";
 import {
   saveEventField,
@@ -608,6 +608,7 @@ export function EventPage({
       // Cast the claim to match the type expected in claims array (Date for createdAt)
       const newClaim = {
         ...result.claim,
+        isMine: true,
         createdAt: new Date(result.claim.createdAt),
       };
       setEvent((e) => ({
@@ -625,13 +626,13 @@ export function EventPage({
     }
   };
 
-  const unclaimItem = async (itemId: string, name: string) => {
-    const result = await unclaimPotluckItem(itemId, name, guestEditToken ?? undefined);
+  const unclaimItem = async (itemId: string, claimId: string) => {
+    const result = await unclaimPotluckItem(itemId, claimId, guestEditToken ?? undefined);
     if (result.success) {
       setEvent((e) => ({
         ...e,
         potluckItems: e.potluckItems.map((i) =>
-          i.id === itemId ? { ...i, claims: i.claims.filter((c) => c.guestName !== name) } : i
+          i.id === itemId ? { ...i, claims: i.claims.filter((c) => c.id !== claimId) } : i
         ),
         activityEvents: result.activityEvent
           ? [result.activityEvent, ...e.activityEvents]
@@ -641,7 +642,7 @@ export function EventPage({
   };
 
   const handleVote = async (pollId: string, pollOptionId: string, isVoted: boolean) => {
-    const voter = isHost ? "Host" : guestName;
+    const voter = isHost ? sessionUser?.name || "Host" : guestName;
     if (!voter) return;
 
     // Optimistic Update
@@ -654,18 +655,23 @@ export function EventPage({
             if (!p.multiChoice && opt.id !== pollOptionId) {
               return {
                 ...opt,
-                votes: opt.votes.filter((v) => v.voterName !== voter),
+                votes: opt.votes.filter((v) => !v.isMine),
               };
             }
             if (opt.id === pollOptionId) {
-              const alreadyVoted = opt.votes.some((v) => v.voterName === voter);
+              const alreadyVoted = opt.votes.some((v) => v.isMine);
               return {
                 ...opt,
                 votes: alreadyVoted
                   ? opt.votes
                   : [
                       ...opt.votes,
-                      { id: `temp-vote-${Date.now()}`, voterName: voter, createdAt: new Date() },
+                      {
+                        id: `temp-vote-${Date.now()}`,
+                        voterName: voter,
+                        isMine: true,
+                        createdAt: new Date(),
+                      },
                     ],
               };
             }
@@ -673,7 +679,7 @@ export function EventPage({
             if (opt.id === pollOptionId) {
               return {
                 ...opt,
-                votes: opt.votes.filter((v) => v.voterName !== voter),
+                votes: opt.votes.filter((v) => !v.isMine),
               };
             }
           }

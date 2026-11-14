@@ -1,3 +1,4 @@
+vi.mock("@/lib/redis", () => ({ redisDel: vi.fn() }));
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const {
@@ -38,6 +39,7 @@ vi.mock("@/lib/db", () => ({
       deleteMany: mockMagicTokenDeleteMany,
     },
     session: {
+      findMany: vi.fn().mockResolvedValue([]),
       deleteMany: mockSessionDeleteMany,
     },
     event: {

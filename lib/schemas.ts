@@ -1,3 +1,5 @@
+import { safeUploadPath } from "@/lib/upload-path";
+import { MIN_CARD_OPACITY } from "@/lib/theme";
 import { z } from "zod";
 import { maxCodeUnits, minCodeUnits } from "@/lib/string-length";
 
@@ -125,7 +127,7 @@ export const SaveEventSettingsSchema = z.object({
   maybeEnabled: z.boolean().optional(),
   questionnaireEnabled: z.boolean().optional(),
   showTimestamps: z.boolean().optional(),
-  password: z.string().nullable().optional(),
+  password: z.string().check(maxCodeUnits(200)).nullable().optional(),
   guestSharingEnabled: z.boolean().optional(),
   guestsCanInvite: z.boolean().optional(),
   hostDisplayName: z.string().trim().check(maxCodeUnits(100)).nullable().optional(),
@@ -164,4 +166,130 @@ export const AddWalkInSchema = z.object({
     .check(maxCodeUnits(30))
     .optional()
     .or(z.literal("")),
+});
+
+// Runtime boundaries: TypeScript signatures do not validate Server Action input.
+const ShortText = z.string().trim().min(1).check(maxCodeUnits(200));
+const Name = z.string().trim().min(1).check(maxCodeUnits(100));
+const Color = z.string().regex(/^#[0-9a-f]{6}$/i);
+export const UploadPathSchema = z
+  .string()
+  .refine((value) => safeUploadPath(value) !== null, "Choose an uploaded image.");
+export const ProfileSettingsSchema = z.object({
+  name: Name,
+  avatarUrl: UploadPathSchema.nullable().optional(),
+  email: RegisterHostSchema.shape.email.optional().or(z.literal("")),
+  phone: z
+    .string()
+    .trim()
+    .regex(GuestPhoneRegex)
+    .check(maxCodeUnits(30))
+    .optional()
+    .or(z.literal("")),
+});
+export const CoHostEmailSchema = RegisterHostSchema.shape.email;
+export const CreatePollSchema = z.object({
+  question: ShortText,
+  options: z.array(ShortText).max(50),
+  multiChoice: z.boolean(),
+  allowGuestsToAdd: z.boolean(),
+  hideVoters: z.boolean(),
+});
+export const PollOptionSchema = ShortText;
+export const PollSettingsSchema = z.object({
+  question: ShortText.optional(),
+  multiChoice: z.boolean().optional(),
+  allowGuestsToAdd: z.boolean().optional(),
+  hideVoters: z.boolean().optional(),
+  locked: z.boolean().optional(),
+});
+export const PotluckItemSchema = z.object({
+  label: ShortText,
+  quantity: z.number().int().min(1).max(10000),
+});
+export const PotluckClaimSchema = z.object({
+  guestName: Name,
+  claimedQty: z.number().int().min(1).max(10000),
+});
+export const RsvpFieldSchema = z.object({
+  label: ShortText,
+  fieldType: z.enum(["TEXT", "TEXTAREA", "SELECT", "CHECKBOX"]),
+  required: z.boolean(),
+  options: z.string().check(maxCodeUnits(10000)).optional(),
+  order: z.number().int().min(0).max(10000),
+});
+export const UpdateRsvpFieldSchema = RsvpFieldSchema.omit({ order: true }).partial();
+export const InfoSectionSchema = z.object({
+  eventId: z.string().min(1),
+  type: z.enum([
+    "shirt",
+    "utensils",
+    "parking",
+    "link",
+    "info",
+    "music",
+    "gift",
+    "bed",
+    "mappin",
+    "calendar",
+    "sparkles",
+    "filetext",
+    "camera",
+    "phone",
+    "zelle",
+    "venmo",
+    "DRESS_CODE",
+    "FOOD",
+    "PARKING",
+    "LINK",
+    "CUSTOM",
+  ]),
+  title: z.string().trim().check(maxCodeUnits(200)).nullable(),
+  content: z.string().trim().check(maxCodeUnits(10000)),
+  url: HttpUrlSchema.nullable().or(z.literal("")),
+  order: z.number().int().min(0).max(10000),
+});
+export const UpdateInfoSectionSchema = InfoSectionSchema.omit({
+  eventId: true,
+  order: true,
+}).extend({
+  type: InfoSectionSchema.shape.type.optional(),
+  title: InfoSectionSchema.shape.title.optional(),
+});
+export const EventThemeSchema = z.object({
+  baseTheme: z.enum(["DARK", "SOFT", "BOLD"]),
+  gradientFrom: Color,
+  gradientTo: Color,
+  accentColor: Color,
+  cardOpacity: z.number().min(MIN_CARD_OPACITY).max(1).nullable().optional(),
+});
+export const EventFieldSchema = z.discriminatedUnion("field", [
+  z.object({ field: z.literal("title"), value: ShortText }),
+  z.object({
+    field: z.literal("description"),
+    value: z.string().trim().check(maxCodeUnits(10000)),
+  }),
+  z.object({ field: z.literal("locationName"), value: z.string().trim().check(maxCodeUnits(200)) }),
+  z.object({
+    field: z.literal("locationAddress"),
+    value: z.string().trim().check(maxCodeUnits(500)),
+  }),
+  z.object({ field: z.literal("virtualUrl"), value: HttpUrlSchema.or(z.literal("")) }),
+]);
+const LocalDateTime = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+  .refine((value) => {
+    const date = new Date(`${value}:00Z`);
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 16) === value;
+  }, "Enter a valid date and time.");
+export const EventDatesSchema = z
+  .object({ startAt: LocalDateTime, endAt: LocalDateTime.nullable() })
+  .refine(({ startAt, endAt }) => !endAt || endAt > startAt, "End must follow start.");
+
+export const EventLocationSchema = z.object({
+  locationType: CreateEventSchema.shape.locationType,
+  locationName: CreateEventSchema.shape.locationName.default(null),
+  locationAddress: CreateEventSchema.shape.locationAddress.default(null),
+  virtualUrl: CreateEventSchema.shape.virtualUrl.default(null),
 });

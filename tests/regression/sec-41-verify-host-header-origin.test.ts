@@ -30,6 +30,7 @@ vi.mock("@/lib/session", () => ({
 }));
 vi.mock("@/lib/auth", () => ({
   linkRsvpsToUser: vi.fn(),
+  consumeLoginToken: async () => null,
   isSafeRedirect: vi.fn().mockReturnValue(true),
 }));
 vi.mock("@/lib/redis", () => ({
@@ -65,11 +66,15 @@ describe("SEC-41: verify-route redirect origin", () => {
     );
   });
 
-  it("falls back to the Host header only when NEXT_PUBLIC_APP_URL is unset", async () => {
-    delete process.env.NEXT_PUBLIC_APP_URL;
-    const res = await GET(attackerRequest());
-    expect(res.headers.get("location")).toBe(
-      "http://attacker.example.com/auth/sign-in?error=invalid-token"
-    );
-  });
+  it.each([undefined, "", "   "])(
+    "uses localhost fallback for an absent/blank configured origin: %j",
+    async (configured) => {
+      if (configured === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+      else process.env.NEXT_PUBLIC_APP_URL = configured;
+      const res = await GET(attackerRequest());
+      expect(res.headers.get("location")).toBe(
+        "http://localhost:3000/auth/sign-in?error=invalid-token"
+      );
+    }
+  );
 });

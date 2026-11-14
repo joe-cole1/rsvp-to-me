@@ -63,7 +63,8 @@ vi.mock("@/lib/session", () => ({
   SESSION_TTL: 604800,
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/lib/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth")>()),
   linkRsvpsToUser: vi.fn().mockResolvedValue(undefined),
   isSafeRedirect: vi.fn().mockReturnValue(true),
 }));
@@ -136,7 +137,12 @@ describe("SEC-48: initial-admin promotion is LOGIN-token-only", () => {
     const response = await verifyLogin(loginRequest());
     expect(response.headers.get("location")).toContain("error=invalid-token");
     expect(mockMagicTokenUpdateMany).toHaveBeenCalledWith({
-      where: { id: "login-token-1", used: false },
+      where: {
+        id: "login-token-1",
+        used: false,
+        type: "LOGIN",
+        expiresAt: { gt: expect.any(Date) },
+      },
       data: { used: true },
     });
     expect(mockUserCount).not.toHaveBeenCalled();
@@ -185,7 +191,7 @@ describe("SEC-48: initial-admin promotion is LOGIN-token-only", () => {
     expect(response.status).toBe(307);
     expect(mockUserCount).not.toHaveBeenCalled();
     expect(mockUserUpdate).not.toHaveBeenCalled();
-    expect(mockSealSession).toHaveBeenCalledWith(expect.objectContaining({ role: "HOST" }));
+    expect(mockSealSession).not.toHaveBeenCalled();
   });
 
   it("keeps ordinary session, dashboard, and profile reads promotion-free", () => {
@@ -205,7 +211,8 @@ describe("SEC-48: initial-admin promotion is LOGIN-token-only", () => {
     for (const path of ["lib/auth.ts", "app/auth/verify/route.ts"]) {
       const source = readFileSync(join(REPO_ROOT, path), "utf8");
       expect(source, path).toContain("promoteInitialAdmin");
-      expect(source, path).toContain('record.type !== "LOGIN"');
+      if (path === "lib/auth.ts") expect(source, path).toContain('record.type !== "LOGIN"');
+      else expect(source, path).toContain("consumeLoginToken(token)");
     }
   });
 });

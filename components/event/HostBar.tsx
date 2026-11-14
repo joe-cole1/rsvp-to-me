@@ -6,7 +6,7 @@ import React, { useEffect, useReducer, useState } from "react";
 import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock, Check, X } from "lucide-react";
 import { APP_SHELL, chromeTheme, type ResolvedTheme } from "@/lib/theme";
 import { sendBlast, sendSmsBlast, saveEventSettings } from "@/app/actions/event";
-import Image from "next/image";
+import Image from "@/components/ui/UploadedImage";
 import QRCode from "qrcode";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 

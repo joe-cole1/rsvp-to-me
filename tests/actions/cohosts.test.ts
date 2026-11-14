@@ -1,3 +1,4 @@
+vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn(async () => ({ success: true })) }));
 import "@/tests/helpers/english-request-locale";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { sendCoHostInviteEmail } from "@/lib/email";
@@ -37,7 +38,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     notificationSettings: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     event: { findUnique: mockEventFindUnique },
-    user: { findUnique: mockUserFindUnique, findMany: mockUserFindMany },
+    user: { upsert: vi.fn(), findUnique: mockUserFindUnique, findMany: mockUserFindMany },
     eventCoHost: {
       create: mockEventCoHostCreate,
       findUnique: mockEventCoHostFindUnique,

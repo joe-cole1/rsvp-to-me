@@ -112,8 +112,8 @@
         "userNotFound": "User not found",
         "emailExists": "An account with this email already exists.",
         "phoneExists": "An account with this phone number already exists.",
-        "emailSent": "A verification link has been sent to your new email address. Please click it to confirm the change.",
-        "phoneSent": "A verification link has been sent to your new phone number. Please click it to confirm the change."
+        "emailSent": "If the email address is available, a verification link will be sent to confirm the change.",
+        "phoneSent": "If the phone number is available, a verification link will be sent to confirm the change."
       },
       "Common": {
         "title": "Something went wrong",
@@ -1687,7 +1687,13 @@
       "signingIn": "Signing in…",
       "signIn": "Sign in",
       "resend": "Resend",
-      "useDifferentIdentifier": "Use a different email or phone"
+      "useDifferentIdentifier": "Use a different email or phone",
+      "CoHost": {
+        "title": "Co-host invitation",
+        "confirm": "Accept this invitation to help manage the event.",
+        "wrongAccount": "Sign in with the email address that received this invitation. The invitation may also have expired.",
+        "accept": "Accept invitation"
+      }
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",

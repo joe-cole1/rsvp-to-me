@@ -166,7 +166,7 @@ describe("getSession", () => {
     delete process.env.INITIAL_ADMIN_EMAIL;
   });
 
-  it("returns session data from Redis cache on hit", async () => {
+  it("checks PostgreSQL even when Redis contains a session", async () => {
     mocks.mockIsRedisEnabled.mockReturnValue(true);
     mocks.mockCookiesGet.mockReturnValue({ value: "sealed-value" });
     mocks.mockUnsealData.mockResolvedValue({
@@ -183,13 +183,19 @@ describe("getSession", () => {
     };
     mocks.mockRedisGet.mockResolvedValue(JSON.stringify(cachedData));
 
+    mocks.mockSessionFindUnique.mockResolvedValue({
+      id: "sess-1",
+      userId: "user-1",
+      expiresAt: new Date(Date.now() + 600000),
+      user: { role: "HOST", email: "user@example.com", phone: null },
+    });
     const result = await getSession();
-    expect(result).toBeDefined();
-    expect(mocks.mockSessionFindUnique).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ userId: "user-1", sessionId: "sess-1", role: "HOST" });
+    expect(mocks.mockSessionFindUnique).toHaveBeenCalled();
     mocks.mockIsRedisEnabled.mockReturnValue(false);
   });
 
-  it("reads from DB and caches in Redis on cache miss", async () => {
+  it("reads authoritative database state independently of Redis", async () => {
     mocks.mockIsRedisEnabled.mockReturnValue(true);
     mocks.mockCookiesGet.mockReturnValue({ value: "sealed-value" });
     mocks.mockUnsealData.mockResolvedValue({
@@ -208,8 +214,8 @@ describe("getSession", () => {
     mocks.mockRedisSet.mockResolvedValue(true);
 
     const result = await getSession();
-    expect(result).toBeDefined();
-    expect(mocks.mockRedisSet).toHaveBeenCalled();
+    expect(result).toMatchObject({ userId: "user-1", sessionId: "sess-1", role: "HOST" });
+    expect(mocks.mockSessionFindUnique).toHaveBeenCalled();
     mocks.mockIsRedisEnabled.mockReturnValue(false);
   });
 

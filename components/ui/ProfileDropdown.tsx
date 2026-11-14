@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import Image from "next/image";
+import Image from "@/components/ui/UploadedImage";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useEffectsHidden, setEffectsHidden } from "@/lib/effect-visibility";
 import { APP_SHELL } from "@/lib/theme";
@@ -309,9 +309,11 @@ export default function ProfileDropdown({ user }: { user: DropdownUser | null })
                 aria-hidden="true"
                 style={{ height: "1px", backgroundColor: APP_SHELL.navBorder, margin: "6px 0" }}
               />
-              <MenuLink href="/auth/sign-out" onSelect={closeMenu}>
-                🚪 {t("signOut")}
-              </MenuLink>
+              <form action="/auth/sign-out" method="post">
+                <button type="submit" role="menuitem" style={menuItemStyle}>
+                  🚪 {t("signOut")}
+                </button>
+              </form>
             </>
           )}
         </div>

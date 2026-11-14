@@ -42,13 +42,18 @@ const {
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $executeRaw: vi.fn(),
+    $transaction: async (fn: (db: unknown) => Promise<unknown>) => {
+      const { db } = await import("@/lib/db");
+      return fn(db);
+    },
     event: { findUnique: mockEventFindUnique },
     user: { findUnique: vi.fn() },
     rSVP: { findFirst: mockRsvpFindFirst },
     comment: { findFirst: mockCommentFindFirst, create: mockCommentCreate },
     poll: { findUnique: mockPollFindUnique },
     pollOption: { findUnique: mockPollOptionFindUnique },
-    pollVote: { deleteMany: mockPollVoteDeleteMany, upsert: mockPollVoteUpsert },
+    pollVote: { deleteMany: mockPollVoteDeleteMany, create: mockPollVoteUpsert },
     potluckItem: { findUnique: mockPotluckItemFindUnique },
     potluckClaim: { create: mockPotluckClaimCreate },
     activityEvent: { create: vi.fn().mockResolvedValue({}) },
@@ -88,6 +93,8 @@ describe("SEC-24: guest actions authorize by secret editToken, not public rsvpId
     mockEventFindUnique.mockResolvedValue({
       slug: "party",
       commentsEnabled: true,
+      status: "PUBLISHED",
+      passwordHash: null,
       hostId: "host-1",
       visibility: "PUBLIC",
       coHosts: [],
@@ -110,6 +117,8 @@ describe("SEC-24: guest actions authorize by secret editToken, not public rsvpId
     mockEventFindUnique.mockResolvedValue({
       slug: "party",
       commentsEnabled: true,
+      status: "PUBLISHED",
+      passwordHash: null,
       hostId: "host-1",
       visibility: "PUBLIC",
       coHosts: [],
@@ -160,7 +169,12 @@ describe("SEC-24: guest actions authorize by secret editToken, not public rsvpId
     );
     expect(mockPollVoteUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { pollOptionId_voterName: { pollOptionId: "opt-1", voterName: "Alice" } },
+        data: expect.objectContaining({
+          pollOptionId: "opt-1",
+          voterName: "Alice",
+          rsvpId: "rsvp-alice",
+          userId: null,
+        }),
       })
     );
   });

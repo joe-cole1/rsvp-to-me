@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
+import { resolveEventAccess } from "@/lib/eventAccess";
 import { AddCommentSchema } from "@/lib/schemas";
 import { findApprovedGuestByToken } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
@@ -21,6 +22,9 @@ export async function addComment(rawInput: unknown, captchaToken?: string | null
   const event = await db.event.findUnique({
     where: { id: data.eventId },
     select: {
+      id: true,
+      status: true,
+      passwordHash: true,
       slug: true,
       commentsEnabled: true,
       hostId: true,
@@ -30,6 +34,14 @@ export async function addComment(rawInput: unknown, captchaToken?: string | null
   });
   if (!event?.commentsEnabled)
     return { success: false, error: await eventActionMessage("commentsDisabled") };
+
+  if (
+    event.status !== "PUBLISHED" ||
+    (await resolveEventAccess(event, event.slug, { token: data.guestEditToken ?? undefined }))
+      .decision !== "granted"
+  ) {
+    return { success: false, error: await eventActionMessage("forbidden") };
+  }
 
   // SEC-17: authorize the author and derive the stored display name server-side.
   // Mirrors the castVote / claimPotluckItem authorization shape — host/co-host/

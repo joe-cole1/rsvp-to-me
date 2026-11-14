@@ -20,7 +20,15 @@ import { areLibraryIconIdsKnown } from "@/lib/effect-catalog";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { tzLocalToUtc } from "@/lib/utils";
-import { SaveEventSettingsSchema, HttpUrlSchema } from "@/lib/schemas";
+import {
+  SaveEventSettingsSchema,
+  HttpUrlSchema,
+  EventFieldSchema,
+  EventLocationSchema,
+  EventThemeSchema,
+  EventDatesSchema,
+  UploadPathSchema,
+} from "@/lib/schemas";
 import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
 import { assertHost, assertHostOrCohost } from "./shared";
@@ -43,6 +51,7 @@ export async function saveEventField(
   value: string,
   captchaToken?: string | null
 ) {
+  ({ field, value } = EventFieldSchema.parse({ field, value }));
   if (!ALLOWED_FIELDS.has(field)) throw new Error(await eventActionMessage("fieldNotAllowed"));
   // SEC-36: the virtual link renders into a guest-facing <a href> — only
   // http(s) may be persisted (blocks javascript:/data: URIs).
@@ -85,6 +94,7 @@ export async function saveEventLocation(
 ) {
   // SEC-36: see saveEventField.
   const virtualUrl = data.virtualUrl ? HttpUrlSchema.parse(data.virtualUrl) : null;
+  data = EventLocationSchema.parse(data);
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("event_edit", captchaToken);
   await db.event.update({
@@ -161,6 +171,13 @@ export async function saveEventTheme(
 ) {
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("event_theme", captchaToken);
+  ({ baseTheme, gradientFrom, gradientTo, accentColor, cardOpacity } = EventThemeSchema.parse({
+    baseTheme,
+    gradientFrom,
+    gradientTo,
+    accentColor,
+    cardOpacity,
+  }));
   if (extras) await validateThemeExtras(extras);
   const effectIconIds = extras ? effectIconIdsFor(extras) : undefined;
   await db.eventTheme.upsert({
@@ -283,6 +300,7 @@ export async function saveEventDates(
 ) {
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("event_edit", captchaToken);
+  ({ startAt, endAt } = EventDatesSchema.parse({ startAt, endAt }));
   const evt = await db.event.findUnique({ where: { id: eventId }, select: { timezone: true } });
   if (!evt) throw new Error(await eventActionMessage("eventNotFound"));
   await db.event.update({
@@ -321,6 +339,7 @@ export async function saveEventDates(
 // ── Cover image ────────────────────────────────────────────────────────────────
 
 export async function saveCoverImage(eventId: string, url: string, captchaToken?: string | null) {
+  url = UploadPathSchema.parse(url);
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("image_assign", captchaToken);
   await db.eventTheme.upsert({

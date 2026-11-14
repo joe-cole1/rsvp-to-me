@@ -1,5 +1,7 @@
+vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn(async () => ({ success: true })) }));
 import "@/tests/helpers/english-request-locale";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ZodError } from "zod";
 
 const {
   mockEventFindUnique,
@@ -39,6 +41,7 @@ const {
 
 vi.mock("@/lib/db", () => {
   const dbClient = {
+    $executeRaw: vi.fn(),
     event: { findUnique: mockEventFindUnique },
     poll: {
       create: mockPollCreate,
@@ -55,7 +58,7 @@ vi.mock("@/lib/db", () => {
     },
     pollVote: {
       deleteMany: mockPollVoteDeleteMany,
-      upsert: mockPollVoteUpsert,
+      create: mockPollVoteUpsert,
     },
     rSVP: {
       findFirst: mockRsvpFindFirst,
@@ -167,9 +170,7 @@ describe("createPoll", () => {
   });
 
   it("throws validation error for empty question", async () => {
-    await expect(createPoll(EVENT_ID, "   ", [], false, true)).rejects.toThrow(
-      "Question cannot be empty"
-    );
+    await expect(createPoll(EVENT_ID, "   ", [], false, true)).rejects.toThrow(ZodError);
   });
 
   it("handles logActivity failure silently when creating a poll", async () => {
@@ -238,12 +239,7 @@ describe("castVote", () => {
     expect(result.success).toBe(true);
     expect(mockPollVoteUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          pollOptionId_voterName: {
-            pollOptionId: "option-1",
-            voterName: "Host Person",
-          },
-        },
+        data: expect.objectContaining({ pollOptionId: "option-1", userId: HOST_ID, rsvpId: null }),
       })
     );
   });
@@ -287,7 +283,12 @@ describe("castVote", () => {
     expect(result.success).toBe(true);
     expect(mockPollVoteUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { pollOptionId_voterName: { pollOptionId: "option-1", voterName: "Alice" } },
+        data: expect.objectContaining({
+          pollOptionId: "option-1",
+          voterName: "Alice",
+          rsvpId: "rsvp-1",
+          userId: null,
+        }),
       })
     );
   });
@@ -298,7 +299,7 @@ describe("castVote", () => {
     const result = await castVote("poll-1", "option-1", "Host Person", true);
     expect(result.success).toBe(true);
     expect(mockPollVoteDeleteMany).toHaveBeenCalledWith({
-      where: { pollId: "poll-1", voterName: "Host Person" },
+      where: { pollId: "poll-1", userId: HOST_ID, rsvpId: null },
     });
   });
 
@@ -317,7 +318,9 @@ describe("castVote", () => {
 
     const result = await castVote("poll-1", "option-1", "Host Person", true);
     expect(result.success).toBe(true);
-    expect(mockPollVoteDeleteMany).not.toHaveBeenCalled();
+    expect(mockPollVoteDeleteMany).toHaveBeenCalledWith({
+      where: { pollId: "poll-1", pollOptionId: "option-1", userId: HOST_ID, rsvpId: null },
+    });
   });
 
   it("deletes a vote when isVoted is false (retracting a vote)", async () => {
@@ -325,7 +328,7 @@ describe("castVote", () => {
     const result = await castVote("poll-1", "option-1", "Host Person", false);
     expect(result.success).toBe(true);
     expect(mockPollVoteDeleteMany).toHaveBeenCalledWith({
-      where: { pollOptionId: "option-1", voterName: "Host Person" },
+      where: { pollId: "poll-1", pollOptionId: "option-1", userId: HOST_ID, rsvpId: null },
     });
   });
 
@@ -468,9 +471,7 @@ describe("addPollOption", () => {
 
   it("throws validation error for empty option text", async () => {
     asHost();
-    await expect(addPollOption("poll-1", "   ", "Host Person")).rejects.toThrow(
-      "Option text cannot be empty"
-    );
+    await expect(addPollOption("poll-1", "   ", "Host Person")).rejects.toThrow(ZodError);
   });
   it("throws error if poll is locked", async () => {
     asHost();
@@ -562,7 +563,9 @@ describe("deletePollOption", () => {
   it("deletes option successfully when host deletes", async () => {
     const result = await deletePollOption("poll-1", "option-1");
     expect(result.success).toBe(true);
-    expect(mockPollOptionDelete).toHaveBeenCalledWith({ where: { id: "option-1" } });
+    expect(mockPollOptionDelete).toHaveBeenCalledWith({
+      where: { id: "option-1", pollId: "poll-1" },
+    });
   });
 
   it("throws Forbidden when unauthorized user tries to delete option", async () => {

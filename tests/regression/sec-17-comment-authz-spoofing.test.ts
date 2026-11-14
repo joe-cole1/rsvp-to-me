@@ -72,6 +72,8 @@ describe("SEC-17: comment authZ bypass + identity spoofing", () => {
     mockEventFindUnique.mockResolvedValue({
       slug: "secret-party",
       commentsEnabled: true,
+      status: "PUBLISHED",
+      passwordHash: null,
       hostId: "host-user",
       visibility: "PRIVATE",
       coHosts: [],
@@ -92,7 +94,7 @@ describe("SEC-17: comment authZ bypass + identity spoofing", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "You must be an approved guest to comment.",
+      error: "Forbidden",
     });
     expect(mockCommentCreate).not.toHaveBeenCalled();
   });
@@ -122,6 +124,8 @@ describe("SEC-17: comment authZ bypass + identity spoofing", () => {
     mockEventFindUnique.mockResolvedValue({
       slug: "open-party",
       commentsEnabled: true,
+      status: "PUBLISHED",
+      passwordHash: null,
       hostId: "host-user",
       visibility: "PUBLIC",
       coHosts: [],
@@ -166,3 +170,10 @@ describe("SEC-17: comment authZ bypass + identity spoofing", () => {
     expect(written.guestName).not.toBe("The Host");
   });
 });
+
+vi.mock("@/lib/session-user", () => ({
+  getSessionUser: async () => {
+    const session = await mockGetSession();
+    return session ? { id: session.userId, role: session.role } : null;
+  },
+}));

@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { canViewActivity } from "@/lib/guestList";
 import { getSession } from "@/lib/session";
 import { assertHostOrCohost } from "./shared";
 import type { DashboardEvent, DashboardInvite, DashboardActivity } from "./types";
@@ -243,13 +244,13 @@ export async function getDashboardActivity(eventIds: string[]): Promise<Dashboar
         { rsvps: { some: { userId: session.userId } } },
       ],
     },
-    select: { id: true },
+    select: { id: true, hostId: true, guestListVis: true, coHosts: { select: { userId: true } } },
   });
 
   const authorisedIds = authorised.map((e) => e.id);
   if (authorisedIds.length === 0) return [];
 
-  return db.activityEvent.findMany({
+  const activities = await db.activityEvent.findMany({
     where: {
       eventId: { in: authorisedIds },
     },
@@ -264,6 +265,16 @@ export async function getDashboardActivity(eventIds: string[]): Promise<Dashboar
     orderBy: {
       createdAt: "desc",
     },
+  });
+  return activities.filter((activity) => {
+    const event = authorised.find((candidate) => candidate.id === activity.eventId)!;
+    return canViewActivity(activity.type, event.guestListVis, {
+      isHost:
+        event.hostId === session.userId ||
+        event.coHosts.some((host) => host.userId === session.userId),
+      isLoggedInGuest: true,
+      hasValidToken: false,
+    });
   });
 }
 

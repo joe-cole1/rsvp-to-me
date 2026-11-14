@@ -1,3 +1,4 @@
+vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn(async () => ({ success: true })) }));
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the request-locale boundary; translation rendering remains the real English ICU catalog.
@@ -23,8 +24,8 @@ const {
   mockMagicTokenCreate: vi.fn(),
   mockMagicTokenUpdateMany: vi.fn(),
   mockGetSession: vi.fn(),
-  mockSendMagicLinkEmail: vi.fn(),
-  mockSendMagicLinkSms: vi.fn(),
+  mockSendMagicLinkEmail: vi.fn().mockResolvedValue(undefined),
+  mockSendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
   mockUserFindFirst: vi.fn(),
   mockCancelUserDeletion: vi.fn(),
   mockScheduleUserDeletion: vi.fn(),
@@ -85,7 +86,7 @@ describe("app/actions/profile.ts", () => {
 
       const res = await updateProfileSettings({
         name: "New Name",
-        avatarUrl: "/uploads/avatar.jpg",
+        avatarUrl: "/api/uploads/12345678-1234-4123-8123-123456789abc.jpg",
       });
 
       expect(res.success).toBe(true);
@@ -94,7 +95,7 @@ describe("app/actions/profile.ts", () => {
           where: { id: USER_ID },
           data: {
             name: "New Name",
-            avatarUrl: "/uploads/avatar.jpg",
+            avatarUrl: "/api/uploads/12345678-1234-4123-8123-123456789abc.jpg",
           },
         })
       );
@@ -123,7 +124,7 @@ describe("app/actions/profile.ts", () => {
       });
 
       expect(res.success).toBe(true);
-      expect(res.messages[0]).toContain("verification link has been sent to your new email");
+      expect(res.messages[0]).toContain("email address is available");
       expect(mockMagicTokenCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -185,7 +186,7 @@ describe("app/actions/profile.ts", () => {
       });
 
       expect(res.success).toBe(true);
-      expect(res.messages[0]).toContain("verification link has been sent to your new phone");
+      expect(res.messages[0]).toContain("phone number is available");
       expect(mockMagicTokenCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -197,7 +198,7 @@ describe("app/actions/profile.ts", () => {
       );
     });
 
-    it("returns error when new email is already taken by another account", async () => {
+    it("returns the same confirmation without sending to a taken email", async () => {
       mockUserFindUnique.mockImplementation(
         async (query: { where: { id?: string; email?: string; phone?: string } }) => {
           if (query?.where?.id === USER_ID) {
@@ -215,15 +216,18 @@ describe("app/actions/profile.ts", () => {
         }
       );
 
-      await expect(
-        updateProfileSettings({
-          name: "Name",
-          email: "taken@example.com",
-        })
-      ).rejects.toThrow("An account with this email already exists.");
+      expect(
+        (
+          await updateProfileSettings({
+            name: "Name",
+            email: "taken@example.com",
+          })
+        ).success
+      ).toBe(true);
+      expect(mockMagicTokenCreate).not.toHaveBeenCalled();
     });
 
-    it("returns error when new phone is already taken by another account", async () => {
+    it("returns the same confirmation without sending to a taken phone", async () => {
       mockUserFindUnique.mockImplementation(
         async (query: { where: { id?: string; email?: string; phone?: string } }) => {
           if (query?.where?.id === USER_ID) {
@@ -241,12 +245,15 @@ describe("app/actions/profile.ts", () => {
         }
       );
 
-      await expect(
-        updateProfileSettings({
-          name: "Name",
-          phone: "+15559876543",
-        })
-      ).rejects.toThrow("An account with this phone number already exists.");
+      expect(
+        (
+          await updateProfileSettings({
+            name: "Name",
+            phone: "+15559876543",
+          })
+        ).success
+      ).toBe(true);
+      expect(mockMagicTokenCreate).not.toHaveBeenCalled();
     });
   });
 

@@ -229,7 +229,7 @@ export function PotluckPanel({
                             variant="destructive"
                             size="sm"
                             type="button"
-                            onClick={() => handleUnclaimItem(item.id, claim.guestName)}
+                            onClick={() => handleUnclaimItem(item.id, claim.id)}
                             title={translate("removeClaim")}
                           >
                             {translate("unclaim")}

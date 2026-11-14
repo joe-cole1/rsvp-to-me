@@ -133,7 +133,7 @@ export async function registerHostAction(
   const result = await registerHost(email, name, inviteCode ?? "");
 
   if (result.success) {
-    const challenge = await createLoginChallenge(email);
+    const challenge = result.challenge;
     if (challenge) {
       const recipient = await db.user.findUnique({
         where: loginIdentifierWhere(email),
@@ -147,7 +147,7 @@ export async function registerHostAction(
     }
   }
 
-  return result;
+  return { success: result.success, ...(result.error ? { error: result.error } : {}) };
 }
 
 // The caller navigates with safeRedirectPath(); echoing a client-supplied

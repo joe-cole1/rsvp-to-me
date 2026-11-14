@@ -102,6 +102,7 @@ export type EventData = Partial<GuestRsvpDisplayFields> & {
     claims: {
       id: string;
       potluckItemId: string;
+      isMine?: boolean;
       guestName: string;
       quantity: number;
       createdAt: Date;
@@ -132,6 +133,7 @@ export type EventData = Partial<GuestRsvpDisplayFields> & {
       votes: {
         id: string;
         voterName: string;
+        isMine?: boolean;
         createdAt: Date;
       }[];
     }[];

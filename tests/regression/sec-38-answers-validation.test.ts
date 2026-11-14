@@ -79,6 +79,11 @@ import { addRSVP, updateRSVP } from "@/app/actions/event/rsvp";
 import { AddRsvpSchema } from "@/lib/schemas";
 
 const EVENT = {
+  status: "PUBLISHED",
+  visibility: "PUBLIC",
+  passwordHash: null,
+  hostId: "host",
+  coHosts: [],
   id: "evt-1",
   slug: "party",
   title: "Party",

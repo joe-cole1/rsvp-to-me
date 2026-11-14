@@ -11,7 +11,7 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db", () => ({
   db: {
-    magicToken: { findUnique: m.token, update: vi.fn() },
+    magicToken: { findUnique: m.token, updateMany: vi.fn(async () => ({ count: 1 })) },
     user: { findUnique: m.user, findFirst: async () => null, update: m.update },
     rSVP: { updateMany: m.rsvps },
   },
