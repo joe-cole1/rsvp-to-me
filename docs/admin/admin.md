@@ -237,8 +237,27 @@ Pick a schedule from the preset dropdown: **Disabled**, **Every hour**, **Every 
 ### Manual Actions
 
 - **Create Backup Now:** trigger an immediate `pg_dump` snapshot.
-- **Download:** stream any archive to your browser via a secure, admin-authenticated route.
+- **Download:** stream an ordinary backup archive to your browser via a secure, admin-authenticated route.
 - **Delete:** permanently remove a backup file from disk.
+
+### Migration snapshots
+
+Migration snapshots under `data/backups/pre-migration/` use a separate fixed
+policy: keep seven startup snapshots and seven secret-recovery snapshots.
+Secret conversion and selective rollback share the recovery pool; old
+unclassified `pre-migration_*.sql` files also count as recovery snapshots.
+Routine startups cannot rotate recovery points out of that pool. Rotation
+runs only after a new dump succeeds; a failed dump leaves existing snapshots
+untouched. Incomplete `.partial` files are never listed or counted as completed
+backups. Retention failures log a warning and retain the successful snapshot;
+check storage permissions if disk usage keeps growing.
+
+The Admin Backups table shows their filenames, dates, sizes and type as read-only
+metadata. Browser download/delete controls apply only to ordinary backups.
+Migration snapshots may contain legacy plaintext credentials: protect them as
+secrets, keep the original encryption key, and copy any recovery point you need
+long term to protected storage before retention replaces it. Server operators
+can manage those copies directly on disk after verifying recovery needs.
 
 ---
 

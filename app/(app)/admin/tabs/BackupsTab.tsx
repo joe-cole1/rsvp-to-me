@@ -1,4 +1,5 @@
 "use client";
+import type { CSSProperties } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
@@ -233,15 +234,29 @@ export function BackupsTab({
           </h3>
           <p style={{ color: APP_SHELL.textSecondary, fontSize: "13px", marginTop: "4px" }}>
             {tr("listOfStoredBackupsOnThisServer")}
+            {backups.some((backup) => backup.kind) && <> {tr("migrationSnapshotsHint")}</>}
           </p>
         </div>
 
         <div style={{ height: "1px", backgroundColor: APP_SHELL.navBorder }} />
 
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-            <thead>
+        <div
+          className="rsvp-table-wrap"
+          style={
+            {
+              "--rsvp-table-label": T.textSecondary,
+              "--rsvp-table-rule": APP_SHELL.navBorder,
+            } as CSSProperties
+          }
+        >
+          <table
+            role="table"
+            className="rsvp-table"
+            style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}
+          >
+            <thead role="rowgroup">
               <tr
+                role="row"
                 style={{
                   borderBottom: `1px solid ${APP_SHELL.navBorder}`,
                   color: APP_SHELL.textSecondary,
@@ -249,15 +264,23 @@ export function BackupsTab({
                   fontWeight: 700,
                 }}
               >
-                <th style={{ padding: "12px" }}>{tr("filename")}</th>
-                <th style={{ padding: "12px" }}>{tr("createdAt")}</th>
-                <th style={{ padding: "12px" }}>{tr("fileSize")}</th>
-                <th style={{ padding: "12px", textAlign: "right" }}>{tr("actions2")}</th>
+                <th role="columnheader" style={{ padding: "12px" }}>
+                  {tr("filename")}
+                </th>
+                <th role="columnheader" style={{ padding: "12px" }}>
+                  {tr("createdAt")}
+                </th>
+                <th role="columnheader" style={{ padding: "12px" }}>
+                  {tr("fileSize")}
+                </th>
+                <th role="columnheader" style={{ padding: "12px", textAlign: "right" }}>
+                  {tr("actions2")}
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {backups.length === 0 ? (
-                <tr>
+                <tr role="row">
                   <td
                     colSpan={4}
                     style={{
@@ -272,6 +295,7 @@ export function BackupsTab({
               ) : (
                 backups.map((b) => (
                   <tr
+                    role="row"
                     key={b.filename}
                     style={{
                       borderBottom: `1px solid ${APP_SHELL.navBorder}`,
@@ -279,40 +303,62 @@ export function BackupsTab({
                     }}
                   >
                     <td
+                      role="cell"
+                      data-label={tr("filename")}
                       style={{
                         padding: "14px 12px",
                         fontFamily: "monospace",
+                        overflowWrap: "anywhere",
                         color: APP_SHELL.textPrimary,
                       }}
                     >
                       {b.filename}
                     </td>
-                    <td style={{ padding: "14px 12px", color: APP_SHELL.textSecondary }}>
+                    <td
+                      role="cell"
+                      data-label={tr("createdAt")}
+                      style={{ padding: "14px 12px", color: APP_SHELL.textSecondary }}
+                    >
                       {new Date(b.createdAt).toLocaleString(locale)}
                     </td>
-                    <td style={{ padding: "14px 12px", color: APP_SHELL.textSecondary }}>
+                    <td
+                      role="cell"
+                      data-label={tr("fileSize")}
+                      style={{ padding: "14px 12px", color: APP_SHELL.textSecondary }}
+                    >
                       {b.sizeBytes >= 1024 * 1024
                         ? `${(b.sizeBytes / (1024 * 1024)).toFixed(2)} MB`
                         : `${(b.sizeBytes / 1024).toFixed(2)} KB`}
                     </td>
-                    <td style={{ padding: "14px 12px", textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "8px" }}>
-                        <a
-                          href={`/api/admin/backups/${b.filename}`}
-                          download
-                          {...buttonProps(T, { variant: "secondary", size: "sm" })}
-                        >
-                          {tr("download")}
-                        </a>
-                        <Button
-                          theme={T}
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteBackup(b.filename)}
-                        >
-                          {tr("delete")}
-                        </Button>
-                      </div>
+                    <td
+                      role="cell"
+                      className="rsvp-table-end"
+                      data-label={tr("actions2")}
+                      style={{ padding: "14px 12px", textAlign: "right" }}
+                    >
+                      {b.kind ? (
+                        <span style={{ color: T.textSecondary }}>
+                          {tr(b.kind === "schema" ? "startupSnapshot" : "secretRecoverySnapshot")}
+                        </span>
+                      ) : (
+                        <div style={{ display: "inline-flex", gap: "8px" }}>
+                          <a
+                            href={`/api/admin/backups/${b.filename}`}
+                            download
+                            {...buttonProps(T, { variant: "secondary", size: "sm" })}
+                          >
+                            {tr("download")}
+                          </a>
+                          <Button
+                            theme={T}
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteBackup(b.filename)}
+                          >
+                            {tr("delete")}
+                          </Button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

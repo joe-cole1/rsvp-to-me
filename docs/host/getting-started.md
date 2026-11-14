@@ -71,3 +71,7 @@ Stuck on something? Start with the [Host FAQ & Troubleshooting](faq.md).
 Use the language button (a 文A icon with the current language code, such as EN) beside your profile in the upper-right corner on any page, including sign-in. Signed-in choices are saved to your account and this browser; signed-out choices are saved only in this browser for one year. Your saved account preference wins at sign-in. An account without a saved choice adopts an explicitly selected browser language only after successful sign-in.
 
 English is the default for missing translations. German is available as **Deutsch** and Spanish as **Español** in the language menu. Your language changes the interface and default system messages, including email and SMS, without translating event titles, descriptions, guest notes, or other content people write. Dates still use the event's timezone. Unknown email/SMS recipients receive English, while host-written messages and administrator template overrides stay as written. SMS reply commands remain `YES`, `NO`, and `MAYBE`.
+
+Administrators can also see startup and secret-recovery snapshot metadata in the
+Backups tab. Migration recovery files are managed on the server; ask your site
+administrator for recovery help. Hosts and guests have no additional upgrade steps.

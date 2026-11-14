@@ -80,6 +80,8 @@ export NEXT_PUBLIC_APP_URL="http://localhost:3000"
 export HOST_INVITE_CODE="ci-test"
 export EMAIL_FROM="ci@example.com"
 export OPEN_REGISTRATION="true"
+# Override shell/.env provider keys; the enabled case has its own isolated run.
+export TURNSTILE_SITE_KEY="" TURNSTILE_SECRET_KEY=""
 
 step() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
 ok()   { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
@@ -231,6 +233,9 @@ net_retry npx playwright install chromium >/dev/null
 
 step "E2E — Playwright tests"
 PLAYWRIGHT_BASE_URL="http://localhost:${E2E_PORT}" npm run test:e2e -- --output "$E2E_OUTPUT_DIR"
+
+step "E2E — enabled Turnstile CSP (stubbed, dummy keys)"
+bash scripts/check-turnstile-csp.sh
 
 record_pass full
 ok "PREFLIGHT PASSED — full CI parity ✅"

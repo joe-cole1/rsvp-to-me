@@ -3,6 +3,7 @@ import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { db } from "./db";
+import { listPreMigrationBackups } from "../scripts/pre-migration-backups.cjs";
 
 const execFileAsync = promisify(execFile);
 const BACKUPS_DIR = path.join(process.cwd(), "data", "backups");
@@ -11,6 +12,7 @@ export interface BackupFile {
   filename: string;
   sizeBytes: number;
   createdAt: Date;
+  kind?: "schema" | "recovery";
 }
 
 export async function getBackupKeepCount(): Promise<number> {
@@ -49,6 +51,15 @@ export async function listBackups(): Promise<BackupFile[]> {
       }
     }
 
+    // Metadata only: these snapshots may contain legacy plaintext secrets.
+    // The download/delete routes remain restricted to the parent directory.
+    for (const snapshot of listPreMigrationBackups()) {
+      backups.push({
+        ...snapshot,
+        kind: snapshot.kind === "schema" ? "schema" : "recovery",
+        filename: `pre-migration/${snapshot.filename}`,
+      });
+    }
     return backups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   } catch (err) {
     console.error("[backup] Failed to list backups:", err);
@@ -113,7 +124,7 @@ async function rotateBackups(): Promise<void> {
   const keepCount = await getBackupKeepCount();
   console.log("[backup] Rotating backups. Keeping last %d files...", keepCount);
 
-  const list = await listBackups();
+  const list = (await listBackups()).filter((backup) => !backup.kind);
   if (list.length <= keepCount) return;
 
   const toDelete = list.slice(keepCount);
@@ -131,6 +142,7 @@ async function rotateBackups(): Promise<void> {
 }
 
 export async function deleteBackup(filename: string): Promise<boolean> {
+  if (filename !== path.basename(filename) || filename.startsWith("pre-migration")) return false;
   const safeFilename = path.basename(filename);
   const filePath = path.join(BACKUPS_DIR, safeFilename);
 

@@ -43,6 +43,14 @@ also excludes generated fixture tests.
 
 ## Index
 
+#851 follow-up (`01a1d9ed`) adds `issue-851-turnstile-gate.test.ts` for both
+blocking CSP modes, `issue-851-migration-backups.test.ts` for private atomic dumps,
+retention after success, legacy recovery and path safeguards,
+`issue-851-backup-visibility.test.tsx` for read-only metadata, and
+`issue-851-release-gate.test.ts` for reusable validation prerequisites, event-SHA
+checks, owner guards and both architectures. The enabled browser behavior is
+exercised by `tests/e2e/csp-turnstile.e2e.ts` in CI and full preflight.
+
 Task `01a1d8f5` covers the CI/sample-data portion of #851 in
 `issue-851-ci-parity.test.ts` and `issue-851-seed-defaults.test.ts`: CI checks the
 submitted tree with read-only permissions, both gates share format checks and

@@ -538,7 +538,12 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 - **Default**: `7`
 - **Type**: Number string
 
-**What it does:** Sets the rotation retention limit. The application will keep only this number of backups, automatically deleting the oldest file when a new backup completes.
+**What it does:** Sets the rotation retention limit for scheduled and manual
+`backup_*.sql` files. The application deletes older ordinary backups only after
+a new backup completes. This setting does not control migration snapshots:
+startup keeps seven schema snapshots and seven secret-recovery snapshots in
+`data/backups/pre-migration/`, independently of scheduled/manual backup rotation.
+See [Database Backups](admin.md#database-backups) for recovery and visibility.
 
 _Note: This setting can also be configured and updated dynamically at runtime via the **Backups** tab in the Admin Panel._
 

@@ -318,8 +318,12 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 
 - Uploads enter through `app/api/upload/route.ts` and are served only through
   `app/api/uploads/[filename]/route.ts`.
-- `lib/backup.ts` and `app/api/admin/backups/[filename]/route.ts` own database
-  backup creation/listing/download behavior.
+- `lib/backup.ts` and `app/api/admin/backups/[filename]/route.ts` own ordinary
+  backup creation/listing/download behavior. `scripts/pre-migration-backups.cjs`
+  shares startup retention and metadata listing between migration tooling and
+  the admin list: seven schema snapshots and seven secret-recovery snapshots,
+  rotated only after a successful dump. Migration snapshots are read-only in
+  the admin UI; download/delete routes do not accept their nested identifiers.
 - `instrumentation.ts` starts the in-process scheduler only in the Node runtime.
 - `lib/cron-scheduler.ts` coordinates reminders, account deletion, rate-limit
   cleanup, and scheduled backups with Redis or database locks.
@@ -355,7 +359,9 @@ the full preflight.
 | `worker/wrangler.toml`         | Cloudflare Worker deployment configuration.                                                                             |
 
 `.github/workflows/release.yml` publishes GHCR images for owner-published
-releases. Both the initial actor and the rerun initiator must be the repository
+releases. It first requires the reusable CI and native AMD64/ARM64 container-QC
+workflows from the same commit. Every checkout verifies the event SHA; unsuccessful
+validation blocks publication. Both the initial actor and the rerun initiator must be the repository
 owner; package-write permission is scoped to that guarded publishing job.
 Repository Actions execution policies are configured separately from this YAML.
 `scripts/release-image-tags.cjs` validates release names and selects exact-version
@@ -394,7 +400,10 @@ and preflight. `scripts/compose-service-image.cjs` resolves test service images
 from `docker-compose.yml` without expanding environment values or including the
 WSL override. CI has read-only repository permissions; it never rewrites or
 pushes the submitted tree. CI and full preflight explicitly seed E2E fixtures
-and use the same no-retry Playwright policy.
+and use the same no-retry Playwright policy. Both run a CAPTCHA-disabled suite
+then `scripts/check-turnstile-csp.sh`, which starts an isolated production server
+on port 3003 with dummy keys for the blocking enabled nonce spec. Provider script
+requests are stubbed in the browser; server-side Siteverify is never invoked.
 
 ## Common change routing
 

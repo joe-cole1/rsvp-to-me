@@ -365,6 +365,16 @@ fixtures explicitly before E2E; ordinary development and container startup
 honor `SEED_TEST_DATA` from `.env`. Set a non-empty `HOST_INVITE_CODE` before
 running `scripts/dev-sync.sh` or seeding; no default invite code is installed.
 
+Full preflight and CI also run `bash scripts/check-turnstile-csp.sh` after the
+CAPTCHA-disabled suite. The blocking enabled-Turnstile nonce check starts an
+isolated production server on port 3003 with dummy keys and intercepts the browser
+API script. It requires no production credentials and makes no live provider
+verification calls. Port 3003 must be free. Fast preflight skips both E2E runs.
+
+The release workflow reuses CI and native AMD64/ARM64 container QC as prerequisite
+jobs for the released commit, with checkout-SHA verification before validation
+and publication. Manual runs, event-default checkout and all caches remain.
+
 After changing branches, pulling, or running preflight, use
 `scripts/dev-restart.sh`. It starts normally when port 3000 is empty, replaces
 an existing Next.js server, and refuses to stop a different service. Socket

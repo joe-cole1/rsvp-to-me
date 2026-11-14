@@ -14,6 +14,9 @@ export async function GET(request: Request, props: { params: Promise<{ filename:
 
   const { filename } = await props.params;
   const safeFilename = path.basename(filename);
+  if (filename !== safeFilename || filename.startsWith("pre-migration")) {
+    return new NextResponse("Backup file not found", { status: 404 });
+  }
   const filePath = path.join(process.cwd(), "data", "backups", safeFilename);
 
   if (!fs.existsSync(filePath)) {

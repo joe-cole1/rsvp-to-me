@@ -1,116 +1,13 @@
-import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
-import { PUBLIC_EVENT_SLUG, readAuthCookies } from "./fixtures";
-
-type CspWindow = Window & {
-  __cspViolations?: string[];
-  __sec9NavigationMarker?: string;
-  __sec9InjectedScriptRan?: boolean;
-  turnstile?: { render?: unknown };
-};
-
-function getNonce(policy: string): string {
-  const matches = [...policy.matchAll(/'nonce-([^']+)'/g)];
-  expect(matches).toHaveLength(1);
-  return matches[0][1];
-}
-
-async function recordCspViolations(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const cspWindow = window as CspWindow;
-    cspWindow.__cspViolations = [];
-    cspWindow.__sec9InjectedScriptRan = false;
-    document.addEventListener("securitypolicyviolation", (event) => {
-      cspWindow.__cspViolations?.push(event.violatedDirective);
-    });
-  });
-}
-
-async function cspViolations(page: Page): Promise<string[]> {
-  return page.evaluate(() => (window as CspWindow).__cspViolations ?? []);
-}
-
-async function waitForReactHandlers(locator: Locator, names: readonly string[]): Promise<void> {
-  await expect
-    .poll(() =>
-      locator.evaluate(
-        (element, handlerNames: string[]) => {
-          const propsKey = Object.keys(element).find((key) => key.startsWith("__reactProps$"));
-          const props = propsKey
-            ? (element as unknown as Record<string, unknown>)[propsKey]
-            : undefined;
-          if (!props || typeof props !== "object") {
-            return false;
-          }
-
-          const reactProps = props as Record<string, unknown>;
-          return handlerNames.every((name) => typeof reactProps[name] === "function");
-        },
-        [...names]
-      )
-    )
-    .toBe(true);
-}
-
-async function assertNonceDocument(
-  page: Page,
-  pathname: string,
-  expectedStatus = 200
-): Promise<{ nonce: string; html: string }> {
-  const response = await page.goto(pathname, { waitUntil: "domcontentloaded" });
-  expect(response).not.toBeNull();
-  expect(response!.status()).toBe(expectedStatus);
-
-  const policy = response!.headers()["content-security-policy"];
-  expect(policy).toBeTruthy();
-  const policyHeaders = (await response!.headersArray()).filter(
-    (header) => header.name.toLowerCase() === "content-security-policy"
-  );
-  expect(policyHeaders).toHaveLength(1);
-  const scriptDirective = policy!
-    .split("; ")
-    .find((directive) => directive.startsWith("script-src"));
-  expect(scriptDirective).toBeTruthy();
-  expect(scriptDirective).not.toContain("'unsafe-inline'");
-  expect(scriptDirective).toContain("'strict-dynamic'");
-
-  const nonce = getNonce(policy);
-  const html = await response!.text();
-  const initialScripts = [...html.matchAll(/<script\b[^>]*>/gi)].map((match) => match[0]);
-  expect(initialScripts.length).toBeGreaterThan(0);
-  expect(initialScripts.every((script) => script.includes(`nonce="${nonce}"`))).toBe(true);
-
-  const inlineScripts = await page.locator("script").evaluateAll((elements) =>
-    elements
-      .map((element) => ({
-        nonce: (element as HTMLScriptElement).nonce,
-        source: element.getAttribute("src"),
-      }))
-      .filter((script) => script.source === null)
-  );
-  expect(inlineScripts.every((script) => script.nonce === nonce)).toBe(true);
-
-  expect(html).toContain(`nonce="${nonce}"`);
-  return { nonce, html };
-}
-
-async function stubTurnstileApi(page: Page): Promise<void> {
-  await page.route(
-    "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
-    async (route) => {
-      await route.fulfill({
-        contentType: "application/javascript",
-        body: `window.turnstile = {
-          render: function (_container, options) {
-            window.setTimeout(function () { options.callback("e2e-turnstile-token"); }, 0);
-            return "e2e-widget";
-          },
-          execute: function () {},
-          remove: function () {}
-        };`,
-      });
-    }
-  );
-}
+import { expect, test, type Route } from "@playwright/test";
+import { PUBLIC_EVENT_SLUG } from "./fixtures";
+import {
+  assertNonceDocument,
+  cspViolations,
+  getNonce,
+  recordCspViolations,
+  waitForReactHandlers,
+  type CspWindow,
+} from "./csp-helpers";
 
 test.describe("CSP nonce enforcement", () => {
   test("uses one request nonce for framework and inline scripts on public routes", async ({
@@ -237,15 +134,8 @@ test.describe("CSP nonce enforcement", () => {
   test("keeps the existing Server Action refresh working when CAPTCHA is disabled", async ({
     page,
   }) => {
-    test.info().annotations.push({
-      type: "supplemental",
-      description:
-        "Requires CAPTCHA to be disabled because live Siteverify is never called by E2E.",
-    });
-    test.skip(
-      !!process.env.TURNSTILE_SITE_KEY || !!process.env.TURNSTILE_SECRET_KEY,
-      "Server Action CAPTCHA flow is covered only when Turnstile is disabled"
-    );
+    expect(process.env.TURNSTILE_SITE_KEY || "").toBe("");
+    expect(process.env.TURNSTILE_SECRET_KEY || "").toBe("");
 
     await recordCspViolations(page);
     await page.goto("/auth/sign-in");
@@ -257,76 +147,6 @@ test.describe("CSP nonce enforcement", () => {
     await expect(textbox).toHaveValue("csp-e2e@test.internal");
     await page.getByRole("button", { name: /send/i }).click();
     await expect(page.getByText(/check your/i)).toBeVisible({ timeout: 10_000 });
-    expect(await cspViolations(page)).toEqual([]);
-  });
-
-  test("loads the enabled Turnstile Script with the document nonce", async ({ page }) => {
-    test.info().annotations.push({
-      type: "supplemental",
-      description: "Runs when both dummy Turnstile keys are supplied by the production validator.",
-    });
-    test.skip(
-      !process.env.TURNSTILE_SITE_KEY || !process.env.TURNSTILE_SECRET_KEY,
-      "Turnstile is disabled for this environment"
-    );
-
-    await stubTurnstileApi(page);
-    await recordCspViolations(page);
-    const assertEnabledPath = async (pathname: string) => {
-      const { nonce } = await assertNonceDocument(page, pathname);
-
-      await expect
-        .poll(() =>
-          page.evaluate(() => typeof (window as CspWindow).turnstile?.render === "function")
-        )
-        .toBe(true);
-
-      const turnstileScript = page.locator(
-        'script[src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"]'
-      );
-      await expect
-        .poll(() => turnstileScript.evaluate((script) => (script as HTMLScriptElement).nonce))
-        .toBe(nonce);
-      expect(await cspViolations(page)).toEqual([]);
-    };
-
-    await assertEnabledPath("/auth/sign-in");
-    await assertEnabledPath("/auth/register");
-    await assertEnabledPath(`/e/${PUBLIC_EVENT_SLUG}`);
-    await page.context().addCookies(readAuthCookies());
-    await assertEnabledPath("/dashboard");
-
-    await page.context().clearCookies();
-    await assertNonceDocument(page, "/");
-    expect(await page.evaluate(() => typeof (window as CspWindow).turnstile)).toBe("undefined");
-    const eventLink = page
-      .locator(`a[href="/e/${PUBLIC_EVENT_SLUG}"]`)
-      .filter({ hasText: "E2E Test Event" });
-    await expect(eventLink).toHaveCount(1);
-    await expect(eventLink).toBeVisible();
-    await waitForReactHandlers(eventLink, ["onClick"]);
-    await page.evaluate(() => {
-      (window as CspWindow).__sec9NavigationMarker = "client-navigation";
-    });
-    await eventLink.click();
-    await expect(page).toHaveURL(new RegExp(`/e/${PUBLIC_EVENT_SLUG}$`));
-    expect(await page.evaluate(() => (window as CspWindow).__sec9NavigationMarker)).toBe(
-      "client-navigation"
-    );
-
-    // Next's trusted dynamic loader may receive a new nonce during an RSC transition;
-    // strict-dynamic authorizes that loader without requiring the initial document nonce.
-    await expect
-      .poll(() =>
-        page.evaluate(() => typeof (window as CspWindow).turnstile?.render === "function")
-      )
-      .toBe(true);
-    const turnstileScript = page.locator(
-      'script[src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"]'
-    );
-    await expect
-      .poll(() => turnstileScript.evaluate((script) => (script as HTMLScriptElement).nonce))
-      .not.toBe("");
     expect(await cspViolations(page)).toEqual([]);
   });
 });

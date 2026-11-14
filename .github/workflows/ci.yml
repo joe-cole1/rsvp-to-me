@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches: [main]
@@ -9,7 +10,7 @@ on:
 
 # Prevents concurrent runs from fighting over cache locks and wasting runner time
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -17,6 +18,9 @@ permissions:
 
 jobs:
   ci:
+    env:
+      TURNSTILE_SITE_KEY: ""
+      TURNSTILE_SECRET_KEY: ""
     runs-on: ubuntu-latest
 
     services:
@@ -38,6 +42,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Verify checked-out event commit
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -195,6 +204,15 @@ jobs:
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+      - name: Enabled Turnstile CSP (stubbed, dummy keys)
+        run: bash scripts/check-turnstile-csp.sh
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
+          REDIS_URL: redis://localhost:6379
+          SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
+          HOST_INVITE_CODE: ci-test
+          EMAIL_FROM: ci@example.com
 
       - name: Upload Playwright report
         if: always()

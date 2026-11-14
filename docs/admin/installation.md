@@ -291,7 +291,10 @@ With this panel, you can:
 - **Configure automated backups:** Input a cron schedule (e.g. `0 0 * * *` for daily backups at midnight) to run backups automatically.
 - **Adjust rotation limits:** Configure how many backups to keep (e.g. 7) before older files are deleted.
 - **Trigger manual backups:** Immediately execute `pg_dump` to create a backup.
-- **Download & Delete backups:** View all archives, download them directly, or delete them from the server.
+- **Download & Delete backups:** Download or delete ordinary scheduled/manual archives.
+- **Migration snapshots:** View read-only metadata for startup and secret-recovery
+  snapshots. These use separate fixed retention pools of seven files each and
+  can contain legacy plaintext credentials. See [Database Backups](admin.md#database-backups).
 
 ### Manual Backups
 

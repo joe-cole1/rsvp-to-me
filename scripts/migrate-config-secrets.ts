@@ -13,7 +13,7 @@ async function main() {
   const { db } = await import("../lib/db");
   disconnect = () => db.$disconnect();
   const summary = await migrateConfigSecrets(db, mode, async () => {
-    if (!runPreMigrationBackup(process.env.DATABASE_URL || "")) {
+    if (!runPreMigrationBackup(process.env.DATABASE_URL || "", "secrets")) {
       throw new ConfigSecretMigrationError(
         "Backup failed; no secret conversion was committed. Check backup storage and pg_dump availability, then retry."
       );

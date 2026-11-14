@@ -45,11 +45,7 @@ export interface AdminInviteCode {
   createdAt: Date;
 }
 
-export interface BackupFile {
-  filename: string;
-  sizeBytes: number;
-  createdAt: Date;
-}
+export type { BackupFile } from "@/lib/backup";
 
 export interface BackupConfig {
   backup_schedule: string;
