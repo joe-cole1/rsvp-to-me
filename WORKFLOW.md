@@ -136,8 +136,18 @@ PR-created caches to that PR's merge ref. Both gates run
 image from `docker-compose.yml` through `scripts/compose-service-image.cjs`,
 without loading local environment values or the development override; update
 the deployment image there rather than adding a separate test image pin.
-The supplemental enabled-Turnstile CSP test still requires both provider keys
-and is skipped when they are unset; this is not covered by the default gate.
+Both gates first run E2E with CAPTCHA explicitly disabled, then run
+`bash scripts/check-turnstile-csp.sh`. This blocking second pass starts a fresh
+production server on port 3003 with dummy keys and runs only the enabled nonce
+spec. Browser requests to Turnstile are intercepted locally; no provider keys
+or live Siteverify calls are needed. An occupied port fails instead of reusing
+another server. Fast preflight skips both E2E passes.
+
+Release publication calls these same CI and container-QC workflows as required
+jobs, using the release event's commit. Every validation checkout and the
+publishing checkout must match `github.sha`. Failed, skipped or missing
+validation blocks image publication. Both native architectures must pass before
+the package-write job can run; manual validation runs and caches remain enabled.
 
 ## 5. Review and ship
 

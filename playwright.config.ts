@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/e2e",
   testMatch: "**/*.e2e.ts",
+  testIgnore: "**/csp-turnstile.e2e.ts",
   timeout: 60_000,
   retries: 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",

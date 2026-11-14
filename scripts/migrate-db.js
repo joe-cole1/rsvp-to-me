@@ -3,6 +3,8 @@ require("dotenv").config();
 const { execSync, execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { randomUUID } = require("node:crypto");
+const { snapshotDirectory, rotatePreMigrationBackups } = require("./pre-migration-backups.cjs");
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [2000, 5000];
@@ -30,48 +32,62 @@ function parseDbUrl(rawUrl) {
   }
 }
 
-function runPreMigrationBackup(rawUrl) {
+function runPreMigrationBackup(rawUrl, purpose = "schema") {
+  if (!["schema", "secrets"].includes(purpose)) throw new Error("Invalid backup purpose");
   const conn = parseDbUrl(rawUrl);
   if (!conn) {
     console.warn("[migrate-db] Could not parse DATABASE_URL — skipping pre-migration backup.");
     return;
   }
 
-  const backupDir = path.join(process.cwd(), "data", "backups", "pre-migration");
+  let backupDir;
   try {
-    fs.mkdirSync(backupDir, { recursive: true, mode: 0o700 });
+    backupDir = snapshotDirectory(true);
+    fs.chmodSync(backupDir, 0o700);
   } catch {
     console.warn("[migrate-db] Could not create backup directory — skipping pre-migration backup.");
     return;
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filename = `pre-migration_${timestamp}.sql`;
+  const filename = `pre-migration-${purpose}_${timestamp}_${randomUUID()}.sql`;
   const outputPath = path.join(backupDir, filename);
+
+  const partialPath = `${outputPath}.partial`;
 
   console.log("[migrate-db] Running pre-migration backup to %s...", filename);
   let created = false;
   try {
     // A legacy snapshot may contain plaintext provider credentials. Reserve a
     // private file before pg_dump opens it; never overwrite an existing backup.
-    fs.closeSync(fs.openSync(outputPath, "wx", 0o600));
+    fs.closeSync(fs.openSync(partialPath, "wx", 0o600));
     created = true;
     execFileSync(
       "pg_dump",
-      ["-h", conn.host, "-p", conn.port, "-U", conn.user, "-f", outputPath, conn.database],
+      ["-h", conn.host, "-p", conn.port, "-U", conn.user, "-f", partialPath, conn.database],
       {
         env: { ...process.env, PGPASSWORD: conn.password },
         stdio: ["ignore", "ignore", "pipe"],
         timeout: 60000,
       }
     );
+    fs.renameSync(partialPath, outputPath);
+    // Retention failure must not turn a successful recovery snapshot into a
+    // failed backup or allow an incomplete dump to replace a prior snapshot.
+    try {
+      rotatePreMigrationBackups(filename);
+    } catch {
+      console.warn(
+        "[migrate-db] Backup saved, but retention failed; check backup storage permissions."
+      );
+    }
     console.log("[migrate-db] Pre-migration backup complete: %s", filename);
     return outputPath;
   } catch {
     // Schema startup keeps its best-effort backup policy. Secret conversion
     // checks the return value and aborts before writes if its backup fails.
     console.warn("[migrate-db] Pre-migration backup failed; check pg_dump and backup storage.");
-    if (created && fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    if (created && fs.existsSync(partialPath)) fs.unlinkSync(partialPath);
   }
 }
 

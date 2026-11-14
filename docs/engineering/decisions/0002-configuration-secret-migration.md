@@ -46,3 +46,14 @@ additional startup backup. Old application versions cannot read v2 values;
 run the selective rollback using the newer image before downgrading. Preserve
 the original encryption key and protect backups, which can contain legacy
 plaintext. This work does not provide key rotation or phone-number encryption.
+
+## Backup retention follow-up (#851)
+
+Publish completed dumps atomically from private partial files. Startup keeps
+seven schema snapshots and seven recovery snapshots independently. Conversion
+and selective rollback write recovery snapshots; pre-existing unclassified dumps
+belong to that pool. Only a successful replacement permits rotation. Routine
+schema backups never displace conversion recovery points. Operators must copy
+long-term recovery points to protected storage before their pool rotates them.
+Admin lists expose metadata only; sensitive snapshot download/deletion stays a
+server operation. Failed secret backups still block conversion before writes.

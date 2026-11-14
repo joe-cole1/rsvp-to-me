@@ -493,6 +493,12 @@ Before changing any credentials it requires a successful automatic pg_dump
 snapshot under `data/backups/pre-migration/`. The earlier schema snapshot remains
 best-effort; secret conversion takes its own mandatory snapshot when needed.
 Backups may contain old plaintext credentials, so protect them as secrets.
+Startup retains seven schema snapshots separately from seven secret-recovery
+snapshots (conversion, selective rollback and old unclassified dumps). It rotates
+only after a new successful dump, so ordinary restarts cannot age out conversion
+recovery points. The Admin Backups table shows read-only metadata; manage or copy
+these sensitive files on the server. Save any required long-term recovery point
+in protected storage before it ages out of its pool.
 Conversion and its completion marker commit together. Subsequent restarts
 verify the new format without changing credentials or repeating conversion.
 

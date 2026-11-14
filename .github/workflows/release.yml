@@ -8,7 +8,24 @@ permissions:
   contents: read
 
 jobs:
+  validate-ci:
+    if: >-
+      github.actor == github.repository_owner &&
+      github.triggering_actor == github.repository_owner
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  validate-container:
+    if: >-
+      github.actor == github.repository_owner &&
+      github.triggering_actor == github.repository_owner
+    uses: ./.github/workflows/container-qc.yml
+    permissions:
+      contents: read
+
   docker:
+    needs: [validate-ci, validate-container]
     # Check both identities: reruns retain the original github.actor.
     # Repository Actions policies provide a separate pre-execution boundary.
     if: >-
@@ -23,6 +40,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Verify checked-out event commit
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Validate release image tags
         id: release-tags
