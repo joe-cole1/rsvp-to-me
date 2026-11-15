@@ -3,12 +3,29 @@
 // must suppress those replies and mark acknowledgements as automatic.
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import worker from "@/worker/worker";
+import { ModuleKind, transpileModule } from "typescript";
+
+// Container builds intentionally omit worker/. A static import here pulled that
+// separate deployment into Next.js's application type check (PR #875 CI failure).
+// Load the real source only while these behavioral tests execute; the canonical
+// gate independently type-checks the worker against its own Cloudflare types.
+type EmailHandler = {
+  email(
+    message: { from: string; to: string; headers: Headers; forward(to: string): Promise<unknown> },
+    env: { INBOUND_FORWARD_TO: string; EMAIL: { send(message: unknown): Promise<unknown> } }
+  ): Promise<void>;
+};
+const workerModule: { default?: unknown } = {};
+const compiled = transpileModule(readFileSync("worker/worker.ts", "utf8"), {
+  compilerOptions: { module: ModuleKind.CommonJS },
+});
+new Function("exports", compiled.outputText)(workerModule);
+const worker = workerModule.default as EmailHandler;
 const source = readFileSync("app/(app)/admin/tabs/EmailTab.tsx", "utf8");
 const start = source.indexOf("return `// WARNING:") + "return ".length;
 const end = source.indexOf("`;", start) + 1;
 const templateCode: string = new Function(`return ${source.slice(start, end)}`)();
-const template: typeof worker = new Function(templateCode.replace("export default", "return"))();
+const template: EmailHandler = new Function(templateCode.replace("export default", "return"))();
 for (const [name, handler] of [
   ["worker", worker],
   ["admin template", template],
@@ -18,7 +35,7 @@ for (const [name, handler] of [
       const send = vi.fn().mockResolvedValue({});
       const forward = vi.fn().mockResolvedValue({});
       const message = { from, to: "rsvp@example.test", headers: new Headers(headers), forward };
-      await handler.email(message as unknown as Parameters<typeof worker.email>[0], {
+      await handler.email(message, {
         INBOUND_FORWARD_TO: "host@example.test",
         EMAIL: { send },
       });

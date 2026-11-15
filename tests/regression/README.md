@@ -294,6 +294,8 @@ Issue #844 also extends `sec-48-initial-admin-login-only.test.ts`: a link that l
   writes for manual email/SMS blasts.
 - `issue-849-worker-replies.test.ts`: automated/list/bulk/null/self mail guards and
   acknowledgement headers in both the deployed worker and copied admin template.
+  Loads worker source at test runtime so application container type checking does
+  not require the independently deployed, Docker-excluded worker.
 - `issue-849-scheduler-safety.test.ts`: lock ownership, deletion-log privacy,
   warning visibility and shutdown without premature exit.
 - PostgreSQL companion: `tests/integration/lib/reminder-reliability.test.ts`
