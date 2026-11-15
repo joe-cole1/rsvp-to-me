@@ -148,6 +148,27 @@ Guests who receive an invitation by text can reply **YES**, **NO**, or **MAYBE**
    Use the `HTTP POST` method.
 3. Save. Incoming replies are validated against your Twilio Auth Token, matched to the guest's pending invitation by phone number, and applied to their RSVP.
 
+Replies use the same server-side RSVP service as the web form. Event start,
+deadline, Maybe and capacity rules apply before a response is saved. Existing
+private RSVP links can use the post-deadline editing setting; a late decline
+remains possible before the event starts. The first saved answer sends the usual
+confirmation and organizer alert and records activity; later duplicate replies
+do not send another first-response alert. Resent invitations for the same RSVP
+count as one pending invitation.
+
+Use full international numbers with the `+` country code for new SMS invitations.
+Presentation spaces, dashes, parentheses and dots are ignored when matching.
+For existing North American invitations, a sender such as `+15551234567` also
+matches stored `15551234567` or `5551234567`. Other national formats have no
+inferred country: use the international form. This compatibility does not merge
+or rewrite account identities. An invitation only authorizes a reply or an edit
+link when its current RSVP still has the matching phone and belongs to the same
+event. Changed contacts and cross-event historical links are ignored.
+
+Capacity serialization uses PostgreSQL, including when Redis is unavailable. A
+database lock/transaction failure saves no response and sends no success
+confirmation; the guest can retry after database service is restored.
+
 > This step is only needed if you want guests to RSVP by replying to texts. Outbound SMS (confirmations, reminders, blasts) works without it.
 
 > **Note:** The inbound webhook validates the signature against the **same** Twilio Auth Token used for outbound SMS — whether you set it in the Admin Panel (stored encrypted at rest) or in `.env`, with the Admin Panel value taking precedence. If you configured Twilio only in the Admin Panel, reply-to-RSVP works with no `TWILIO_AUTH_TOKEN` env var. If every inbound reply returns a signature error, confirm the token in **Admin → SMS** matches the one in your Twilio Console.

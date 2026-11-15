@@ -1,3 +1,4 @@
+import { normalizePhone } from "./phone";
 /** Pure invitation syntax shared by the draft editor and server validation. */
 export interface InvitationRecipient {
   contact: string;
@@ -40,7 +41,7 @@ export const MAX_INVITATION_RECIPIENTS = 200;
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 const EMAIL = /^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\]+\.[^\s@<>(),;:"\\]+$/;
 
-/** Matches lib/auth.normalizePhone without importing its server dependencies. */
+/** Shared contact identity without importing server dependencies. */
 export function normalizeInvitationContact(value: string): string | null {
   const contact = value.trim();
   if (CONTROL.test(contact)) return null;
@@ -48,7 +49,7 @@ export function normalizeInvitationContact(value: string): string | null {
     return contact.length <= 254 && EMAIL.test(contact) ? contact.toLowerCase() : null;
   }
   if (contact.length > 40 || !/^\+?[0-9\s().-]+$/.test(contact)) return null;
-  const normalized = contact.replace(/[\s().-]/g, "");
+  const normalized = normalizePhone(contact);
   return /^\+?\d{7,40}$/.test(normalized) ? normalized : null;
 }
 

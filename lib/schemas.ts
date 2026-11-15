@@ -87,8 +87,11 @@ export const AddRsvpSchema = z.object({
     .optional()
     .or(z.literal("")),
   status: z.enum(["GOING", "MAYBE", "NO"]),
-  plusOneCount: z.number().int().min(0).max(10).default(0),
-  plusOneGuestNames: z.array(z.string().trim().check(maxCodeUnits(100))).optional(),
+  plusOneCount: z.number().int().min(0).max(100).default(0),
+  plusOneGuestNames: z
+    .array(z.string().trim().check(maxCodeUnits(100)))
+    .max(100)
+    .optional(),
   note: z.string().trim().check(maxCodeUnits(1000)).optional(),
   // SEC-38: cap answer length (parity with note/comment caps); keys are further
   // validated against the event's own rsvpFields in addRSVP/updateRSVP.
@@ -138,8 +141,11 @@ export const SaveEventSettingsSchema = z.object({
 export const UpdateRsvpSchema = z.object({
   guestName: z.string().trim().min(1).check(maxCodeUnits(100)).optional(),
   status: z.enum(["GOING", "MAYBE", "NO"]),
-  plusOneCount: z.number().int().min(0).max(10).default(0),
-  plusOneGuestNames: z.array(z.string().trim().check(maxCodeUnits(100))).optional(),
+  plusOneCount: z.number().int().min(0).max(100).default(0),
+  plusOneGuestNames: z
+    .array(z.string().trim().check(maxCodeUnits(100)))
+    .max(100)
+    .optional(),
   note: z.string().trim().check(maxCodeUnits(1000)).optional(),
   // SEC-38: same caps as AddRsvpSchema.
   answers: z

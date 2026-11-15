@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // SEC-21(b) — `updateRSVP` skipped deadline/capacity re-check.
 //
 // Bug (found 2026-06, security review): `updateRSVP` in app/actions/event.ts
@@ -72,9 +73,19 @@ function rsvpRow(overrides: Record<string, unknown> = {}) {
     editToken: "tok-1",
     guestName: "Ada",
     status: "MAYBE",
+    plusOneGuests: [],
     approved: true,
     responded: true,
-    event: { slug: "party", capacity: 2, rsvpDeadline: null },
+    event: {
+      id: "evt-1",
+      status: "PUBLISHED",
+      host: {},
+      rsvpFields: [],
+      startAt: new Date("2099-01-01"),
+      slug: "party",
+      capacity: 2,
+      rsvpDeadline: null,
+    },
     ...overrides,
   };
 }
@@ -85,13 +96,27 @@ describe("SEC-21(b): updateRSVP re-checks deadline and capacity", () => {
     mockRsvpCount.mockReset();
     mockRsvpUpdate.mockReset();
     mockWithLock.mockReset();
-    mockWithLock.mockImplementation((_eventId: string, fn: () => Promise<unknown>) => fn());
+    mockWithLock.mockImplementation((_eventId: string, fn: (tx: typeof db) => Promise<unknown>) =>
+      fn(db)
+    );
     mockRsvpUpdate.mockResolvedValue({ id: "rsvp-1" });
   });
 
   it("blocks flipping to GOING after the deadline, without writing", async () => {
     mockRsvpFindUnique.mockResolvedValue(
-      rsvpRow({ status: "MAYBE", event: { slug: "party", capacity: null, rsvpDeadline: PAST } })
+      rsvpRow({
+        status: "MAYBE",
+        event: {
+          id: "evt-1",
+          status: "PUBLISHED",
+          host: {},
+          rsvpFields: [],
+          startAt: new Date("2099-01-01"),
+          slug: "party",
+          capacity: null,
+          rsvpDeadline: PAST,
+        },
+      })
     );
 
     const result = await updateRSVP("tok-1", { status: "GOING", plusOneCount: 0 });
@@ -103,7 +128,19 @@ describe("SEC-21(b): updateRSVP re-checks deadline and capacity", () => {
 
   it("still allows declining (NO) after the deadline", async () => {
     mockRsvpFindUnique.mockResolvedValue(
-      rsvpRow({ status: "GOING", event: { slug: "party", capacity: null, rsvpDeadline: PAST } })
+      rsvpRow({
+        status: "GOING",
+        event: {
+          id: "evt-1",
+          status: "PUBLISHED",
+          host: {},
+          rsvpFields: [],
+          startAt: new Date("2099-01-01"),
+          slug: "party",
+          capacity: null,
+          rsvpDeadline: PAST,
+        },
+      })
     );
 
     const result = await updateRSVP("tok-1", { status: "NO", plusOneCount: 0 });

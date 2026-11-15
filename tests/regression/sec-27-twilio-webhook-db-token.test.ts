@@ -22,6 +22,7 @@ const { mockGetSystemConfigMap, mockInvitationFindMany } = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $queryRaw: vi.fn().mockResolvedValue([{ id: "inv1" }]),
     user: { findUnique: vi.fn().mockResolvedValue(null) },
     invitation: { findMany: mockInvitationFindMany },
     rSVP: { findUnique: vi.fn(), count: vi.fn(), update: vi.fn() },

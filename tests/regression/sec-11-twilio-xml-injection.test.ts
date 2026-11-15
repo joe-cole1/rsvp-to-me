@@ -30,6 +30,7 @@ const {
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $queryRaw: vi.fn().mockResolvedValue([{ id: "inv1" }]),
     user: { findUnique: mockUserFindUnique },
     invitation: { findMany: mockInvitationFindMany },
     rSVP: {
@@ -40,6 +41,10 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/lib/rsvp-service", () => ({
+  updateGuestRsvp: async () => ({ success: true, slug: "party" }),
+}));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { POST } from "@/app/api/webhooks/twilio/route";
 
 const APP_URL = "http://localhost:3000";
@@ -77,6 +82,9 @@ describe("SEC-11: Twilio webhook XML injection", () => {
     const evilTitle = `Party</Message><Message>INJECTED`;
     mockInvitationFindMany.mockResolvedValue([
       {
+        id: "inv1",
+        eventId: "evt1",
+        sentTo: "+15551234567",
         rsvpId: "rsvp1",
         event: {
           title: evilTitle,
@@ -87,7 +95,13 @@ describe("SEC-11: Twilio webhook XML injection", () => {
         },
       },
     ]);
-    mockRsvpFindUnique.mockResolvedValue({ editToken: "tok1", status: "INVITED" });
+    mockRsvpFindUnique.mockResolvedValue({
+      editToken: "tok1",
+      status: "INVITED",
+      responded: false,
+      eventId: "evt1",
+      guestPhone: "+15551234567",
+    });
     mockRsvpUpdate.mockResolvedValue({});
 
     const res = await POST(signedRequest({ From: "+15551234567", Body: "YES" }));

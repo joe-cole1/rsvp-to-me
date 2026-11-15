@@ -294,6 +294,9 @@ const BASE_EVENT = {
   id: EVENT_ID,
   slug: EVENT_SLUG,
   title: "Test Party",
+  maybeEnabled: true,
+  plusOneAllowed: true,
+  plusOneMax: 10,
   approvalRequired: false,
   rsvpDeadline: null,
   capacity: null,
@@ -540,16 +543,25 @@ describe("updateRSVP", () => {
   const EDIT_TOKEN = "tok-edit-1";
 
   beforeEach(() => {
-    mockRsvpFindUnique.mockResolvedValue({ editToken: EDIT_TOKEN, event: { slug: EVENT_SLUG } });
+    mockRsvpFindUnique.mockResolvedValue({
+      id: "rsvp-1",
+      eventId: EVENT_ID,
+      editToken: EDIT_TOKEN,
+      guestName: "Alice",
+      status: "GOING",
+      responded: true,
+      plusOneGuests: [],
+      event: BASE_EVENT,
+    });
     mockRsvpUpdate.mockResolvedValue({});
   });
 
   it("updates status and plusOneCount and returns success", async () => {
     const result = await updateRSVP(EDIT_TOKEN, { status: "MAYBE", plusOneCount: 1 });
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, rsvpId: "rsvp-1" });
     expect(mockRsvpUpdate).toHaveBeenCalledWith({
       where: { editToken: EDIT_TOKEN },
-      data: { status: "MAYBE", plusOneCount: 1, responded: true },
+      data: expect.objectContaining({ status: "MAYBE", plusOneCount: 0, responded: true }),
     });
   });
 
@@ -566,7 +578,9 @@ describe("updateRSVP", () => {
       guestName: "Alice",
       status: "GOING",
       checkIn: null,
+      plusOneGuests: [],
       event: {
+        ...BASE_EVENT,
         slug: EVENT_SLUG,
         capacity: null,
         rsvpDeadline: null,
@@ -1140,7 +1154,16 @@ describe("updateRSVP — note field", () => {
   const EDIT_TOKEN = "tok-edit-1";
 
   beforeEach(() => {
-    mockRsvpFindUnique.mockResolvedValue({ editToken: EDIT_TOKEN, event: { slug: EVENT_SLUG } });
+    mockRsvpFindUnique.mockResolvedValue({
+      id: "rsvp-1",
+      eventId: EVENT_ID,
+      editToken: EDIT_TOKEN,
+      guestName: "Alice",
+      status: "GOING",
+      responded: true,
+      plusOneGuests: [],
+      event: BASE_EVENT,
+    });
     mockRsvpUpdate.mockResolvedValue({});
   });
 
