@@ -159,11 +159,22 @@ export default {
       throw new Error("INBOUND_FORWARD_TO environment variable is not set.");
     }
     await message.forward(env.INBOUND_FORWARD_TO);
+    const sender = extractRawEmail(message.from).toLowerCase();
+    const autoSubmitted = message.headers.get("auto-submitted")?.trim().toLowerCase();
+    const precedence = message.headers.get("precedence")?.trim().toLowerCase();
+    // Forward replies, but never acknowledge automated, list, bulk, or self mail.
+    if (!sender || sender === "<>" || sender === extractRawEmail(message.to).toLowerCase()
+      || sender === extractRawEmail(env.INBOUND_FORWARD_TO).toLowerCase()
+      || (autoSubmitted && autoSubmitted !== "no")
+      || message.headers.has("list-id") || message.headers.has("list-unsubscribe")
+      || message.headers.has("x-auto-response-suppress")
+      || ["bulk", "list", "junk"].includes(precedence ?? "")) return;
     await env.EMAIL.send({
       from: extractRawEmail(message.to),
       to: message.from,
       subject: \`Re: \${message.headers.get("subject") ?? "Your RSVP"}\`,
       text: "Thanks for your reply. The event host has been notified.",
+      headers: { "Auto-Submitted": "auto-replied", "X-Auto-Response-Suppress": "All" },
     });
   },
 

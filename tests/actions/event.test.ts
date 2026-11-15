@@ -1073,9 +1073,10 @@ describe("saveEventDates", () => {
   beforeEach(() => {
     asHost();
     // assertHost → first findUnique; saveEventDates body → second findUnique
-    mockEventFindUnique
-      .mockResolvedValueOnce(hostEventRow())
-      .mockResolvedValueOnce({ timezone: "America/New_York" });
+    mockEventFindUnique.mockResolvedValueOnce(hostEventRow()).mockResolvedValueOnce({
+      timezone: "America/New_York",
+      startAt: new Date("2026-11-01T00:00:00Z"),
+    });
     mockEventUpdate.mockResolvedValue({});
   });
 

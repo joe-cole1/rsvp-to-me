@@ -172,6 +172,12 @@ audits, and coverage thresholds blocking. Parse DOM attributes and numeric CSS
 values when formatting is not part of the application contract.
 
 CI selects Node from `.nvmrc`, and its cache identities include that selection.
+Playwright's global setup starts a loopback-only SMTP sink, points the disposable
+test database's email configuration at it, and restores that configuration on
+teardown. It acknowledges sign-in and invitation messages without retaining their
+contents or contacting external providers. Production no-transport failures are
+therefore exercised separately from successful browser delivery flows (#849).
+
 Both preflight modes run a clean `npm ci` even when `node_modules` already exists,
 so switching branches or lockfiles cannot silently test an old dependency tree.
 Vitest's `server-only` marker is repository-owned; production builds retain

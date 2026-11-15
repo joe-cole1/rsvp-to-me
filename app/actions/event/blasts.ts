@@ -2,6 +2,9 @@
 
 import { eventActionMessage } from "./localization";
 
+import { z } from "zod";
+import { rateLimit } from "@/lib/rateLimit";
+
 import { groupRecipientsByLocale } from "@/emails/recipients";
 import { getTranslator } from "@/i18n/server";
 
@@ -9,12 +12,29 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { sendBlastEmail } from "@/lib/email";
 import { sendSmsBlast as smsSendBlast } from "@/lib/sms";
-import { logger, logSafe } from "@/lib/logger";
+import { logger } from "@/lib/logger";
 import { notifyEventUpdate } from "@/lib/notifications/event-update";
 import type { NotificationFeedback } from "@/lib/notifications/types";
 import { buildRsvpStatusFilter, type BlastStatusFilter } from "@/lib/blastFilters";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
+
+// Hosts and co-hosts share the event quota; selecting both channels uses one of each.
+async function validateBlast(eventId: string, channel: "email" | "sms", message: string) {
+  if (
+    !z
+      .string()
+      .min(1)
+      .max(10000)
+      .refine((value) => value.trim().length > 0)
+      .safeParse(message).success
+  ) {
+    throw new Error(await eventActionMessage("invalidBlastMessage"));
+  }
+  if (!(await rateLimit(`blast:${eventId}:${channel}`, 10, 3600)).success) {
+    throw new Error(await eventActionMessage("blastRateLimited"));
+  }
+}
 
 // ── Message blast ──────────────────────────────────────────────────────────────
 
@@ -26,6 +46,8 @@ export async function sendBlast(
 ) {
   await assertHostOrCohost(eventId);
   await assertCaptcha("message_send", captchaToken);
+
+  await validateBlast(eventId, "email", message);
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -78,12 +100,6 @@ export async function sendBlast(
         });
       }
       totalSent += emails.length;
-
-      await db.invitation
-        .createMany({
-          data: emails.map((sentTo) => ({ eventId, sentTo, channel: "EMAIL" as const })),
-        })
-        .catch(logSafe("sendBlast"));
     }
 
     if (rsvps.length < CHUNK_SIZE) break;
@@ -101,6 +117,8 @@ export async function sendSmsBlast(
 ) {
   await assertHostOrCohost(eventId);
   await assertCaptcha("message_send", captchaToken);
+
+  await validateBlast(eventId, "sms", message);
 
   const event = await db.event.findUnique({
     where: { id: eventId },
@@ -146,12 +164,6 @@ export async function sendSmsBlast(
         });
       }
       totalSent += sent;
-
-      await db.invitation
-        .createMany({
-          data: phones.map((sentTo) => ({ eventId, sentTo, channel: "SMS" as const })),
-        })
-        .catch(logSafe("sendSmsBlast"));
     }
 
     if (rsvps.length < CHUNK_SIZE) break;

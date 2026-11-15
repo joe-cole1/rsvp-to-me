@@ -26,6 +26,11 @@ Send a message to your guests at any time from the event's host controls:
 - **Delivery channels:** send by **Email**, **SMS**, or both (only the channels enabled on your site appear).
 - **Log:** every blast is recorded in the event's [activity log](#activity-log).
 
+Messages must contain 1–10,000 characters. Each event can send up to ten email
+blasts and ten SMS blasts per hour, shared by its host and co-hosts. Sending both
+channels uses one of each. Blasts do not create invitations or add guests to the
+Invited tab.
+
 When the site administrator enables bot protection, sending a blast, publishing an event update, or
 sending a test email requires an interaction-only security check. This also applies to hosts and
 co-hosts so a compromised or abusive organizer account cannot be used to spam guests.
@@ -80,6 +85,16 @@ Alerts use each organizer's account email by default. An account phone, or any o
 ## Automated Reminders
 
 Hosts choose a shared set of reminder times in **Settings → Auto-Reminders**: one week, one day, several hour offsets, custom hours, and a nudge three days before for invitations nobody has answered. New events start with a one-day reminder and the nudge turned on. Each switch saves immediately. Each recipient's channel list, category settings and event exceptions determine delivery.
+
+Ordinary reminders go only to approved guests whose current response is **Going**
+or **Maybe**. Guests who declined do not receive them. Nudges go only to approved,
+unanswered invitations with a matching current event contact.
+
+Changing the event's start time recomputes its reminder occurrences: future offsets
+can send again for the new date, including reminders already sent for the old date.
+Offsets already elapsed at the time of the edit are skipped, preventing stale
+“in a week” messages when an event moves closer. Changing only the end time leaves
+sent markers intact. A message already submitted to a provider cannot be recalled.
 
 Times already sent show **already sent or skipped**, and times already over show **time has passed**; neither sends. Old email/SMS timings merge where equal and keep their channel limits, named in a notice, until a host chooses **Let each guest's settings decide**. Already consumed reminders are never replayed when a schedule is saved, disabled or restored. There is no automatic retry; a crash after claiming an occurrence can lose it. Current same-event invitation contacts determine nudge eligibility, so historical addresses cannot bypass opt-outs.
 

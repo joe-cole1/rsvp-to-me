@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockSendMail = vi.fn().mockResolvedValue({ messageId: "test-id" });
+const mockSendMail = vi.fn().mockImplementation(async (mail) => ({
+  messageId: "test-id",
+  accepted: mail.bcc ?? [mail.to],
+  rejected: [],
+}));
 const mockVerify = vi.fn().mockResolvedValue(true);
 const mockCreateTransport = vi.fn().mockReturnValue({ sendMail: mockSendMail, verify: mockVerify });
 
@@ -21,7 +25,7 @@ vi.mock("@/lib/db", () => ({
 
 const mockFetch = vi.fn().mockResolvedValue({
   ok: true,
-  json: async () => ({ ok: true }),
+  json: async () => ({ ok: true, success: true }),
   text: async () => "OK",
 });
 vi.stubGlobal("fetch", mockFetch);
@@ -156,7 +160,7 @@ describe("lib/email.ts", () => {
       process.env.CLOUDFLARE_WORKER_API_SECRET = "worker-secret";
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ ok: true }),
+        json: async () => ({ ok: true, success: true }),
         text: async () => "OK",
       });
     });
@@ -185,6 +189,7 @@ describe("lib/email.ts", () => {
       process.env.SMTP_HOST = "smtp.example.com";
       mockFetch.mockResolvedValue({
         ok: false,
+        status: 400,
         json: async () => ({ ok: false }),
         text: async () => "Bad Request",
       });
@@ -208,7 +213,7 @@ describe("lib/email.ts", () => {
       process.env.CLOUDFLARE_WORKER_API_SECRET = "worker-secret";
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ ok: true }),
+        json: async () => ({ ok: true, success: true }),
         text: async () => "OK",
       });
     });
@@ -365,7 +370,7 @@ describe("lib/email.ts", () => {
     it("handles Cloudflare Worker send success", async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ ok: true }),
+        json: async () => ({ ok: true, success: true }),
         text: async () => "OK",
       });
       const { testEmailConfig } = await loadModule();
@@ -446,7 +451,7 @@ describe("lib/email.ts", () => {
     it("handles Cloudflare Email REST API send success", async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ ok: true }),
+        json: async () => ({ ok: true, success: true }),
         text: async () => "OK",
       });
       const { testEmailConfig } = await loadModule();

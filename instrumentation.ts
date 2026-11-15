@@ -16,7 +16,7 @@ export async function register() {
         } catch (err) {
           console.error("[instrumentation] Error during shutdown:", err);
         }
-        process.exit(0);
+        // Next.js owns termination and drains in-flight requests before exiting.
       };
 
       process.once("SIGTERM", shutdown);

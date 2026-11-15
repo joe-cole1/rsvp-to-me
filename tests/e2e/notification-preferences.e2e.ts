@@ -68,10 +68,11 @@ test("unsigned guest sees the page without channels it cannot use", async ({ pag
   await expect(
     page.getByRole("heading", { name: "Notifications for Notification Test Event" })
   ).toBeVisible();
-  // The E2E server configures no email or SMS provider, so nothing can be checked, and a
-  // guest without an account has no profile to follow. Saving is covered by integration tests.
-  await expect(page.getByText("This site doesn’t send notifications right now.")).toBeVisible();
-  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  // The local SMTP sink offers email. SMS is unavailable; an unsigned guest has
+  // no profile to follow. Zero-channel states retain separate regression coverage.
+  await expect(page.getByRole("checkbox")).toHaveCount(3);
+  await expect(page.getByRole("checkbox", { name: /: Email$/ })).toHaveCount(3);
+  await expect(page.getByRole("checkbox", { name: /: Text$/ })).toHaveCount(0);
   await expect(page.getByRole("switch")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Save/ })).toHaveCount(0);
   expect(await settingsCount("rsvpId", rsvpId)).toBe(0);
@@ -95,11 +96,12 @@ test("profile hides channels the site does not offer and points to events", asyn
   await signIn(page);
   await page.goto("/profile");
   await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
-  // The E2E server configures no email or SMS provider, so no channel is offered or listed.
-  await expect(page.getByText("This site doesn’t send notifications right now.")).toBeVisible();
-  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  // The local SMTP sink is offered; the unavailable text channel stays hidden.
+  await expect(page.getByRole("checkbox")).toHaveCount(4);
+  await expect(page.getByRole("checkbox", { name: /: Email$/ })).toHaveCount(4);
+  await expect(page.getByRole("checkbox", { name: /: Text$/ })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Contact info", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Add" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
   // Single-event settings are a pointer, not an embedded picker.
   await expect(page.getByRole("heading", { name: "Settings for one event" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Choose an event" })).toHaveCount(0);

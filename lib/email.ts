@@ -22,7 +22,7 @@ import { TestEmail } from "@/emails/templates/TestEmail";
 import { CoHostInviteEmail } from "@/emails/templates/CoHostInviteEmail";
 import { formatEventDateTime } from "./calendar";
 import { AddRsvpSchema } from "./schemas";
-import { httpFailure, unconfirmed } from "./notifications/transport";
+import { createTransportContext, httpFailure, unconfirmed } from "./notifications/transport";
 import type {
   AttemptOutcome,
   NotificationAdapter,
@@ -258,134 +258,111 @@ function getSmtpTransport(
   return nodemailer.createTransport(options);
 }
 
-async function sendViaWorker(
-  opts: WorkerMailOpts,
-  workerConfig: { url?: string; secret?: string }
-): Promise<boolean> {
-  if (!workerConfig.url || !isSafeWorkerUrl(workerConfig.url)) return false;
-  try {
-    const res = await fetch(`${workerConfig.url}/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${workerConfig.secret ?? ""}`,
-      },
-      body: JSON.stringify(opts),
-    });
-    if (!res.ok) {
-      console.error("[email:worker] send failed:", res.status, await res.text());
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("[email:worker] fetch error:", err);
-    return false;
+/** Safe to surface through legacy action error handling: never contains provider data. */
+export class EmailDeliveryError extends Error {
+  constructor(public readonly outcome: AttemptOutcome) {
+    super(
+      outcome.status === "uncertain"
+        ? "Email delivery could not be confirmed. Retrying may send a duplicate."
+        : "Email could not be sent. Check the email provider configuration."
+    );
+    this.name = "EmailDeliveryError";
   }
 }
 
-async function sendViaRestApi(
-  opts: WorkerMailOpts,
-  cloudflareApi: { accountId?: string; apiToken?: string }
-): Promise<boolean> {
-  if (!cloudflareApi.accountId || !cloudflareApi.apiToken) {
-    console.error("[email:rest-api] accountId or apiToken is missing");
-    return false;
-  }
-  try {
-    const url = `https://api.cloudflare.com/client/v4/accounts/${cloudflareApi.accountId}/email/sending/send`;
-    if (!isSafeWorkerUrl(url)) return false;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${cloudflareApi.apiToken}`,
-      },
-      body: JSON.stringify({
-        from: opts.from,
-        to: opts.to,
-        bcc: opts.bcc,
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text,
-        replyTo: opts.replyTo,
-      }),
-    });
-    if (!res.ok) {
-      console.error("[email:rest-api] send failed:", res.status, await res.text());
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("[email:rest-api] fetch error:", err);
-    return false;
-  }
-}
-
-async function send(opts: MailOpts) {
+async function send(opts: MailOpts): Promise<AttemptOutcome> {
   const config = await resolveEmailConfig();
   const resolvedTo = opts.to === "FROM" ? config.from : opts.to;
+  const mail: WorkerMailOpts = { from: config.from, ...opts, to: resolvedTo };
+  const context = createTransportContext();
+  let outcome: AttemptOutcome = { status: "failed", reason: "unavailable" };
 
-  if (config.provider === "cloudflare" && config.cloudflare.url) {
-    const success = await sendViaWorker(
-      {
-        from: config.from,
-        to: resolvedTo,
-        bcc: opts.bcc,
-        replyTo: opts.replyTo,
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text,
-      },
-      config.cloudflare
-    );
-    if (success) return;
-  }
-
-  if (
-    config.provider === "cloudflare_api" &&
-    config.cloudflare.accountId &&
-    config.cloudflare.apiToken
-  ) {
-    const success = await sendViaRestApi(
-      {
-        from: config.from,
-        to: resolvedTo,
-        bcc: opts.bcc,
-        replyTo: opts.replyTo,
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text,
-      },
-      config.cloudflare
-    );
-    if (success) return;
-  }
-
-  const transport = getSmtpTransport(config.smtp);
-  if (!transport) {
-    // Console fallback when no transport is configured. The rendered HTML can
-    // contain live credentials (magic-link tokens, per-RSVP editTokens), so
-    // only dump the full payload in development. In production a mis-config
-    // must not write sign-in links or recipient addresses into the logs — log
-    // just enough to signal that delivery was skipped.
-    if (process.env.NODE_ENV === "production") {
-      console.warn(
-        "[email:dev] No email transport configured — message not sent. Configure SMTP or a Cloudflare provider."
-      );
-    } else {
-      console.log("[email:dev]", { to: resolvedTo, subject: opts.subject, html: opts.html });
+  if (config.provider === "cloudflare" || config.provider === "cloudflare_api") {
+    const worker = config.provider === "cloudflare";
+    const ready = worker
+      ? config.cloudflare.url && config.cloudflare.secret && isSafeWorkerUrl(config.cloudflare.url)
+      : config.cloudflare.accountId && config.cloudflare.apiToken;
+    if (ready) {
+      outcome = await context.run(async (signal): Promise<AttemptOutcome> => {
+        const url = worker
+          ? `${config.cloudflare.url}/send`
+          : `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.cloudflare.accountId!)}/email/sending/send`;
+        const response = await fetch(url, {
+          method: "POST",
+          signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${worker ? config.cloudflare.secret : config.cloudflare.apiToken}`,
+          },
+          body: JSON.stringify(mail),
+        });
+        if (!response.ok) return httpFailure(response.status);
+        const ack: unknown = await response.json();
+        return ack &&
+          typeof ack === "object" &&
+          (worker ? "ok" in ack && ack.ok === true : "success" in ack && ack.success === true)
+          ? { status: "accepted" }
+          : unconfirmed();
+      }, unconfirmed);
     }
-    return;
+    if (outcome.status === "accepted") return outcome;
+    // Only a definitive rejection or an unavailable primary permits SMTP fallback.
+    if (outcome.status === "uncertain") throw new EmailDeliveryError(outcome);
   }
-  return transport.sendMail({
-    from: config.from,
-    to: resolvedTo,
-    bcc: opts.bcc,
-    subject: opts.subject,
-    html: opts.html,
-    text: opts.text,
-    replyTo: opts.replyTo,
-  });
+
+  if (config.smtp.host) {
+    let transport: ReturnType<typeof getSmtpTransport> = null;
+    outcome = await context.run(
+      async (signal): Promise<AttemptOutcome> => {
+        transport = getSmtpTransport(config.smtp, signal)!;
+        try {
+          const info = await transport.sendMail(mail);
+          const destinations = opts.bcc ?? resolvedTo;
+          const expected = Array.isArray(destinations) ? destinations : [destinations];
+          const addresses = (values: unknown): string[] =>
+            !Array.isArray(values)
+              ? []
+              : values.flatMap((value) =>
+                  typeof value === "string"
+                    ? [value.toLowerCase()]
+                    : value &&
+                        typeof value === "object" &&
+                        "address" in value &&
+                        typeof value.address === "string"
+                      ? [value.address.toLowerCase()]
+                      : []
+                );
+          const accepted = addresses(info.accepted);
+          const rejected = addresses(info.rejected);
+          if (expected.every((address) => accepted.includes(address.toLowerCase())))
+            return { status: "accepted" };
+          if (expected.every((address) => rejected.includes(address.toLowerCase())))
+            return { status: "failed", reason: "rejected" };
+          return unconfirmed();
+        } catch (error) {
+          return error &&
+            typeof error === "object" &&
+            "responseCode" in error &&
+            typeof error.responseCode === "number" &&
+            error.responseCode >= 400 &&
+            error.responseCode < 600
+            ? { status: "failed", reason: "rejected" }
+            : unconfirmed();
+        }
+      },
+      unconfirmed,
+      () => transport?.close()
+    );
+    if (outcome.status === "accepted") return outcome;
+    throw new EmailDeliveryError(outcome);
+  }
+
+  if (config.provider === "console" && process.env.NODE_ENV !== "production") {
+    console.log("[email:dev]", { to: resolvedTo, subject: opts.subject, html: opts.html });
+    return { status: "skipped", reason: "unavailable" };
+  }
+  console.warn("[email] No email transport configured or provider rejected the message.");
+  throw new EmailDeliveryError(outcome);
 }
 
 /**

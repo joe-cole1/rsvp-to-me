@@ -173,6 +173,8 @@
         "testEmailRateLimited": "Demasiados correos de prueba. Inténtalo de nuevo más tarde.",
         "inviteRateLimited": "Se han enviado demasiadas invitaciones. Inténtalo de nuevo más tarde.",
         "eventInviteRateLimited": "Se han enviado demasiadas invitaciones para este evento. Inténtalo de nuevo más tarde.",
+        "invalidBlastMessage": "El mensaje debe contener entre 1 y 10.000 caracteres.",
+        "blastRateLimited": "Se han enviado demasiados mensajes para este evento. Inténtalo de nuevo más tarde.",
         "invalidGuestToken": "El token de invitado no es válido",
         "attendingInviteRequired": "Solo los invitados que asistirán pueden invitar a amigos",
         "privateEventRequired": "Esta función solo está disponible para eventos privados",

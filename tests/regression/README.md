@@ -283,3 +283,25 @@ Issue #844 extends `sec-40-45-signin-enumeration-shared-ip.test.ts` to cover uni
 Issue #844 also extends `sec-48-initial-admin-login-only.test.ts`: a link that loses atomic consumption to its paired code must not promote the initial administrator or create another session.
 
 `sec-49-signin-code-open-redirect.test.tsx` (PR #862): `isSafeRedirect` accepted `/\t/evil.example` because URL parsing strips tab/CR/LF, and code sign-in navigated to that relative path, so a crafted sign-in link redirected off-site after a genuine sign-in. The validator now lives in `lib/safe-redirect.ts`, rejects control characters and backslashes and confirms the path resolves to the same origin; the code action no longer echoes the redirect.
+
+### Issue #849 — reminder and delivery reliability (`01a1ddc4`)
+
+- `issue-849-reminders.test.ts`: ordinary reminder recipients, nudge boundaries,
+  due-only recipient loading, stale claims and date changes before submission.
+- `issue-849-delivery.test.ts`: positive email acknowledgements, failures,
+  production no-transport handling, bounded requests and no uncertain fallback.
+- `issue-849-blasts.test.ts`: message limits, event/channel quotas and no invitation
+  writes for manual email/SMS blasts.
+- `issue-849-worker-replies.test.ts`: automated/list/bulk/null/self mail guards and
+  acknowledgement headers in both the deployed worker and copied admin template.
+- `issue-849-scheduler-safety.test.ts`: lock ownership, deletion-log privacy,
+  warning visibility and shutdown without premature exit.
+- PostgreSQL companion: `tests/integration/lib/reminder-reliability.test.ts`
+  exercises actual reschedule SQL, end-only preservation and due-only consumption.
+- Redis companion: `tests/integration/lib/cron-lock-ownership.test.ts` exercises
+  actual lease expiry and ownership-checked release against Redis.
+- Browser delivery companion: `tests/e2e/email-fixture.ts` provides a local SMTP
+  acknowledgement for sign-in and invitation success flows instead of relying on
+  production console fallback.
+- `issue-849-no-transport-preferences.test.tsx`: preserve guest/profile zero-channel
+  rendering and read-only behavior independently of the browser SMTP fixture.

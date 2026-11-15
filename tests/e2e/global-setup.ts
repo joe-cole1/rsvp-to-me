@@ -1,3 +1,4 @@
+import { startEmailFixture } from "./email-fixture";
 import { execSync } from "child_process";
 import { randomUUID, createHash } from "crypto";
 import fs from "fs";
@@ -167,6 +168,9 @@ export default async function globalSetup() {
     );
 
     fs.writeFileSync(MAGIC_TOKEN_PATH, rawToken);
+
+    // Production sends must be acknowledged; never depend on a console fallback.
+    return await startEmailFixture(pool);
   } finally {
     await pool.end();
   }

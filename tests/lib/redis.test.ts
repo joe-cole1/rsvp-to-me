@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockGet = vi.fn();
 const mockSet = vi.fn();
 const mockDel = vi.fn();
+const mockEval = vi.fn();
 const mockConnect = vi.fn().mockResolvedValue(undefined);
 const mockOn = vi.fn();
 const mockIncr = vi.fn();
@@ -21,6 +22,7 @@ const clientMock = {
   get: mockGet,
   set: mockSet,
   del: mockDel,
+  eval: mockEval,
   multi: mockMulti,
   isOpen: false,
 };
@@ -137,20 +139,23 @@ describe("lib/redis.ts", () => {
     expect(res).toBe(false);
   });
 
-  it("redisAcquireLock returns true if client returns OK", async () => {
+  it("redisAcquireLock returns an ownership token if client returns OK", async () => {
     g.redisConnected = true;
     mockSet.mockResolvedValue("OK");
     const res = await redisModule.redisAcquireLock("lockKey", 120);
-    expect(res).toBe(true);
-    expect(mockSet).toHaveBeenCalledWith("lockKey", "locked", { NX: true, EX: 120 });
+    expect(res).toEqual(expect.any(String));
+    expect(mockSet).toHaveBeenCalledWith("lockKey", res, { NX: true, EX: 120 });
   });
 
-  it("redisReleaseLock deletes the lockKey", async () => {
+  it("redisReleaseLock atomically releases only its ownership token", async () => {
     g.redisConnected = true;
-    mockDel.mockResolvedValue(1);
-    const res = await redisModule.redisReleaseLock("lockKey");
+    mockEval.mockResolvedValue(1);
+    const res = await redisModule.redisReleaseLock("lockKey", "owner");
     expect(res).toBe(true);
-    expect(mockDel).toHaveBeenCalledWith("lockKey");
+    expect(mockEval).toHaveBeenCalledWith(expect.any(String), {
+      keys: ["lockKey"],
+      arguments: ["owner"],
+    });
   });
 
   it("redisIncrAndExpire returns the incremented value", async () => {
