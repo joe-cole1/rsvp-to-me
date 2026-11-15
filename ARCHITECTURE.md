@@ -232,7 +232,17 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `lib/captcha.ts`. The provider serializes widget execution while allowing
   already-verified requests for different actions to remain concurrent. Deletes
   and low-risk state toggles are outside this user-content boundary.
-- Capacity-sensitive RSVP writes use `lib/capacityLock.ts`.
+- `lib/rsvp-service.ts` owns guest RSVP rules and transactional saves for public
+  creation, private-token edits, and signed Twilio replies. `lib/capacityLock.ts`
+  holds a PostgreSQL transaction advisory lock per event; rule/state reads,
+  capacity checks, answers and companion writes use its transaction client.
+  Redis availability and lock expiry cannot bypass this boundary. First-response
+  activity and notifications start after commit. Organizer overrides stay in the
+  authenticated actions.
+- `lib/phone.ts` owns phone punctuation normalization without country inference.
+  The signed Twilio webhook accepts bounded legacy North American forms, checks
+  current same-event RSVP contacts, deduplicates resend history, and passes
+  invitation/contact proof to the service for revalidation under the lock.
 - `lib/invitation-draft.ts` owns the strict invitation syntax, contact
   normalization, and name validation shared by clients and server actions.
   The host composer works on editable rows: `lib/invitation-draft-rows.ts` owns
@@ -428,7 +438,7 @@ requests are stubbed in the browser; server-side Siteverify is never invoked.
 | Change                   | Start here                                 | Usually also inspect                                              |
 | ------------------------ | ------------------------------------------ | ----------------------------------------------------------------- |
 | Public event rendering   | `app/e/[slug]/page.tsx`                    | `components/event/`, `lib/eventAccess.ts`, theme helpers          |
-| RSVP behavior            | `app/actions/event/rsvp.ts`                | `components/rsvp/`, `lib/schemas.ts`, capacity/access helpers     |
+| RSVP behavior            | `lib/rsvp-service.ts`                      | RSVP actions, Twilio webhook, `components/rsvp/`, schemas/access  |
 | Guest check-in           | `app/actions/event/checkins.ts`            | guest-list route/component, `CheckIn`, activity/privacy helpers   |
 | Host event settings      | `app/actions/event/settings.ts`            | `components/event/settings-page/`, `prisma/schema.prisma`         |
 | Background effects       | `lib/effects.ts`, `lib/effect-catalog.ts`  | `ParticleLayer`, `EffectsPanel`, effect search route, design docs |

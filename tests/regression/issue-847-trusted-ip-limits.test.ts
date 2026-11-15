@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // #847 root cause: absent TRUSTED_IP_HEADER mapped every visitor to loopback.
 // IP quotas then blocked unrelated people; destination/owner quotas must survive
 // skipping those tiers. Event passwords retain a deliberate per-event cap.
@@ -24,6 +25,8 @@ vi.mock("next/headers", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   db: {
+    $transaction: async (fn: (tx: typeof db) => Promise<unknown>) => fn(db),
+    $executeRaw: vi.fn(),
     event: { findUnique: m.event },
     rSVP: { findUnique: m.rsvp },
     user: { findUniqueOrThrow: m.account },

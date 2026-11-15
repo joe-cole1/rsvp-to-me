@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // Root cause: event validation and RSVP failures used fixed English copy regardless of the selected request language.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const { findEvent, rateLimit } = vi.hoisted(() => ({ findEvent: vi.fn(), rateLimit: vi.fn() }));
@@ -19,7 +20,7 @@ vi.mock("@/lib/clientIp", () => ({
 }));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: async () => {} }));
 vi.mock("@/lib/capacityLock", () => ({
-  withEventCapacityLock: async (_id: string, fn: () => Promise<unknown>) => fn(),
+  withEventCapacityLock: async (_id: string, fn: (tx: typeof db) => Promise<unknown>) => fn(db),
 }));
 import { addRSVP, verifyEventPassword } from "@/app/actions/event/rsvp";
 const input = {

@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // SEC-23 — Unauthenticated addRSVP fan-out with no rate limit.
 //
 // Bug (found 2026-07, security review): `addRSVP` in app/actions/event.ts is
@@ -39,7 +40,9 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ get: vi.fn(), set: vi.fn(), delete: vi.fn() }),
 }));
 vi.mock("@/lib/capacityLock", () => ({
-  withEventCapacityLock: vi.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
+  withEventCapacityLock: vi.fn(async (_id: string, fn: (tx: typeof db) => Promise<unknown>) =>
+    fn(db)
+  ),
 }));
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: mockConfirmationEmail,

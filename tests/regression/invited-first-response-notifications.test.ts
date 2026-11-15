@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // Regression test: an invited guest's first RSVP sent no host alert or confirmation.
 //
 // Found: 2026-10-23 browser QA of named invitations (#749), fixed in cb58e723.
@@ -97,7 +98,9 @@ vi.mock("@/lib/sms", async () => {
 });
 vi.mock("@/lib/activity", () => ({ logActivity: mockActivity, iconLabel: vi.fn() }));
 vi.mock("@/lib/capacityLock", () => ({
-  withEventCapacityLock: vi.fn((_eventId: string, fn: () => Promise<unknown>) => fn()),
+  withEventCapacityLock: vi.fn(async (_eventId: string, fn: (tx: typeof db) => Promise<unknown>) =>
+    db.$transaction(() => fn(db))
+  ),
 }));
 vi.mock("@/lib/session", () => ({ getSession: vi.fn().mockResolvedValue(null) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -120,12 +123,17 @@ function invitedRsvp(overrides: Record<string, unknown> = {}) {
     status: "INVITED",
     responded: false,
     note: null,
+    plusOneGuests: [],
     checkIn: null,
     user: { preferredLocale: "de-DE" },
     event: {
       id: "event-1",
       slug: "party",
       title: "Party",
+      status: "PUBLISHED",
+      maybeEnabled: true,
+      plusOneAllowed: true,
+      plusOneMax: 10,
       capacity: null,
       rsvpDeadline: null,
       startAt: new Date("2099-01-01T20:00:00Z"),
@@ -173,10 +181,11 @@ describe("an invited guest's first response through the edit link", () => {
     const result = await updateRSVP("tok-1", ANSWER);
     expect(result.success).toBe(true);
 
-    expect(mockRsvpUpdateMany).toHaveBeenCalledWith({
-      where: { id: "rsvp-1", responded: false },
-      data: { responded: true },
-    });
+    expect(mockRsvpUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ responded: true, status: "GOING" }),
+      })
+    );
     await vi.waitFor(() => expect(mockConfirmEmail).toHaveBeenCalled());
     expect(mockConfirmEmail).toHaveBeenCalledWith(
       "alice@example.com",
@@ -219,8 +228,9 @@ describe("an invited guest's first response through the edit link", () => {
   });
 
   it("sends nothing new when a concurrent submit already claimed the first response", async () => {
-    mockRsvpFindUnique.mockResolvedValue(invitedRsvp());
-    mockRsvpUpdateMany.mockResolvedValue({ count: 0 });
+    mockRsvpFindUnique
+      .mockResolvedValueOnce(invitedRsvp())
+      .mockResolvedValue(invitedRsvp({ status: "GOING", responded: true }));
 
     await updateRSVP("tok-1", ANSWER);
 
@@ -255,10 +265,9 @@ describe("an invited guest's first response through the edit link", () => {
 
   it("leaves the first response unclaimed when the save fails, so the retry notifies", async () => {
     mockRsvpFindUnique.mockImplementation(async () => invitedRsvp({ responded: claim.responded }));
-    mockRsvpUpdateMany.mockImplementation(async () => {
-      if (claim.responded) return { count: 0 };
+    mockRsvpUpdate.mockImplementation(async () => {
       claim.responded = true;
-      return { count: 1 };
+      return {};
     });
     mockRsvpUpdate.mockRejectedValueOnce(new Error("connection reset"));
 

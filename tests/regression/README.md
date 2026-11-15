@@ -2,6 +2,13 @@
 
 Tests that reproduce specific bugs found in production or staging. Each file corresponds to a specific bug fix.
 
+Issue #848 adds `issue-848-rsvp-rules.test.ts` (server settings, deadlines, companion
+clearing, shared phone matching and lock failure), `issue-848-sms-rules.test.ts`
+(signed routing and current-contact authority), and
+`issue-848-rsvp-concurrency.integration.ts` (real PostgreSQL contention, web/SMS
+competition and exactly-once first-response dispatch). The integration regression
+runs through `tests/integration/actions/rsvp-concurrency.test.ts` in full preflight.
+
 ## Convention
 
 For every bug fix merged to main:

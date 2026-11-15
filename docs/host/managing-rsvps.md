@@ -30,7 +30,11 @@ Turn on **Approval Required** when you want to vet responses. New RSVPs then wai
 
 ## Capacity Limits
 
-Set a maximum number of **Going** guests. Once that limit is reached:
+Set a maximum number of approved primary **Going** RSVPs. Plus-ones do not consume
+additional capacity slots. Guest submissions check and save under a database lock,
+including text replies, so simultaneous guests cannot claim the same final slot.
+Hosts and co-hosts can still override guest limits when managing the guest list.
+Once that limit is reached:
 
 - Additional guests can no longer mark themselves **Going** — they'll see the event is at capacity.
 - Guests can still respond **Maybe** or **No**.
@@ -44,7 +48,10 @@ Set a maximum number of **Going** guests. Once that limit is reached:
 - Set a maximum plus-one count per guest.
 - Optionally require names for plus-ones.
 
-Plus-ones are counted on the main guest's RSVP and share that guest's status. They aren't separate accounts and don't have their own contact details.
+Plus-ones are stored on the main guest's Going RSVP. They aren't separate accounts
+and don't have their own contact details. The server enforces whether plus-ones
+are allowed, the configured maximum, and required names. Choosing Maybe or No
+clears the companion count and names.
 
 ---
 
@@ -56,6 +63,8 @@ You can set an optional **RSVP deadline** on your event under Settings → RSVP.
 - **After the deadline:**
   - New guests are prevented from RSVPing, and they will see a "RSVPs Closed" notice.
   - Existing guests cannot edit their RSVP from their unique edit link unless the **Allow guests to edit RSVPs after deadline** option is enabled in settings. If disabled, their edit links will be hidden/gated.
+  - A direct submission through an existing private edit link can still decline
+    before the event starts, even when other post-deadline edits are disabled.
   - Hosts and co-hosts are exempt from these deadline restrictions and can manage RSVPs at any time.
 
 The event's scheduled start is a final guest cutoff. Once `startAt` is reached, guests cannot submit
@@ -84,7 +93,7 @@ Guests don't need an account to change their RSVP. Every invitation and confirma
 private link unique to that guest; clicking it lets them update their status or answers until the
 event starts. If a guest loses their link, see the [FAQ](faq.md).
 
-An invited guest's first answer through their invitation link counts as their RSVP: they see the
+An invited guest's first answer through their invitation link or a signed SMS reply counts as their RSVP: they see the
 usual "You're in!" confirmation, get a confirmation email or text at the contact you invited, and
 you get a **New RSVP** alert (see [Messaging Guests & Reminders](messaging-and-reminders.md)).
 

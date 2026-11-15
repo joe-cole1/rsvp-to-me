@@ -4,15 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { resolveTwilioAuthToken } from "@/lib/sms";
 import crypto from "crypto";
+import { normalizePhone, smsPhoneVariants, matchesSmsPhone } from "@/lib/phone";
+import { updateGuestRsvp } from "@/lib/rsvp-service";
+import { revalidatePath } from "next/cache";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  return raw;
-}
 
 // SEC-27: resolve the auth token from admin-panel config first, then env, via
 // the shared helper in lib/sms. Previously this used process.env.TWILIO_AUTH_TOKEN
@@ -63,16 +59,6 @@ const STATUS_MAP: Record<string, "GOING" | "MAYBE" | "NO"> = {
   MAYBE: "MAYBE",
 };
 
-type PendingInvitation = {
-  rsvpId: string;
-  editToken: string;
-  eventTitle: string;
-  eventSlug: string;
-  rsvpDeadline: Date | null;
-  maybeEnabled: boolean;
-  capacity: number | null;
-};
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = await req.text();
 
@@ -92,38 +78,54 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return twiml(t("Sms.webhook.invalid"));
   }
 
-  // Find invitations for this phone where the linked RSVP is still INVITED
-  const invitations = await db.invitation.findMany({
-    where: { sentTo: phone, channel: "SMS", rsvpId: { not: null } },
-    include: {
-      event: {
-        select: {
-          title: true,
-          slug: true,
-          rsvpDeadline: true,
-          maybeEnabled: true,
-          capacity: true,
+  const variants = smsPhoneVariants(phone);
+  // Historical destinations may still contain presentation punctuation. Match
+  // them without rewriting account identities or guessing non-US countries.
+  const matches = variants.length
+    ? await db.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "Invitation"
+    WHERE channel = 'SMS' AND "rsvpId" IS NOT NULL
+      AND regexp_replace("sentTo", '[[:space:]().-]', '', 'g') = ANY(${variants}::text[])
+  `
+    : [];
+  const invitations = matches.length
+    ? await db.invitation.findMany({
+        where: {
+          id: { in: matches.map((match) => match.id) },
+          channel: "SMS",
+          rsvpId: { not: null },
         },
-      },
-    },
-  });
-
-  const pending: PendingInvitation[] = [];
+        include: { event: { select: { title: true, slug: true } } },
+      })
+    : [];
+  const pending = [];
+  const seen = new Set<string>();
   for (const inv of invitations) {
-    if (!inv.rsvpId) continue;
+    if (!inv.rsvpId || seen.has(inv.rsvpId)) continue;
     const rsvp = await db.rSVP.findUnique({
       where: { id: inv.rsvpId },
-      select: { editToken: true, status: true },
+      select: {
+        editToken: true,
+        status: true,
+        responded: true,
+        eventId: true,
+        guestPhone: true,
+      },
     });
-    if (rsvp?.status === "INVITED") {
+    // Historical links cannot reveal or exercise the current RSVP credential.
+    if (
+      rsvp?.status === "INVITED" &&
+      !rsvp.responded &&
+      rsvp.eventId === inv.eventId &&
+      matchesSmsPhone(rsvp.guestPhone, phone) &&
+      matchesSmsPhone(inv.sentTo, phone)
+    ) {
+      seen.add(inv.rsvpId);
       pending.push({
-        rsvpId: inv.rsvpId,
+        invitationId: inv.id,
         editToken: rsvp.editToken,
         eventTitle: inv.event.title,
         eventSlug: inv.event.slug,
-        rsvpDeadline: inv.event.rsvpDeadline,
-        maybeEnabled: inv.event.maybeEnabled,
-        capacity: inv.event.capacity,
       });
     }
   }
@@ -141,32 +143,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const p = pending[0];
 
-  if (p.rsvpDeadline && p.rsvpDeadline < new Date()) {
-    return twiml(t("Sms.webhook.closed", { eventTitle: p.eventTitle }));
+  const result = await updateGuestRsvp(
+    p.editToken,
+    { status: newStatus, plusOneCount: 0 },
+    { phone, invitationId: p.invitationId }
+  );
+  if (!result.success) {
+    const key =
+      result.reason === "atCapacity"
+        ? "full"
+        : result.reason === "maybeDisabled"
+          ? "noMaybe"
+          : result.reason === "forbidden" || result.reason === "rsvpNotFound"
+            ? "none"
+            : "closed";
+    return twiml(t(`Sms.webhook.${key}`, { eventTitle: p.eventTitle }));
   }
-
-  if (newStatus === "MAYBE" && !p.maybeEnabled) {
-    return twiml(t("Sms.webhook.noMaybe", { eventTitle: p.eventTitle }));
-  }
-
-  if (newStatus === "GOING" && p.capacity) {
-    const goingCount = await db.rSVP.count({
-      where: {
-        event: { slug: p.eventSlug },
-        status: "GOING",
-        approved: true,
-        responded: true,
-      },
-    });
-    if (goingCount >= p.capacity) {
-      return twiml(t("Sms.webhook.full", { eventTitle: p.eventTitle }));
-    }
-  }
-
-  await db.rSVP.update({
-    where: { id: p.rsvpId },
-    data: { status: newStatus, responded: true },
-  });
+  revalidatePath(`/e/${result.slug}`);
+  revalidatePath(`/e/${result.slug}/guests`);
 
   const statusLabel = t(`Sms.webhook.status.${newStatus}`);
   const editUrl = `${APP_URL}/e/${p.eventSlug}/rsvp?token=${p.editToken}`;

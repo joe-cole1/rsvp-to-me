@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // SEC-38 — RSVP questionnaire `answers` unvalidated.
 //
 // Bug (found 2026-07, [cd6748] OWASP audit): `answers` was
@@ -101,7 +102,9 @@ const EVENT = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockRateLimit.mockResolvedValue({ success: true });
-  mockWithLock.mockImplementation(async (_id: string, fn: () => Promise<unknown>) => fn());
+  mockWithLock.mockImplementation(async (_id: string, fn: (tx: typeof db) => Promise<unknown>) =>
+    fn(db)
+  );
   mockEventFindUnique.mockResolvedValue(EVENT);
   mockRsvpCreate.mockResolvedValue({ id: "rsvp-1", editToken: "tok-1" });
   mockAnswerCreateMany.mockResolvedValue({ count: 1 });
@@ -143,7 +146,9 @@ describe("SEC-38: answer keys scoped to the event's own questions", () => {
       guestName: "Alice",
       status: "GOING",
       responded: true,
+      plusOneGuests: [],
       event: {
+        ...EVENT,
         slug: "party",
         capacity: null,
         rsvpDeadline: null,

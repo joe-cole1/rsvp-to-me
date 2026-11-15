@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // Root causes (2026-11 audit): child ids escaped authorized parents, mutation
 // actions skipped event gates, and unvalidated stored input reached shared pages.
 import "@/tests/helpers/english-request-locale";
@@ -18,6 +19,8 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db", () => ({
   db: {
+    $transaction: async (fn: (tx: typeof db) => Promise<unknown>) => fn(db),
+    $executeRaw: vi.fn(),
     event: { findUnique: m.event, findMany: m.events, update: m.write },
     user: { findUnique: m.user, update: m.write },
     magicToken: { create: m.write, updateMany: m.write },

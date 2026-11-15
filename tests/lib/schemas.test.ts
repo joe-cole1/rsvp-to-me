@@ -174,12 +174,12 @@ describe("AddRsvpSchema", () => {
     }
   });
 
-  it("rejects plusOneCount > 10", () => {
+  it("rejects plusOneCount above the supported settings limit", () => {
     const res = AddRsvpSchema.safeParse({
       eventId: "evt-123",
       guestName: "Bob",
       status: "GOING",
-      plusOneCount: 11,
+      plusOneCount: 101,
     });
     expect(res.success).toBe(false);
   });

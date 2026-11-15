@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // Regression test: host "New RSVP" alert notifications were never wired up.
 //
 // Found: 2026-07 email-template rebuild (fixed in [de9262], 2026-07-12).
@@ -65,7 +66,9 @@ vi.mock("@/lib/sms", async () => {
 });
 vi.mock("@/lib/activity", () => ({ logActivity: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/capacityLock", () => ({
-  withEventCapacityLock: vi.fn((_eventId: string, fn: () => Promise<unknown>) => fn()),
+  withEventCapacityLock: vi.fn((_eventId: string, fn: (tx: typeof db) => Promise<unknown>) =>
+    fn(db)
+  ),
 }));
 vi.mock("@/lib/session", () => ({ getSession: vi.fn().mockResolvedValue(null) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -99,6 +102,9 @@ function eventRow(overrides = {}) {
     visibility: "PUBLIC",
     passwordHash: null,
     hostId: "host",
+    maybeEnabled: true,
+    plusOneAllowed: true,
+    plusOneMax: 10,
     approvalRequired: false,
     rsvpDeadline: null,
     capacity: null,

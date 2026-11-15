@@ -1,3 +1,4 @@
+import { normalizePhone } from "./phone";
 import { RegisterHostSchema } from "@/lib/schemas";
 import { cookies } from "next/headers";
 import { LOCALE_COOKIE } from "@/i18n/config";
@@ -19,10 +20,7 @@ export function looksLikePhone(s: string): boolean {
   return /^\+?[\d\s\-().]{7,}$/.test(s.trim()) && s.replace(/\D/g, "").length >= 7;
 }
 
-export function normalizePhone(s: string): string {
-  // Strip spaces/dashes/parens but keep leading +
-  return s.trim().replace(/[\s\-().]/g, "");
-}
+export { normalizePhone } from "./phone";
 
 export { isSafeRedirect };
 

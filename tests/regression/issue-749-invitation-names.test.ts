@@ -16,6 +16,7 @@ interface GuestRow {
   responded: boolean;
   editToken: string;
   user?: { preferredLocale: string } | null;
+  plusOneGuests?: { name: string }[];
 }
 interface HistoryRow {
   id: string;
@@ -73,6 +74,7 @@ vi.mock("@/lib/db", () => ({
       updateMany: mocks.historyUpdate,
     },
     checkIn: { deleteMany: mocks.checkInDelete },
+    plusOneGuest: { deleteMany: vi.fn(), createMany: vi.fn() },
   },
 }));
 vi.mock("@/lib/session", () => ({ getSession: mocks.session }));
@@ -84,7 +86,8 @@ vi.mock("@/lib/clientIp", () => ({
 }));
 vi.mock("@/lib/config", () => ({ getChannelConfig: mocks.channels }));
 vi.mock("@/lib/capacityLock", () => ({
-  withEventCapacityLock: async <T>(_id: string, action: () => Promise<T>) => action(),
+  withEventCapacityLock: async <T>(_id: string, action: (tx: typeof db) => Promise<T>) =>
+    action(db),
 }));
 vi.mock("@/lib/activity", () => ({ logActivity: mocks.activity, iconLabel: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
@@ -113,6 +116,7 @@ import { db } from "@/lib/db";
 
 const EVENT = "event-749";
 const event = {
+  status: "PUBLISHED",
   id: EVENT,
   hostId: "host",
   slug: "party",
@@ -144,6 +148,7 @@ function row(overrides: Partial<GuestRow> = {}): GuestRow {
     responded: false,
     editToken: "secret-token",
     user: null,
+    plusOneGuests: [],
     ...overrides,
   };
 }

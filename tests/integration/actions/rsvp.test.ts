@@ -63,6 +63,7 @@ async function seedHost() {
 async function seedEvent(hostId: string, overrides: Record<string, unknown> = {}) {
   return db.event.create({
     data: {
+      plusOneAllowed: true,
       title: "Integration Test Party",
       slug: `int-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       status: "PUBLISHED",

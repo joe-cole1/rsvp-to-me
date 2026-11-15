@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // Regression (01a1a105 QC, D3): the public RSVP form handed out an invited guest's link.
 //
 // Found: 2026-11-05 local QC. `addRSVP` merges a public submission into the INVITED RSVP of
@@ -45,7 +46,7 @@ vi.mock("@/lib/db", () => ({
     },
     invitation: { updateMany: async () => ({ count: 0 }) },
     rSVPAnswer: { createMany: vi.fn() },
-    plusOneGuest: { createMany: vi.fn() },
+    plusOneGuest: { createMany: vi.fn(), deleteMany: vi.fn() },
   },
 }));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: async () => undefined }));
@@ -55,7 +56,7 @@ vi.mock("@/lib/clientIp", () => ({
   getClientIp: async () => "127.0.0.1",
 }));
 vi.mock("@/lib/capacityLock", () => ({
-  withEventCapacityLock: (_id: string, operation: () => unknown) => operation(),
+  withEventCapacityLock: (_id: string, operation: (tx: typeof db) => unknown) => operation(db),
 }));
 vi.mock("@/lib/activity", () => ({ logActivity: async () => undefined }));
 vi.mock("@/lib/notifications/service", () => ({

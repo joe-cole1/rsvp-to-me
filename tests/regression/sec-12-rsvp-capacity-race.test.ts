@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 // SEC-12 — Race condition in RSVP capacity check.
 //
 // Bug (found 2026-06, security review): `addRSVP` in app/actions/event.ts
@@ -77,6 +78,7 @@ const EVENT = {
   id: "evt-1",
   slug: "party",
   title: "Party",
+  rsvpFields: [],
   approvalRequired: false,
   rsvpDeadline: null,
   capacity: 2,
@@ -95,7 +97,9 @@ describe("SEC-12: atomic RSVP capacity enforcement", () => {
     mockRsvpFindFirst.mockReset();
     mockWithLock.mockReset();
     // Default: run the protected callback inline so the real logic executes.
-    mockWithLock.mockImplementation((_eventId: string, fn: () => Promise<unknown>) => fn());
+    mockWithLock.mockImplementation((_eventId: string, fn: (tx: typeof db) => Promise<unknown>) =>
+      fn(db)
+    );
     mockEventFindUnique.mockResolvedValue(EVENT);
     mockRsvpFindFirst.mockResolvedValue(null);
     mockRsvpCreate.mockResolvedValue({ id: "rsvp-1", editToken: "tok-1" });
