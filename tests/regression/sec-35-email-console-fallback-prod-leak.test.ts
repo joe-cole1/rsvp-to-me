@@ -55,7 +55,9 @@ describe("SEC-35: production email console fallback does not leak credentials", 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const { sendRenderedEmail } = await loadModule();
-    await sendRenderedEmail({ to: "victim@example.com", subject: "Sign in", html: TOKEN_HTML });
+    await expect(
+      sendRenderedEmail({ to: "victim@example.com", subject: "Sign in", html: TOKEN_HTML })
+    ).rejects.toThrow("Email could not be sent");
 
     const loggedText = [...logSpy.mock.calls, ...warnSpy.mock.calls]
       .flat()

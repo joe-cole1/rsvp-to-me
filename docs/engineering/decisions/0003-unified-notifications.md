@@ -201,3 +201,20 @@ Downgrading to a legacy binary after preference changes would bypass category,
 event and revocation controls. Disable notification production or restore a
 consistent pre-upgrade backup before downgrading; retaining legacy columns alone
 does not make that downgrade behaviorally compatible.
+
+## Delivery reliability follow-up (#849, `01a1ddc4`)
+
+Legacy authentication, invitation and manual email helpers now return accepted
+outcomes or throw privacy-safe failure/uncertainty errors to existing callers.
+They use bounded requests and the same definitive-rejection-only fallback rule.
+Development console handling remains explicitly skipped; production no-transport
+handling fails. These producers remain outside recipient notification preferences.
+
+Changing an event's start time atomically recomputes its schedule markers: offsets
+still in the future are rearmed and elapsed offsets are consumed. An unchanged
+start (including an end-only edit) preserves markers. Schedule edits and scheduler
+claims share the date editor's per-event advisory lock. Due candidates are selected
+in PostgreSQL before recipients are loaded, revalidated at claim, and the event
+date is checked again before provider submission. Already in-flight requests cannot
+be recalled. Ordinary reminders target approved Going/Maybe guests; nudges retain
+the unanswered-invitation contact boundary. No retry queue is added.

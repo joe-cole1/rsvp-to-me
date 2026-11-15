@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createClient } from "redis";
 import { logSafe } from "./logger";
 
@@ -95,27 +96,36 @@ export async function redisDel(key: string): Promise<boolean> {
   }
 }
 
-export async function redisAcquireLock(lockKey: string, ttlSeconds: number): Promise<boolean> {
+export async function redisAcquireLock(
+  lockKey: string,
+  ttlSeconds: number
+): Promise<string | null> {
   const client = await getRedisClient();
-  if (!client) return false;
+  if (!client) return null;
+  const token = randomUUID();
   try {
-    const result = await client.set(lockKey, "locked", {
+    const result = await client.set(lockKey, token, {
       NX: true,
       EX: ttlSeconds,
     });
-    return result === "OK";
+    return result === "OK" ? token : null;
   } catch (err) {
     console.error("[redis] Error acquiring lock %s:", lockKey, err);
-    return false;
+    return null;
   }
 }
 
-export async function redisReleaseLock(lockKey: string): Promise<boolean> {
+export async function redisReleaseLock(lockKey: string, token: string): Promise<boolean> {
   const client = await getRedisClient();
   if (!client) return false;
   try {
-    await client.del(lockKey);
-    return true;
+    // Compare and delete atomically: an expired owner must not delete its successor.
+    return (
+      (await client.eval(
+        'if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end',
+        { keys: [lockKey], arguments: [token] }
+      )) === 1
+    );
   } catch (err) {
     console.error("[redis] Error releasing lock %s:", lockKey, err);
     return false;

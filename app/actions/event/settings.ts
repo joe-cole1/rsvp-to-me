@@ -301,14 +301,30 @@ export async function saveEventDates(
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("event_edit", captchaToken);
   ({ startAt, endAt } = EventDatesSchema.parse({ startAt, endAt }));
-  const evt = await db.event.findUnique({ where: { id: eventId }, select: { timezone: true } });
-  if (!evt) throw new Error(await eventActionMessage("eventNotFound"));
-  await db.event.update({
-    where: { id: eventId },
-    data: {
-      startAt: tzLocalToUtc(startAt, evt.timezone),
-      endAt: endAt ? tzLocalToUtc(endAt, evt.timezone) : null,
-    },
+  await db.$transaction(async (tx) => {
+    // Schedule edits and scheduler claims use this same lock.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`schedule:${eventId}`}, 0))`;
+    const evt = await tx.event.findUnique({
+      where: { id: eventId },
+      select: { timezone: true, startAt: true },
+    });
+    if (!evt) throw new Error(await eventActionMessage("eventNotFound"));
+    const nextStart = tzLocalToUtc(startAt, evt.timezone);
+    await tx.event.update({
+      where: { id: eventId },
+      data: { startAt: nextStart, endAt: endAt ? tzLocalToUtc(endAt, evt.timezone) : null },
+    });
+    if (evt.startAt.getTime() !== nextStart.getTime()) {
+      const now = new Date();
+      // A new event date creates new occurrences, but never catch up elapsed offsets.
+      await tx.$executeRaw`
+        UPDATE "NotificationSchedule"
+        SET "consumedAt" = CASE
+          WHEN ${nextStart}::timestamp - "hoursBefore" * INTERVAL '1 hour' <= ${now}::timestamp THEN ${now}::timestamp
+          ELSE NULL END
+        WHERE "eventId" = ${eventId}
+      `;
+    }
   });
   const [d, t] = startAt.split("T");
   const [, mo, day] = d.split("-");

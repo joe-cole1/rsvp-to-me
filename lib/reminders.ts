@@ -19,7 +19,7 @@ export async function processReminders(): Promise<void> {
   const expireAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes lock expiry
   const lockKey = `lock:cron:${jobName}`;
 
-  let hasRedisLock = false;
+  let redisLockToken: string | null = null;
 
   if (isRedisEnabled()) {
     // Acquire Redis lock for 10 minutes (600 seconds)
@@ -30,7 +30,7 @@ export async function processReminders(): Promise<void> {
       );
       return;
     }
-    hasRedisLock = true;
+    redisLockToken = acquired;
   } else {
     // Clean up stale database locks
     await db.cronLock
@@ -59,35 +59,47 @@ export async function processReminders(): Promise<void> {
       })
       .catch(logSafe("reminders:expired-session-cleanup"));
 
-    const schedules = await db.notificationSchedule.findMany({
-      where: {
-        enabled: true,
-        consumedAt: null,
-        event: { status: { notIn: ["CANCELLED", "DELETED"] }, startAt: { gt: now } },
-      },
-      include: {
-        event: {
+    // Resolve due occurrences in PostgreSQL before loading any guest/contact data.
+    const due = await db.$queryRaw<{ id: string; eventId: string; startAt: Date }[]>`
+      SELECT s.id, s."eventId", e."startAt"
+      FROM "NotificationSchedule" s JOIN "Event" e ON e.id = s."eventId"
+      WHERE s.enabled = true AND s."consumedAt" IS NULL
+        AND e.status NOT IN ('CANCELLED', 'DELETED') AND e."startAt" > ${now}
+        AND e."startAt" - s."hoursBefore" * INTERVAL '1 hour' <= ${now}
+    `;
+    for (const candidate of due) {
+      const schedule = await db.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`schedule:${candidate.eventId}`}, 0))`;
+        // Recheck the date and due time under the date editor's lock. Consume before
+        // submission: uncertainty or partial success must never auto-repeat.
+        const claimed = await tx.$executeRaw`
+          UPDATE "NotificationSchedule" s SET "consumedAt" = ${now}
+          FROM "Event" e WHERE s.id = ${candidate.id} AND e.id = s."eventId"
+            AND s.enabled = true AND s."consumedAt" IS NULL
+            AND e."startAt" = ${candidate.startAt}
+            AND e.status NOT IN ('CANCELLED', 'DELETED') AND e."startAt" > ${now}
+            AND e."startAt" - s."hoursBefore" * INTERVAL '1 hour' <= ${now}
+        `;
+        if (!claimed) return null;
+        return tx.notificationSchedule.findUniqueOrThrow({
+          where: { id: candidate.id },
           include: {
-            theme: true,
-            host: { select: { name: true } },
-            rsvps: {
-              where: { approved: true },
-              select: { ...recipientSelect, status: true, responded: true },
+            event: {
+              include: {
+                theme: true,
+                host: { select: { name: true } },
+                rsvps: {
+                  where: { approved: true, status: { in: ["GOING", "MAYBE", "INVITED"] } },
+                  select: { ...recipientSelect, status: true, responded: true },
+                },
+                invitations: { select: { rsvpId: true, channel: true, sentTo: true } },
+              },
             },
-            invitations: { select: { rsvpId: true, channel: true, sentTo: true } },
           },
-        },
-      },
-    });
-    for (const schedule of schedules) {
-      const { event } = schedule;
-      if (now.getTime() < event.startAt.getTime() - schedule.hoursBefore * 3600000) continue;
-      // Consume before submission: uncertainty or partial success must never auto-repeat.
-      const claimed = await db.notificationSchedule.updateMany({
-        where: { id: schedule.id, enabled: true, consumedAt: null },
-        data: { consumedAt: now },
+        });
       });
-      if (!claimed.count) continue;
+      if (!schedule) continue;
+      const { event } = schedule;
       try {
         const rows =
           schedule.kind === "nudge"
@@ -112,12 +124,30 @@ export async function processReminders(): Promise<void> {
                     ? row.guestPhone
                     : null,
                 }))
-            : event.rsvps;
+            : event.rsvps.filter((row) => row.status === "GOING" || row.status === "MAYBE");
         const recipients = await resolveRecipients(
           "reminders",
           rows,
           schedule.recipientRouting ? undefined : schedule.legacyChannels
         );
+        // Recheck the event date immediately before provider submission as well.
+        // A request already in flight cannot be recalled by a date edit.
+        for (const recipient of recipients) {
+          const canSend = recipient.canSend;
+          recipient.canSend = async (channel, destination) => {
+            const current = await db.event.findUnique({
+              where: { id: event.id },
+              select: { startAt: true, status: true },
+            });
+            return (
+              !!current &&
+              current.startAt.getTime() === event.startAt.getTime() &&
+              current.startAt.getTime() > Date.now() &&
+              !["CANCELLED", "DELETED"].includes(current.status) &&
+              (!canSend || (await canSend(channel, destination)))
+            );
+          };
+        }
         const [emailKey, smsKey] = reminderCopy(schedule.kind, schedule.hoursBefore);
         // Render copy per locale without treating host content as ICU syntax.
         for (const locale of new Set(recipients.map((recipient) => recipient.locale))) {
@@ -143,10 +173,14 @@ export async function processReminders(): Promise<void> {
     }
   } finally {
     // Release the lock
-    if (hasRedisLock) {
-      await redisReleaseLock(lockKey).catch(logSafe("reminders:release-redis-lock"));
+    if (redisLockToken) {
+      await redisReleaseLock(lockKey, redisLockToken).catch(
+        logSafe("reminders:release-redis-lock")
+      );
     } else {
-      await db.cronLock.delete({ where: { jobName } }).catch(logSafe("reminders:release-db-lock"));
+      await db.cronLock
+        .deleteMany({ where: { jobName, lockedAt: now, expireAt } })
+        .catch(logSafe("reminders:release-db-lock"));
     }
   }
 }

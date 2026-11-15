@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   schedules: vi.fn(),
+  due: vi.fn(),
   claim: vi.fn(),
   acquire: vi.fn(),
   release: vi.fn(),
@@ -13,11 +14,17 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db", () => ({
   db: {
-    notificationSchedule: { findMany: mocks.schedules, updateMany: mocks.claim },
+    notificationSchedule: { findUniqueOrThrow: mocks.schedules },
+    $queryRaw: mocks.due,
+    $executeRaw: (sql: TemplateStringsArray, ...args: unknown[]) =>
+      sql.join("").includes("UPDATE") ? mocks.claim(sql, ...args) : Promise.resolve(1),
+    async $transaction(action: (tx: unknown) => Promise<unknown>) {
+      return action(this);
+    },
     notificationSettings: { findMany: mocks.settings },
     notificationBinding: { findMany: async () => [] },
     notificationConnection: { findMany: async () => [] },
-    cronLock: { create: mocks.dbLock, deleteMany: mocks.cleanup, delete: mocks.unlock },
+    cronLock: { create: mocks.dbLock, deleteMany: mocks.cleanup },
     session: { deleteMany: async () => ({ count: 0 }) },
   },
 }));
@@ -63,15 +70,17 @@ function schedule(overrides = {}) {
     ...overrides,
   };
 }
+const candidate = { id: "slot", eventId: "event", startAt: new Date("2026-12-01T13:00:00Z") };
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-12-01T12:00:00Z"));
   mocks.redis.enabled = false;
-  mocks.schedules.mockResolvedValue([]);
-  mocks.claim.mockResolvedValue({ count: 1 });
+  mocks.due.mockResolvedValue([]);
+  mocks.schedules.mockResolvedValue(schedule());
+  mocks.claim.mockResolvedValue(1);
   mocks.settings.mockResolvedValue([]);
-  mocks.acquire.mockResolvedValue(true);
+  mocks.acquire.mockResolvedValue("owner-token");
   mocks.dbLock.mockResolvedValue({});
   mocks.cleanup.mockResolvedValue({ count: 0 });
   mocks.unlock.mockResolvedValue({});
@@ -86,7 +95,13 @@ describe("reminder locking and occurrence consumption", () => {
     expect(mocks.dbLock).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ jobName: "process_reminders" }) })
     );
-    expect(mocks.unlock).toHaveBeenCalledWith({ where: { jobName: "process_reminders" } });
+    expect(mocks.cleanup).toHaveBeenLastCalledWith({
+      where: {
+        jobName: "process_reminders",
+        lockedAt: expect.any(Date),
+        expireAt: expect.any(Date),
+      },
+    });
   });
   it("skips when the database lock is already held", async () => {
     mocks.dbLock.mockRejectedValue(new Error("unique"));
@@ -94,15 +109,15 @@ describe("reminder locking and occurrence consumption", () => {
     expect(mocks.schedules).not.toHaveBeenCalled();
   });
   it("releases the database lock when preparation fails", async () => {
-    mocks.schedules.mockRejectedValue(new Error("Query failed"));
+    mocks.due.mockRejectedValue(new Error("Query failed"));
     await expect(processReminders()).rejects.toThrow("Query failed");
-    expect(mocks.unlock).toHaveBeenCalled();
+    expect(mocks.cleanup).toHaveBeenCalledTimes(2);
   });
   it("uses Redis locking when enabled", async () => {
     mocks.redis.enabled = true;
     await processReminders();
     expect(mocks.acquire).toHaveBeenCalledWith("lock:cron:process_reminders", 600);
-    expect(mocks.release).toHaveBeenCalled();
+    expect(mocks.release).toHaveBeenCalledWith("lock:cron:process_reminders", "owner-token");
     expect(mocks.dbLock).not.toHaveBeenCalled();
   });
   it("skips when Redis lock acquisition fails", async () => {
@@ -112,47 +127,40 @@ describe("reminder locking and occurrence consumption", () => {
     expect(mocks.schedules).not.toHaveBeenCalled();
     expect(mocks.release).not.toHaveBeenCalled();
   });
-  it("queries only active unconsumed occurrences on future noncancelled events", async () => {
+  it("does not load event recipients when no occurrence is due", async () => {
     await processReminders();
-    expect(mocks.schedules).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          enabled: true,
-          consumedAt: null,
-          event: { status: { notIn: ["CANCELLED", "DELETED"] }, startAt: { gt: expect.any(Date) } },
-        }),
-      })
-    );
+    expect(mocks.due).toHaveBeenCalled();
+    expect(mocks.schedules).not.toHaveBeenCalled();
   });
   it("does not consume a reminder before it is due", async () => {
-    mocks.schedules.mockResolvedValue([schedule({ hoursBefore: 0.5 })]);
+    mocks.due.mockResolvedValue([]);
     await processReminders();
     expect(mocks.claim).not.toHaveBeenCalled();
     expect(mocks.deliver).not.toHaveBeenCalled();
   });
   it("atomically consumes the occurrence before any submission", async () => {
-    mocks.schedules.mockResolvedValue([schedule()]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(schedule());
     await processReminders();
-    expect(mocks.claim).toHaveBeenCalledWith({
-      where: { id: "slot", enabled: true, consumedAt: null },
-      data: { consumedAt: expect.any(Date) },
-    });
+    expect(mocks.claim).toHaveBeenCalledTimes(1);
     expect(mocks.claim.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.deliver.mock.invocationCallOrder[0]
     );
   });
   it("does not send an occurrence already claimed by another scheduler", async () => {
-    mocks.schedules.mockResolvedValue([schedule()]);
-    mocks.claim.mockResolvedValue({ count: 0 });
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(schedule());
+    mocks.claim.mockResolvedValue(0);
     await processReminders();
     expect(mocks.deliver).not.toHaveBeenCalled();
   });
   it("does not retry consumed partial/uncertain submissions", async () => {
-    mocks.schedules.mockResolvedValue([schedule()]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(schedule());
     mocks.deliver.mockRejectedValue(new Error("private provider payload"));
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     await processReminders();
-    mocks.claim.mockResolvedValue({ count: 0 });
+    mocks.claim.mockResolvedValue(0);
     await processReminders();
     expect(mocks.deliver).toHaveBeenCalledTimes(1);
     expect(warning).toHaveBeenCalledWith(
@@ -163,7 +171,8 @@ describe("reminder locking and occurrence consumption", () => {
 });
 describe("recipient-controlled reminders", () => {
   it("routes one logical reminder through the recipient's policy", async () => {
-    mocks.schedules.mockResolvedValue([schedule()]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(schedule());
     await processReminders();
     expect(mocks.deliver).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -182,9 +191,10 @@ describe("recipient-controlled reminders", () => {
     );
   });
   it("retains a migrated email-only channel ceiling", async () => {
-    mocks.schedules.mockResolvedValue([
-      schedule({ recipientRouting: false, legacyChannels: ["email"] }),
-    ]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(
+      schedule({ recipientRouting: false, legacyChannels: ["email"] })
+    );
     await processReminders();
     expect(mocks.deliver.mock.calls[0][1][0].policy.channels).toEqual(["email"]);
   });
@@ -197,7 +207,8 @@ describe("recipient-controlled reminders", () => {
         categories: [{ category: "reminders", channels: [] }],
       },
     ]);
-    mocks.schedules.mockResolvedValue([schedule()]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(schedule());
     await processReminders();
     expect(mocks.deliver.mock.calls[0][1][0].policy.channels).toEqual([]);
   });
@@ -212,7 +223,8 @@ describe("recipient-controlled reminders", () => {
       },
     ];
     slot.event.invitations = [{ rsvpId: "rsvp", channel: "EMAIL", sentTo: guest.guestEmail }];
-    mocks.schedules.mockResolvedValue([slot]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(slot);
     await processReminders();
     expect(mocks.deliver.mock.calls[0][1][0].policy.channels).toEqual([]);
   });
@@ -226,7 +238,8 @@ describe("recipient-controlled reminders", () => {
       { rsvpId: "rsvp", channel: "EMAIL", sentTo: "stale@example.com" },
       { rsvpId: "foreign", channel: "SMS", sentTo: guest.guestPhone },
     ];
-    mocks.schedules.mockResolvedValue([slot]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(slot);
     await processReminders();
     expect(mocks.deliver.mock.calls[0][1]).toHaveLength(1);
     expect(mocks.deliver.mock.calls[0][1][0].destinations).toEqual({});
@@ -237,7 +250,8 @@ describe("recipient-controlled reminders", () => {
       guest,
       { ...guest, id: "nl", user: { ...guest.user, preferredLocale: "nl-NL" } },
     ];
-    mocks.schedules.mockResolvedValue([slot]);
+    mocks.due.mockResolvedValue([candidate]);
+    mocks.schedules.mockResolvedValue(slot);
     await processReminders();
     expect(mocks.deliver).toHaveBeenCalledTimes(2);
     expect(mocks.deliver.mock.calls[1][0].body).toBe("Party begint over 2 uur! Tot snel.");

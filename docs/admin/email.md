@@ -49,6 +49,34 @@ Email dispatches are triggered by the following application events:
 | Nudge for unresponded guests                       | Invited guests who have not responded yet                      |
 | Profile email change verification                  | The user's new email address                                   |
 
+### Sign-in, invitation, and manual email delivery (#849)
+
+These email helpers require a positive provider acknowledgement. Cloudflare
+rejection, missing configuration, SMTP rejection, and uncertain submissions now
+reach the calling action's failure handling instead of appearing sent. Configured
+SMTP fallback is allowed after a definitive Cloudflare rejection, but never after
+a timeout, server error, network exception, or missing acknowledgement. Every
+provider request has a thirty-second deadline. Partial SMTP acceptance is uncertain;
+retrying may duplicate accepted copies. No automatic retry is added.
+
+Console-only handling remains available for local development and tests. Production
+without a transport reports failure and never logs private message contents.
+Swallowed best-effort failures now emit warnings with context and error type,
+without raw error messages or provider payloads. Account-deletion job logs retain
+only the internal user ID, not the erased name or email address.
+
+The scheduler queries due schedules before loading event recipients. Its Redis
+locks use unique ownership tokens and atomic compare/delete release; database
+fallback release matches the original acquisition timestamps. Expired owners
+cannot release a replacement lock. On SIGTERM/SIGINT, instrumentation stops cron
+and lets Next.js drain in-flight requests and control process termination.
+
+The inbound Cloudflare Worker still forwards replies, but suppresses acknowledgements
+for automated/list/bulk mail and null/self senders. Its acknowledgements carry
+`Auto-Submitted: auto-replied` and `X-Auto-Response-Suppress: All`. Redeploy the
+worker (or replace the copied Admin → Email template) to enable these guards.
+This change does not deploy a live worker automatically.
+
 ### Event-update delivery results (#335)
 
 Posting an activity update with **Notify guests of update** uses the shared

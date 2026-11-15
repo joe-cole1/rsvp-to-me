@@ -6,7 +6,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { sendMail } = vi.hoisted(() => ({
-  sendMail: vi.fn().mockResolvedValue({ messageId: "issue-712-test" }),
+  sendMail: vi.fn().mockImplementation(async (mail: { to: string }) => ({
+    messageId: "issue-712-test",
+    accepted: [mail.to],
+    rejected: [],
+  })),
 }));
 
 vi.mock("nodemailer", () => ({

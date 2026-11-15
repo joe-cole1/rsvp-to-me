@@ -283,8 +283,11 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   eligible, pauses contacts whose proof was revoked, and reports which
   destinations are proved. `service.ts` handles RSVP confirmations/decisions and organizer alerts
   (organizer eligibility comes from the event's alert switches), and reports
-  which channels the site offers. `lib/reminders.ts` consumes channel-neutral
-  schedule occurrences before dispatch. `manage.ts` owns account/RSVP-token
+  which channels the site offers. `lib/reminders.ts` queries due channel-neutral
+  schedules before loading recipients and consumes each occurrence before dispatch.
+  Date edits, schedule edits and claims share a per-event advisory lock; start-time
+  edits rearm future offsets and consume elapsed ones. Ordinary reminders target
+  approved Going/Maybe guests; nudges retain unanswered-invitation contact rules. `manage.ts` owns account/RSVP-token
   authorization, versioned preference writes, destination challenges and
   connection removal, and builds its read model from the same resolvers producers
   use. `lifecycle.ts` retires proof on sign-in contact changes and purges old
@@ -329,7 +332,8 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - `emails/registry.tsx` defines template metadata/defaults and assembles sample
   previews; `emails/templates/` contains the renderable templates.
 - `lib/email-settings.ts` merges saved template overrides.
-- `lib/email.ts` selects SMTP, Cloudflare, or development delivery and renders
+- `lib/email.ts` selects SMTP, Cloudflare, or development delivery, requires provider
+  acknowledgements (legacy callers receive safe delivery errors), and renders
   through `emails/render.ts`. Notification call sites resolve recipient locales
   explicitly; background work does not depend on request cookies. Default copy
   is localized before existing administrator overrides are applied. Host-written
@@ -352,7 +356,8 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   the admin list: seven schema snapshots and seven secret-recovery snapshots,
   rotated only after a successful dump. Migration snapshots are read-only in
   the admin UI; download/delete routes do not accept their nested identifiers.
-- `instrumentation.ts` starts the in-process scheduler only in the Node runtime.
+- `instrumentation.ts` starts the in-process scheduler only in the Node runtime,
+  stops cron on termination signals, and leaves request draining and exit to Next.js.
 - `lib/cron-scheduler.ts` coordinates reminders, account deletion, rate-limit
   cleanup, and scheduled backups with Redis or database locks.
 - `data/uploads/` and `data/backups/` are runtime data, not source files.

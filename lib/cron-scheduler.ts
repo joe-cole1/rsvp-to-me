@@ -17,7 +17,7 @@ async function runWithLock(
   const expireAt = new Date(now.getTime() + lockDurationSeconds * 1000);
   const lockKey = `lock:cron:${jobName}`;
 
-  let hasRedisLock = false;
+  let redisLockToken: string | null = null;
 
   if (isRedisEnabled()) {
     const acquired = await redisAcquireLock(lockKey, lockDurationSeconds);
@@ -27,7 +27,7 @@ async function runWithLock(
       );
       return;
     }
-    hasRedisLock = true;
+    redisLockToken = acquired;
   } else {
     // Clean up stale database locks
     await db.cronLock
@@ -51,11 +51,13 @@ async function runWithLock(
   try {
     await fn();
   } finally {
-    if (hasRedisLock) {
-      await redisReleaseLock(lockKey).catch(logSafe(`cron:release-redis-lock:${jobName}`));
+    if (redisLockToken) {
+      await redisReleaseLock(lockKey, redisLockToken).catch(
+        logSafe(`cron:release-redis-lock:${jobName}`)
+      );
     } else {
       await db.cronLock
-        .delete({ where: { jobName } })
+        .deleteMany({ where: { jobName, lockedAt: now, expireAt } })
         .catch(logSafe(`cron:release-db-lock:${jobName}`));
     }
   }
@@ -66,7 +68,7 @@ async function processExpiredDeletions() {
     const now = new Date();
     const pending = await db.user.findMany({
       where: { deletionScheduledAt: { lte: now, not: null } },
-      select: { id: true, name: true, email: true },
+      select: { id: true },
     });
 
     if (pending.length === 0) return;
@@ -86,9 +88,7 @@ async function processExpiredDeletions() {
 
       await performImmediateUserDeletion(user.id);
 
-      console.log(
-        `[cron-scheduler] Anonymized account for user ${user.id} (was: ${user.email ?? user.name}).`
-      );
+      console.log(`[cron-scheduler] Anonymized account for user ${user.id}.`);
     }
   });
 }
