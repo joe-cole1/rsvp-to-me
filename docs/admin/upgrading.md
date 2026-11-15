@@ -833,3 +833,20 @@ category choice survives restarts; new rows still receive the built-in values. P
 saved before categories existed show as Seasonal when their seasonal flag is set. If the
 icon catalog cannot load, the event settings page still opens, without effect icon labels,
 and logs a warning.
+
+## Event display and accessibility corrections (#853)
+
+Event cards and event-page times now use the event's stored timezone and display its
+zone label. Server and browser timezone settings no longer change card times. No data
+migration or new configuration is required.
+
+After upgrading, reload open event settings tabs. The updated Display options and RSVP settings editors send only changed
+fields, preserving other tabs' changes to unrelated settings. Older already-open clients
+still send their old full payload until refreshed; edits to the same field remain
+last completed save wins. Existing administrator moderation access is preserved.
+
+All document routes share a main landmark and keyboard skip link. RSVP fields have
+visible labels, autocomplete, linked validation errors, error announcements and focus
+management. RSVP document titles identify the page, showing the event title only when
+existing public metadata rules allow it; private, password-protected and unpublished
+events keep a generic title.

@@ -66,6 +66,21 @@ also excludes generated fixture tests.
 
 ## Index
 
+Issue #853 (audit #852, task `01a1e09e`):
+
+- `issue-853-dashboard-zone.test.ts`: hosted/co-hosted and invitation query projections retain the event zone.
+- `issue-853-event-times.test.tsx`: home/dashboard/hero agreement, event calendar day,
+  localized times and daylight-saving range labels.
+- `issue-853-rsvp-feedback.test.tsx`: visible contact labels, autocomplete, required
+  fields, linked invalid state, announcements/focus, companions, questionnaires and action failures.
+- `issue-853-page-structure.test.tsx`: shared landmark and keyboard bypass, error-page
+  nesting, settings heading levels and guest disclosure target size.
+- `issue-853-settings-patch.test.tsx`: stale tabs preserve unrelated stored fields.
+- `issue-853-page-titles.test.ts`: RSVP/guest-list page titles and protected-title privacy.
+- `tests/e2e/issue-853.e2e.ts` and `tests/e2e/rsvp.e2e.ts`: real keyboard bypass,
+  route landmarks, phone target sizes and RSVP validation focus. Existing
+  `admin-moderate-settings.test.tsx` covers the already-fixed administrator access finding.
+
 Task `01a1dc08` bundles GHSA-wx7r-qqc6-2v5v, GHSA-mrf6-4xh5-7p47,
 GHSA-wch3-85cq-qp5f and GHSA-8r3w-c2hj-fv38.
 `private-advisory-boundaries.test.tsx` covers runtime input/image validation,

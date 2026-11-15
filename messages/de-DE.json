@@ -9,7 +9,8 @@
       "edit": "Bearbeiten",
       "dismissNotification": "Benachrichtigung schließen",
       "siteDescription": "Schöne, persönliche Veranstaltungsseiten für Weinabende, Dinnerpartys und alles dazwischen.",
-      "loading": "Wird geladen …"
+      "loading": "Wird geladen …",
+      "skipToContent": "Zum Inhalt springen"
     },
     "Navigation": {
       "user": "Benutzer",
@@ -1148,7 +1149,11 @@
         "partyOption": "({total} insgesamt — ich + {count, plural, one {# Gast} other {# Gäste}})",
         "plusOnePlaceholder": "Name von Gast {number}{required, select, yes { (erforderlich)} other {}}",
         "unnamedGuest": "Gast {number} von {name}",
-        "partySummary": "{status} · Gruppe mit {count} Personen"
+        "partySummary": "{status} · Gruppe mit {count} Personen",
+        "nameRequiredError": "Gib deinen Namen ein.",
+        "emailInvalidError": "Gib eine gültige E-Mail-Adresse ein.",
+        "requiredFieldError": "Fülle dieses Pflichtfeld aus.",
+        "checkFields": "Überprüfe die markierten Felder."
       },
       "status": {
         "GOING": "Dabei",

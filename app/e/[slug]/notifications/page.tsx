@@ -32,12 +32,12 @@ export default async function NotificationPage({
   const t = await getRequestTranslator();
   return (
     <AppShell>
-      <main style={buildStyles(APP_SHELL_THEME).container}>
+      <div style={buildStyles(APP_SHELL_THEME).container}>
         <InlineAlert theme={APP_SHELL_THEME} tone="info">
           {t("Ui.Notifications.guestIntro")}
         </InlineAlert>
         <NotificationPreferences key={JSON.stringify(scope)} scope={scope} initialData={data} />
-      </main>
+      </div>
     </AppShell>
   );
 }

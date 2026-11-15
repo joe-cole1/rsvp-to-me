@@ -32,6 +32,7 @@ export function formatTime(d: Date, tz: string, locale: string = "en-US") {
     hour: "numeric",
     minute: "2-digit",
     timeZone: tz,
+    timeZoneName: "short",
   });
 }
 export function timeAgo(d: Date, locale: string = "en-US") {

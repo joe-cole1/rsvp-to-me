@@ -22,6 +22,7 @@ function event(guestGoingCount: "CAPPED" | "HIDDEN" | "EXACT", count: number) {
     slug: "party",
     title: "Party",
     startAt: now,
+    timezone: "America/New_York",
     host: { name: "Host", email: "host@example.test", avatarUrl: null },
     theme: null,
     guestGoingCount,

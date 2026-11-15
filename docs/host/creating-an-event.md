@@ -20,7 +20,7 @@ Fill in the basics:
 - **Description** — freeform details about what's happening.
 - **Start Date & Time** _(required)_
 - **End Date & Time** _(optional)_
-- **Timezone** — defaults to `America/New_York`. Guests always see the event in this timezone, so set it to where the event takes place.
+- **Timezone** — defaults to `America/New_York`. Guests always see the event in this timezone, so set it to where the event takes place. Landing-page cards, dashboard cards and event times include a zone label and use this same timezone, even when the viewer is elsewhere.
 
 ---
 

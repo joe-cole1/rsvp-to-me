@@ -7,6 +7,7 @@ export type DashboardEvent = {
   slug: string;
   title: string;
   startAt: Date;
+  timezone: string;
   status: string;
   theme: {
     gradientFrom: string;
@@ -30,6 +31,7 @@ export type DashboardInvite = {
   slug: string;
   title: string;
   startAt: Date;
+  timezone: string;
   status: string;
   theme: {
     gradientFrom: string;

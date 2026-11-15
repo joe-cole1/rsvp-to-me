@@ -368,59 +368,8 @@ export function SettingsPage({
   const triggerSaveSettings = (overrides: SettingsOverrides) => {
     setSaveStatus("SAVING");
     setErr(null);
-    const data = {
-      ...guestRsvpDisplayFields({ ...guestRsvpDisplay, ...overrides }),
-      plusOneAllowed:
-        overrides.plusOneAllowed !== undefined ? overrides.plusOneAllowed : plusOneAllowed,
-      plusOneMax: overrides.plusOneMax !== undefined ? overrides.plusOneMax : plusOneMax,
-      plusOneNamesRequired:
-        overrides.plusOneNamesRequired !== undefined
-          ? overrides.plusOneNamesRequired
-          : plusOneNamesRequired,
-      guestSharingEnabled:
-        overrides.guestSharingEnabled !== undefined
-          ? overrides.guestSharingEnabled
-          : guestSharingEnabled,
-      guestsCanInvite:
-        overrides.guestsCanInvite !== undefined ? overrides.guestsCanInvite : guestsCanInvite,
-      approvalRequired:
-        overrides.approvalRequired !== undefined ? overrides.approvalRequired : approvalRequired,
-      maybeEnabled: overrides.maybeEnabled !== undefined ? overrides.maybeEnabled : maybeEnabled,
-      capacity:
-        overrides.capacity !== undefined
-          ? overrides.capacity
-          : capacity.trim()
-            ? Number(capacity)
-            : null,
-      rsvpDeadline:
-        overrides.rsvpDeadline !== undefined ? overrides.rsvpDeadline : rsvpDeadline || null,
-      allowEditAfterDeadline:
-        overrides.allowEditAfterDeadline !== undefined
-          ? overrides.allowEditAfterDeadline
-          : allowEditAfterDeadline,
-      commentsEnabled:
-        overrides.commentsEnabled !== undefined ? overrides.commentsEnabled : commentsEnabled,
-      guestListVis: overrides.guestListVis !== undefined ? overrides.guestListVis : guestListVis,
-      showTimestamps:
-        overrides.showTimestamps !== undefined ? overrides.showTimestamps : showTimestamps,
-      visibility: overrides.visibility !== undefined ? overrides.visibility : visibility,
-      ...(overrides.password !== undefined
-        ? { password: overrides.password }
-        : passwordDirty
-          ? { password: password.trim() || null }
-          : {}),
-      questionnaireEnabled:
-        overrides.questionnaireEnabled !== undefined
-          ? overrides.questionnaireEnabled
-          : questionnaireEnabled,
-      hostDisplayName:
-        overrides.hostDisplayName !== undefined
-          ? overrides.hostDisplayName
-          : hostDisplayName || null,
-      hostAlertEmail:
-        overrides.hostAlertEmail !== undefined ? overrides.hostAlertEmail : hostAlertEmail,
-      hostAlertSms: overrides.hostAlertSms !== undefined ? overrides.hostAlertSms : hostAlertSms,
-    };
+    // #853: another tab may have newer values for every field outside this patch.
+    const data = { ...overrides };
     startTransition(async () => {
       try {
         const res = await runWithCaptcha("event_settings", (token) =>

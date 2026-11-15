@@ -48,11 +48,20 @@ test.describe("Guest RSVP flow", () => {
     await expect(page.getByText("RSVP updated!")).toBeVisible({ timeout: 10_000 });
   });
 
-  test("guest name is required before RSVP submission", async ({ page }) => {
+  test("guest name errors are announced and focused before RSVP submission", async ({ page }) => {
     await page.goto(`/e/${EVENT_SLUG}/rsvp?status=GOING`);
-    await expect(page.getByRole("button", { name: "Confirm RSVP" })).toBeDisabled();
-    await page.getByPlaceholder("Your name (required)").fill("   ");
-    await expect(page.getByRole("button", { name: "Confirm RSVP" })).toBeDisabled();
+    const name = page.getByRole("textbox", { name: "Your name (required)" });
+    const submit = page.getByRole("button", { name: "Confirm RSVP" });
+    await submit.click();
+    await expect(page.getByRole("main").getByRole("alert")).toHaveText(
+      "Check the highlighted fields."
+    );
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+    await expect(name).toBeFocused();
+    await name.fill("   ");
+    await name.press("Enter");
+    await expect(name).toBeFocused();
+    await expect(name).toHaveAccessibleDescription("Enter your name.");
   });
 
   test("invalid edit token does not expose an RSVP", async ({ page }) => {

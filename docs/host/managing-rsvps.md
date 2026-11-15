@@ -14,6 +14,16 @@ On the guest-facing event page, the RSVP card stays at the bottom of the screen 
 
 ---
 
+## Completing the RSVP form
+
+Guests see visible labels for their name and optional contact details. If a name,
+required companion name or questionnaire answer is missing, or an email address is
+invalid, submitting announces the problem and moves focus to the first field that
+needs attention. The response is saved only after those fields are complete. Server
+errors, such as an event reaching capacity, are also announced.
+
+Keyboard users can use **Skip to content** at the top of each page to bypass navigation.
+
 ## RSVP Statuses
 
 Guests respond **Going**, **Maybe**, or **No**. You can turn off the **Maybe** option per event if you only want a yes/no.

@@ -106,6 +106,7 @@ describe("dashboard filter chips (#812)", () => {
     id: "event-1",
     slug: "party",
     title: "Party",
+    timezone: "America/New_York",
     startAt: new Date(Date.now() + 86_400_000),
     status: "PUBLISHED",
     theme: null,

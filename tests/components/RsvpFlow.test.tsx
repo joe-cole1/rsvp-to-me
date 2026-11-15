@@ -99,12 +99,15 @@ describe("RsvpFlow — new RSVP", () => {
     expect(screen.getByPlaceholderText("Your name (required)")).toBeInTheDocument();
   });
 
-  it("submit button is disabled when name is empty", () => {
+  it("allows submission so an empty name can receive validation feedback", () => {
     render(
       <RsvpFlow event={baseEvent} theme={testTheme} initialStatus="GOING" sessionUser={null} />
     );
     const btn = screen.getByText("Confirm RSVP");
-    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(screen.getByRole("alert")).toHaveTextContent("Check the highlighted fields.");
+    expect(screen.getByRole("textbox", { name: "Your name (required)" })).toHaveFocus();
+    expect(mockAddRSVP).not.toHaveBeenCalled();
   });
 
   it("submit button is enabled after typing a name", () => {
@@ -383,7 +386,7 @@ describe("RSVP localization", () => {
     const instant = new Date("2030-12-01T00:30:00Z");
     const timezone = "America/New_York";
     expect(formatDate(instant, timezone, "nl-NL")).toBe("zaterdag 30 november 2030");
-    expect(formatTime(instant, timezone, "nl-NL")).toBe("19:30");
+    expect(formatTime(instant, timezone, "nl-NL")).toMatch(/19:30.*(?:EST|GMT-5)/);
     expect(formatDate(instant, timezone, "de-DE")).toBe("Samstag, 30. November 2030");
     const machineValue = toDateTimeLocal(instant, timezone);
     expect(machineValue).toBe("2030-11-30T19:30");
