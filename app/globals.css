@@ -321,3 +321,20 @@ select {
     animation: none;
   }
 }
+
+/* A keyboard-only bypass above fixed app chrome; the target is programmatically focusable. */
+.rsvp-skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 10001;
+  padding: 12px 16px;
+  border-radius: 10px;
+  transform: translateY(calc(-100% - 16px));
+}
+.rsvp-skip-link:focus {
+  transform: translateY(0);
+}
+#main-content:focus {
+  outline: none;
+}

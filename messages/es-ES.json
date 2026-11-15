@@ -9,7 +9,8 @@
       "edit": "Editar",
       "dismissNotification": "Descartar notificación",
       "siteDescription": "Páginas de eventos bonitas y personales para noches de vino, cenas y todo lo que se te ocurra.",
-      "loading": "Cargando…"
+      "loading": "Cargando…",
+      "skipToContent": "Saltar al contenido"
     },
     "Navigation": {
       "user": "Usuario",
@@ -1148,7 +1149,11 @@
         "partyOption": "({total} en total — yo + {count, plural, one {# invitado} other {# invitados}})",
         "plusOnePlaceholder": "Nombre del invitado {number}{required, select, yes { (obligatorio)} other {}}",
         "unnamedGuest": "Invitado {number} de {name}",
-        "partySummary": "{status} · Grupo de {count}"
+        "partySummary": "{status} · Grupo de {count}",
+        "nameRequiredError": "Introduce tu nombre.",
+        "emailInvalidError": "Introduce una dirección de correo electrónico válida.",
+        "requiredFieldError": "Completa este campo obligatorio.",
+        "checkFields": "Revisa los campos resaltados."
       },
       "status": {
         "GOING": "Asistiré",

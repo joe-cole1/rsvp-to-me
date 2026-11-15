@@ -192,6 +192,7 @@ export function EventHero({
                   variant="link"
                   onGround
                   type="button"
+                  style={{ display: "inline-flex", minHeight: "40px", alignItems: "center" }}
                   aria-expanded={showHostsPopup}
                   aria-controls="event-cohosts-list"
                   onClick={(e) => {

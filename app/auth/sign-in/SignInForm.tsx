@@ -180,6 +180,7 @@ export default function SignInForm({
                 <Input
                   theme={T}
                   type="text"
+                  autoComplete="username"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}

@@ -3,6 +3,7 @@ import { getRequestLocale, getRequestTranslator } from "@/i18n/server";
 import { loadMessages } from "@/i18n/catalogs";
 import { locales } from "@/i18n/config";
 import { getSessionUser } from "@/lib/session-user";
+import { PageContent } from "@/components/ui/PageContent";
 import GlobalHeader from "@/components/ui/GlobalHeader";
 import type { Metadata } from "next";
 import { connection } from "next/server";
@@ -43,6 +44,7 @@ export default async function RootLayout({
   const locale = await getRequestLocale();
   const messages = await loadMessages(locale);
   const user = await getSessionUser();
+  const translate = await getRequestTranslator();
 
   return (
     <html
@@ -52,8 +54,12 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider locale={locale} messages={{ Ui: messages.Ui }}>
-          <GlobalHeader user={user} />
-          {children}
+          <PageContent
+            skipLabel={translate("Ui.Common.skipToContent")}
+            header={<GlobalHeader user={user} />}
+          >
+            {children}
+          </PageContent>
         </NextIntlClientProvider>
       </body>
     </html>

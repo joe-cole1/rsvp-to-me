@@ -61,6 +61,12 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 
 - `app/layout.tsx` is the root HTML/layout boundary. It resolves the request's UI
   locale and direction and supplies the selected `Ui` catalog to the client.
+- `components/ui/PageContent.tsx`, used by the root layout, owns the single
+  `main#main-content` landmark and keyboard skip link, with the global header
+  outside the main. Route and error wrappers must not add nested main landmarks.
+- `lib/event-date.ts` formats event cards in the event's stored time zone with a
+  zone label; dashboard query projections retain that zone. Event hero times also
+  label their zone, including both ends of a range across a daylight-saving change.
 - The global header is rendered once at the root, including authentication and
   public access screens. Its language selector shares the profile preference
   action; event settings do not define a UI language.

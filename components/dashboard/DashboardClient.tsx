@@ -3,6 +3,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { formatEventCardDate } from "@/lib/event-date";
 import Image from "@/components/ui/UploadedImage";
 import {
   Search,
@@ -31,6 +32,7 @@ export interface DashboardGridItem {
   slug: string;
   title: string;
   startAt: Date | string;
+  timezone: string;
   status: string;
   theme: {
     gradientFrom: string;
@@ -207,18 +209,6 @@ export function DashboardClient({
     invites: openInviteItems.length,
     attended: attendedItems.length,
     past: pastItems.length,
-  };
-
-  // Helper to format date Partiful-style: "Sat 11/15 at 4pm"
-  const formatPartifulDate = (dateVal: Date | string) => {
-    const d = new Date(dateVal);
-    return new Intl.DateTimeFormat(locale, {
-      weekday: "short",
-      month: "numeric",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(d);
   };
 
   // Relative time helper for activity log
@@ -446,7 +436,6 @@ export function DashboardClient({
                 <EventCard
                   key={item.id}
                   item={item}
-                  formatPartifulDate={formatPartifulDate}
                   isDropdownOpen={activeDropdownCardId === item.id}
                   onToggleDropdown={(open) => {
                     setActiveDropdownCardId(open ? item.id : null);
@@ -800,19 +789,12 @@ function PillTab({ filter, active, label, count, onClick }: PillTabProps) {
 // ──────────────────────────────────────────────
 interface EventCardProps {
   item: DashboardGridItem;
-  formatPartifulDate: (d: Date | string) => string;
   isDropdownOpen: boolean;
   onToggleDropdown: (open: boolean) => void;
   dropdownRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function EventCard({
-  item,
-  formatPartifulDate,
-  isDropdownOpen,
-  onToggleDropdown,
-  dropdownRef,
-}: EventCardProps) {
+function EventCard({ item, isDropdownOpen, onToggleDropdown, dropdownRef }: EventCardProps) {
   const tr = useTranslations("Ui.Dashboard");
   const locale = useLocale();
 
@@ -926,8 +908,16 @@ function EventCard({
         </Link>
 
         {/* Date Overlay (Top-Left) */}
-        <div style={{ ...photoLabel, top: "12px", left: "12px" }}>
-          {formatPartifulDate(item.startAt)}
+        <div
+          style={{
+            ...photoLabel,
+            top: "12px",
+            left: "12px",
+            maxWidth: "calc(100% - 68px)",
+            boxSizing: "border-box",
+          }}
+        >
+          {formatEventCardDate(item.startAt, item.timezone, locale)}
         </div>
 
         {/* Dots Menu Button (Top-Right) */}

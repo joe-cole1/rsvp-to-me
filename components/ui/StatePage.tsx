@@ -21,7 +21,7 @@ export function StatePage({
   actions: ReactNode;
 }) {
   return (
-    <main
+    <div
       style={{
         flex: 1,
         minHeight: "100vh",
@@ -47,6 +47,6 @@ export function StatePage({
           {actions}
         </div>
       </AppCard>
-    </main>
+    </div>
   );
 }

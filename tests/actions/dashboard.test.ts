@@ -63,6 +63,7 @@ function makeEvent(
     slug: "test-event",
     title: "Test Event",
     startAt: new Date("2026-08-01T18:00:00Z"),
+    timezone: "America/New_York",
     status: "PUBLISHED",
     hostId: USER_ID,
     rsvps: [],

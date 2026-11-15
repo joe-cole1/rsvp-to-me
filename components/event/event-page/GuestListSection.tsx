@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { buttonProps } from "@/components/ui/Button";
 import { Settings, Users } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
@@ -68,14 +69,7 @@ export function GuestListSection({
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <a
-                href={`/e/${event.slug}/guests`}
-                style={{
-                  fontSize: "13px",
-                  color: t.accentText,
-                  textDecoration: "none",
-                }}
-              >
+              <a href={`/e/${event.slug}/guests`} {...buttonProps(t, { variant: "secondary" })}>
                 {translate("viewAll")}
               </a>
               {isHost && (
@@ -83,7 +77,7 @@ export function GuestListSection({
                   href={`/e/${event.slug}/settings?section=rsvp`}
                   aria-label={translate("rsvpSettings")}
                   title={translate("rsvpSettings")}
-                  style={{ color: t.textMuted, display: "flex", alignItems: "center" }}
+                  {...buttonProps(t, { variant: "icon" })}
                 >
                   <Settings size={13} />
                 </a>

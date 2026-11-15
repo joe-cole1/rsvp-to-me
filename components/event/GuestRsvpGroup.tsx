@@ -63,7 +63,17 @@ export function GuestRsvpGroup({
 
   return display.list === "COLLAPSED" ? (
     <details style={{ marginBottom: "14px" }}>
-      <summary style={{ ...headingStyle, cursor: "pointer" }}>{heading}</summary>
+      <summary
+        style={{
+          ...headingStyle,
+          cursor: "pointer",
+          minHeight: "40px",
+          paddingBlock: "10px",
+          boxSizing: "border-box",
+        }}
+      >
+        {heading}
+      </summary>
       {children}
     </details>
   ) : (

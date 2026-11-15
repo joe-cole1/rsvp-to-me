@@ -14,6 +14,10 @@ Event pages use a responsive, single-column layout that grows to 600px on larger
 
 ---
 
+Display options and RSVP settings save only the fields you change. If another host or co-host changes a different
+setting in another tab, your next save keeps their change. If both edit the same setting,
+the last completed save wins; reload to see the latest values.
+
 ## Inline Editing
 
 When you view your own event, you can click directly on certain details to edit them in place — changes save automatically. You can edit these inline:

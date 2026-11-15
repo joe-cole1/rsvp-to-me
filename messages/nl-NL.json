@@ -9,7 +9,8 @@
       "edit": "Bewerken",
       "dismissNotification": "Melding sluiten",
       "siteDescription": "Mooie, persoonlijke evenementpagina’s voor wijnavonden, etentjes en alles daartussenin.",
-      "loading": "Laden…"
+      "loading": "Laden…",
+      "skipToContent": "Ga naar inhoud"
     },
     "Navigation": {
       "user": "Gebruiker",
@@ -1148,7 +1149,11 @@
         "partyOption": "({total} personen — ik + {count, plural, one {# gast} other {# gasten}})",
         "plusOnePlaceholder": "Naam van gast {number}{required, select, yes { (verplicht)} other {}}",
         "unnamedGuest": "Gast {number} van {name}",
-        "partySummary": "{status} · Aantal personen: {count}"
+        "partySummary": "{status} · Aantal personen: {count}",
+        "nameRequiredError": "Vul je naam in.",
+        "emailInvalidError": "Vul een geldig e-mailadres in.",
+        "requiredFieldError": "Vul dit verplichte veld in.",
+        "checkFields": "Controleer de gemarkeerde velden."
       },
       "status": {
         "GOING": "Aanwezig",

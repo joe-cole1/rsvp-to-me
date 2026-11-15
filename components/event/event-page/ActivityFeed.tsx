@@ -577,6 +577,11 @@ export function ActivityFeed({
                                 <Button
                                   theme={t}
                                   variant="link"
+                                  style={{
+                                    display: "inline-flex",
+                                    minHeight: "40px",
+                                    alignItems: "center",
+                                  }}
                                   aria-expanded={replyingToId === item.id}
                                   onClick={() => {
                                     setReplyingToId(replyingToId === item.id ? null : item.id);

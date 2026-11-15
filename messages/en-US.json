@@ -9,7 +9,8 @@
       "edit": "Edit",
       "dismissNotification": "Dismiss notification",
       "siteDescription": "Beautiful, personal event pages for wine nights, dinner parties, and everything in between.",
-      "loading": "Loading…"
+      "loading": "Loading…",
+      "skipToContent": "Skip to content"
     },
     "Navigation": {
       "user": "User",
@@ -1148,7 +1149,11 @@
         "partyOption": "({total} total — me + {count, plural, one {# guest} other {# guests}})",
         "plusOnePlaceholder": "Guest {number} Name{required, select, yes { (required)} other {}}",
         "unnamedGuest": "Guest {number} of {name}",
-        "partySummary": "{status} · Party of {count}"
+        "partySummary": "{status} · Party of {count}",
+        "nameRequiredError": "Enter your name.",
+        "emailInvalidError": "Enter a valid email address.",
+        "requiredFieldError": "Complete this required field.",
+        "checkFields": "Check the highlighted fields."
       },
       "status": {
         "GOING": "Going",

@@ -5,7 +5,7 @@ import { Button, buttonProps } from "@/components/ui/Button";
 import { Check as CheckBox, Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { addRSVP, updateRSVP, updateRsvpAsHost } from "@/app/actions/event";
 import type { ResolvedTheme } from "@/lib/theme";
 import { Check } from "lucide-react";
@@ -144,9 +144,31 @@ export function RsvpFlow({
   const [justCreated, setJustCreated] = useState(false);
   const [savedEditToken, setSavedEditToken] = useState(existingRsvp?.editToken ?? "");
   const [linkCopied, setLinkCopied] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const focusInvalid = useRef(false);
+  useEffect(() => {
+    if (focusInvalid.current) {
+      formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      focusInvalid.current = false;
+    }
+  }, [fieldErrors]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { runWithCaptcha } = useCaptcha();
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
+
+  const clearFieldError = (key: string) => {
+    setFieldErrors((previous) => {
+      if (!previous[key]) return previous;
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+  };
 
   // Edit links reach guests through the contact on file (invitation or
   // confirmation), so only a contactless RSVP needs the copy-link fallback.
@@ -165,6 +187,7 @@ export function RsvpFlow({
 
   const setAnswerValue = (fieldId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
+    clearFieldError(fieldId);
   };
 
   const checkboxToggle = (fieldId: string, opt: string) => {
@@ -174,15 +197,25 @@ export function RsvpFlow({
     setAnswerValue(fieldId, next.join(","));
   };
 
-  const requiredUnanswered = event.rsvpFields.filter((f) => f.required && !answers[f.id]?.trim());
-
-  const canProceedStep1 =
-    name.trim().length > 0 &&
-    (status !== "GOING" ||
-      !event.plusOneNamesRequired ||
-      plusOneNames.every((n) => n.trim().length > 0));
+  const validateDetails = () => {
+    const errors: Record<string, string> = {};
+    if (!name.trim()) errors.name = translate("nameRequiredError");
+    const emailInput = formRef.current?.elements.namedItem("email") as HTMLInputElement | null;
+    if (email.trim() && emailInput && !emailInput.validity.valid)
+      errors.email = translate("emailInvalidError");
+    if (status === "GOING" && event.plusOneNamesRequired) {
+      plusOneNames.forEach((value, i) => {
+        if (!value.trim()) errors[`guest-${i}`] = translate("requiredFieldError");
+      });
+    }
+    setFieldErrors(errors);
+    focusInvalid.current = Object.keys(errors).length > 0;
+    return Object.keys(errors).length === 0;
+  };
 
   const handleContinue = () => {
+    setError(null);
+    if (!validateDetails()) return;
     if (step < maxStep) {
       setStep(2);
       return;
@@ -191,6 +224,16 @@ export function RsvpFlow({
   };
 
   const submit = () => {
+    if (step === 2) {
+      const errors = Object.fromEntries(
+        event.rsvpFields
+          .filter((f) => f.required && !answers[f.id]?.trim())
+          .map((f) => [f.id, translate("requiredFieldError")])
+      );
+      setFieldErrors(errors);
+      focusInvalid.current = Object.keys(errors).length > 0;
+      if (Object.keys(errors).length) return;
+    }
     startTransition(async () => {
       setError(null);
       try {
@@ -584,7 +627,15 @@ export function RsvpFlow({
   // ── Step 1: Details ─────────────────────────────────────────────────────────
   if (step === 1) {
     return (
-      <div style={S.page}>
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleContinue();
+        }}
+        style={S.page}
+      >
         <EventAtmosphere theme={t} effect={effect} />
         <div style={S.header}>
           <p style={{ margin: 0, padding: "12px 0", fontSize: "14px" }}>
@@ -650,35 +701,65 @@ export function RsvpFlow({
           <div style={S.group}>
             <Label theme={t}>{translate("rsvpAs")}</Label>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Input
+              <Field
                 theme={t}
-                placeholder={translate("nameRequired")}
-                aria-label={translate("nameRequired")}
-                maxLength={100}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+                label={translate("nameRequired")}
+                error={fieldErrors.name}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  theme={t}
+                  name="name"
+                  autoComplete="name"
+                  required
+                  placeholder={translate("nameRequired")}
+                  maxLength={100}
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clearFieldError("name");
+                  }}
+                />
+              </Field>
               {!isEdit && (
                 <>
                   {channelConfig.email && (
-                    <Input
+                    <Field
                       theme={t}
-                      type="email"
-                      aria-label={translate("emailOptionalUpdates")}
-                      placeholder={translate("emailOptionalUpdates")}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
+                      label={translate("emailOptionalUpdates")}
+                      error={fieldErrors.email}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input
+                        theme={t}
+                        type="email"
+                        name="email"
+                        autoComplete="email"
+                        placeholder={translate("emailOptionalUpdates")}
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          clearFieldError("email");
+                        }}
+                      />
+                    </Field>
                   )}
                   {channelConfig.sms && (
-                    <Input
+                    <Field
                       theme={t}
-                      type="tel"
-                      aria-label={translate("phoneOptionalSmsUpdates")}
-                      placeholder={translate("phoneOptionalSmsUpdates")}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
+                      label={translate("phoneOptionalSmsUpdates")}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input
+                        theme={t}
+                        type="tel"
+                        name="tel"
+                        autoComplete="tel"
+                        placeholder={translate("phoneOptionalSmsUpdates")}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </Field>
                   )}
                 </>
               )}
@@ -730,24 +811,32 @@ export function RsvpFlow({
                 </Label>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {plusOneNames.map((n, i) => (
-                    <Input
+                    <Field
                       key={i}
                       theme={t}
-                      aria-label={translate("plusOnePlaceholder", {
+                      error={fieldErrors[`guest-${i}`]}
+                      style={{ marginBottom: 0 }}
+                      label={translate("plusOnePlaceholder", {
                         number: i + 1,
                         required: event.plusOneNamesRequired ? "yes" : "no",
                       })}
-                      placeholder={translate("plusOnePlaceholder", {
-                        number: i + 1,
-                        required: event.plusOneNamesRequired ? "yes" : "no",
-                      })}
-                      value={n}
-                      onChange={(e) => {
-                        const next = [...plusOneNames];
-                        next[i] = e.target.value;
-                        setPlusOneNames(next);
-                      }}
-                    />
+                    >
+                      <Input
+                        theme={t}
+                        required={event.plusOneNamesRequired}
+                        placeholder={translate("plusOnePlaceholder", {
+                          number: i + 1,
+                          required: event.plusOneNamesRequired ? "yes" : "no",
+                        })}
+                        value={n}
+                        onChange={(e) => {
+                          const next = [...plusOneNames];
+                          next[i] = e.target.value;
+                          setPlusOneNames(next);
+                          clearFieldError(`guest-${i}`);
+                        }}
+                      />
+                    </Field>
                   ))}
                 </div>
                 <p style={{ fontSize: "13px", color: t.textSecondary, margin: "8px 0 0" }}>
@@ -768,7 +857,14 @@ export function RsvpFlow({
             />
           </Field>
 
-          {error && <InlineAlert theme={t}>{error}</InlineAlert>}
+          {Object.keys(fieldErrors).length > 0 && (
+            <InlineAlert theme={t}>{translate("checkFields")}</InlineAlert>
+          )}
+          {error && (
+            <div ref={errorRef} tabIndex={-1}>
+              <InlineAlert theme={t}>{error}</InlineAlert>
+            </div>
+          )}
         </div>
 
         <div style={S.footer}>
@@ -778,12 +874,7 @@ export function RsvpFlow({
           >
             {translate("cancel")}
           </a>
-          <Button
-            theme={t}
-            variant="primary"
-            onClick={handleContinue}
-            disabled={!canProceedStep1 || isPending}
-          >
+          <Button theme={t} variant="primary" type="submit" disabled={isPending}>
             {isPending
               ? translate("saving")
               : step < maxStep
@@ -793,17 +884,35 @@ export function RsvpFlow({
                   : translate("confirmRsvp")}
           </Button>
         </div>
-      </div>
+      </form>
     );
   }
 
   // ── Step 2: Questionnaire ──────────────────────────────────────────────────────────
   return (
-    <div style={S.page}>
+    <form
+      ref={formRef}
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      style={S.page}
+    >
       <EventAtmosphere theme={t} effect={effect} />
       <div style={S.header}>
         <p style={{ margin: 0, padding: "12px 0", fontSize: "14px" }}>
-          <Button theme={t} variant="link" onGround onClick={() => setStep(1)}>
+          <Button
+            theme={t}
+            variant="link"
+            onGround
+            type="button"
+            onClick={() => {
+              setFieldErrors({});
+              setError(null);
+              setStep(1);
+            }}
+          >
             {translate("back")}
           </Button>
         </p>
@@ -830,7 +939,13 @@ export function RsvpFlow({
                     </span>
                   )}
                 </Label>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div
+                  role="group"
+                  aria-label={f.label}
+                  aria-describedby={fieldErrors[f.id] ? `question-${f.id}-error` : undefined}
+                  tabIndex={-1}
+                  style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+                >
                   {parseOptions(f.options).map((opt) => (
                     <label
                       key={opt}
@@ -844,6 +959,8 @@ export function RsvpFlow({
                     >
                       <CheckBox
                         theme={t}
+                        aria-invalid={!!fieldErrors[f.id] || undefined}
+                        aria-describedby={fieldErrors[f.id] ? `question-${f.id}-error` : undefined}
                         checked={(answers[f.id] ?? "").split(",").includes(opt)}
                         onChange={() => checkboxToggle(f.id, opt)}
                       />
@@ -851,6 +968,11 @@ export function RsvpFlow({
                     </label>
                   ))}
                 </div>
+                {fieldErrors[f.id] && (
+                  <p id={`question-${f.id}-error`} style={{ color: t.status.error.text }}>
+                    {fieldErrors[f.id]}
+                  </p>
+                )}
               </>
             ) : (
               <Field
@@ -865,6 +987,7 @@ export function RsvpFlow({
                     )}
                   </>
                 }
+                error={fieldErrors[f.id]}
                 style={{ marginBottom: 0 }}
               >
                 {f.fieldType === "TEXTAREA" ? (
@@ -872,12 +995,14 @@ export function RsvpFlow({
                     theme={t}
                     style={{ resize: "none" }}
                     rows={3}
+                    required={f.required}
                     value={answers[f.id] ?? ""}
                     onChange={(e) => setAnswerValue(f.id, e.target.value)}
                   />
                 ) : f.fieldType === "SELECT" ? (
                   <Select
                     theme={t}
+                    required={f.required}
                     value={answers[f.id] ?? ""}
                     onChange={(e) => setAnswerValue(f.id, e.target.value)}
                   >
@@ -891,6 +1016,7 @@ export function RsvpFlow({
                 ) : (
                   <Input
                     theme={t}
+                    required={f.required}
                     value={answers[f.id] ?? ""}
                     onChange={(e) => setAnswerValue(f.id, e.target.value)}
                   />
@@ -900,19 +1026,30 @@ export function RsvpFlow({
           </div>
         ))}
 
-        {error && <InlineAlert theme={t}>{error}</InlineAlert>}
+        {Object.keys(fieldErrors).length > 0 && (
+          <InlineAlert theme={t}>{translate("checkFields")}</InlineAlert>
+        )}
+        {error && (
+          <div ref={errorRef} tabIndex={-1}>
+            <InlineAlert theme={t}>{error}</InlineAlert>
+          </div>
+        )}
       </div>
 
       <div style={S.footer}>
-        <Button theme={t} variant="secondary" onClick={() => setStep(1)}>
-          {translate("back")}
-        </Button>
         <Button
           theme={t}
-          variant="primary"
-          onClick={submit}
-          disabled={requiredUnanswered.length > 0 || isPending}
+          variant="secondary"
+          type="button"
+          onClick={() => {
+            setFieldErrors({});
+            setError(null);
+            setStep(1);
+          }}
         >
+          {translate("back")}
+        </Button>
+        <Button theme={t} variant="primary" type="submit" disabled={isPending}>
           {isPending
             ? translate("saving")
             : showUpdateCopy
@@ -920,6 +1057,6 @@ export function RsvpFlow({
               : translate("submit")}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

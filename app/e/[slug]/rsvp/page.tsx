@@ -1,4 +1,6 @@
 import { getRequestTranslator } from "@/i18n/server";
+import type { Metadata } from "next";
+import { SITE_NAME, isEventTitlePublic } from "@/lib/event-social";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/session-user";
@@ -12,6 +14,20 @@ type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ token?: string; status?: string; return?: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const [event, translate] = await Promise.all([
+    db.event.findUnique({
+      where: { slug },
+      select: { title: true, status: true, visibility: true, passwordHash: true },
+    }),
+    getRequestTranslator(),
+  ]);
+  const page = translate("Ui.Rsvp.RsvpFlow.rsvp");
+  const title = event && isEventTitlePublic(event) ? `${page} · ${event.title}` : page;
+  return { title: { absolute: `${title} | ${SITE_NAME}` } };
+}
 
 export default async function RsvpPage({ params, searchParams }: Props) {
   const translate = await getRequestTranslator();

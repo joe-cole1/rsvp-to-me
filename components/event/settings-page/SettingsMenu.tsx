@@ -96,7 +96,7 @@ export function SettingsMenu({
           }}
         >
           <div style={{ flex: 1 }}>
-            <h3
+            <h2
               style={{
                 fontSize: "15px",
                 fontWeight: 700,
@@ -105,7 +105,7 @@ export function SettingsMenu({
               }}
             >
               {sec.title}
-            </h3>
+            </h2>
             <p style={{ fontSize: "13px", color: t.textSecondary, margin: 0 }}>{sec.desc}</p>
           </div>
           <ChevronRight

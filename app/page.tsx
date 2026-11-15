@@ -6,22 +6,11 @@ import { APP_SHELL, APP_SHELL_THEME } from "@/lib/theme";
 import { buttonProps } from "@/components/ui/Button";
 import { getUpcomingPublicEvents } from "@/lib/public-events";
 import Link from "next/link";
+import { formatEventCardDate } from "@/lib/event-date";
 import Image from "@/components/ui/UploadedImage";
 import { resolveTheme } from "@/lib/theme";
 import { MessageSquare } from "lucide-react";
 import { GUEST_COUNT_CAP } from "@/lib/guestRsvpDisplay";
-
-// Helper to format date Partiful-style
-const formatPartifulDate = (dateVal: Date | string, locale: string) => {
-  const d = new Date(dateVal);
-  return new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(d);
-};
 
 function AvatarBubble({
   name,
@@ -246,7 +235,7 @@ export default async function Home() {
                           pointerEvents: "none",
                         }}
                       >
-                        {formatPartifulDate(event.startAt, locale)}
+                        {formatEventCardDate(event.startAt, event.timezone, locale)}
                       </div>
                     </div>
 

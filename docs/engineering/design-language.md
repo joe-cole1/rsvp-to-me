@@ -425,6 +425,26 @@ few extreme custom colors.
 - **Document titles** read "Page · Event | RSVP to Me" on event routes and "Page | RSVP to Me"
   elsewhere, without repeating the brand.
 
+## Document structure and form feedback
+
+The root layout supplies one `main` landmark with a focusable `main-content` target.
+A localized **Skip to content** link comes before navigation in keyboard order and
+appears above fixed chrome when focused. Route wrappers, loading screens and error
+screens stay inside that landmark. Page headings start at `h1`, settings menu sections
+use `h2`, and subsections use `h3` without changing their visual size.
+
+RSVP contact fields have visible labels and autocomplete hints. Submit remains available
+so a missing or invalid value can produce an inline error, `aria-invalid`, a linked
+error description and focus on the first invalid control. A shared alert announces the
+validation summary; action failures also receive focus. Required questionnaire answers
+and companion names follow the same pattern. Pending requests disable submission.
+Standalone event links, icon links, co-host toggles and guest disclosure rows use the
+shared 40px targets; links within prose remain inline.
+
+Event card dates and hero times use the event's time zone, never the server or browser
+zone. Always include a localized short zone label so the first server render is clear
+before the viewer's zone is known. Each end of a time range retains its own zone label.
+
 ## Checking a screen
 
 When building or reviewing a screen, check that:
