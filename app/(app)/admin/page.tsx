@@ -35,7 +35,7 @@ export default async function AdminPage() {
     docs,
   ] = await Promise.all([
     getAdminStats(),
-    getAdminUsers(),
+    getAdminUsers("", 1, { status: "ACTIVE" }),
     getAdminEvents(),
     getInviteCodes(),
     getSystemConfig(),

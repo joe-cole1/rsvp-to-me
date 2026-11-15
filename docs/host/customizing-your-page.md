@@ -110,6 +110,12 @@ Upload a cover photo to set the mood:
 
 - Supported formats: JPEG, PNG, GIF, WebP. Use one of these formats when replacing a cover image; AVIF is not a supported upload format.
 - Maximum file size: 8 MB.
+- Each account has 100 MiB of storage for new cover and profile-image uploads.
+  Replacing or removing an image frees its storage once no other event or profile
+  still uses it. Unattached uploads are cleaned up after 24 hours on the next
+  daily cleanup. Images uploaded before storage accounting was introduced do
+  not count toward this quota. A full-storage message appears beside the cover
+  controls when an upload is rejected; the existing image stays in place.
 - Large images are automatically resized in your browser (up to 1600×900) before uploading, so uploads stay fast.
 - The server automatically delivers responsive image sizes and modern formats for event covers and profile photos. The original upload remains unchanged for backups and email-client compatibility.
 - **Aspect Ratio:** On the event page itself, the cover image renders with its natural aspect ratio (automatically scaling between a height of 200px and 450px depending on the width and shape). On your dashboard list and public feeds, cover photos are cropped to a uniform 4:3 grid aspect ratio.

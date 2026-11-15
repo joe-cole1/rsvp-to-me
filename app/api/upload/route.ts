@@ -1,12 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
 import { randomUUID } from "crypto";
-import path from "path";
+import { storeUpload, UploadQuotaError } from "@/lib/uploads";
 import { getSession } from "@/lib/session";
 import { assertCaptcha, CaptchaVerificationError } from "@/lib/captcha";
 import { CAPTCHA_RESPONSE_FIELD } from "@/lib/captcha-types";
 
-const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
 const MAX_SIZE = 8 * 1024 * 1024; // 8MB
 
 function detectImageBuffer(buffer: Buffer): { ext: string; mime: string } | null {
@@ -92,8 +90,17 @@ export async function POST(request: NextRequest) {
 
   const filename = `${randomUUID()}${detected.ext}`;
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  await writeFile(path.join(UPLOAD_DIR, filename), buffer);
+  try {
+    await storeUpload(session.userId, filename, buffer);
+  } catch (error) {
+    if (error instanceof UploadQuotaError) {
+      return NextResponse.json(
+        { error: error.message, code: "UPLOAD_QUOTA_EXCEEDED" },
+        { status: 413 }
+      );
+    }
+    throw error;
+  }
 
   return NextResponse.json({ url: `/api/uploads/${filename}` });
 }

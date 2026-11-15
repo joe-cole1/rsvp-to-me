@@ -4,6 +4,7 @@ import { eventActionMessage } from "./localization";
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { withUploadLock, assertUploadExists, releaseUpload } from "@/lib/uploads";
 import type { BaseTheme } from "@/lib/theme";
 import { isValidFontId } from "@/lib/fonts";
 import {
@@ -358,20 +359,34 @@ export async function saveCoverImage(eventId: string, url: string, captchaToken?
   url = UploadPathSchema.parse(url);
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("image_assign", captchaToken);
-  await db.eventTheme.upsert({
-    where: { eventId },
-    update: { coverImageUrl: url },
-    create: { eventId, coverImageUrl: url },
+  const previous = await withUploadLock(async (tx) => {
+    await assertUploadExists(url);
+    const old = await tx.eventTheme.findUnique({
+      where: { eventId },
+      select: { coverImageUrl: true },
+    });
+    await tx.eventTheme.upsert({
+      where: { eventId },
+      update: { coverImageUrl: url },
+      create: { eventId, coverImageUrl: url },
+    });
+    return old?.coverImageUrl;
   });
+  await releaseUpload(previous);
   revalidatePath(`/e/${event.slug}`);
 }
 
 export async function removeCoverImage(eventId: string) {
   const event = await assertHostOrCohost(eventId);
-  await db.eventTheme.update({
-    where: { eventId },
-    data: { coverImageUrl: null },
+  const previous = await withUploadLock(async (tx) => {
+    const old = await tx.eventTheme.findUnique({
+      where: { eventId },
+      select: { coverImageUrl: true },
+    });
+    await tx.eventTheme.update({ where: { eventId }, data: { coverImageUrl: null } });
+    return old?.coverImageUrl;
   });
+  await releaseUpload(previous);
   revalidatePath(`/e/${event.slug}`);
 }
 
@@ -385,11 +400,11 @@ export async function getActiveThemePresets() {
 }
 
 // Tombstones the event as DELETED and hard-deletes all guest data for GDPR compliance.
-// Only the host, co-hosts (or admin) may delete their event this way.
+// Only the host (or admin) may delete their event this way.
 export async function deleteEvent(eventId: string) {
   const event = await db.event.findUnique({
     where: { id: eventId },
-    select: { id: true, slug: true, status: true },
+    select: { id: true, slug: true, status: true, theme: { select: { coverImageUrl: true } } },
   });
   if (!event) throw new Error(await eventActionMessage("eventNotFound"));
   await assertHost(eventId);
@@ -415,10 +430,16 @@ export async function deleteEvent(eventId: string) {
     db.sentReminder.deleteMany({ where: { eventId } }),
     db.activityEvent.deleteMany({ where: { eventId } }),
     db.eventCoHost.deleteMany({ where: { eventId } }),
+    db.coHostInvitation.deleteMany({ where: { eventId } }),
+    db.eventTheme.deleteMany({ where: { eventId } }),
+    db.rSVPField.deleteMany({ where: { eventId } }),
+    db.eventReminderSettings.deleteMany({ where: { eventId } }),
     db.event.update({ where: { id: eventId }, data: { status: "DELETED" } }),
   ]);
 
   revalidatePath(`/e/${event.slug}`);
+  await releaseUpload(event.theme?.coverImageUrl);
   revalidatePath("/dashboard");
+  revalidatePath("/");
   return { success: true };
 }

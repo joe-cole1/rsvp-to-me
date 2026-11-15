@@ -10,6 +10,7 @@ import {
   saveCoverImage,
   removeCoverImage,
   addComment,
+  deleteComment,
   addInfoSection,
   updateInfoSection,
   removeInfoSection,
@@ -289,6 +290,7 @@ export function EventPage({
   };
 
   const [uploadStatus, setUploadStatus] = useState<"idle" | "compressing" | "uploading">("idle");
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
 
   const handleCoverRemove = async () => {
     startTransition(async () => {
@@ -304,6 +306,7 @@ export function EventPage({
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
+    setCoverUploadError(null);
     try {
       setUploadStatus("compressing");
       const compressed = await compressImage(file, { maxWidth: 1600, maxHeight: 900 });
@@ -314,8 +317,17 @@ export function EventPage({
         if (token) form.set(CAPTCHA_RESPONSE_FIELD, token);
         return fetch("/api/upload", { method: "POST", body: form });
       });
-      if (!res.ok) throw new Error(await res.text());
-      const { url } = (await res.json()) as { url: string };
+      const result = (await res.json()) as { url?: string; code?: string };
+      if (!res.ok) {
+        setCoverUploadError(
+          translate(
+            result.code === "UPLOAD_QUOTA_EXCEEDED" ? "uploadQuotaExceeded" : "coverUploadFailed"
+          )
+        );
+        return;
+      }
+      const url = result.url;
+      if (!url) throw new Error("Missing upload URL");
       await runWithCaptcha("image_assign", (token) => saveCoverImage(event.id, url, token));
       setEvent((ev) => ({
         ...ev,
@@ -329,8 +341,8 @@ export function EventPage({
           coverImageUrl: url,
         },
       }));
-    } catch (err) {
-      console.error("Cover upload failed:", err);
+    } catch {
+      setCoverUploadError(translate("coverUploadFailed"));
     } finally {
       setIsUploading(false);
       setUploadStatus("idle");
@@ -595,6 +607,24 @@ export function EventPage({
     }
   };
 
+  const removeComment = async (id: string) => {
+    const result = await deleteComment(event.id, id);
+    const removed = new Set(result.removedIds);
+    setEvent((e) => ({
+      ...e,
+      comments: e.comments
+        .filter((c) => !removed.has(c.id))
+        .map((c) => ({
+          ...c,
+          replies: c.replies.filter((r) => !removed.has(r.id)),
+        })),
+    }));
+    if (replyingToId && removed.has(replyingToId)) {
+      setReplyingToId(null);
+      setReplyText("");
+    }
+  };
+
   const removeUpdate = (id: string) => {
     startTransition(async () => {
       await deleteEventUpdate(id);
@@ -811,6 +841,7 @@ export function EventPage({
           t={t}
           save={save}
           uploadStatus={uploadStatus}
+          uploadError={coverUploadError}
           handleCoverRemove={handleCoverRemove}
           handleCoverUpload={handleCoverUpload}
           isHost={isHost}
@@ -951,6 +982,7 @@ export function EventPage({
           submitComment={submitComment}
           submitReply={submitReply}
           postUpdate={postUpdate}
+          removeComment={removeComment}
           removeUpdate={removeUpdate}
           removeActivityEvent={removeActivityEvent}
         />

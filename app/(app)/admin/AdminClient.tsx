@@ -3,6 +3,8 @@ import { presetPresentation } from "@/lib/theme-preset-presentation";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useState, useEffect, useTransition } from "react";
+import type { AdminPage } from "@/lib/admin-pagination";
+import { ListPagination } from "./tabs/ListPagination";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Menu } from "lucide-react";
 import DocsPanel, { type PanelDoc } from "@/components/docs/DocsPanel";
@@ -63,8 +65,8 @@ import {
 
 interface AdminClientProps {
   initialStats: AdminStats;
-  initialUsers: AdminUser[];
-  initialEvents: AdminEvent[];
+  initialUsers: AdminPage<AdminUser>;
+  initialEvents: AdminPage<AdminEvent>;
   initialInviteCodes: AdminInviteCode[];
   initialConfig: Record<string, string>;
   initialBackupConfig: BackupConfig;
@@ -101,8 +103,8 @@ export default function AdminClient({
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [copied, setCopied] = useState(false);
 
-  const [users, setUsers] = useState(initialUsers);
-  const [events, setEvents] = useState(initialEvents);
+  const [users, setUsers] = useState(initialUsers.items);
+  const [events, setEvents] = useState(initialEvents.items);
   const [inviteCodes, setInviteCodes] = useState(initialInviteCodes);
   const [config, setConfig] = useState(initialConfig);
 
@@ -128,6 +130,72 @@ export default function AdminClient({
     "ACTIVE"
   );
   const [eventSearch, setEventSearch] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [eventPage, setEventPage] = useState(1);
+  const [usersHasMore, setUsersHasMore] = useState(initialUsers.hasMore);
+  const [eventsHasMore, setEventsHasMore] = useState(initialEvents.hasMore);
+  const [usersLoading, startUsersLoading] = useTransition();
+  const [eventsLoading, startEventsLoading] = useTransition();
+  const [usersError, setUsersError] = useState(false);
+  const [eventsError, setEventsError] = useState(false);
+  const [listRevision, setListRevision] = useState(0);
+
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    let current = true;
+    startUsersLoading(async () => {
+      try {
+        const result = await getAdminUsers(userSearch, userPage, {
+          role: roleFilter,
+          status: statusFilter,
+        });
+        if (current) {
+          if (result.items.length === 0 && userPage > 1) {
+            setUserPage(userPage - 1);
+            return;
+          }
+          setUsers(result.items);
+          setUsersHasMore(result.hasMore);
+          setUsersError(false);
+        }
+      } catch {
+        if (current) {
+          setUsersError(true);
+          setUsers([]);
+        }
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [activeTab, userSearch, userPage, roleFilter, statusFilter, listRevision]);
+
+  useEffect(() => {
+    if (activeTab !== "events") return;
+    let current = true;
+    startEventsLoading(async () => {
+      try {
+        const result = await getAdminEvents(eventSearch, eventPage);
+        if (current) {
+          if (result.items.length === 0 && eventPage > 1) {
+            setEventPage(eventPage - 1);
+            return;
+          }
+          setEvents(result.items);
+          setEventsHasMore(result.hasMore);
+          setEventsError(false);
+        }
+      } catch {
+        if (current) {
+          setEventsError(true);
+          setEvents([]);
+        }
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [activeTab, eventSearch, eventPage, listRevision]);
 
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [createUserName, setCreateUserName] = useState("");
@@ -427,25 +495,14 @@ export default function AdminClient({
     });
   };
 
-  // Search handlers
+  // Query/filter changes always restart pagination; stale responses are ignored by the effects.
   const handleUserSearch = async (val: string) => {
     setUserSearch(val);
-    try {
-      const filtered = await getAdminUsers(val);
-      setUsers(filtered);
-    } catch (err) {
-      console.error(err);
-    }
+    setUserPage(1);
   };
-
   const handleEventSearch = async (val: string) => {
     setEventSearch(val);
-    try {
-      const filtered = await getAdminEvents(val);
-      setEvents(filtered);
-    } catch (err) {
-      console.error(err);
-    }
+    setEventPage(1);
   };
 
   // Actions
@@ -455,6 +512,7 @@ export default function AdminClient({
       try {
         const res = await updateUserRole(userId, newRole);
         if (res.success) {
+          setListRevision((v) => v + 1);
           setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
           setFeedback({ type: "success", message: tr("userRoleUpdatedSuccessfully") });
         }
@@ -488,6 +546,7 @@ export default function AdminClient({
           return;
         }
         if (res.success) {
+          setListRevision((v) => v + 1);
           const scheduledAt = new Date(res.scheduledAt);
           setUsers((prev) =>
             prev.map((u) =>
@@ -517,6 +576,7 @@ export default function AdminClient({
       try {
         const res = await cancelAccountDeletion(userId);
         if (res.success) {
+          setListRevision((v) => v + 1);
           setUsers((prev) =>
             prev.map((u) =>
               u.id === userId ? { ...u, deletionRequestedAt: null, deletionScheduledAt: null } : u
@@ -546,6 +606,7 @@ export default function AdminClient({
       try {
         const res = await deleteUserAccountImmediately(userId);
         if (res.success) {
+          setListRevision((v) => v + 1);
           setUsers((prev) =>
             prev.map((u) =>
               u.id === userId
@@ -591,8 +652,8 @@ export default function AdminClient({
         setCreateUserEmail("");
         setCreateUserPhone("");
         setCreateUserRole("GUEST");
-        const updated = await getAdminUsers(userSearch);
-        setUsers(updated);
+        setUserPage(1);
+        setListRevision((v) => v + 1);
       } else {
         setFeedback({ type: "error", message: res.error });
       }
@@ -612,6 +673,7 @@ export default function AdminClient({
         const res = await deleteEventAdmin(eventId);
         if (res.success) {
           setEvents((prev) => prev.filter((e) => e.id !== eventId));
+          setListRevision((v) => v + 1);
           setFeedback({ type: "success", message: tr("eventModeratedAndDeleted") });
         }
       } catch (err) {
@@ -901,15 +963,6 @@ export default function AdminClient({
     },
   };
 
-  const filteredUsers = users.filter((u) => {
-    if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
-    if (statusFilter === "PENDING_DELETE" && !u.deletionScheduledAt) return false;
-    if (statusFilter === "ACTIVE" && (u.deletionScheduledAt || (!u.email && !u.phone)))
-      return false;
-    if (statusFilter === "DELETED" && (u.email || u.phone)) return false;
-    return true;
-  });
-
   return (
     <AppShell>
       <div
@@ -992,31 +1045,57 @@ export default function AdminClient({
 
             {/* PANEL: USERS */}
             {activeTab === "users" && (
-              <UsersTab
-                userSearch={userSearch}
-                handleUserSearch={handleUserSearch}
-                roleFilter={roleFilter}
-                setRoleFilter={setRoleFilter}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-                setCreateUserOpen={setCreateUserOpen}
-                filteredUsers={filteredUsers}
-                handleRoleChange={handleRoleChange}
-                handleCancelDeletion={handleCancelDeletion}
-                handleUserDeleteImmediately={handleUserDeleteImmediately}
-                handleUserDelete={handleUserDelete}
-                sessionUserId={sessionUser?.id}
-              />
+              <div aria-busy={usersLoading}>
+                <UsersTab
+                  userSearch={userSearch}
+                  handleUserSearch={handleUserSearch}
+                  roleFilter={roleFilter}
+                  setRoleFilter={(val) => {
+                    setRoleFilter(val);
+                    setUserPage(1);
+                  }}
+                  statusFilter={statusFilter}
+                  setStatusFilter={(val) => {
+                    setStatusFilter(val);
+                    setUserPage(1);
+                  }}
+                  setCreateUserOpen={setCreateUserOpen}
+                  filteredUsers={users}
+                  handleRoleChange={handleRoleChange}
+                  handleCancelDeletion={handleCancelDeletion}
+                  handleUserDeleteImmediately={handleUserDeleteImmediately}
+                  handleUserDelete={handleUserDelete}
+                  sessionUserId={sessionUser?.id}
+                />
+                <ListPagination
+                  page={userPage}
+                  hasMore={usersHasMore}
+                  loading={usersLoading}
+                  error={usersError}
+                  onPage={setUserPage}
+                  onRetry={() => setListRevision((v) => v + 1)}
+                />
+              </div>
             )}
 
             {/* PANEL: EVENTS */}
             {activeTab === "events" && (
-              <EventsTab
-                eventSearch={eventSearch}
-                handleEventSearch={handleEventSearch}
-                events={events}
-                handleEventDelete={handleEventDelete}
-              />
+              <div aria-busy={eventsLoading}>
+                <EventsTab
+                  eventSearch={eventSearch}
+                  handleEventSearch={handleEventSearch}
+                  events={events}
+                  handleEventDelete={handleEventDelete}
+                />
+                <ListPagination
+                  page={eventPage}
+                  hasMore={eventsHasMore}
+                  loading={eventsLoading}
+                  error={eventsError}
+                  onPage={setEventPage}
+                  onRetry={() => setListRevision((v) => v + 1)}
+                />
+              </div>
             )}
 
             {/* PANEL: HOST SETTINGS */}

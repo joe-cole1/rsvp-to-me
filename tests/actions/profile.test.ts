@@ -1,3 +1,11 @@
+vi.mock("@/lib/uploads", async () => {
+  const { db } = await import("@/lib/db");
+  return {
+    withUploadLock: async (fn: (tx: typeof db) => Promise<unknown>) => fn(db),
+    assertUploadExists: vi.fn().mockResolvedValue(undefined),
+    releaseUpload: vi.fn().mockResolvedValue(undefined),
+  };
+});
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn(async () => ({ success: true })) }));
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -35,6 +43,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     user: {
       findUnique: mockUserFindUnique,
+      findUniqueOrThrow: mockUserFindUnique,
       update: mockUserUpdate,
       findFirst: mockUserFindFirst,
     },

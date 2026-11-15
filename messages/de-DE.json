@@ -87,7 +87,8 @@
       "scheduledDate": "Die Anonymisierung erfolgt am oder nach dem {date}. Du kannst diesen Antrag bis dahin jederzeit zurückziehen.",
       "eventDeleteFailed": "„{title}“ konnte nicht gelöscht werden.",
       "user": "Benutzer",
-      "metadataTitle": "Profil"
+      "metadataTitle": "Profil",
+      "uploadQuotaExceeded": "Der Bildspeicher ist voll (100 MiB pro Konto). Entferne ein nicht mehr benötigtes Titel- oder Profilbild und versuche es erneut."
     },
     "Errors": {
       "Auth": {
@@ -667,7 +668,11 @@
         "page": "Seite",
         "label": "von",
         "next": "Weiter",
-        "pagination": "Seite {page} von {total}"
+        "pagination": "Seite {page} von {total}",
+        "removeCommentBy": "Kommentar von {name} entfernen",
+        "removeCommentTitle": "Diesen Kommentar entfernen?",
+        "removeCommentMessage": "Dieser Kommentar und alle Antworten darauf werden entfernt.",
+        "removeCommentFailed": "Der Kommentar konnte nicht entfernt werden. Versuche es erneut."
       },
       "SettingsPage": {
         "failedSaveThemeSettings": "Designeinstellungen konnten nicht gespeichert werden.",
@@ -837,7 +842,9 @@
         "failedAddReply": "Antwort konnte nicht hinzugefügt werden",
         "failedCastVote": "Stimme konnte nicht abgegeben werden",
         "failedAddOption": "Option konnte nicht hinzugefügt werden",
-        "failedDeleteActivityEvent": "Aktivität konnte nicht gelöscht werden"
+        "failedDeleteActivityEvent": "Aktivität konnte nicht gelöscht werden",
+        "uploadQuotaExceeded": "Der Bildspeicher ist voll (100 MiB pro Konto). Entferne ein nicht mehr benötigtes Titel- oder Profilbild und versuche es erneut.",
+        "coverUploadFailed": "Das Titelbild konnte nicht hochgeladen werden. Versuche es erneut."
       },
       "shared": {
         "baseThemes": {
@@ -1559,7 +1566,14 @@
       "presetTileIcon": "Kachelsymbol",
       "searchTileIcons": "Kachelsymbole suchen",
       "generalCategory": "Allgemein",
-      "seasonalCategory": "Saisonal"
+      "seasonalCategory": "Saisonal",
+      "listLoadFailed": "Die Liste konnte nicht geladen werden. Versuche es erneut.",
+      "retryList": "Erneut versuchen",
+      "listPages": "Listenseiten",
+      "previousPage": "Zurück",
+      "nextPage": "Weiter",
+      "loadingList": "Wird geladen…",
+      "listPage": "Seite {page}"
     },
     "Dashboard": {
       "eventDetails": "Veranstaltungsdetails",
@@ -1705,7 +1719,9 @@
       "hostedBy": "Veranstaltet von",
       "going": "dabei",
       "signInCreateAccountMessage": "<part0> Anmelden </part0> <part1> Konto erstellen </part1>",
-      "goingMessage": "{value0, plural, one {# dabei} other {# dabei}}"
+      "goingMessage": "{value0, plural, one {# dabei} other {# dabei}}",
+      "goingCappedMessage": "{value0}+ dabei",
+      "goingCappedAccessibleMessage": "{value0} oder mehr dabei"
     },
     "Docs": {
       "search": "Hilfe durchsuchen…",

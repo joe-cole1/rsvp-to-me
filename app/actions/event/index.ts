@@ -36,7 +36,7 @@ export {
   deletePollOption,
 } from "./polls";
 export { addPotluckItem, removePotluckItem, claimPotluckItem, unclaimPotluckItem } from "./potluck";
-export { addComment } from "./comments";
+export { addComment, deleteComment } from "./comments";
 export {
   addCoHost,
   removeCoHost,

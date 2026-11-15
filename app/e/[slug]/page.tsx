@@ -57,6 +57,9 @@ const getEventPageData = cache((slug: string) =>
         take: 50,
       },
       activityEvents: {
+        // Comment bodies already come from Comment. Never serialize their
+        // duplicate activity previews, which can outlive a moderated comment.
+        where: { type: { not: "comment_new" } },
         orderBy: { createdAt: "desc" },
         take: 100,
       },

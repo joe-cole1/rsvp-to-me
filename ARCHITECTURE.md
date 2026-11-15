@@ -350,6 +350,19 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `app/api/uploads/[filename]/route.ts`. `lib/upload-path.ts` validates stored
   image references for action schemas, `components/ui/UploadedImage.tsx` and
   social artwork; malformed historical paths never reach the image loader.
+- `lib/uploads.ts` owns upload accounting, the fixed per-account quota and file
+  reclamation. `Upload` tracks new files; existing disk files have no guessed
+  owners. Image assignment and reclamation share a PostgreSQL advisory lock.
+  Reference changes commit before files are released; current cover/avatar
+  references preserve shared files. Daily cleanup reclaims unattached files
+  after 24 hours. See [ADR 0005](docs/engineering/decisions/0005-upload-lifecycle.md).
+- `lib/public-events.ts` owns the landing feed's future/public/published/password
+  gates and anonymous count presentation. Admin user/event reads use bounded
+  pages; user search and role/status filters run in PostgreSQL before pagination
+  (`lib/admin-pagination.ts`). Comment moderation uses the organizer guard and
+  removes a selected comment subtree in one SQL statement. Event reads exclude
+  redundant comment activity previews before serialization, so moderation cannot
+  leave deleted text in the client payload.
 - `lib/backup.ts` and `app/api/admin/backups/[filename]/route.ts` own ordinary
   backup creation/listing/download behavior. `scripts/pre-migration-backups.cjs`
   shares startup retention and metadata listing between migration tooling and
@@ -373,7 +386,7 @@ The Prisma schema is organized around:
 - collaboration: `EventUpdate`, `Comment`, `PotluckItem`, `PotluckClaim`,
   `Poll`, `PollOption`, `PollVote`;
 - operations: `SystemConfig`, `SentReminder`, `CheckIn`, `ActivityEvent`,
-  `RateLimit`, `CronLock`, `CoHostInvitation`.
+  `RateLimit`, `CronLock`, `CoHostInvitation`, `Upload`.
 
 Inspect `prisma/schema.prisma` before changing persistence or relations. A
 schema change normally requires a migration, updated tests, documentation, and

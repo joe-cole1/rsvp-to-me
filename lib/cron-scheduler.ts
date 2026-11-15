@@ -7,6 +7,7 @@ import { logSafe } from "./logger";
 import { performImmediateUserDeletion } from "./account-deletion";
 import { cleanupRateLimits } from "./rateLimit";
 import { purgeNotificationChallenges } from "./notifications/lifecycle";
+import { cleanupOrphanedUploads } from "./uploads";
 
 async function runWithLock(
   jobName: string,
@@ -98,6 +99,7 @@ async function processRateLimitCleanup() {
     console.log("[cron-scheduler] Running rate limit database cleanup...");
     await cleanupRateLimits();
     await purgeNotificationChallenges();
+    await cleanupOrphanedUploads();
   });
 }
 

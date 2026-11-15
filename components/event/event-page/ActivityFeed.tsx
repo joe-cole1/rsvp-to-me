@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useTransition } from "react";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useTranslations, useLocale } from "next-intl";
 
 import {
@@ -12,6 +14,7 @@ import {
   Gift,
   Calendar,
   ShieldAlert,
+  Trash2,
 } from "lucide-react";
 import { timeAgo } from "./helpers";
 import type { EventData } from "./types";
@@ -55,6 +58,7 @@ export function ActivityFeed({
   submitReply,
   postUpdate,
   removeUpdate,
+  removeComment,
   removeActivityEvent,
 }: {
   event: EventData;
@@ -93,14 +97,53 @@ export function ActivityFeed({
   submitReply: (parentId: string) => Promise<void>;
   postUpdate: () => Promise<void>;
   removeUpdate: (id: string) => void;
+  removeComment: (id: string) => Promise<void>;
   removeActivityEvent: (id: string) => void;
 }) {
   const translate = useTranslations("Ui.Event.ActivityFeed");
   const common = useTranslations("Ui.Common");
   const locale = useLocale();
+  const { confirm, dialog } = useConfirm(t);
+  const [removing, startRemoving] = useTransition();
+  const [removalError, setRemovalError] = useState<string | null>(null);
+  const removalControl = (id: string, name: string) =>
+    isHost && (
+      <>
+        <Button
+          theme={t}
+          variant="icon"
+          disabled={removing}
+          aria-label={translate("removeCommentBy", { name })}
+          onClick={async () => {
+            if (
+              !(await confirm({
+                title: translate("removeCommentTitle"),
+                message: translate("removeCommentMessage"),
+                confirmLabel: common("remove"),
+              }))
+            )
+              return;
+            setRemovalError(null);
+            startRemoving(async () => {
+              try {
+                await removeComment(id);
+              } catch {
+                setRemovalError(id);
+              }
+            });
+          }}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+        </Button>
+        {removalError === id && (
+          <InlineAlert theme={t}>{translate("removeCommentFailed")}</InlineAlert>
+        )}
+      </>
+    );
 
   return (
     <>
+      {dialog}
       {/* ── Activity (updates + comments unified) ── */}
       {(event.commentsEnabled || event.updates.length > 0 || isHost) && (
         <EventCard theme={t}>
@@ -266,7 +309,7 @@ export function ActivityFeed({
                 body: u.body,
                 createdAt: new Date(u.createdAt),
               })),
-              ...(event.commentsEnabled
+              ...(event.commentsEnabled || isHost
                 ? event.comments.map((c) => ({
                     kind: "comment" as const,
                     id: c.id,
@@ -496,9 +539,19 @@ export function ActivityFeed({
                               padding: "10px 14px",
                             }}
                           >
-                            <span style={{ fontWeight: 700, fontSize: "13px" }}>
-                              {item.guestName}
-                            </span>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <span style={{ fontWeight: 700, fontSize: "13px" }}>
+                                {item.guestName}
+                              </span>
+                              {removalControl(item.id, item.guestName)}
+                            </div>
                             {event.showTimestamps && (
                               <span
                                 style={{
@@ -554,14 +607,24 @@ export function ActivityFeed({
                                     <div
                                       style={{
                                         flex: 1,
-                                        background: "rgba(255,255,255,0.05)",
+                                        background: t.inputBg,
                                         borderRadius: "10px",
                                         padding: "6px 10px",
                                       }}
                                     >
-                                      <span style={{ fontWeight: 700, fontSize: "12px" }}>
-                                        {r.guestName}
-                                      </span>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          gap: 8,
+                                        }}
+                                      >
+                                        <span style={{ fontWeight: 700, fontSize: "12px" }}>
+                                          {r.guestName}
+                                        </span>
+                                        {removalControl(r.id, r.guestName)}
+                                      </div>
                                       {event.showTimestamps && (
                                         <span
                                           style={{

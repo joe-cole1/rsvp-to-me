@@ -1,3 +1,7 @@
+vi.mock("@/lib/uploads", () => ({
+  releaseUpload: vi.fn().mockResolvedValue(undefined),
+  releaseAccountUploads: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("@/lib/redis", () => ({ redisDel: vi.fn() }));
 import { describe, it, expect, vi, beforeEach } from "vitest";
 

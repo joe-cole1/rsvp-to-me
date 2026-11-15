@@ -108,6 +108,11 @@ are a table with a header row; on a phone each user is a stacked block of labele
 
 Filter the list by entering a search query at the top. The table searches across display names, email addresses, and phone numbers.
 
+Name and email matching is case-insensitive. User and event lists show 25 rows
+per page; use **Previous** and **Next** below the list. Search and user role/status
+filters apply across all matching records, and changing one returns to page 1.
+If loading fails, use **Retry** below the list.
+
 ### Creating a User
 
 Click **+ Create User** to open the creation modal and fill in:

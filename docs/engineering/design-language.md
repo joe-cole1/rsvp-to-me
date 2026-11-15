@@ -309,6 +309,16 @@ aren't clipped. Counts are in `textSecondary`; a capped count such as "3+" is re
 
 **Stat tile.** A small card with a 12px bold label and one large number. Two per row on phones.
 
+**Paged admin lists.** Show 25 rows with secondary **Previous** and **Next** buttons
+below the list and a live page/loading label between them. Search and filters
+apply on the server across the whole list and reset to page 1. Mark the list busy
+while loading, disable unavailable page actions, and show a failed load in one
+`InlineAlert` with a **Retry** action. Ignore replies from superseded searches.
+
+**Comment moderation.** Organizers get one named trash Icon button per comment
+or reply. The shared confirmation says that the comment and its replies will be
+removed. Keep the thread until success; show failures beside the control.
+
 **Empty, loading and error states.** An empty list says what will appear and offers the one
 action that fills it. App pages have a `loading.tsx` skeleton in card shapes
 (`app/(app)/loading.tsx`) that names itself "Loading…" to assistive technology and holds

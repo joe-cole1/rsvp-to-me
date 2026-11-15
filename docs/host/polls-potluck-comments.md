@@ -45,5 +45,9 @@ Coordinate who's bringing what:
 A threaded comment board sits at the bottom of the event page:
 
 - Guests and hosts can post and reply.
-- You can delete any comment or reply.
+- Hosts and co-hosts can remove any comment or reply using its **Remove comment**
+  trash button. Confirm **Remove** to delete it and all replies underneath it;
+  removing one reply keeps its parent and sibling replies. **Cancel** leaves it
+  unchanged. If removal fails, an error appears beside that comment so you can
+  try again. Administrators have the same moderation controls.
 - A setting lets you show or hide comment timestamps.

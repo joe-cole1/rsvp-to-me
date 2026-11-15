@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { revokeUserSessions } from "./session";
+import { releaseUpload, releaseAccountUploads } from "./uploads";
 
 export async function scheduleUserDeletion(userId: string) {
   const now = new Date();
@@ -32,6 +33,7 @@ export async function cancelUserDeletion(userId: string): Promise<void> {
 }
 
 export async function performImmediateUserDeletion(userId: string): Promise<void> {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { avatarUrl: true } });
   // Delete user's guest RSVPs on other events (cascades: RSVPAnswers, PlusOneGuests, CheckIns)
   await db.rSVP.deleteMany({ where: { userId } });
 
@@ -67,4 +69,6 @@ export async function performImmediateUserDeletion(userId: string): Promise<void
       deletionScheduledAt: null,
     },
   });
+  await releaseUpload(user?.avatarUrl);
+  await releaseAccountUploads(userId);
 }

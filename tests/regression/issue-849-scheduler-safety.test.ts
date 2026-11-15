@@ -1,3 +1,4 @@
+vi.mock("@/lib/uploads", () => ({ cleanupOrphanedUploads: vi.fn().mockResolvedValue(undefined) }));
 // #849 root causes: stale lock owners deleted replacement locks; deletion logs
 // retained erased contact details; instrumentation exited before Next.js drained.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

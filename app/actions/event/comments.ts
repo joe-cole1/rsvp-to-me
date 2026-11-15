@@ -11,6 +11,26 @@ import { resolveEventAccess } from "@/lib/eventAccess";
 import { AddCommentSchema } from "@/lib/schemas";
 import { findApprovedGuestByToken } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
+import { assertHostOrCohost } from "@/lib/auth-guards";
+
+// A single statement removes the selected comment and all of its replies.
+// Authorization is event-scoped; a supplied id from another event changes nothing.
+export async function deleteComment(eventId: string, commentId: string) {
+  const event = await assertHostOrCohost(eventId);
+  const removed = await db.$queryRaw<{ id: string }[]>`
+    WITH RECURSIVE thread AS (
+      SELECT id FROM "Comment" WHERE id = ${commentId} AND "eventId" = ${eventId}
+      UNION
+      SELECT c.id FROM "Comment" c JOIN thread t ON c."parentId" = t.id
+      WHERE c."eventId" = ${eventId}
+    )
+    DELETE FROM "Comment" WHERE id IN (SELECT id FROM thread)
+    RETURNING id
+  `;
+  revalidatePath(`/e/${event.slug}`);
+  revalidatePath("/");
+  return { success: true as const, removedIds: removed.map((row) => row.id) };
+}
 
 // ── Comments ──────────────────────────────────────────────────────────────────
 export async function addComment(rawInput: unknown, captchaToken?: string | null) {
