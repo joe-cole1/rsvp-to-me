@@ -59,6 +59,11 @@ Privacy and password protection cover the **whole event**, not just the main pag
 
 Link previews follow the same privacy boundary. Published Public and Unlisted events can show their title, description, date, cover, and theme when their link is shared to social or messaging apps. Private, password-protected, draft, cancelled, or deleted events expose only a generic event-invitation preview. Unlisted previews work for people who receive the direct link, but remain excluded from search indexing.
 
+The signed-out home page lists the next 20 published **Public** events whose
+start time is still in the future and which have no password. It respects your
+Going count setting, including **Hidden** and **3+**; events with restricted
+guest lists show no attendance count there. Only approved Going RSVPs count.
+
 A visitor gets through only if they are a host or co-host, an invited guest opening their personal link, or someone who has already entered the password. Everyone else is turned away consistently across all of these — so a Private event's details, guest list, and calendar file can't be pulled up by guessing the address.
 
 ---

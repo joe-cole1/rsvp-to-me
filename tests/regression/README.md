@@ -1,5 +1,21 @@
 # Regression Tests
 
+Issue #850 adds regressions for:
+
+- `issue-850-public-feed.test.tsx`: publication/count query and rendered ICU labels.
+- `issue-850-uploads.test.ts`: quota, filesystem reclamation, shared/legacy/pending files and failures.
+- `issue-850-admin-search.test.ts`: server-side pagination/search/filter bounds.
+- `issue-850-admin-ui.test.tsx`: page/filter resets, stale reads and retry.
+- `issue-850-comment-ui.test.tsx`: moderation confirmation, replies, themes and errors.
+- `issue-850-upload-ui.test.tsx`: visible quota failures and preserving the confirmed avatar after failed assignment.
+- `issue-850-moderation-payload.test.ts`: exclusion of retained activity previews.
+- `issue-850-qc.integration.ts`: actual PostgreSQL feed/search gates, concurrent
+  quota/assignment behavior, image/account lifecycle, comment authority and subtree
+  deletion, and complete event tombstoning. Runs through
+  `tests/integration/qc/issue-850.test.ts`.
+
+Task: `01a1df16`.
+
 Tests that reproduce specific bugs found in production or staging. Each file corresponds to a specific bug fix.
 
 Issue #848 adds `issue-848-rsvp-rules.test.ts` (server settings, deadlines, companion

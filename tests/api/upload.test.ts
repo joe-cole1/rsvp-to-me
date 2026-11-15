@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock fs/promises
-vi.mock("fs/promises", () => ({
-  writeFile: vi.fn().mockResolvedValue(undefined),
-  mkdir: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock("@/lib/uploads", async (original) => {
+  const actual = await original<typeof import("@/lib/uploads")>();
+  return { ...actual, storeUpload: vi.fn().mockResolvedValue(undefined) };
+});
 
 // Mock session
 vi.mock("@/lib/session", () => ({
@@ -14,6 +13,7 @@ vi.mock("@/lib/session", () => ({
 
 import { getSession } from "@/lib/session";
 import { POST } from "@/app/api/upload/route";
+import { storeUpload, UploadQuotaError } from "@/lib/uploads";
 
 const mockGetSession = getSession as ReturnType<typeof vi.fn>;
 
@@ -76,6 +76,18 @@ describe("POST /api/upload", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/too large/i);
+  });
+
+  it("reports quota exhaustion without returning a new image URL", async () => {
+    mockGetSession.mockResolvedValue({ userId: "user1", role: "HOST" });
+    vi.mocked(storeUpload).mockRejectedValueOnce(new UploadQuotaError());
+    const res = await POST(
+      makeFormDataRequest(new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], "photo.jpg"))
+    );
+    expect(res.status).toBe(413);
+    const body = await res.json();
+    expect(body.error).toContain("100 MiB");
+    expect(body).not.toHaveProperty("url");
   });
 
   it("returns url on successful upload", async () => {

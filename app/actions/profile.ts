@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { resolveLocale } from "@/i18n/config";
 import { getRequestTranslator } from "@/i18n/server";
 import { db } from "@/lib/db";
+import { withUploadLock, assertUploadExists, releaseUpload } from "@/lib/uploads";
 import { getSession, destroySession } from "@/lib/session";
 import { getSessionUser } from "@/lib/session-user";
 import { scheduleUserDeletion, cancelUserDeletion } from "@/lib/account-deletion";
@@ -34,14 +35,25 @@ export async function updateProfileSettings(
   const user = await db.user.findUnique({ where: { id: sessionUser.id } });
   if (!user) throw new Error(t("Ui.Errors.Profile.userNotFound"));
 
-  // Update name and avatar immediately
-  await db.user.update({
-    where: { id: user.id },
-    data: {
-      name: data.name,
-      avatarUrl: data.avatarUrl,
-    },
-  });
+  // Serialize image assignment with garbage collection. Name-only saves need
+  // no file access, and removing an avatar is allowed even if its file is gone.
+  if (data.avatarUrl !== undefined) {
+    const previous = await withUploadLock(async (tx) => {
+      if (data.avatarUrl) await assertUploadExists(data.avatarUrl);
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { avatarUrl: true },
+      });
+      await tx.user.update({
+        where: { id: user.id },
+        data: { name: data.name, avatarUrl: data.avatarUrl },
+      });
+      return current.avatarUrl;
+    });
+    await releaseUpload(previous);
+  } else {
+    await db.user.update({ where: { id: user.id }, data: { name: data.name } });
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const messages: string[] = [];

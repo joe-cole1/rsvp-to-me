@@ -87,7 +87,8 @@
       "scheduledDate": "Anonymization will occur on or after {date}. You can cancel this request at any time before then.",
       "eventDeleteFailed": "Failed to delete \"{title}\".",
       "user": "User",
-      "metadataTitle": "Profile"
+      "metadataTitle": "Profile",
+      "uploadQuotaExceeded": "Upload storage is full (100 MiB per account). Remove an unused cover or profile image, then try again."
     },
     "Errors": {
       "Auth": {
@@ -667,7 +668,11 @@
         "page": "Page",
         "label": "of",
         "next": "Next",
-        "pagination": "Page {page} of {total}"
+        "pagination": "Page {page} of {total}",
+        "removeCommentBy": "Remove comment by {name}",
+        "removeCommentTitle": "Remove this comment?",
+        "removeCommentMessage": "This comment and all of its replies will be removed.",
+        "removeCommentFailed": "Could not remove this comment. Try again."
       },
       "SettingsPage": {
         "failedSaveThemeSettings": "Failed to save theme settings.",
@@ -837,7 +842,9 @@
         "failedAddReply": "Failed to add reply",
         "failedCastVote": "Failed to cast vote",
         "failedAddOption": "Failed to add option",
-        "failedDeleteActivityEvent": "Failed to delete activity event"
+        "failedDeleteActivityEvent": "Failed to delete activity event",
+        "uploadQuotaExceeded": "Upload storage is full (100 MiB per account). Remove an unused cover or profile image, then try again.",
+        "coverUploadFailed": "Could not upload the cover image. Try again."
       },
       "shared": {
         "baseThemes": {
@@ -1559,7 +1566,14 @@
       "presetTileIcon": "Tile icon",
       "searchTileIcons": "Search tile icons",
       "generalCategory": "General",
-      "seasonalCategory": "Seasonal"
+      "seasonalCategory": "Seasonal",
+      "listLoadFailed": "Could not load this list. Try again.",
+      "retryList": "Retry",
+      "listPages": "List pages",
+      "previousPage": "Previous",
+      "nextPage": "Next",
+      "loadingList": "Loading…",
+      "listPage": "Page {page}"
     },
     "Dashboard": {
       "eventDetails": "Event Details",
@@ -1705,7 +1719,9 @@
       "hostedBy": "Hosted by",
       "going": "going",
       "signInCreateAccountMessage": "<part0> Sign in </part0> <part1> Create account </part1>",
-      "goingMessage": "{value0, plural, one {# going} other {# going}}"
+      "goingMessage": "{value0, plural, one {# going} other {# going}}",
+      "goingCappedMessage": "{value0}+ going",
+      "goingCappedAccessibleMessage": "{value0} or more going"
     },
     "Docs": {
       "search": "Search docs…",

@@ -1,3 +1,11 @@
+vi.mock("@/lib/uploads", async () => {
+  const { db } = await import("@/lib/db");
+  return {
+    withUploadLock: async (fn: (tx: typeof db) => Promise<unknown>) => fn(db),
+    assertUploadExists: vi.fn().mockResolvedValue(undefined),
+    releaseUpload: vi.fn().mockResolvedValue(undefined),
+  };
+});
 import "@/tests/helpers/english-request-locale";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import bcrypt from "bcryptjs";

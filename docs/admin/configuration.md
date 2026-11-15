@@ -685,3 +685,27 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 | `TWILIO_ACCOUNT_SID`           | Yes (if SMS)    | _(none)_            | Twilio Account identifier.                                                                                      |
 | `TWILIO_AUTH_TOKEN`            | Yes (if SMS)    | _(none)_            | Twilio API authentication token.                                                                                |
 | `TWILIO_PHONE_NUMBER`          | Yes (if SMS)    | _(none)_            | Twilio phone number in E.164 format.                                                                            |
+
+## Upload storage and cleanup
+
+New cover and avatar uploads are recorded in the database with their uploader
+and byte size. Each account, including admins, has a fixed **100 MiB** quota;
+the individual file limit remains **8 MiB**. Concurrent uploads share a database
+lock, so they cannot exceed the quota. A quota rejection shows a full-storage message and leaves the current
+image unchanged. Remove unused covers or avatars to free space; an image shared
+by another event/profile stays allocated until its last reference is removed.
+
+Replacing/removing an image, deleting an event, or anonymizing an account
+reclaims files no longer used by any cover or avatar. Account deletion keeps
+covers of retained past events. Failed filesystem deletions are logged safely
+and retried by the daily cleanup. Cleanup runs at startup and with the existing
+daily 01:00 server-time maintenance job. Unattached files are eligible after
+**24 hours**, so an upload awaiting assignment is not immediately removed.
+Only regular files with application-generated image names are considered.
+
+The migration in `prisma/postgres-migrations/20261115130000_upload_accounting`
+adds accounting for new uploads without guessing ownership of existing files.
+Existing referenced files remain available and do not count toward the quota;
+existing unreferenced files older than 24 hours are eligible for cleanup. Keep
+matching database and upload backups before upgrading: a file removed from the
+live uploads folder cannot be recovered by restoring the database alone.

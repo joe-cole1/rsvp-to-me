@@ -7,6 +7,14 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
+import type { Prisma } from "@/app/generated/prisma/client";
+import {
+  ADMIN_PAGE_SIZE,
+  adminPageSchema,
+  adminUserFiltersSchema,
+  type AdminUserFilters,
+} from "@/lib/admin-pagination";
+import { releaseUpload } from "@/lib/uploads";
 import { invalidateUserSessions } from "@/lib/session";
 import {
   scheduleUserDeletion,
@@ -48,25 +56,43 @@ export async function getAdminStats() {
   };
 }
 
-export async function getAdminUsers(query: string = "") {
+export async function getAdminUsers(
+  query: string = "",
+  page = 1,
+  rawFilters: AdminUserFilters = {}
+) {
+  page = adminPageSchema.parse(page);
+  const filters = adminUserFiltersSchema.parse(rawFilters);
   await assertAdmin();
 
-  const trimmedQuery = query.trim().toLowerCase();
-
+  const trimmedQuery = query.trim();
+  const where: Prisma.UserWhereInput = {
+    id: { not: "system" },
+    ...(filters.role === "ALL" ? {} : { role: filters.role }),
+    AND: [
+      ...(trimmedQuery
+        ? [
+            {
+              OR: [
+                { name: { contains: trimmedQuery, mode: "insensitive" as const } },
+                { email: { contains: trimmedQuery, mode: "insensitive" as const } },
+                { phone: { contains: trimmedQuery } },
+              ],
+            },
+          ]
+        : []),
+      ...(filters.status === "PENDING_DELETE" ? [{ deletionScheduledAt: { not: null } }] : []),
+      ...(filters.status === "ACTIVE"
+        ? [{ deletionScheduledAt: null, OR: [{ email: { not: null } }, { phone: { not: null } }] }]
+        : []),
+      ...(filters.status === "DELETED" ? [{ email: null, phone: null }] : []),
+    ],
+  };
   const users = await db.user.findMany({
-    where: trimmedQuery
-      ? {
-          id: { not: "system" },
-          OR: [
-            { name: { contains: trimmedQuery } },
-            { email: { contains: trimmedQuery } },
-            { phone: { contains: trimmedQuery } },
-          ],
-        }
-      : {
-          id: { not: "system" },
-        },
-    orderBy: { createdAt: "desc" },
+    where,
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    skip: (page - 1) * ADMIN_PAGE_SIZE,
+    take: ADMIN_PAGE_SIZE + 1,
     select: {
       id: true,
       name: true,
@@ -85,7 +111,7 @@ export async function getAdminUsers(query: string = "") {
     },
   });
 
-  return users;
+  return { items: users.slice(0, ADMIN_PAGE_SIZE), page, hasMore: users.length > ADMIN_PAGE_SIZE };
 }
 
 export async function updateUserRole(userId: string, role: "GUEST" | "HOST" | "ADMIN") {
@@ -128,23 +154,26 @@ export async function deleteUserAccount(userId: string) {
   return result;
 }
 
-export async function getAdminEvents(query: string = "") {
+export async function getAdminEvents(query: string = "", page = 1) {
+  page = adminPageSchema.parse(page);
   await assertAdmin();
 
-  const trimmedQuery = query.trim().toLowerCase();
+  const trimmedQuery = query.trim();
 
   const events = await db.event.findMany({
     where: trimmedQuery
       ? {
           OR: [
-            { title: { contains: trimmedQuery } },
-            { slug: { contains: trimmedQuery } },
-            { host: { name: { contains: trimmedQuery } } },
-            { host: { email: { contains: trimmedQuery } } },
+            { title: { contains: trimmedQuery, mode: "insensitive" } },
+            { slug: { contains: trimmedQuery, mode: "insensitive" } },
+            { host: { name: { contains: trimmedQuery, mode: "insensitive" } } },
+            { host: { email: { contains: trimmedQuery, mode: "insensitive" } } },
           ],
         }
       : {},
-    orderBy: { startAt: "desc" },
+    orderBy: [{ startAt: "desc" }, { id: "asc" }],
+    skip: (page - 1) * ADMIN_PAGE_SIZE,
+    take: ADMIN_PAGE_SIZE + 1,
     include: {
       host: {
         select: {
@@ -160,23 +189,28 @@ export async function getAdminEvents(query: string = "") {
     },
   });
 
-  return events.map((e) => ({
-    id: e.id,
-    title: e.title,
-    slug: e.slug,
-    startAt: e.startAt,
-    status: e.status,
-    visibility: e.visibility,
-    hostName: e.host.name ?? e.host.email?.split("@")[0] ?? "Unknown",
-    hostEmail: e.host.email ?? "",
-    rsvpCount: e._count.rsvps,
-  }));
+  return {
+    page,
+    hasMore: events.length > ADMIN_PAGE_SIZE,
+    items: events.slice(0, ADMIN_PAGE_SIZE).map((e) => ({
+      id: e.id,
+      title: e.title,
+      slug: e.slug,
+      startAt: e.startAt,
+      status: e.status,
+      visibility: e.visibility,
+      hostName: e.host.name ?? e.host.email?.split("@")[0] ?? "Unknown",
+      hostEmail: e.host.email ?? "",
+      rsvpCount: e._count.rsvps,
+    })),
+  };
 }
 
 export async function deleteEventAdmin(eventId: string) {
   await assertAdmin();
 
-  await db.event.delete({ where: { id: eventId } });
+  const event = await db.event.delete({ where: { id: eventId }, include: { theme: true } });
+  await releaseUpload(event.theme?.coverImageUrl);
 
   revalidatePath("/admin");
   return { success: true };

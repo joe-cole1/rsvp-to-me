@@ -130,10 +130,13 @@ export default function ProfileClient({
         if (token) form.set(CAPTCHA_RESPONSE_FIELD, token);
         return fetch("/api/upload", { method: "POST", body: form });
       });
-      if (!res.ok) throw new Error(await res.text());
-
-      const { url } = (await res.json()) as { url: string };
-      setAvatarUrl(url);
+      const result = (await res.json()) as { url?: string; code?: string };
+      if (!res.ok)
+        throw new Error(
+          t(result.code === "UPLOAD_QUOTA_EXCEEDED" ? "uploadQuotaExceeded" : "avatarFailed")
+        );
+      const url = result.url;
+      if (!url) throw new Error(t("avatarFailed"));
 
       // Save avatarUrl immediately to profile
       await runWithCaptcha("profile_edit", (token) =>
@@ -148,6 +151,7 @@ export default function ProfileClient({
         )
       );
 
+      setAvatarUrl(url);
       setFeedback({ tone: "success", message: t("avatarSaved") });
     } catch (err) {
       console.error(err);

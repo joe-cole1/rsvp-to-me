@@ -4,11 +4,12 @@ import { getSession } from "@/lib/session";
 import { AppShell } from "@/components/ui/AppShell";
 import { APP_SHELL, APP_SHELL_THEME } from "@/lib/theme";
 import { buttonProps } from "@/components/ui/Button";
-import { db } from "@/lib/db";
+import { getUpcomingPublicEvents } from "@/lib/public-events";
 import Link from "next/link";
 import Image from "@/components/ui/UploadedImage";
 import { resolveTheme } from "@/lib/theme";
 import { MessageSquare } from "lucide-react";
+import { GUEST_COUNT_CAP } from "@/lib/guestRsvpDisplay";
 
 // Helper to format date Partiful-style
 const formatPartifulDate = (dateVal: Date | string, locale: string) => {
@@ -75,36 +76,7 @@ export default async function Home() {
   const session = await getSession();
   if (session) redirect("/dashboard");
 
-  const events = await db.event.findMany({
-    where: {
-      visibility: "PUBLIC",
-      status: { notIn: ["CANCELLED", "DELETED"] },
-    },
-    orderBy: {
-      startAt: "asc",
-    },
-    take: 20,
-    include: {
-      host: {
-        select: {
-          name: true,
-          email: true,
-          avatarUrl: true,
-        },
-      },
-      theme: true,
-      rsvps: {
-        select: {
-          status: true,
-        },
-      },
-      comments: {
-        select: {
-          id: true,
-        },
-      },
-    },
-  });
+  const events = await getUpcomingPublicEvents();
 
   return (
     <AppShell>
@@ -195,8 +167,9 @@ export default async function Home() {
                 const accent = resolved.accent;
                 const coverUrl = event.theme?.coverImageUrl;
                 const hostName = event.host?.name || event.host?.email?.split("@")[0] || "Host";
-                const goingCount = event.rsvps.filter((r) => r.status === "GOING").length;
-                const commentCount = event.comments.length;
+                const goingLabel = event.goingLabel;
+                const isCapped = goingLabel === `${GUEST_COUNT_CAP}+`;
+                const commentCount = event.commentCount;
 
                 return (
                   <div
@@ -327,10 +300,24 @@ export default async function Home() {
                           fontSize: "11px",
                         }}
                       >
-                        <span>{tr("Ui.Home.goingMessage", { value0: goingCount })}</span>
+                        {goingLabel !== null && (
+                          <span
+                            aria-label={
+                              isCapped
+                                ? tr("Ui.Home.goingCappedAccessibleMessage", {
+                                    value0: GUEST_COUNT_CAP,
+                                  })
+                                : undefined
+                            }
+                          >
+                            {isCapped
+                              ? tr("Ui.Home.goingCappedMessage", { value0: GUEST_COUNT_CAP })
+                              : tr("Ui.Home.goingMessage", { value0: Number(goingLabel) })}
+                          </span>
+                        )}
                         {commentCount > 0 && (
                           <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                            <span>·</span>
+                            {goingLabel !== null && <span>·</span>}
                             <MessageSquare size={10} />
                             <span>{commentCount}</span>
                           </div>

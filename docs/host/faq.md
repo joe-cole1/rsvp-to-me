@@ -61,6 +61,12 @@ Open the event's **Settings** and mark it cancelled. This closes RSVPs and shows
 
 Open the event's **Settings**, scroll to the **Danger Zone** at the bottom of the main settings page, and click **Delete Event**. You will be prompted to type `DELETE` to confirm. Once deleted, the event and all guest data are permanently and irreversibly removed.
 
+Deletion also removes pending co-host invitations, theme settings, custom RSVP
+fields and reminder settings. Its cover file is deleted when no other event or
+profile uses it. After account deletion, covers of retained past events stay
+available, while unused uploads and your former profile image are removed
+unless another retained event or profile still uses that image.
+
 ## Will guests be notified if I change the event?
 
 Editing details doesn't automatically message guests. To tell them about a change, send an update blast — see [Messaging Guests & Reminders](messaging-and-reminders.md).

@@ -87,6 +87,10 @@ const {
 
 vi.mock("@/lib/db", () => ({
   db: {
+    upload: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     notificationSettings: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     notificationConnection: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     notificationChallenge: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
@@ -252,7 +256,7 @@ describe("app/actions/admin.ts", () => {
       mockUserFindMany.mockResolvedValue(mockUsers);
 
       const users = await getAdminUsers();
-      expect(users).toEqual(mockUsers);
+      expect(users).toEqual({ items: mockUsers, page: 1, hasMore: false });
       expect(mockUserFindMany).toHaveBeenCalled();
     });
 
@@ -327,15 +331,18 @@ describe("app/actions/admin.ts", () => {
       ]);
 
       const events = await getAdminEvents();
-      expect(events[0].title).toBe("BBQ");
-      expect(events[0].rsvpCount).toBe(5);
+      expect(events.items[0].title).toBe("BBQ");
+      expect(events.items[0].rsvpCount).toBe(5);
     });
 
     it("deletes event via admin moderation", async () => {
-      mockEventDelete.mockResolvedValue({ id: "e-1" });
+      mockEventDelete.mockResolvedValue({ id: "e-1", theme: null });
       const res = await deleteEventAdmin("e-1");
       expect(res.success).toBe(true);
-      expect(mockEventDelete).toHaveBeenCalledWith({ where: { id: "e-1" } });
+      expect(mockEventDelete).toHaveBeenCalledWith({
+        where: { id: "e-1" },
+        include: { theme: true },
+      });
     });
 
     it("manages invite codes", async () => {

@@ -87,7 +87,8 @@
       "scheduledDate": "Anonimisering vindt plaats op of na {date}. Je kunt dit verzoek tot die tijd annuleren.",
       "eventDeleteFailed": "\"{title}\" kon niet worden verwijderd.",
       "user": "Gebruiker",
-      "metadataTitle": "Profiel"
+      "metadataTitle": "Profiel",
+      "uploadQuotaExceeded": "De opslag voor afbeeldingen is vol (100 MiB per account). Verwijder een ongebruikte omslag- of profielafbeelding en probeer het opnieuw."
     },
     "Errors": {
       "Auth": {
@@ -667,7 +668,11 @@
         "page": "Pagina",
         "label": "van",
         "next": "Volgende",
-        "pagination": "Pagina {page} van {total}"
+        "pagination": "Pagina {page} van {total}",
+        "removeCommentBy": "Reactie van {name} verwijderen",
+        "removeCommentTitle": "Deze reactie verwijderen?",
+        "removeCommentMessage": "Deze reactie en alle antwoorden erop worden verwijderd.",
+        "removeCommentFailed": "De reactie kon niet worden verwijderd. Probeer het opnieuw."
       },
       "SettingsPage": {
         "failedSaveThemeSettings": "Opslaan van de thema-instellingen is mislukt.",
@@ -837,7 +842,9 @@
         "failedAddReply": "Antwoord plaatsen is mislukt",
         "failedCastVote": "Stemmen is mislukt",
         "failedAddOption": "Optie toevoegen is mislukt",
-        "failedDeleteActivityEvent": "Activiteit verwijderen is mislukt"
+        "failedDeleteActivityEvent": "Activiteit verwijderen is mislukt",
+        "uploadQuotaExceeded": "De opslag voor afbeeldingen is vol (100 MiB per account). Verwijder een ongebruikte omslag- of profielafbeelding en probeer het opnieuw.",
+        "coverUploadFailed": "De omslagafbeelding kon niet worden geüpload. Probeer het opnieuw."
       },
       "shared": {
         "baseThemes": {
@@ -1556,7 +1563,14 @@
       "presetTileIcon": "Tegelpictogram",
       "searchTileIcons": "Zoek tegelpictogrammen",
       "generalCategory": "Algemeen",
-      "seasonalCategory": "Seizoensgebonden"
+      "seasonalCategory": "Seizoensgebonden",
+      "listLoadFailed": "De lijst kon niet worden geladen. Probeer het opnieuw.",
+      "retryList": "Opnieuw proberen",
+      "listPages": "Lijstpagina’s",
+      "previousPage": "Vorige",
+      "nextPage": "Volgende",
+      "loadingList": "Laden…",
+      "listPage": "Pagina {page}"
     },
     "Dashboard": {
       "eventDetails": "Evenementgegevens",
@@ -1702,7 +1716,9 @@
       "hostedBy": "Georganiseerd door",
       "going": "gaan",
       "signInCreateAccountMessage": "<part0>Inloggen</part0> <part1>Account aanmaken</part1>",
-      "goingMessage": "{value0, plural, one {# gast gaat} other {# gasten gaan}}"
+      "goingMessage": "{value0, plural, one {# gast gaat} other {# gasten gaan}}",
+      "goingCappedMessage": "{value0}+ gasten gaan",
+      "goingCappedAccessibleMessage": "{value0} of meer gasten gaan"
     },
     "Docs": {
       "search": "Handleidingen doorzoeken…",

@@ -87,7 +87,8 @@
       "scheduledDate": "La anonimización se realizará a partir del {date}. Puedes cancelar esta solicitud en cualquier momento antes de esa fecha.",
       "eventDeleteFailed": "No se ha podido eliminar \"{title}\".",
       "user": "Usuario",
-      "metadataTitle": "Perfil"
+      "metadataTitle": "Perfil",
+      "uploadQuotaExceeded": "El almacenamiento de imágenes está lleno (100 MiB por cuenta). Elimina una imagen de portada o perfil que no uses e inténtalo de nuevo."
     },
     "Errors": {
       "Auth": {
@@ -667,7 +668,11 @@
         "page": "Página",
         "label": "de",
         "next": "Siguiente",
-        "pagination": "Página {page} de {total}"
+        "pagination": "Página {page} de {total}",
+        "removeCommentBy": "Eliminar comentario de {name}",
+        "removeCommentTitle": "¿Eliminar este comentario?",
+        "removeCommentMessage": "Se eliminarán este comentario y todas sus respuestas.",
+        "removeCommentFailed": "No se pudo eliminar el comentario. Inténtalo de nuevo."
       },
       "SettingsPage": {
         "failedSaveThemeSettings": "No se ha podido guardar la configuración del tema.",
@@ -837,7 +842,9 @@
         "failedAddReply": "No se ha podido añadir la respuesta",
         "failedCastVote": "No se ha podido registrar el voto",
         "failedAddOption": "No se ha podido añadir la opción",
-        "failedDeleteActivityEvent": "No se ha podido eliminar la actividad"
+        "failedDeleteActivityEvent": "No se ha podido eliminar la actividad",
+        "uploadQuotaExceeded": "El almacenamiento de imágenes está lleno (100 MiB por cuenta). Elimina una imagen de portada o perfil que no uses e inténtalo de nuevo.",
+        "coverUploadFailed": "No se pudo subir la imagen de portada. Inténtalo de nuevo."
       },
       "shared": {
         "baseThemes": {
@@ -1559,7 +1566,14 @@
       "presetTileIcon": "Icono del tema",
       "searchTileIcons": "Buscar iconos del tema",
       "generalCategory": "General",
-      "seasonalCategory": "Estacional"
+      "seasonalCategory": "Estacional",
+      "listLoadFailed": "No se pudo cargar la lista. Inténtalo de nuevo.",
+      "retryList": "Reintentar",
+      "listPages": "Páginas de la lista",
+      "previousPage": "Anterior",
+      "nextPage": "Siguiente",
+      "loadingList": "Cargando…",
+      "listPage": "Página {page}"
     },
     "Dashboard": {
       "eventDetails": "Detalles del evento",
@@ -1705,7 +1719,9 @@
       "hostedBy": "Organizado por",
       "going": "asistirán",
       "signInCreateAccountMessage": "<part0> Iniciar sesión </part0> <part1> Crear cuenta </part1>",
-      "goingMessage": "{value0, plural, one {# asistente} other {# asistentes}}"
+      "goingMessage": "{value0, plural, one {# asistente} other {# asistentes}}",
+      "goingCappedMessage": "{value0}+ asistentes",
+      "goingCappedAccessibleMessage": "{value0} o más asistentes"
     },
     "Docs": {
       "search": "Buscar en la documentación…",

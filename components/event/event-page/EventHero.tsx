@@ -3,6 +3,7 @@
 import { safeUploadPath } from "@/lib/upload-path";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
+import { InlineAlert } from "@/components/ui/Feedback";
 
 import { useEffect, useState } from "react";
 import NextImage from "@/components/ui/UploadedImage";
@@ -28,6 +29,7 @@ export function EventHero({
   t,
   save,
   uploadStatus,
+  uploadError = null,
   handleCoverRemove,
   handleCoverUpload,
   isHost,
@@ -48,6 +50,7 @@ export function EventHero({
   t: ResolvedTheme;
   save: (field: string, value: string) => void;
   uploadStatus: "idle" | "compressing" | "uploading";
+  uploadError?: string | null;
   handleCoverRemove: () => Promise<void>;
   handleCoverUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   isHost: boolean;
@@ -385,6 +388,14 @@ export function EventHero({
               onChange={handleCoverUpload}
             />
           </div>
+        )}
+
+        {isHost && uploadError && (
+          <EventCard theme={t}>
+            <InlineAlert theme={t} style={{ marginBottom: 0 }}>
+              {uploadError}
+            </InlineAlert>
+          </EventCard>
         )}
 
         {/* ── Date badges (inline editable for host) ── */}

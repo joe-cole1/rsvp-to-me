@@ -34,6 +34,19 @@ model User {
   notificationSettings    NotificationSettings[]
   notificationConnections NotificationConnection[]
   notificationChallenges  NotificationChallenge[]
+  uploads                 Upload[]
+}
+
+// New uploads are accounted to their uploader. Legacy files remain unowned.
+model Upload {
+  filename  String   @id
+  ownerId   String?
+  bytes     Int
+  createdAt DateTime @default(now())
+
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
 }
 
 enum Role {
