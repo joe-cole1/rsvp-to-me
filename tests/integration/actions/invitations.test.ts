@@ -7,7 +7,10 @@ const mocks = vi.hoisted(() => ({ session: vi.fn(), email: vi.fn(), sms: vi.fn()
 vi.mock("@/lib/session", () => ({ getSession: mocks.session }));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("127.0.0.1") }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: vi.fn().mockResolvedValue("127.0.0.1"),
+}));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn().mockResolvedValue({ success: true }) }));
 vi.mock("@/lib/config", () => ({
   getChannelConfig: vi.fn().mockResolvedValue({ email: true, sms: true }),

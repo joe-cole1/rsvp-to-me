@@ -126,7 +126,7 @@ export async function redisIncrAndExpire(key: string, ttlSeconds: number): Promi
   const client = await getRedisClient();
   if (!client) return null;
   try {
-    const results = await client.multi().incr(key).expire(key, ttlSeconds).exec();
+    const results = await client.multi().incr(key).expire(key, ttlSeconds, "NX").exec();
     if (!results || results.length === 0) return null;
     return results[0] as unknown as number;
   } catch (err) {

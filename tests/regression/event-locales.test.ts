@@ -13,7 +13,10 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: async () => "127.0.0.1" }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: async () => "127.0.0.1",
+}));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: async () => {} }));
 vi.mock("@/lib/capacityLock", () => ({
   withEventCapacityLock: async (_id: string, fn: () => Promise<unknown>) => fn(),

@@ -138,6 +138,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - `lib/redis.ts` owns Redis connection and primitive cache/lock operations.
 - `lib/capacityLock.ts`, `lib/rateLimit.ts`, and `lib/session.ts` build domain
   behavior on those primitives, with documented database fallbacks where used.
+  Rate limits use fixed windows: Redis increments and conditional expiry share
+  one transaction; the PostgreSQL fallback uses one atomic upsert. IP tiers
+  require `lib/clientIp.ts#isTrustedIpConfigured`; contact/owner/token limits
+  remain active without it, and password attempts retain a shared per-event cap.
 
 - `lib/crypto.ts` owns authenticated v2 configuration-secret reads/writes.
   `lib/config-secret-migration.ts` is the only legacy decryption boundary.

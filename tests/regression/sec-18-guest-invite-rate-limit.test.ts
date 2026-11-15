@@ -43,7 +43,10 @@ const {
 }));
 
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: mockRateLimit }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: mockGetClientIp }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: mockGetClientIp,
+}));
 vi.mock("@/lib/db", () => ({
   db: {
     async $transaction(action: (client: unknown) => Promise<unknown>) {

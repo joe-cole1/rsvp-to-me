@@ -78,7 +78,10 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/session", () => ({ getSession: mocks.session }));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: mocks.captcha }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: mocks.rate }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("203.0.113.1") }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: vi.fn().mockResolvedValue("203.0.113.1"),
+}));
 vi.mock("@/lib/config", () => ({ getChannelConfig: mocks.channels }));
 vi.mock("@/lib/capacityLock", () => ({
   withEventCapacityLock: async <T>(_id: string, action: () => Promise<T>) => action(),

@@ -55,7 +55,10 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/lib/capacityLock", () => ({ withEventCapacityLock: mockWithLock }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: mockRateLimit }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("127.0.0.1") }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: vi.fn().mockResolvedValue("127.0.0.1"),
+}));
 vi.mock("@/lib/session", () => ({ getSession: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({

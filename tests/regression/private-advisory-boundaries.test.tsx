@@ -32,7 +32,10 @@ vi.mock("@/lib/session-user", () => ({ getSessionUser: m.viewer }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: m.cookie }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: vi.fn() }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: async () => "127.0.0.1" }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: async () => "127.0.0.1",
+}));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: m.limit }));
 vi.mock("@/lib/email", () => ({ sendMagicLinkEmail: m.send }));
 vi.mock("@/lib/sms", () => ({ sendMagicLinkSms: m.send }));

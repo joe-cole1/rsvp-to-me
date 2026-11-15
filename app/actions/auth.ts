@@ -16,6 +16,7 @@ import {
 import { sendMagicLinkEmail } from "@/lib/email";
 import { sendMagicLinkSms } from "@/lib/sms";
 import { SendMagicLinkSchema, RegisterHostSchema, VerifySignInCodeSchema } from "@/lib/schemas";
+import { hashToken } from "@/lib/hash";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { assertCaptcha } from "@/lib/captcha";
@@ -114,15 +115,13 @@ export async function registerHostAction(
 
   const { email, name, inviteCode } = parseResult.data;
   await assertCaptcha("register", captchaToken);
-  const ip = await getClientIp();
-
-  // Rate limit registration by IP: max 3 per hour
-  const ipLimit = await rateLimit(`ip:${ip}:register`, 3, 3600);
-  if (!ipLimit.success) {
-    return {
-      success: false,
-      error: t("Ui.Errors.Auth.registrationLimit"),
-    };
+  // Keep destination protection even without a trustworthy client IP.
+  const keys = [`id:${hashToken(email)}:register`];
+  if (isTrustedIpConfigured()) keys.unshift(`ip:${await getClientIp()}:register`);
+  for (const key of keys) {
+    if (!(await rateLimit(key, 3, 3600)).success) {
+      return { success: false, error: t("Ui.Errors.Auth.registrationLimit") };
+    }
   }
 
   const openReg = await isOpenRegistrationActive();

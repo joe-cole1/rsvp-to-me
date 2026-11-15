@@ -4,7 +4,7 @@ import { randomInt, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/session-user";
-import { getClientIp } from "@/lib/clientIp";
+import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { rateLimit } from "@/lib/rateLimit";
 import { hashToken } from "@/lib/hash";
 import { AddRsvpSchema } from "@/lib/schemas";
@@ -307,8 +307,9 @@ export async function requestDestinationProof(rawScope: unknown, rawInput: unkno
   ).safeParse(input.destination);
   if (!parsed.success || !parsed.data) throw new Error("invalidDestination");
   const destination = normalizeDestination(input.channel, parsed.data);
-  const ip = await getClientIp();
-  for (const key of [`owner:${context.id}`, `destination:${hashToken(destination)}`, `ip:${ip}`]) {
+  const keys = [`owner:${context.id}`, `destination:${hashToken(destination)}`];
+  if (isTrustedIpConfigured()) keys.push(`ip:${await getClientIp()}`);
+  for (const key of keys) {
     if (!(await rateLimit(`notification-proof:${key}`, 5, 3600)).success)
       throw new Error("rateLimited");
   }

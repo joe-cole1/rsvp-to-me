@@ -107,5 +107,14 @@ co-host edits an RSVP or records a walk-in, because organizer accounts can also 
 legitimate users see no prompt. Separate protected tasks can remain in progress at the same time;
 for example, an image upload does not block an RSVP or comment from passing its own check.
 
-RSVP submissions are also rate-limited per client IP (both overall and per event). Together these
-controls throttle automated fake RSVPs before any confirmation email or text is sent.
+New RSVP submissions are rate-limited for each supplied email address and phone number,
+both overall and per event, before any confirmation email or text is sent. When the site
+administrator configures a trusted proxy IP header, additional per-IP limits help stop
+abuse across different contacts. Without that configuration, unrelated guests do not share
+one site-wide IP quota. Contactless RSVPs depend on the IP tier or enabled bot protection.
+
+Password-protected events also limit password attempts. Without trusted proxy configuration,
+guests share a cap of 10 attempts per event per 10 minutes. If guests on different networks
+are unexpectedly sharing a limit, ask your site administrator to review
+[`TRUSTED_IP_HEADER`](../admin/configuration.md#trusted_ip_header). Blocked retries do not
+extend the rate-limit window; wait for it to expire before trying again.

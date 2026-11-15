@@ -49,7 +49,10 @@ vi.mock("@/lib/rateLimit", () => ({
     .fn()
     .mockResolvedValue({ success: true, limit: 15, remaining: 14, reset: new Date() }),
 }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("127.0.0.1") }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: vi.fn().mockResolvedValue("127.0.0.1"),
+}));
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn(),
   sendBlastEmail: vi.fn(),

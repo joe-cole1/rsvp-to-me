@@ -19,7 +19,10 @@ const { mockRateLimit, mockGetClientIp, mockEventFindUnique } = vi.hoisted(() =>
 }));
 
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: mockRateLimit }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: mockGetClientIp }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: mockGetClientIp,
+}));
 vi.mock("@/lib/db", () => ({
   db: { event: { findUnique: mockEventFindUnique } },
 }));

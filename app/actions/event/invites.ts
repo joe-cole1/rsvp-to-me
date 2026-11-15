@@ -13,7 +13,7 @@ import { sendEventInviteSms } from "@/lib/sms";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { rateLimit } from "@/lib/rateLimit";
-import { getClientIp } from "@/lib/clientIp";
+import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
 import { getChannelConfig } from "@/lib/config";
@@ -47,9 +47,11 @@ async function validateInput(raw: unknown, reviewed?: true) {
 }
 
 async function hostLimits(userId: string, eventId: string) {
-  const ip = await getClientIp();
-  if (!(await rateLimit(`host-invite:ip:${ip}`, 15, 3600)).success) {
-    throw new Error(await eventActionMessage("inviteRateLimited"));
+  if (isTrustedIpConfigured()) {
+    const ip = await getClientIp();
+    if (!(await rateLimit(`host-invite:ip:${ip}`, 15, 3600)).success) {
+      throw new Error(await eventActionMessage("inviteRateLimited"));
+    }
   }
   if (!(await rateLimit(`host-invite:${userId}:${eventId}`, 10, 3600)).success) {
     throw new Error(await eventActionMessage("eventInviteRateLimited"));
@@ -307,10 +309,12 @@ export async function inviteFriendAsGuest(
   // helpers (same pattern as verifyEventPassword and auth) to bound it. The
   // per-IP burst limit is checked first so it also throttles invalid-token
   // enumeration before any DB lookup.
-  const ip = await getClientIp();
-  const ipLimit = await rateLimit(`guest-invite:ip:${ip}`, 30, 3600);
-  if (!ipLimit.success) {
-    return { success: false, error: await eventActionMessage("inviteRateLimited") };
+  if (isTrustedIpConfigured()) {
+    const ip = await getClientIp();
+    const ipLimit = await rateLimit(`guest-invite:ip:${ip}`, 30, 3600);
+    if (!ipLimit.success) {
+      return { success: false, error: await eventActionMessage("inviteRateLimited") };
+    }
   }
 
   const invitingRsvp = await db.rSVP.findUnique({
