@@ -47,7 +47,7 @@ vi.mock("@/lib/activity", () => ({
 vi.mock("@/lib/utils", () => ({ tzLocalToUtc: vi.fn() }));
 vi.mock("@/lib/crypto", () => ({ getUnlockSignature: vi.fn() }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn() }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn() }));
+vi.mock("@/lib/clientIp", () => ({ isTrustedIpConfigured: () => true, getClientIp: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   sendRsvpConfirmationEmail: vi.fn(),
   sendBlastEmail: vi.fn(),

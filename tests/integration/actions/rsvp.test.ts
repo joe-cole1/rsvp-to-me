@@ -11,7 +11,10 @@ vi.mock("next/headers", () => ({
 // next/headers `headers()`, which has no request scope here, and rate limiting
 // is exercised by its own unit tests — stub both so this suite stays focused on
 // addRSVP's real DB behavior.
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("127.0.0.1") }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: vi.fn().mockResolvedValue("127.0.0.1"),
+}));
 vi.mock("@/lib/rateLimit", () => ({
   rateLimit: vi
     .fn()

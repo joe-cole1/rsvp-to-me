@@ -7,8 +7,6 @@ export async function rateLimit(
   limit: number,
   windowSeconds: number
 ): Promise<{ success: boolean; limit: number; remaining: number; reset: Date }> {
-  const now = new Date();
-
   // Try Redis rate limiting if enabled
   if (isRedisEnabled()) {
     const points = await redisIncrAndExpire(key, windowSeconds);
@@ -34,56 +32,29 @@ export async function rateLimit(
     }
   }
 
-  // Fallback to Database-driven rate limiting
-  // Try to find the rate limit record
-  const record = await db.rateLimit.findUnique({
-    where: { key },
-  });
-
-  if (!record || record.expireAt < now) {
-    const expireAt = new Date(now.getTime() + windowSeconds * 1000);
-    // Upsert to handle race conditions where multiple requests hit at the same time
-    const updated = await db.rateLimit.upsert({
-      where: { key },
-      update: {
-        points: 1,
-        expireAt,
-      },
-      create: {
-        key,
-        points: 1,
-        expireAt,
-      },
-    });
-    return {
-      success: true,
-      limit,
-      remaining: limit - 1,
-      reset: updated.expireAt,
-    };
-  }
-
-  if (record.points >= limit) {
-    return {
-      success: false,
-      limit,
-      remaining: 0,
-      reset: record.expireAt,
-    };
-  }
-
-  const updated = await db.rateLimit.update({
-    where: { key },
-    data: {
-      points: { increment: 1 },
-    },
-  });
+  // One statement serializes creation, expired-window reset and increments on
+  // the unique key. A read followed by an upsert/update can admit concurrent
+  // callers beyond the limit or reset another caller's fresh window.
+  const [record] = await db.$queryRaw<{ points: number; expireAt: Date }[]>`
+    INSERT INTO "RateLimit" ("key", "points", "expireAt")
+    VALUES (${key}, 1, CURRENT_TIMESTAMP + ${windowSeconds} * INTERVAL '1 second')
+    ON CONFLICT ("key") DO UPDATE SET
+      "points" = CASE
+        WHEN "RateLimit"."expireAt" <= CURRENT_TIMESTAMP THEN 1
+        ELSE "RateLimit"."points" + 1
+      END,
+      "expireAt" = CASE
+        WHEN "RateLimit"."expireAt" <= CURRENT_TIMESTAMP THEN EXCLUDED."expireAt"
+        ELSE "RateLimit"."expireAt"
+      END
+    RETURNING "points", "expireAt"
+  `;
 
   return {
-    success: true,
+    success: record.points <= limit,
     limit,
-    remaining: Math.max(0, limit - updated.points),
-    reset: updated.expireAt,
+    remaining: Math.max(0, limit - record.points),
+    reset: record.expireAt,
   };
 }
 

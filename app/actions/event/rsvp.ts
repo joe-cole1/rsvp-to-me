@@ -14,8 +14,9 @@ import { resolveEventAccess } from "@/lib/eventAccess";
 import { AddRsvpSchema, UpdateRsvpSchema } from "@/lib/schemas";
 import { cookies } from "next/headers";
 import { getUnlockSignature } from "@/lib/crypto";
+import { hashToken } from "@/lib/hash";
 import { rateLimit } from "@/lib/rateLimit";
-import { getClientIp } from "@/lib/clientIp";
+import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { withEventCapacityLock } from "@/lib/capacityLock";
 import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
@@ -31,8 +32,12 @@ export async function verifyEventPassword(
   // SEC-19: throttle online brute-force of password-gated events. bcrypt slows
   // each guess but without an attempt cap an attacker can still grind a weak
   // password. Limit to 10 attempts per slug+IP per 10 minutes.
-  const ip = await getClientIp();
-  const limit = await rateLimit(`event-pw:${slug}:${ip}`, 10, 600);
+  // With no trusted IP, retain an explicit per-event brute-force cap. Never
+  // substitute a client-minted cookie/header for a trustworthy IP identity.
+  const key = isTrustedIpConfigured()
+    ? `event-pw:${slug}:${await getClientIp()}`
+    : `event-pw:${slug}:shared`;
+  const limit = await rateLimit(key, 10, 600);
   if (!limit.success) {
     return { success: false, error: await eventActionMessage("passwordRateLimited") };
   }
@@ -185,14 +190,29 @@ export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
   // it. Without a cap that is an email/SMS bomb + Twilio-cost vector and lets an
   // attacker pre-create arbitrary User rows. Throttle before any DB write or
   // send, mirroring verifyEventPassword / inviteFriendAsGuest (SEC-18/SEC-19).
-  const ip = await getClientIp();
-  const ipLimit = await rateLimit(`rsvp:ip:${ip}`, 15, 600);
-  if (!ipLimit.success) {
-    return { success: false, error: await eventActionMessage("rsvpRateLimited") };
+  if (isTrustedIpConfigured()) {
+    const ip = await getClientIp();
+    if (!(await rateLimit(`rsvp:ip:${ip}`, 15, 600)).success) {
+      return { success: false, error: await eventActionMessage("rsvpRateLimited") };
+    }
+    if (!(await rateLimit(`rsvp:evt:${data.eventId}:${ip}`, 8, 600)).success) {
+      return { success: false, error: await eventActionMessage("eventRsvpRateLimited") };
+    }
   }
-  const eventLimit = await rateLimit(`rsvp:evt:${data.eventId}:${ip}`, 8, 600);
-  if (!eventLimit.success) {
-    return { success: false, error: await eventActionMessage("eventRsvpRateLimited") };
+  // Bound delivery to every supplied destination, including when both contacts
+  // are present. Match the normalization used for account lookup and delivery.
+  const contacts = [
+    data.guestEmail ? `email:${data.guestEmail}` : null,
+    data.guestPhone ? `phone:${data.guestPhone.replace(/[\s\-().]/g, "")}` : null,
+  ].filter((contact): contact is string => contact !== null);
+  for (const contact of contacts) {
+    const id = hashToken(contact);
+    if (!(await rateLimit(`rsvp:contact:${id}`, 15, 600)).success) {
+      return { success: false, error: await eventActionMessage("rsvpRateLimited") };
+    }
+    if (!(await rateLimit(`rsvp:evt-contact:${data.eventId}:${id}`, 8, 600)).success) {
+      return { success: false, error: await eventActionMessage("eventRsvpRateLimited") };
+    }
   }
 
   const event = await db.event.findUnique({

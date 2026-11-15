@@ -61,7 +61,7 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn() }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn() }));
+vi.mock("@/lib/clientIp", () => ({ isTrustedIpConfigured: () => true, getClientIp: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ get: vi.fn(), set: vi.fn(), delete: vi.fn() }),

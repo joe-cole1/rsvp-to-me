@@ -43,7 +43,10 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/lib/session-user", () => ({ getSessionUser: m.session }));
 vi.mock("@/lib/config", () => ({ getChannelConfig: m.config }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: async () => "127.0.0.1" }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: async () => "127.0.0.1",
+}));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: m.rate }));
 vi.mock("@/lib/notifications/service", () => ({
   deliver: m.deliver,

@@ -160,19 +160,113 @@ DATABASE_URL="postgresql://username:password@hostname:5432/database_name"
 - **Default**: _(none)_
 - **Type**: String (Header Name)
 
-**What it does:** Names the request header the application should trust when extracting client IP addresses for rate limiting. When running behind a reverse proxy (Cloudflare, Nginx, AWS ALB, etc.), set this to the header your proxy adds so rate-limit tracking resolves the real client IP instead of the proxy IP.
+**What it does:** Names the one HTTP request header RSVP to Me trusts as the
+client IP for abuse controls. It is a header name, not an IP address, CIDR list,
+or proxy-hop count. Header names are case-insensitive. For a comma-separated
+value the app uses the **last nonempty entry**, never the first. The app does not
+automatically walk a chain of trusted proxies.
 
-**Common values:**
+**When and why to set it:** Configure this for a public installation behind a
+trusted HTTP reverse proxy, including Cloudflare or self-hosted Pangolin, after
+verifying that the proxy sets the selected header from the visitor's connection
+and that clients cannot bypass the proxy to reach the app. This enables IP limits
+that catch one caller rotating email addresses, phone numbers or guest tokens.
+A shared proxy/container address instead groups unrelated visitors into the same
+quota. A client-controlled header lets an attacker invent fresh IPs to evade it.
+Setting the variable alone does not authenticate a proxy or secure the origin.
 
-- `CF-Connecting-IP` (Cloudflare)
-- `X-Real-IP` (Nginx, Vercel)
-- `X-Forwarded-For` (Nginx `proxy_add_x_forwarded_for`, AWS ALB — the app uses the **last** hop, i.e. the address your trusted proxy appended)
+Leave it unset for local development or direct access without a trusted proxy.
+Forwarding headers are then ignored and **IP tiers are skipped**, rather than
+turning loopback into one site-wide quota. Contact, account and token limits still
+apply. Protection against callers rotating those identifiers is reduced; enable
+bot protection and put a trusted proxy in front of a public installation. RSVPs
+with no contact have no contact quota, so without trusted IP configuration their
+anti-automation check depends on bot protection being enabled. Event password
+attempts retain a deliberate **shared per-event** cap of 10 per 10 minutes in this
+mode: one event's guests share it, but other events are independent. Registration
+uses 3 attempts per normalized email per hour, not 3 registrations site-wide;
+without the IP tier it does not bound invite-code guessing across many addresses.
 
-> **Security (default is deny):** Forwarding headers are attacker-controlled unless a trusted proxy overwrites them. If this variable is **unset**, the app does **not** trust `X-Forwarded-For` / `X-Real-IP` / `CF-Connecting-IP` at all — otherwise a client could rotate `X-Forwarded-For` on every request to evade IP-based limits. With no trusted header configured, all requests resolve to loopback, so IP-keyed limits would otherwise collapse into a single shared bucket. The identifier-keyed limits (per email/phone and per event slug) that protect the sensitive flows still apply. **If you run behind a proxy, set this variable** to restore per-client IP granularity. For `X-Forwarded-For` the app reads the last entry in the chain (the hop your proxy appended), so a client-prepended fake IP is ignored — this only holds when the header is genuinely set by a trusted proxy in front of the app.
+#### Cloudflare example
 
-> **Sign-in availability (SEC-45):** Because an unset header collapses every request to one shared bucket, the **per-IP magic-link sign-in limiter is skipped entirely when `TRUSTED_IP_HEADER` is not set** — otherwise 20 sign-in attempts from _anywhere_ would lock out _every_ user for 10 minutes. In that mode the per-identifier limiter (5 sign-in requests per email/phone per 10 minutes) is the active protection. Set `TRUSTED_IP_HEADER` behind a proxy to re-enable the per-client IP tier (20 per 10 minutes). Host registration keeps its global limiter (3/hour) even when unset, so its invite-code path stays brute-force-resistant.
+For `visitor → Cloudflare proxy or Tunnel → RSVP to Me`, put this in the app's
+`.env`:
 
-**Rate-limited surfaces:** magic-link sign-in (per identifier: 5 per 10 minutes always; per client IP: 20 per 10 minutes **only when `TRUSTED_IP_HEADER` is set**), host registration, RSVP submission (per client IP: 15 per 10 minutes; per event + client IP: 8 per 10 minutes), password-gated event unlock (10 attempts per event + client IP per 10 minutes), host guest invites (max 200 recipients per request; per client IP: 15/hour; per host + event: 10/hour), and guest-to-guest invites on private events (per client IP: 30/hour; per inviting guest: 10 per 10 minutes burst and 20 per day). Setting this header correctly behind a proxy ensures these limits track the real client rather than the proxy IP.
+```dotenv
+TRUSTED_IP_HEADER=CF-Connecting-IP
+```
+
+Use a proxied DNS record (orange cloud) or Cloudflare Tunnel; DNS-only records do
+not provide Cloudflare's HTTP headers. Cloudflare supplies `CF-Connecting-IP` on
+origin requests. Preserve that header through any internal proxy. Disable any
+rule that removes visitor IP headers. Prevent direct origin access: for example,
+use a Tunnel with no public app listener, or firewall the origin to Cloudflare
+and use authenticated origin access. Do not expose port 3000 publicly alongside
+the protected hostname. See [Cloudflare's header reference](https://developers.cloudflare.com/fundamentals/reference/http-headers/)
+and [origin protection guidance](https://developers.cloudflare.com/fundamentals/security/protect-your-origin-server/).
+
+#### Self-hosted Pangolin example
+
+For `visitor → your Pangolin/Traefik HTTP resource → Newt/private network → RSVP
+to Me`, use the header Pangolin sets from the observed client connection. For a
+single proxy path whose final `X-Forwarded-For` entry is the visitor, set:
+
+```dotenv
+TRUSTED_IP_HEADER=X-Forwarded-For
+```
+
+Point the Pangolin HTTP/HTTPS resource at the app's private address and port;
+restrict the app listener to that private path. Verify that the last entry is
+the visitor, not Traefik, Newt or another internal proxy. Additional proxies may
+append their own peer address; the app will use that final entry and visitors
+will share a quota. For that topology, have the trusted proxy overwrite a
+single-address `X-Real-IP` with its verified visitor IP, preserve it on internal
+hops, and set `TRUSTED_IP_HEADER=X-Real-IP`. Do not set a static IP header on a
+resource or copy a browser-supplied header verbatim.
+
+If Cloudflare fronts Pangolin, follow [Pangolin's Cloudflare proxy guide](https://docs.pangolin.net/self-host/advanced/cloudflare-proxy)
+first. Its Badger middleware can extract Cloudflare's visitor address and set
+`X-Real-IP`/`X-Forwarded-For` downstream. Once verified on the resource serving
+RSVP to Me, use `TRUSTED_IP_HEADER=X-Real-IP`; alternatively preserve
+`CF-Connecting-IP` across the entire restricted Cloudflare/Pangolin path and use
+the Cloudflare example. Pangolin's `server.trust_proxy` setting configures
+Pangolin itself; it does not configure RSVP to Me or change this app's last-entry
+rule. Never enable blanket trust of forwarded headers from arbitrary peers.
+
+#### Apply and verify
+
+After editing `.env`, recreate the app container to load the new environment
+(use your deployment's normal Compose files; a container restart alone does not
+reload `env_file`). For the published-image deployment:
+
+```bash
+docker compose -f docker-compose.release.yml up -d --force-recreate app
+```
+
+For a native server, restart its process; for local development use
+`scripts/dev-restart.sh`. Before relying on the limits, inspect the selected
+header **at the app-side end of the proxy path**, using private proxy diagnostics
+or a temporary local upstream; there is no public IP-debug endpoint in the app.
+Use two devices on different networks and confirm different visitor addresses.
+Send a request with a fabricated forwarding header through the public hostname
+and confirm the trusted proxy overwrites it or appends the real visitor as the
+last entry. Confirm direct origin connections are refused. Do not publish
+request headers, session cookies or visitor addresses in diagnostics. A configured
+but missing/empty header still resolves to loopback and shares the IP quota:
+correct the proxy/header selection rather than raising the limits.
+
+**Rate-limited surfaces** (windows start at the first attempt; later attempts,
+including blocked retries, do not extend them in Redis or the database fallback):
+
+| Surface                             | Always enforced                                                                                   | Additional tier when `TRUSTED_IP_HEADER` is set                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Magic-link sign-in                  | Per normalized email/phone: 5 per 10 minutes                                                      | Per IP: 20 per 10 minutes                                                 |
+| Host registration                   | Per normalized email: 3 per hour                                                                  | Per IP: 3 per hour                                                        |
+| New RSVP                            | Per supplied normalized email and phone: 15 per 10 minutes overall and 8 per event per 10 minutes | Per IP: 15 per 10 minutes overall and 8 per event per 10 minutes          |
+| Event password                      | Without trusted IP: shared per-event cap of 10 per 10 minutes                                     | With trusted IP: 10 per event + IP per 10 minutes replaces the shared cap |
+| Host guest invitations              | Per host + event: 10 per hour; max 200 recipients per request                                     | Per IP: 15 per hour                                                       |
+| Guest invitations on private events | Per guest token: 10 per 10 minutes; per inviting RSVP: 20 per day                                 | Per IP: 30 per hour                                                       |
+| Notification destination proofs     | Per owner and per normalized destination: 5 per hour; minimum 60 seconds between owner requests   | Per IP: 5 per hour                                                        |
 
 **Code verification (`signin-code`):** Always limited to 10 attempts per normalized email/phone per 10 minutes (`id:<identifier>:signin-code`). The additional `ip:<ip>:signin-code` bucket allows 20 per 10 minutes only when `TRUSTED_IP_HEADER` is configured (SEC-45). Each token also allows at most five incorrect attempts, then retires both code and link. Codes and links share a 15-minute expiry and single-use state; resend invalidates previous tokens. These limits also apply to verification after registration. Administrator-created welcome links remain link-only with a 48-hour expiry.
 

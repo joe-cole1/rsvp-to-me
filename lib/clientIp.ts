@@ -18,10 +18,11 @@ import { headers } from "next/headers";
  *      trusted proxy appended — not the first, which is the client-controlled
  *      end of an `X-Forwarded-For` chain.
  *
- * With no trusted header configured we fall back to loopback: IP-keyed limits
- * become coarse (per-proxy) but the identifier-keyed limits (per-email/phone/
- * slug) that protect the sensitive flows still apply. Operators behind a proxy
- * should set `TRUSTED_IP_HEADER` to restore per-client granularity.
+ * With no trusted header configured we return loopback, which is not a client
+ * identity. Callers must skip IP tiers in that mode and retain their contact,
+ * owner or token limits. Password attempts retain an explicit per-event cap.
+ * Operators behind a proxy should set `TRUSTED_IP_HEADER` only after verifying
+ * that the proxy controls that header and direct origin access is blocked.
  */
 /**
  * Whether a trusted source of the client IP is configured. When false,

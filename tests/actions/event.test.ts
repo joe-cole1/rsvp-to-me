@@ -216,7 +216,10 @@ vi.mock("next/headers", () => ({
     delete: vi.fn(),
   }),
 }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("127.0.0.1") }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: vi.fn().mockResolvedValue("127.0.0.1"),
+}));
 vi.mock("@/lib/rateLimit", () => ({
   rateLimit: vi
     .fn()

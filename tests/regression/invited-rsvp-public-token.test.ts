@@ -50,7 +50,10 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: async () => undefined }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: async () => ({ success: true }) }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: async () => "127.0.0.1" }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: async () => "127.0.0.1",
+}));
 vi.mock("@/lib/capacityLock", () => ({
   withEventCapacityLock: (_id: string, operation: () => unknown) => operation(),
 }));

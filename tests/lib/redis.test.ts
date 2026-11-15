@@ -159,7 +159,7 @@ describe("lib/redis.ts", () => {
     const val = await redisModule.redisIncrAndExpire("rate-limit-key", 10);
     expect(val).toBe(5);
     expect(mockIncr).toHaveBeenCalledWith("rate-limit-key");
-    expect(mockExpire).toHaveBeenCalledWith("rate-limit-key", 10);
+    expect(mockExpire).toHaveBeenCalledWith("rate-limit-key", 10, "NX");
     expect(mockExec).toHaveBeenCalled();
   });
 

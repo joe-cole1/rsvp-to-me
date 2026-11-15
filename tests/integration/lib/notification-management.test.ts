@@ -4,7 +4,10 @@ import { db, truncateAll } from "../helpers/db";
 const m = vi.hoisted(() => ({ user: vi.fn(), deliver: vi.fn() }));
 vi.mock("@/lib/session-user", () => ({ getSessionUser: m.user }));
 vi.mock("@/lib/config", () => ({ getChannelConfig: async () => ({ email: true, sms: true }) }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: async () => "127.0.0.1" }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: async () => "127.0.0.1",
+}));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: async () => ({ success: true }) }));
 vi.mock("@/lib/notifications/service", async (original) => ({
   ...(await original<typeof import("@/lib/notifications/service")>()),

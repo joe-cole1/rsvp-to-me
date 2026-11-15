@@ -23,7 +23,10 @@ const { mockRateLimit, mockLogActivity, mockLogSafe, mockLogSafeHandler } = vi.h
 });
 
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: mockRateLimit }));
-vi.mock("@/lib/clientIp", () => ({ getClientIp: vi.fn().mockResolvedValue("203.0.113.7") }));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => true,
+  getClientIp: vi.fn().mockResolvedValue("203.0.113.7"),
+}));
 vi.mock("@/lib/logger", () => ({ logSafe: mockLogSafe, logger: {} }));
 vi.mock("@/lib/activity", () => ({ logActivity: mockLogActivity, iconLabel: vi.fn() }));
 vi.mock("@/lib/db", () => ({
