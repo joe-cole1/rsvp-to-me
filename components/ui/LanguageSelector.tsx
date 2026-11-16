@@ -1,6 +1,7 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Languages } from "lucide-react";
 import { locales, menuLocales, resolveLocale, type Locale } from "@/i18n/config";
@@ -68,7 +69,7 @@ export default function LanguageSelector({
     });
   }
   const flag = (value: Locale) => (
-    <img
+    <Image
       src={locales[value].flag}
       alt=""
       width={28}

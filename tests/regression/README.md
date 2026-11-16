@@ -66,6 +66,15 @@ also excludes generated fixture tests.
 
 ## Index
 
+Issue #566 follow-up (task `01a1e406`):
+
+- `issue-566-lint.test.ts`: effective repository lint rules remain warning-free
+  for the already-fixed font import and the three approved follow-up components.
+- `issue-566-delete-navigation.test.tsx`: confirmed deletion uses the App Router
+  after success; failed or rejected deletion keeps the dialog open without navigation.
+- `tests/components/LanguageSelector.test.tsx`: existing local SVG flag dimensions,
+  menu appearance and selection behavior remain covered after using Next Image.
+
 Issue #880 (task `01a1e3a7`):
 
 - `issue-880-event-links.test.ts`: opaque defaults, bounded code growth, preview

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 
 import { useState, useTransition } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
@@ -13,6 +14,7 @@ import { InlineAlert } from "@/components/ui/Feedback";
 
 export function DangerZonePanel({ eventId, t }: { eventId: string; t: ResolvedTheme }) {
   const translate = useTranslations("Ui.Event.DangerZonePanel");
+  const router = useRouter();
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -27,7 +29,7 @@ export function DangerZonePanel({ eventId, t }: { eventId: string; t: ResolvedTh
       try {
         const res = await deleteEvent(eventId);
         if (res && res.success) {
-          window.location.href = "/dashboard";
+          router.push("/dashboard");
         } else {
           setError(translate("failedDeleteEvent"));
         }
