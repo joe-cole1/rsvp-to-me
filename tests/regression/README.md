@@ -352,3 +352,9 @@ seeding and no writes when disabled.
 `.env.example` / `.env.<name>.example` templates must ship in normal and committed
 modes, while real environment files and trailing backup/local suffixes remain
 blocking even when an allowed example is present.
+
+`issue-877-ci-runtime.test.ts` covers the first-run helper exiting 3 when CI's
+correct Node was outside nvm's version cache. It drives the real shell entrypoint
+with CI-style, missing and mismatched runtimes, checks nvm fallback without
+automatic selection, and requires failure before database operations if the
+`.nvmrc` version cannot be selected. Fixture versions are derived from `.nvmrc`.

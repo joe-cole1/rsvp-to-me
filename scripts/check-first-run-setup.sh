@@ -4,9 +4,30 @@ set -Eeuo pipefail
 cd "$(git rev-parse --show-toplevel)"
 . scripts/lib/preflight-process-group.sh
 export TMPDIR=/tmp TMP=/tmp TEMP=/tmp
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-[ ! -s "$NVM_DIR/nvm.sh" ] || . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
-if command -v nvm >/dev/null 2>&1; then nvm use --silent >/dev/null; fi
+# CI already selects .nvmrc through actions/setup-node. Do not replace that
+# runtime merely because nvm is installed with a different/empty version cache.
+required_node="$(< .nvmrc)"
+required_node="v${required_node#v}"
+active_node="$(node --version 2>/dev/null || true)"
+if [ "$active_node" != "$required_node" ]; then
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    . "$NVM_DIR/nvm.sh" --no-use || {
+      echo "Could not load nvm to select the Node version from .nvmrc." >&2
+      exit 1
+    }
+  fi
+  if command -v nvm >/dev/null 2>&1; then
+    nvm use --silent >/dev/null || {
+      echo "Node from .nvmrc is unavailable; install it before running this check." >&2
+      exit 1
+    }
+  fi
+fi
+if [ "$(node --version 2>/dev/null || true)" != "$required_node" ]; then
+  echo "Node from .nvmrc is required; select it before running this check." >&2
+  exit 1
+fi
 export SETUP_SOURCE_DATABASE_URL="${DATABASE_URL:?Set the disposable rsvp_test database URL}"
 export SETUP_DATABASE_NAME="rsvp_setup_$(date +%s)_$$"
 setup_created=0

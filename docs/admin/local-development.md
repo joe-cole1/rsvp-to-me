@@ -371,6 +371,13 @@ fixtures explicitly before E2E; ordinary development and container startup
 honor `SEED_TEST_DATA` from `.env`. No baseline seed or environment invite code
 is needed. Both full gates also test `/setup` on a separate migrations-only database.
 
+The first-run setup browser check reuses an active Node version that exactly
+matches `.nvmrc`, including the version selected by CI's `actions/setup-node`.
+It only loads nvm when Node is missing or differs, and disables nvm's automatic
+selection while loading it. A successful nvm command must still leave the required
+version active. No nvm version cache is required when the correct Node is already
+on PATH; a missing or incorrect runtime stops before any database operation.
+
 Full preflight and CI also run `bash scripts/check-turnstile-csp.sh` after the
 CAPTCHA-disabled suite. The blocking enabled-Turnstile nonce check starts an
 isolated production server on port 3003 with dummy keys and intercepts the browser

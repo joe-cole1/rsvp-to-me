@@ -441,6 +441,9 @@ denied and missing responses.
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
 compatible Node/npm range. Repository scripts normalize WSL temporary paths,
 load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
+The first-run browser check preserves an already-matching active runtime (including
+CI's `actions/setup-node` selection), falling back to nvm without auto-selection
+only when needed. `.nvmrc` remains its version authority.
 
 ## Test map
 
