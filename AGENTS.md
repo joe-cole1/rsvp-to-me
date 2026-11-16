@@ -225,6 +225,11 @@ Stage only reviewed paths. Never use:
 
 Never commit `.env`, secrets, generated noise, or unrelated files.
 
+Public `.env.example` and `.env.<name>.example` configuration templates are
+allowed, including in subdirectories. They must contain placeholders only, never
+real credentials or private environment values. Actual `.env`, `.env.local`,
+`.env.production`, and other non-example environment files remain prohibited.
+
 Every PR targets `main` and has exactly one release label:
 
 - `feature`

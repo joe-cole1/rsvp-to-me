@@ -65,10 +65,10 @@ passwords (URL-encode reserved characters when needed):
 | `REDIS_URL`           | `redis://:<REDIS_PASSWORD>@127.0.0.1:6379`                         |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000`                                            |
 
-Use a local test address for `INITIAL_ADMIN_EMAIL` if you need admin access. Set
-`HOST_INVITE_CODE` before syncing or seeding. You can set `OPEN_REGISTRATION=true`
-to skip asking users for that code while developing; baseline seeding still
-requires it. Keep the actual `.env` file out of commits.
+Use a local test address for `INITIAL_ADMIN_EMAIL` and configure email delivery,
+then visit `/setup` to create the first administrator without sample data. Leave
+`SEED_TEST_DATA=false` for a clean install. Set it to true only for demo content.
+Host invite codes are managed in the Admin Panel; `HOST_INVITE_CODE` is retired.
 
 Repository scripts select `.nvmrc` automatically. When running raw Node or npm
 commands from a noninteractive shell, load `$HOME/.nvm/nvm.sh` first. If that
@@ -305,7 +305,7 @@ the local `localhost` or `127.0.0.1` URL printed by `npm run db:studio`.
 ## Reset disposable development data
 
 This command permanently deletes the **local development** Postgres and Redis
-named volumes, recreates them, applies migrations, and loads the baseline seed:
+named volumes, recreates them, applies migrations, and loads sample data only when explicitly enabled:
 
 ```bash
 npm run dev:reset -- --confirm
@@ -368,8 +368,15 @@ merge-ref scope.
 Local preflight uses the same format checker, a Redis image resolved from the source
 Compose deployment, and zero Playwright retries. Full preflight and CI seed rich
 fixtures explicitly before E2E; ordinary development and container startup
-honor `SEED_TEST_DATA` from `.env`. Set a non-empty `HOST_INVITE_CODE` before
-running `scripts/dev-sync.sh` or seeding; no default invite code is installed.
+honor `SEED_TEST_DATA` from `.env`. No baseline seed or environment invite code
+is needed. Both full gates also test `/setup` on a separate migrations-only database.
+
+The first-run setup browser check reuses an active Node version that exactly
+matches `.nvmrc`, including the version selected by CI's `actions/setup-node`.
+It only loads nvm when Node is missing or differs, and disables nvm's automatic
+selection while loading it. A successful nvm command must still leave the required
+version active. No nvm version cache is required when the correct Node is already
+on PATH; a missing or incorrect runtime stops before any database operation.
 
 Full preflight and CI also run `bash scripts/check-turnstile-csp.sh` after the
 CAPTCHA-disabled suite. The blocking enabled-Turnstile nonce check starts an
@@ -386,3 +393,12 @@ After changing branches, pulling, or running preflight, use
 an existing Next.js server, and refuses to stop a different service. Socket
 inspection failures remain blocking and are reported. `--stop-only` succeeds
 when there is no server to stop.
+
+### Shipping configuration templates
+
+Public `.env.example` and `.env.<name>.example` files are allowed in reviewed
+shipping paths, including subdirectories. Templates contain placeholders only;
+never put actual credentials or private values in them. The shipping guard blocks
+real environment files such as `.env`, `.env.local` and `.env.production`, and
+non-template suffixes such as `.env.example.bak`. This applies to both normal
+shipping and `--committed` mode.

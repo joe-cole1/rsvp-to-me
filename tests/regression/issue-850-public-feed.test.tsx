@@ -8,6 +8,10 @@ import { render, screen, cleanup } from "@/tests/components/render";
 import "@testing-library/jest-dom/vitest";
 const m = vi.hoisted(() => ({ findMany: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: { event: { findMany: m.findMany } } }));
+// These feed/time fixtures represent an already initialized installation.
+vi.mock("@/lib/setup-state", () => ({
+  getSetupState: async () => ({ required: false, configured: false }),
+}));
 vi.mock("@/lib/session", () => ({ getSession: async () => null }));
 vi.mock("@/components/ui/AppShell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

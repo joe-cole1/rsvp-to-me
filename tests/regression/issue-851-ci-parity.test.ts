@@ -80,7 +80,10 @@ describe("#851 CI validates the submitted tree", () => {
     expect(seed).toBeGreaterThan(-1);
     expect(start).toBeGreaterThan(seed);
     expect(steps[seed].env?.DATABASE_URL).toBe(steps[start].env?.DATABASE_URL);
-    expect(steps[seed].env?.HOST_INVITE_CODE).toBe(steps[start].env?.HOST_INVITE_CODE);
+    const setup = steps.findIndex((step) => step.run === "bash scripts/check-first-run-setup.sh");
+    expect(setup).toBeGreaterThan(-1);
+    expect(setup).toBeLessThan(seed);
+    expect(preflight).toContain("bash scripts/check-first-run-setup.sh");
     expect(preflight).toContain("SEED_TEST_DATA=true npm run db:seed");
   });
 

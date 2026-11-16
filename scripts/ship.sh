@@ -230,11 +230,17 @@ SHIPPED="$(git diff --name-only "${REVIEW_RANGE[@]}")"
 
 fail=0
 
-# a) Never commit an environment file.
-if printf '%s\n' "$SHIPPED" | grep -qE '(^|/)\.env($|\.)'; then
-  echo "✗ A .env file is staged — remove it (git restore --staged) before shipping."
-  fail=1
-fi
+# a) Public example templates are allowed; actual environment files stay blocked.
+while IFS= read -r shipped_path; do
+  case "${shipped_path##*/}" in
+    .env.example|.env.*.example) continue ;;
+  esac
+  if [[ "$shipped_path" =~ (^|/)\.env($|\.) ]]; then
+    echo "✗ A .env file is staged — remove it (git restore --staged) before shipping."
+    fail=1
+    break
+  fi
+done <<< "$SHIPPED"
 
 # b) Block .only() in staged tests (silences the rest of the suite in CI).
 #    .skip()/it.todo() are allowed — sometimes a deliberately-parked test.

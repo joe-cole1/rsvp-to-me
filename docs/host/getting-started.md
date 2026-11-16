@@ -37,7 +37,9 @@ See [Your Profile & Account](faq.md) for managing your name, photo, and notifica
 
 ## The Host Dashboard
 
-New installations start without demo events or accounts. An administrator can
+New installations start without demo events or accounts. The server owner completes
+`/setup` by verifying the configured administrator email; hosts then register using
+an Admin Panel invite code unless the administrator enables open registration. An administrator can
 enable sample data on a separate test instance for trying the event workflow.
 
 After signing in, your **Dashboard** is home base. It shows:

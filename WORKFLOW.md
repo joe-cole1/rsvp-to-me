@@ -95,6 +95,11 @@ scripts/dev-reset.sh --confirm
 - Report unrelated issues; do not modify `ROADMAP.md` unless the user approves
   logging the issue.
 
+Public configuration templates named `.env.example` or `.env.<name>.example`
+may be reviewed and shipped, including in subdirectories. Keep only placeholders
+in them. The shipping guard still rejects actual environment files and files
+such as `.env.example.local` or `.env.example.bak`.
+
 ## 4. Verify
 
 Run targeted checks during implementation. Before shipping, select the
@@ -119,8 +124,10 @@ scripts/preflight.sh
 
 Use full preflight for migrations, authentication, public RSVP flows, or
 release-critical work. It additionally starts an isolated app on port 3001 and
-runs Playwright E2E tests. CI and full preflight explicitly seed the same rich
-fixtures before starting the E2E server, with an explicit test invite code.
+runs Playwright E2E tests. Both full preflight and CI first run
+`scripts/check-first-run-setup.sh` on a separate migrations-only database; its
+first admin uses configured-email LOGIN proof with registration closed. CI and full preflight explicitly seed the same rich
+fixtures before starting the E2E server.
 Playwright uses zero retries locally and in CI so a failed first attempt fails
 the gate. Both modes use ephemeral containers on ports 55432 and 56399 and never
 touch the dev database.

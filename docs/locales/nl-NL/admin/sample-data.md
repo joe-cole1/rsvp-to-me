@@ -20,7 +20,7 @@ Het seedscript maakt drie accounts voor organisatoren, 20 voorbeeldgasten en 10 
 | `cohost@test.com` | Organisator                           | Mede-organisator van geselecteerde voorbeeldactiviteiten.                                                                 |
 | `admin@test.com`  | Beheerder                             | Om de beheertools te verkennen.                                                                                           |
 
-De uitgebreide seed wordt alleen uitgevoerd wanneer `SEED_TEST_DATA=true` én de database nog geen evenementen bevat. Stel deze variabele in op de app-service vóór de eerste start van een afzonderlijke testinstallatie. Het broncode-Compose-bestand `docker-compose.yml` stelt deze al in op `true`; de releaseconfiguratie gebruikt standaard `false` via `.env.example`.
+Zowel broncode- als release-installaties gebruiken `SEED_TEST_DATA` uit `.env`; de standaard is `false`. Met `false` of zonder deze instelling schrijft het seedcommando niets. Productie gebruikt `/setup` om het eerste beheerdersaccount te verifiëren, zonder voorbeeldgegevens of uitnodigingscode. Bestaande thema-aanpassingen blijven behouden. Voorbeeldgegevens worden alleen geladen als er nog geen evenementen zijn.
 
 Voer het seedscript expliciet uit in een reeds draaiende testcontainer die vanuit de broncode is gebouwd met:
 

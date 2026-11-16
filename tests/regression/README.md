@@ -338,3 +338,23 @@ Issue #844 also extends `sec-48-initial-admin-login-only.test.ts`: a link that l
   production console fallback.
 - `issue-849-no-transport-preferences.test.tsx`: preserve guest/profile zero-channel
   rendering and read-only behavior independently of the browser SMTP fixture.
+
+Issue #877 (`23f88724`): `issue-877-setup.test.ts` and
+`issue-877-setup.integration.ts` cover SYSTEM exclusion, configured-email setup,
+verified-only role changes, stale claims, resend/expiry, concurrent proof and
+on-demand SYSTEM creation. `issue-877-presets.integration.ts` covers production
+catalog initialization without demo data and preservation of preset edits.
+`issue-877-first-run.e2e.ts` runs in a separate migrations-only browser fixture
+through `scripts/check-first-run-setup.sh`. The #851 seed guards now assert demo-only
+seeding and no writes when disabled.
+
+`ship-example-envs.test.ts` covers the #877 shipping blocker: public
+`.env.example` / `.env.<name>.example` templates must ship in normal and committed
+modes, while real environment files and trailing backup/local suffixes remain
+blocking even when an allowed example is present.
+
+`issue-877-ci-runtime.test.ts` covers the first-run helper exiting 3 when CI's
+correct Node was outside nvm's version cache. It drives the real shell entrypoint
+with CI-style, missing and mismatched runtimes, checks nvm fallback without
+automatic selection, and requires failure before database operations if the
+`.nvmrc` version cannot be selected. Fixture versions are derived from `.nvmrc`.

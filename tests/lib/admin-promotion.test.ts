@@ -7,6 +7,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $transaction: vi.fn(async (run) =>
+      run({
+        user: { count: mocks.mockUserCount, update: mocks.mockUserUpdate },
+        $executeRaw: vi.fn(),
+      })
+    ),
     user: {
       count: mocks.mockUserCount,
       update: mocks.mockUserUpdate,
@@ -47,7 +53,9 @@ describe("promoteInitialAdmin", () => {
 
     const result = await promoteInitialAdmin("user-1", "ADMIN@EXAMPLE.COM"); // Case-insensitivity check
     expect(result).toBe(true);
-    expect(mocks.mockUserCount).toHaveBeenCalledWith({ where: { role: "ADMIN" } });
+    expect(mocks.mockUserCount).toHaveBeenCalledWith({
+      where: { role: "ADMIN", id: { not: "system" } },
+    });
     expect(mocks.mockUserUpdate).toHaveBeenCalledWith({
       where: { id: "user-1" },
       data: { role: "ADMIN" },
@@ -59,7 +67,9 @@ describe("promoteInitialAdmin", () => {
 
     const result = await promoteInitialAdmin("user-1", "admin@example.com");
     expect(result).toBe(false);
-    expect(mocks.mockUserCount).toHaveBeenCalledWith({ where: { role: "ADMIN" } });
+    expect(mocks.mockUserCount).toHaveBeenCalledWith({
+      where: { role: "ADMIN", id: { not: "system" } },
+    });
     expect(mocks.mockUserUpdate).not.toHaveBeenCalled();
   });
 });

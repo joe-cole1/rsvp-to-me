@@ -33,6 +33,12 @@ export async function cancelUserDeletion(userId: string): Promise<void> {
 }
 
 export async function performImmediateUserDeletion(userId: string): Promise<void> {
+  // Create the reassignment target before destructive cleanup, without seeding.
+  await db.user.upsert({
+    where: { id: "system" },
+    create: { id: "system", role: "ADMIN", name: "System", email: null, phone: null },
+    update: {},
+  });
   const user = await db.user.findUnique({ where: { id: userId }, select: { avatarUrl: true } });
   // Delete user's guest RSVPs on other events (cascades: RSVPAnswers, PlusOneGuests, CheckIns)
   await db.rSVP.deleteMany({ where: { userId } });

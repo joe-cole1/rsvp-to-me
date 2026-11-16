@@ -96,6 +96,7 @@ vi.mock("@/lib/db", () => ({
     notificationChallenge: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     notificationBinding: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     user: {
+      upsert: vi.fn().mockResolvedValue({}),
       count: mockUserCount,
       findMany: mockUserFindMany,
       findUnique: mockUserFindUnique,

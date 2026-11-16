@@ -10,7 +10,7 @@ import { db } from "./db";
 import { createSession } from "./session";
 import { retireChangedAccountConnection } from "@/lib/notifications/lifecycle";
 import { hashToken } from "./hash";
-import { promoteInitialAdmin } from "./admin-promotion";
+import { completeVerifiedAdminSetup, promoteInitialAdmin } from "./admin-promotion";
 import { isSafeRedirect } from "./safe-redirect";
 
 const TOKEN_TTL_MINUTES = 15;
@@ -158,8 +158,8 @@ async function applyVerifiedRegistration(
   user: User,
   metadata: string | null
 ): Promise<User | null> {
-  if (!metadata || user.role !== "GUEST") return user;
-  let intent: { registrationName?: unknown; inviteId?: unknown };
+  if (!metadata) return user;
+  let intent: { registrationName?: unknown; inviteId?: unknown; initialAdminSetup?: unknown };
   try {
     intent = JSON.parse(metadata);
   } catch {
@@ -167,6 +167,8 @@ async function applyVerifiedRegistration(
   }
   if (typeof intent.registrationName !== "string") return user;
   const name = RegisterHostSchema.shape.name.parse(intent.registrationName);
+  if (intent.initialAdminSetup === true) return completeVerifiedAdminSetup(user.id, name);
+  if (user.role !== "GUEST") return user;
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
     const current = await tx.user.findUnique({ where: { id: user.id } });

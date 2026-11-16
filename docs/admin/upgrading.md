@@ -12,6 +12,19 @@ This guide explains how to safely pull new versions of **RSVP to Me**, perform d
 
 ---
 
+## Seed-free first-administrator setup (#877)
+
+Normal installation no longer requires baseline seeding. Keep `SEED_TEST_DATA=false`;
+it controls demo content only. Configure `INITIAL_ADMIN_EMAIL` and email delivery,
+then open `/setup` if the instance has no real administrator. Verify the emailed
+LOGIN link or code to finish. SYSTEM is ignored when checking for existing admins.
+
+`HOST_INVITE_CODE` is retired. Existing database codes and administrator roles remain
+unchanged; manage codes in the Admin Panel. Remove the obsolete environment variable.
+Migrations insert missing built-in presets while preserving existing preset rows.
+SYSTEM is created on demand before account-deletion cleanup. Container restarts no
+longer refresh or overwrite theme presets through seeding.
+
 ## Table of Contents
 
 1. [How Updates Work](#how-updates-work)
@@ -235,12 +248,12 @@ only that file and an example `.env`: no source tree or Dockerfile is needed,
 and the app is enabled without development overrides. It then builds the
 unchanged production Dockerfile on a native runner, loads
 the image locally, and starts it with new disposable PostgreSQL 18 and Redis 8
-containers. It checks the normal migration and seed startup, the image's Docker
+containers. It checks the normal migrations-only startup, the image's Docker
 health check, detailed and anonymous health responses, homepage rendering,
 UID/GID 10001 storage access, Redis connectivity, and Sharp JPEG/WebP/AVIF
-conversions. After initial seeding, the app restarts to create a real startup
+conversions. After initial startup, the app restarts to create a real startup
 backup of the populated schema. That SQL dump is restored with stop-on-error
-into a separate disposable database; the seeded invite and migration history
+into a separate disposable database; an explicit existing invite fixture and migration history
 must match the source. QEMU is also exercised with a small
 opposite-architecture container. Test data uses an isolated internal network
 and temporary volumes; no existing deployment data is used.
@@ -828,7 +841,7 @@ older snapshots that omit newer settings such as font or card opacity inherit th
 preset's values there, while explicit saved values are preserved. No database rewrite is
 needed.
 
-The seed keeps the seasonal flag and month of existing preset rows, so an administrator's
+Sample seeding preserves all fields of existing preset rows, so an administrator's
 category choice survives restarts; new rows still receive the built-in values. Presets
 saved before categories existed show as Seasonal when their seasonal flag is set. If the
 icon catalog cannot load, the event settings page still opens, without effect icon labels,

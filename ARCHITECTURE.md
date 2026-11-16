@@ -158,6 +158,16 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 
 ### Authentication and access control
 
+- `app/setup/` owns first-administrator setup. `lib/setup-state.ts` supplies cached
+  request-only discovery; `lib/admin-promotion.ts` owns configured-email matching,
+  exclusion of SYSTEM, and the shared PostgreSQL bootstrap lock. Setup intent is
+  stored in LOGIN challenge metadata and applied only after proof in `lib/auth.ts`.
+- Production preset rows belong to migrations. `prisma/seed.ts` installs demo
+  fixtures only when `SEED_TEST_DATA=true` and there are no events; disabled
+  seeding performs no writes. Account deletion creates SYSTEM on demand before
+  cleanup. Host invite codes are database records managed by administrators;
+  `HOST_INVITE_CODE` is retired.
+
 1. `app/actions/auth.ts` validates sign-in/registration input and calls
    `lib/auth.ts` to create paired magic-link/code LOGIN challenges or verify tokens.
    Both methods share a 15-minute expiry and atomic single-use consumption; code
@@ -431,6 +441,9 @@ denied and missing responses.
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
 compatible Node/npm range. Repository scripts normalize WSL temporary paths,
 load nvm, and select `.nvmrc` so they work from noninteractive Codex shells.
+The first-run browser check preserves an already-matching active runtime (including
+CI's `actions/setup-node` selection), falling back to nvm without auto-selection
+only when needed. `.nvmrc` remains its version authority.
 
 ## Test map
 

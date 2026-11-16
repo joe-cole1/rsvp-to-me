@@ -104,7 +104,7 @@ This section gets your **RSVP to Me** installation up and running in a few steps
    - `NEXT_PUBLIC_APP_URL`: The URL where guests will visit your app (e.g. `http://localhost:3000` or `https://rsvp.yourdomain.com`). No trailing slash.
    - `INITIAL_ADMIN_EMAIL`: Your email address. When you log in with this email, your account is promoted to Administrator.
    - Configure SMTP or the optional email worker using the [Email Setup Guide](docs/admin/email.md) before your first sign-in. Production images do not print magic links in logs.
-   - `HOST_INVITE_CODE`: A code used to restrict host registration to people you know. The example ships an obvious placeholder that the app rejects at startup in production — replace it with a strong value (e.g. `openssl rand -hex 8`).
+   - Host invite codes are created in the Admin Panel after setup; no environment invite code is needed.
 
 4. **Start the application**
    Run the following command in the same directory as your `docker-compose.release.yml` to pull images and start the services:
@@ -124,9 +124,9 @@ This section gets your **RSVP to Me** installation up and running in a few steps
 
 6. **Log in and configure Admin Access**
    - Open your browser and navigate to the URL you configured in `NEXT_PUBLIC_APP_URL`.
-   - Click **Sign In** and log in using the email address you set in `INITIAL_ADMIN_EMAIL`.
-   - Check your inbox for the login email. Click the link to log in.
-   - Once logged in, visit `/admin` to verify that you have admin access.
+   - The homepage opens `/setup` when no real administrator exists. Enter your name and the address configured as `INITIAL_ADMIN_EMAIL`.
+   - Configure email delivery first, then verify the setup link or code to open `/admin`. No seeding or host invite code is needed.
+   - Manage subsequent host invite codes in the Admin Panel.
 
 ---
 

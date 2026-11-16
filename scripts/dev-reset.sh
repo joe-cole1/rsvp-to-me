@@ -22,4 +22,4 @@ docker compose down --volumes --remove-orphans
 echo "▶ Recreating local Postgres and Redis"
 scripts/dev-sync.sh
 
-echo "✓ Local development services were reset and reseeded."
+echo "✓ Local development services were reset and synchronized (sample data follows SEED_TEST_DATA)."

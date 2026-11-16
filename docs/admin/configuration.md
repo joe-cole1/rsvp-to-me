@@ -375,19 +375,22 @@ before reverting to an older image. Key rotation is a separate operation.
 
 ### INITIAL_ADMIN_EMAIL
 
-- **Required**: Recommended for initial setup
+- **Required**: Yes for first-administrator setup
 - **Default**: _(none)_
 - **Type**: Email address string
 
-**What it does:** Designated email address to bootstrap the admin account. The matching user is
-granted the `ADMIN` role _if and only if_ they successfully verify a `LOGIN` magic link or its paired 6-digit code and there are
-currently no active administrators in the system. Email matching is normalized for case and
-surrounding whitespace. Registration, ordinary session access, dashboard/profile reads, profile
-change links, and co-host invitation acceptance do not run bootstrap promotion.
+**What it does:** Restricts `/setup` to the server owner's email address. With no
+administrator account, the homepage opens setup. Enter your name and this email,
+then verify its LOGIN magic link or paired 6-digit code to become the first admin.
+Configure email delivery first; production never prints credentials in logs.
+No sample data, host invite code, or open registration is needed.
 
-> **Note:** Once your admin account is active, you can promote other users to `ADMIN` from the Admin
-> Panel itself, making this setting redundant. The existing-admin check also prevents anyone who
-> later gets access to the `INITIAL_ADMIN_EMAIL` inbox from using bootstrap promotion.
+The SYSTEM account does not count as an existing administrator. An existing
+administrator blocks new bootstrap promotion. Email matching ignores case and
+surrounding whitespace; session reads, profile changes and co-host invitations
+cannot promote accounts. If no administrator remains, a fresh verified LOGIN
+for the configured address can recover access. Remove this setting after setup
+if you do not want that recovery path.
 
 ---
 
@@ -399,32 +402,17 @@ change links, and co-host invitation acceptance do not run bootstrap promotion.
 
 **What it does:** Controls whether anyone can visit the register page and create a host account.
 
-- `"false"`: Users must input the `HOST_INVITE_CODE` to register.
+- `"false"`: Users need an active invite code created in the Admin Panel. The first-administrator setup has its own configured-email restriction.
 - `"true"`: Open registration is active; no invite code is requested.
 
 ---
 
 ### HOST_INVITE_CODE
 
-- **Required**: Yes for baseline seeding, including when registration is open
-- **Default**: None
-- **Type**: String (at least 10 characters in production)
-
-**What it does:** The invite code new hosts must type during registration to create a Host account.
-
-**How to generate:** Choose a memorable phrase or generate a hex string:
-
-- **Terminal:**
-  ```bash
-  openssl rand -hex 8
-  ```
-- **Web alternative:** Use [random.org](https://www.random.org/strings/?num=1&len=12&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new).
-
-Seeding fails before writing any rows if this variable is missing or blank.
-There is no fallback invite code, and the configured code is not printed in
-seed logs. Container startup and `scripts/dev-sync.sh` both run baseline seeding.
-
-> **Warning:** The old fallback code `letmein` and the `.env.example` placeholder `CHANGE_THIS_TO_A_STRONG_RANDOM_CODE` are both rejected in production with closed registration, as is any code shorter than 10 characters — the app throws a startup validation error until you set a strong custom value.
+Retired. This environment variable no longer creates invite codes or gates
+startup. Codes already stored in the database remain usable and manageable in
+**Admin Panel → Host settings**. Create new codes there after completing `/setup`.
+Remove the obsolete variable from your environment.
 
 ---
 
@@ -434,11 +422,12 @@ seed logs. Container startup and `scripts/dev-sync.sh` both run baseline seeding
 - **Default**: `"false"`
 - **Type**: Boolean string (`"true"` or `"false"`)
 
-**What it does:** If set to `"true"` and the database is completely empty on startup, the application runs a seed script creating 20 test guests and 10 comprehensive sample events. The fixtures cover draft, published, cancelled, past, and upcoming events; all location and visibility modes; password protection; RSVP deadlines, approval, invited/unresponded guests, capacity, plus-ones, and all questionnaire field types; email/SMS invitation history; co-hosts and pending co-host invitations; guest-list privacy; polls, comments, potlucks, updates, reminders, activity, regular check-ins, and walk-ins; and representative theme presets, heading fonts, animated effects, and effect controls.
+**What it does:** If set to `"true"` and the database has no events on startup, the application runs a seed script creating 20 test guests and 10 comprehensive sample events. The fixtures cover draft, published, cancelled, past, and upcoming events; all location and visibility modes; password protection; RSVP deadlines, approval, invited/unresponded guests, capacity, plus-ones, and all questionnaire field types; email/SMS invitation history; co-hosts and pending co-host invitations; guest-list privacy; polls, comments, potlucks, updates, reminders, activity, regular check-ins, and walk-ins; and representative theme presets, heading fonts, animated effects, and effect controls.
 
 Both source-build and release Compose files honor this value from `.env`; they
-do not force sample data on. Baseline rows are still seeded when it is false,
-using an explicit `HOST_INVITE_CODE`.
+do not force sample data on. When false or unset, the seed command performs no
+database writes. Migrations install production presets, and SYSTEM is created
+on demand during account deletion. No baseline-seeding flag is needed.
 
 > **Warning:** Turn this off (`"false"`) before inviting real guests to avoid cluttering your dashboard with fake test data.
 
@@ -668,7 +657,7 @@ _Note: This setting can also be configured and updated dynamically at runtime vi
 | `NEXT_PUBLIC_APP_URL`          | Yes             | _(none)_            | Base URL for accessing the application.                                                                         |
 | `INITIAL_ADMIN_EMAIL`          | No              | _(none)_            | Email promoted after verified LOGIN link/code use if no other admins exist.                                     |
 | `OPEN_REGISTRATION`            | No              | `"false"`           | If `"true"`, allows host signups without invite codes.                                                          |
-| `HOST_INVITE_CODE`             | Yes for seeding | None                | Explicit seed invite code; requested at registration when closed.                                               |
+| `HOST_INVITE_CODE`             | Retired         | Ignored             | Manage database invite codes through the Admin Panel.                                                           |
 | `SEED_TEST_DATA`               | No              | `"false"`           | If `"true"`, seeds mock test events on first run.                                                               |
 | `LOG_LEVEL`                    | No              | `"info"`            | Logging verbosity (`debug`, `info`, `warn`, `error`).                                                           |
 | `EMAIL_FROM`                   | No              | _(noreply address)_ | From header display name and email address.                                                                     |

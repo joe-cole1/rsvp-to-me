@@ -20,6 +20,15 @@ the registration intent. Invite usage is checked and incremented under a row
 lock at proof time. Existing host/admin profiles are not overwritten by another
 registration request. Resending an unexpired challenge preserves its intent.
 
+First-administrator setup (#877, task `23f88724`) is restricted to
+`INITIAL_ADMIN_EMAIL` while no ADMIN other than SYSTEM exists. The setup form can
+issue a LOGIN challenge without a host invite but cannot grant a role. Setup intent
+survives resends and is rechecked under the shared PostgreSQL bootstrap lock after
+proof, before changing name/role. Existing hosts retain their profile names.
+A stale setup claim cannot bypass another administrator or changed configuration.
+Normal LOGIN bootstrap uses the same lock and excludes SYSTEM. No setup marker or
+seed establishes administrator authority.
+
 Co-host invitation links are navigation only. The recipient signs in using the
 normal short-lived proof and explicitly accepts using the invited account.
 Acceptance consumes the invitation and assigns membership in one transaction.
