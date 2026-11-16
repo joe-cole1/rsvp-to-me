@@ -12,8 +12,12 @@ import { Check, Label, SecretInput } from "@/components/ui/Field";
 import { InlineAlert, StatusChip } from "@/components/ui/Feedback";
 import { Toggle } from "@/components/ui/Toggle";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { EventUrlSettings } from "./EventUrlSettings";
 
 export function DisplayOptionsPanel({
+  eventId,
+  slug,
+  slugRandomCode,
   commentsEnabled,
   setCommentsEnabled,
   guestSharingEnabled,
@@ -35,6 +39,9 @@ export function DisplayOptionsPanel({
   triggerSaveSettings,
   t,
 }: {
+  eventId: string;
+  slug: string;
+  slugRandomCode?: string | null;
   commentsEnabled: boolean;
   setCommentsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   guestSharingEnabled: boolean;
@@ -63,39 +70,15 @@ export function DisplayOptionsPanel({
   return (
     <Section title={translate("displayOptions")} t={t}>
       {dialog}
-      <div style={{ marginBottom: "16px" }}>
-        <Label theme={t}>{translate("eventVisibility")}</Label>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {(
-            [
-              ["PUBLIC", translate("publicFindableByAnyone")],
-              ["UNLISTED", translate("unlistedOnlyPeopleLink")],
-              ["PRIVATE", translate("privateInviteOnly")],
-            ] as const
-          ).map(([val, label]) => (
-            <label
-              key={val}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                cursor: "pointer",
-              }}
-            >
-              <Check
-                theme={t}
-                type="radio"
-                checked={visibility === val}
-                onChange={() => {
-                  setVisibility(val);
-                  triggerSaveSettings({ visibility: val });
-                }}
-              />
-              <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+      <EventUrlSettings
+        eventId={eventId}
+        initialSlug={slug}
+        initialRandomCode={slugRandomCode}
+        visibility={visibility}
+        onVisibilitySaved={setVisibility}
+        disabled={isPending}
+        theme={t}
+      />
       {visibility === "PRIVATE" && (
         <Toggle
           label={translate("allowGuestsInviteFriends")}

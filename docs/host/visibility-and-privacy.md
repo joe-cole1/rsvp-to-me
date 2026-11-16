@@ -31,6 +31,45 @@ guest settings below remain the controls for that choice.
 - **Unlisted** — people with the direct link can view it unless a password is set. It won't show up in any public listing.
 - **Private** — only hosts and invited guests can view it. Private events also unlock two extra options below.
 
+## Event URLs
+
+New **Public** events start with a readable address based on their title, such as
+`/e/thanksgiving`. New **Unlisted** and **Private** events start with a random
+six-character address, such as `/e/K7m2Qa`. Codes use uppercase and lowercase
+letters and numbers; addresses are case-sensitive. Generated links retry
+collisions and grow to eight, ten or twelve characters if necessary.
+
+In **Settings → Display options → Event URL**, edit the part after `/e/`, review
+the preview, and choose **Save URL**. Use letters, numbers and single hyphens,
+starting and ending with a letter or number (80 characters maximum). Changing the
+event title does not change its URL. A custom address already in use is rejected
+without changing your current link.
+
+- Keep the random code and add a readable name, such as
+  `/e/thanksgiving-K7m2Qa`, or choose **Add random code** to generate one.
+- Choose **Generate new link** to preview a replacement random address. It does
+  not take effect until you save and confirm. Readable prefixes are limited to
+  50 characters when adding a code; longer prefixes are shortened in the preview.
+- For an **Unlisted** custom address without a generated code, a warning explains
+  that someone could guess it. Choose **Use this URL**, **Add random code**, or
+  **Cancel**. The same choice appears before changing a readable Public or Private
+  link to Unlisted. The current visibility stays active until the save succeeds.
+- Public custom addresses do not need this warning. Private custom addresses
+  keep their invitation/password access rules even if someone guesses the URL.
+
+Changing an existing URL requires a separate confirmation: previously shared
+event, invitation, RSVP and calendar links stop working, and the old address does
+not forward to the new one. Share the updated links with guests. Password-unlocked
+visitors may need to enter the password again at the new address. A failed save
+keeps the confirmed URL and visibility; your draft remains available to retry.
+
+Existing events keep their addresses until a host changes them. Older Unlisted
+links may be guessable: generate a new link or use Private visibility/password
+protection when needed. Six-character codes make casual guessing harder but do
+not authenticate visitors. Anyone who obtains an Unlisted link can share it.
+Changing a formerly Public event to Unlisted cannot retract information already
+seen or copied.
+
 ---
 
 ## Password Protection

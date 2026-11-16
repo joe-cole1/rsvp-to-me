@@ -226,7 +226,8 @@
         "invitationConflict": "More than one guest matches this contact. Resolve the guest records before sending.",
         "invitationReviewChanged": "This guest changed since the preview. Review the invitation again.",
         "invitationChannelDisabled": "This invitation channel is disabled.",
-        "invitationSendFailed": "The invitation could not be sent. Review and retry this recipient."
+        "invitationSendFailed": "The invitation could not be sent. Review and retry this recipient.",
+        "unlistedUrlDecision": "Use the event URL controls to confirm an Unlisted link."
       },
       "NotFound": {
         "title": "We couldn't find that page",
@@ -1095,6 +1096,33 @@
         "resultFailed": "{count, plural, one {# failed and stays in your list.} other {# failed and stay in your list.}}",
         "continue": "Back to recipients",
         "unnamedGuest": "Guest"
+      },
+      "EventUrlSettings": {
+        "eventUrl": "Event URL",
+        "prefix": "Choose the part of your address after /e/. Letters, numbers and hyphens are allowed. Addresses are case-sensitive.",
+        "preview": "URL preview:",
+        "randomHint": "This address includes a generated random code.",
+        "privateHint": "Your invitation and password access rules still apply.",
+        "customHint": "This custom address may be easy to guess. Anyone with the address can view an Unlisted event unless a password is set.",
+        "publicHint": "Use a short, memorable address for your Public event.",
+        "saveUrl": "Save URL",
+        "generateNew": "Generate new link",
+        "addCode": "Add random code",
+        "cancel": "Cancel",
+        "useAnyway": "Use this URL",
+        "changeUrl": "Change URL",
+        "guessableTitle": "This link may be easy to guess",
+        "guessableMessage": "Your event stays out of public listings, but anyone who guesses this address can view it unless a password is set. Keep it or add a random code.",
+        "changeTitle": "Change event URL?",
+        "changeMessage": "Previously shared event, invitation, RSVP and calendar links will stop working. The old address will not forward to the new one. Share the updated links with your guests.",
+        "urlSaved": "Your event URL was saved.",
+        "visibilitySaved": "Your event visibility was saved.",
+        "failed": "Could not confirm your event link change. Check your connection and try again, or reload to check the current link and visibility.",
+        "invalid": "Enter up to 80 letters, numbers or hyphens, starting and ending with a letter or number.",
+        "taken": "This address is already in use. Choose another name or generate a new link.",
+        "stale": "The link or visibility changed in another tab. Reload this page before trying again.",
+        "confirmChange": "Confirm that previously shared links will stop working.",
+        "confirmGuessable": "Choose whether to keep this guessable Unlisted address or add a random code."
       }
     },
     "Rsvp": {

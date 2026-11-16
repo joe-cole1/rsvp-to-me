@@ -226,7 +226,8 @@
         "invitationConflict": "Mehrere Gäste stimmen mit diesem Kontakt überein. Kläre die Gasteinträge vor dem Senden.",
         "invitationReviewChanged": "Dieser Gast hat sich seit der Vorschau geändert. Prüfe die Einladung erneut.",
         "invitationChannelDisabled": "Dieser Einladungskanal ist deaktiviert.",
-        "invitationSendFailed": "Die Einladung konnte nicht gesendet werden. Prüfe diesen Empfänger und versuche es erneut."
+        "invitationSendFailed": "Die Einladung konnte nicht gesendet werden. Prüfe diesen Empfänger und versuche es erneut.",
+        "unlistedUrlDecision": "Bestätige einen nicht gelisteten Link über die Veranstaltungs-URL-Einstellungen."
       },
       "NotFound": {
         "title": "Diese Seite haben wir nicht gefunden",
@@ -1095,6 +1096,33 @@
         "resultFailed": "{count, plural, one {# fehlgeschlagen und bleibt in deiner Liste.} other {# fehlgeschlagen und bleiben in deiner Liste.}}",
         "continue": "Zurück zu den Empfängern",
         "unnamedGuest": "Gast"
+      },
+      "EventUrlSettings": {
+        "eventUrl": "Veranstaltungs-URL",
+        "prefix": "Wähle den Teil der Adresse nach /e/. Buchstaben, Zahlen und Bindestriche sind erlaubt. Groß- und Kleinschreibung wird unterschieden.",
+        "preview": "URL-Vorschau:",
+        "randomHint": "Diese Adresse enthält einen zufällig erzeugten Code.",
+        "privateHint": "Deine Zugriffsregeln für Einladungen und Passwörter gelten weiterhin.",
+        "customHint": "Diese Adresse lässt sich möglicherweise leicht erraten. Ohne Passwort kann jede Person mit der Adresse eine nicht gelistete Veranstaltung ansehen.",
+        "publicHint": "Wähle eine kurze, einprägsame Adresse für deine öffentliche Veranstaltung.",
+        "saveUrl": "URL speichern",
+        "generateNew": "Neuen Link erzeugen",
+        "addCode": "Zufallscode hinzufügen",
+        "cancel": "Abbrechen",
+        "useAnyway": "Diese URL verwenden",
+        "changeUrl": "URL ändern",
+        "guessableTitle": "Dieser Link lässt sich möglicherweise leicht erraten",
+        "guessableMessage": "Deine Veranstaltung bleibt aus öffentlichen Listen ausgeblendet. Wer diese Adresse errät, kann sie jedoch ohne gesetztes Passwort ansehen. Behalte sie oder füge einen Zufallscode hinzu.",
+        "changeTitle": "Veranstaltungs-URL ändern?",
+        "changeMessage": "Bereits geteilte Veranstaltungs-, Einladungs-, RSVP- und Kalenderlinks funktionieren danach nicht mehr. Die alte Adresse leitet nicht weiter. Teile die neuen Links mit deinen Gästen.",
+        "urlSaved": "Die Veranstaltungs-URL wurde gespeichert.",
+        "visibilitySaved": "Die Sichtbarkeit wurde gespeichert.",
+        "failed": "Die Änderung des Veranstaltungslinks konnte nicht bestätigt werden. Prüfe deine Verbindung und versuche es erneut oder lade die Seite neu, um Link und Sichtbarkeit zu prüfen.",
+        "invalid": "Gib bis zu 80 Buchstaben, Zahlen oder Bindestriche ein. Beginne und ende mit einem Buchstaben oder einer Zahl.",
+        "taken": "Diese Adresse wird bereits verwendet. Wähle einen anderen Namen oder erzeuge einen neuen Link.",
+        "stale": "Link oder Sichtbarkeit wurden in einem anderen Tab geändert. Lade diese Seite neu und versuche es erneut.",
+        "confirmChange": "Bestätige, dass bereits geteilte Links nicht mehr funktionieren.",
+        "confirmGuessable": "Wähle, ob du diese erratbare, nicht gelistete Adresse behalten oder einen Zufallscode hinzufügen möchtest."
       }
     },
     "Rsvp": {

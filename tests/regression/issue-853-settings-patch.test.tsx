@@ -4,10 +4,13 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@/tests/components/render";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@/tests/components/render";
 import type { EventInput } from "@/components/event/settings-page/types";
-const m = vi.hoisted(() => ({ save: vi.fn() }));
+const m = vi.hoisted(() => ({ save: vi.fn(), urlSave: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("@/app/actions/event", () => ({
+  saveEventUrl: m.urlSave,
+  previewEventUrl: vi.fn(),
   saveEventSettings: m.save,
   saveEventTheme: vi.fn(),
   addCoHost: vi.fn(),
@@ -69,6 +72,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   window.history.replaceState({}, "", "/e/party/settings");
   m.save.mockResolvedValue({ success: true });
+  m.urlSave.mockResolvedValue({
+    success: true,
+    slug: "party",
+    visibility: "UNLISTED",
+    randomCode: null,
+  });
 });
 afterEach(cleanup);
 describe("#853 settings patches", () => {
@@ -86,12 +95,27 @@ describe("#853 settings patches", () => {
     );
     expect(stored).toEqual({ visibility: "PRIVATE", capacity: 25, commentsEnabled: false });
   });
-  it("sends just the visibility field, without copying display defaults", async () => {
+  it("sends the URL/visibility decision without copying unrelated display defaults", async () => {
     render(<SettingsPage event={event} isOwner themePresets={[]} adminModerating />);
     fireEvent.click(screen.getByRole("button", { name: /Display options/ }));
     fireEvent.click(screen.getByRole("radio", { name: /Unlisted/ }));
+    const dialog = await screen.findByRole("dialog", { name: "This link may be easy to guess" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Use this URL" }));
     await waitFor(() =>
-      expect(m.save).toHaveBeenCalledWith("event", { visibility: "UNLISTED" }, null)
+      expect(m.urlSave).toHaveBeenCalledWith(
+        "event",
+        {
+          expectedSlug: "party",
+          expectedVisibility: "PUBLIC",
+          slug: "party",
+          visibility: "UNLISTED",
+          generatedProof: undefined,
+          allowGuessable: true,
+          confirmLinkChange: false,
+        },
+        null
+      )
     );
+    expect(m.save).not.toHaveBeenCalled();
   });
 });

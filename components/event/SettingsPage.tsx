@@ -1064,6 +1064,9 @@ export function SettingsPage({
         {/* ── Display Options ── */}
         {activeSection === "privacy" && (
           <DisplayOptionsPanel
+            eventId={event.id}
+            slug={event.slug}
+            slugRandomCode={event.slugRandomCode}
             commentsEnabled={commentsEnabled}
             setCommentsEnabled={setCommentsEnabled}
             guestSharingEnabled={guestSharingEnabled}

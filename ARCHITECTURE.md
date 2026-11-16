@@ -236,6 +236,15 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
 - Event mutations are split by domain under `app/actions/event/`: RSVP,
   check-ins/walk-ins, settings, invitations, co-hosts, polls, potluck, comments,
   blasts, custom questions, and email previews/tests.
+- `lib/slug.ts` generates readable Public addresses and opaque Unlisted/Private
+  codes. `app/actions/event/urls.ts` owns host/co-host URL edits and visibility
+  decisions, with database uniqueness and compare-and-set writes. Nullable
+  `Event.slugRandomCode` records generated-code provenance; signed, expiring
+  previews in `lib/event-url-proof.ts` establish newly generated codes without
+  reserving addresses. Existing addresses are never automatically rewritten.
+  `EventUrlSettings.tsx` renders the editor and explicit guessability/link-break
+  decisions. Retired routes receive no redirect; event access still belongs to
+  `lib/eventAccess.ts`.
 - Poll votes and potluck claims use server-resolved RSVP/account identities,
   with per-parent PostgreSQL row locks for single-choice replacement and claim
   capacity. Client payloads receive only per-viewer `isMine` flags, not account

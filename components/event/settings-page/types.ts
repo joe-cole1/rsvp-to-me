@@ -69,6 +69,7 @@ export type PotluckItemEntry = {
 export type EventInput = Partial<GuestRsvpDisplayFields> & {
   id: string;
   slug: string;
+  slugRandomCode?: string | null;
   title: string;
   hostId: string;
   host: { id: string; name: string | null; email: string };
