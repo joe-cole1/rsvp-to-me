@@ -16,7 +16,6 @@ export function PollsSection({
   isHost,
   rsvpStatus,
   rsvpDone,
-  guestName,
   isPendingGuest,
   newPollOptionTexts,
   setNewPollOptionTexts,
@@ -30,7 +29,6 @@ export function PollsSection({
   isHost: boolean;
   rsvpStatus: "GOING" | "MAYBE" | "NO" | "INVITED" | null;
   rsvpDone: boolean;
-  guestName: string;
   isPendingGuest: boolean;
   newPollOptionTexts: Record<string, string>;
   setNewPollOptionTexts: React.Dispatch<React.SetStateAction<Record<string, string>>>;

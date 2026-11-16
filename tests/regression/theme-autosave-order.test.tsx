@@ -9,6 +9,9 @@ import React from "react";
 import { SettingsPage } from "@/components/event/SettingsPage";
 import type { EventInput } from "@/components/event/settings-page/types";
 
+// The settings page includes the delete panel, which navigates through App Router.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 // Mock server actions to avoid network/DB calls in unit tests
 vi.mock("@/app/actions/event", () => ({
   saveEventSettings: vi.fn(),

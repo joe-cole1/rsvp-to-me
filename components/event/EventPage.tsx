@@ -913,7 +913,6 @@ export function EventPage({
           isHost={isHost}
           rsvpStatus={rsvpStatus}
           rsvpDone={rsvpDone}
-          guestName={guestName}
           isPendingGuest={isPendingGuest}
           newPollOptionTexts={newPollOptionTexts}
           setNewPollOptionTexts={setNewPollOptionTexts}
