@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Check, Label, SecretInput } from "@/components/ui/Field";
 import { InlineAlert, StatusChip } from "@/components/ui/Feedback";
 import { Toggle } from "@/components/ui/Toggle";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 export function DisplayOptionsPanel({
   commentsEnabled,
@@ -29,8 +30,8 @@ export function DisplayOptionsPanel({
   setPassword,
   passwordDirty,
   setPasswordDirty,
-  setPasswordSavedAsNull,
-  effectivePasswordHash,
+  hasPassword,
+  isPending,
   triggerSaveSettings,
   t,
 }: {
@@ -50,16 +51,18 @@ export function DisplayOptionsPanel({
   setPassword: React.Dispatch<React.SetStateAction<string>>;
   passwordDirty: boolean;
   setPasswordDirty: React.Dispatch<React.SetStateAction<boolean>>;
-  setPasswordSavedAsNull: React.Dispatch<React.SetStateAction<boolean>>;
-  effectivePasswordHash: string | null;
+  hasPassword: boolean;
+  isPending: boolean;
   triggerSaveSettings: (overrides: SettingsOverrides) => void;
   t: ResolvedTheme;
 }) {
   const translate = useTranslations("Ui.Event.DisplayOptionsPanel");
+  const { confirm, dialog } = useConfirm(t);
   const hint = { fontSize: "13px", lineHeight: "19px", color: t.textSecondary, marginTop: "6px" };
 
   return (
     <Section title={translate("displayOptions")} t={t}>
+      {dialog}
       <div style={{ marginBottom: "16px" }}>
         <Label theme={t}>{translate("eventVisibility")}</Label>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -104,13 +107,13 @@ export function DisplayOptionsPanel({
           theme={t}
         />
       )}
-      {visibility === "PRIVATE" && (
+      {(visibility === "PRIVATE" || hasPassword) && (
         <div style={{ marginBottom: "24px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
             <Label theme={t} htmlFor="event-password" style={{ marginBottom: 0 }}>
               {translate("eventPasswordOptional")}
             </Label>
-            {effectivePasswordHash && !passwordDirty && (
+            {hasPassword && (
               <StatusChip theme={t} tone="success">
                 {translate("set")}
               </StatusChip>
@@ -121,12 +124,9 @@ export function DisplayOptionsPanel({
             id="event-password"
             showLabel={translate("showPassword")}
             hideLabel={translate("hidePassword")}
-            placeholder={
-              effectivePasswordHash && !passwordDirty
-                ? "••••••••"
-                : translate("leaveBlankNoPassword")
-            }
+            placeholder={hasPassword ? "••••••••" : translate("leaveBlankNoPassword")}
             value={password}
+            disabled={isPending}
             onChange={(e) => {
               setPassword(e.target.value);
               setPasswordDirty(true);
@@ -134,48 +134,42 @@ export function DisplayOptionsPanel({
             onBlur={() => {
               // Only auto-save when there is no existing password (first-time set).
               // When overwriting/clearing an existing password, the host must confirm.
-              if (passwordDirty && !effectivePasswordHash) {
-                triggerSaveSettings({ password: password.trim() || null });
+              if (passwordDirty && !hasPassword && password.trim() && !isPending) {
+                triggerSaveSettings({ password: password.trim() });
               }
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !effectivePasswordHash) {
-                triggerSaveSettings({ password: password.trim() || null });
+              if (e.key === "Enter" && !hasPassword) {
+                e.preventDefault();
                 e.currentTarget.blur();
               }
             }}
             autoComplete="off"
           />
 
-          {/* Overwrite / removal confirmation */}
-          {effectivePasswordHash && passwordDirty && (
+          {hasPassword && passwordDirty && password.trim() && (
             <InlineAlert theme={t} tone="warning" style={{ marginTop: "8px", marginBottom: 0 }}>
               <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                {password.trim()
-                  ? translate("replaceCurrentPassword")
-                  : translate("savingRemovePasswordRequirement")}
+                {translate("replaceCurrentPassword")}
               </div>
               <div style={{ display: "flex", gap: "6px" }}>
                 <Button
                   theme={t}
                   variant="primary"
-                  size="sm"
                   type="button"
+                  disabled={isPending}
                   onClick={() => {
-                    triggerSaveSettings({ password: password.trim() || null });
-                    if (!password.trim()) setPasswordSavedAsNull(true);
-                    setPassword("");
-                    setPasswordDirty(false);
+                    triggerSaveSettings({ password: password.trim() });
                   }}
                   style={{ flex: 1 }}
                 >
-                  {password.trim() ? translate("saveNewPassword") : translate("removePassword")}
+                  {translate("saveNewPassword")}
                 </Button>
                 <Button
                   theme={t}
                   variant="secondary"
-                  size="sm"
                   type="button"
+                  disabled={isPending}
                   onClick={() => {
                     setPassword("");
                     setPasswordDirty(false);
@@ -188,13 +182,32 @@ export function DisplayOptionsPanel({
             </InlineAlert>
           )}
 
-          {/* Hint text when no pending change */}
-          {!passwordDirty &&
-            (effectivePasswordHash ? (
-              <div style={hint}>{translate("typeNewPasswordChangeOrClear")}</div>
-            ) : password ? (
-              <div style={hint}>{translate("guestsMustEnterPasswordViewEvent")}</div>
-            ) : null)}
+          {hasPassword && (
+            <>
+              <div style={hint}>{translate("passwordStaysOnVisibilityChange")}</div>
+              <div style={hint}>{translate("changeOrRemovePassword")}</div>
+              <Button
+                theme={t}
+                variant="secondary"
+                type="button"
+                disabled={isPending}
+                style={{ marginTop: "10px" }}
+                onClick={async () => {
+                  if (
+                    await confirm({
+                      title: translate("removePasswordTitle"),
+                      message: translate("removePasswordConsequence"),
+                      confirmLabel: translate("removePassword"),
+                    })
+                  ) {
+                    triggerSaveSettings({ password: null });
+                  }
+                }}
+              >
+                {translate("removePassword")}
+              </Button>
+            </>
+          )}
         </div>
       )}
 
