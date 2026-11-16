@@ -226,7 +226,8 @@
         "invitationConflict": "Varios invitados coinciden con este contacto. Revisa sus registros antes de enviar.",
         "invitationReviewChanged": "Este invitado ha cambiado desde la vista previa. Revisa la invitación de nuevo.",
         "invitationChannelDisabled": "Este canal de invitación está desactivado.",
-        "invitationSendFailed": "No se pudo enviar la invitación. Revisa este destinatario y vuelve a intentarlo."
+        "invitationSendFailed": "No se pudo enviar la invitación. Revisa este destinatario y vuelve a intentarlo.",
+        "unlistedUrlDecision": "Usa los controles de URL del evento para confirmar un enlace no listado."
       },
       "NotFound": {
         "title": "No hemos encontrado esa página",
@@ -1095,6 +1096,33 @@
         "resultFailed": "{count, plural, one {# falló y sigue en tu lista.} other {# fallaron y siguen en tu lista.}}",
         "continue": "Volver a los destinatarios",
         "unnamedGuest": "Invitado"
+      },
+      "EventUrlSettings": {
+        "eventUrl": "URL del evento",
+        "prefix": "Elige la parte de la dirección después de /e/. Se permiten letras, números y guiones. Se distinguen mayúsculas y minúsculas.",
+        "preview": "Vista previa de la URL:",
+        "randomHint": "Esta dirección incluye un código aleatorio generado.",
+        "privateHint": "Las reglas de acceso por invitación y contraseña siguen vigentes.",
+        "customHint": "Esta dirección personalizada puede ser fácil de adivinar. Cualquiera con la dirección puede ver un evento no listado si no tiene contraseña.",
+        "publicHint": "Usa una dirección corta y memorable para tu evento público.",
+        "saveUrl": "Guardar URL",
+        "generateNew": "Generar nuevo enlace",
+        "addCode": "Añadir código aleatorio",
+        "cancel": "Cancelar",
+        "useAnyway": "Usar esta URL",
+        "changeUrl": "Cambiar URL",
+        "guessableTitle": "Este enlace puede ser fácil de adivinar",
+        "guessableMessage": "Tu evento no aparecerá en las listas públicas, pero quien adivine esta dirección podrá verlo si no tiene contraseña. Puedes mantenerla o añadir un código aleatorio.",
+        "changeTitle": "¿Cambiar la URL del evento?",
+        "changeMessage": "Los enlaces del evento, invitaciones, respuestas y calendario ya compartidos dejarán de funcionar. La dirección anterior no redirigirá a la nueva. Comparte los enlaces actualizados con tus invitados.",
+        "urlSaved": "Se ha guardado la URL del evento.",
+        "visibilitySaved": "Se ha guardado la visibilidad del evento.",
+        "failed": "No se pudo confirmar el cambio del enlace. Comprueba tu conexión e inténtalo de nuevo, o recarga para comprobar el enlace y la visibilidad actuales.",
+        "invalid": "Introduce hasta 80 letras, números o guiones, empezando y terminando con una letra o un número.",
+        "taken": "Esta dirección ya está en uso. Elige otro nombre o genera un nuevo enlace.",
+        "stale": "El enlace o la visibilidad han cambiado en otra pestaña. Recarga esta página antes de intentarlo de nuevo.",
+        "confirmChange": "Confirma que los enlaces ya compartidos dejarán de funcionar.",
+        "confirmGuessable": "Elige si quieres mantener esta dirección no listada que se puede adivinar o añadir un código aleatorio."
       }
     },
     "Rsvp": {

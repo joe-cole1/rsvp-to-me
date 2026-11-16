@@ -35,6 +35,30 @@ remove passwords previously hidden by a visibility change without switching back
 to Private. Removing a Private event's password does not remove its invite-only
 restriction. No data migration or configuration change is needed.
 
+## Event links (#880)
+
+Apply the additive `slugRandomCode` migration with the normal upgrade process.
+Existing event URLs are preserved and their provenance starts empty; no invitation
+links are rewritten automatically. New Public events retain title-based URLs.
+New Unlisted/Private events use case-sensitive six-character alphanumeric codes,
+with bounded collision retries that grow to eight, ten and twelve characters.
+
+Hosts/co-hosts can edit or regenerate URLs in Display options. Unlisted custom
+links require an explicit guessability choice, including when visibility changes
+from Public or Private. URL changes require confirmation that shared links will
+break. No old-to-new redirect is installed. Have hosts redistribute invitations,
+RSVP and calendar links after a rename; password unlocks are tied to the address.
+New email/SMS links use the current event URL. Already delivered messages retain
+their old addresses. Six-character codes are a convenience/privacy tradeoff;
+Private/password access checks remain the protection for sensitive events.
+
+Generated-code previews expire after 15 minutes and are not reservations. A save
+rechecks database uniqueness and rejects stale URL/visibility state from another
+tab. Preview proof uses the existing configuration/session encryption secret;
+no new environment variable is required. Secret rotation invalidates outstanding
+previews; hosts can generate another. General settings updates cannot switch to
+Unlisted without the dedicated URL decision flow.
+
 ## Table of Contents
 
 1. [How Updates Work](#how-updates-work)

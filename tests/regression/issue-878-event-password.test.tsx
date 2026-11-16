@@ -15,8 +15,11 @@ import {
   within,
 } from "@/tests/components/render";
 import type { EventInput } from "@/components/event/settings-page/types";
-const m = vi.hoisted(() => ({ save: vi.fn() }));
+const m = vi.hoisted(() => ({ save: vi.fn(), urlSave: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("@/app/actions/event", () => ({
+  saveEventUrl: m.urlSave,
+  previewEventUrl: vi.fn(),
   saveEventSettings: m.save,
   saveEventTheme: vi.fn(),
   addCoHost: vi.fn(),
@@ -79,6 +82,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   window.history.replaceState({}, "", "/e/party/settings");
   m.save.mockResolvedValue({ success: true });
+  m.urlSave.mockImplementation(
+    async (_id: string, input: { slug: string; visibility: string }) => ({
+      success: true,
+      ...input,
+      randomCode: null,
+    })
+  );
 });
 afterEach(cleanup);
 
@@ -117,8 +127,18 @@ describe("#878 visible, confirmed password management", () => {
     async (mode) => {
       openSettings();
       fireEvent.click(screen.getByRole("radio", { name: new RegExp(mode) }));
+      if (mode === "Unlisted") {
+        const dialog = await screen.findByRole("dialog", {
+          name: "This link may be easy to guess",
+        });
+        fireEvent.click(within(dialog).getByRole("button", { name: "Use this URL" }));
+      }
       await waitFor(() =>
-        expect(m.save).toHaveBeenCalledWith("event", { visibility: mode.toUpperCase() }, null)
+        expect(m.urlSave).toHaveBeenCalledWith(
+          "event",
+          expect.objectContaining({ visibility: mode.toUpperCase() }),
+          null
+        )
       );
       expect(passwordField()).toBeVisible();
       expect(screen.getByText("SET")).toBeVisible();

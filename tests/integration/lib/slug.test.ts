@@ -1,12 +1,33 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { truncateAll, db } from "../helpers/db";
-import { generateUniqueSlug } from "@/lib/slug";
+import { generateRandomSlug, generateUniqueSlug } from "@/lib/slug";
 
 beforeEach(async () => {
   await truncateAll();
 });
 
 describe("generateUniqueSlug — real DB integration", () => {
+  it.each(["UNLISTED", "PRIVATE"] as const)(
+    "persists opaque %s addresses without rewriting older links",
+    async (visibility) => {
+      const host = await seedHost();
+      await seedEvent("wine-night", host.id);
+      const slug = await generateUniqueSlug("Wine Night", visibility);
+      expect(slug).toMatch(/^[A-Za-z0-9]{6}(?:[A-Za-z0-9]{2}){0,3}$/);
+      await seedEvent(slug, host.id);
+      const next = await generateUniqueSlug("Wine Night", visibility);
+      expect(next).not.toBe(slug);
+      expect(await db.event.findUnique({ where: { slug: "wine-night" } })).not.toBeNull();
+    }
+  );
+
+  it("checks prefixed generated links against the same database namespace", async () => {
+    const host = await seedHost();
+    const { slug, code } = await generateRandomSlug("wine-night");
+    await seedEvent(slug, host.id);
+    expect(slug).toBe(`wine-night-${code}`);
+    expect((await generateRandomSlug("wine-night")).slug).not.toBe(slug);
+  });
   async function seedEvent(slug: string, hostId: string) {
     return db.event.create({
       data: {

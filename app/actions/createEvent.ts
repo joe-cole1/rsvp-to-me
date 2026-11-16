@@ -39,30 +39,47 @@ export async function createEvent(formData: FormData) {
   await assertCaptcha("event_create", typeof captchaToken === "string" ? captchaToken : null);
 
   const startAt = tzLocalToUtc(`${parsed.startDate}T${parsed.startTime}`, parsed.timezone);
-  const slug = await generateUniqueSlug(parsed.title);
-
-  const event = await db.event.create({
-    data: {
-      title: parsed.title,
-      description: parsed.description,
-      slug,
-      startAt,
-      timezone: parsed.timezone,
-      locationType: parsed.locationType,
-      locationName: parsed.locationName,
-      locationAddress: parsed.locationAddress,
-      virtualUrl: parsed.virtualUrl,
-      visibility: parsed.visibility,
-      hostId: sessionUser.id,
-      status: "PUBLISHED",
-      notificationSchedule: {
-        create: [
-          { kind: "reminder", hoursBefore: 24 },
-          { kind: "nudge", hoursBefore: 72 },
-        ],
-      },
-    },
-  });
+  // A unique lookup cannot reserve a URL. Retry a racing insert as well.
+  let event: { slug: string } | undefined;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const slug = await generateUniqueSlug(parsed.title, parsed.visibility);
+    try {
+      event = await db.event.create({
+        data: {
+          title: parsed.title,
+          description: parsed.description,
+          slug,
+          slugRandomCode: parsed.visibility === "PUBLIC" ? null : slug,
+          startAt,
+          timezone: parsed.timezone,
+          locationType: parsed.locationType,
+          locationName: parsed.locationName,
+          locationAddress: parsed.locationAddress,
+          virtualUrl: parsed.virtualUrl,
+          visibility: parsed.visibility,
+          hostId: sessionUser.id,
+          status: "PUBLISHED",
+          notificationSchedule: {
+            create: [
+              { kind: "reminder", hoursBefore: 24 },
+              { kind: "nudge", hoursBefore: 72 },
+            ],
+          },
+        },
+      });
+      break;
+    } catch (error) {
+      if (
+        attempt === 3 ||
+        !error ||
+        typeof error !== "object" ||
+        !("code" in error) ||
+        error.code !== "P2002"
+      )
+        throw error;
+    }
+  }
+  if (!event) throw new Error("Could not create event. Please try again.");
 
   redirect(`/e/${event.slug}`);
 }

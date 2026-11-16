@@ -267,6 +267,11 @@ export async function saveEventSettings(
   // SEC-20: validate against an explicit allow-list before spreading into the
   // update, so unknown keys (status, slug, hostId, …) can't be mass-assigned.
   const { password, rsvpDeadline, ...rest } = SaveEventSettingsSchema.parse(settings);
+  // URL/visibility decisions for Unlisted must pass through the dedicated
+  // compare-and-set action, including the explicit guessability choice.
+  if (rest.visibility === "UNLISTED") {
+    return { success: false, error: await eventActionMessage("unlistedUrlDecision") };
+  }
   const passwordHash =
     password === undefined
       ? undefined

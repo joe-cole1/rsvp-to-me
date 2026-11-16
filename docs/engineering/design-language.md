@@ -283,6 +283,17 @@ named ("Event title"). Triggers such as "2 others" are buttons that report `aria
 current step with `aria-current="step"`, keep Back and Next in the same place, and show errors
 in an `InlineAlert` at the step.
 
+**Event URL decisions** (#880). Display options groups visibility and the URL editor
+in one section. The editor has one named text field, a URL preview and an explicit
+Save URL button; generating a code changes only the preview. A custom Unlisted
+address without a generated code opens the shared Dialog with Cancel first,
+Use this URL, and the primary Add random code action. Visibility stays confirmed
+until that decision saves. A URL rename then uses a separate confirmation showing
+the new address and explaining that previously shared links break. No warning is
+needed for readable Public/Private names; Private access checks still apply.
+Dialogs use the dark chrome theme and wrap buttons at phone widths. Failures stay
+inline beside the editor and preserve the confirmed state and draft.
+
 **First-administrator setup.** `/setup` uses one app-shell card, a page heading,
 name and email fields, and one primary Send setup link and code action. Missing
 server configuration replaces the form with concise instructions. Confirmation

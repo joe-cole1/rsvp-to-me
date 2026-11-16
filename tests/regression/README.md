@@ -66,6 +66,16 @@ also excludes generated fixture tests.
 
 ## Index
 
+Issue #880 (task `01a1e3a7`):
+
+- `issue-880-event-links.test.ts`: opaque defaults, bounded code growth, preview
+  provenance/expiry, authorization/CAPTCHA, explicit URL decisions, collisions and
+  stale writes.
+- `issue-880-event-url-settings.test.tsx`: rendered URL previews, warning choices,
+  cancellation, pending/failure behavior and confirmed visibility.
+- `tests/e2e/event-links.e2e.ts`: real creation/edit/privacy flows, retired event
+  and invitation routes, Private access, collision errors and phone dialogs.
+
 Issue #853 (audit #852, task `01a1e09e`):
 
 - `issue-853-dashboard-zone.test.ts`: hosted/co-hosted and invitation query projections retain the event zone.

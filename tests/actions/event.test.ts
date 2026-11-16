@@ -821,6 +821,15 @@ describe("addComment", () => {
 // ── saveEventSettings ─────────────────────────────────────────────────────────
 
 describe("saveEventSettings", () => {
+  it("requires the URL decision flow for an Unlisted visibility change", async () => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventRow());
+    expect(await saveEventSettings(EVENT_ID, { visibility: "UNLISTED" })).toEqual({
+      success: false,
+      error: "Use the event URL controls to confirm an Unlisted link.",
+    });
+    expect(mockEventUpdate).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     asHost();
     mockEventFindUnique.mockResolvedValue(hostEventRow());

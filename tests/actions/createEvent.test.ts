@@ -96,10 +96,30 @@ describe("createEvent", () => {
       data: expect.objectContaining({
         title: "Wine Night",
         slug: "my-party",
+        slugRandomCode: "my-party",
         hostId: "host-1",
         status: "PUBLISHED",
       }),
     });
+    expect(mocks.mockGenerateUniqueSlug).toHaveBeenCalledWith("Wine Night", "UNLISTED");
+  });
+
+  it("retries a racing unique insert without accepting a predictable fallback", async () => {
+    mocks.mockGetSession.mockResolvedValue({ userId: "host-1", role: "HOST" });
+    mocks.mockUserFindUnique.mockResolvedValue({ id: "host-1" });
+    mocks.mockEventCreate
+      .mockRejectedValueOnce({ code: "P2002" })
+      .mockResolvedValueOnce({ slug: "my-party" });
+    await expect(createEvent(makeFormData(validInput))).rejects.toThrow("REDIRECT:/e/my-party");
+    expect(mocks.mockGenerateUniqueSlug).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry unrelated create failures", async () => {
+    mocks.mockGetSession.mockResolvedValue({ userId: "host-1", role: "HOST" });
+    mocks.mockUserFindUnique.mockResolvedValue({ id: "host-1" });
+    mocks.mockEventCreate.mockRejectedValueOnce(new Error("database offline"));
+    await expect(createEvent(makeFormData(validInput))).rejects.toThrow("database offline");
+    expect(mocks.mockGenerateUniqueSlug).toHaveBeenCalledTimes(1);
   });
 
   it("throws ZodError when title is missing", async () => {

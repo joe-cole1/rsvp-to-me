@@ -117,6 +117,8 @@ model HostInviteCode {
 model Event {
   id              String       @id @default(cuid())
   slug            String       @unique
+  // Provenance for generated links; existing/custom URLs remain null.
+  slugRandomCode  String?
   title           String
   description     String?
   startAt         DateTime

@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+import { randomBytes, randomInt } from "crypto";
 import { db } from "./db";
 
 export function slugify(title: string): string {
@@ -16,7 +16,25 @@ export function slugify(title: string): string {
 const MAX_SEQUENTIAL_ATTEMPTS = 10;
 const MAX_RANDOM_ATTEMPTS = 4;
 
-export async function generateUniqueSlug(title: string): Promise<string> {
+export async function generateRandomSlug(prefix = ""): Promise<{ slug: string; code: string }> {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  // Retry at each size before growing. A saturated namespace cannot cause an
+  // unbounded scan, and public/custom URL collisions share the same namespace.
+  for (const length of [6, 8, 10, 12]) {
+    for (let attempt = 0; attempt < MAX_RANDOM_ATTEMPTS; attempt++) {
+      const code = Array.from({ length }, () => alphabet[randomInt(alphabet.length)]).join("");
+      const slug = prefix ? `${prefix}-${code}` : code;
+      if (!(await db.event.findUnique({ where: { slug } }))) return { slug, code };
+    }
+  }
+  throw new Error("Could not generate a unique slug — please try again.");
+}
+
+export async function generateUniqueSlug(
+  title: string,
+  visibility: "PUBLIC" | "UNLISTED" | "PRIVATE" = "PUBLIC"
+): Promise<string> {
+  if (visibility !== "PUBLIC") return (await generateRandomSlug()).slug;
   const base = slugify(title) || "event";
 
   // Friendly sequential suffixes first (base, base-1, base-2, …), bounded.
