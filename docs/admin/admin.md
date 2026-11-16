@@ -49,24 +49,23 @@ The panel is organized into a sidebar of tabs: **Overview**, **User management**
 
 There are two ways to promote an account to Admin.
 
-### Method 1: INITIAL_ADMIN_EMAIL (First-Time Setup)
+### Method 1: First-administrator setup
 
-Set the `INITIAL_ADMIN_EMAIL` environment variable in your `.env` file to your email address and restart the application.
+Configure email delivery and set `INITIAL_ADMIN_EMAIL` to your email address on
+the server, then restart the app. Open the homepage or `/setup`, enter your name
+and that email, and request a setup link and code. Verify either to finish setup
+and open the Admin Panel. Neither sample seeding nor a host invite code is needed,
+even when registration is closed.
 
-```env
-INITIAL_ADMIN_EMAIL="youraddress@domain.com"
-```
+Only successful LOGIN verification grants ADMIN. Submitting setup creates at most
+an unprivileged account; it never grants access immediately. The configured email
+is not disclosed on the page. SYSTEM does not count as an existing administrator,
+but another administrator blocks bootstrap. When setup is already complete,
+`/setup` sends administrators to the panel and other visitors to sign-in.
 
-```bash
-docker compose restart app
-```
-
-The first time you complete sign-in by opening a valid `LOGIN` magic link or entering its paired 6-digit code for this email, your
-account is automatically promoted to `ADMIN` (provided there are currently no other administrators
-in the system). This is a bootstrap mechanism for first-time installation. Registration, an
-existing session, dashboard/profile access, profile-change links, and co-host invitation acceptance
-cannot trigger this promotion; request and verify a fresh sign-in link or code when bootstrapping or
-recovering the initial administrator.
+If no real administrator remains, set the configured address and verify a fresh
+LOGIN to recover access. Existing sessions, profile changes and co-host invitations
+cannot trigger promotion.
 
 ### Method 2: Promotion via the Admin Panel
 
@@ -193,14 +192,11 @@ When open registration is off, hosts need an invite code. Click **Create New Cod
 
 Toggle the status next to any code in the table to deactivate or reactivate it instantly.
 
-### Env-Var Code vs. Admin Panel Codes
+### Existing environment-provisioned codes
 
-| Feature          | `HOST_INVITE_CODE` (env var) | Admin Panel codes        |
-| ---------------- | ---------------------------- | ------------------------ |
-| **Location**     | Defined in `.env` file       | Stored in the database   |
-| **Expiration**   | None (always active)         | Optional expiration date |
-| **Usage Limits** | Unlimited                    | Optional max usage count |
-| **Quantity**     | Exactly one code             | Multiple unique codes    |
+`HOST_INVITE_CODE` no longer provisions codes or gates startup. Existing database
+codes keep their status, expiry and usage limits. Manage them here and remove the
+obsolete environment variable. New codes are created through this panel.
 
 ---
 

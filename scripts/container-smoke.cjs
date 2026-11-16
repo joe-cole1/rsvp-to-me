@@ -31,6 +31,14 @@ async function prepareConfigUpgrade() {
   const client = new Client({ connectionString: target.toString() });
   await client.connect();
   try {
+    const empty = await client.query('SELECT COUNT(*)::int AS count FROM "User"');
+    assert.equal(empty.rows[0].count, 0, "Normal startup must not seed accounts");
+    const presets = await client.query('SELECT COUNT(*)::int AS count FROM "ThemePreset"');
+    assert.ok(presets.rows[0].count > 0, "Migrations must install production presets");
+    await client.query(
+      `INSERT INTO "HostInviteCode" (id,code,note,"createdAt") VALUES ('qc-existing-invite','qc-existing-code','Explicit upgrade fixture',now())`
+    );
+    await client.query(`UPDATE "ThemePreset" SET name='QC custom preset' WHERE id='dark-night'`);
     await client.query('DELETE FROM "SystemConfig" WHERE key = $1', ["config_encryption_version"]);
     for (const [key, value] of [
       ["smtp_pass", credential("qc-smtp-fixture", false)],
@@ -132,10 +140,16 @@ async function main() {
     }
     console.log("Automatic legacy configuration upgrade and repeat startup passed");
     const seed = await db.query('SELECT code FROM "HostInviteCode" WHERE code = $1', [
-      process.env.HOST_INVITE_CODE,
+      "qc-existing-code",
     ]);
-    assert.equal(seed.rowCount, 1, "Normal startup must complete seeding");
+    assert.equal(seed.rowCount, 1, "Restart must preserve existing invite codes");
 
+    assert.equal(
+      (await db.query(`SELECT name FROM "ThemePreset" WHERE id='dark-night'`)).rows[0].name,
+      "QC custom preset",
+      "Restart must preserve preset edits"
+    );
+    assert.equal((await db.query('SELECT COUNT(*)::int AS count FROM "User"')).rows[0].count, 0);
     const migrations = await db.query(
       "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name"
     );
@@ -164,14 +178,14 @@ async function main() {
     try {
       const restoredSeed = await restored.query(
         'SELECT code FROM "HostInviteCode" WHERE code = $1',
-        [process.env.HOST_INVITE_CODE]
+        ["qc-existing-code"]
       );
-      assert.deepEqual(restoredSeed.rows, seed.rows, "Backup must preserve the seeded invite");
+      assert.deepEqual(restoredSeed.rows, seed.rows, "Backup must preserve the existing invite");
       const restoredMigrations = await restored.query(
         "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name"
       );
       assert.deepEqual(restoredMigrations.rows, migrations.rows);
-      console.log("Backup restore QC passed: seeded invite and migration history preserved");
+      console.log("Backup restore QC passed: existing invite and migration history preserved");
     } finally {
       await restored.end();
     }

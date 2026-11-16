@@ -20,7 +20,7 @@ El script de datos iniciales crea tres cuentas de organizadores, 20 invitados de
 | `cohost@test.com` | Anfitrión                       | Es coanfitrión de algunos eventos de ejemplo.                                                           |
 | `admin@test.com`  | Administrador                   | Permite explorar las herramientas de administración.                                                    |
 
-El conjunto completo de datos solo se carga cuando `SEED_TEST_DATA=true` **y la base de datos no contiene eventos**. Configura esta variable en el servicio de la aplicación antes del primer arranque de una instancia de prueba independiente. El archivo `docker-compose.yml` para compilar desde el código fuente ya la establece en `true`; la instalación de versiones publicadas usa `false` de forma predeterminada mediante `.env.example`.
+Tanto las instalaciones desde el código como las versiones publicadas usan `SEED_TEST_DATA` de `.env`; el valor predeterminado es `false`. Con `false` o sin esta variable, el comando no escribe datos. En producción, `/setup` verifica la primera cuenta de administrador sin datos de ejemplo ni código de invitación. Se conservan los temas personalizados. Los datos de ejemplo solo se cargan si todavía no hay eventos.
 
 Para cargar los datos explícitamente en un contenedor de prueba que ya esté ejecutándose desde el código fuente:
 

@@ -20,7 +20,7 @@ Das Seed-Skript erstellt drei Veranstalterkonten, 20 Beispielgäste und 10 Veran
 | `cohost@test.com` | Veranstalter                            | Mitveranstalter ausgewählter Beispielveranstaltungen.                                                               |
 | `admin@test.com`  | Administrator                           | Zum Erkunden der Administrationswerkzeuge.                                                                          |
 
-Die umfangreichen Beispieldaten werden nur geladen, wenn `SEED_TEST_DATA=true` gilt **und die Datenbank keine Veranstaltungen enthält**. Setze diese Variable beim App-Dienst vor dem ersten Start einer separaten Testinstallation. Die aus dem Quellcode gebaute Umgebung in `docker-compose.yml` setzt sie bereits auf `true`; die Release-Konfiguration verwendet über `.env.example` standardmäßig `false`.
+Sowohl Quellcode- als auch Release-Installationen übernehmen `SEED_TEST_DATA` aus `.env`; der Standard ist `false`. Mit `false` oder ohne diese Einstellung schreibt der Seed-Befehl nichts. Die Produktion verwendet `/setup`, um das erste Administratorkonto ohne Beispieldaten oder Einladungscode zu bestätigen. Vorhandene Theme-Anpassungen bleiben erhalten. Beispieldaten werden nur geladen, wenn noch keine Veranstaltungen vorhanden sind.
 
 So führst du das Seed-Skript ausdrücklich in einem bereits laufenden, aus dem Quellcode gebauten Testcontainer aus:
 

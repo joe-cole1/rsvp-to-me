@@ -135,36 +135,22 @@ function assertRichSeedCoverage(eventTemplates: EventTemplate[]) {
 }
 
 async function main() {
-  const code = process.env.HOST_INVITE_CODE?.trim();
-  if (!code) {
-    throw new Error(
-      "HOST_INVITE_CODE is required before seeding; configure an explicit invite code."
-    );
+  if (process.env.SEED_TEST_DATA !== "true") {
+    console.log("Sample data is disabled. Nothing to seed.");
+    return;
+  }
+  if ((await db.event.count()) > 0) {
+    console.log("Database already contains events. Skipping sample data.");
+    return;
   }
 
-  await db.hostInviteCode.upsert({
-    where: { code },
-    update: {},
-    create: { code, note: "Default invite code from seed" },
-  });
-
-  // Upsert theme presets so seed stays in sync with THEME_PRESETS (migration already inserted defaults).
-  // Existing rows keep their seasonal flag and month: those follow the administrator's
-  // category (01a1baab). New rows still get the built-in values.
+  // Demo events need theme fixtures even after a test database was truncated.
+  // Production defaults belong to migrations; preserve every existing preset.
   for (let i = 0; i < THEME_PRESETS.length; i++) {
     const p = THEME_PRESETS[i];
     await db.themePreset.upsert({
       where: { id: p.id },
-      update: {
-        name: p.name,
-        emoji: p.emoji,
-        base: p.base,
-        gradientFrom: p.gradientFrom,
-        gradientTo: p.gradientTo,
-        accentColor: p.accentColor,
-        fontId: p.fontId ?? null,
-        sortOrder: i,
-      },
+      update: {},
       create: {
         id: p.id,
         name: p.name,
@@ -213,33 +199,6 @@ async function main() {
     });
   }
   console.log(`Upserted ${THEME_PRESETS.length} theme presets.`);
-
-  // Upsert the SYSTEM tombstone user used when anonymizing deleted host accounts
-  await db.user.upsert({
-    where: { id: "system" },
-    create: { id: "system", role: "ADMIN", name: "System", email: null, phone: null },
-    update: {},
-  });
-  console.log("Upserted SYSTEM tombstone user.");
-
-  console.log("Baseline seed complete.");
-
-  // Check if we should seed heavy test data
-  const seedTestData = process.env.SEED_TEST_DATA === "true";
-  if (!seedTestData) {
-    console.log("SEED_TEST_DATA is not set to 'true'. Skipping heavy test data seeding.");
-    return;
-  }
-
-  const eventCount = await db.event.count();
-  if (eventCount > 0) {
-    console.log(
-      "Database already contains events. Skipping heavy test data seeding to prevent duplication."
-    );
-    return;
-  }
-
-  console.log("SEED_TEST_DATA is 'true' and database is empty. Starting rich test data seeding...");
 
   // 1. Create Primary Admin, Host and Co-Host
   await db.user.upsert({

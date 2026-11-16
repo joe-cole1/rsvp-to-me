@@ -8,6 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@/tests/components/render";
 const m = vi.hoisted(() => ({ events: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: { event: { findMany: m.events } } }));
+// These feed/time fixtures represent an already initialized installation.
+vi.mock("@/lib/setup-state", () => ({
+  getSetupState: async () => ({ required: false, configured: false }),
+}));
 vi.mock("@/lib/session", () => ({ getSession: async () => null }));
 vi.mock("@/components/ui/UploadedImage", () => ({ default: () => null }));
 import Home from "@/app/page";

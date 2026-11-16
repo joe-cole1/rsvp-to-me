@@ -156,7 +156,6 @@ You must set at least these variables before launching:
 5. **`INITIAL_ADMIN_EMAIL`**: Your email address. Successfully verifying a sign-in magic link or its paired 6-digit code for
    this email promotes the account to Administrator only when no administrator exists. Registration,
    existing sessions, profile links, and co-host invitations cannot trigger bootstrap promotion.
-6. **`HOST_INVITE_CODE`**: A code required by new hosts to register accounts (gating access to your instance). The `.env.example` placeholder (`CHANGE_THIS_TO_A_STRONG_RANDOM_CODE`) is rejected at startup in production — replace it with a strong value (e.g. `openssl rand -hex 8`).
 
 > **Warning:** Your `.env` file contains sensitive passwords and secrets. Never commit it to a public repository. Ensure it is added to your `.gitignore` file.
 
@@ -198,7 +197,7 @@ _What this command does:_
 - Runs database migrations automatically on first startup.
 - Launches all containers in the background.
 
-> **Production data:** Keep `SEED_TEST_DATA="false"` in `.env`, as in the example. Both release and source-build Compose files honor this setting and do not force sample data on. Baseline seeding requires an explicit non-empty `HOST_INVITE_CODE`; there is no fallback invite code.
+> **Production data:** Keep `SEED_TEST_DATA="false"` in `.env`, as in the example. Both release and source-build Compose files honor this setting and do not force sample data on. First-administrator setup uses `/setup` and requires no seed or host invite code.
 
 Verify the container status:
 
@@ -252,12 +251,15 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 ## Step 5 — First Login and Admin Setup
 
-1. Open your browser and go to the URL you configured in `NEXT_PUBLIC_APP_URL`.
-2. Click **Sign In** and type the email address you put in `INITIAL_ADMIN_EMAIL`.
-3. Check your email for the magic link and 6-digit code. Click the link or enter the code on the confirmation screen and select **Sign in**. Both expire after 15 minutes; using either invalidates both. Registration uses the same methods.
-   - Configure SMTP or the optional email worker using the [Email Setup Guide](./email.md) before the first sign-in. Production images do not print sign-in links or codes in logs.
-4. The promotion occurs only when that valid sign-in link or code is verified. Once logged in, go to the
-   `/admin` URL in your browser to confirm you have access to the Admin Panel.
+1. Configure SMTP or the optional email worker using the [Email Setup Guide](email.md), and set `INITIAL_ADMIN_EMAIL` to your email address before starting the app. Production images never print login links or codes in logs.
+2. Open the configured site URL. With no real administrator, it opens `/setup`.
+3. Enter your name and the configured email address, then select **Send setup link and code**. No invite code, open registration, or sample data is required.
+4. Open the emailed link or enter the paired 6-digit code. Both expire after 15 minutes and using one invalidates both. Your role becomes ADMIN only after verification, and the Admin Panel opens.
+5. Create host invite codes in **Admin Panel → Host settings** if registration will remain closed. `HOST_INVITE_CODE` is retired; existing database codes are preserved.
+
+If the setup page says configuration is missing, set `INITIAL_ADMIN_EMAIL`,
+configure email delivery, recreate the app container to load the new environment,
+and reload. `docker compose restart` alone does not reload changed `.env` values.
 
 ---
 
@@ -435,9 +437,9 @@ Run `docker compose -f docker-compose.release.yml logs app` to inspect the logs.
 Ensure `INITIAL_ADMIN_EMAIL="your-email@domain.com"` is set in `.env`, then run:
 
 ```bash
-docker compose -f docker-compose.release.yml restart app
+docker compose -f docker-compose.release.yml up -d --force-recreate app
 ```
 
-Log out of the application, request a fresh sign-in link for that email address, and open the link
+If no real administrator remains, open `/setup` or request a fresh sign-in link for that email address and verify it
 to re-trigger the Admin promotion logic. Merely restoring or browsing with an existing session does
 not trigger bootstrap promotion.

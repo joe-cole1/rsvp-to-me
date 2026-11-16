@@ -283,6 +283,13 @@ named ("Event title"). Triggers such as "2 others" are buttons that report `aria
 current step with `aria-current="step"`, keep Back and Next in the same place, and show errors
 in an `InlineAlert` at the step.
 
+**First-administrator setup.** `/setup` uses one app-shell card, a page heading,
+name and email fields, and one primary Send setup link and code action. Missing
+server configuration replaces the form with concise instructions. Confirmation
+and the shared sign-in challenge stay in the same card, with a Change email
+link. The configured address is never rendered. Email delivery and other service
+settings remain on their existing configuration surfaces.
+
 **Sign-in challenge.** Sign-in and registration keep the confirmation and code entry in the
 same `AppCard`. `app/auth/SignInCodeForm.tsx` owns one labeled 6-digit `Input` (numeric
 keyboard, one-time-code autofill), an explicit primary **Sign in** button, `InlineAlert`

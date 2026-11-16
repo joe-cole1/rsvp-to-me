@@ -1,24 +1,47 @@
 import { db } from "@/lib/db";
+import type { Prisma, User } from "@/app/generated/prisma/client";
 
-/**
- * Promotes a user to ADMIN if their email matches INITIAL_ADMIN_EMAIL
- * and there are currently no active ADMINs in the system. Callers must invoke
- * this only after successfully verifying a LOGIN magic token.
- * Returns true if promotion happened, false otherwise.
- */
+const realAdminWhere = { role: "ADMIN", id: { not: "system" } } as const;
+
+export function matchesInitialAdminEmail(email?: string | null): boolean {
+  const configured = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+  return !!configured && !!email && email.trim().toLowerCase() === configured;
+}
+
+export async function hasRealAdmin(): Promise<boolean> {
+  return (await db.user.count({ where: realAdminWhere })) > 0;
+}
+
+async function lockBootstrap(tx: Prisma.TransactionClient) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('initial-admin-bootstrap', 0))`;
+}
+
+/** Only call after successful LOGIN proof. SYSTEM never blocks bootstrap. */
 export async function promoteInitialAdmin(userId: string, email?: string | null): Promise<boolean> {
-  if (!email) return false;
+  if (!matchesInitialAdminEmail(email) || userId === "system") return false;
+  return db.$transaction(async (tx) => {
+    await lockBootstrap(tx);
+    if ((await tx.user.count({ where: realAdminWhere })) > 0) return false;
+    await tx.user.update({ where: { id: userId }, data: { role: "ADMIN" } });
+    return true;
+  });
+}
 
-  const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.toLowerCase().trim();
-  if (initialAdminEmail && email.toLowerCase().trim() === initialAdminEmail) {
-    const adminCount = await db.user.count({ where: { role: "ADMIN" } });
-    if (adminCount === 0) {
-      await db.user.update({
-        where: { id: userId },
-        data: { role: "ADMIN" },
-      });
-      return true;
-    }
-  }
-  return false;
+/** Apply setup intent only after its paired LOGIN challenge has been consumed. */
+export async function completeVerifiedAdminSetup(
+  userId: string,
+  name: string
+): Promise<User | null> {
+  return db.$transaction(async (tx) => {
+    await lockBootstrap(tx);
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user || user.id === "system" || !matchesInitialAdminEmail(user.email)) return null;
+    // Another successful proof for this same account may have completed setup.
+    if (user.role === "ADMIN") return user;
+    if ((await tx.user.count({ where: realAdminWhere })) > 0) return null;
+    return tx.user.update({
+      where: { id: userId },
+      data: { role: "ADMIN", ...(user.role === "GUEST" ? { name } : {}) },
+    });
+  });
 }

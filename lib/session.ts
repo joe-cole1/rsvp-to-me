@@ -24,34 +24,6 @@ function getPassword(): string {
   return secret;
 }
 
-function validateInviteCode() {
-  // Skip during next build phase
-  if (process.env.NEXT_PHASE === "phase-production-build") {
-    return;
-  }
-  // Only enforce this in production environments on non-localhost URLs
-  if (process.env.NODE_ENV === "production" && process.env.OPEN_REGISTRATION !== "true") {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-    const isLocalhost = appUrl.includes("localhost") || appUrl.includes("127.0.0.1");
-    if (!isLocalhost) {
-      const inviteCode = process.env.HOST_INVITE_CODE;
-      if (
-        !inviteCode ||
-        inviteCode === "letmein" ||
-        inviteCode === "CHANGE_THIS_TO_A_STRONG_RANDOM_CODE" ||
-        inviteCode.length < 10
-      ) {
-        throw new Error(
-          "HOST_INVITE_CODE must be set to a strong random value when OPEN_REGISTRATION is disabled in production."
-        );
-      }
-    }
-  }
-}
-
-// Run validation on startup
-validateInviteCode();
-
 interface CachedSession {
   id: string;
   userId: string;

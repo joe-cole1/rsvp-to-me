@@ -157,7 +157,6 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
           REDIS_URL: redis://localhost:6379
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
-          HOST_INVITE_CODE: ci-test
           EMAIL_FROM: ci@example.com
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
@@ -168,23 +167,6 @@ jobs:
       - name: Type-check email worker
         run: npx tsc --ignoreConfig --noEmit --strict --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM worker/worker.ts
 
-      - name: Seed E2E fixtures
-        run: SEED_TEST_DATA=true npm run db:seed
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
-          HOST_INVITE_CODE: ci-test
-
-      - name: Start Next.js server
-        run: npm start &
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
-          REDIS_URL: redis://localhost:6379
-          SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
-          HOST_INVITE_CODE: ci-test
-          EMAIL_FROM: ci@example.com
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-          OPEN_REGISTRATION: "true"
-
       - name: Install Playwright Chromium (if not cached)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium --with-deps
@@ -192,6 +174,30 @@ jobs:
       - name: Install Playwright System Dependencies (if cached)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
+
+      - name: First-run setup without demo fixtures
+        run: bash scripts/check-first-run-setup.sh
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
+          REDIS_URL: redis://localhost:6379
+          SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
+          EMAIL_FROM: ci@example.com
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      - name: Seed E2E fixtures
+        run: SEED_TEST_DATA=true npm run db:seed
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
+
+      - name: Start Next.js server
+        run: npm start &
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
+          REDIS_URL: redis://localhost:6379
+          SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
+          EMAIL_FROM: ci@example.com
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          OPEN_REGISTRATION: "true"
 
       - name: Wait for server
         run: npx wait-on http://localhost:3000/api/health --timeout 60000
@@ -211,7 +217,6 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rsvp_test
           REDIS_URL: redis://localhost:6379
           SESSION_SECRET: ci-placeholder-secret-must-be-at-least-32-chars
-          HOST_INVITE_CODE: ci-test
           EMAIL_FROM: ci@example.com
 
       - name: Upload Playwright report

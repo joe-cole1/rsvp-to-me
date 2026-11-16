@@ -20,6 +20,53 @@ import { hashToken } from "@/lib/hash";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { assertCaptcha } from "@/lib/captcha";
+import { hasRealAdmin, matchesInitialAdminEmail } from "@/lib/admin-promotion";
+
+async function registrationRateLimited(email: string): Promise<boolean> {
+  const keys = [`id:${hashToken(email)}:register`];
+  if (isTrustedIpConfigured()) keys.unshift(`ip:${await getClientIp()}:register`);
+  for (const key of keys) {
+    if (!(await rateLimit(key, 3, 3600)).success) return true;
+  }
+  return false;
+}
+
+export async function startAdminSetupAction(
+  rawEmail: string,
+  rawName: string,
+  captchaToken?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const t = await getRequestTranslator();
+  const parsed = RegisterHostSchema.safeParse({ email: rawEmail, name: rawName, inviteCode: "" });
+  if (!parsed.success) return { success: false, error: t("Ui.Errors.Auth.invalidRegistration") };
+  const { email, name } = parsed.data;
+  await assertCaptcha("register", captchaToken);
+  if (await registrationRateLimited(email)) {
+    return { success: false, error: t("Ui.Errors.Auth.registrationLimit") };
+  }
+  // Same response for ineligible emails/accounts; never reveal the configured address.
+  if (!matchesInitialAdminEmail(email) || (await hasRealAdmin())) return { success: true };
+  await db.user.upsert({ where: { email }, create: { email, role: "GUEST" }, update: {} });
+  const challenge = await createLoginChallenge(
+    email,
+    "/admin",
+    JSON.stringify({ registrationName: name, initialAdminSetup: true })
+  );
+  if (!challenge) return { success: true };
+  const recipient = await db.user.findUnique({
+    where: { email },
+    select: { preferredLocale: true },
+  });
+  const locale = resolveLocale(
+    recipient?.preferredLocale ?? (await cookies()).get(LOCALE_COOKIE)?.value
+  );
+  try {
+    await sendMagicLinkEmail(email, challenge.link, locale, challenge.code);
+  } catch {
+    return { success: false, error: t("Ui.Auth.setupDeliveryFailed") };
+  }
+  return { success: true };
+}
 
 export async function sendMagicLinkAction(
   rawIdentifier: string,
@@ -116,12 +163,8 @@ export async function registerHostAction(
   const { email, name, inviteCode } = parseResult.data;
   await assertCaptcha("register", captchaToken);
   // Keep destination protection even without a trustworthy client IP.
-  const keys = [`id:${hashToken(email)}:register`];
-  if (isTrustedIpConfigured()) keys.unshift(`ip:${await getClientIp()}:register`);
-  for (const key of keys) {
-    if (!(await rateLimit(key, 3, 3600)).success) {
-      return { success: false, error: t("Ui.Errors.Auth.registrationLimit") };
-    }
+  if (await registrationRateLimited(email)) {
+    return { success: false, error: t("Ui.Errors.Auth.registrationLimit") };
   }
 
   const openReg = await isOpenRegistrationActive();

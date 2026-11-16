@@ -5,8 +5,8 @@
 # data. Pass --deps only after a fresh clone or package dependency change.
 #
 # It targets your DEV database (from .env / docker compose), not a throwaway one.
-# `npm run db:seed` is safe to re-run: base rows use upsert, and the heavy test
-# fixtures only load when SEED_TEST_DATA=true AND the DB has no events yet.
+# `npm run db:seed` is demo-only: it writes nothing unless SEED_TEST_DATA=true
+# AND the database has no events. Production defaults come from migrations.
 #
 set -Eeuo pipefail
 
@@ -87,7 +87,7 @@ npx prisma migrate deploy
 step "Migrating saved configuration secrets (automatic, idempotent)"
 npm run db:secrets
 
-step "Seeding baseline data (db:seed — idempotent)"
+step "Checking optional sample data (db:seed)"
 npm run db:seed
 
 printf '\n\033[1;32m✓ Local environment synced to %s\033[0m\n' "$(git rev-parse --abbrev-ref HEAD)"

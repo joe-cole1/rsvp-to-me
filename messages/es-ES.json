@@ -1714,7 +1714,16 @@
         "confirm": "Acepta esta invitación para ayudar a gestionar el evento.",
         "wrongAccount": "Inicia sesión con el correo electrónico que recibió esta invitación. También es posible que haya caducado.",
         "accept": "Aceptar invitación"
-      }
+      },
+      "setupTitle": "Configurar RSVP to Me",
+      "setupConfigure": "Establece INITIAL_ADMIN_EMAIL con tu dirección de correo y configura el envío de correo en el servidor. Después reinicia la aplicación y vuelve a cargar esta página.",
+      "setupNoSamples": "No necesitas datos de ejemplo ni un código de invitación para configurar tu cuenta de administrador.",
+      "setupDescription": "Crea la primera cuenta de administrador. Verifica tu correo con un enlace o código de acceso para completar la configuración.",
+      "setupEmailHint": "Usa la dirección que el propietario del servidor configuró como INITIAL_ADMIN_EMAIL.",
+      "setupSend": "Enviar enlace y código de configuración",
+      "setupCheckEmail": "Si esta dirección puede realizar la configuración, recibirás pronto un enlace y código de acceso. Tu cuenta solo será administradora después de la verificación.",
+      "setupChangeEmail": "Usar otro correo",
+      "setupDeliveryFailed": "No pudimos enviar el correo de configuración. Revisa la configuración de correo del servidor e inténtalo de nuevo."
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",

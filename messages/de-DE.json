@@ -1714,7 +1714,16 @@
         "confirm": "Nimm diese Einladung an, um die Veranstaltung mitzuverwalten.",
         "wrongAccount": "Melde dich mit der E-Mail-Adresse an, die diese Einladung erhalten hat. Die Einladung kann auch abgelaufen sein.",
         "accept": "Einladung annehmen"
-      }
+      },
+      "setupTitle": "RSVP to Me einrichten",
+      "setupConfigure": "Lege INITIAL_ADMIN_EMAIL auf deine E-Mail-Adresse fest und richte den E-Mail-Versand auf dem Server ein. Starte dann die App neu und lade diese Seite erneut.",
+      "setupNoSamples": "Du brauchst keine Beispieldaten und keinen Einladungscode, um dein Administratorkonto einzurichten.",
+      "setupDescription": "Erstelle das erste Administratorkonto. Bestätige deine E-Mail-Adresse mit einem Anmeldelink oder Code, um die Einrichtung abzuschließen.",
+      "setupEmailHint": "Verwende die Adresse, die der Serverbetreiber als INITIAL_ADMIN_EMAIL festgelegt hat.",
+      "setupSend": "Einrichtungslink und Code senden",
+      "setupCheckEmail": "Wenn diese Adresse für die Einrichtung berechtigt ist, erhältst du in Kürze einen Anmeldelink und Code. Dein Konto wird erst nach der Bestätigung zum Administrator.",
+      "setupChangeEmail": "Andere E-Mail-Adresse verwenden",
+      "setupDeliveryFailed": "Die Einrichtungs-E-Mail konnte nicht gesendet werden. Prüfe die E-Mail-Konfiguration des Servers und versuche es erneut."
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",

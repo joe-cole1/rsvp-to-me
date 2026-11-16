@@ -39,6 +39,9 @@ const {
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $transaction: vi.fn(async (run) =>
+      run({ user: { count: mockUserCount, update: mockUserUpdate }, $executeRaw: vi.fn() })
+    ),
     magicToken: {
       findUnique: mockMagicTokenFindUnique,
       updateMany: mockMagicTokenUpdateMany,

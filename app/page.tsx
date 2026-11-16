@@ -11,6 +11,7 @@ import Image from "@/components/ui/UploadedImage";
 import { resolveTheme } from "@/lib/theme";
 import { MessageSquare } from "lucide-react";
 import { GUEST_COUNT_CAP } from "@/lib/guestRsvpDisplay";
+import { getSetupState } from "@/lib/setup-state";
 
 function AvatarBubble({
   name,
@@ -59,6 +60,7 @@ function AvatarBubble({
 }
 
 export default async function Home() {
+  if ((await getSetupState()).required) redirect("/setup");
   const tr = await getRequestTranslator();
   const locale = await getRequestLocale();
 

@@ -241,32 +241,17 @@ describe("sealSession", () => {
     expect(res).toBe("sealed-cookie");
   });
 
-  it("throws error on startup/import if weak HOST_INVITE_CODE in production", async () => {
+  it("starts with closed registration without an environment-provisioned invite code", async () => {
     vi.resetModules();
-    (process.env as { NODE_ENV: string }).NODE_ENV = "production";
-    process.env.OPEN_REGISTRATION = "false";
-    process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
-    process.env.HOST_INVITE_CODE = "letmein"; // weak
-
-    await expect(import("@/lib/session")).rejects.toThrow(
-      "HOST_INVITE_CODE must be set to a strong random value"
-    );
-    (process.env as { NODE_ENV: string }).NODE_ENV = "test";
-  });
-
-  it("skips invite code validation during next build phase", async () => {
-    vi.resetModules();
-    process.env.NEXT_PHASE = "phase-production-build";
-    (process.env as { NODE_ENV: string }).NODE_ENV = "production";
-    process.env.OPEN_REGISTRATION = "false";
-    process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
-    process.env.HOST_INVITE_CODE = "letmein"; // weak, but skips
-
-    const sessionModule = await import("@/lib/session");
-    expect(sessionModule).toBeDefined();
-
-    delete process.env.NEXT_PHASE;
-    (process.env as { NODE_ENV: string }).NODE_ENV = "test";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OPEN_REGISTRATION", "false");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://example.com");
+    vi.stubEnv("HOST_INVITE_CODE", undefined);
+    try {
+      await expect(import("@/lib/session")).resolves.toBeDefined();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

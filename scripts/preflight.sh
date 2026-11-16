@@ -77,7 +77,6 @@ export SESSION_SECRET="preflight-secret-must-be-at-least-32-characters"
 # so tests run on :3000. The E2E server switches to :3001 just before the build
 # (see below) to avoid clashing with a dev server on :3000.
 export NEXT_PUBLIC_APP_URL="http://localhost:3000"
-export HOST_INVITE_CODE="ci-test"
 export EMAIL_FROM="ci@example.com"
 export OPEN_REGISTRATION="true"
 # Override shell/.env provider keys; the enabled case has its own isolated run.
@@ -199,8 +198,13 @@ if [ "$FAST" = 1 ]; then
 fi
 
 # ---- E2E ---------------------------------------------------------------------
+step "E2E — install Chromium for first-run setup"
+net_retry npx playwright install chromium >/dev/null
+step "E2E — first-run setup without demo fixtures"
+bash scripts/check-first-run-setup.sh
+
 # Seed the fresh ephemeral DB for deterministic state. SEED_TEST_DATA=true loads
-# the rich fixtures; the seed is idempotent (upsert base + empty-DB guard).
+# the demo fixtures; existing events prevent any seed writes.
 step "E2E — seeding ephemeral database"
 SEED_TEST_DATA=true npm run db:seed
 

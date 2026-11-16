@@ -71,7 +71,6 @@ app_id=$(docker run -d --network "$network_id" \
   -e REDIS_URL=redis://redis:6379 \
   -e SESSION_SECRET=container-qc-disposable-secret-at-least-32-characters \
   -e HEALTH_CHECK_TOKEN=container-qc-health \
-  -e HOST_INVITE_CODE=container-qc-invite \
   -e EMAIL_FROM=container-qc@example.invalid \
   -e NEXT_PUBLIC_APP_URL=http://localhost:3000 \
   -e SEED_TEST_DATA=false \

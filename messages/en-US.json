@@ -1714,7 +1714,16 @@
         "confirm": "Accept this invitation to help manage the event.",
         "wrongAccount": "Sign in with the email address that received this invitation. The invitation may also have expired.",
         "accept": "Accept invitation"
-      }
+      },
+      "setupTitle": "Set up RSVP to Me",
+      "setupConfigure": "Set INITIAL_ADMIN_EMAIL to your email address and configure email delivery on the server, then restart the app and reload this page.",
+      "setupNoSamples": "No sample data or host invite code is needed to set up your administrator account.",
+      "setupDescription": "Create the first administrator account. Verify your email with a sign-in link or code to finish setup.",
+      "setupEmailHint": "Use the address configured as INITIAL_ADMIN_EMAIL by the server owner.",
+      "setupSend": "Send setup link and code",
+      "setupCheckEmail": "If this address is eligible for setup, a sign-in link and code will arrive shortly. Your account becomes an administrator only after verification.",
+      "setupChangeEmail": "Use a different email",
+      "setupDeliveryFailed": "We could not send the setup email. Check the server email configuration and try again."
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",

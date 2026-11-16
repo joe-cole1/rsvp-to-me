@@ -1711,7 +1711,16 @@
         "confirm": "Accepteer deze uitnodiging om het evenement te helpen beheren.",
         "wrongAccount": "Log in met het e-mailadres dat deze uitnodiging heeft ontvangen. De uitnodiging kan ook verlopen zijn.",
         "accept": "Uitnodiging accepteren"
-      }
+      },
+      "setupTitle": "RSVP to Me instellen",
+      "setupConfigure": "Stel INITIAL_ADMIN_EMAIL in op je e-mailadres en configureer e-mailbezorging op de server. Start daarna de app opnieuw en laad deze pagina opnieuw.",
+      "setupNoSamples": "Je hebt geen voorbeeldgegevens of uitnodigingscode nodig om je beheerdersaccount in te stellen.",
+      "setupDescription": "Maak het eerste beheerdersaccount aan. Verifieer je e-mailadres met een inloglink of code om de installatie te voltooien.",
+      "setupEmailHint": "Gebruik het adres dat de serverbeheerder heeft ingesteld als INITIAL_ADMIN_EMAIL.",
+      "setupSend": "Installatielink en code verzenden",
+      "setupCheckEmail": "Als dit adres in aanmerking komt, ontvang je binnenkort een inloglink en code. Je account wordt pas na verificatie beheerder.",
+      "setupChangeEmail": "Een ander e-mailadres gebruiken",
+      "setupDeliveryFailed": "De installatie-e-mail kon niet worden verzonden. Controleer de e-mailinstellingen van de server en probeer het opnieuw."
     },
     "Home": {
       "rsvpToMe": "RSVP to Me",
