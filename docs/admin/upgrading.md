@@ -25,6 +25,16 @@ Migrations insert missing built-in presets while preserving existing preset rows
 SYSTEM is created on demand before account-deletion cleanup. Container restarts no
 longer refresh or overwrite theme presets through seeding.
 
+## Event password controls (#878)
+
+Existing event passwords remain active when visibility changes to Public or
+Unlisted. Display options now keeps the password controls visible whenever a
+password is set and always offers **Remove password**, followed by confirmation.
+The displayed password status changes only after a successful save. Hosts can
+remove passwords previously hidden by a visibility change without switching back
+to Private. Removing a Private event's password does not remove its invite-only
+restriction. No data migration or configuration change is needed.
+
 ## Table of Contents
 
 1. [How Updates Work](#how-updates-work)

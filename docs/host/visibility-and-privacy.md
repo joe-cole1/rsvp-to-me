@@ -9,7 +9,7 @@ order: 40
 # Visibility & Privacy
 
 Control who can find and view your event from **Settings → Display options**.
-Event visibility appears first, with its private-event options directly below it,
+Event visibility appears first, with its password and private-event options directly below it,
 followed by the guest controls.
 
 Guests you invited who haven't replied yet stay off every guest-facing list unless
@@ -27,15 +27,25 @@ guest settings below remain the controls for that choice.
 
 ## Visibility Modes
 
-- **Public** — anyone can view the event, and it may appear on the site's public event feed.
-- **Unlisted** — only people with the direct link can view it. It won't show up in any public listing.
+- **Public** — anyone can view the event unless a password is set, and it may appear on the site's public event feed when it has no password.
+- **Unlisted** — people with the direct link can view it unless a password is set. It won't show up in any public listing.
 - **Private** — only hosts and invited guests can view it. Private events also unlock two extra options below.
 
 ---
 
-## Password Protection _(Private events)_
+## Password Protection
 
 For a **Private** event, you can set a password that guests must enter before they can see the page.
+
+Changing visibility to **Public** or **Unlisted** keeps an existing password active.
+The password field and **SET** badge remain visible in Display options while a
+password is set, whichever visibility you choose.
+
+To change it, enter a new password and choose **Save new password**. To remove it,
+choose **Remove password** and confirm. You don't need to type or clear anything
+first. The password status changes after a successful save; if saving fails, the
+current password remains active and you can retry. Removing a password from a
+Private event still leaves it invite-only.
 
 - Once a guest enters the correct password, the event stays unlocked in their browser for a while.
 - The password never appears in the web address, so it's safe to share the link separately from the password.

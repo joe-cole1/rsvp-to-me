@@ -158,10 +158,7 @@ export function SettingsPage({
   const [visibility, setVisibility] = useState(event.visibility);
   const [password, setPassword] = useState("");
   const [passwordDirty, setPasswordDirty] = useState(false);
-  // Tracks when the host explicitly saved a password removal this session,
-  // so the "SET" badge and placeholder update without a full page reload.
-  const [passwordSavedAsNull, setPasswordSavedAsNull] = useState(false);
-  const effectivePasswordHash = passwordSavedAsNull ? null : event.passwordHash;
+  const [hasPassword, setHasPassword] = useState(Boolean(event.passwordHash));
 
   // Notification editors save each switch immediately; reuse the page's save indicator.
   const reportNotificationStatus: SaveReport = (state, message) => {
@@ -379,6 +376,12 @@ export function SettingsPage({
           setSaveStatus("ERROR");
           setErr(res.error ?? translate("failedSaveSettings"));
         } else {
+          // Keep the confirmed password state until the server accepts the change.
+          if (data.password !== undefined) {
+            setHasPassword(Boolean(data.password));
+            setPassword("");
+            setPasswordDirty(false);
+          }
           setSaveStatus("SAVED");
         }
       } catch {
@@ -1080,8 +1083,8 @@ export function SettingsPage({
             setPassword={setPassword}
             passwordDirty={passwordDirty}
             setPasswordDirty={setPasswordDirty}
-            setPasswordSavedAsNull={setPasswordSavedAsNull}
-            effectivePasswordHash={effectivePasswordHash}
+            hasPassword={hasPassword}
+            isPending={isPending}
             triggerSaveSettings={triggerSaveSettings}
             t={t}
           />
