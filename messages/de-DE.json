@@ -227,7 +227,12 @@
         "invitationReviewChanged": "Dieser Gast hat sich seit der Vorschau geändert. Prüfe die Einladung erneut.",
         "invitationChannelDisabled": "Dieser Einladungskanal ist deaktiviert.",
         "invitationSendFailed": "Die Einladung konnte nicht gesendet werden. Prüfe diesen Empfänger und versuche es erneut.",
-        "unlistedUrlDecision": "Bestätige einen nicht gelisteten Link über die Veranstaltungs-URL-Einstellungen."
+        "unlistedUrlDecision": "Bestätige einen nicht gelisteten Link über die Veranstaltungs-URL-Einstellungen.",
+        "rsvpProofRequired": "Bestätige jede E-Mail-Adresse und Telefonnummer, bevor du deine Antwort absendest.",
+        "rsvpProofInvalid": "Dieser Code ist ungültig, abgelaufen oder bereits verwendet. Versuche es erneut oder fordere einen neuen Code an.",
+        "rsvpProofRateLimited": "Zu viele Bestätigungsanfragen. Warte, bevor du einen weiteren Code anforderst.",
+        "rsvpProofUnavailable": "Die Bestätigung für diesen Kontakt ist derzeit nicht verfügbar. Versuche es später erneut oder kontaktiere den Gastgeber.",
+        "rsvpUsePrivateLink": "Verwende deinen privaten Antwortlink oder kontaktiere den Gastgeber, um diese Antwort zu ändern."
       },
       "NotFound": {
         "title": "Diese Seite haben wir nicht gefunden",
@@ -1182,7 +1187,17 @@
         "nameRequiredError": "Gib deinen Namen ein.",
         "emailInvalidError": "Gib eine gültige E-Mail-Adresse ein.",
         "requiredFieldError": "Fülle dieses Pflichtfeld aus.",
-        "checkFields": "Überprüfe die markierten Felder."
+        "checkFields": "Überprüfe die markierten Felder.",
+        "verifyContact": "Bestätige deinen Kontakt, um fortzufahren",
+        "verificationInstructions": "Bestätige jeden eingegebenen Kontakt. Dadurch wird deine Antwort weder gespeichert noch wirst du angemeldet.",
+        "verificationCode": "Bestätigungscode",
+        "verificationSent": "Suche bei diesem Kontakt nach einem achtstelligen Code. Er läuft nach 15 Minuten ab. Wenn du ihn nicht angefordert hast, ignoriere ihn.",
+        "sendCode": "Code senden",
+        "verifyCode": "Code bestätigen",
+        "resendCode": "Code erneut senden",
+        "resendIn": "Erneut senden in {seconds}s",
+        "verifiedReview": "Kontakte bestätigt. Prüfe deine Antwort und bestätige sie anschließend.",
+        "verificationProgress": "Kontakt {current} von {total}"
       },
       "status": {
         "GOING": "Dabei",
@@ -2061,6 +2076,8 @@
   },
   "Notifications": {
     "verificationSubject": "Bestätige dein Benachrichtigungsziel",
-    "verificationBody": "Dein Bestätigungscode für Benachrichtigungen lautet {code}. Er gilt 15 Minuten. Du wirst damit nicht angemeldet und Benachrichtigungen werden nicht aktiviert."
+    "verificationBody": "Dein Bestätigungscode für Benachrichtigungen lautet {code}. Er gilt 15 Minuten. Du wirst damit nicht angemeldet und Benachrichtigungen werden nicht aktiviert.",
+    "rsvpVerificationSubject": "Bestätige deinen Kontakt für die Antwort",
+    "rsvpVerificationBody": "Dein Bestätigungscode für die Antwort lautet {code}. Er läuft nach 15 Minuten ab. Dadurch wird keine Antwort gespeichert und du wirst nicht angemeldet. Wenn du ihn nicht angefordert hast, ignoriere diese Nachricht."
   }
 }

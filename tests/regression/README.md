@@ -66,6 +66,25 @@ also excludes generated fixture tests.
 
 ## Index
 
+Issue #792 (task `01a1e8a5`):
+
+- `issue-792-contact-proof.test.ts`: generic pre-proof request contract, contact
+  normalization, CAPTCHA, quotas, event access/rules, code expiry/attempts, and
+  receipt binding to each event/contact.
+- `issue-792-verification-messages.test.ts`: real adapter rendering of code-only
+  email/SMS instructions, without private invitation links or RSVP confirmation.
+- `issue-792-verification-flow.test.tsx`: both-contact verification, resend and
+  error feedback, retained form review, separate final confirmation, and proof
+  invalidation after contact changes or expiry.
+- `issue-792-invitation-proof.integration.ts` (loaded by
+  `tests/integration/actions/rsvp-contact-proof.test.ts`): real database invitation
+  preservation without proof, proved replies, account/contact separation,
+  cross-event and mixed-contact attacks, concurrent single-use consumption,
+  private-link compatibility, and final rule rechecks.
+- `invited-rsvp-public-token.test.ts` and the #754/#853 form cases now assert the
+  proof requirement; `notification-challenge-retention.test.ts` also covers RSVP
+  proof retention.
+
 Issue #566 follow-up (task `01a1e406`):
 
 - `issue-566-lint.test.ts`: effective repository lint rules remain warning-free

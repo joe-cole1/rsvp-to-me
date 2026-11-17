@@ -227,7 +227,12 @@
         "invitationReviewChanged": "This guest changed since the preview. Review the invitation again.",
         "invitationChannelDisabled": "This invitation channel is disabled.",
         "invitationSendFailed": "The invitation could not be sent. Review and retry this recipient.",
-        "unlistedUrlDecision": "Use the event URL controls to confirm an Unlisted link."
+        "unlistedUrlDecision": "Use the event URL controls to confirm an Unlisted link.",
+        "rsvpProofRequired": "Verify each email address and phone number before confirming your RSVP.",
+        "rsvpProofInvalid": "This code is invalid, expired, or already used. Try again or request a new code.",
+        "rsvpProofRateLimited": "Too many verification requests. Wait before requesting another code.",
+        "rsvpProofUnavailable": "Verification is unavailable for this contact. Try again later or contact the host.",
+        "rsvpUsePrivateLink": "Use your private RSVP link or contact the host to update this response."
       },
       "NotFound": {
         "title": "We couldn't find that page",
@@ -1182,7 +1187,17 @@
         "nameRequiredError": "Enter your name.",
         "emailInvalidError": "Enter a valid email address.",
         "requiredFieldError": "Complete this required field.",
-        "checkFields": "Check the highlighted fields."
+        "checkFields": "Check the highlighted fields.",
+        "verifyContact": "Verify your contact to continue",
+        "verificationInstructions": "Verify each contact you entered. This does not save your RSVP or sign you in.",
+        "verificationCode": "Verification code",
+        "verificationSent": "Check this contact for an eight-digit code. It expires in 15 minutes. If you did not request it, ignore it.",
+        "sendCode": "Send code",
+        "verifyCode": "Verify code",
+        "resendCode": "Resend code",
+        "resendIn": "Resend in {seconds}s",
+        "verifiedReview": "Contacts verified. Review your response, then confirm your RSVP.",
+        "verificationProgress": "Contact {current} of {total}"
       },
       "status": {
         "GOING": "Going",
@@ -2061,6 +2076,8 @@
   },
   "Notifications": {
     "verificationSubject": "Verify your notification destination",
-    "verificationBody": "Your notification verification code is {code}. It expires in 15 minutes. This does not sign you in or enable notifications."
+    "verificationBody": "Your notification verification code is {code}. It expires in 15 minutes. This does not sign you in or enable notifications.",
+    "rsvpVerificationSubject": "Verify your RSVP contact",
+    "rsvpVerificationBody": "Your RSVP verification code is {code}. It expires in 15 minutes. This does not save an RSVP or sign you in. If you did not request it, ignore this message."
   }
 }

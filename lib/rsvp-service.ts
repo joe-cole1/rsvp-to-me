@@ -11,6 +11,8 @@ import { resolveLocale } from "@/i18n/config";
 import { notifyRsvp, notifyHostAlert } from "@/lib/notifications/service";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
+import { readRsvpContactProofs, rsvpContacts } from "@/lib/rsvp-contact-proof";
+import { resolveInvitationRecipients } from "@/lib/invitation-recipients";
 
 type AddInput = z.output<typeof AddRsvpSchema>;
 type UpdateInput = z.output<typeof UpdateRsvpSchema>;
@@ -22,7 +24,9 @@ export type RsvpFailure =
   | "invalidRsvp"
   | "maybeDisabled"
   | "atCapacity"
-  | "rsvpNotFound";
+  | "rsvpNotFound"
+  | "rsvpProofRequired"
+  | "rsvpUsePrivateLink";
 const failure = (reason: RsvpFailure) => ({ success: false as const, reason });
 
 const eventSelect = {
@@ -254,7 +258,7 @@ function notifyResponse(
 }
 
 /** Parsed public-form input only; callers enforce CAPTCHA and delivery rate limits. */
-export async function createGuestRsvp(input: AddInput) {
+export async function createGuestRsvp(input: AddInput, contactProofs?: unknown) {
   const data = {
     ...input,
     guestPhone: input.guestPhone ? normalizePhone(input.guestPhone) : input.guestPhone,
@@ -275,27 +279,41 @@ export async function createGuestRsvp(input: AddInput) {
     )
       return failure("atCapacity");
 
-    let user: { id: string; preferredLocale: string | null } | undefined;
-    if (data.guestEmail) {
+    const proofIds = await readRsvpContactProofs(tx, event.id, data, contactProofs);
+    if (!proofIds) return failure("rsvpProofRequired");
+    const contacts = rsvpContacts(data);
+    // Share the invitation/contact-change locks. Account ids and historical
+    // delivery records never substitute for the current, proved RSVP contact.
+    for (const contact of contacts.map((item) => item.destination).sort())
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"invitation:" + event.id}), hashtext(${contact}))`;
+    const resolved = contacts.length
+      ? await resolveInvitationRecipients(
+          event.id,
+          contacts.map((item) => ({ contact: item.destination })),
+          data.guestName,
+          tx
+        )
+      : [];
+    if (
+      resolved.some(
+        (item) =>
+          item.preview.disposition === "conflict" || item.preview.disposition === "responded"
+      )
+    )
+      return failure("rsvpUsePrivateLink");
+    const matches = resolved.flatMap((item) => (item.rsvp ? [item.rsvp] : []));
+    if (new Set(matches.map((row) => row.id)).size > 1) return failure("rsvpUsePrivateLink");
+    const invited = matches[0];
+    let user: { id: string; preferredLocale: string | null } | null = null;
+    if (!invited && (data.guestEmail || data.guestPhone)) {
+      const contact = data.guestEmail ? { email: data.guestEmail } : { phone: data.guestPhone! };
       user = await tx.user.upsert({
-        where: { email: data.guestEmail },
-        create: { email: data.guestEmail, name: data.guestName },
-        update: {},
-        select: { id: true, preferredLocale: true },
-      });
-    } else if (data.guestPhone) {
-      user = await tx.user.upsert({
-        where: { phone: data.guestPhone },
-        create: { phone: data.guestPhone, name: data.guestName },
+        where: contact,
+        create: { ...contact, name: data.guestName },
         update: {},
         select: { id: true, preferredLocale: true },
       });
     }
-    const invited = user
-      ? await tx.rSVP.findFirst({
-          where: { eventId: event.id, userId: user.id, status: "INVITED" },
-        })
-      : null;
     const fields = {
       guestName: data.guestName,
       status: data.status,
@@ -315,18 +333,27 @@ export async function createGuestRsvp(input: AddInput) {
             userId: user?.id,
           },
         });
-    await saveAnswers(tx, rsvp.id, event, data, true);
+    await saveAnswers(tx, rsvp.id, event, data, !invited);
     await savePlusOnes(tx, rsvp.id, data, !!invited);
-    if (data.guestEmail || data.guestPhone) {
+    if (contacts.length) {
       await tx.invitation.updateMany({
         where: {
           eventId: event.id,
           rsvpId: null,
-          ...(data.guestEmail
-            ? { channel: "EMAIL", sentTo: { equals: data.guestEmail, mode: "insensitive" } }
-            : { channel: "SMS", sentTo: data.guestPhone }),
+          OR: contacts.map((contact) =>
+            contact.channel === "email"
+              ? {
+                  channel: "EMAIL",
+                  sentTo: { equals: contact.destination, mode: "insensitive" as const },
+                }
+              : { channel: "SMS", sentTo: contact.destination }
+          ),
         },
         data: { rsvpId: rsvp.id },
+      });
+      await tx.rsvpContactChallenge.updateMany({
+        where: { id: { in: proofIds } },
+        data: { usedAt: new Date() },
       });
     }
     return {
@@ -343,7 +370,7 @@ export async function createGuestRsvp(input: AddInput) {
   return {
     success: true as const,
     id: result.rsvp.id,
-    editToken: result.invited ? null : result.rsvp.editToken,
+    editToken: result.rsvp.editToken,
     slug: result.event.slug,
   };
 }

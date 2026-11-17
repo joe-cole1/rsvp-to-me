@@ -257,6 +257,14 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `lib/captcha.ts`. The provider serializes widget execution while allowing
   already-verified requests for different actions to remain concurrent. Deletes
   and low-risk state toggles are outside this user-content boundary.
+- `lib/rsvp-contact-proof.ts` owns public RSVP contact verification. Requests use the
+  same flow for new and invited contacts without looking up submitted contacts in
+  guest records. Separate `RsvpContactChallenge` rows hold expiring codes and
+  receipts; they grant no account or notification authority. `RsvpFlow` verifies
+  every supplied contact, returns for review, and requires explicit confirmation.
+  The RSVP transaction consumes the receipts and matches only current event
+  contacts under the shared invitation locks; account ids and historical delivery
+  addresses never authorize an invitation. Existing invitation contacts are preserved.
 - `lib/rsvp-service.ts` owns guest RSVP rules and transactional saves for public
   creation, private-token edits, and signed Twilio replies. `lib/capacityLock.ts`
   holds a PostgreSQL transaction advisory lock per event; rule/state reads,

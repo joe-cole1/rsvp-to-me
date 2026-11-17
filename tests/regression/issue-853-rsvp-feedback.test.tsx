@@ -9,6 +9,10 @@ import { testTheme } from "@/tests/components/helpers/theme";
 const m = vi.hoisted(() => ({ add: vi.fn(), edit: vi.fn() }));
 vi.mock("@/app/actions/event", () => ({
   addRSVP: m.add,
+  requestRsvpVerification: vi.fn().mockResolvedValue({ success: true, challengeId: "challenge" }),
+  verifyRsvpVerification: vi
+    .fn()
+    .mockResolvedValue({ success: true, proof: { challengeId: "challenge", receipt: "receipt" } }),
   updateRSVP: m.edit,
   updateRsvpAsHost: m.edit,
 }));
@@ -83,6 +87,13 @@ describe("#853 RSVP feedback", () => {
     expect(companion).toBeRequired();
     fireEvent.change(companion, { target: { value: "Bob" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm RSVP" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+    fireEvent.change(await screen.findByRole("textbox", { name: "Verification code" }), {
+      target: { value: "12345678" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+    await screen.findByText(/Contacts verified/);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm RSVP" }));
     await waitFor(() =>
       expect(m.add).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -90,7 +101,8 @@ describe("#853 RSVP feedback", () => {
           guestEmail: "alice@example.test",
           plusOneGuestNames: ["Bob"],
         }),
-        null
+        null,
+        [{ challengeId: "challenge", receipt: "receipt" }]
       )
     );
     expect(await screen.findByText("You're in!")).toBeInTheDocument();

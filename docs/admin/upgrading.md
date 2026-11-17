@@ -12,6 +12,31 @@ This guide explains how to safely pull new versions of **RSVP to Me**, perform d
 
 ---
 
+## Public RSVP contact verification (#792)
+
+Apply `20261117000000_rsvp_contact_proof` through the normal upgrade process.
+It adds an event-scoped challenge table without rewriting existing RSVP,
+invitation, account or notification records. No new environment variables or
+provider settings are required. New proof requests use the configured email/SMS
+adapters, so delivery must work for each contact a guest supplies.
+
+Public-form submissions containing email or phone now require verification of
+each supplied contact, followed by review and explicit confirmation. Requests
+use the same behavior for new and invited contacts and return no invitation
+state or private link. Code verification neither signs in a user nor changes an
+RSVP. Successful final submission may return the proved RSVP's private edit link.
+Existing invitation-link, signed SMS and organizer responses remain available.
+Contactless public submissions create separate new RSVPs.
+
+Codes and receipts expire after 15 minutes. Each challenge allows five
+code attempts; issuance is capped at five requests per destination per hour,
+with a one-minute resend interval per event/contact. A trusted IP is limited to 15 requests per 10 minutes.
+The existing scheduled challenge cleanup removes consumed or expired public RSVP
+proof records after 24 hours. Do not log codes, receipts or full private links.
+
+If delivery is unavailable, guests should retry, use their original invitation
+link or contact the host. See [Managing RSVPs](../host/managing-rsvps.md).
+
 ## Seed-free first-administrator setup (#877)
 
 Normal installation no longer requires baseline seeding. Keep `SEED_TEST_DATA=false`;

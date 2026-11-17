@@ -39,7 +39,12 @@ export type HostAlertMessage = {
   id: string;
   options: Omit<Parameters<typeof import("@/lib/email").sendHostRsvpAlertEmail>[1], "locale">;
 };
-export type VerificationMessage = { kind: "connection_verification"; id: string; code: string };
+export type VerificationMessage = {
+  kind: "connection_verification";
+  id: string;
+  code: string;
+  purpose?: "rsvp";
+};
 export type NotificationMessage =
   | EventUpdateMessage
   | ConfirmationMessage

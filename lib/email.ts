@@ -1043,9 +1043,16 @@ async function renderNotificationMail(message: NotificationMessage, target: Deli
     const { NotificationVerificationEmail } =
       await import("@/emails/templates/NotificationVerificationEmail");
     return {
-      subject: t("Notifications.verificationSubject"),
+      subject: t(
+        message.purpose === "rsvp"
+          ? "Notifications.rsvpVerificationSubject"
+          : "Notifications.verificationSubject"
+      ),
       ...(await renderEmail(
-        createElement(NotificationVerificationEmail, { code: message.code }),
+        createElement(NotificationVerificationEmail, {
+          code: message.code,
+          purpose: message.purpose,
+        }),
         target.locale
       )),
     };
