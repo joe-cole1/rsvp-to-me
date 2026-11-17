@@ -66,6 +66,14 @@ also excludes generated fixture tests.
 
 ## Index
 
+Issue #340 (task `01a1e91b`):
+
+- `issue-340-eslint-10.test.ts`: supported ESLint major and real React version
+  detection, JSX keys, Hooks, accessibility, import, Next.js, TypeScript and
+  JavaScript-global diagnostics using the repository presets. Email document
+  markup keeps its intentional Next.js exceptions, and workflow tests declare
+  their YAML parser independently of ESLint's transitive dependencies.
+
 Issue #792 (task `01a1e8a5`):
 
 - `issue-792-contact-proof.test.ts`: generic pre-proof request contract, contact

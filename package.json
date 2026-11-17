@@ -82,7 +82,7 @@
       "brace-expansion": "file:./vendor/brace-expansion-compat"
     },
     "@hono/node-server": "1.19.14",
-    "js-yaml": "^4.3.2",
+    "js-yaml": "$js-yaml",
     "esbuild": "0.28.1",
     "sharp": "$sharp",
     "prisma": {
@@ -106,10 +106,11 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitest/coverage-v8": "^5.1.0",
-    "eslint": "^9",
+    "eslint": "^10.15.0",
     "eslint-config-next": "16.4.6",
     "fast-check": "^4.10.2",
     "husky": "^9",
+    "js-yaml": "^4.3.2",
     "jsdom": "^31.0.1",
     "lint-staged": "^17",
     "prettier": "^3.10.1",

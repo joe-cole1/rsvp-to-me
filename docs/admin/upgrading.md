@@ -12,6 +12,18 @@ This guide explains how to safely pull new versions of **RSVP to Me**, perform d
 
 ---
 
+## ESLint 10 development tooling (#340)
+
+The root development toolchain now uses ESLint 10 with the existing Next.js lint
+presets. Follow the normal locked install and preflight process; no application,
+database, environment-variable or host workflow changes are required. Next.js
+16.4.0 added the compatibility handling for the former `context.getFilename()`
+crash, so the React lint plugin does not need replacing. Bundled plugins may
+still emit npm peer-range warnings; no peer-resolution bypass flags are needed.
+Keep the #546 brace-expansion adapter until its separate removal criteria pass.
+The existing workflow tests now declare their YAML parser (`js-yaml`) directly
+as a development dependency because ESLint 10 no longer brings it in transitively.
+
 ## Public RSVP contact verification (#792)
 
 Apply `20261117000000_rsvp_contact_proof` through the normal upgrade process.

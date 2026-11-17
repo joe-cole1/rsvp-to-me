@@ -186,6 +186,20 @@ Generated test/build workspaces under `.vitest/` and agent worktrees under
 `.claude/` are excluded from application lint, type checks and unit discovery,
 so generated dependency-test artifacts cannot introduce unrelated failures.
 
+The root lint command uses ESLint 10 with the existing Next.js Core Web Vitals
+and TypeScript presets (#340). Next.js added ESLint 10 compatibility in
+`eslint-config-next` 16.4.0; keep the Next.js/config versions aligned below.
+Some bundled React, import and accessibility plugins still declare older ESLint
+peer ranges. npm may report peer warnings even though the Next.js preset supports
+ESLint 10. Use the repository's normal `npm ci`; do not add `--force` or
+`--legacy-peer-deps` to suppress them. The #340 regressions exercise actual React,
+Hooks, accessibility, import, Next.js and TypeScript diagnostics, including the
+intentional email markup exceptions. The #546 brace-expansion adapter remains
+necessary for the bundled plugins' legacy minimatch dependencies.
+Workflow regression tests declare `js-yaml` directly as a development dependency;
+they no longer rely on ESLint to install it transitively. Its override references
+that direct declaration, so dependency updates have one version source of truth.
+
 Next.js and `eslint-config-next` share one update group and must resolve to
 the same release. The regression baseline requires Next.js 16.4.1 or
 later, including every locked Next.js runtime, native compiler, and ESLint
