@@ -6,6 +6,8 @@
 export {
   verifyEventPassword,
   addRSVP,
+  requestRsvpVerification,
+  verifyRsvpVerification,
   updateRSVP,
   updateRsvpAsHost,
   deleteRsvpAsHost,

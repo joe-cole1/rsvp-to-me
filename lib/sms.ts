@@ -325,7 +325,12 @@ async function renderNotificationSms(message: NotificationMessage, locale: Local
   if (message.kind === "host_alert") return renderHostAlertSms({ ...message.options, locale });
   const t = await getTranslator(locale);
   if (message.kind === "connection_verification")
-    return t("Notifications.verificationBody", { code: message.code });
+    return t(
+      message.purpose === "rsvp"
+        ? "Notifications.rsvpVerificationBody"
+        : "Notifications.verificationBody",
+      { code: message.code }
+    );
   return renderBlastSms({
     locale,
     eventTitle: message.eventTitle,

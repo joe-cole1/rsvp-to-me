@@ -46,6 +46,20 @@ arbitrary guest-token authority. Existing names, quantities and vote counts are
 preserved; hosts can remove historical claims. No backfill guesses an RSVP from
 a matching name.
 
+Public RSVP contact verification (#792, task `01a1e8a5`) is separate from account
+sign-in and notification connections. Every supplied email and phone must be
+proved through an eight-digit, single-use, 15-minute code, whether or not an
+invitation exists. Requests never disclose an existing RSVP or its credential.
+Verification produces a temporary receipt, not a saved response; the guest
+reviews and explicitly confirms afterward. The final event transaction checks
+and consumes receipts once, rechecks event rules, and resolves invitations only
+by their current proved event contacts. A matching account id or historical
+invitation address does not grant authority. An existing invitation retains its
+contacts; conflicting or already-answered records require the private edit link.
+A proved contact's successful final submission may return that RSVP's edit link.
+Contactless public submissions create independent new records. Existing private
+edit links, signed SMS replies and organizer edits keep their own authorization.
+
 ## Consequences
 
 Session reads require PostgreSQL availability and fail closed on errors. They

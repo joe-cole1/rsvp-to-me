@@ -19,6 +19,22 @@ import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
+import { requestRsvpContactProof, verifyRsvpContactProof } from "@/lib/rsvp-contact-proof";
+
+export async function requestRsvpVerification(input: unknown, captchaToken?: string | null) {
+  await assertCaptcha("rsvp_create", captchaToken);
+  const result = await requestRsvpContactProof(input);
+  if (!result.success)
+    return { success: false as const, error: await eventActionMessage(result.reason) };
+  return result;
+}
+
+export async function verifyRsvpVerification(input: unknown) {
+  const result = await verifyRsvpContactProof(input);
+  if (!result.success)
+    return { success: false as const, error: await eventActionMessage(result.reason) };
+  return result;
+}
 
 export async function verifyEventPassword(
   slug: string,
@@ -81,7 +97,11 @@ async function rsvpValidationError(issues: { path: PropertyKey[] }[]): Promise<s
   return eventActionMessage("invalidRsvp");
 }
 
-export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
+export async function addRSVP(
+  rawInput: unknown,
+  captchaToken?: string | null,
+  contactProofs?: unknown
+) {
   const parsed = AddRsvpSchema.safeParse(rawInput);
   if (!parsed.success) {
     return { success: false as const, error: await rsvpValidationError(parsed.error.issues) };
@@ -119,9 +139,13 @@ export async function addRSVP(rawInput: unknown, captchaToken?: string | null) {
     }
   }
 
-  const result = await createGuestRsvp(data);
+  const result = await createGuestRsvp(data, contactProofs);
   if (!result.success)
-    return { success: false as const, error: await rsvpFailureMessage(result.reason) };
+    return {
+      success: false as const,
+      error: await rsvpFailureMessage(result.reason),
+      ...(result.reason === "rsvpProofRequired" && { verificationRequired: true as const }),
+    };
   revalidatePath(`/e/${result.slug}`);
   return { success: true as const, id: result.id, editToken: result.editToken };
 }

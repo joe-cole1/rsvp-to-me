@@ -227,7 +227,12 @@
         "invitationReviewChanged": "Este invitado ha cambiado desde la vista previa. Revisa la invitación de nuevo.",
         "invitationChannelDisabled": "Este canal de invitación está desactivado.",
         "invitationSendFailed": "No se pudo enviar la invitación. Revisa este destinatario y vuelve a intentarlo.",
-        "unlistedUrlDecision": "Usa los controles de URL del evento para confirmar un enlace no listado."
+        "unlistedUrlDecision": "Usa los controles de URL del evento para confirmar un enlace no listado.",
+        "rsvpProofRequired": "Verifica cada dirección de correo y número de teléfono antes de confirmar tu respuesta.",
+        "rsvpProofInvalid": "Este código no es válido, ha caducado o ya se ha utilizado. Inténtalo de nuevo o solicita otro código.",
+        "rsvpProofRateLimited": "Demasiadas solicitudes de verificación. Espera antes de solicitar otro código.",
+        "rsvpProofUnavailable": "La verificación no está disponible para este contacto. Inténtalo más tarde o contacta con el anfitrión.",
+        "rsvpUsePrivateLink": "Usa tu enlace privado de respuesta o contacta con el anfitrión para actualizar esta respuesta."
       },
       "NotFound": {
         "title": "No hemos encontrado esa página",
@@ -1182,7 +1187,17 @@
         "nameRequiredError": "Introduce tu nombre.",
         "emailInvalidError": "Introduce una dirección de correo electrónico válida.",
         "requiredFieldError": "Completa este campo obligatorio.",
-        "checkFields": "Revisa los campos resaltados."
+        "checkFields": "Revisa los campos resaltados.",
+        "verifyContact": "Verifica tu contacto para continuar",
+        "verificationInstructions": "Verifica cada contacto que has introducido. Esto no guarda tu respuesta ni inicia sesión.",
+        "verificationCode": "Código de verificación",
+        "verificationSent": "Busca un código de ocho dígitos en este contacto. Caduca en 15 minutos. Si no lo has solicitado, ignóralo.",
+        "sendCode": "Enviar código",
+        "verifyCode": "Verificar código",
+        "resendCode": "Reenviar código",
+        "resendIn": "Reenviar en {seconds}s",
+        "verifiedReview": "Contactos verificados. Revisa tu respuesta y después confírmala.",
+        "verificationProgress": "Contacto {current} de {total}"
       },
       "status": {
         "GOING": "Asistiré",
@@ -2061,6 +2076,8 @@
   },
   "Notifications": {
     "verificationSubject": "Verifica tu destino de notificaciones",
-    "verificationBody": "Tu código de verificación es {code}. Caduca en 15 minutos. No inicia sesión ni activa notificaciones."
+    "verificationBody": "Tu código de verificación es {code}. Caduca en 15 minutos. No inicia sesión ni activa notificaciones.",
+    "rsvpVerificationSubject": "Verifica tu contacto para responder",
+    "rsvpVerificationBody": "Tu código de verificación para responder es {code}. Caduca en 15 minutos. Esto no guarda ninguna respuesta ni inicia sesión. Si no lo has solicitado, ignora este mensaje."
   }
 }

@@ -32,6 +32,11 @@ explains that guests must be invited directly.
 
 Invited guests appear on your guest list with an **Invited** status until they respond.
 
+Their invitation's private link lets them respond directly. If they instead use
+the public form and enter their invited contact, they must first verify it by
+code, review their response and confirm. Entering an invitee's email or phone
+alone neither answers the invitation nor reveals its private link.
+
 ### 1. Add recipients
 
 Each row is one person: an optional **name** and an **email or phone number**. Type a name,

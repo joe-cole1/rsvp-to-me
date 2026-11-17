@@ -5,8 +5,7 @@ import { db } from "@/lib/db";
 // whoever owns the typed email and returned that RSVP's edit token. Anyone who knew an
 // invitee's email could take the private link, and the new notification page then let them
 // prove their own address and replace the invitee's contact, redirecting future messages.
-// The merge now returns no token; the confirmation still reaches the invited contact.
-// Follow-on: whether a public submission should merge into an invitation at all.
+// #792: a typed contact now requires proof before any invitation lookup or mutation.
 import "@/tests/helpers/english-request-locale";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({ invited: vi.fn(), notify: vi.fn() }));
@@ -78,20 +77,20 @@ beforeEach(() => {
 });
 
 describe("public RSVP form and invitations", () => {
-  it("never returns an invited guest's private link to whoever typed their contact", async () => {
+  it("never answers or returns an invited guest's private link from a typed contact", async () => {
     m.invited.mockResolvedValue({ id: "invited", status: "INVITED" });
     const result = await addRSVP(input);
-    expect(result).toMatchObject({ success: true, editToken: null });
+    expect(result).toMatchObject({ success: false, verificationRequired: true });
     expect(JSON.stringify(result)).not.toContain("invitee-private-token");
-    // The private link still goes to the invited contact through the confirmation.
-    expect(m.notify).toHaveBeenCalledWith(
-      "invited",
-      expect.objectContaining({ kind: "confirmation" })
-    );
+    expect(m.invited).not.toHaveBeenCalled();
+    expect(m.notify).not.toHaveBeenCalled();
   });
   it("still returns the link to someone creating their own RSVP", async () => {
     m.invited.mockResolvedValue(null);
-    expect(await addRSVP(input)).toMatchObject({ success: true, editToken: "fresh-token" });
+    expect(await addRSVP({ ...input, guestEmail: undefined })).toMatchObject({
+      success: true,
+      editToken: "fresh-token",
+    });
   });
 });
 

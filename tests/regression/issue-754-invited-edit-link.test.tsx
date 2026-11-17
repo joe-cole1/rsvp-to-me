@@ -17,6 +17,10 @@ const { mockAddRSVP, mockUpdateRSVP, mockUpdateRsvpAsHost } = vi.hoisted(() => (
 }));
 vi.mock("@/app/actions/event", () => ({
   addRSVP: mockAddRSVP,
+  requestRsvpVerification: vi.fn().mockResolvedValue({ success: true, challengeId: "challenge" }),
+  verifyRsvpVerification: vi
+    .fn()
+    .mockResolvedValue({ success: true, proof: { challengeId: "challenge", receipt: "receipt" } }),
   updateRSVP: mockUpdateRSVP,
   updateRsvpAsHost: mockUpdateRsvpAsHost,
 }));
@@ -60,6 +64,15 @@ const HOST_BOX = "This guest's edit link";
 
 async function submit() {
   fireEvent.click(screen.getByRole("button", { name: /Confirm RSVP|Update RSVP/ }));
+  if (screen.queryByRole("heading", { name: "Verify your contact to continue" })) {
+    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+    fireEvent.change(await screen.findByRole("textbox", { name: "Verification code" }), {
+      target: { value: "12345678" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verify code" }));
+    await screen.findByText(/Contacts verified/);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm RSVP" }));
+  }
   await waitFor(() => expect(screen.getByText(/You're in!|RSVP updated!/)).toBeInTheDocument());
 }
 
@@ -130,20 +143,6 @@ describe("#754 edit-link box on the RSVP done screen", () => {
     ).toBeInTheDocument();
   });
 
-  // 01a1a105 QC (D3): a public answer merged into an invitation gets no private token, so
-  // the screen says where the link went instead of showing anyone the invitee's links.
-  it("points an answer merged into an invitation to its message, with no private links", async () => {
-    mockAddRSVP.mockResolvedValue({ success: true, id: "rsvp-1", editToken: null });
-    render(<RsvpFlow event={event} theme={testTheme} initialStatus="GOING" />);
-    fireEvent.change(screen.getByPlaceholderText("Your name (required)"), {
-      target: { value: "Bea" },
-    });
-    fireEvent.change(screen.getByPlaceholderText(/email/i), {
-      target: { value: "invitee@example.com" },
-    });
-    await submit();
-    expect(screen.getByText(ON_FILE)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Keep your private RSVP edit link" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Manage notifications for this event" })).toBeNull();
-  });
+  // #792 replaces the old successful-unproved-merge case with the proof/review
+  // cases in issue-792-verification-flow.test.tsx and database regression tests.
 });

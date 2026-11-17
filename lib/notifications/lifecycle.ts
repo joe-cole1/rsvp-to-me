@@ -39,5 +39,8 @@ export async function purgeNotificationChallenges(now = new Date()) {
   const { count } = await db.notificationChallenge.deleteMany({
     where: { OR: [{ usedAt: { lt: cutoff } }, { expiresAt: { lt: cutoff } }] },
   });
-  return count;
+  const rsvp = await db.rsvpContactChallenge.deleteMany({
+    where: { OR: [{ usedAt: { lt: cutoff } }, { expiresAt: { lt: cutoff } }] },
+  });
+  return count + rsvp.count;
 }

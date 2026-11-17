@@ -171,24 +171,25 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  host                 User                   @relation(fields: [hostId], references: [id])
-  coHosts              EventCoHost[]
-  theme                EventTheme?
-  reminderSettings     EventReminderSettings?
-  infoSections         EventInfoSection[]
-  rsvps                RSVP[]
-  invitations          Invitation[]
-  updates              EventUpdate[]
-  potluckItems         PotluckItem[]
-  sentReminders        SentReminder[]
-  comments             Comment[]
-  rsvpFields           RSVPField[]
-  checkIns             CheckIn[]
-  activityEvents       ActivityEvent[]
-  polls                Poll[]
-  coHostInvitations    CoHostInvitation[]
-  notificationSettings NotificationSettings[]
-  notificationSchedule NotificationSchedule[]
+  host                  User                   @relation(fields: [hostId], references: [id])
+  coHosts               EventCoHost[]
+  theme                 EventTheme?
+  reminderSettings      EventReminderSettings?
+  infoSections          EventInfoSection[]
+  rsvps                 RSVP[]
+  invitations           Invitation[]
+  updates               EventUpdate[]
+  potluckItems          PotluckItem[]
+  sentReminders         SentReminder[]
+  comments              Comment[]
+  rsvpFields            RSVPField[]
+  checkIns              CheckIn[]
+  activityEvents        ActivityEvent[]
+  polls                 Poll[]
+  coHostInvitations     CoHostInvitation[]
+  notificationSettings  NotificationSettings[]
+  notificationSchedule  NotificationSchedule[]
+  rsvpContactChallenges RsvpContactChallenge[]
 }
 
 enum LocationType {
@@ -430,6 +431,25 @@ model NotificationBinding {
 
   @@unique([rsvpId, channel])
   @@unique([settingsId, channel])
+}
+
+// Public RSVP proof is event/contact scoped; it grants no account or notification authority.
+model RsvpContactChallenge {
+  id          String    @id @default(uuid(4))
+  eventId     String
+  channel     String
+  destination String
+  secretHash  String
+  receiptHash String?
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  verifiedAt  DateTime?
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, channel, destination, createdAt], map: "RsvpContactChallenge_contact_created_idx")
+  @@index([expiresAt])
 }
 
 model NotificationChallenge {

@@ -22,6 +22,25 @@ invalid, submitting announces the problem and moves focus to the first field tha
 needs attention. The response is saved only after those fields are complete. Server
 errors, such as an event reaching capacity, are also announced.
 
+If a guest enters an email or phone on the public form, they verify each contact
+with an eight-digit code before saving. The same steps apply to new and invited
+guests. Codes expire after 15 minutes; resends require a one-minute wait and are
+rate-limited. After verification, guests return to the completed form to review
+and explicitly confirm. Verification alone saves no response and sends no **New
+RSVP** alert.
+
+A verified contact can answer its existing invitation, keeping that invitation's
+contact details. An already-answered or conflicting guest record requires its
+private edit link or help from the host. Typing someone else's contact cannot
+answer their invitation or reveal their private link. Guests using their
+invitation link or replying to an invitation by text keep the existing flow.
+Guests who leave both contacts blank can still create a new RSVP and save its
+private edit link.
+
+If verification delivery is unavailable, guests can retry later, use their
+original invitation link, or contact the host. A contactless submission creates a
+separate RSVP; it does not answer an existing invitation.
+
 Keyboard users can use **Skip to content** at the top of each page to bypass navigation.
 
 ## RSVP Statuses

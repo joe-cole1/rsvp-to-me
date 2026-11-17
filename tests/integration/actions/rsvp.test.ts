@@ -50,9 +50,35 @@ vi.mock("@/lib/redis", () => ({
   isRedisEnabled: vi.fn().mockReturnValue(false),
 }));
 
-import { addRSVP, updateRSVP } from "@/app/actions/event";
+import { addRSVP as submitRsvp, updateRSVP } from "@/app/actions/event";
 import { logActivity } from "@/lib/activity";
 import { notifyRsvp } from "@/lib/notifications/service";
+import { randomUUID } from "node:crypto";
+import { hashToken } from "@/lib/hash";
+import { AddRsvpSchema } from "@/lib/schemas";
+import { rsvpContacts } from "@/lib/rsvp-contact-proof";
+
+// Existing DB behavior cases submit already-proved contacts. #792's regression
+// suite exercises actual issuance, guessing, verification, and missing proof.
+async function addRSVP(raw: unknown) {
+  const parsed = AddRsvpSchema.parse(raw);
+  const proofs = [];
+  for (const contact of rsvpContacts(parsed)) {
+    const receipt = randomUUID();
+    const row = await db.rsvpContactChallenge.create({
+      data: {
+        eventId: parsed.eventId,
+        ...contact,
+        secretHash: hashToken("12345678"),
+        receiptHash: hashToken(receipt),
+        verifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 900000),
+      },
+    });
+    proofs.push({ challengeId: row.id, receipt });
+  }
+  return submitRsvp(raw, null, proofs);
+}
 
 async function seedHost() {
   return db.user.create({
@@ -135,7 +161,7 @@ describe("addRSVP — real DB integration", () => {
     expect(rsvp!.approved).toBe(false);
   });
 
-  it("promotes an INVITED RSVP when the same user RSVPs by email", async () => {
+  it("promotes an INVITED RSVP after the guest proves its email", async () => {
     const host = await seedHost();
     const event = await seedEvent(host.id);
 
@@ -155,15 +181,15 @@ describe("addRSVP — real DB integration", () => {
       },
     });
 
-    // Guest RSVPs via the form with the same email
+    // Guest RSVPs via the form after proving the same email
     const result = await addRSVP({
       eventId: event.id,
       guestName: "Alice",
       guestEmail: "alice@example.com",
       status: "GOING",
     });
-    // The invitation's private link reaches only its invited contact (01a1a105 QC).
-    expect(result).toMatchObject({ success: true, editToken: null });
+    // #792: proof authorizes the original RSVP and its private link.
+    expect(result).toMatchObject({ success: true, editToken: expect.any(String) });
 
     // Should only have one RSVP (the original was updated, not duplicated)
     const rsvps = await db.rSVP.findMany({ where: { eventId: event.id } });

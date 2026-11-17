@@ -18,6 +18,10 @@ import {
   type RsvpResponseStatus,
 } from "./status";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
+import { RsvpContactVerification } from "./RsvpContactVerification";
+import { EventTitleBlock } from "@/components/event/event-page/EventTitleBlock";
+import { normalizePhone } from "@/lib/phone";
+import type { RsvpContactReceipt } from "@/lib/rsvp-contact-proof";
 
 type SessionUser = {
   email: string;
@@ -137,6 +141,20 @@ export function RsvpFlow({
       : {}
   );
   const [done, setDone] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [contactProofs, setContactProofs] = useState<{
+    key: string;
+    proofs: RsvpContactReceipt[];
+  } | null>(null);
+  const contacts = [
+    ...(email.trim()
+      ? [{ channel: "email" as const, destination: email.trim().toLowerCase() }]
+      : []),
+    ...(phone.trim() ? [{ channel: "sms" as const, destination: normalizePhone(phone) }] : []),
+  ];
+  const contactKey = JSON.stringify([event.id, contacts]);
+  const verified = contactProofs?.key === contactKey;
+
   // After a create, the Server Action's automatic page refresh re-requests the
   // RSC payload with the new ?token= URL, so `existingRsvp` arrives on the next
   // render and flips `isEdit` while the success screen is showing. This flag
@@ -234,6 +252,10 @@ export function RsvpFlow({
       focusInvalid.current = Object.keys(errors).length > 0;
       if (Object.keys(errors).length) return;
     }
+    if (!isEdit && contacts.length && !verified) {
+      setVerifying(true);
+      return;
+    }
     startTransition(async () => {
       setError(null);
       try {
@@ -269,10 +291,13 @@ export function RsvpFlow({
                 note: note.trim() || undefined,
                 answers,
               },
-              token
+              token,
+              ...(contacts.length ? [contactProofs?.proofs] : [])
             )
           );
           if (!result.success) {
+            if ("verificationRequired" in result && result.verificationRequired)
+              setContactProofs(null);
             setError(result.error ?? translate("somethingWentWrong"));
             return;
           }
@@ -624,6 +649,30 @@ export function RsvpFlow({
     group: { marginBottom: "20px" } as React.CSSProperties,
   };
 
+  if (verifying && !isEdit) {
+    return (
+      <div style={S.page}>
+        <EventAtmosphere theme={t} effect={effect} />
+        <div style={S.header}>
+          <EventTitleBlock theme={t} title={event.title} />
+        </div>
+        <div style={S.body}>
+          <RsvpContactVerification
+            eventId={event.id}
+            contacts={contacts}
+            theme={t}
+            onBack={() => setVerifying(false)}
+            onVerified={(proofs) => {
+              setContactProofs({ key: contactKey, proofs });
+              setStep(1);
+              setVerifying(false);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   // ── Step 1: Details ─────────────────────────────────────────────────────────
   if (step === 1) {
     return (
@@ -680,6 +729,11 @@ export function RsvpFlow({
         </div>
 
         <div style={S.body}>
+          {!isEdit && verified && (
+            <InlineAlert theme={t} tone="success">
+              {translate("verifiedReview")}
+            </InlineAlert>
+          )}
           {/* Status buttons */}
           <div style={{ ...S.group }}>
             <div style={{ display: "flex", gap: "10px" }}>
