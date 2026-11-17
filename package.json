@@ -110,7 +110,7 @@
     "eslint-config-next": "16.4.6",
     "fast-check": "^4.10.2",
     "husky": "^9",
-    "js-yaml": "^4.3.2",
+    "js-yaml": "^5.5.0",
     "jsdom": "^31.0.1",
     "lint-staged": "^17",
     "prettier": "^3.10.1",
