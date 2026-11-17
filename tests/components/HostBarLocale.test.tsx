@@ -18,12 +18,16 @@ const status = chromeTheme(testTheme).status;
 
 describe("localized host messaging", () => {
   it.each([
-    [2, "E-mail verzonden naar 2 gasten.", status.success.text],
-    [0, "Geen gasten met een e-mailadres gevonden.", status.error.text],
+    [2, "Meldingen: 2 geaccepteerd, 0 overgeslagen, 0 mislukt, 0 onzeker.", status.success.text],
+    [0, "Meldingen: 0 geaccepteerd, 2 overgeslagen, 0 mislukt, 0 onzeker.", status.info.text],
   ])(
     "styles Dutch delivery feedback from the result for %i recipients",
     async (sent, message, color) => {
-      sendBlast.mockResolvedValue({ success: true, sent });
+      sendBlast.mockResolvedValue({
+        success: true,
+        sent,
+        summary: { accepted: sent, skipped: 2 - sent, failed: 0, uncertain: 0 },
+      });
       render(
         <HostBar
           eventId="event-1"

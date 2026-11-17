@@ -867,7 +867,13 @@ Verify profile preferences, private guest management, confirmation decisions,
 organizer alerts and reminders after upgrade. See
 [Notification Preferences](../host/notification-preferences.md) and the
 [local milestone test plan](../engineering/testing/01a1a105-notifications.md).
-Manual blasts and invitations remain separate; #789 tracks manual-blast opt-outs.
+Manual blasts now apply the **Event updates** choices too (#789), with the host's
+selected channels as a limit. Verify an opted-out guest is skipped and an eligible
+guest remains reachable. This adoption needs no additional migration, credential or
+dependency. Manual blasts retain independent submissions for each permitted channel
+the host selects, including unverified contacts; the composer reports provider
+acceptance, skips, failures and uncertainty instead of requested-recipient counts.
+Invitations remain separate.
 Authentication and inbound SMS behavior are not migrated.
 
 A database-only additive rollback is insufficient: a legacy binary would ignore

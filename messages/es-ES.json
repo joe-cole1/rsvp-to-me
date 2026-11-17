@@ -654,7 +654,8 @@
         "summary": "Actualización publicada. Notificaciones: {accepted} aceptadas, {skipped} omitidas, {failed} fallidas, {uncertain} inciertas.",
         "processingFailed": "Actualización publicada. No se pudieron procesar las notificaciones.",
         "acceptedHint": "Aceptada significa que el servicio aceptó el mensaje para procesarlo; la entrega no está confirmada.",
-        "uncertainHint": "No se pudieron confirmar algunos envíos. Reintentarlos podría enviar notificaciones duplicadas."
+        "uncertainHint": "No se pudieron confirmar algunos envíos. Reintentarlos podría enviar notificaciones duplicadas.",
+        "blastSummary": "Notificaciones: {accepted} aceptadas, {skipped} omitidas, {failed} fallidas, {uncertain} inciertas."
       },
       "ActivityFeed": {
         "activity": "Actividad",
@@ -778,7 +779,8 @@
         "inviteSent": "¡Invitación enviada a {destination}!",
         "emailSent": "Se ha enviado un correo a {count, plural, one {# invitado} other {# invitados}}.",
         "smsSent": "Se ha enviado un SMS a {count, plural, one {# invitado} other {# invitados}}.",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "blastProcessingFailed": "No se pudo completar el procesamiento de algunos mensajes. Los recuentos solo muestran el procesamiento completado; reintentar puede enviar duplicados."
       },
       "GuestListFilter": {
         "all": "Todos",
@@ -1841,10 +1843,10 @@
       "timeOn": "{time} está activado.",
       "timeOff": "{time} está desactivado.",
       "enableHostAlerts": "Avisar a los organizadores de nuevas RSVP",
-      "tableHint": "Cada mensaje va a todos los canales que marques. Los enlaces de acceso, las invitaciones y los mensajes que un anfitrión envía a todos los invitados no se controlan aquí.",
+      "tableHint": "Cada mensaje va a todos los canales que marques. Los enlaces de acceso y las invitaciones no se controlan aquí.",
       "tableName": "Qué recibes y dónde",
       "columnMessage": "Mensaje",
-      "updatesHint": "Cambios de hora, lugar o detalles",
+      "updatesHint": "Mensajes del anfitrión y cambios en los detalles del evento",
       "remindersHint": "Antes del evento y si aún no has respondido",
       "confirmationsHint": "Tu enlace privado de edición y la respuesta del anfitrión",
       "host_alertsHint": "Cuando los invitados responden a tus eventos",

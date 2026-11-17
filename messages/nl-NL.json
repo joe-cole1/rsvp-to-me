@@ -648,7 +648,8 @@
         "summary": "Mededeling geplaatst. Meldingen: {accepted} geaccepteerd, {skipped} overgeslagen, {failed} mislukt, {uncertain} onzeker.",
         "processingFailed": "Mededeling geplaatst. De meldingen konden niet worden verwerkt.",
         "acceptedHint": "Geaccepteerd betekent dat de dienst het bericht voor verwerking heeft geaccepteerd; de bezorging is niet bevestigd.",
-        "uncertainHint": "Sommige verzendpogingen konden niet worden bevestigd. Opnieuw proberen kan tot dubbele meldingen leiden."
+        "uncertainHint": "Sommige verzendpogingen konden niet worden bevestigd. Opnieuw proberen kan tot dubbele meldingen leiden.",
+        "blastSummary": "Meldingen: {accepted} geaccepteerd, {skipped} overgeslagen, {failed} mislukt, {uncertain} onzeker."
       },
       "ActivityFeed": {
         "activity": "Activiteit",
@@ -772,7 +773,8 @@
         "inviteSent": "Uitnodiging verstuurd naar {destination}!",
         "emailSent": "E-mail verzonden naar {count, plural, one {# gast} other {# gasten}}.",
         "smsSent": "Sms verzonden naar {count, plural, one {# gast} other {# gasten}}.",
-        "close": "Sluiten"
+        "close": "Sluiten",
+        "blastProcessingFailed": "Een deel van de berichten kon niet worden verwerkt. De aantallen tonen alleen afgeronde verwerking; opnieuw proberen kan dubbele berichten veroorzaken."
       },
       "GuestListFilter": {
         "all": "Iedereen",
@@ -1795,10 +1797,10 @@
       "timeOn": "{time} staat aan.",
       "timeOff": "{time} staat uit.",
       "enableHostAlerts": "Organisatoren melden bij nieuwe RSVP's",
-      "tableHint": "Elk bericht gaat naar elk kanaal dat je aanvinkt. Inloglinks, uitnodigingen en berichten die een host naar alle gasten stuurt, regel je hier niet.",
+      "tableHint": "Elk bericht gaat naar elk kanaal dat je aanvinkt. Inloglinks en uitnodigingen regel je hier niet.",
       "tableName": "Wat je krijgt en waar",
       "columnMessage": "Bericht",
-      "updatesHint": "Wijzigingen in tijd, plaats of details",
+      "updatesHint": "Berichten van de host en wijzigingen in evenementdetails",
       "remindersHint": "Voor het evenement, en als je nog niet hebt gereageerd",
       "confirmationsHint": "Je privélink om te wijzigen en het antwoord van de host",
       "host_alertsHint": "Als gasten reageren op evenementen die jij host",

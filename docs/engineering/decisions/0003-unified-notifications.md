@@ -218,3 +218,26 @@ in PostgreSQL before recipients are loaded, revalidated at claim, and the event
 date is checked again before provider submission. Already in-flight requests cannot
 be recalled. Ordinary reminders target approved Going/Maybe guests; nudges retain
 the unanswered-invitation contact boundary. No retry queue is added.
+
+## Manual host messages (#789, `01a1e8f7`)
+
+Manual email/SMS blasts now adopt the shared dispatcher and the existing `updates`
+category. From the recipient's perspective, a host-authored message is an event
+update whether or not the host also posts it on the event page. The existing
+Event updates row therefore controls both; no additional preference row or migration
+is introduced. Migrated update-category opt-outs remain effective, including the old
+channel preference. RSVP event rows override profile rows through the existing resolver;
+hard blocks and paused destinations still apply.
+
+The host's selected email/SMS channel is a ceiling, never a consent override or a
+fallback to an unselected service. Selecting both submits each channel independently,
+preserving the manual composer's existing behavior for unverified contacts. Its
+event/status/contact audience, pagination, organizer authorization, CAPTCHA and
+per-event/channel quotas remain in place. Profile contacts never replace RSVP contacts.
+Policy and destination authority are rechecked at submission by the shared adapters.
+
+The composer reports accepted, skipped, failed and uncertain submissions, not requested
+addresses or delivery receipts. Completed chunks and channels remain visible if later
+preparation fails, accompanied by a privacy-safe processing error. No history, automatic
+retry, integration or invitation behavior is added. Earlier exclusions of manual blasts
+above describe previous milestones.

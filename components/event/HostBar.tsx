@@ -18,6 +18,8 @@ import { InlineAlert } from "@/components/ui/Feedback";
 import { emptyInvitationDraft, invitationDraftReducer } from "@/lib/invitation-draft-rows";
 import { guestPreviewUrl } from "@/lib/admin-moderation";
 import { InvitationComposer } from "./InvitationComposer";
+import { NotificationDeliveryFeedback } from "./event-page/NotificationDeliveryFeedback";
+import type { DeliverySummary } from "@/lib/notifications/types";
 
 type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
 
@@ -82,7 +84,7 @@ export function HostBar({
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [blastResult, setBlastResult] = useState<string | null>(null);
-  const [blastSucceeded, setBlastSucceeded] = useState(false);
+  const [blastSummary, setBlastSummary] = useState<DeliverySummary | null>(null);
   const [sendEmail, setSendEmail] = useState(true);
   const [sendSms, setSendSms] = useState(false);
   const [recipientFilters, setRecipientFilters] = useState<
@@ -178,56 +180,37 @@ export function HostBar({
       recipientFilters.length === 0
     )
       return;
-    setBlastSucceeded(false);
+    setBlastSummary(null);
     setIsSending(true);
     setBlastResult(null);
 
-    let emailStatus = "";
-    let smsStatus = "";
-    let successCount = 0;
-    let hasRecipients = false;
-
-    try {
-      if (sendEmail) {
-        const r = await runWithCaptcha("message_send", (token) =>
-          sendBlast(eventId, messageText.trim(), recipientFilters, token)
+    const summary: DeliverySummary = { accepted: 0, skipped: 0, failed: 0, uncertain: 0 };
+    let completed = false;
+    let processingFailed = false;
+    for (const [selected, send] of [
+      [channelConfig.email && sendEmail, sendBlast],
+      [channelConfig.sms && sendSms, sendSmsBlast],
+    ] as const) {
+      if (!selected) continue;
+      try {
+        const result = await runWithCaptcha("message_send", (token) =>
+          send(eventId, messageText.trim(), recipientFilters, token)
         );
-        if (r.success) {
-          successCount++;
-          hasRecipients ||= r.sent > 0;
-          emailStatus =
-            r.sent === 0
-              ? translate("noGuestsEmailAddressesFound")
-              : translate("emailSent", { count: r.sent });
+        for (const status of ["accepted", "skipped", "failed", "uncertain"] as const) {
+          summary[status] += result.summary[status];
         }
+        completed = true;
+        processingFailed ||= !result.success;
+      } catch {
+        processingFailed = true;
       }
-      if (sendSms) {
-        const r = await runWithCaptcha("message_send", (token) =>
-          sendSmsBlast(eventId, messageText.trim(), recipientFilters, token)
-        );
-        if (r.success) {
-          successCount++;
-          hasRecipients ||= r.sent > 0;
-          smsStatus =
-            r.sent === 0
-              ? translate("noGuestsPhoneNumbersFound")
-              : translate("smsSent", { count: r.sent });
-        }
-      }
-
-      if (successCount > 0) {
-        const parts = [emailStatus, smsStatus].filter(Boolean);
-        setBlastSucceeded(hasRecipients);
-        setBlastResult(parts.join(" "));
-        setMessageText("");
-      } else {
-        setBlastResult(translate("failedSendMessageTryAgain"));
-      }
-    } catch (err: unknown) {
-      setBlastResult(err instanceof Error ? err.message : translate("failedSendMessageTryAgain"));
-    } finally {
-      setIsSending(false);
     }
+    if (completed) setBlastSummary(summary);
+    if (processingFailed) setBlastResult(translate("blastProcessingFailed"));
+    // Accepted/uncertain submissions may already be on their way. Keep a draft only
+    // when nothing was submitted, rather than encouraging a duplicate resend.
+    if (summary.accepted > 0 || summary.uncertain > 0) setMessageText("");
+    setIsSending(false);
   };
 
   return (
@@ -503,8 +486,26 @@ export function HostBar({
                 style={{ resize: "none", marginBottom: "12px" }}
               />
 
+              {blastSummary && (
+                <InlineAlert
+                  theme={ct}
+                  tone={
+                    blastSummary.failed || blastSummary.uncertain
+                      ? "error"
+                      : blastSummary.accepted
+                        ? "success"
+                        : "info"
+                  }
+                >
+                  <NotificationDeliveryFeedback
+                    kind="blast"
+                    withinAlert
+                    feedback={{ status: "completed", summary: blastSummary }}
+                  />
+                </InlineAlert>
+              )}
               {blastResult && (
-                <InlineAlert theme={ct} tone={blastSucceeded ? "success" : "error"}>
+                <InlineAlert theme={ct} tone="error">
                   {blastResult}
                 </InlineAlert>
               )}

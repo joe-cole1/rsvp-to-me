@@ -8,10 +8,10 @@ order: 65
 
 # Your Notification Preferences
 
-Open **Profile** to manage notifications. These controls cover event updates,
+Open **Profile** to manage notifications. These controls cover event updates and host messages,
 reminders and nudges, RSVP confirmations and decisions, and host alerts.
-Invitations, manual message blasts and sign-in links are separate. The manual-blast
-opt-out gap is tracked in #789; these settings do not control that composer yet.
+Invitations and sign-in links are separate. **Event updates** controls both posted-update
+notifications and messages sent from the host's message composer.
 
 Every change saves as soon as you make it. A short message confirms each change;
 if a save fails, the box returns to its saved state and the message explains why.
@@ -37,6 +37,12 @@ How many messages arrive depends on whether the address is verified:
 
 So if you check both and verify both, you get both. If you verify neither, you get
 one message, as before.
+
+For a manual host message, the host also chooses which channels to send. You receive
+only channels both you and the host selected; we never switch to an unselected channel.
+If the host selects both, each selected and permitted channel is submitted separately,
+including contacts marked **On file**. Uncheck both **Event updates** boxes to stop
+manual host messages and posted-update notifications.
 
 Only the channels this site offers appear. For example, if the site does not send
 text messages, there is no **Text** column. If the administrator adds a service

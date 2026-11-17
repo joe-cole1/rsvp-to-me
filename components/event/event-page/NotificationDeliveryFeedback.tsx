@@ -3,13 +3,27 @@
 import { useTranslations } from "next-intl";
 import type { NotificationFeedback } from "@/lib/notifications/types";
 
-export function NotificationDeliveryFeedback({ feedback }: { feedback: NotificationFeedback }) {
+export function NotificationDeliveryFeedback({
+  feedback,
+  kind = "update",
+  withinAlert = false,
+}: {
+  feedback: NotificationFeedback;
+  kind?: "update" | "blast";
+  withinAlert?: boolean;
+}) {
   const t = useTranslations("Ui.Event.NotificationDeliveryFeedback");
   if (!feedback) return null;
   return (
-    <div role="status" aria-live="polite" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.5 }}>
+    <div
+      role={withinAlert ? undefined : "status"}
+      aria-live={withinAlert ? undefined : "polite"}
+      style={{ marginTop: withinAlert ? 0 : 12, fontSize: 13, lineHeight: 1.5 }}
+    >
       <p style={{ margin: 0 }}>
-        {feedback.status === "failed" ? t("processingFailed") : t("summary", feedback.summary)}
+        {feedback.status === "failed"
+          ? t("processingFailed")
+          : t(kind === "blast" ? "blastSummary" : "summary", feedback.summary)}
       </p>
       {feedback.status === "completed" && (
         <p style={{ margin: "4px 0 0", opacity: 0.8 }}>

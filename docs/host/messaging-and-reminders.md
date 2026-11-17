@@ -31,6 +31,17 @@ blasts and ten SMS blasts per hour, shared by its host and co-hosts. Sending bot
 channels uses one of each. Blasts do not create invitations or add guests to the
 Invited tab.
 
+Guests' **Event updates** notification choices apply to these messages, including
+event-specific choices and paused contacts. Choosing a channel never overrides a guest's
+opt-out. Only channels both you and the guest selected are attempted; there is no
+fallback to another channel. Selecting both attempts each permitted channel separately.
+
+The result shows **accepted**, **skipped**, **failed** and **uncertain** counts across
+the selected channels. Accepted means acknowledged for processing, not delivered.
+Opted-out or paused contacts and unavailable services count as skipped. A preparation
+error preserves counts from completed processing and warns that they are incomplete.
+Retrying a partial or uncertain send can duplicate messages; there is no automatic retry.
+
 When the site administrator enables bot protection, sending a blast, publishing an event update, or
 sending a test email requires an interaction-only security check. This also applies to hosts and
 co-hosts so a compromised or abusive organizer account cannot be used to spam guests.
@@ -68,7 +79,8 @@ may already have been accepted. Retrying can create duplicates.
 
 The update stays posted if some or all notifications fail. These counts are
 temporary feedback for the current composer session; there is no delivery-history
-screen or automatic retry. Automatic reminders, RSVP confirmations/decisions, and host alerts also enforce recipient preferences. Manual blasts and invitations remain separate; manual-blast opt-outs are tracked in #789.
+screen or automatic retry. Automatic reminders, RSVP confirmations/decisions, host alerts
+and manual blasts also enforce recipient preferences. Invitations remain separate.
 
 ---
 

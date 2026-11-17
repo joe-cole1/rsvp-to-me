@@ -14,22 +14,47 @@ vi.mock("@/lib/db", () => ({
   db: {
     event: { findUnique: async () => ({ title: "Party", slug: "party", host: { name: "Host" } }) },
     rSVP: { findMany: m.guests },
+    notificationSettings: { findMany: async () => [] },
+    notificationConnection: { findMany: async () => [] },
+    notificationBinding: { findMany: async () => [] },
     invitation: { createMany: m.invites },
   },
 }));
 vi.mock("@/app/actions/event/shared", () => ({ assertHostOrCohost: m.guard }));
 vi.mock("@/lib/captcha", () => ({ assertCaptcha: vi.fn() }));
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: m.limit }));
-vi.mock("@/lib/email", () => ({ sendBlastEmail: m.email }));
-vi.mock("@/lib/sms", () => ({ sendSmsBlast: m.sms }));
+vi.mock("@/lib/email", () => ({
+  createEmailNotificationAdapter: async () => ({
+    channel: "email",
+    available: true,
+    kinds: ["event_update"],
+    deliver: m.email,
+  }),
+}));
+vi.mock("@/lib/sms", () => ({
+  createSmsNotificationAdapter: async () => ({
+    channel: "sms",
+    available: true,
+    kinds: ["event_update"],
+    deliver: m.sms,
+  }),
+}));
 import { sendBlast, sendSmsBlast } from "@/app/actions/event/blasts";
 beforeEach(() => {
   vi.clearAllMocks();
   m.guard.mockResolvedValue({});
   m.limit.mockResolvedValue({ success: true });
-  m.guests.mockResolvedValue([{ guestEmail: "guest@example.test", guestPhone: "+15551234567" }]);
-  m.email.mockResolvedValue({ status: "accepted" });
-  m.sms.mockResolvedValue(1);
+  m.guests.mockResolvedValue([
+    {
+      id: "guest",
+      userId: null,
+      user: null,
+      guestEmail: "guest@example.test",
+      guestPhone: "+15551234567",
+    },
+  ]);
+  m.email.mockResolvedValue([{ status: "accepted" }]);
+  m.sms.mockResolvedValue([{ status: "accepted" }]);
 });
 for (const [channel, send] of [
   ["email", sendBlast],
@@ -54,6 +79,7 @@ for (const [channel, send] of [
       await expect(send("event", "x".repeat(10000), ["ALL"])).resolves.toEqual({
         success: true,
         sent: 1,
+        summary: { accepted: 1, skipped: 0, failed: 0, uncertain: 0 },
       });
       expect(m.invites).not.toHaveBeenCalled();
     });
