@@ -195,8 +195,9 @@ vi.mock("@/lib/email", () => ({
     channel: "email",
     available: true,
     kinds: ["event_update"],
-    deliver: async (_message: unknown, targets: unknown[]) =>
-      targets.map(() => ({ status: "accepted" })),
+    deliver: vi.fn(async (_message: unknown, targets: unknown[]) =>
+      targets.map(() => ({ status: "accepted" }))
+    ),
   })),
   sendEventInviteEmail: vi.fn().mockResolvedValue(undefined),
   sendApprovalEmail: mockSendApprovalEmail,
@@ -209,8 +210,9 @@ vi.mock("@/lib/sms", () => ({
     channel: "sms",
     available: true,
     kinds: ["event_update"],
-    deliver: async (_message: unknown, targets: unknown[]) =>
-      targets.map(() => ({ status: "accepted" })),
+    deliver: vi.fn(async (_message: unknown, targets: unknown[]) =>
+      targets.map(() => ({ status: "accepted" }))
+    ),
   })),
   sendMagicLinkSms: vi.fn().mockResolvedValue(undefined),
   sendEventInviteSms: vi.fn().mockResolvedValue(undefined),
@@ -894,15 +896,23 @@ describe("sendBlast", () => {
     ]);
   });
 
-  it("returns the count of emails sent", async () => {
+  it("returns accepted email submissions and their outcome summary", async () => {
     const result = await sendBlast(EVENT_ID, "Party tonight!", ["ALL"]);
-    expect(result).toEqual({ success: true, sent: 2 });
+    expect(result).toEqual({
+      success: true,
+      sent: 2,
+      summary: { accepted: 2, skipped: 0, failed: 0, uncertain: 0 },
+    });
   });
 
   it("returns sent: 0 when no guests have email addresses", async () => {
     mockRsvpFindMany.mockResolvedValue([]);
     const result = await sendBlast(EVENT_ID, "Party!", ["ALL"]);
-    expect(result).toEqual({ success: true, sent: 0 });
+    expect(result).toEqual({
+      success: true,
+      sent: 0,
+      summary: { accepted: 0, skipped: 0, failed: 0, uncertain: 0 },
+    });
   });
 
   it("passes the GOING status filter to the RSVP query", async () => {
@@ -975,17 +985,26 @@ describe("sendSmsBlast", () => {
     ]);
   });
 
-  it("returns the count of messages sent from the SMS library", async () => {
+  it("returns accepted SMS submissions and their outcome summary", async () => {
     const result = await sendSmsBlast(EVENT_ID, "Party!", ["ALL"]);
-    expect(result).toEqual({ success: true, sent: 2 });
+    expect(result).toEqual({
+      success: true,
+      sent: 2,
+      summary: { accepted: 2, skipped: 0, failed: 0, uncertain: 0 },
+    });
   });
 
-  it("returns sent: 0 without calling the SMS library when no phone numbers exist", async () => {
-    const { sendSmsBlast: smsSendBlast } = await import("@/lib/sms");
+  it("does not submit to the SMS adapter when no phone numbers exist", async () => {
+    const { createSmsNotificationAdapter } = await import("@/lib/sms");
     mockRsvpFindMany.mockResolvedValue([]);
     const result = await sendSmsBlast(EVENT_ID, "Party!", ["ALL"]);
-    expect(result).toEqual({ success: true, sent: 0 });
-    expect(smsSendBlast).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      sent: 0,
+      summary: { accepted: 0, skipped: 0, failed: 0, uncertain: 0 },
+    });
+    const adapter = await vi.mocked(createSmsNotificationAdapter).mock.results.at(-1)!.value;
+    expect(adapter.deliver).not.toHaveBeenCalled();
   });
 
   it("passes the GOING status filter to the RSVP query", async () => {

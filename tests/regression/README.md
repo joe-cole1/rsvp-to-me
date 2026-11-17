@@ -183,6 +183,16 @@ concurrency, and cancellation; component tests cover the host posting experience
 `tests/integration/lib/notification-smtp.test.ts` uses a real loopback SMTP fixture
 to verify partial acceptance and destruction of a stalled socket at the deadline.
 
+Task `01a1e8f7` addresses #789:
+
+- `issue-789-blast-preferences.test.ts` exercises the manual actions with the real
+  preference resolver, dispatcher and adapters, stubbing DB and provider boundaries:
+  legacy/profile/event opt-outs, hard blocks, paused contacts, consent rechecks,
+  event contact authority, channel limits, provider outcomes, locale/BCC/theme,
+  authorization/CAPTCHA and completed-page counts after a preparation failure.
+- `issue-789-blast-feedback.test.tsx` covers combined channel counts, skipped contacts,
+  uncertain acceptance, safe partial-failure feedback and localized copy.
+
 Task `01a19e4a` addresses #328 / SEC-8 and #339 / SEC-44 in
 `issue-328-339-config-secrets.test.ts`: per-value salts, authenticated format
 validation, plaintext rejection, migration checks, backup failure, repeated

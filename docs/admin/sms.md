@@ -57,7 +57,12 @@ account SID, auth token, and sending phone number.
 The host sees aggregate submission results after posting. A Twilio message
 acknowledgement counts as **accepted for processing**, not delivered. Individual
 rejections are reported as failures; ambiguous failures and timeouts are uncertain
-and do not trigger another channel. The update remains posted. RSVP confirmations/decisions, automatic reminders and organizer alerts also enforce recipient preferences. Authentication, initial invitations and manual blasts remain separate; #789 tracks manual-blast opt-outs. See [Email Setup](email.md#event-update-delivery-results-335)
+and do not trigger another channel. The update remains posted. RSVP confirmations/decisions,
+automatic reminders, organizer alerts and manual blasts also enforce recipient preferences.
+Manual blasts use the **Event updates** preference, current event contacts and paused-contact
+rules. The host's channel choice limits delivery; an SMS-only blast never falls back to email.
+Counts distinguish provider acceptance, skipped contacts, failed submissions and uncertainty.
+Authentication and initial invitations remain separate. See [Email Setup](email.md#event-update-delivery-results-335)
 for the shared policy and limits.
 
 ## What You Need

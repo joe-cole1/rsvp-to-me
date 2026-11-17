@@ -654,7 +654,8 @@
         "summary": "Update veröffentlicht. Benachrichtigungen: {accepted} angenommen, {skipped} übersprungen, {failed} fehlgeschlagen, {uncertain} ungewiss.",
         "processingFailed": "Update veröffentlicht. Die Benachrichtigungen konnten nicht verarbeitet werden.",
         "acceptedHint": "Angenommen bedeutet, dass der Dienst die Nachricht zur Verarbeitung angenommen hat; die Zustellung ist nicht bestätigt.",
-        "uncertainHint": "Einige Übermittlungen konnten nicht bestätigt werden. Ein erneuter Versuch könnte doppelte Benachrichtigungen senden."
+        "uncertainHint": "Einige Übermittlungen konnten nicht bestätigt werden. Ein erneuter Versuch könnte doppelte Benachrichtigungen senden.",
+        "blastSummary": "Benachrichtigungen: {accepted} angenommen, {skipped} übersprungen, {failed} fehlgeschlagen, {uncertain} unklar."
       },
       "ActivityFeed": {
         "activity": "Aktivitäten",
@@ -778,7 +779,8 @@
         "inviteSent": "Einladung an {destination} gesendet!",
         "emailSent": "E-Mail an {count, plural, one {# Gast} other {# Gäste}} gesendet.",
         "smsSent": "SMS an {count, plural, one {# Gast} other {# Gäste}} gesendet.",
-        "close": "Schließen"
+        "close": "Schließen",
+        "blastProcessingFailed": "Ein Teil der Nachrichten konnte nicht verarbeitet werden. Die Zahlen zeigen nur die abgeschlossene Verarbeitung; ein erneuter Versuch kann doppelte Nachrichten senden."
       },
       "GuestListFilter": {
         "all": "Alle",
@@ -1841,10 +1843,10 @@
       "timeOn": "{time} ist an.",
       "timeOff": "{time} ist aus.",
       "enableHostAlerts": "Organisatoren über neue RSVPs informieren",
-      "tableHint": "Jede Nachricht geht an jeden Kanal, den du ankreuzt. Anmeldelinks, Einladungen und Nachrichten eines Gastgebers an alle Gäste werden hier nicht gesteuert.",
+      "tableHint": "Jede Nachricht geht an jeden Kanal, den du ankreuzt. Anmeldelinks und Einladungen werden hier nicht gesteuert.",
       "tableName": "Was du bekommst und wohin",
       "columnMessage": "Nachricht",
-      "updatesHint": "Änderungen an Zeit, Ort oder Details",
+      "updatesHint": "Nachrichten des Gastgebers und Änderungen an Veranstaltungsdetails",
       "remindersHint": "Vor dem Event und wenn du noch nicht geantwortet hast",
       "confirmationsHint": "Dein privater Bearbeitungslink und die Antwort des Gastgebers",
       "host_alertsHint": "Wenn Gäste auf deine Events antworten",

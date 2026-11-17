@@ -5,16 +5,16 @@ import { eventActionMessage } from "./localization";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rateLimit";
 
-import { groupRecipientsByLocale } from "@/emails/recipients";
-import { getTranslator } from "@/i18n/server";
-
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { sendBlastEmail } from "@/lib/email";
-import { sendSmsBlast as smsSendBlast } from "@/lib/sms";
+import { createEmailNotificationAdapter } from "@/lib/email";
+import { createSmsNotificationAdapter } from "@/lib/sms";
 import { logger } from "@/lib/logger";
 import { notifyEventUpdate } from "@/lib/notifications/event-update";
-import type { NotificationFeedback } from "@/lib/notifications/types";
+import { dispatchNotification } from "@/lib/notifications/dispatch";
+import { recipientSelect, resolveRecipients } from "@/lib/notifications/resolve";
+import type { DeliverySummary, NotificationFeedback } from "@/lib/notifications/types";
+import type { Channel } from "@/lib/notifications/preferences";
 import { buildRsvpStatusFilter, type BlastStatusFilter } from "@/lib/blastFilters";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
@@ -44,69 +44,7 @@ export async function sendBlast(
   filters: BlastStatusFilter[],
   captchaToken?: string | null
 ) {
-  await assertHostOrCohost(eventId);
-  await assertCaptcha("message_send", captchaToken);
-
-  await validateBlast(eventId, "email", message);
-
-  const event = await db.event.findUnique({
-    where: { id: eventId },
-    select: {
-      title: true,
-      slug: true,
-      theme: true,
-      hostDisplayName: true,
-      host: { select: { name: true, email: true } },
-    },
-  });
-  if (!event) throw new Error(await eventActionMessage("eventNotFound"));
-
-  const whereStatus = buildRsvpStatusFilter(filters);
-
-  const CHUNK_SIZE = 500;
-  let skip = 0;
-  let totalSent = 0;
-
-  while (true) {
-    const rsvps = await db.rSVP.findMany({
-      where: { eventId, guestEmail: { not: null }, ...whereStatus },
-      select: { guestEmail: true, user: { select: { preferredLocale: true } } },
-      take: CHUNK_SIZE,
-      skip,
-      orderBy: { id: "asc" },
-    });
-
-    if (rsvps.length === 0) break;
-
-    const emails = rsvps.flatMap((r: { guestEmail: string | null }) =>
-      r.guestEmail ? [r.guestEmail] : []
-    );
-
-    if (emails.length > 0) {
-      for (const [locale, addresses] of groupRecipientsByLocale(
-        rsvps.flatMap((r) =>
-          r.guestEmail ? [{ address: r.guestEmail, preferredLocale: r.user?.preferredLocale }] : []
-        )
-      )) {
-        const t = await getTranslator(locale);
-        await sendBlastEmail(addresses, {
-          locale,
-          eventTitle: event.title,
-          eventSlug: event.slug,
-          message,
-          hostName: event.hostDisplayName ?? event.host.name ?? t("Email.yourHost"),
-          theme: event.theme,
-          replyTo: event.host.email || undefined,
-        });
-      }
-      totalSent += emails.length;
-    }
-
-    if (rsvps.length < CHUNK_SIZE) break;
-    skip += CHUNK_SIZE;
-  }
-
-  return { success: true, sent: totalSent };
+  return sendManualBlast(eventId, message, filters, "email", captchaToken);
 }
 
 export async function sendSmsBlast(
@@ -115,62 +53,79 @@ export async function sendSmsBlast(
   filters: BlastStatusFilter[],
   captchaToken?: string | null
 ) {
+  return sendManualBlast(eventId, message, filters, "sms", captchaToken);
+}
+
+async function sendManualBlast(
+  eventId: string,
+  message: string,
+  filters: BlastStatusFilter[],
+  channel: Channel,
+  captchaToken?: string | null
+) {
   await assertHostOrCohost(eventId);
   await assertCaptcha("message_send", captchaToken);
+  await validateBlast(eventId, channel, message);
 
-  await validateBlast(eventId, "sms", message);
-
-  const event = await db.event.findUnique({
-    where: { id: eventId },
-    select: { title: true, slug: true, hostDisplayName: true, host: { select: { name: true } } },
-  });
-  if (!event) throw new Error(await eventActionMessage("eventNotFound"));
-
-  const whereStatus = buildRsvpStatusFilter(filters);
-
-  const CHUNK_SIZE = 500;
-  let skip = 0;
-  let totalSent = 0;
-
-  while (true) {
-    const rsvps = await db.rSVP.findMany({
-      where: { eventId, guestPhone: { not: null }, ...whereStatus },
-      select: { guestPhone: true, user: { select: { preferredLocale: true } } },
-      take: CHUNK_SIZE,
-      skip,
-      orderBy: { id: "asc" },
+  const summary: DeliverySummary = { accepted: 0, skipped: 0, failed: 0, uncertain: 0 };
+  try {
+    const event = await db.event.findUnique({
+      where: { id: eventId },
+      select: {
+        title: true,
+        slug: true,
+        theme: true,
+        hostDisplayName: true,
+        host: { select: { name: true, email: true } },
+      },
     });
-
-    if (rsvps.length === 0) break;
-
-    const phones = rsvps.flatMap((r: { guestPhone: string | null }) =>
-      r.guestPhone ? [r.guestPhone] : []
-    );
-
-    if (phones.length > 0) {
-      let sent = 0;
-      for (const [locale, addresses] of groupRecipientsByLocale(
-        rsvps.flatMap((r) =>
-          r.guestPhone ? [{ address: r.guestPhone, preferredLocale: r.user?.preferredLocale }] : []
-        )
-      )) {
-        const t = await getTranslator(locale);
-        sent += await smsSendBlast(addresses, {
-          locale,
-          eventTitle: event.title,
+    if (!event) throw new Error("Blast event unavailable");
+    const adapter =
+      channel === "email"
+        ? await createEmailNotificationAdapter()
+        : await createSmsNotificationAdapter();
+    const CHUNK_SIZE = 500;
+    for (let skip = 0; ; skip += CHUNK_SIZE) {
+      const rsvps = await db.rSVP.findMany({
+        where: {
+          eventId,
+          ...(channel === "email" ? { guestEmail: { not: null } } : { guestPhone: { not: null } }),
+          ...buildRsvpStatusFilter(filters),
+        },
+        select: recipientSelect,
+        take: CHUNK_SIZE,
+        skip,
+        orderBy: { id: "asc" },
+      });
+      if (!rsvps.length) break;
+      // Manual host messages are event updates. A host's channel selection is a ceiling,
+      // never permission to override the guest's event/profile choices or contact state.
+      const recipients = await resolveRecipients("updates", rsvps, [channel]);
+      const report = await dispatchNotification(
+        {
+          kind: "event_update",
+          id: crypto.randomUUID(),
           eventSlug: event.slug,
-          message,
-          hostName: event.hostDisplayName ?? event.host.name ?? t("Email.yourHost"),
-        });
+          eventTitle: event.title,
+          body: message,
+          hostName: event.hostDisplayName ?? event.host.name,
+          replyTo: event.host.email || undefined,
+          theme: event.theme,
+        },
+        recipients,
+        [adapter]
+      );
+      for (const status of ["accepted", "skipped", "failed", "uncertain"] as const) {
+        summary[status] += report.summary[status];
       }
-      totalSent += sent;
+      if (rsvps.length < CHUNK_SIZE) break;
     }
-
-    if (rsvps.length < CHUNK_SIZE) break;
-    skip += CHUNK_SIZE;
+  } catch {
+    // Preserve completed chunks, but never expose private preparation/provider errors.
+    logger.warn("Manual-blast notification processing failed", { eventId, channel });
+    return { success: false, sent: summary.accepted, summary };
   }
-
-  return { success: true, sent: totalSent };
+  return { success: true, sent: summary.accepted, summary };
 }
 
 // ── Event updates ─────────────────────────────────────────────────────────────

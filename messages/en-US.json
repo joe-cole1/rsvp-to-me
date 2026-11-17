@@ -654,7 +654,8 @@
         "summary": "Update posted. Notifications: {accepted} accepted, {skipped} skipped, {failed} failed, {uncertain} uncertain.",
         "processingFailed": "Update posted. Notifications could not be processed.",
         "acceptedHint": "Accepted means the service accepted the message for processing; delivery is not confirmed.",
-        "uncertainHint": "Some submissions could not be confirmed. Retrying could send duplicate notifications."
+        "uncertainHint": "Some submissions could not be confirmed. Retrying could send duplicate notifications.",
+        "blastSummary": "Notifications: {accepted} accepted, {skipped} skipped, {failed} failed, {uncertain} uncertain."
       },
       "ActivityFeed": {
         "activity": "Activity",
@@ -778,7 +779,8 @@
         "inviteSent": "Invite sent to {destination}!",
         "emailSent": "Sent email to {count, plural, one {# guest} other {# guests}}.",
         "smsSent": "Sent SMS to {count, plural, one {# guest} other {# guests}}.",
-        "close": "Close"
+        "close": "Close",
+        "blastProcessingFailed": "Some message processing could not be completed. Counts show completed processing only; retrying may send duplicates."
       },
       "GuestListFilter": {
         "all": "All",
@@ -1841,10 +1843,10 @@
       "timeOn": "{time} is on.",
       "timeOff": "{time} is off.",
       "enableHostAlerts": "Notify organizers of new RSVPs",
-      "tableHint": "Each message goes to every place you check. Sign-in links, invitations and messages a host sends to all guests aren’t controlled here.",
+      "tableHint": "Each message goes to every place you check. Sign-in links and invitations aren’t controlled here.",
       "tableName": "What you get and where",
       "columnMessage": "Message",
-      "updatesHint": "Changes to time, place or details",
+      "updatesHint": "Host messages and changes to event details",
       "remindersHint": "Before the event, and if you haven’t answered",
       "confirmationsHint": "Your private edit link and the host’s answer",
       "host_alertsHint": "When guests answer events you host",

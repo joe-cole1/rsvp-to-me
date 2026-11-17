@@ -99,7 +99,17 @@ and a thirty-second deadline each. HTTP requests are aborted and timed-out SMTP
 transports are closed. Notification preparation or delivery failure does not
 undo the saved update. Results are not persisted and do not automatically retry.
 
-Recipient preferences add database migrations and profile/event settings, with no new dependencies, sender credentials, environment variables or Cloudflare Worker deployment. Current email templates, locale, themes, reply-to and BCC privacy remain in use. Automatic reminders, RSVP confirmations/decisions and organizer alerts also enforce recipient preferences. Initial invitations, manual blasts and authentication remain separate. See [Notification Preferences](../host/notification-preferences.md).
+Recipient preferences add database migrations and profile/event settings, with no new dependencies, sender credentials, environment variables or Cloudflare Worker deployment. Current email templates, locale, themes, reply-to and BCC privacy remain in use. Automatic reminders, RSVP confirmations/decisions and organizer alerts also enforce recipient preferences. Initial invitations and authentication remain separate. See [Notification Preferences](../host/notification-preferences.md).
+
+Manual host blasts also use the shared dispatcher. They apply the **Event updates**
+preference for the current RSVP contact, including event overrides and paused contacts,
+limited to the channel the host selected. They retain the existing audience filters,
+500-row pages, CAPTCHA and per-event/channel quotas. Email keeps locale grouping,
+theme, reply-to and BCC privacy. The host sees accepted/skipped/failed/uncertain counts;
+disabled or unconfigured services and development console handling are skipped, never
+accepted. Completed processing counts survive a later preparation error. No new
+migration, dependency, credential, environment variable or worker deployment is needed
+for this adoption.
 
 _Note on Reminders:_ The scheduler consumes each logical occurrence before submission. It does not automatically retry partial or uncertain acceptance; a crash after claiming can lose the occurrence. This is not an exactly-once delivery guarantee.
 

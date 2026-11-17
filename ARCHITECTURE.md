@@ -329,8 +329,10 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `app/e/[slug]/notifications/page.tsx` is the private guest management entry
   point and seeds the editor from its authorizing server read.
   `components/notifications/` renders the choice table and contact lists from the
-  shared settings `Toggle`/`Section` controls. Manual blasts, invitations and
-  authentication retain separate delivery paths.
+  shared settings `Toggle`/`Section` controls. Manual blasts in
+  `app/actions/event/blasts.ts` resolve the `updates` preference with the host-selected
+  channel as a ceiling, retain their filtered/paged audience, and return aggregate
+  dispatcher outcomes. Invitations and authentication retain separate delivery paths.
   See [ADR 0003](docs/engineering/decisions/0003-unified-notifications.md).
 - `lib/theme.ts`, `lib/fonts.ts`, and `lib/effects.ts` define web theme options.
   `resolveTheme()` derives every readable text color (card text, `accentText`,
