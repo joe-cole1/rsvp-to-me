@@ -94,7 +94,7 @@
   },
   "devDependencies": {
     "@formatjs/icu-messageformat-parser": "^3.5.23",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@react-email/ui": "^6.11.13",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
