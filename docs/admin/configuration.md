@@ -520,6 +520,7 @@ _Format:_ `"Display Name <email@domain.com>"` (e.g. `"Sarah's Birthday <rsvp@sar
 
 - **Required**: Yes (if using Cloudflare REST API)
 - **Type**: String (found in your Cloudflare Dashboard sidebar)
+- **Format**: Exactly 32 hexadecimal characters. Any other value leaves the Cloudflare REST API provider unavailable, and **Send test email** reports an invalid Account ID without contacting Cloudflare.
 
 #### CLOUDFLARE_API_TOKEN
 

@@ -57,6 +57,21 @@ async function templateCopy(
   };
 }
 
+const CLOUDFLARE_API_ORIGIN = "https://api.cloudflare.com";
+const CLOUDFLARE_ACCOUNT_ID = /^[0-9a-f]{32}$/i;
+
+/**
+ * The Cloudflare Email REST send endpoint for an account, or `null` when the
+ * value is not a Cloudflare account ID (32 hexadecimal characters). Every
+ * `cloudflare_api` request URL is built here, so an administrator-supplied ID
+ * can never add path segments, a query or a fragment to the request.
+ */
+export function cloudflareApiSendUrl(accountId: string | undefined): string | null {
+  const id = accountId?.trim() ?? "";
+  if (!CLOUDFLARE_ACCOUNT_ID.test(id)) return null;
+  return `${CLOUDFLARE_API_ORIGIN}/client/v4/accounts/${id.toLowerCase()}/email/sending/send`;
+}
+
 export function isSafeWorkerUrl(urlStr: string): boolean {
   try {
     const parsed = new URL(urlStr);
@@ -279,14 +294,15 @@ async function send(opts: MailOpts): Promise<AttemptOutcome> {
 
   if (config.provider === "cloudflare" || config.provider === "cloudflare_api") {
     const worker = config.provider === "cloudflare";
-    const ready = worker
+    const url = worker
       ? config.cloudflare.url && config.cloudflare.secret && isSafeWorkerUrl(config.cloudflare.url)
-      : config.cloudflare.accountId && config.cloudflare.apiToken;
-    if (ready) {
+        ? `${config.cloudflare.url}/send`
+        : null
+      : config.cloudflare.apiToken
+        ? cloudflareApiSendUrl(config.cloudflare.accountId)
+        : null;
+    if (url) {
       outcome = await context.run(async (signal): Promise<AttemptOutcome> => {
-        const url = worker
-          ? `${config.cloudflare.url}/send`
-          : `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.cloudflare.accountId!)}/email/sending/send`;
         const response = await fetch(url, {
           method: "POST",
           signal,
@@ -613,10 +629,11 @@ export async function createEmailNotificationAdapter(
     !!config.cloudflare.secret &&
     !!config.cloudflare.url &&
     isSafeWorkerUrl(config.cloudflare.url);
-  const apiReady =
-    config.provider === "cloudflare_api" &&
-    !!config.cloudflare.accountId &&
-    !!config.cloudflare.apiToken;
+  const apiUrl =
+    config.provider === "cloudflare_api" && config.cloudflare.apiToken
+      ? cloudflareApiSendUrl(config.cloudflare.accountId)
+      : null;
+  const apiReady = apiUrl !== null;
   const smtpReady = !!config.smtp.host;
   const adapter: NotificationAdapter = {
     channel: "email",
@@ -659,9 +676,7 @@ export async function createEmailNotificationAdapter(
               bcc: active.map((target) => target.destination),
               ...mail,
             };
-            const url = workerReady
-              ? `${config.cloudflare.url}/send`
-              : `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.cloudflare.accountId!)}/email/sending/send`;
+            const url = workerReady ? `${config.cloudflare.url}/send` : apiUrl!;
             const response = await fetch(url, {
               method: "POST",
               signal,
@@ -912,9 +927,13 @@ export async function testEmailConfig(
     if (!config.cloudflare.accountId || !config.cloudflare.apiToken) {
       return { success: false, error: "Cloudflare Account ID and API Token are required." };
     }
-    const url = `https://api.cloudflare.com/client/v4/accounts/${config.cloudflare.accountId}/email/sending/send`;
-    if (!isSafeWorkerUrl(url)) {
-      return { success: false, error: "Invalid Cloudflare REST API URL." };
+    const url = cloudflareApiSendUrl(config.cloudflare.accountId);
+    if (!url) {
+      return {
+        success: false,
+        error:
+          "Invalid Cloudflare Account ID. Use the 32-character hexadecimal ID from your Cloudflare dashboard.",
+      };
     }
     try {
       const res = await fetch(url, {

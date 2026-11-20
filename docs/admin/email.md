@@ -400,7 +400,7 @@ Leave all `SMTP_*` fields blank.
 If you do not need inbound guest replies forwarded to you, you can call Cloudflare's Email Routing API directly without setting up Wrangler or deploying a Worker.
 
 1. **Enable Email Routing:** Ensure Email Routing is active on your domain in Cloudflare.
-2. **Find your Account ID:** Select your domain in the Cloudflare Dashboard and copy the **Account ID** from the right sidebar.
+2. **Find your Account ID:** Select your domain in the Cloudflare Dashboard and copy the **Account ID** from the right sidebar. It is 32 hexadecimal characters; the app rejects any other value.
 3. **Create an API Token:**
    - Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens).
    - Click **Create Token** > select the **Send Email** template (or create a custom token granting **Account** | **Email Sending** | **Edit**).
