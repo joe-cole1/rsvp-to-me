@@ -29,13 +29,13 @@ Erinnerungen behalten die bestehenden Abschlussmarkierungen je Veranstaltung und
 Übersetzungen werden über normale Pull Requests geprüft. Es gibt weder einen Übersetzungsupload zur Laufzeit noch einen externen Übersetzungsdienst.
 
 1. Wähle eine BCP-47-Sprachkennung, zum Beispiel `fr-FR`.
-2. Füge `messages/<locale>.json` hinzu. Folge den verschachtelten Schlüsseln in `messages/en-US.json`. Fehlende Schlüssel fallen auf Englisch zurück; unbekannte Schlüssel werden abgelehnt.
+2. Füge `messages/<locale>.json` hinzu. Folge den verschachtelten Schlüsseln in `messages/en-US.json`. Eine registrierte Sprache muss jeden Schlüssel übersetzen: Die Katalogtests schlagen bei einem fehlenden oder unbekannten Schlüssel fehl. Zur Laufzeit fällt ein dennoch fehlender Schlüssel auf Englisch zurück.
 3. Registriere die Kennung in `messages/locales.json` mit `nativeName`, `dir` (`ltr` oder `rtl`) und dem `flag`-Pfad. Lege die SVG-Flagge unter `public/` ab und verwende ihre lokal bereitgestellte URL. Das Register steuert die Sprachauswahl und die Prüfung unterstützter Sprachen. Eine neue Sprache erfordert keine Änderung an Komponenten oder Datenbankschema. Die Reihenfolge der Einträge in der Datei spielt keine Rolle: Das Menü zeigt immer zuerst Englisch und danach die übrigen Sprachen alphabetisch nach `nativeName`.
 4. Verwende ICU-Nachrichten. Behalte Parameter- und Rich-Text-Tagnamen exakt bei. Erhalte die Bedeutung, verwende vollständige Sätze und ICU-Pluralformen und füge den erforderlichen `other`-Zweig ein. Übersetze keine festen Enumwerte, Routenpfade, Umgebungsvariablen oder Befehle. Maskiere in ICU-Text einen wörtlichen Apostroph vor ICU-Syntax mit einem weiteren Apostroph.
 5. Füge optional vollständige Hilfeartikel wie unten beschrieben hinzu.
 6. Führe `npm test -- tests/lib/i18n* tests/lib/docs.test.ts tests/lib/docs-localization.test.tsx` und anschließend `npm run test:components -- tests/components/DocsPanel.test.tsx` aus. Für die integrierte Änderung bleibt der vollständige Repository-Preflight erforderlich.
 
-Die Namensräume für E-Mail, SMS und Erinnerungen werden nur auf dem Server verwendet. Nur der ausgewählte UI-Katalog wird an den Browser übergeben. Teilweise übersetzte Kataloge sind willkommen; unübersetzte Oberflächentexte fallen auf Englisch zurück.
+Die Namensräume für E-Mail, SMS und Erinnerungen werden nur auf dem Server verwendet. Nur der ausgewählte UI-Katalog wird an den Browser übergeben. Jede Sprache in `messages/locales.json` wird mit einem vollständigen Katalog ausgeliefert. Eine Änderung, die englische Texte hinzufügt, muss dieselben Schlüssel deshalb jeder registrierten Sprache hinzufügen.
 
 ## Hilfeartikel übersetzen {#translating-help-articles}
 

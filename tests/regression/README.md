@@ -182,6 +182,11 @@ Task `01a1ab65` addresses #793 in `issue-793-dutch-notification-feedback.test.ts
 all four event-update feedback messages must exist in the Dutch catalog, and the
 localized summary must interpolate every delivery count without English fallback.
 
+Task `9faf9220` addresses #914 in `issue-914-dutch-catalog-completeness.test.ts`:
+the Dutch catalog was missing 46 keys, so the required RSVP verification email reached
+Dutch guests in English. `tests/lib/i18n-catalogs.test.ts` now derives its completeness
+list from `messages/locales.json` instead of naming German and Spanish.
+
 Task `01a1a08c` addresses #335 in `issue-335-update-routing.test.ts`: phone-only
 default routing, opt-outs, explicit SMS selection, awaited delivery, safe aggregate
 feedback, posted-update preservation, and authorization/CAPTCHA ordering.

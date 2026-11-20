@@ -29,13 +29,13 @@ Los recordatorios conservan los marcadores existentes de finalización por event
 Las traducciones se revisan mediante las solicitudes de cambios habituales. No hay carga de traducciones en tiempo de ejecución ni un servicio externo de traducción.
 
 1. Elige un identificador de idioma BCP 47, como `fr-FR`.
-2. Añade `messages/<locale>.json`. Sigue las claves anidadas de `messages/en-US.json`. Las claves que falten usan el inglés; las claves desconocidas se rechazan.
+2. Añade `messages/<locale>.json`. Sigue las claves anidadas de `messages/en-US.json`. Un idioma registrado debe traducir todas las claves: las pruebas de catálogos fallan si falta una clave o hay una desconocida. Durante la ejecución, una clave que aun así falte usa el inglés.
 3. Registra el identificador en `messages/locales.json` con su `nativeName`, `dir` (`ltr` o `rtl`) y ruta `flag`. Añade el SVG de la bandera en `public/` y usa su URL alojada localmente. El registro controla el selector y la validación de idiomas admitidos; añadir un idioma no requiere cambios en los componentes ni en el esquema de la base de datos. El orden de las entradas en el archivo no importa: el menú siempre muestra primero el inglés y después el resto por orden alfabético de `nativeName`.
 4. Usa mensajes ICU. Conserva exactamente los nombres de los parámetros y de las etiquetas de texto enriquecido. Mantén el significado de los mensajes, usa frases completas y plurales ICU e incluye la rama obligatoria `other`. No traduzcas los valores estables de las enumeraciones, las rutas, las variables de entorno ni los comandos. En texto ICU, escapa un apóstrofo literal situado antes de la sintaxis ICU con otro apóstrofo.
 5. Si lo deseas, añade artículos de ayuda completos como se describe a continuación.
 6. Ejecuta `npm test -- tests/lib/i18n* tests/lib/docs.test.ts tests/lib/docs-localization.test.tsx` y después `npm run test:components -- tests/components/DocsPanel.test.tsx`. La comprobación previa completa del repositorio sigue siendo obligatoria para el cambio integrado.
 
-Los espacios de nombres de correo electrónico, SMS y recordatorios se usan solo en el servidor. Al navegador solo se envía el catálogo de la interfaz seleccionado. Se aceptan catálogos parciales; los mensajes de la interfaz sin traducir usan el inglés.
+Los espacios de nombres de correo electrónico, SMS y recordatorios se usan solo en el servidor. Al navegador solo se envía el catálogo de la interfaz seleccionado. Cada idioma de `messages/locales.json` se publica con un catálogo completo, así que un cambio que añada textos en inglés debe añadir las mismas claves a cada idioma registrado.
 
 ## Traducir artículos de ayuda {#translating-help-articles}
 
