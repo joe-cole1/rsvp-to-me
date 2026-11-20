@@ -41,3 +41,26 @@ export function assertResolvedFloor(
     assertDependencyFloor(path, entry.version, floor);
   }
 }
+
+// An advisory may affect one band of majors while older lines stay unaffected
+// (minimatch 3 is outside GHSA-g3hv-75wg-m249). `fixed` is the first patched
+// release after the affected band; prereleases and malformed versions fail.
+export function outsideAffectedRange(version: string, introduced: string, fixed: string): boolean {
+  if (!atLeast(version, "0.0.0")) return false;
+  return !atLeast(version, introduced) || atLeast(version, fixed);
+}
+
+export function assertResolvedOutsideRange(
+  packages: LockedPackages,
+  name: string,
+  introduced: string,
+  fixed: string
+) {
+  // As with floors, upstream removing the transitive package is a valid fix.
+  for (const [path, entry] of resolutions(packages, name)) {
+    expect(
+      outsideAffectedRange(entry.version ?? "", introduced, fixed),
+      `${path}: expected a stable version below ${introduced} or at least ${fixed}; received ${entry.version ?? "<missing>"}`
+    ).toBe(true);
+  }
+}
