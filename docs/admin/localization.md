@@ -31,13 +31,13 @@ Reminders retain the existing event/type completion markers and sender-result be
 Translations are reviewed through normal pull requests. There is no runtime translation upload or external translation service.
 
 1. Choose a BCP 47 locale ID, such as `fr-FR`.
-2. Add `messages/<locale>.json`. Follow the nested keys in `messages/en-US.json`. Missing keys fall back to English; unknown keys are rejected.
+2. Add `messages/<locale>.json`. Follow the nested keys in `messages/en-US.json`. A registered language must translate every key: the catalog tests fail on a missing or unknown key. At runtime, a key that is somehow missing still falls back to English.
 3. Register the ID in `messages/locales.json` with its `nativeName`, `dir` (`ltr` or `rtl`), and `flag` path. Add the flag SVG under `public/` and use its locally hosted URL. The registry drives the selector and supported-language validation; adding a language needs no component or database schema change. The order of entries in the file does not matter: the menu always lists English first, then the rest alphabetically by `nativeName`.
 4. Use ICU messages. Preserve parameter and rich-text tag names exactly. Preserve message meaning, use complete sentences and ICU plurals, and include the required `other` branch. Do not translate stable enum values, route paths, environment variables, or commands. In ICU text, escape a literal apostrophe before ICU syntax with another apostrophe.
 5. Optionally add complete help articles as described below.
 6. Run `npm test -- tests/lib/i18n* tests/lib/docs.test.ts tests/lib/docs-localization.test.tsx`, then `npm run test:components -- tests/components/DocsPanel.test.tsx`. The full repository preflight is still required for the integrated change.
 
-Email, SMS, and reminder namespaces are used only on the server. Only the selected UI catalog is passed to the browser. Partial catalogs are welcome; untranslated UI messages fall back to English.
+Email, SMS, and reminder namespaces are used only on the server. Only the selected UI catalog is passed to the browser. Every language in `messages/locales.json` ships a complete catalog, so a change that adds English copy must add the same keys to each registered language.
 
 ## Translating Help Articles
 

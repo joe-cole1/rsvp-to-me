@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { parse, type MessageFormatElement } from "@formatjs/icu-messageformat-parser";
-import { locales } from "@/i18n/config";
+import { DEFAULT_LOCALE, locales } from "@/i18n/config";
+// Every shipped language must be complete; #914 found Dutch missing 46 keys
+// because this list was hard-coded to German and Spanish.
+const translatedLocales = Object.keys(locales).filter((locale) => locale !== DEFAULT_LOCALE);
 type Catalog = { [key: string]: string | Catalog };
 function flatten(catalog: Catalog, prefix = ""): Record<string, string> {
   const result: Record<string, string> = {};
@@ -67,7 +70,10 @@ describe("registered ICU message catalogs", () => {
     for (const [key, value] of Object.entries(english))
       expect.soft(() => parse(value), key).not.toThrow();
   });
-  it.each(["de-DE", "es-ES"])(
+  it("checks completeness for every registered translation", () => {
+    expect(translatedLocales).toEqual(expect.arrayContaining(["de-DE", "es-ES", "nl-NL"]));
+  });
+  it.each(translatedLocales)(
     "ships a complete %s catalog with the canonical boundary whitespace",
     (locale) => {
       const translated = flatten(

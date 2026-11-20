@@ -226,7 +226,13 @@
         "invitationConflict": "Meerdere gasten komen overeen met dit contact. Los de gastgegevens op voordat je verstuurt.",
         "invitationReviewChanged": "Deze gast is gewijzigd sinds het voorbeeld. Controleer de uitnodiging opnieuw.",
         "invitationChannelDisabled": "Dit kanaal voor uitnodigingen is uitgeschakeld.",
-        "invitationSendFailed": "De uitnodiging kon niet worden verstuurd. Controleer deze ontvanger en probeer het opnieuw."
+        "invitationSendFailed": "De uitnodiging kon niet worden verstuurd. Controleer deze ontvanger en probeer het opnieuw.",
+        "unlistedUrlDecision": "Bevestig een niet-vermelde link met de instellingen voor de evenement-URL.",
+        "rsvpProofRequired": "Verifieer elk e-mailadres en telefoonnummer voordat je je RSVP bevestigt.",
+        "rsvpProofInvalid": "Deze code is ongeldig, verlopen of al gebruikt. Probeer het opnieuw of vraag een nieuwe code aan.",
+        "rsvpProofRateLimited": "Te veel verificatieverzoeken. Wacht even voordat je een nieuwe code aanvraagt.",
+        "rsvpProofUnavailable": "Verificatie is niet beschikbaar voor dit contact. Probeer het later opnieuw of neem contact op met de organisator.",
+        "rsvpUsePrivateLink": "Gebruik je persoonlijke RSVP-link of neem contact op met de organisator om deze aanmelding te wijzigen."
       },
       "NotFound": {
         "title": "We konden die pagina niet vinden",
@@ -1097,6 +1103,33 @@
         "resultFailed": "{count, plural, one {# mislukt en blijft in je lijst staan.} other {# mislukt en blijven in je lijst staan.}}",
         "continue": "Terug naar ontvangers",
         "unnamedGuest": "Gast"
+      },
+      "EventUrlSettings": {
+        "eventUrl": "Evenement-URL",
+        "prefix": "Kies het deel van je adres na /e/. Letters, cijfers en koppeltekens zijn toegestaan. Adressen zijn hoofdlettergevoelig.",
+        "preview": "Voorbeeld van de URL:",
+        "randomHint": "Dit adres bevat een gegenereerde willekeurige code.",
+        "privateHint": "Je regels voor uitnodigingen en wachtwoordtoegang blijven gelden.",
+        "customHint": "Dit eigen adres is mogelijk makkelijk te raden. Iedereen met het adres kan een niet-vermeld evenement bekijken, tenzij er een wachtwoord is ingesteld.",
+        "publicHint": "Gebruik een kort, makkelijk te onthouden adres voor je openbare evenement.",
+        "saveUrl": "URL opslaan",
+        "generateNew": "Nieuwe link genereren",
+        "addCode": "Willekeurige code toevoegen",
+        "cancel": "Annuleren",
+        "useAnyway": "Deze URL gebruiken",
+        "changeUrl": "URL wijzigen",
+        "guessableTitle": "Deze link is mogelijk makkelijk te raden",
+        "guessableMessage": "Je evenement blijft buiten openbare overzichten, maar iedereen die dit adres raadt, kan het bekijken, tenzij er een wachtwoord is ingesteld. Houd het adres of voeg een willekeurige code toe.",
+        "changeTitle": "Evenement-URL wijzigen?",
+        "changeMessage": "Eerder gedeelde links naar het evenement, uitnodigingen, aanmeldingen en agenda's werken dan niet meer. Het oude adres stuurt niet door naar het nieuwe. Deel de bijgewerkte links met je gasten.",
+        "urlSaved": "Je evenement-URL is opgeslagen.",
+        "visibilitySaved": "De zichtbaarheid van je evenement is opgeslagen.",
+        "failed": "De wijziging van je evenementlink kon niet worden bevestigd. Controleer je verbinding en probeer het opnieuw, of laad de pagina opnieuw om de huidige link en zichtbaarheid te bekijken.",
+        "invalid": "Gebruik maximaal 80 letters, cijfers of koppeltekens, beginnend en eindigend met een letter of cijfer.",
+        "taken": "Dit adres is al in gebruik. Kies een andere naam of genereer een nieuwe link.",
+        "stale": "De link of zichtbaarheid is in een ander tabblad gewijzigd. Laad deze pagina opnieuw voordat je het nog eens probeert.",
+        "confirmChange": "Bevestig dat eerder gedeelde links niet meer werken.",
+        "confirmGuessable": "Kies of je dit te raden niet-vermelde adres houdt of een willekeurige code toevoegt."
       }
     },
     "Rsvp": {
@@ -1156,7 +1189,17 @@
         "nameRequiredError": "Vul je naam in.",
         "emailInvalidError": "Vul een geldig e-mailadres in.",
         "requiredFieldError": "Vul dit verplichte veld in.",
-        "checkFields": "Controleer de gemarkeerde velden."
+        "checkFields": "Controleer de gemarkeerde velden.",
+        "verifyContact": "Verifieer je contactgegevens om verder te gaan",
+        "verificationInstructions": "Verifieer elk contact dat je hebt ingevuld. Hiermee wordt je RSVP niet opgeslagen en word je niet ingelogd.",
+        "verificationCode": "Verificatiecode",
+        "verificationSent": "Kijk op dit contact voor een code van acht cijfers. De code verloopt na 15 minuten. Heb je hem niet aangevraagd? Negeer hem dan.",
+        "sendCode": "Code versturen",
+        "verifyCode": "Code verifiëren",
+        "resendCode": "Code opnieuw versturen",
+        "resendIn": "Opnieuw versturen over {seconds} s",
+        "verifiedReview": "Contactgegevens geverifieerd. Controleer je antwoord en bevestig daarna je RSVP.",
+        "verificationProgress": "Contact {current} van {total}"
       },
       "status": {
         "GOING": "Aanwezig",
@@ -1400,6 +1443,9 @@
       "backingUp": "Back-up maken…",
       "createBackupNow": "Nu back-up maken",
       "backupArchives": "Back-uparchieven",
+      "migrationSnapshotsHint": "Migratiesnapshots zijn hier alleen-lezen. Na een geslaagde dump worden zeven opstart- en zeven geheimherstelsnapshots apart bewaard. Bescherm ze als geheimen; beheer herstelkopieën op de server.",
+      "startupSnapshot": "Opstartsnapshot · alleen-lezen",
+      "secretRecoverySnapshot": "Geheimherstel · alleen-lezen",
       "listOfStoredBackupsOnThisServer": "Lijst van opgeslagen back-ups op deze server.",
       "filename": "BESTANDSNAAM",
       "createdAt": "AANGEMAAKT OP",
@@ -2032,6 +2078,8 @@
   },
   "Notifications": {
     "verificationSubject": "Verifieer je meldingsadres of nummer",
-    "verificationBody": "Je verificatiecode voor meldingen is {code}. De code verloopt na 15 minuten. Dit logt je niet in en schakelt geen meldingen in."
+    "verificationBody": "Je verificatiecode voor meldingen is {code}. De code verloopt na 15 minuten. Dit logt je niet in en schakelt geen meldingen in.",
+    "rsvpVerificationSubject": "Verifieer je RSVP-contact",
+    "rsvpVerificationBody": "Je RSVP-verificatiecode is {code}. De code verloopt na 15 minuten. Hiermee wordt geen RSVP opgeslagen en word je niet ingelogd. Heb je deze code niet aangevraagd? Negeer dit bericht dan."
   }
 }
