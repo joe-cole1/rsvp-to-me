@@ -108,7 +108,11 @@ Issue #880 (task `01a1e3a7`):
   provenance/expiry, authorization/CAPTCHA, explicit URL decisions, collisions and
   stale writes.
 - `issue-880-event-url-settings.test.tsx`: rendered URL previews, warning choices,
-  cancellation, pending/failure behavior and confirmed visibility.
+  cancellation, pending/failure behavior and confirmed visibility. Task `73300ac2`
+  fixed preflight/CI flakes: alerts and the generated-code change dialog render
+  before the async transition re-enables their controls, and dialog focus lands
+  in a later effect, so retries and "Change URL" now wait for enabled controls
+  and the focus check waits for focus instead of acting one render early.
 - `tests/e2e/event-links.e2e.ts`: real creation/edit/privacy flows, retired event
   and invitation routes, Private access, collision errors and phone dialogs.
 
