@@ -87,6 +87,9 @@
     "sharp": "$sharp",
     "prisma": {
       "mysql2": "3.24.4"
+    },
+    "@prisma/config": {
+      "effect": "^3.22.5"
     }
   },
   "lint-staged": {

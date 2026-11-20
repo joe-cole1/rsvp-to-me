@@ -145,6 +145,15 @@ Other security overrides keep React Email on the application's patched Next.js
 16 release, raise PostCSS to its patched release line, and constrain Prisma's
 development tooling to patched `find-my-way` and Valibot versions.
 
+Prisma 7.10.1 pins `effect` 3.20.0 through `@prisma/config`, which loads
+whenever migrations run. A scoped `@prisma/config` override raises it to the
+patched 3.22 line for
+[GHSA-7589-6fvf-x4pw](https://github.com/advisories/GHSA-7589-6fvf-x4pw).
+The override sits at the top level because an override nested under `prisma`
+does not reach that grandchild. Remove it once a stable Prisma release depends
+on `effect` 3.22.1 or later; the regression guard keeps checking every
+installed copy.
+
 ESLint 9 still resolves `minimatch` 3, whose legacy callable
 `brace-expansion` API is incompatible with the named export in the only patched
 release. `vendor/brace-expansion-compat/` temporarily exposes both interfaces
