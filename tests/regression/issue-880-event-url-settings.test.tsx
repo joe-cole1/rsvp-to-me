@@ -1,6 +1,12 @@
 // #880 root cause: hosts could not edit or rotate predictable event addresses.
 // The rendered editor now makes guessability/link-break choices explicit and
 // keeps confirmed URL/visibility state until a successful server response.
+// Task 73300ac2 root cause: state set after an await in an async transition
+// (a failed save/preview's alert, the generated-code "Change event URL?" dialog)
+// commits one React render before the transition ends and re-enables controls,
+// and the dialog's initial focus lands in a later passive effect. Under preflight
+// or CI load, clicks hit still-disabled controls and were dropped, so the next
+// waitFor timed out. Steps now wait for focus or an enabled control first.
 // @vitest-environment jsdom
 import React, { useState } from "react";
 import "@testing-library/jest-dom/vitest";
@@ -92,8 +98,9 @@ describe("#880 rendered event URL choices", () => {
     render(<Editor />);
     draft("thanksgiving");
     let dialog = await screen.findByRole("dialog", { name: "This link may be easy to guess" });
-    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    await waitFor(() => expect(cancel).toHaveFocus());
+    fireEvent.click(cancel);
     expect(m.save).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Save URL" }));
     dialog = await screen.findByRole("dialog", { name: "This link may be easy to guess" });
@@ -106,7 +113,9 @@ describe("#880 rendered event URL choices", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Add random code" }));
     dialog = await changeDialog();
     expect(field()).toHaveValue("thanksgiving-N8p3Rb");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Change URL" }));
+    const change = within(dialog).getByRole("button", { name: "Change URL" });
+    await waitFor(() => expect(change).toBeEnabled());
+    fireEvent.click(change);
     await waitFor(() =>
       expect(m.save).toHaveBeenCalledWith(
         "event",
@@ -155,16 +164,20 @@ describe("#880 rendered event URL choices", () => {
     await screen.findByRole("alert");
     expect(screen.getByRole("radio", { name: /Unlisted/ })).toBeChecked();
     expect(field()).toHaveValue("K7m2Qa");
-    fireEvent.click(screen.getByRole("radio", { name: /Private/ }));
+    const retry = screen.getByRole("radio", { name: /Private/ });
+    await waitFor(() => expect(retry).toBeEnabled());
+    fireEvent.click(retry);
     await waitFor(() => expect(screen.getByRole("radio", { name: /Private/ })).toBeChecked());
   });
   it("previews a generated replacement without saving and reports generation failures", async () => {
     render(<Editor />);
     m.preview.mockRejectedValueOnce(new Error("offline"));
-    fireEvent.click(screen.getByRole("button", { name: "Generate new link" }));
+    const generate = screen.getByRole("button", { name: "Generate new link" });
+    fireEvent.click(generate);
     await screen.findByRole("alert");
+    await waitFor(() => expect(generate).toBeEnabled());
     expect(field()).toHaveValue("K7m2Qa");
-    fireEvent.click(screen.getByRole("button", { name: "Generate new link" }));
+    fireEvent.click(generate);
     await waitFor(() => expect(field()).toHaveValue("thanksgiving-N8p3Rb"));
     expect(m.save).not.toHaveBeenCalled();
   });
