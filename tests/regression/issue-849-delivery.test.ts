@@ -113,7 +113,7 @@ describe("#849 email acknowledgement", () => {
   it("requires the REST API's success acknowledgement", async () => {
     m.config = {
       email_provider: "cloudflare_api",
-      cloudflare_account_id: "fixture",
+      cloudflare_account_id: "00000000000000000000000000000abc",
       cloudflare_api_token: encryptConfig("fixture-secret"),
     };
     m.fetch.mockResolvedValue({ ok: true, json: async () => ({ success: false }) });

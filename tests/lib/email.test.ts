@@ -273,7 +273,7 @@ describe("lib/email.ts", () => {
     it("prioritizes database email_provider: 'cloudflare_api' over environment variables", async () => {
       mockSystemConfigFindMany.mockResolvedValue([
         { key: "email_provider", value: "cloudflare_api" },
-        { key: "cloudflare_account_id", value: "db-account-id" },
+        { key: "cloudflare_account_id", value: "0123456789abcdef0123456789abcdef" },
         {
           key: "cloudflare_api_token",
           value: (await import("@/lib/crypto")).encryptConfig("db-api-token"),
@@ -288,7 +288,7 @@ describe("lib/email.ts", () => {
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.cloudflare.com/client/v4/accounts/db-account-id/email/sending/send",
+        "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/email/sending/send",
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
@@ -459,11 +459,11 @@ describe("lib/email.ts", () => {
         provider: "cloudflare_api",
         from: "noreply@example.com",
         smtp: { port: 587, secure: false },
-        cloudflare: { accountId: "db-account-id", apiToken: "db-api-token" },
+        cloudflare: { accountId: "0123456789abcdef0123456789abcdef", apiToken: "db-api-token" },
       });
       expect(res.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.cloudflare.com/client/v4/accounts/db-account-id/email/sending/send",
+        "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/email/sending/send",
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
@@ -485,7 +485,7 @@ describe("lib/email.ts", () => {
         provider: "cloudflare_api",
         from: "noreply@example.com",
         smtp: { port: 587, secure: false },
-        cloudflare: { accountId: "db-account-id", apiToken: "db-api-token" },
+        cloudflare: { accountId: "0123456789abcdef0123456789abcdef", apiToken: "db-api-token" },
       });
       expect(res.success).toBe(false);
       expect(res.error).toBe(

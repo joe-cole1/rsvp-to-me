@@ -258,7 +258,7 @@ describe("result-bearing email delivery", () => {
 
   it("handles Cloudflare REST acknowledgements without altering the Worker protocol", async () => {
     mocks.config.email_provider = "cloudflare_api";
-    mocks.config.cloudflare_account_id = "account-fixture";
+    mocks.config.cloudflare_account_id = "fedcba9876543210fedcba9876543210";
     mocks.config.cloudflare_api_token = "fixture-api-token";
     mocks.fetch.mockResolvedValue(ack({ success: true, result: {} }));
     expect(
@@ -268,7 +268,9 @@ describe("result-bearing email delivery", () => {
         ).deliver(message, emailTargets, createTransportContext())
       )[0].status
     ).toBe("accepted");
-    expect(mocks.fetch.mock.calls[0][0]).toContain("/accounts/account-fixture/email/sending/send");
+    expect(mocks.fetch.mock.calls[0][0]).toContain(
+      "/accounts/fedcba9876543210fedcba9876543210/email/sending/send"
+    );
     expect(mocks.sendMail).not.toHaveBeenCalled();
   });
 });
