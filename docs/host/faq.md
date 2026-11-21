@@ -12,6 +12,39 @@ Quick answers to the things hosts run into most.
 
 ---
 
+## What changes for hosts in v2.0.0?
+
+- **Guests verify their contact details:** a guest who gives an email address
+  or phone number on your public RSVP form enters a code sent to it before the
+  RSVP is saved. Guests who leave both blank, and guests answering from their
+  invitation link, are not asked. See [Managing RSVPs](managing-rsvps.md).
+- **Event passwords:** everyone who unlocked a password-protected event enters
+  the password once more after the upgrade. You can now remove a password from
+  **Display options**.
+- **Event URLs:** existing links keep working. New Unlisted and Private events
+  get a random six-character URL, and you can edit or regenerate a URL in
+  **Display options**. Renaming a URL breaks links you already shared, so send
+  the new one. See [Visibility & Privacy](visibility-and-privacy.md).
+- **Notification preferences:** under **Profile**, you and your guests choose
+  which messages arrive by email or text. Your messages to guests follow their
+  choices. See [Notification Preferences](notification-preferences.md).
+- **Signing in:** the sign-in email or text also has a 6-digit code you can
+  type instead of opening the link. Sign out from the menu under your avatar.
+- **Co-hosts** accept an invitation by signing in with the invited email address
+  and choosing **Accept invitation**.
+- **Polls and potluck:** guests who share a display name now have separate votes
+  and claims. Earlier vote counts and claims are kept, but guests choose again
+  to mark their own vote.
+- **Themes:** background effects can mix up to three icons with their own
+  amount, size, speed and movement, and new occasion presets come with default
+  effects. See [Customizing Your Page](customizing-your-page.md).
+- **Uploads:** each account can store up to 100 MiB of covers and avatars.
+  Remove unused images to free space.
+
+Your administrator restarts the site during the upgrade, which may take longer
+than usual. If sign-in, an RSVP, a code or an email or text fails afterwards,
+share the time and affected event with your administrator.
+
 ## What changes for hosts in v1.5.0?
 
 - **Languages:** use the 文A button beside your profile to switch between
