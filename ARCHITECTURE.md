@@ -466,18 +466,29 @@ only when needed. `.nvmrc` remains its version authority.
 
 ## Test map
 
-| Path/config                                                 | Scope                                                                                                          |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `tests/actions/`, `tests/api/`, `tests/auth/`, `tests/lib/` | Fast Vitest unit and route/action tests.                                                                       |
-| `tests/components/`, `vitest.components.config.ts`          | Browser-like component tests.                                                                                  |
-| `tests/integration/`, `vitest.integration.config.ts`        | PostgreSQL-backed integration tests.                                                                           |
-| `tests/e2e/`, `playwright.config.ts`                        | End-to-end public/auth/host flows.                                                                             |
-| `tests/regression/`                                         | Root-cause-specific bug and security regression guards.                                                        |
-| `scripts/preflight.sh`                                      | Local CI orchestration with isolated PostgreSQL/Redis.                                                         |
-| `scripts/playwright-image.cjs`                              | Resolves the exact Docker browser image from installed Playwright for both Docker entry points.                |
-| `scripts/check-playwright-docker.sh`                        | Shared CI/preflight Chromium smoke test using the resolved browser image.                                      |
-| `.github/workflows/container-qc.yml`                        | Builds and smoke-tests production images on AMD64 and ARM64 without publishing.                                |
-| `scripts/container-smoke.sh`, `scripts/container-smoke.cjs` | Disposable PostgreSQL/Redis startup, permissions, health, seed, backup restore, and native image-codec checks. |
+| Path/config                                                  | Scope                                                                                                                              |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/actions/`, `tests/api/`, `tests/auth/`, `tests/lib/`  | Fast Vitest unit and route/action tests.                                                                                           |
+| `tests/components/`, `vitest.components.config.ts`           | Browser-like component tests.                                                                                                      |
+| `tests/integration/`, `vitest.integration.config.ts`         | PostgreSQL-backed integration tests.                                                                                               |
+| `tests/e2e/`, `playwright.config.ts`                         | End-to-end public/auth/host flows.                                                                                                 |
+| `tests/regression/`                                          | Root-cause-specific bug and security regression guards.                                                                            |
+| `scripts/preflight.sh`                                       | Local CI orchestration with isolated PostgreSQL/Redis.                                                                             |
+| `scripts/playwright-image.cjs`                               | Resolves the exact Docker browser image from installed Playwright for both Docker entry points.                                    |
+| `scripts/check-playwright-docker.sh`                         | Shared CI/preflight Chromium smoke test using the resolved browser image.                                                          |
+| `.github/workflows/container-qc.yml`                         | Builds and smoke-tests production images on AMD64 and ARM64 without publishing; manual and Release runs also rehearse the upgrade. |
+| `scripts/container-smoke.sh`, `scripts/container-smoke.cjs`  | Disposable PostgreSQL/Redis startup, permissions, health, seed, backup restore, and native image-codec checks.                     |
+| `scripts/upgrade-rehearsal.sh`, `scripts/upgrade-rehearsal/` | Previous release → candidate upgrade and rollback rehearsal on an internal network with a capture transport.                       |
+
+`scripts/upgrade-rehearsal.sh` resolves the baseline release and the expected
+migrations from Git, seeds the baseline through its own server actions (called
+by `action-client.cjs` from a sidecar of that same image), upgrades, and
+rehearses rollback paths. `expected-rewrites.json` is the source of truth for
+intentional rewrites of existing data; `scenarios/` holds one seed/check module
+per baseline range and `candidate.cjs` the checks versioned with the current
+code. It is the pre-release upgrade check: Container QC runs it only for manual
+dispatches and the Release gate, never for PRs or pushes. See
+`docs/admin/upgrading.md`.
 
 `scripts/check-format.sh` is the shared check-only formatting entry point for CI
 and preflight. `scripts/compose-service-image.cjs` resolves test service images

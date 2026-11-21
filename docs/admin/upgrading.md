@@ -283,6 +283,8 @@ Before the owner publishes `v1.5.0`:
 
 - [ ] Merge the release-preparation PR and record the resulting `main` SHA.
 - [ ] Require CI, CodeQL, and both native Container QC jobs to pass on that SHA.
+- [ ] Run Container QC manually on that SHA, which includes the
+      [upgrade rehearsal](#upgrade-rehearsal-918), and review its job summary.
 - [ ] Review the prepared notes in `.github/release-notes/v1.5.0.md` and confirm
       the comparison with `v1.4.1` adds only the two migrations listed above and
       no required variable.
@@ -343,6 +345,106 @@ docker build -t rsvp-container-qc:local .
 # Use arm64 instead of x64 on an ARM64 machine.
 bash scripts/container-smoke.sh rsvp-container-qc:local x64
 ```
+
+### Upgrade rehearsal (#918)
+
+This is the pre-release upgrade check. It runs `scripts/upgrade-rehearsal.sh`
+against the image Container QC just built, on both architectures, but only:
+
+- **manually, before you tag a release.** Go to **Actions → Container QC → Run
+  workflow** on `main`, or on the release-preparation SHA. Optionally enter a
+  `rehearsal_from` tag to rehearse from an older release.
+- **as the Release gate.** When a release is published, the Release workflow
+  runs Container QC for that commit, and a blocking failure stops the image
+  push. The GitHub release and tag already exist by then, so run the manual
+  check first.
+
+Pull requests and pushes to `main` skip both rehearsal steps. Their Container QC
+runs are unchanged, including the shallow checkout and 35-minute limit. A
+blocking failure fails that run's `Container (amd64)` / `Container (arm64)` job;
+the job summary lists every check. The rehearsal:
+
+1. **Seeds the previous release.** By default the baseline is the newest stable
+   `vX.Y.Z` tag reachable from the commit, excluding tags on that commit
+   (prereleases never). Its published image starts with its own
+   `SEED_TEST_DATA` fixtures, then the rehearsal adds data through that
+   release's own server actions and upload route: saved SMTP, Twilio and
+   Cloudflare secrets; avatars, a shared cover and an unreferenced upload; an
+   Unlisted password-protected event with display settings and reminders;
+   polls, potluck claims, two guests with the same name, companions, an edited
+   RSVP and email/SMS invitations. Every upload is then aged 48 hours.
+2. **Takes the operator backup** from [Before You Upgrade](#before-you-upgrade--back-up-your-data)
+   (a `pg_dump` and a copy of uploads) and snapshots every table.
+3. **Upgrades** by starting the candidate on the same database, uploads,
+   backups and `.env` values, and checks that:
+   - every migration added since the baseline applied. The list comes from Git
+     and must match both images, so a release needs no edit;
+   - the private `pre-migration-schema_*` and `pre-migration-secrets_*` snapshots
+     exist and hold the pre-conversion credentials;
+   - all four secrets converted to v2 and still decrypt;
+   - the startup sweep keeps old referenced uploads and removes the stale one;
+   - every existing row and column is unchanged except the declared rewrites
+     below. Vote counts, potluck quantities, display settings and event URLs are
+     also compared directly;
+   - sign-in by link and by code, public and password-protected RSVPs with
+     contact verification, editing with a pre-upgrade edit token, same-name
+     votes, invitations and event-update notifications work by email and SMS.
+4. **Rehearses the rollback** on separate copies of the upgraded data, which
+   include responses received after the upgrade. Each path starts the baseline
+   image again and repeats its health, saved-credential sign-in (email and SMS),
+   image, event URL, protected RSVP, vote and potluck checks:
+
+   | Path | Steps                                                                             | Gate        |
+   | ---- | --------------------------------------------------------------------------------- | ----------- |
+   | R1   | Old image only                                                                    | Report only |
+   | R2   | `npm run db:secrets -- --rollback` with the new image, then the old image         | Report only |
+   | R3a  | Restore the operator `pg_dump` and uploads copy into a new database               | Blocking    |
+   | R3b  | Restore the candidate's first `pre-migration-schema_*` snapshot; keep the uploads | Blocking    |
+
+   R3a and R3b also require the restored database to equal the pre-upgrade
+   snapshot exactly, including migration history.
+
+Everything runs on an internal Docker network with no published ports and no
+registry login. Mail and SMS go to a capture service on that network. It
+accepts only the disposable test accounts in
+`scripts/upgrade-rehearsal/accounts.cjs` and answers as `api.twilio.com` with a
+certificate authority generated for that run. No real provider is reachable.
+
+**Declaring an intentional data change.** A migration that rewrites existing
+data must add an entry to `scripts/upgrade-rehearsal/expected-rewrites.json`
+with its `migration`, `table`, `column`, `change` (`rewrite`, `extend-json`,
+`delete-row`, `drop-column` or `drop-table`), an optional `rows` filter on the
+old values and a `reason`. Entries apply only when their migration is part of
+the rehearsed upgrade. Additions (tables, columns, rows) never need an entry.
+
+**Baseline scenarios.** `scripts/upgrade-rehearsal/scenarios/vX.Y.Z.cjs`
+seeds and checks baselines from that release until a newer scenario exists.
+Add one when a release changes an action signature the scenario calls. The
+post-upgrade checks in `candidate.cjs` follow the current code.
+
+Run it locally on a Docker-enabled machine with Node 22 and `openssl`:
+
+```bash
+# Previous release → this working tree (builds it).
+bash scripts/upgrade-rehearsal.sh
+# A chosen release → an already-built image.
+bash scripts/upgrade-rehearsal.sh --from v1.5.0 --to-image rsvp-container-qc:local
+# Any commit that contains the rehearsal, e.g. main. It runs that commit's copy.
+bash scripts/upgrade-rehearsal.sh --to-ref main
+# Build the baseline from a commit instead of a release image.
+bash scripts/upgrade-rehearsal.sh --from-ref <commit> --to-ref <commit>
+# Show the resolved baseline, scenario and migrations only.
+bash scripts/upgrade-rehearsal.sh --plan-only
+```
+
+**What it showed for v1.5.0 → v2.0.0.** R1 starts and reports healthy, but
+v1.5.0 cannot read the converted credentials: sign-in by email and SMS fails.
+In both R1 and R2, one same-name guest retracting a post-upgrade vote also
+removes the other guest's vote, because v1.5.0 matches votes by display name.
+R3a and R3b pass with no `db:secrets --rollback`, because both backups predate
+the conversion. Both lose responses received after the upgrade. Restoring the
+uploads copy was not needed for v1.5.0 to serve its images, because the sweep
+keeps referenced files. The supported downgrade procedure is tracked in #917.
 
 ---
 

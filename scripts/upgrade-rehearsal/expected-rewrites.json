@@ -1,0 +1,62 @@
+[
+  {
+    "migration": "20261107120000_guest_invited_display",
+    "table": "Event",
+    "column": "guestGoingCount",
+    "change": "rewrite",
+    "rows": { "guestGoingList": ["HIDDEN"] },
+    "reason": "Counts became independent of names (#811), so a count whose names were hidden is hidden too."
+  },
+  {
+    "migration": "20261107120000_guest_invited_display",
+    "table": "Event",
+    "column": "guestMaybeCount",
+    "change": "rewrite",
+    "rows": { "guestMaybeList": ["HIDDEN"] },
+    "reason": "Counts became independent of names (#811), so a count whose names were hidden is hidden too."
+  },
+  {
+    "migration": "20261107120000_guest_invited_display",
+    "table": "Event",
+    "column": "guestDeclinedCount",
+    "change": "rewrite",
+    "rows": { "guestDeclinedList": ["HIDDEN"] },
+    "reason": "Counts became independent of names (#811), so a count whose names were hidden is hidden too."
+  },
+  {
+    "migration": "20261108130000_theme_preset_defaults",
+    "table": "ThemePreset",
+    "column": "originalSnapshot",
+    "change": "extend-json",
+    "reason": "Built-in preset snapshots gain a presentation key (category, tile icon, default effect); existing keys are unchanged."
+  },
+  {
+    "migration": "20261108130000_theme_preset_defaults",
+    "table": "ThemePreset",
+    "column": "defaultSnapshot",
+    "change": "extend-json",
+    "reason": "Built-in preset snapshots gain a presentation key (category, tile icon, default effect); existing keys are unchanged."
+  },
+  {
+    "migration": "20261115000000_participation_identity",
+    "table": "PollVote",
+    "column": "userId",
+    "change": "rewrite",
+    "reason": "Legacy vote account links are not ownership and can be duplicated under different names, so the migration clears them."
+  },
+  {
+    "startup": "config-secrets-v2",
+    "table": "SystemConfig",
+    "column": "value",
+    "change": "rewrite",
+    "rows": {
+      "key": [
+        "smtp_pass",
+        "twilio_auth_token",
+        "cloudflare_worker_api_secret",
+        "cloudflare_api_token"
+      ]
+    },
+    "reason": "Startup converts saved provider secrets from fixed-salt to versioned v2 encryption (#328/#339); candidate checks decrypt each one."
+  }
+]

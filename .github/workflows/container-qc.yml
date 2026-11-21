@@ -6,7 +6,17 @@ on:
   push:
     branches: [main]
   workflow_call:
+    inputs:
+      rehearsal_from:
+        description: Baseline release tag for the upgrade rehearsal (auto = previous stable release)
+        type: string
+        default: auto
   workflow_dispatch:
+    inputs:
+      rehearsal_from:
+        description: Baseline release tag for the upgrade rehearsal (auto = previous stable release)
+        type: string
+        default: auto
 
 permissions:
   contents: read
@@ -19,7 +29,8 @@ jobs:
   container:
     name: Container (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    # PR and push runs keep the original limit; the upgrade rehearsal needs more.
+    timeout-minutes: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'release') && 60 || 35 }}
     strategy:
       fail-fast: false
       matrix:
@@ -97,3 +108,24 @@ jobs:
         env:
           EXPECTED_NODE_ARCH: ${{ matrix.node-arch }}
         run: bash scripts/container-smoke.sh rsvp-container-qc:local "$EXPECTED_NODE_ARCH"
+
+      # Pre-release upgrade check: only manual runs and the Release gate (a
+      # workflow_call keeps the caller's "release" event). PRs and pushes skip it.
+      # It seeds the previous release through its own code, upgrades that data
+      # to this candidate and rehearses the rollback, on an internal network with
+      # a capture transport. It pulls only the public baseline image.
+      - name: Fetch release history for the upgrade rehearsal
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        run: |
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+            git fetch --quiet --unshallow --tags origin
+          else
+            git fetch --quiet --tags origin
+          fi
+
+      - name: Rehearse upgrade and rollback
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        timeout-minutes: 25
+        env:
+          REHEARSAL_FROM: ${{ inputs.rehearsal_from || 'auto' }}
+        run: bash scripts/upgrade-rehearsal.sh --from "$REHEARSAL_FROM" --to-image rsvp-container-qc:local
