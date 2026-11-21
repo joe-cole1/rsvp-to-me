@@ -12,100 +12,17 @@ This guide explains how to safely pull new versions of **RSVP to Me**, perform d
 
 ---
 
-## ESLint 10 development tooling (#340)
-
-The root development toolchain now uses ESLint 10 with the existing Next.js lint
-presets. Follow the normal locked install and preflight process; no application,
-database, environment-variable or host workflow changes are required. Next.js
-16.4.0 added the compatibility handling for the former `context.getFilename()`
-crash, so the React lint plugin does not need replacing. Bundled plugins may
-still emit npm peer-range warnings; no peer-resolution bypass flags are needed.
-Keep the #546 brace-expansion adapter until its separate removal criteria pass.
-The existing workflow tests now declare their YAML parser (`js-yaml`) directly
-as a development dependency because ESLint 10 no longer brings it in transitively.
-
-## Public RSVP contact verification (#792)
-
-Apply `20261117000000_rsvp_contact_proof` through the normal upgrade process.
-It adds an event-scoped challenge table without rewriting existing RSVP,
-invitation, account or notification records. No new environment variables or
-provider settings are required. New proof requests use the configured email/SMS
-adapters, so delivery must work for each contact a guest supplies.
-
-Public-form submissions containing email or phone now require verification of
-each supplied contact, followed by review and explicit confirmation. Requests
-use the same behavior for new and invited contacts and return no invitation
-state or private link. Code verification neither signs in a user nor changes an
-RSVP. Successful final submission may return the proved RSVP's private edit link.
-Existing invitation-link, signed SMS and organizer responses remain available.
-Contactless public submissions create separate new RSVPs.
-
-Codes and receipts expire after 15 minutes. Each challenge allows five
-code attempts; issuance is capped at five requests per destination per hour,
-with a one-minute resend interval per event/contact. A trusted IP is limited to 15 requests per 10 minutes.
-The existing scheduled challenge cleanup removes consumed or expired public RSVP
-proof records after 24 hours. Do not log codes, receipts or full private links.
-
-If delivery is unavailable, guests should retry, use their original invitation
-link or contact the host. See [Managing RSVPs](../host/managing-rsvps.md).
-
-## Seed-free first-administrator setup (#877)
-
-Normal installation no longer requires baseline seeding. Keep `SEED_TEST_DATA=false`;
-it controls demo content only. Configure `INITIAL_ADMIN_EMAIL` and email delivery,
-then open `/setup` if the instance has no real administrator. Verify the emailed
-LOGIN link or code to finish. SYSTEM is ignored when checking for existing admins.
-
-`HOST_INVITE_CODE` is retired. Existing database codes and administrator roles remain
-unchanged; manage codes in the Admin Panel. Remove the obsolete environment variable.
-Migrations insert missing built-in presets while preserving existing preset rows.
-SYSTEM is created on demand before account-deletion cleanup. Container restarts no
-longer refresh or overwrite theme presets through seeding.
-
-## Event password controls (#878)
-
-Existing event passwords remain active when visibility changes to Public or
-Unlisted. Display options now keeps the password controls visible whenever a
-password is set and always offers **Remove password**, followed by confirmation.
-The displayed password status changes only after a successful save. Hosts can
-remove passwords previously hidden by a visibility change without switching back
-to Private. Removing a Private event's password does not remove its invite-only
-restriction. No data migration or configuration change is needed.
-
-## Event links (#880)
-
-Apply the additive `slugRandomCode` migration with the normal upgrade process.
-Existing event URLs are preserved and their provenance starts empty; no invitation
-links are rewritten automatically. New Public events retain title-based URLs.
-New Unlisted/Private events use case-sensitive six-character alphanumeric codes,
-with bounded collision retries that grow to eight, ten and twelve characters.
-
-Hosts/co-hosts can edit or regenerate URLs in Display options. Unlisted custom
-links require an explicit guessability choice, including when visibility changes
-from Public or Private. URL changes require confirmation that shared links will
-break. No old-to-new redirect is installed. Have hosts redistribute invitations,
-RSVP and calendar links after a rename; password unlocks are tied to the address.
-New email/SMS links use the current event URL. Already delivered messages retain
-their old addresses. Six-character codes are a convenience/privacy tradeoff;
-Private/password access checks remain the protection for sensitive events.
-
-Generated-code previews expire after 15 minutes and are not reservations. A save
-rechecks database uniqueness and rejects stale URL/visibility state from another
-tab. Preview proof uses the existing configuration/session encryption secret;
-no new environment variable is required. Secret rotation invalidates outstanding
-previews; hosts can generate another. General settings updates cannot switch to
-Unlisted without the dedicated URL decision flow.
-
 ## Table of Contents
 
 1. [How Updates Work](#how-updates-work)
-2. [Before You Upgrade — Back Up Your Data](#before-you-upgrade--back-up-your-data)
-3. [Checking the Current Version](#checking-the-current-version)
-4. [Performing the Upgrade](#performing-the-upgrade)
-5. [Database Migrations](#database-migrations)
-6. [Verifying the Upgrade](#verifying-the-upgrade)
-7. [Rolling Back](#rolling-back)
-8. [Setting Up Automatic Backups](#setting-up-automatic-backups)
+2. [v2.0.0 release](#v200-release)
+3. [Before You Upgrade — Back Up Your Data](#before-you-upgrade--back-up-your-data)
+4. [Checking the Current Version](#checking-the-current-version)
+5. [Performing the Upgrade](#performing-the-upgrade)
+6. [Database Migrations](#database-migrations)
+7. [Verifying the Upgrade](#verifying-the-upgrade)
+8. [Rolling Back](#rolling-back)
+9. [Setting Up Automatic Backups](#setting-up-automatic-backups)
 
 ---
 
@@ -158,6 +75,436 @@ To enforce the same restriction before the workflow starts, configure **Settings
 and the `release` event. Keep CI and Container QC outside that publishing policy.
 Merging this change does not create or modify that setting. See [GitHub's policy
 guide](https://docs.github.com/en/actions/how-tos/administer/control-workflow-execution).
+
+---
+
+## v2.0.0 release
+
+v2.0.0 is a major release. It hardens accounts, events and public RSVPs, replaces
+invite-code environment configuration with a first-administrator setup page, and
+adds recipient notification preferences, paired sign-in codes, configurable
+event URLs, offline background effects and occasion presets. The project is now
+licensed under AGPL-3.0-only. Node 22, PostgreSQL 18 and Redis 8 remain the
+supported runtime and services.
+
+**Upgrading is one-way.** v1.5.0 cannot run safely on an upgraded database. The
+only supported way back is to restore the backup taken before the upgrade, which
+loses everything received after it. Take the backups in
+[Before You Upgrade](#before-you-upgrade--back-up-your-data) and read
+[Rolling back v2.0.0 to v1.5.0](#rolling-back-v200-to-v150) before you start.
+
+### Breaking-change checklist
+
+Check each item before upgrading:
+
+- [ ] **`HOST_INVITE_CODE` is retired.** Remove it from `.env`. Set
+      `INITIAL_ADMIN_EMAIL` and email delivery; an instance with no real
+      administrator finishes setup at `/setup`. Existing database invite codes
+      and administrator roles are kept. Create new codes in **Admin Panel → Host
+      settings**. See [Seed-free first-administrator setup](#seed-free-first-administrator-setup-877). (#877, #882)
+- [ ] **IP rate limits apply only with `TRUSTED_IP_HEADER`.** Without it,
+      forwarding headers are ignored and the per-IP tiers are skipped; contact,
+      account and token limits still apply. Behind a trusted reverse proxy, set it
+      to the header that proxy writes. See
+      [TRUSTED_IP_HEADER](configuration.md#trusted_ip_header). (#847, #873)
+- [ ] **Public RSVPs with a contact require verification.** A guest who gives an
+      email address or phone number must enter a code sent to it before the RSVP
+      is saved, so a working email provider (and SMS provider, for phone numbers)
+      is effectively required. Test delivery before and after upgrading. See
+      [Public RSVP contact verification](#public-rsvp-contact-verification-792). (#792, #895, #849, #875)
+- [ ] **Sessions are checked in PostgreSQL on every request**, even with Redis
+      configured, so the database must stay available. Existing event-password
+      unlock cookies are invalidated; visitors enter the current password again.
+      Sign-out is a same-origin POST from the app, so a link or script that signs
+      out with a GET request no longer works. See
+      [Account and participation hardening](#account-and-participation-hardening). (#872)
+- [ ] **Uploads have a quota and a cleanup.** Each account has a fixed 100 MiB
+      upload quota (the 8 MiB per-file limit is unchanged). At startup and in the
+      daily maintenance job, uploads that no cover or avatar references and that
+      are older than 24 hours are removed. Back up `data/uploads` together with
+      the database. See [Upload storage and cleanup](configuration.md#upload-storage-and-cleanup). (#850, #876)
+- [ ] **Event URLs.** Existing URLs are kept. New Unlisted and Private events get
+      random six-character URLs, and renaming a URL breaks the old link with no
+      redirect. See [Event links](#event-links-880). (#880, #884)
+- [ ] **Phone numbers outside North America need a `+` country code.** Existing
+      North American numbers without one still match their invitations. See the
+      [SMS guide](sms.md). (#848, #874)
+- [ ] **Redeploy the optional Cloudflare email worker** (or replace the copied
+      **Admin → Email** template) to enable its new auto-reply guards. The
+      upgrade does not deploy it. See the [email guide](email.md). (#849, #875)
+- [ ] **License.** RSVP to Me is now licensed under AGPL-3.0-only. If you modify
+      it and let others use it over a network, you must offer them the source of
+      your version. See the [Installation Guide](installation.md). (#797)
+- [ ] **Stop every old app instance** before the new one starts. Mixed-version
+      rolling upgrades are unsupported: old instances cannot read the new
+      credential format or enforce notification preferences.
+
+### What runs at startup
+
+The first v2.0.0 start takes a pre-migration snapshot,
+`data/backups/pre-migration/pre-migration-schema_<timestamp>.sql`, then applies
+twelve migrations:
+
+| Migration                                        | Change                                                                                       |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `20261103120000_notification_preferences`        | Adds recipient notification preferences and converts the old Email/SMS switches.             |
+| `20261103121000_event_notification_eligibility`  | Records which account contacts each event's old alert switches covered.                      |
+| `20261103122000_organizer_notification_bindings` | Creates organizer notification rows for events whose alerts were on.                         |
+| `20261107120000_guest_invited_display`           | Adds the Invited display row; hides a count wherever its names were already hidden.          |
+| `20261107180000_theme_effect_library`            | Adds effect icon and movement columns (additive only).                                       |
+| `20261108130000_theme_preset_defaults`           | Adds eleven presets and preset presentation; fills empty effects on linked built-in presets. |
+| `20261112201312_signin_code`                     | Adds paired six-digit sign-in codes to sign-in links.                                        |
+| `20261115000000_participation_identity`          | Adds RSVP identity to votes and claims; drops the name-based vote index; clears vote links.  |
+| `20261115130000_upload_accounting`               | Records uploads for the per-account quota.                                                   |
+| `20261116100000_seed_free_presets`               | Installs missing built-in presets without changing existing rows.                            |
+| `20261116120000_event_url_codes`                 | Adds event URL provenance for generated codes.                                               |
+| `20261117000000_rsvp_contact_proof`              | Adds public RSVP contact-verification challenges.                                            |
+
+It then converts saved provider credentials to the new encryption format,
+first taking a mandatory `pre-migration-secrets_<timestamp>.sql` snapshot when
+any need converting. See
+[Automatic configuration-secret conversion](#automatic-configuration-secret-conversion-328--339).
+Expect a longer first start than usual and measure readiness with the health
+check.
+
+### Automatic configuration-secret conversion (#328 / #339)
+
+The upgrade containing these fixes automatically converts saved SMTP passwords,
+Cloudflare worker secrets/API tokens, and Twilio auth tokens to versioned
+encryption with random salts. This is an application data conversion, not a
+Prisma schema migration. Events, RSVPs, accounts, and session formats are
+unchanged. Environment-only credentials need no conversion; empty settings
+stay empty. Hosts and guests take no migration steps.
+
+Keep your existing `ENCRYPTION_KEY` exactly as configured. If it is unset,
+keep using the same `SESSION_SECRET`; do not introduce a new encryption key
+during this upgrade. Back up the database and `.env`, record the old image
+digest, and stop all older app instances before the new one starts. The normal
+single-app Compose recreation already replaces the old instance. Mixed-version
+rolling upgrades across this format change are unsupported.
+
+The container converts secrets before seeding and starting the web server.
+Before changing any credentials it requires a successful automatic pg_dump
+snapshot under `data/backups/pre-migration/`. The earlier schema snapshot remains
+best-effort; secret conversion takes its own mandatory snapshot when needed.
+Backups may contain old plaintext credentials, so protect them as secrets.
+Startup retains seven schema snapshots separately from seven secret-recovery
+snapshots (conversion, selective rollback and old unclassified dumps). It rotates
+only after a new successful dump, so ordinary restarts cannot age out conversion
+recovery points. The Admin Backups table shows read-only metadata; manage or copy
+these sensitive files on the server. Save any required long-term recovery point
+in protected storage before it ages out of its pool.
+Conversion and its completion marker commit together. Subsequent restarts
+verify the new format without changing credentials or repeating conversion.
+
+Logs include a summary such as `[config-secrets] migrate: 2 converted, 0 verified;
+v2 ready.` On failure, `[config-secrets] ERROR:` explains the affected setting
+or backup/database problem without displaying credentials. Startup stops and
+the secret transaction rolls back; successful earlier schema migrations remain
+applied. Fix the cause before restarting. Wrong-key failures require the
+original key; ambiguous legacy plaintext containing colons or corrupt data
+must be repaired using the previous app before retrying. No credentials need
+re-entry for a normal upgrade. Verify health and test enabled email/SMS after
+the app starts.
+
+If corruption is detected after a successful conversion, restore a valid v2
+credential from a protected backup. An older app cannot read credentials in
+the new format, so do not start it on the converted database; to go back to
+v1.5.0, follow [Rolling back v2.0.0 to v1.5.0](#rolling-back-v200-to-v150).
+
+For a read-only check using the new image, without starting the web server:
+
+```bash
+docker compose -f docker-compose.release.yml run --rm --no-deps app npm run db:secrets -- --check
+```
+
+`npm start` and `scripts/dev-sync.sh` also convert automatically. Native/source
+installations need `pg_dump` on PATH and writable `data/backups/pre-migration/`
+when conversion is necessary. Custom launchers that start Next.js directly must
+run `npm run db:secrets` after schema deployment and before serving requests.
+
+**Selective credential downgrade (`db:secrets --rollback`).** The command
+still rewrites only the saved credentials to the previous format, but it is
+not a supported way back from v2.0.0 to v1.5.0: v1.5.0 also mishandles
+same-name poll votes on the upgraded schema. Restore the pre-upgrade database
+instead. That backup predates the conversion, so no credential downgrade is
+needed after the restore. Keep the same `SESSION_SECRET` and `ENCRYPTION_KEY`
+when restoring any backup.
+
+### Account and participation hardening
+
+The participation identity migration preserves existing vote counts and potluck
+quantities without assigning old display names to accounts or RSVPs. Historical
+votes have no automatic personal selection; guests can make a new choice.
+Historical potluck claims remain visible and count toward capacity; hosts can
+remove them. New votes and claims remain independent when guests share a name.
+The migration drops the display-name vote index. v1.5.0 still matches votes
+by display name, so on upgraded data a guest retracting a vote also deletes
+the vote of every other guest with the same name on that option. Going back
+therefore requires restoring the pre-upgrade backup; see
+[Rolling back v2.0.0 to v1.5.0](#rolling-back-v200-to-v150).
+
+The upgrade invalidates existing event-password unlock cookies. Visitors can
+enter the current password again. Future password changes also invalidate those
+cookies. Existing account sessions are checked against PostgreSQL on every
+request, so database availability is required even with Redis configured.
+
+Stored avatars and covers must be upload paths generated by the application.
+Invalid historical URLs show no image; re-upload the image through the existing
+profile or event controls. External image URLs are not fetched for social cards.
+
+### Seed-free first-administrator setup (#877)
+
+Normal installation no longer requires baseline seeding. Keep `SEED_TEST_DATA=false`;
+it controls demo content only. Configure `INITIAL_ADMIN_EMAIL` and email delivery,
+then open `/setup` if the instance has no real administrator. Verify the emailed
+LOGIN link or code to finish. SYSTEM is ignored when checking for existing admins.
+
+`HOST_INVITE_CODE` is retired. Existing database codes and administrator roles remain
+unchanged; manage codes in the Admin Panel. Remove the obsolete environment variable.
+Migrations insert missing built-in presets while preserving existing preset rows.
+SYSTEM is created on demand before account-deletion cleanup. Container restarts no
+longer refresh or overwrite theme presets through seeding.
+
+### Public RSVP contact verification (#792)
+
+Apply `20261117000000_rsvp_contact_proof` through the normal upgrade process.
+It adds an event-scoped challenge table without rewriting existing RSVP,
+invitation, account or notification records. No new environment variables or
+provider settings are required. New proof requests use the configured email/SMS
+adapters, so delivery must work for each contact a guest supplies.
+
+Public-form submissions containing email or phone now require verification of
+each supplied contact, followed by review and explicit confirmation. Requests
+use the same behavior for new and invited contacts and return no invitation
+state or private link. Code verification neither signs in a user nor changes an
+RSVP. Successful final submission may return the proved RSVP's private edit link.
+Existing invitation-link, signed SMS and organizer responses remain available.
+Contactless public submissions create separate new RSVPs.
+
+Codes and receipts expire after 15 minutes. Each challenge allows five
+code attempts; issuance is capped at five requests per destination per hour,
+with a one-minute resend interval per event/contact. A trusted IP is limited to 15 requests per 10 minutes.
+The existing scheduled challenge cleanup removes consumed or expired public RSVP
+proof records after 24 hours. Do not log codes, receipts or full private links.
+
+If delivery is unavailable, guests should retry, use their original invitation
+link or contact the host. See [Managing RSVPs](../host/managing-rsvps.md).
+
+### Event links (#880)
+
+Apply the additive `slugRandomCode` migration with the normal upgrade process.
+Existing event URLs are preserved and their provenance starts empty; no invitation
+links are rewritten automatically. New Public events retain title-based URLs.
+New Unlisted/Private events use case-sensitive six-character alphanumeric codes,
+with bounded collision retries that grow to eight, ten and twelve characters.
+
+Hosts/co-hosts can edit or regenerate URLs in Display options. Unlisted custom
+links require an explicit guessability choice, including when visibility changes
+from Public or Private. URL changes require confirmation that shared links will
+break. No old-to-new redirect is installed. Have hosts redistribute invitations,
+RSVP and calendar links after a rename; password unlocks are tied to the address.
+New email/SMS links use the current event URL. Already delivered messages retain
+their old addresses. Six-character codes are a convenience/privacy tradeoff;
+Private/password access checks remain the protection for sensitive events.
+
+Generated-code previews expire after 15 minutes and are not reservations. A save
+rechecks database uniqueness and rejects stale URL/visibility state from another
+tab. Preview proof uses the existing configuration/session encryption secret;
+no new environment variable is required. Secret rotation invalidates outstanding
+previews; hosts can generate another. General settings updates cannot switch to
+Unlisted without the dedicated URL decision flow.
+
+### Event password controls (#878)
+
+Existing event passwords remain active when visibility changes to Public or
+Unlisted. Display options now keeps the password controls visible whenever a
+password is set and always offers **Remove password**, followed by confirmation.
+The displayed password status changes only after a successful save. Hosts can
+remove passwords previously hidden by a visibility change without switching back
+to Private. Removing a Private event's password does not remove its invite-only
+restriction. No data migration or configuration change is needed.
+
+### Recipient notification preferences (`01a1a105`)
+
+Back up the database and stop every old application instance and scheduler
+before applying this upgrade. Do not mix legacy producers with preference-aware
+workers: old binaries cannot enforce category/event preferences or revocation.
+The additive notification migrations run through normal `prisma migrate deploy`.
+No new credentials, environment variables or dependencies are required.
+
+Migration keeps the scope each legacy choice had. The old Email/SMS switches covered
+reminders and host blasts, so they become update/reminder choices, not channel blocks;
+confirmations, approval decisions and host alerts keep arriving as before. The old
+channel choice keeps applying to event updates. Both checks email and text; because no
+address is verified at upgrade, it stays one message, email first, then SMS, never
+duplicate delivery. A recipient gets a copy on each channel only after verifying those
+addresses. Organizers keep
+the account contacts their event's alert switches covered; events whose alerts were off
+get no organizer row, so turning alerts on later works. No contact is marked verified.
+Connections remain unverified until the owner proves possession; enrollment does
+not change login identity or existing event contacts.
+
+Old reminder timings merge by offset while retaining source-channel ceilings.
+Either sent marker consumes the merged occurrence. Already-due occurrences are
+consumed at upgrade to avoid a catch-up burst. Migrated schedules keep their channel
+limits until a host chooses **Let each guest's settings decide**.
+
+Recipients see only channels the site offers: a channel must be enabled here and its
+provider configured. Disabling a service hides it without discarding anyone's choices;
+re-enabling it restores them. Used and expired verification challenges are deleted a
+day later by the existing rate-limit cleanup job.
+
+Verify profile preferences, private guest management, confirmation decisions,
+organizer alerts and reminders after upgrade. See
+[Notification Preferences](../host/notification-preferences.md) and the
+[local milestone test plan](../engineering/testing/01a1a105-notifications.md).
+Manual blasts now apply the **Event updates** choices too (#789), with the host's
+selected channels as a limit. Verify an opted-out guest is skipped and an eligible
+guest remains reachable. This adoption needs no additional migration, credential or
+dependency. Manual blasts retain independent submissions for each permitted channel
+the host selects, including unverified contacts; the composer reports provider
+acceptance, skips, failures and uncertainty instead of requested-recipient counts.
+Invitations remain separate.
+Authentication and inbound SMS behavior are not migrated.
+
+A database-only additive rollback is insufficient: a legacy binary would ignore
+new preferences. Before downgrading, stop notification production or restore a
+consistent pre-upgrade database/application backup. Destination challenges,
+connections and event bindings contain private contact information; protect
+backups accordingly and never copy verification codes or private links into logs.
+
+### Guest RSVP display table and Invited row (#811)
+
+The `20261107120000_guest_invited_display` migration adds two event fields,
+`guestInvitedList` and `guestInvitedCount`, both defaulting to `HIDDEN`, so no
+existing or new event shows invited guests to other guests until a host turns it
+on. Counts are now independent of names, so the same migration sets a response's
+stored count to `HIDDEN` wherever its names were already hidden; guest-facing
+pages look the same after the upgrade.
+
+Hosts set all four rows in one table under **Settings → Display options → Guest
+RSVP display**, and every row's count may now use the 3+ cap. When the Invited
+row is hidden, invited guests are not queried for or sent to guest browsers;
+when it is shown, guests receive names only (never contact details or edit
+tokens), and still only when guest list visibility lets them see the list.
+
+The theme's effect **Density** and **Size** controls are replaced by one
+**Amount** choice that writes the existing `effectDensity` and `effectSize`
+fields. No theme data changes during the upgrade, and stored sizes above 2× keep
+rendering until a host picks an Amount. No environment variable is required.
+(#825 later restored a separate Size control; see below.)
+
+### Searchable background effects, movement and size (#825)
+
+The `20261107180000_theme_effect_library` migration adds two `EventTheme`
+columns: `effectIconIds` (a text array, default empty) and `effectMovement`
+(nullable, no default). It is additive only — no existing row is rewritten.
+Every event keeps its built-in effect, Amount, Speed and stored size exactly as
+before, including sizes outside the new quick choices (for example 6×) and
+sizes an #811 Amount choice wrote; a `NULL` size still means 1×, and a `NULL`
+movement keeps each built-in set's own fall/float direction.
+
+Hosts can now mix up to three icons from a local library (Noto Emoji 1.2.10,
+3,729 icons, one per emoji) that they search in English, Dutch,
+German and Spanish, and they set Amount (count only), Size (3×/5×/7× or a
+1–10× slider), Speed and Up/Down/Random movement independently. A mixture is
+stored as `effectId = 'custom'` plus its icon ids; only ids and settings are
+stored, never artwork or URLs.
+
+The first build of this feature (PR #827) also shipped Fluent Emoji Flat 1.2.6.
+Every Fluent icon was the same emoji as a Noto one, so it only duplicated search
+results and was removed before release. Only `noto:` ids are valid; a test
+event that saved a `fluent-emoji-flat:` id from that build shows no effect,
+and its editor asks the host to pick the icons again.
+
+**Packaging.** The artwork ships in `public/effects/library/<collection>/<version>/`
+(about 24 MB of SVG) and the manifest, provenance and CLDR 49 labels/keywords in
+`lib/effect-catalog-data/` (about 6 MB of JSON). The container image already
+includes both directories; no volume, download job, cache, API key, environment
+variable or outside service is involved, and the existing Content Security
+Policy is unchanged. The server reads the data once per process (only when an
+event uses a mixture or a host searches), and the browser only receives the
+selected icons and one page of 24 search results at a time. The versioned
+library paths are served with `Cache-Control: public, max-age=31536000, immutable`.
+Host searches go to `GET /api/effects/search`, which requires a host, co-host
+or admin session for the event and allows 120 searches per user per minute
+(Redis, or the database fallback, like other rate limits).
+
+**Licensing.** Noto Emoji artwork is Apache-2.0 (Google), with its notice and
+regional-flag notice; the labels and keywords come from Unicode CLDR under the
+Unicode License v3. The full texts are served at
+`/effects/library/noto/1.2.10/LICENSE.txt`, `NOTICE.txt`, `REGION-FLAGS-LICENSE.txt`
+and `/effects/library/cldr/49.0.0/LICENSE.txt`; source versions and checksums
+are recorded in `lib/effect-catalog-data/provenance.json`. These licenses
+cover the artwork and data only; they grant no trademark rights.
+
+**Updating the library.** The versions are pinned. A newer collection or CLDR
+release is an intentional code change: prepare the new version directory and
+data files offline, keep the old ids that events reference (or plan their
+replacement), update `provenance.json` and the notices, and ship it like any
+other release. The application never downloads icons at runtime. If a stored
+icon id disappears from the catalog, that event simply shows no effect, and
+the host editor explains why.
+
+### Theme preset defaults (01a1baab)
+
+The additive preset-presentation migration adds eleven presets, Noto tile artwork,
+categories and complete default effects. It fills empty effects once on existing
+events linked to the affected built-in presets, including customized theme colors.
+Existing active effects and theme colors are preserved. Older explicit None choices
+cannot be distinguished from untouched empty effects and receive the new defaults.
+The migration does not run again on later visits; subsequent None choices persist.
+Effects and animation remain web-only and do not enter email.
+
+Administrators can select a preset category, search the local Noto library for a tile
+icon, and edit a default mixture of up to three icons with its amount, size, speed and
+movement. Save as default includes this metadata; reset restores it too.
+
+The local preflight formatter caps command batches at 64 KB so the Noto asset catalog
+does not exceed the npx shell-command argument limit. The file set and checks are unchanged.
+
+Hosts compare against, and Restore to, the applied preset's current settings, so an
+administrator's Save reaches hosts at once and never makes a freshly applied preset look
+customized. Save as default and the original snapshot remain administrator reset points;
+older snapshots that omit newer settings such as font or card opacity inherit the current
+preset's values there, while explicit saved values are preserved. No database rewrite is
+needed.
+
+Sample seeding preserves all fields of existing preset rows, so an administrator's
+category choice survives restarts; new rows still receive the built-in values. Presets
+saved before categories existed show as Seasonal when their seasonal flag is set. If the
+icon catalog cannot load, the event settings page still opens, without effect icon labels,
+and logs a warning.
+
+### Event display and accessibility corrections (#853)
+
+Event cards and event-page times now use the event's stored timezone and display its
+zone label. Server and browser timezone settings no longer change card times. No data
+migration or new configuration is required.
+
+After upgrading, reload open event settings tabs. The updated Display options and RSVP settings editors send only changed
+fields, preserving other tabs' changes to unrelated settings. Older already-open clients
+still send their old full payload until refreshed; edits to the same field remain
+last completed save wins. Existing administrator moderation access is preserved.
+
+All document routes share a main landmark and keyboard skip link. RSVP fields have
+visible labels, autocomplete, linked validation errors, error announcements and focus
+management. RSVP document titles identify the page, showing the event title only when
+existing public metadata rules allow it; private, password-protected and unpublished
+events keep a generic title.
+
+### ESLint 10 development tooling (#340)
+
+The root development toolchain now uses ESLint 10 with the existing Next.js lint
+presets. Follow the normal locked install and preflight process; no application,
+database, environment-variable or host workflow changes are required. Next.js
+16.4.0 added the compatibility handling for the former `context.getFilename()`
+crash, so the React lint plugin does not need replacing. Bundled plugins may
+still emit npm peer-range warnings; no peer-resolution bypass flags are needed.
+Keep the #546 brace-expansion adapter until its separate removal criteria pass.
+The existing workflow tests now declare their YAML parser (`js-yaml`) directly
+as a development dependency because ESLint 10 no longer brings it in transitively.
 
 ---
 
@@ -279,15 +626,15 @@ even for an older stable version, so do not publish an old stable tag as a test.
 The guard applies only to releases whose tagged commit includes it; rerunning
 an older release does not adopt new workflow code.
 
-Before the owner publishes `v1.5.0`:
+Before the owner publishes a release (for example `v2.0.0`):
 
 - [ ] Merge the release-preparation PR and record the resulting `main` SHA.
 - [ ] Require CI, CodeQL, and both native Container QC jobs to pass on that SHA.
 - [ ] Run Container QC manually on that SHA, which includes the
       [upgrade rehearsal](#upgrade-rehearsal-918), and review its job summary.
-- [ ] Review the prepared notes in `.github/release-notes/v1.5.0.md` and confirm
-      the comparison with `v1.4.1` adds only the two migrations listed above and
-      no required variable.
+- [ ] Review the prepared notes in `.github/release-notes/vX.Y.Z.md` and confirm
+      the comparison with the previous release adds only the migrations and
+      variables they list.
 - [ ] Record the current deployment image digest and back up the database,
       uploads, and `.env`; verify a restore on a disposable database.
 - [ ] Run staging QC on a candidate built from the reviewed SHA: sign-in, event
@@ -444,13 +791,15 @@ removes the other guest's vote, because v1.5.0 matches votes by display name.
 R3a and R3b pass with no `db:secrets --rollback`, because both backups predate
 the conversion. Both lose responses received after the upgrade. Restoring the
 uploads copy was not needed for v1.5.0 to serve its images, because the sweep
-keeps referenced files. The supported downgrade procedure is tracked in #917.
+keeps referenced files. The supported procedure is
+[Rolling back v2.0.0 to v1.5.0](#rolling-back-v200-to-v150).
 
 ---
 
 ## Before You Upgrade — Back Up Your Data
 
-Always perform a backup before upgrading.
+Always perform a backup before upgrading, and record the running image digest
+([Checking the Current Version](#checking-the-current-version)).
 
 > **Also back up your `.env` file.** Your secrets (`SESSION_SECRET`, `ENCRYPTION_KEY`, provider credentials) live only in `.env`. If you ever need to roll back or rebuild, you'll need the original values — losing `ENCRYPTION_KEY` in particular means stored credentials can no longer be decrypted. Copy it somewhere safe: `cp .env ./env-backup-$(date +%Y%m%d)`.
 
@@ -503,6 +852,7 @@ docker image inspect --format '{{json .RepoDigests}}' "$image_id"
 ### Step 1: Read the Release Notes
 
 Check the [Releases Page](https://github.com/joe-cole1/rsvp-to-me/releases) for breaking changes, required `.env` variables, or custom instructions.
+For v2.0.0, work through the [breaking-change checklist](#breaking-change-checklist) first.
 
 > **Upgrading from a version with default database passwords:** the compose files no longer ship fallback passwords for `POSTGRES_PASSWORD` / `REDIS_PASSWORD` — both must now be set in `.env` or the stack refuses to start. If your existing installation ever ran **without** these variables set, PostgreSQL initialized its data volume with the old built-in default (`postgres_password_here`). Set `POSTGRES_PASSWORD` to that existing value first so the app can still connect, then rotate it to a strong password with: `docker compose -f docker-compose.release.yml exec postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'new-strong-password';"` and update `.env` to match before restarting. Redis reads its password from the compose command on every start, so `REDIS_PASSWORD` can simply be set to a new strong value. The old compose files also published PostgreSQL on host port `5432`; that mapping has been removed, so external tools must now go through `docker compose -f docker-compose.release.yml exec postgres ...` instead of connecting to `localhost:5432` — or use a loopback-only override / shared Docker network as described in the [Installation Guide's "Connecting Database Tools" section](./installation.md#connecting-database-tools).
 
@@ -512,12 +862,12 @@ Follow [Method 1](#method-1-pg_dump-via-the-postgres-container-recommended) and 
 
 ### Step 3: Pull the New Image
 
-For v1.5.0, edit only the app image in the Compose file used by your deployment:
+For v2.0.0, edit only the app image in the Compose file used by your deployment:
 
 ```yaml
 services:
   app:
-    image: ghcr.io/joe-cole1/rsvp-to-me:1.5.0
+    image: ghcr.io/joe-cole1/rsvp-to-me:2.0.0
 ```
 
 Wait for the published release's image build to succeed, then pull only the app.
@@ -539,7 +889,8 @@ docker compose -f docker-compose.release.yml logs --tail=100 app
 ```
 
 The app will briefly be unavailable while startup checks, migrations, and
-seeding finish. v1.5.0 applies two migrations that only add columns.
+seeding finish. v2.0.0 applies twelve migrations and converts saved
+credentials; see [What runs at startup](#what-runs-at-startup).
 Measure readiness with the health check instead of assuming a fixed downtime.
 
 The image automatically repairs ownership in the mapped `./data/uploads` and
@@ -577,79 +928,6 @@ exact counts. RSVP records, capacity, notifications, and exports are unaffected.
 The existing guest-list visibility controls continue to enforce access; the new
 preferences only change presentation. No environment variable is required.
 
-### Guest RSVP display table and Invited row (#811)
-
-The `20261107120000_guest_invited_display` migration adds two event fields,
-`guestInvitedList` and `guestInvitedCount`, both defaulting to `HIDDEN`, so no
-existing or new event shows invited guests to other guests until a host turns it
-on. Counts are now independent of names, so the same migration sets a response's
-stored count to `HIDDEN` wherever its names were already hidden; guest-facing
-pages look the same after the upgrade.
-
-Hosts set all four rows in one table under **Settings → Display options → Guest
-RSVP display**, and every row's count may now use the 3+ cap. When the Invited
-row is hidden, invited guests are not queried for or sent to guest browsers;
-when it is shown, guests receive names only (never contact details or edit
-tokens), and still only when guest list visibility lets them see the list.
-
-The theme's effect **Density** and **Size** controls are replaced by one
-**Amount** choice that writes the existing `effectDensity` and `effectSize`
-fields. No theme data changes during the upgrade, and stored sizes above 2× keep
-rendering until a host picks an Amount. No environment variable is required.
-(#825 later restored a separate Size control; see below.)
-
-### Searchable background effects, movement and size (#825)
-
-The `20261107180000_theme_effect_library` migration adds two `EventTheme`
-columns: `effectIconIds` (a text array, default empty) and `effectMovement`
-(nullable, no default). It is additive only — no existing row is rewritten.
-Every event keeps its built-in effect, Amount, Speed and stored size exactly as
-before, including sizes outside the new quick choices (for example 6×) and
-sizes an #811 Amount choice wrote; a `NULL` size still means 1×, and a `NULL`
-movement keeps each built-in set's own fall/float direction.
-
-Hosts can now mix up to three icons from a local library (Noto Emoji 1.2.10,
-3,729 icons, one per emoji) that they search in English, Dutch,
-German and Spanish, and they set Amount (count only), Size (3×/5×/7× or a
-1–10× slider), Speed and Up/Down/Random movement independently. A mixture is
-stored as `effectId = 'custom'` plus its icon ids; only ids and settings are
-stored, never artwork or URLs.
-
-The first build of this feature (PR #827) also shipped Fluent Emoji Flat 1.2.6.
-Every Fluent icon was the same emoji as a Noto one, so it only duplicated search
-results and was removed before release. Only `noto:` ids are valid; a test
-event that saved a `fluent-emoji-flat:` id from that build shows no effect,
-and its editor asks the host to pick the icons again.
-
-**Packaging.** The artwork ships in `public/effects/library/<collection>/<version>/`
-(about 24 MB of SVG) and the manifest, provenance and CLDR 49 labels/keywords in
-`lib/effect-catalog-data/` (about 6 MB of JSON). The container image already
-includes both directories; no volume, download job, cache, API key, environment
-variable or outside service is involved, and the existing Content Security
-Policy is unchanged. The server reads the data once per process (only when an
-event uses a mixture or a host searches), and the browser only receives the
-selected icons and one page of 24 search results at a time. The versioned
-library paths are served with `Cache-Control: public, max-age=31536000, immutable`.
-Host searches go to `GET /api/effects/search`, which requires a host, co-host
-or admin session for the event and allows 120 searches per user per minute
-(Redis, or the database fallback, like other rate limits).
-
-**Licensing.** Noto Emoji artwork is Apache-2.0 (Google), with its notice and
-regional-flag notice; the labels and keywords come from Unicode CLDR under the
-Unicode License v3. The full texts are served at
-`/effects/library/noto/1.2.10/LICENSE.txt`, `NOTICE.txt`, `REGION-FLAGS-LICENSE.txt`
-and `/effects/library/cldr/49.0.0/LICENSE.txt`; source versions and checksums
-are recorded in `lib/effect-catalog-data/provenance.json`. These licenses
-cover the artwork and data only; they grant no trademark rights.
-
-**Updating the library.** The versions are pinned. A newer collection or CLDR
-release is an intentional code change: prepare the new version directory and
-data files offline, keep the old ids that events reference (or plan their
-replacement), update `provenance.json` and the notices, and ship it like any
-other release. The application never downloads icons at runtime. If a stored
-icon id disappears from the catalog, that event simply shows no effect, and
-the host editor explains why.
-
 ### User Language Preference (#732)
 
 The `20261019000000_user_preferred_locale` migration adds a nullable
@@ -657,78 +935,6 @@ The `20261019000000_user_preferred_locale` migration adds a nullable
 their browser choice, or English, until they pick a language. Default system
 emails and text messages then use each recipient's saved language; unknown
 recipients receive English. No environment variable is required.
-
-### Automatic configuration-secret conversion (#328 / #339)
-
-The upgrade containing these fixes automatically converts saved SMTP passwords,
-Cloudflare worker secrets/API tokens, and Twilio auth tokens to versioned
-encryption with random salts. This is an application data conversion, not a
-Prisma schema migration. Events, RSVPs, accounts, and session formats are
-unchanged. Environment-only credentials need no conversion; empty settings
-stay empty. Hosts and guests take no migration steps.
-
-Keep your existing `ENCRYPTION_KEY` exactly as configured. If it is unset,
-keep using the same `SESSION_SECRET`; do not introduce a new encryption key
-during this upgrade. Back up the database and `.env`, record the old image
-digest, and stop all older app instances before the new one starts. The normal
-single-app Compose recreation already replaces the old instance. Mixed-version
-rolling upgrades across this format change are unsupported.
-
-The container converts secrets before seeding and starting the web server.
-Before changing any credentials it requires a successful automatic pg_dump
-snapshot under `data/backups/pre-migration/`. The earlier schema snapshot remains
-best-effort; secret conversion takes its own mandatory snapshot when needed.
-Backups may contain old plaintext credentials, so protect them as secrets.
-Startup retains seven schema snapshots separately from seven secret-recovery
-snapshots (conversion, selective rollback and old unclassified dumps). It rotates
-only after a new successful dump, so ordinary restarts cannot age out conversion
-recovery points. The Admin Backups table shows read-only metadata; manage or copy
-these sensitive files on the server. Save any required long-term recovery point
-in protected storage before it ages out of its pool.
-Conversion and its completion marker commit together. Subsequent restarts
-verify the new format without changing credentials or repeating conversion.
-
-Logs include a summary such as `[config-secrets] migrate: 2 converted, 0 verified;
-v2 ready.` On failure, `[config-secrets] ERROR:` explains the affected setting
-or backup/database problem without displaying credentials. Startup stops and
-the secret transaction rolls back; successful earlier schema migrations remain
-applied. Fix the cause before restarting. Wrong-key failures require the
-original key; ambiguous legacy plaintext containing colons or corrupt data
-must be repaired using the previous app before retrying. No credentials need
-re-entry for a normal upgrade. Verify health and test enabled email/SMS after
-the app starts.
-
-If corruption is detected after a successful conversion, restore a valid v2
-credential from a protected backup. Starting the old app directly is unsafe
-because the other saved credentials are already in the new format; use the
-selective downgrade procedure below when a downgrade is necessary.
-
-For a read-only check using the new image, without starting the web server:
-
-```bash
-docker compose -f docker-compose.release.yml run --rm --no-deps app npm run db:secrets -- --check
-```
-
-`npm start` and `scripts/dev-sync.sh` also convert automatically. Native/source
-installations need `pg_dump` on PATH and writable `data/backups/pre-migration/`
-when conversion is necessary. Custom launchers that start Next.js directly must
-run `npm run db:secrets` after schema deployment and before serving requests.
-
-**Downgrade before starting an older image:** old versions cannot read the new
-format. Stop all app instances, keep the new image configured, and run:
-
-```bash
-docker compose -f docker-compose.release.yml stop app
-docker compose -f docker-compose.release.yml run --rm --no-deps app npm run db:secrets -- --rollback
-```
-
-This command requires a successful backup, rewrites only the secret settings
-to the previous encrypted format, and removes the completion marker in one
-transaction. Then select the old image digest and recreate the app. Do not
-restart the new app between rollback and downgrade, since it would convert
-again. Other database records, including RSVPs received since upgrade, are
-preserved. A later upgrade converts again automatically. Keep the same keys
-when restoring an old backup as well.
 
 ### If a Migration Fails
 
@@ -747,25 +953,6 @@ If a migration fails on startup:
 5. Preserve the logs and backups, review [Rolling Back](#rolling-back), and open an issue on the project's GitHub before attempting database recovery.
 
 ---
-
-### Account and participation hardening
-
-The participation identity migration preserves existing vote counts and potluck
-quantities without assigning old display names to accounts or RSVPs. Historical
-votes have no automatic personal selection; guests can make a new choice.
-Historical potluck claims remain visible and count toward capacity; hosts can
-remove them. New votes and claims remain independent when guests share a name.
-Downgrading to display-name-based votes requires a compatible backup because
-new same-name votes cannot satisfy the old unique constraint.
-
-The upgrade invalidates existing event-password unlock cookies. Visitors can
-enter the current password again. Future password changes also invalidate those
-cookies. Existing account sessions are checked against PostgreSQL on every
-request, so database availability is required even with Redis configured.
-
-Stored avatars and covers must be upload paths generated by the application.
-Invalid historical URLs show no image; re-upload the image through the existing
-profile or event controls. External image URLs are not fetched for social cards.
 
 ## Verifying the Upgrade
 
@@ -798,7 +985,89 @@ Go to your event page and test functionality:
 
 If you experience issues, you can roll back your application to the previous working version.
 
-### Routine v1.5.0 rollback: change only the app image
+### Rolling back v2.0.0 to v1.5.0
+
+The only supported way back from v2.0.0 is to restore the database backup taken
+before the upgrade and start the v1.5.0 image with the same `.env`. The
+[upgrade rehearsal](#upgrade-rehearsal-918) checks this path before every
+release. **Everything received after the upgrade is lost**: RSVPs, votes,
+comments, accounts and settings changes.
+
+**Before upgrading**, as described in [Before You Upgrade](#before-you-upgrade--back-up-your-data):
+
+1. Record the running image digest ([Checking the Current Version](#checking-the-current-version)).
+2. `pg_dump` the database.
+3. Copy `data/uploads`.
+4. Keep `.env` unchanged, with the same `SESSION_SECRET` and `ENCRYPTION_KEY`.
+
+**To roll back:**
+
+1. Stop the app, leaving PostgreSQL running:
+
+   ```bash
+   docker compose -f docker-compose.release.yml stop app
+   ```
+
+2. Choose the backup to restore. Either one restores exactly the pre-upgrade
+   data, including migration history:
+   - your operator dump, for example `./data/backups/pre-upgrade-YYYYMMDD-HHMMSS.sql`; or
+   - the **first** `./data/backups/pre-migration/pre-migration-schema_*.sql`
+     file, which v2.0.0 wrote when it first started. (v1.5.0's own startup
+     snapshots are named `pre-migration_*.sql`.)
+
+3. Move the upgraded database aside and restore into a fresh `rsvp_db`. Keeping
+   the renamed copy lets you recover data received after the upgrade by hand
+   later; drop it once you no longer need it.
+
+   ```bash
+   docker compose -f docker-compose.release.yml exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -d postgres -c 'ALTER DATABASE rsvp_db RENAME TO rsvp_db_v2'
+   docker compose -f docker-compose.release.yml exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE rsvp_db'
+   docker compose -f docker-compose.release.yml exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -d rsvp_db < ./data/backups/pre-upgrade-YYYYMMDD-HHMMSS.sql
+   ```
+
+   `ON_ERROR_STOP` makes the restore stop at the first error instead of leaving
+   a partly restored database. If it stops, fix the cause, drop the new
+   `rsvp_db` (not `rsvp_db_v2`), create it again and repeat the restore.
+
+4. Pin the v1.5.0 image by the digest you recorded (or use the `1.5.0` tag),
+   keep `.env` unchanged, and recreate only the app:
+
+   ```yaml
+   services:
+     app:
+       image: ghcr.io/joe-cole1/rsvp-to-me@sha256:<recorded digest>
+   ```
+
+   ```bash
+   docker compose -f docker-compose.release.yml pull app
+   docker compose -f docker-compose.release.yml up -d --no-deps app
+   ```
+
+   Then repeat the [health and core-flow checks](#verifying-the-upgrade),
+   including email and SMS sign-in. Do **not** run
+   `npm run db:secrets -- --rollback`: both backups predate the credential
+   conversion, so v1.5.0 reads the saved credentials as they are.
+
+5. Uploads: the rehearsal did not need the uploads copy, because the v2 cleanup
+   keeps every referenced image and removes only unreferenced uploads older than
+   24 hours. v2 does delete a cover or avatar once it is replaced or removed and
+   nothing else uses it, so if hosts changed images after the upgrade, copy the
+   backup back without overwriting newer files:
+   `cp -rn ./uploads-backup-YYYYMMDD-HHMMSS/. ./data/uploads/`.
+
+**Not safe:**
+
+- **Old image only.** v1.5.0 starts and reports healthy, but email and SMS
+  sign-in fail because it cannot read the converted credentials. It also matches
+  poll votes by display name, so when one of two guests with the same name
+  retracts a vote cast after the upgrade, both votes are deleted.
+- **`npm run db:secrets -- --rollback`, then the old image.** Saved credentials
+  work again, but the same-name vote deletion remains.
+
+Not rehearsed: v1.5.0 also ignores the new notification preferences; see
+[Recipient notification preferences](#recipient-notification-preferences-01a1a105).
+
+### Rolling back v1.5.0 to v1.4.1: change only the app image
 
 v1.5.0's two migrations only add nullable or defaulted columns. v1.4.1 keeps
 working with them, and its startup reports no pending migrations, so a routine
@@ -946,99 +1215,3 @@ RSVP to Me uses PostgreSQL 18. When a new major PostgreSQL version is released a
    ```
 
 8. **Verify** by navigating to your app URL and running a quick sanity check on the dashboard and a public event page.
-
-## Recipient notification preferences (`01a1a105`)
-
-Back up the database and stop every old application instance and scheduler
-before applying this upgrade. Do not mix legacy producers with preference-aware
-workers: old binaries cannot enforce category/event preferences or revocation.
-The additive notification migrations run through normal `prisma migrate deploy`.
-No new credentials, environment variables or dependencies are required.
-
-Migration keeps the scope each legacy choice had. The old Email/SMS switches covered
-reminders and host blasts, so they become update/reminder choices, not channel blocks;
-confirmations, approval decisions and host alerts keep arriving as before. The old
-channel choice keeps applying to event updates. Both checks email and text; because no
-address is verified at upgrade, it stays one message, email first, then SMS, never
-duplicate delivery. A recipient gets a copy on each channel only after verifying those
-addresses. Organizers keep
-the account contacts their event's alert switches covered; events whose alerts were off
-get no organizer row, so turning alerts on later works. No contact is marked verified.
-Connections remain unverified until the owner proves possession; enrollment does
-not change login identity or existing event contacts.
-
-Old reminder timings merge by offset while retaining source-channel ceilings.
-Either sent marker consumes the merged occurrence. Already-due occurrences are
-consumed at upgrade to avoid a catch-up burst. Migrated schedules keep their channel
-limits until a host chooses **Let each guest's settings decide**.
-
-Recipients see only channels the site offers: a channel must be enabled here and its
-provider configured. Disabling a service hides it without discarding anyone's choices;
-re-enabling it restores them. Used and expired verification challenges are deleted a
-day later by the existing rate-limit cleanup job.
-
-Verify profile preferences, private guest management, confirmation decisions,
-organizer alerts and reminders after upgrade. See
-[Notification Preferences](../host/notification-preferences.md) and the
-[local milestone test plan](../engineering/testing/01a1a105-notifications.md).
-Manual blasts now apply the **Event updates** choices too (#789), with the host's
-selected channels as a limit. Verify an opted-out guest is skipped and an eligible
-guest remains reachable. This adoption needs no additional migration, credential or
-dependency. Manual blasts retain independent submissions for each permitted channel
-the host selects, including unverified contacts; the composer reports provider
-acceptance, skips, failures and uncertainty instead of requested-recipient counts.
-Invitations remain separate.
-Authentication and inbound SMS behavior are not migrated.
-
-A database-only additive rollback is insufficient: a legacy binary would ignore
-new preferences. Before downgrading, stop notification production or restore a
-consistent pre-upgrade database/application backup. Destination challenges,
-connections and event bindings contain private contact information; protect
-backups accordingly and never copy verification codes or private links into logs.
-
-## Theme preset defaults (01a1baab)
-
-The additive preset-presentation migration adds eleven presets, Noto tile artwork,
-categories and complete default effects. It fills empty effects once on existing
-events linked to the affected built-in presets, including customized theme colors.
-Existing active effects and theme colors are preserved. Older explicit None choices
-cannot be distinguished from untouched empty effects and receive the new defaults.
-The migration does not run again on later visits; subsequent None choices persist.
-Effects and animation remain web-only and do not enter email.
-
-Administrators can select a preset category, search the local Noto library for a tile
-icon, and edit a default mixture of up to three icons with its amount, size, speed and
-movement. Save as default includes this metadata; reset restores it too.
-
-The local preflight formatter caps command batches at 64 KB so the Noto asset catalog
-does not exceed the npx shell-command argument limit. The file set and checks are unchanged.
-
-Hosts compare against, and Restore to, the applied preset's current settings, so an
-administrator's Save reaches hosts at once and never makes a freshly applied preset look
-customized. Save as default and the original snapshot remain administrator reset points;
-older snapshots that omit newer settings such as font or card opacity inherit the current
-preset's values there, while explicit saved values are preserved. No database rewrite is
-needed.
-
-Sample seeding preserves all fields of existing preset rows, so an administrator's
-category choice survives restarts; new rows still receive the built-in values. Presets
-saved before categories existed show as Seasonal when their seasonal flag is set. If the
-icon catalog cannot load, the event settings page still opens, without effect icon labels,
-and logs a warning.
-
-## Event display and accessibility corrections (#853)
-
-Event cards and event-page times now use the event's stored timezone and display its
-zone label. Server and browser timezone settings no longer change card times. No data
-migration or new configuration is required.
-
-After upgrading, reload open event settings tabs. The updated Display options and RSVP settings editors send only changed
-fields, preserving other tabs' changes to unrelated settings. Older already-open clients
-still send their old full payload until refreshed; edits to the same field remain
-last completed save wins. Existing administrator moderation access is preserved.
-
-All document routes share a main landmark and keyboard skip link. RSVP fields have
-visible labels, autocomplete, linked validation errors, error announcements and focus
-management. RSVP document titles identify the page, showing the event title only when
-existing public metadata rules allow it; private, password-protected and unpublished
-events keep a generic title.
