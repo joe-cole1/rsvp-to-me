@@ -426,3 +426,14 @@ correct Node was outside nvm's version cache. It drives the real shell entrypoin
 with CI-style, missing and mismatched runtimes, checks nvm fallback without
 automatic selection, and requires failure before database operations if the
 `.nvmrc` version cannot be selected. Fixture versions are derived from `.nvmrc`.
+
+`issue-918-upgrade-rehearsal.test.ts` covers #918: no gate upgraded a real
+database from the previous release, so the v2 vote-key change and credential
+conversion made an image-only rollback unsafe without any failing check. It
+guards the rehearsal's baseline and scenario selection (newer-version and
+prerelease fixtures), the Git-derived migration list, the data-preservation
+rules (declared rewrites, JSON extensions, legacy-secret scope and exact restore
+equality), `--plan-only` on a fixture repository and network isolation. It also
+requires the Container QC rehearsal steps to run only for manual runs and the
+Release gate. PR and push runs keep their checks, shallow checkout and timeout;
+tags are fetched only for the rehearsal, with no registry login.
