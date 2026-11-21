@@ -35,6 +35,7 @@ type Lib = {
   ): { differences: Row[]; allowed: { count: number }[] };
   validateRules(rules: Rule[], migrations: string[]): string[];
   summarizeDifferences(differences: Row[]): string[];
+  markdownCell(value: unknown): string;
 };
 const require = createRequire(import.meta.url);
 const lib = require("../../scripts/upgrade-rehearsal/lib.cjs") as Lib;
@@ -236,6 +237,37 @@ describe("#918 data preservation", () => {
         migrations
       )
     ).toHaveLength(2);
+  });
+});
+
+describe("#918 job summary table", () => {
+  // GitHub table cells end at a pipe that an odd run of backslashes does not escape.
+  function cells(row: string) {
+    const result: string[] = [];
+    let current = "";
+    let slashes = 0;
+    for (const char of row.slice(1, -1)) {
+      if (char === "|" && slashes % 2 === 0) {
+        result.push(current);
+        current = "";
+      } else current += char;
+      slashes = char === "\\" ? slashes + 1 : 0;
+    }
+    return [...result, current].map((cell) => cell.trim());
+  }
+
+  it.each([
+    ["plain detail"],
+    ["a | b"],
+    ["path ends with a backslash \\"],
+    ["already escaped \\| pipe"],
+    ["C:\\temp\\|\\\\|x"],
+    ["two\nlines\r\nand\rmore"],
+  ])("keeps every check on one four-cell row: %j", (detail) => {
+    const row = `| upgrade | check | **FAIL** | ${lib.markdownCell(detail)} |`;
+    expect(row).not.toMatch(/[\r\n]/);
+    expect(cells(row)).toHaveLength(4);
+    expect(cells(row)[3].replace(/\\([\\|])/g, "$1")).toBe(detail.replace(/\r?\n|\r/g, " "));
   });
 });
 

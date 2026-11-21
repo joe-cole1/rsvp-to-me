@@ -198,6 +198,18 @@ function summarizeDifferences(differences) {
   );
 }
 
+/**
+ * Text for one GitHub Markdown table cell. Backslashes are escaped first, so a
+ * trailing backslash cannot un-escape the pipe that follows; line breaks would
+ * end the row.
+ */
+function markdownCell(value) {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/\r?\n|\r/g, " ");
+}
+
 /** Validates declared rewrites: every rule names a known migration and a reason. */
 function validateRules(rules, knownMigrations) {
   const errors = [];
@@ -261,6 +273,7 @@ module.exports = {
   expectedMigrations,
   compareSnapshots,
   hasLegacySecrets,
+  markdownCell,
   summarizeDifferences,
   validateRules,
 };

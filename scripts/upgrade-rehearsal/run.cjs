@@ -5,7 +5,7 @@
 //   report
 const fs = require("node:fs");
 const { checker, readJson, record, snapshot, writeJson, RESULTS } = require("./common.cjs");
-const { compareSnapshots } = require("./lib.cjs");
+const { compareSnapshots, markdownCell } = require("./lib.cjs");
 
 function scenario() {
   const file = process.env.REHEARSAL_SCENARIO;
@@ -27,7 +27,7 @@ function report() {
     "| Phase | Check | Result | Detail |",
     "| --- | --- | --- | --- |",
   ];
-  const cell = (text) => String(text).replace(/\|/g, "\\|").replace(/\n/g, " ");
+  const cell = markdownCell;
   for (const result of results) {
     const status = result.ok ? "pass" : result.blocking ? "**FAIL**" : "fails (report only)";
     lines.push(
