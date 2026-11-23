@@ -39,20 +39,26 @@ updates:
       app-routine:
         patterns: ["*"]
         update-types: ["minor", "patch"]
-      # Preserve coupled package families for major upgrades. Routine updates
-      # match app-routine first; unrelated majors remain individual PRs.
+      # Explicit major-only scopes keep more-specific family patterns from
+      # capturing routine updates. Unrelated majors remain individual PRs.
       next-toolchain:
         patterns: ["next", "eslint-config-next"]
+        update-types: ["major"]
       radix-ui:
         patterns: ["@radix-ui/*"]
+        update-types: ["major"]
       prisma:
         patterns: ["prisma", "@prisma/*", "@libsql/*"]
+        update-types: ["major"]
       react:
         patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+        update-types: ["major"]
       vitest:
         patterns: ["vitest", "@vitest/*"]
+        update-types: ["major"]
       react-email:
         patterns: ["react-email", "@react-email/*"]
+        update-types: ["major"]
       app-security:
         applies-to: security-updates
         patterns: ["*"]

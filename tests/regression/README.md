@@ -66,6 +66,14 @@ also excludes generated fixture tests.
 
 ## Index
 
+Task `42bb7798`, follow-up to #938:
+
+- `dependabot-update-groups.test.ts`: parses the actual Dependabot configuration
+  and requires complementary update types for routine and package-family groups.
+  All six family cases fail without explicit major-only scopes, reproducing the
+  overlap found in live updater logs. Also checks that each job retains a
+  patch/minor batch and security coverage for all version levels.
+
 Issue #340 (task `01a1e91b`):
 
 - `issue-340-eslint-10.test.ts`: supported ESLint major and real React version
