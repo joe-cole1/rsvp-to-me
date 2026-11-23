@@ -27,6 +27,43 @@ validation commands, and approval and shipping requirements. Delegation uses
 Codex's built-in agents without project-specific model or reasoning restrictions.
 Ask for subagents or parallel agent work when you want to delegate a task.
 
+## Dependency maintenance
+
+`.github/dependabot.yml` is the source of truth for dependency automation.
+Dependabot checks the application, optional email worker, and GitHub Actions
+every Monday at 09:00 Asia/Seoul. Each job batches available patch and minor
+updates into one routine PR, after a seven-day release cooldown. This targets
+three routine batches per week when updates are available, rather than a PR
+for every package release. A release can wait until the next weekly check after
+its cooldown ends.
+
+Major upgrades stay separate from routine batches. The application's existing
+Next.js, Radix, Prisma, React, Vitest, and React Email package families stay
+grouped for coordinated upgrades; other majors get individual PRs. Keep the
+Node runtime and declaration major coordinated as described below. Version PR
+limits are two for the application and one each for the worker and Actions;
+majors share those limits, so these are queue limits, not weekly quotas.
+
+Each job has a separate security-update group covering all its dependencies.
+Keep Dependabot alerts and security updates enabled in the repository's
+Advanced Security settings. Security updates bypass the version-update schedule
+and cooldown and have a separate GitHub PR limit. Review them promptly rather
+than waiting for the weekly maintenance session.
+
+Review routine batches weekly, inspect release notes and the manifest/lockfile
+diff, and run the applicable repository validation before merging. If a batch
+fails because of one dependency, isolate that dependency for investigation;
+do not weaken checks to accept the batch. Major upgrades need a compatibility
+review and may require application changes.
+
+When changing this policy, first land the configuration on `main`, where
+Dependabot reads it. Check open security alerts and existing PRs, then verify
+replacement coverage before closing superseded PRs. Closing a Dependabot PR can
+suppress that version, so do not assume closing the backlog will recreate the
+same updates. Use the repository's Dependabot update page to check for updates,
+and inspect ignored updates if an expected replacement is missing. Do not use
+ignore commands as a backlog-cleanup shortcut.
+
 ## Saved configuration secrets
 
 Saved provider credentials are converted automatically by `scripts/dev-sync.sh`

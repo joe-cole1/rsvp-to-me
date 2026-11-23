@@ -1,25 +1,46 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Batch routine updates weekly; security updates use separate groups and bypass
+# the version-update schedule and cooldown. See docs/admin/local-development.md.
 
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 1
+    groups:
+      actions-routine:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 10
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
     ignore:
       # Upgrade Node's runtime and declaration major together.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
     groups:
+      app-routine:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      # Preserve coupled package families for major upgrades. Routine updates
+      # match app-routine first; unrelated majors remain individual PRs.
       next-toolchain:
         patterns: ["next", "eslint-config-next"]
       radix-ui:
@@ -32,9 +53,24 @@ updates:
         patterns: ["vitest", "@vitest/*"]
       react-email:
         patterns: ["react-email", "@react-email/*"]
+      app-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: "npm"
     directory: "/worker"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 10
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 1
+    groups:
+      worker-routine:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      worker-security:
+        applies-to: security-updates
+        patterns: ["*"]
