@@ -1,0 +1,60 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  enroll:
+    if: >-
+      github.repository == 'joe-cole1/rsvp-to-me' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # pull_request_target checks out trusted base-branch code. Never check out
+      # the PR head, install its dependencies, or execute its files in this job.
+      - name: Checkout trusted base
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify trusted checkout
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Select repository Node runtime
+        id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Verify Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ github.token }}
+
+      - name: Apply auto-merge eligibility
+        # Empty/failed metadata must also revoke this workflow's enrollment.
+        if: >-
+          !cancelled() && steps.checkout.outcome == 'success' &&
+          steps.node.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_METADATA: ${{ steps.metadata.outputs.updated-dependencies-json }}
+        run: node scripts/dependabot-auto-merge.cjs

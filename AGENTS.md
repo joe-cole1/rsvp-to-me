@@ -263,6 +263,15 @@ If an appropriate PR remains OPEN, the current `"ship it"` permits updating it.
 
 Never merge, enable auto-merge, force-push, rewrite published history, push directly to `main`/`master`, or delete remote branches.
 
+These prohibitions govern agent-executed Git/GitHub operations. The
+repository-owned `dependabot-auto-merge.yml` workflow is explicitly authorized
+to enroll and automatically squash-merge eligible Dependabot application/worker
+patch and minor updates under
+its documented policy. That workflow authorization does not permit agents to
+merge PRs, enable auto-merge themselves, or bypass its eligibility or required
+merge checks. Changes to the workflow still use the normal plan, validation,
+review, and `"ship it"` gates.
+
 ## GitHub CLI Authentication in WSL
 
 Treat `gh auth status` as diagnostic, not conclusive.

@@ -53,11 +53,47 @@ Advanced Security settings. Security updates bypass the version-update schedule
 and cooldown and have a separate GitHub PR limit. Review them promptly rather
 than waiting for the weekly maintenance session.
 
-Review routine batches weekly, inspect release notes and the manifest/lockfile
-diff, and run the applicable repository validation before merging. If a batch
-fails because of one dependency, isolate that dependency for investigation;
-do not weaken checks to accept the batch. Major upgrades need a compatibility
-review and may require application changes.
+### Automatic merging
+
+Application and worker npm PRs are automatically enrolled for squash auto-merge
+when every dependency update is patch or minor, including qualifying security
+fixes. GitHub merges them after the required merge checks pass. Major upgrades
+and GitHub Actions updates remain manual.
+
+If checks are already green when enrollment runs, the workflow can perform the
+normal protected squash merge immediately. Both paths bind the request to the
+inspected head SHA and enforce the same required merge rules.
+
+Eligibility requires an open, non-draft, same-repository Dependabot PR targeting
+`main`, a single verified Dependabot commit, and changes only to the selected
+project's existing `package.json` and/or `package-lock.json`. Mixed projects,
+unknown update types, source/workflow changes, added/deleted/renamed files, and
+human-edited commits require manual review. Every dependency in a grouped PR is
+checked individually. The enrollment request is bound to the inspected head SHA.
+
+Keep repository auto-merge enabled and retain the `main` ruleset's required
+`ci`, `Container (amd64)`, and `Container (arm64)` checks, CodeQL security gate,
+and up-to-date branch requirement. The workflow refuses enrollment when those
+protections are missing. It uses the built-in workflow token and no custom
+secrets or administrator bypass. Its privileged job runs trusted base-branch
+code without installing dependencies or executing PR code.
+
+The workflow evaluates PRs when opened, reopened, updated, edited, or moved
+between draft and ready. A newer head is evaluated by its own run. If a PR
+becomes ineligible, the workflow revokes auto-merge that it previously enabled;
+it preserves independently enabled maintainer auto-merge settings. Making a PR
+a draft immediately prevents merging while it is investigated. Disabling the
+workflow stops future enrollment; also disable auto-merge on already enrolled
+PRs when pausing the policy. Merging the workflow does not bulk-enroll the
+existing backlog; those PRs are evaluated on their next qualifying event.
+
+Review dependency results weekly and inspect release notes and manifest/lockfile
+diffs for PRs requiring manual review. If a batch fails because of one
+dependency, isolate that dependency for investigation; do not weaken checks to
+accept it. Major upgrades need a compatibility review and may require
+application changes.
+
+### Replacing an existing backlog
 
 When changing this policy, first land the configuration on `main`, where
 Dependabot reads it. Check open security alerts and existing PRs, then verify
