@@ -39,7 +39,10 @@ its cooldown ends.
 
 Major upgrades stay separate from routine batches. The application's existing
 Next.js, Radix, Prisma, React, Vitest, and React Email package families stay
-grouped for coordinated upgrades; other majors get individual PRs. Keep the
+grouped for coordinated upgrades; other majors get individual PRs. Each family
+group explicitly allows only major updates, so its more-specific package
+patterns cannot take patch/minor updates out of the routine batch. Group order
+alone does not provide that separation. Keep the
 Node runtime and declaration major coordinated as described below. Version PR
 limits are two for the application and one each for the worker and Actions;
 majors share those limits, so these are queue limits, not weekly quotas.
