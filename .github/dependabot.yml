@@ -1,40 +1,82 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Batch routine updates weekly; security updates use separate groups and bypass
+# the version-update schedule and cooldown. See docs/admin/local-development.md.
 
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 1
+    groups:
+      actions-routine:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 10
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
     ignore:
       # Upgrade Node's runtime and declaration major together.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
     groups:
+      app-routine:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      # Explicit major-only scopes keep more-specific family patterns from
+      # capturing routine updates. Unrelated majors remain individual PRs.
       next-toolchain:
         patterns: ["next", "eslint-config-next"]
+        update-types: ["major"]
       radix-ui:
         patterns: ["@radix-ui/*"]
+        update-types: ["major"]
       prisma:
         patterns: ["prisma", "@prisma/*", "@libsql/*"]
+        update-types: ["major"]
       react:
         patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+        update-types: ["major"]
       vitest:
         patterns: ["vitest", "@vitest/*"]
+        update-types: ["major"]
       react-email:
         patterns: ["react-email", "@react-email/*"]
+        update-types: ["major"]
+      app-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: "npm"
     directory: "/worker"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 10
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 1
+    groups:
+      worker-routine:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      worker-security:
+        applies-to: security-updates
+        patterns: ["*"]

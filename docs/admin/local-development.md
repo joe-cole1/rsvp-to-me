@@ -27,6 +27,82 @@ validation commands, and approval and shipping requirements. Delegation uses
 Codex's built-in agents without project-specific model or reasoning restrictions.
 Ask for subagents or parallel agent work when you want to delegate a task.
 
+## Dependency maintenance
+
+`.github/dependabot.yml` is the source of truth for dependency automation.
+Dependabot checks the application, optional email worker, and GitHub Actions
+every Monday at 09:00 Asia/Seoul. Each job batches available patch and minor
+updates into one routine PR, after a seven-day release cooldown. This targets
+three routine batches per week when updates are available, rather than a PR
+for every package release. A release can wait until the next weekly check after
+its cooldown ends.
+
+Major upgrades stay separate from routine batches. The application's existing
+Next.js, Radix, Prisma, React, Vitest, and React Email package families stay
+grouped for coordinated upgrades; other majors get individual PRs. Each family
+group explicitly allows only major updates, so its more-specific package
+patterns cannot take patch/minor updates out of the routine batch. Group order
+alone does not provide that separation. Keep the
+Node runtime and declaration major coordinated as described below. Version PR
+limits are two for the application and one each for the worker and Actions;
+majors share those limits, so these are queue limits, not weekly quotas.
+
+Each job has a separate security-update group covering all its dependencies.
+Keep Dependabot alerts and security updates enabled in the repository's
+Advanced Security settings. Security updates bypass the version-update schedule
+and cooldown and have a separate GitHub PR limit. Review them promptly rather
+than waiting for the weekly maintenance session.
+
+### Automatic merging
+
+Application and worker npm PRs are automatically enrolled for squash auto-merge
+when every dependency update is patch or minor, including qualifying security
+fixes. GitHub merges them after the required merge checks pass. Major upgrades
+and GitHub Actions updates remain manual.
+
+If checks are already green when enrollment runs, the workflow can perform the
+normal protected squash merge immediately. Both paths bind the request to the
+inspected head SHA and enforce the same required merge rules.
+
+Eligibility requires an open, non-draft, same-repository Dependabot PR targeting
+`main`, a single verified Dependabot commit, and changes only to the selected
+project's existing `package.json` and/or `package-lock.json`. Mixed projects,
+unknown update types, source/workflow changes, added/deleted/renamed files, and
+human-edited commits require manual review. Every dependency in a grouped PR is
+checked individually. The enrollment request is bound to the inspected head SHA.
+
+Keep repository auto-merge enabled and retain the `main` ruleset's required
+`ci`, `Container (amd64)`, and `Container (arm64)` checks, CodeQL security gate,
+and up-to-date branch requirement. The workflow refuses enrollment when those
+protections are missing. It uses the built-in workflow token and no custom
+secrets or administrator bypass. Its privileged job runs trusted base-branch
+code without installing dependencies or executing PR code.
+
+The workflow evaluates PRs when opened, reopened, updated, edited, or moved
+between draft and ready. A newer head is evaluated by its own run. If a PR
+becomes ineligible, the workflow revokes auto-merge that it previously enabled;
+it preserves independently enabled maintainer auto-merge settings. Making a PR
+a draft immediately prevents merging while it is investigated. Disabling the
+workflow stops future enrollment; also disable auto-merge on already enrolled
+PRs when pausing the policy. Merging the workflow does not bulk-enroll the
+existing backlog; those PRs are evaluated on their next qualifying event.
+
+Review dependency results weekly and inspect release notes and manifest/lockfile
+diffs for PRs requiring manual review. If a batch fails because of one
+dependency, isolate that dependency for investigation; do not weaken checks to
+accept it. Major upgrades need a compatibility review and may require
+application changes.
+
+### Replacing an existing backlog
+
+When changing this policy, first land the configuration on `main`, where
+Dependabot reads it. Check open security alerts and existing PRs, then verify
+replacement coverage before closing superseded PRs. Closing a Dependabot PR can
+suppress that version, so do not assume closing the backlog will recreate the
+same updates. Use the repository's Dependabot update page to check for updates,
+and inspect ignored updates if an expected replacement is missing. Do not use
+ignore commands as a backlog-cleanup shortcut.
+
 ## Saved configuration secrets
 
 Saved provider credentials are converted automatically by `scripts/dev-sync.sh`

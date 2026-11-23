@@ -450,6 +450,14 @@ tags; only stable releases receive minor-version and `latest` aliases. The
 metadata action's implicit `latest` behavior is disabled. Release-note drafts
 live in `.github/release-notes/` and do not publish releases by themselves.
 
+`.github/workflows/dependabot-auto-merge.yml` is the sole automatic dependency
+merge entry point. It runs trusted base-branch code with scoped repository write
+permissions, verifies pinned Dependabot metadata, and delegates eligibility and
+head-bound enrollment/ready merging to `scripts/dependabot-auto-merge.cjs`. It executes no PR
+code or dependency installs. GitHub's required CI/container/CodeQL rules and
+up-to-date branch requirement remain the merge authority; majors and Actions
+updates require manual review. See `docs/admin/local-development.md`.
+
 Document HTML and React Server Component responses contain request-specific CSP
 nonces and must not be cached or replayed by a reverse proxy or CDN. Static
 assets under `public/` and `_next/` may keep ordinary long-lived asset caching.
