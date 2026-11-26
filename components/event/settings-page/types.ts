@@ -67,6 +67,14 @@ export type PotluckItemEntry = {
   claims: PotluckClaimEntry[];
 };
 
+export type QuestionnaireResponseEntry = {
+  id: string;
+  respondentName: string;
+  submittedAt: string;
+  source: "standalone" | "rsvp";
+  answers: Record<string, string>;
+};
+
 export type EventInput = Partial<GuestRsvpDisplayFields> & {
   id: string;
   slug: string;
@@ -74,6 +82,7 @@ export type EventInput = Partial<GuestRsvpDisplayFields> & {
   title: string;
   hostId: string;
   host: { id: string; name: string | null; email: string };
+  rsvpEnabled?: boolean;
   commentsEnabled: boolean;
   plusOneAllowed: boolean;
   plusOneMax: number;
@@ -120,9 +129,12 @@ export type EventInput = Partial<GuestRsvpDisplayFields> & {
   rsvpFields: RsvpFieldEntry[];
   polls: PollEntry[];
   potluckItems: PotluckItemEntry[];
+  existingRsvpCount?: number;
+  questionnaireResponses?: QuestionnaireResponseEntry[];
 };
 
 export interface SettingsOverrides extends Partial<GuestRsvpDisplayFields> {
+  rsvpEnabled?: boolean;
   commentsEnabled?: boolean;
   plusOneAllowed?: boolean;
   plusOneMax?: number;

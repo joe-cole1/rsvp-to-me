@@ -15,6 +15,7 @@ import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { EventUrlSettings } from "./EventUrlSettings";
 
 export function DisplayOptionsPanel({
+  rsvpEnabled = true,
   eventId,
   slug,
   slugRandomCode,
@@ -39,6 +40,7 @@ export function DisplayOptionsPanel({
   triggerSaveSettings,
   t,
 }: {
+  rsvpEnabled?: boolean;
   eventId: string;
   slug: string;
   slugRandomCode?: string | null;
@@ -79,7 +81,7 @@ export function DisplayOptionsPanel({
         disabled={isPending}
         theme={t}
       />
-      {visibility === "PRIVATE" && (
+      {rsvpEnabled && visibility === "PRIVATE" && (
         <Toggle
           label={translate("allowGuestsInviteFriends")}
           value={guestsCanInvite}
@@ -96,6 +98,12 @@ export function DisplayOptionsPanel({
             <Label theme={t} htmlFor="event-password" style={{ marginBottom: 0 }}>
               {translate("eventPasswordOptional")}
             </Label>
+            {!rsvpEnabled && visibility === "PRIVATE" && !hasPassword && (
+              <InlineAlert theme={t} tone="warning" style={{ marginTop: "8px", marginBottom: 0 }}>
+                {translate("privateInfoOnlyPasswordNotice")}
+              </InlineAlert>
+            )}
+
             {hasPassword && (
               <StatusChip theme={t} tone="success">
                 {translate("set")}
@@ -165,6 +173,12 @@ export function DisplayOptionsPanel({
             </InlineAlert>
           )}
 
+          {!rsvpEnabled && visibility === "PRIVATE" && !hasPassword && (
+            <InlineAlert theme={t} tone="warning" style={{ marginTop: "8px", marginBottom: 0 }}>
+              {translate("privateInfoOnlyPasswordNotice")}
+            </InlineAlert>
+          )}
+
           {hasPassword && (
             <>
               <div style={hint}>{translate("passwordStaysOnVisibilityChange")}</div>
@@ -214,47 +228,51 @@ export function DisplayOptionsPanel({
         theme={t}
       />
 
-      <div style={{ marginBottom: "16px" }}>
-        <h3 style={{ fontSize: "14px", fontWeight: 700, marginBottom: "10px" }}>
-          {translate("guestListVisibility")}
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {(
-            [
-              ["ALL", translate("everyoneCanSee")],
-              ["GUESTS_ONLY", translate("goingGuestsOnly")],
-              ["HOST_ONLY", translate("hostOnly")],
-            ] as const
-          ).map(([val, label]) => (
-            <label
-              key={val}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                cursor: "pointer",
-              }}
-            >
-              <Check
-                theme={t}
-                type="radio"
-                checked={guestListVis === val}
-                onChange={() => {
-                  setGuestListVis(val);
-                  triggerSaveSettings({ guestListVis: val });
-                }}
-              />
-              <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-      <GuestRsvpDisplaySettings
-        value={guestRsvpDisplay}
-        onChange={onGuestRsvpDisplayChange}
-        guestListVis={guestListVis}
-        t={t}
-      />
+      {rsvpEnabled && (
+        <>
+          <div style={{ marginBottom: "16px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 700, marginBottom: "10px" }}>
+              {translate("guestListVisibility")}
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {(
+                [
+                  ["ALL", translate("everyoneCanSee")],
+                  ["GUESTS_ONLY", translate("goingGuestsOnly")],
+                  ["HOST_ONLY", translate("hostOnly")],
+                ] as const
+              ).map(([val, label]) => (
+                <label
+                  key={val}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Check
+                    theme={t}
+                    type="radio"
+                    checked={guestListVis === val}
+                    onChange={() => {
+                      setGuestListVis(val);
+                      triggerSaveSettings({ guestListVis: val });
+                    }}
+                  />
+                  <span style={{ fontSize: "14px", color: t.textSecondary }}>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <GuestRsvpDisplaySettings
+            value={guestRsvpDisplay}
+            onChange={onGuestRsvpDisplayChange}
+            guestListVis={guestListVis}
+            t={t}
+          />
+        </>
+      )}
     </Section>
   );
 }

@@ -19,6 +19,7 @@ type UpdateInput = z.output<typeof UpdateRsvpSchema>;
 export type RsvpFailure =
   | "eventNotFound"
   | "forbidden"
+  | "rsvpsDisabled"
   | "eventStarted"
   | "deadlinePassed"
   | "invalidRsvp"
@@ -34,6 +35,7 @@ const eventSelect = {
   slug: true,
   title: true,
   status: true,
+  rsvpEnabled: true,
   visibility: true,
   passwordHash: true,
   hostId: true,
@@ -66,6 +68,7 @@ type RsvpEvent = Prisma.EventGetPayload<{ select: typeof eventSelect }>;
 function validateRules(event: RsvpEvent, data: UpdateInput, editing: boolean): RsvpFailure | null {
   const now = new Date();
   if (event.status !== "PUBLISHED") return "forbidden";
+  if (event.rsvpEnabled === false) return "rsvpsDisabled";
   if (event.startAt <= now) return "eventStarted";
   // Keep the existing late-decline exception; new responses still close at the deadline.
   if (

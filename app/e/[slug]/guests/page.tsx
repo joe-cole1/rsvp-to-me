@@ -68,6 +68,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
   });
 
   if (!event || event.status === "CANCELLED" || event.status === "DELETED") notFound();
+  if (event.rsvpEnabled === false) redirect(`/e/${slug}`);
 
   // Enforce the same visibility/password gate as the event page — a PRIVATE or
   // password-protected event must not expose its guest list to anonymous visitors.

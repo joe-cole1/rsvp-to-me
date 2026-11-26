@@ -34,6 +34,7 @@ export interface DashboardGridItem {
   startAt: Date | string;
   timezone: string;
   status: string;
+  rsvpEnabled?: boolean;
   theme: {
     gradientFrom: string;
     gradientTo: string;
@@ -961,7 +962,9 @@ function EventCard({ item, isDropdownOpen, onToggleDropdown, dropdownRef }: Even
               {!isInvite ? (
                 <>
                   <DropdownLink href={`/e/${item.slug}`}>{tr("viewPage")}</DropdownLink>
-                  <DropdownLink href={`/e/${item.slug}/guests`}>{tr("guestsList")}</DropdownLink>
+                  {item.rsvpEnabled !== false && (
+                    <DropdownLink href={`/e/${item.slug}/guests`}>{tr("guestsList")}</DropdownLink>
+                  )}
                   <DropdownLink href={`/e/${item.slug}/settings`}>{tr("settings")}</DropdownLink>
                 </>
               ) : (
@@ -1052,7 +1055,11 @@ function EventCard({ item, isDropdownOpen, onToggleDropdown, dropdownRef }: Even
             fontSize: "12px",
           }}
         >
-          <span>{tr("goingMessage", { value0: item.going })}</span>
+          <span>
+            {item.rsvpEnabled === false
+              ? tr("infoOnly")
+              : tr("goingMessage", { value0: item.going })}
+          </span>
           {item.commentCount > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
               <span aria-hidden="true">·</span>
@@ -1060,7 +1067,8 @@ function EventCard({ item, isDropdownOpen, onToggleDropdown, dropdownRef }: Even
               <span>{item.commentCount}</span>
             </div>
           )}
-          {item.rsvpDeadline &&
+          {item.rsvpEnabled !== false &&
+            item.rsvpDeadline &&
             (() => {
               const deadline = new Date(item.rsvpDeadline);
               const now = new Date();

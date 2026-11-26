@@ -12,6 +12,7 @@ export type GateEvent = {
   id: string;
   visibility: string;
   passwordHash: string | null;
+  rsvpEnabled?: boolean;
   hostId: string;
   coHosts: { userId: string }[];
 };
@@ -84,17 +85,21 @@ export async function resolveEventAccess(
   const unlockedCookie = (await cookies()).get(`rsvp-unlocked-${slug}`)?.value;
   const isUnlocked = unlockedCookie === getUnlockSignature(slug, event.passwordHash);
 
+  const rsvpEnabled = event.rsvpEnabled !== false;
+
   // A URL token that maps to a real RSVP lets INVITED guests through.
-  const hasValidToken = token
-    ? !!(await db.rSVP.findFirst({
-        where: { editToken: token, eventId: event.id },
-        select: { id: true },
-      }))
-    : false;
+  // Disabled when RSVPs are turned off so dormant RSVPs cannot bypass a PRIVATE gate.
+  const hasValidToken =
+    rsvpEnabled && token
+      ? !!(await db.rSVP.findFirst({
+          where: { editToken: token, eventId: event.id },
+          select: { id: true },
+        }))
+      : false;
 
   // A logged-in guest with an existing RSVP on this event bypasses the gate.
   const loggedInUserRsvp =
-    !isHost && !token && sessionUser?.id
+    rsvpEnabled && !isHost && !token && sessionUser?.id
       ? await db.rSVP.findFirst({
           where: { userId: sessionUser.id, eventId: event.id },
           select: {

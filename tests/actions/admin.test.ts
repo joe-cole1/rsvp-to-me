@@ -118,6 +118,9 @@ vi.mock("@/lib/db", () => ({
       count: mockRsvpCount,
       deleteMany: mockRsvpDeleteMany,
     },
+    questionnaireSubmission: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     checkIn: {
       count: mockCheckInCount,
     },

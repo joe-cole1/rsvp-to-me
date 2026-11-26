@@ -17,11 +17,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const exportConfig = await db.event.findUnique({
     where: { id: event.id },
     select: {
+      rsvpEnabled: true,
       timezone: true,
       rsvpFields: { select: { id: true, label: true }, orderBy: { order: "asc" } },
     },
   });
-  if (!exportConfig) return new NextResponse("Not Found", { status: 404 });
+  if (!exportConfig || exportConfig.rsvpEnabled === false) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
 
   const rsvps = await db.rSVP.findMany({
     where: { eventId: event.id },

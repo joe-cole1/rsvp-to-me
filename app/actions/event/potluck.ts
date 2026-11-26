@@ -22,6 +22,13 @@ export async function addPotluckItem(
   ({ label, quantity } = PotluckItemSchema.parse({ label, quantity }));
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("potluck_manage", captchaToken);
+  const currentEvent = await db.event.findUnique({
+    where: { id: eventId },
+    select: { rsvpEnabled: true },
+  });
+  if (currentEvent?.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
   const item = await db.potluckItem.create({ data: { eventId, label, quantity } });
   revalidatePath(`/e/${event.slug}`);
   return { success: true, id: item.id };
@@ -49,10 +56,20 @@ export async function claimPotluckItem(
     where: { id: itemId },
     include: {
       claims: true,
-      event: { select: { slug: true, hostId: true, coHosts: { select: { userId: true } } } },
+      event: {
+        select: {
+          slug: true,
+          rsvpEnabled: true,
+          hostId: true,
+          coHosts: { select: { userId: true } },
+        },
+      },
     },
   });
   if (!item) return { success: false, error: await eventActionMessage("itemNotFound") };
+  if (item.event.rsvpEnabled === false) {
+    return { success: false, error: await eventActionMessage("rsvpsDisabled") };
+  }
 
   // SEC-4 / SEC-24: host/cohost session, OR an approved RSVP proven by its
   // secret editToken. The claimant name is taken from that RSVP, never the

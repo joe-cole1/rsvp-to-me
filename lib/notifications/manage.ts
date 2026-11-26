@@ -79,7 +79,7 @@ export async function authorizeManagement(raw: unknown) {
   const rsvp = await db.rSVP.findFirst({
     where: {
       ...(scope.token ? { editToken: scope.token } : { id: scope.rsvpId, userId: user!.id }),
-      event: { slug: scope.slug, status: { not: "DELETED" } },
+      event: { slug: scope.slug, status: { not: "DELETED" }, rsvpEnabled: true },
     },
     include: { event: { select: { id: true, title: true } }, user: true },
   });

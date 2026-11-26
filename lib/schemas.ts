@@ -64,6 +64,7 @@ export const CreateEventSchema = z.object({
   locationAddress: z.string().trim().check(maxCodeUnits(500)).optional().nullable(),
   virtualUrl: HttpUrlSchema.optional().nullable().or(z.literal("")),
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).default("UNLISTED"),
+  rsvpEnabled: z.boolean().default(true),
 });
 
 export const AddRsvpSchema = z.object({
@@ -109,6 +110,7 @@ const GuestCountDisplaySchema = z.enum(["EXACT", "CAPPED", "HIDDEN"]);
 // call could spread arbitrary Event scalar columns (status, slug, hostId, …)
 // into the update. Unknown keys are stripped (Zod's default) before the write.
 export const SaveEventSettingsSchema = z.object({
+  rsvpEnabled: z.boolean().optional(),
   commentsEnabled: z.boolean().optional(),
   plusOneAllowed: z.boolean().optional(),
   plusOneMax: z.number().int().min(0).max(100).optional(),
@@ -228,6 +230,13 @@ export const RsvpFieldSchema = z.object({
   order: z.number().int().min(0).max(10000),
 });
 export const UpdateRsvpFieldSchema = RsvpFieldSchema.omit({ order: true }).partial();
+export const SubmitQuestionnaireSchema = z.object({
+  eventId: z.string().trim().min(1),
+  respondentName: z.string().trim().check(maxCodeUnits(100)).optional().default(""),
+  answers: z
+    .record(z.string().check(maxCodeUnits(100)), z.string().check(maxCodeUnits(2000)))
+    .default({}),
+});
 export const InfoSectionSchema = z.object({
   eventId: z.string().min(1),
   type: z.enum([

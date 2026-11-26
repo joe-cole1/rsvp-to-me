@@ -64,6 +64,7 @@ export async function processReminders(): Promise<void> {
       SELECT s.id, s."eventId", e."startAt"
       FROM "NotificationSchedule" s JOIN "Event" e ON e.id = s."eventId"
       WHERE s.enabled = true AND s."consumedAt" IS NULL
+        AND e."rsvpEnabled" = true
         AND e.status NOT IN ('CANCELLED', 'DELETED') AND e."startAt" > ${now}
         AND e."startAt" - s."hoursBefore" * INTERVAL '1 hour' <= ${now}
     `;
@@ -76,6 +77,7 @@ export async function processReminders(): Promise<void> {
           UPDATE "NotificationSchedule" s SET "consumedAt" = ${now}
           FROM "Event" e WHERE s.id = ${candidate.id} AND e.id = s."eventId"
             AND s.enabled = true AND s."consumedAt" IS NULL
+            AND e."rsvpEnabled" = true
             AND e."startAt" = ${candidate.startAt}
             AND e.status NOT IN ('CANCELLED', 'DELETED') AND e."startAt" > ${now}
             AND e."startAt" - s."hoursBefore" * INTERVAL '1 hour' <= ${now}
@@ -137,10 +139,11 @@ export async function processReminders(): Promise<void> {
           recipient.canSend = async (channel, destination) => {
             const current = await db.event.findUnique({
               where: { id: event.id },
-              select: { startAt: true, status: true },
+              select: { startAt: true, status: true, rsvpEnabled: true },
             });
             return (
               !!current &&
+              current.rsvpEnabled !== false &&
               current.startAt.getTime() === event.startAt.getTime() &&
               current.startAt.getTime() > Date.now() &&
               !["CANCELLED", "DELETED"].includes(current.status) &&

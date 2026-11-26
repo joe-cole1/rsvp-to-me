@@ -199,6 +199,7 @@ export async function getAdminEvents(query: string = "", page = 1) {
       startAt: e.startAt,
       status: e.status,
       visibility: e.visibility,
+      rsvpEnabled: e.rsvpEnabled,
       hostName: e.host.name ?? e.host.email?.split("@")[0] ?? "Unknown",
       hostEmail: e.host.email ?? "",
       rsvpCount: e._count.rsvps,

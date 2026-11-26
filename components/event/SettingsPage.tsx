@@ -132,6 +132,7 @@ export function SettingsPage({
   const [themeCustomizeOpen, setThemeCustomizeOpen] = useState(false);
 
   // ── RSVP Options State ──
+  const [rsvpEnabled, setRsvpEnabled] = useState(event.rsvpEnabled !== false);
   const [plusOneAllowed, setPlusOneAllowed] = useState(event.plusOneAllowed);
   const [plusOneMax, setPlusOneMax] = useState(event.plusOneMax);
   const [plusOneNamesRequired, setPlusOneNamesRequired] = useState(event.plusOneNamesRequired);
@@ -830,6 +831,11 @@ export function SettingsPage({
   const S = buildStyles(t);
   // The settings bar is app chrome: the dark shell with the event's accent.
   const ct = chromeTheme(t);
+  const visibleSection =
+    !rsvpEnabled &&
+    (activeSection === "reminders" || activeSection === "emails" || activeSection === "potluck")
+      ? null
+      : activeSection;
 
   return (
     <div style={S.page}>
@@ -849,7 +855,7 @@ export function SettingsPage({
           variant="icon"
           aria-label={common("back")}
           onClick={() => {
-            if (activeSection) {
+            if (visibleSection) {
               closeSection();
             } else {
               window.location.href = eventPagePath(event.slug, adminModerating);
@@ -867,22 +873,22 @@ export function SettingsPage({
             marginLeft: "12px",
           }}
         >
-          {activeSection ? (
+          {visibleSection ? (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <Button theme={ct} variant="link" type="button" onClick={closeSection}>
                 {translate("settings")}
               </Button>
               <span style={{ opacity: 0.4 }}>/</span>
               <span>
-                {activeSection === "theme" && translate("theme")}
-                {activeSection === "hosts" && translate("hosts")}
-                {activeSection === "rsvp" && translate("rsvpOptions")}
-                {activeSection === "questionnaire" && translate("questionnaire")}
-                {activeSection === "polls" && translate("polls")}
-                {activeSection === "potluck" && translate("potluck")}
-                {activeSection === "privacy" && translate("displayOptions")}
-                {activeSection === "reminders" && translate("autoReminders")}
-                {activeSection === "emails" && translate("emails")}
+                {visibleSection === "theme" && translate("theme")}
+                {visibleSection === "hosts" && translate("hosts")}
+                {visibleSection === "rsvp" && translate("rsvpOptions")}
+                {visibleSection === "questionnaire" && translate("questionnaire")}
+                {visibleSection === "polls" && translate("polls")}
+                {visibleSection === "potluck" && translate("potluck")}
+                {visibleSection === "privacy" && translate("displayOptions")}
+                {visibleSection === "reminders" && translate("autoReminders")}
+                {visibleSection === "emails" && translate("emails")}
               </span>
             </div>
           ) : (
@@ -929,20 +935,21 @@ export function SettingsPage({
       />
 
       <div style={S.container}>
-        {activeSection === null && (
+        {visibleSection === null && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <SettingsMenu
               isOwner={isOwner}
               openSection={openSection}
               t={t}
               emailEnabled={channelConfig.email}
+              rsvpEnabled={rsvpEnabled}
             />
             {isOwner && <DangerZonePanel eventId={event.id} t={t} />}
           </div>
         )}
 
         {/* ── Theme ── */}
-        {activeSection === "theme" && (
+        {visibleSection === "theme" && (
           <ThemePanel
             event={event}
             themePresets={themePresets}
@@ -977,7 +984,7 @@ export function SettingsPage({
         )}
 
         {/* ── Hosts ── */}
-        {activeSection === "hosts" && (
+        {visibleSection === "hosts" && (
           <HostsPanel
             event={event}
             coHosts={coHosts}
@@ -1001,8 +1008,11 @@ export function SettingsPage({
         )}
 
         {/* ── RSVP Options ── */}
-        {activeSection === "rsvp" && (
+        {visibleSection === "rsvp" && (
           <RsvpOptionsPanel
+            rsvpEnabled={rsvpEnabled}
+            setRsvpEnabled={setRsvpEnabled}
+            existingRsvpCount={event.existingRsvpCount ?? 0}
             plusOneAllowed={plusOneAllowed}
             setPlusOneAllowed={setPlusOneAllowed}
             plusOneMax={plusOneMax}
@@ -1035,8 +1045,11 @@ export function SettingsPage({
         )}
 
         {/* ── Questionnaire ── */}
-        {activeSection === "questionnaire" && (
+        {visibleSection === "questionnaire" && (
           <QuestionnairePanel
+            rsvpEnabled={rsvpEnabled}
+            eventSlug={event.slug}
+            responses={event.questionnaireResponses ?? []}
             questionnaireEnabled={questionnaireEnabled}
             setQuestionnaireEnabled={setQuestionnaireEnabled}
             fields={fields}
@@ -1067,8 +1080,9 @@ export function SettingsPage({
         )}
 
         {/* ── Display Options ── */}
-        {activeSection === "privacy" && (
+        {visibleSection === "privacy" && (
           <DisplayOptionsPanel
+            rsvpEnabled={rsvpEnabled}
             eventId={event.id}
             slug={event.slug}
             slugRandomCode={event.slugRandomCode}
@@ -1099,16 +1113,17 @@ export function SettingsPage({
         )}
 
         {/* ── Auto-Reminders ── */}
-        {activeSection === "reminders" && (
+        {visibleSection === "reminders" && (
           <ReminderSchedule eventId={event.id} theme={t} onStatus={reportNotificationStatus} />
         )}
 
         {/* ── Emails ── */}
-        {activeSection === "emails" && <EmailsPanel eventId={event.id} t={t} />}
+        {visibleSection === "emails" && <EmailsPanel eventId={event.id} t={t} />}
 
         {/* ── Polls Sub-page ── */}
-        {activeSection === "polls" && (
+        {visibleSection === "polls" && (
           <PollsPanel
+            rsvpEnabled={rsvpEnabled}
             polls={polls}
             newPollQuestion={newPollQuestion}
             setNewPollQuestion={setNewPollQuestion}
@@ -1135,7 +1150,7 @@ export function SettingsPage({
         )}
 
         {/* ── Potluck Sub-page ── */}
-        {activeSection === "potluck" && (
+        {visibleSection === "potluck" && (
           <PotluckPanel
             potluckItems={potluckItems}
             newPotluckLabel={newPotluckLabel}

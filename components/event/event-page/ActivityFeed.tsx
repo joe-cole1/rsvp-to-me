@@ -21,7 +21,7 @@ import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
 import { Button } from "@/components/ui/Button";
-import { Check, Input, Textarea } from "@/components/ui/Field";
+import { Check, Field, Input, Textarea } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
 import { NotificationDeliveryFeedback } from "./NotificationDeliveryFeedback";
 import type { NotificationFeedback } from "@/lib/notifications/types";
@@ -37,6 +37,10 @@ export function ActivityFeed({
   isAdminBypass,
   canViewerComment,
   selfAuthorName,
+  hasSessionUser = false,
+  voterNameDraft = "",
+  setVoterNameDraft,
+  commentError = null,
   pendingNoticeStyle,
   guestRsvpId,
   commentText,
@@ -75,6 +79,10 @@ export function ActivityFeed({
   isAdminBypass: boolean;
   canViewerComment: boolean;
   selfAuthorName: string;
+  hasSessionUser?: boolean;
+  voterNameDraft?: string;
+  setVoterNameDraft?: React.Dispatch<React.SetStateAction<string>>;
+  commentError?: string | null;
   pendingNoticeStyle: React.CSSProperties;
   guestRsvpId: string | null;
   commentText: string;
@@ -106,6 +114,10 @@ export function ActivityFeed({
   const { confirm, dialog } = useConfirm(t);
   const [removing, startRemoving] = useTransition();
   const [removalError, setRemovalError] = useState<string | null>(null);
+  const rsvpEnabled = event.rsvpEnabled !== false;
+  const needsCommentName = !rsvpEnabled && !isHost && !hasSessionUser;
+  const canReply =
+    isHost || Boolean(guestRsvpId) || (!rsvpEnabled && event.commentsEnabled && canViewerComment);
   const removalControl = (id: string, name: string) =>
     isHost && (
       <>
@@ -188,27 +200,29 @@ export function ActivityFeed({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent: rsvpEnabled ? "space-between" : "flex-end",
                   gap: "10px",
                 }}
               >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    fontSize: "13px",
-                    color: t.textSecondary,
-                    cursor: "pointer",
-                  }}
-                >
-                  <Check
-                    theme={t}
-                    checked={notifyOnUpdate}
-                    onChange={(e) => setNotifyOnUpdate(e.target.checked)}
-                  />
-                  {translate("notifyGuestsUpdate")}
-                </label>
+                {rsvpEnabled && (
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "13px",
+                      color: t.textSecondary,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Check
+                      theme={t}
+                      checked={notifyOnUpdate}
+                      onChange={(e) => setNotifyOnUpdate(e.target.checked)}
+                    />
+                    {translate("notifyGuestsUpdate")}
+                  </label>
+                )}
                 <Button
                   theme={t}
                   variant="primary"
@@ -237,6 +251,19 @@ export function ActivityFeed({
                   <ShieldAlert size={13} />
                   {translate("commentingAsAdminNotRsvpD")}
                 </div>
+              ) : needsCommentName && setVoterNameDraft ? (
+                <Field
+                  theme={t}
+                  label={translate("yourNameToComment")}
+                  style={{ marginBottom: "10px" }}
+                >
+                  <Input
+                    theme={t}
+                    value={voterNameDraft}
+                    onChange={(e) => setVoterNameDraft(e.target.value)}
+                    placeholder={translate("yourNameToComment")}
+                  />
+                </Field>
               ) : (
                 <div style={{ fontSize: "12px", color: t.textMuted, marginBottom: "6px" }}>
                   {translate("commentingAs")}{" "}
@@ -252,7 +279,11 @@ export function ActivityFeed({
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    if (
+                      e.key === "Enter" &&
+                      !e.shiftKey &&
+                      !(needsCommentName && !voterNameDraft.trim())
+                    ) {
                       e.preventDefault();
                       submitComment();
                     }
@@ -262,12 +293,19 @@ export function ActivityFeed({
                   theme={t}
                   variant="primary"
                   onClick={submitComment}
-                  disabled={!commentText.trim() || isPending}
+                  disabled={
+                    !commentText.trim() || isPending || (needsCommentName && !voterNameDraft.trim())
+                  }
                   aria-label={translate("leaveComment")}
                 >
                   <Send size={16} aria-hidden="true" />
                 </Button>
               </div>
+              {commentError && (
+                <InlineAlert theme={t} tone="error" style={{ marginTop: "8px", marginBottom: 0 }}>
+                  {commentError}
+                </InlineAlert>
+              )}
             </div>
           )}
           {event.commentsEnabled && !isHost && isPendingGuest && (
@@ -572,7 +610,7 @@ export function ActivityFeed({
                             >
                               {item.body}
                             </p>
-                            {(isHost || guestRsvpId) && (
+                            {canReply && (
                               <div style={{ marginTop: "6px", fontSize: "13px" }}>
                                 <Button
                                   theme={t}
@@ -666,7 +704,12 @@ export function ActivityFeed({
                                   onChange={(e) => setReplyText(e.target.value)}
                                   style={{ flex: 1, width: "auto" }}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !isPending && replyText.trim()) {
+                                    if (
+                                      e.key === "Enter" &&
+                                      !isPending &&
+                                      replyText.trim() &&
+                                      !(needsCommentName && !voterNameDraft.trim())
+                                    ) {
                                       submitReply(item.id);
                                     }
                                   }}
@@ -675,7 +718,11 @@ export function ActivityFeed({
                                   theme={t}
                                   variant="primary"
                                   onClick={() => submitReply(item.id)}
-                                  disabled={!replyText.trim() || isPending}
+                                  disabled={
+                                    !replyText.trim() ||
+                                    isPending ||
+                                    (needsCommentName && !voterNameDraft.trim())
+                                  }
                                   aria-label={translate("reply")}
                                 >
                                   <Send size={14} aria-hidden="true" />

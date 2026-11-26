@@ -7,8 +7,9 @@ import { APP_SHELL, APP_SHELL_THEME as T } from "@/lib/theme";
 import { getSessionUser } from "@/lib/session-user";
 import { AppCard } from "@/components/ui/AppPrimitives";
 import { Button } from "@/components/ui/Button";
-import { Check, Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { CaptchaForm } from "@/components/ui/CaptchaForm";
+import { NewEventOptionsSection } from "@/components/dashboard/NewEventOptionsSection";
 
 export async function generateMetadata(): Promise<Metadata> {
   const tr = await getRequestTranslator();
@@ -97,48 +98,7 @@ export default async function NewEventPage() {
           <LocationSelector />
         </Card>
 
-        <Card title={tr("Ui.Dashboard.visibility")}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {(
-              [
-                ["UNLISTED", tr("Ui.Dashboard.unlisted"), tr("Ui.Dashboard.unlistedDescription")],
-                ["PUBLIC", tr("Ui.Dashboard.public"), tr("Ui.Dashboard.publicDescription")],
-                ["PRIVATE", tr("Ui.Dashboard.private"), tr("Ui.Dashboard.privateDescription")],
-              ] as const
-            ).map(([val, label, desc]) => (
-              <label
-                key={val}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "12px",
-                  padding: "12px",
-                  background: APP_SHELL.cardBg,
-                  border: `1px solid ${APP_SHELL.cardBorder}`,
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                <Check
-                  theme={T}
-                  type="radio"
-                  name="visibility"
-                  value={val}
-                  defaultChecked={val === "UNLISTED"}
-                  style={{ marginTop: "2px" }}
-                />
-                <div>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: APP_SHELL.textPrimary }}>
-                    {label}
-                  </div>
-                  <div style={{ fontSize: "12px", color: APP_SHELL.textMuted, marginTop: "2px" }}>
-                    {desc}
-                  </div>
-                </div>
-              </label>
-            ))}
-          </div>
-        </Card>
+        <NewEventOptionsSection />
 
         <Button theme={T} variant="primary" type="submit" fullWidth>
           {tr("Ui.Dashboard.createEvent")}

@@ -36,6 +36,12 @@ You can change the location (or switch types) at any time.
 
 ---
 
+## Info-Only Events (Without RSVPs)
+
+Under **RSVPs**, leave **Collect RSVPs** on to gather guest responses, or turn it off to create a flyer-style event page without RSVPs, invitations, reminders, potluck, or a guest list. Visitors can still view event details and info sections, vote in polls, answer custom questions on the event page, and post comments. You can change this setting later under **Settings → RSVP options**.
+
+---
+
 ## Publishing
 
 When you create an event, it is **published right away** and immediately open for RSVPs at its own web address (for example, `/e/housewarming-party`).

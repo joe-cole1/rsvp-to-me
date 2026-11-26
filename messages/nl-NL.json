@@ -235,7 +235,15 @@
         "rsvpUsePrivateLink": "Gebruik je persoonlijke RSVP-link of neem contact op met de organisator om deze aanmelding te wijzigen.",
         "claimGoingRequired": "Alleen goedgekeurde gasten met Aanwezig kunnen potluck-items claimen.",
         "voterNameRequired": "Vul je naam in om te stemmen.",
-        "voteRateLimited": "Te veel peilingacties. Probeer het later opnieuw."
+        "voteRateLimited": "Te veel peilingacties. Probeer het later opnieuw.",
+        "rsvpsDisabled": "RSVP's zijn uitgeschakeld voor dit evenement.",
+        "commentRateLimited": "Te veel reacties. Probeer het later opnieuw.",
+        "commentNameRequired": "Vul je naam in om te reageren.",
+        "questionnaireRateLimited": "Te veel inzendingen. Probeer het later opnieuw.",
+        "questionnaireNameRequired": "Vul je naam in om je antwoorden te verzenden.",
+        "questionnaireFieldRequired": "Vul dit verplichte veld in.",
+        "questionnaireInvalidOption": "Kies een van de vermelde opties.",
+        "checkQuestionnaireFields": "Controleer de gemarkeerde velden."
       },
       "NotFound": {
         "title": "We konden die pagina niet vinden",
@@ -323,7 +331,10 @@
         "potluck": "Meeneemlijst",
         "manageItemsGuestsCanSignUp": "Beheer wat gasten kunnen toezeggen om mee te nemen",
         "manageWhoCanEditEvent": "Beheer wie dit evenement kan bewerken",
-        "viewHostsManageCoHostProfile": "Bekijk de organisatoren en beheer je mede-organisatorprofiel"
+        "viewHostsManageCoHostProfile": "Bekijk de organisatoren en beheer je mede-organisatorprofiel",
+        "displayOptionsInfoOnly": "Zichtbaarheid, URL, wachtwoord en reacties",
+        "rsvpOptionsInfoOnly": "RSVP's staan uit (informatief evenement)",
+        "questionnaireInfoOnly": "Stel aangepaste vragen rechtstreeks op de evenementpagina"
       },
       "RsvpOptionsPanel": {
         "rsvpOptions": "Aanmeldopties",
@@ -340,7 +351,14 @@
         "requireHostApprovalEachRsvp": "Goedkeuring door de organisator is verplicht voor elke aanmelding.",
         "guestsCanRsvpMaybe": "Gasten kunnen ‘Misschien’ kiezen",
         "showRsvpTimestamps": "Aanmeldtijdstippen tonen",
-        "allowEditingRsvpsAfterDeadline": "Aanmeldingen wijzigen na de deadline toestaan"
+        "allowEditingRsvpsAfterDeadline": "Aanmeldingen wijzigen na de deadline toestaan",
+        "collectRsvps": "RSVP's verzamelen",
+        "collectRsvpsDescription": "Schakel dit uit om dit evenement informatief te houden zonder RSVP's, herinneringen of gastenlijst.",
+        "disableRsvpsTitle": "RSVP's uitschakelen?",
+        "disableRsvpsMessage": "RSVP-kaarten, de gastenlijst, uitnodigingen en automatische herinneringen worden verborgen. Bestaande reacties blijven bewaard als je RSVP's later weer inschakelt.",
+        "disableRsvpsConfirm": "RSVP's uitschakelen",
+        "infoOnlyActiveHint": "Dit evenement is alleen informatief. Bezoekers kunnen details bekijken, polls of vragen beantwoorden en reacties plaatsen zonder te RSVP'en.",
+        "infoOnlyPreservedNotice": "Dit evenement is alleen informatief. Bestaande RSVP's en uitnodigingen zijn verborgen en verschijnen weer zodra je RSVP's opnieuw inschakelt."
       },
       "RemindersPanel": {
         "autoReminders": "Automatische herinneringen",
@@ -359,7 +377,13 @@
         "optionsOnePerLine": "Opties, één per regel",
         "questionText2": "Vraagtekst *",
         "addQuestion": "Vraag toevoegen",
-        "cancel": "Annuleren"
+        "cancel": "Annuleren",
+        "addCustomQuestionsInfoOnly": "Voeg aangepaste vragen toe om extra informatie op de evenementpagina te verzamelen. Alleen organisatoren zien de antwoorden.",
+        "responsesHeading": "Antwoorden ({count})",
+        "downloadCsv": "CSV downloaden",
+        "noResponsesYet": "Nog geen antwoorden.",
+        "responseSourceEventPage": "Evenementpagina",
+        "responseSourceRsvp": "RSVP"
       },
       "PotluckPanel": {
         "managePotluckItems": "Meeneemlijst beheren",
@@ -489,7 +513,8 @@
         "allowGuestSharingCopyLinkQr": "Gasten mogen het evenement delen (link en QR-code)",
         "everyoneCanSee": "Iedereen kan dit zien",
         "goingGuestsOnly": "Alleen aangemelde aanwezige gasten",
-        "hostOnly": "Alleen organisatoren"
+        "hostOnly": "Alleen organisatoren",
+        "privateInfoOnlyPasswordNotice": "Informatieve privé-evenementen hebben geen uitnodigingen. Stel hierboven een wachtwoord in zodat bezoekers de link kunnen openen."
       },
       "DangerZonePanel": {
         "failedDeleteEvent": "Het evenement verwijderen is mislukt.",
@@ -692,7 +717,8 @@
         "removeCommentBy": "Reactie van {name} verwijderen",
         "removeCommentTitle": "Deze reactie verwijderen?",
         "removeCommentMessage": "Deze reactie en alle antwoorden erop worden verwijderd.",
-        "removeCommentFailed": "De reactie kon niet worden verwijderd. Probeer het opnieuw."
+        "removeCommentFailed": "De reactie kon niet worden verwijderd. Probeer het opnieuw.",
+        "yourNameToComment": "Je naam (verplicht om te reageren)"
       },
       "SettingsPage": {
         "failedSaveThemeSettings": "Opslaan van de thema-instellingen is mislukt.",
@@ -791,7 +817,13 @@
         "emailSent": "E-mail verzonden naar {count, plural, one {# gast} other {# gasten}}.",
         "smsSent": "Sms verzonden naar {count, plural, one {# gast} other {# gasten}}.",
         "close": "Sluiten",
-        "blastProcessingFailed": "Een deel van de berichten kon niet worden verwerkt. De aantallen tonen alleen afgeronde verwerking; opnieuw proberen kan dubbele berichten veroorzaken."
+        "blastProcessingFailed": "Een deel van de berichten kon niet worden verwerkt. De aantallen tonen alleen afgeronde verwerking; opnieuw proberen kan dubbele berichten veroorzaken.",
+        "share": "Delen",
+        "shareEvent": "Evenement delen",
+        "passwordRequiredNoInvites": "Wachtwoord vereist — geen uitnodigingen",
+        "privateInfoOnlyNeedsPassword": "Informatieve privé-evenementen vereisen een wachtwoord voordat bezoekers de link kunnen openen.",
+        "privateInfoOnlyShareWithPassword": "Dit evenement is privé. Deel zowel de link als het wachtwoord met iedereen die het mag openen.",
+        "shareInfoOnlyEventLink": "Deel de evenementlink of QR-code."
       },
       "GuestListFilter": {
         "all": "Iedereen",
@@ -865,7 +897,8 @@
         "failedAddOption": "Optie toevoegen is mislukt",
         "failedDeleteActivityEvent": "Activiteit verwijderen is mislukt",
         "uploadQuotaExceeded": "De opslag voor afbeeldingen is vol (100 MiB per account). Verwijder een ongebruikte omslag- of profielafbeelding en probeer het opnieuw.",
-        "coverUploadFailed": "De omslagafbeelding kon niet worden geüpload. Probeer het opnieuw."
+        "coverUploadFailed": "De omslagafbeelding kon niet worden geüpload. Probeer het opnieuw.",
+        "failedAddComment": "Kon je reactie niet plaatsen. Probeer het opnieuw."
       },
       "shared": {
         "baseThemes": {
@@ -1141,6 +1174,25 @@
         "stale": "De link of zichtbaarheid is in een ander tabblad gewijzigd. Laad deze pagina opnieuw voordat je het nog eens probeert.",
         "confirmChange": "Bevestig dat eerder gedeelde links niet meer werken.",
         "confirmGuessable": "Kies of je dit te raden niet-vermelde adres houdt of een willekeurige code toevoegt."
+      },
+      "QuestionnaireSection": {
+        "title": "Vragen van de organisator",
+        "manageQuestions": "Vragenlijst beheren",
+        "hostPreviewHint": "Bezoekers kunnen deze vragen rechtstreeks op de evenementpagina beantwoorden.",
+        "viewResponses": "Antwoorden bekijken",
+        "onlyHostCanSeeAnswers": "Alleen de organisator kan je antwoorden zien.",
+        "yourName": "Je naam (verplicht)",
+        "yourNamePlaceholder": "Je naam",
+        "requiredMarker": "(verplicht)",
+        "selectPlaceholder": "Kies…",
+        "nameRequiredError": "Vul je naam in.",
+        "requiredFieldError": "Vul dit verplichte veld in.",
+        "checkFields": "Controleer de gemarkeerde velden.",
+        "answersSaved": "Je antwoorden zijn opgeslagen.",
+        "submitFailed": "Kon je antwoorden niet opslaan. Probeer het opnieuw.",
+        "saving": "Opslaan…",
+        "submitAnswers": "Antwoorden verzenden",
+        "updateAnswers": "Antwoorden bijwerken"
       }
     },
     "Rsvp": {
@@ -1638,7 +1690,8 @@
       "previousPage": "Vorige",
       "nextPage": "Volgende",
       "loadingList": "Laden…",
-      "listPage": "Pagina {page}"
+      "listPage": "Pagina {page}",
+      "infoOnly": "Alleen info"
     },
     "Dashboard": {
       "eventDetails": "Evenementgegevens",
@@ -1726,7 +1779,13 @@
       "upcomingEventCount": "Je hebt {count, plural, one {# aankomend evenement} other {# aankomende evenementen}} gepland.",
       "eventMenu": "Opties voor {title}",
       "activityTypeLabel": "Type activiteit",
-      "activityEventLabel": "Evenement"
+      "activityEventLabel": "Evenement",
+      "rsvpModeHeading": "RSVP's",
+      "collectRsvps": "RSVP's verzamelen",
+      "collectRsvpsDescription": "Schakel dit uit voor een informatieve evenementpagina zonder RSVP's of gastenlijst.",
+      "privateInfoOnlyDescription": "Wachtwoord vereist — er worden geen uitnodigingen verzonden",
+      "privateInfoOnlyCreateNotice": "Informatieve privé-evenementen sturen geen uitnodigingen. Stel na het aanmaken een wachtwoord in bij Weergaveopties zodat bezoekers het evenement kunnen openen.",
+      "infoOnly": "Alleen info"
     },
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Deze link is verlopen of al gebruikt. Vraag hieronder een nieuwe aan.",

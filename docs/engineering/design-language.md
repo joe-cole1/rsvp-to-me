@@ -508,6 +508,13 @@ Decided:
   their dialogs stay on the dark app shell, one solid surface on every theme, carrying the
   event's accent through `chromeTheme(t)`. They take no tint from the event theme; see
   Header and host bar.
+- **Info-only events** (#843, 2026-11-27): `Collect RSVPs` switch on New Event and RSVP
+  options (confirming before turning off when responses exist while keeping saved responses
+  intact); when off, RSVP, guest-list, potluck, reminder, and blast surfaces hide, HostBar
+  shows **Share** instead of **Invite**/**Message**, Private events without invitations warn
+  when no password is set, polls and comments open to viewers with event access via a shared
+  display-name field, and custom questions render in an event-page card with host-only answers
+  and CSV export.
 
 ## Preset defaults and soft motion
 

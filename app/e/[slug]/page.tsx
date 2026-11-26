@@ -172,20 +172,23 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
     );
   }
 
-  const _guestRsvpRaw = token
-    ? await db.rSVP.findFirst({
-        where: { editToken: token, eventId: event.id },
-        select: {
-          id: true,
-          guestName: true,
-          editToken: true,
-          status: true,
-          responded: true,
-          approved: true,
-          _count: { select: { answers: true } },
-        },
-      })
-    : loggedInUserRsvp;
+  const rsvpEnabled = event.rsvpEnabled !== false;
+  const _guestRsvpRaw = !rsvpEnabled
+    ? null
+    : token
+      ? await db.rSVP.findFirst({
+          where: { editToken: token, eventId: event.id },
+          select: {
+            id: true,
+            guestName: true,
+            editToken: true,
+            status: true,
+            responded: true,
+            approved: true,
+            _count: { select: { answers: true } },
+          },
+        })
+      : loggedInUserRsvp;
   const guestRsvp = _guestRsvpRaw
     ? {
         id: _guestRsvpRaw.id,
@@ -198,32 +201,36 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       }
     : null;
 
-  const pendingRsvps = isHost
-    ? await db.rSVP.findMany({
-        where: { eventId: event.id, approved: false, status: { not: "INVITED" } },
-        select: {
-          id: true,
-          guestName: true,
-          guestEmail: true,
-          status: true,
-          plusOneCount: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "asc" },
-      })
-    : [];
+  const pendingRsvps =
+    rsvpEnabled && isHost
+      ? await db.rSVP.findMany({
+          where: { eventId: event.id, approved: false, status: { not: "INVITED" } },
+          select: {
+            id: true,
+            guestName: true,
+            guestEmail: true,
+            status: true,
+            plusOneCount: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
 
   // #811: Invited guests are queried only when the host shows that row, and
   // reach the client only as names and/or a count (see invitedGuestsForViewer).
   const invitedDisplay = resolveGuestRsvpDisplay(event, !!isHost).INVITED;
-  const invitedRows = isGuestRowShown(invitedDisplay)
-    ? await db.rSVP.findMany({
-        where: { eventId: event.id, status: "INVITED" },
-        select: { id: true, guestName: true },
-        orderBy: { createdAt: "asc" },
-      })
-    : [];
-  const invited = invitedGuestsForViewer(invitedDisplay, invitedRows);
+  const invitedRows =
+    rsvpEnabled && isGuestRowShown(invitedDisplay)
+      ? await db.rSVP.findMany({
+          where: { eventId: event.id, status: "INVITED" },
+          select: { id: true, guestName: true },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
+  const invited = rsvpEnabled
+    ? invitedGuestsForViewer(invitedDisplay, invitedRows)
+    : { invitedGuests: [], invitedCount: 0 };
 
   const theme = resolveTheme(
     event.theme?.baseTheme ?? "DARK",
@@ -239,20 +246,69 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const channelConfig = await getChannelConfig();
   const pollVoterTokenHash = await readPollVoterTokenHash();
 
+  const mySubmissionRaw =
+    !rsvpEnabled && event.rsvpFields.length > 0 && !isHost
+      ? sessionUser?.id
+        ? await db.questionnaireSubmission.findUnique({
+            where: { eventId_userId: { eventId: event.id, userId: sessionUser.id } },
+            include: { answers: { select: { rsvpFieldId: true, value: true } } },
+          })
+        : pollVoterTokenHash
+          ? await db.questionnaireSubmission.findUnique({
+              where: {
+                eventId_voterTokenHash: { eventId: event.id, voterTokenHash: pollVoterTokenHash },
+              },
+              include: { answers: { select: { rsvpFieldId: true, value: true } } },
+            })
+          : null
+      : null;
+
+  const initialQuestionnaireSubmission = mySubmissionRaw
+    ? {
+        respondentName: mySubmissionRaw.respondentName,
+        updatedAt: mySubmissionRaw.updatedAt.toISOString(),
+        answers: Object.fromEntries(mySubmissionRaw.answers.map((a) => [a.rsvpFieldId, a.value])),
+      }
+    : null;
+
   let initialVoterName = "";
   if (!isHost && !guestRsvp) {
     if (sessionUser?.name?.trim()) {
       initialVoterName = sessionUser.name.trim();
-    } else if (pollVoterTokenHash) {
+    } else {
       let latestCreatedAt = 0;
-      for (const poll of event.polls) {
-        for (const option of poll.options) {
-          for (const vote of option.votes) {
-            if (vote.voterTokenHash === pollVoterTokenHash) {
-              const ts = vote.createdAt.getTime();
+      if (mySubmissionRaw) {
+        latestCreatedAt = mySubmissionRaw.updatedAt.getTime();
+        initialVoterName = mySubmissionRaw.respondentName;
+      }
+      if (pollVoterTokenHash) {
+        for (const poll of event.polls) {
+          for (const option of poll.options) {
+            for (const vote of option.votes) {
+              if (vote.voterTokenHash === pollVoterTokenHash) {
+                const ts = vote.createdAt.getTime();
+                if (ts >= latestCreatedAt) {
+                  latestCreatedAt = ts;
+                  initialVoterName = vote.voterName;
+                }
+              }
+            }
+          }
+        }
+        for (const comment of event.comments) {
+          if (comment.voterTokenHash === pollVoterTokenHash) {
+            const ts = comment.createdAt.getTime();
+            if (ts >= latestCreatedAt) {
+              latestCreatedAt = ts;
+              initialVoterName = comment.guestName;
+            }
+          }
+          for (const reply of comment.replies) {
+            if (reply.voterTokenHash === pollVoterTokenHash) {
+              const ts = reply.createdAt.getTime();
               if (ts >= latestCreatedAt) {
                 latestCreatedAt = ts;
-                initialVoterName = vote.voterName;
+                initialVoterName = reply.guestName;
               }
             }
           }
@@ -264,20 +320,30 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   // SEC-32: the event object is passed into a Client Component, so every field
   // is serialized into the RSC payload and readable by anyone who can load the
   // page — not just what the UI visibly renders. Strip host-only data (co-host/
-  // host emails; the guest list when the visibility gate hides it) for non-host
-  // viewers before it crosses the client boundary.
+  // host emails; the guest list when the visibility gate hides it) and server-
+  // internal fields (passwordHash, voterTokenHash) before crossing the client boundary.
+  const hasPassword = Boolean(event.passwordHash);
+  const { passwordHash: _passwordHash, ...eventWithoutPasswordHash } = event;
+  const sanitizedComments = event.comments.map(({ voterTokenHash: _vt, replies, ...comment }) => ({
+    ...comment,
+    replies: replies.map(({ voterTokenHash: _rvt, ...reply }) => reply),
+  }));
   const eventForClient = stripHostOnlyEventData(
     {
-      ...event,
+      ...eventWithoutPasswordHash,
+      rsvps: rsvpEnabled ? event.rsvps : [],
+      comments: sanitizedComments,
       pendingRsvps,
       ...invited,
-      potluckItems: event.potluckItems.map((item) => ({
-        ...item,
-        claims: item.claims.map(({ rsvpId, userId, ...claim }) => ({
-          ...claim,
-          isMine: isHost ? userId === sessionUser?.id : !!guestRsvp && rsvpId === guestRsvp.id,
-        })),
-      })),
+      potluckItems: rsvpEnabled
+        ? event.potluckItems.map((item) => ({
+            ...item,
+            claims: item.claims.map(({ rsvpId, userId, ...claim }) => ({
+              ...claim,
+              isMine: isHost ? userId === sessionUser?.id : !!guestRsvp && rsvpId === guestRsvp.id,
+            })),
+          }))
+        : [],
       polls: event.polls.map((poll) => ({
         ...poll,
         options: poll.options.map((option) => ({
@@ -307,6 +373,8 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       sessionUser={sessionUser}
       channelConfig={channelConfig}
       initialVoterName={initialVoterName}
+      initialQuestionnaireSubmission={initialQuestionnaireSubmission}
+      hasPassword={hasPassword}
     />
   );
 }

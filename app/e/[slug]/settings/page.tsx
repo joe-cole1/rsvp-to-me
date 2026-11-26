@@ -37,6 +37,23 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
         orderBy: { createdAt: "asc" },
       },
       rsvpFields: { orderBy: { order: "asc" } },
+      questionnaireSubmissions: {
+        orderBy: { createdAt: "asc" },
+        include: { answers: { select: { rsvpFieldId: true, value: true } } },
+      },
+      rsvps: {
+        where: { responded: true, answers: { some: {} } },
+        orderBy: { updatedAt: "asc" },
+        select: {
+          id: true,
+          guestName: true,
+          updatedAt: true,
+          answers: { select: { rsvpFieldId: true, value: true } },
+        },
+      },
+      _count: {
+        select: { rsvps: true, invitations: true },
+      },
       potluckItems: {
         include: {
           claims: { orderBy: { createdAt: "asc" } },
@@ -84,9 +101,32 @@ export default async function EventSettingsRoute(props: PageProps<"/e/[slug]/set
   // Preset default mixtures load into the editor, so their labels are seeded too.
   const initialLibraryIcons = await getEditorIconSummaries(storedIconIds, themePresets);
 
+  const questionnaireResponses = [
+    ...(event.questionnaireSubmissions ?? []).map((sub) => ({
+      id: `sub:${sub.id}`,
+      respondentName: sub.respondentName,
+      submittedAt: sub.updatedAt.toISOString(),
+      source: "standalone" as const,
+      answers: Object.fromEntries(sub.answers.map((a) => [a.rsvpFieldId, a.value])),
+    })),
+    ...(event.rsvps ?? []).map((r) => ({
+      id: `rsvp:${r.id}`,
+      respondentName: r.guestName,
+      submittedAt: r.updatedAt.toISOString(),
+      source: "rsvp" as const,
+      answers: Object.fromEntries(r.answers.map((a) => [a.rsvpFieldId, a.value])),
+    })),
+  ];
+
+  const settingsEvent = {
+    ...event,
+    existingRsvpCount: (event._count?.rsvps ?? 0) + (event._count?.invitations ?? 0),
+    questionnaireResponses,
+  };
+
   return (
     <SettingsPage
-      event={event as Parameters<typeof SettingsPage>[0]["event"]}
+      event={settingsEvent as Parameters<typeof SettingsPage>[0]["event"]}
       isOwner={isOwner}
       adminModerating={isAdminModerating}
       themePresets={themePresets}

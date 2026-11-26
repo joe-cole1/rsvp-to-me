@@ -29,7 +29,7 @@ guest settings below remain the controls for that choice.
 
 - **Public** — anyone can view the event unless a password is set, and it may appear on the site's public event feed when it has no password.
 - **Unlisted** — people with the direct link can view it unless a password is set. It won't show up in any public listing.
-- **Private** — only hosts and invited guests can view it. Private events also unlock two extra options below.
+- **Private** — only hosts and invited guests can view it. Private events also unlock two extra options below. On info-only events (where **Collect RSVPs** is off and no guest invitations are sent), set an **Event password** so visitors you share the link with can unlock the page.
 
 ## Event URLs
 
@@ -111,7 +111,7 @@ Link previews follow the same privacy boundary. Published Public and Unlisted ev
 The signed-out home page lists the next 20 published **Public** events whose
 start time is still in the future and which have no password. It respects your
 Going count setting, including **Hidden** and **3+**; events with restricted
-guest lists show no attendance count there. Only approved Going RSVPs count.
+guest lists or info-only events (**Collect RSVPs** off) show no attendance count there. Only approved Going RSVPs count.
 
 A visitor gets through only if they are a host or co-host, an invited guest opening their personal link, or someone who has already entered the password. Everyone else is turned away consistently across all of these — so a Private event's details, guest list, and calendar file can't be pulled up by guessing the address.
 

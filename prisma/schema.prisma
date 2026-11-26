@@ -161,6 +161,7 @@ model Event {
   hostAlertSms   Boolean @default(false)
 
   // Feature flags
+  rsvpEnabled          Boolean @default(true)
   commentsEnabled      Boolean @default(true)
   maybeEnabled         Boolean @default(true)
   questionnaireEnabled Boolean @default(false)
@@ -171,25 +172,26 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  host                  User                   @relation(fields: [hostId], references: [id])
-  coHosts               EventCoHost[]
-  theme                 EventTheme?
-  reminderSettings      EventReminderSettings?
-  infoSections          EventInfoSection[]
-  rsvps                 RSVP[]
-  invitations           Invitation[]
-  updates               EventUpdate[]
-  potluckItems          PotluckItem[]
-  sentReminders         SentReminder[]
-  comments              Comment[]
-  rsvpFields            RSVPField[]
-  checkIns              CheckIn[]
-  activityEvents        ActivityEvent[]
-  polls                 Poll[]
-  coHostInvitations     CoHostInvitation[]
-  notificationSettings  NotificationSettings[]
-  notificationSchedule  NotificationSchedule[]
-  rsvpContactChallenges RsvpContactChallenge[]
+  host                     User                      @relation(fields: [hostId], references: [id])
+  coHosts                  EventCoHost[]
+  theme                    EventTheme?
+  reminderSettings         EventReminderSettings?
+  infoSections             EventInfoSection[]
+  rsvps                    RSVP[]
+  invitations              Invitation[]
+  updates                  EventUpdate[]
+  potluckItems             PotluckItem[]
+  sentReminders            SentReminder[]
+  comments                 Comment[]
+  rsvpFields               RSVPField[]
+  questionnaireSubmissions QuestionnaireSubmission[]
+  checkIns                 CheckIn[]
+  activityEvents           ActivityEvent[]
+  polls                    Poll[]
+  coHostInvitations        CoHostInvitation[]
+  notificationSettings     NotificationSettings[]
+  notificationSchedule     NotificationSchedule[]
+  rsvpContactChallenges    RsvpContactChallenge[]
 }
 
 enum LocationType {
@@ -328,8 +330,9 @@ model RSVPField {
   options   String? // JSON array of strings for SELECT/CHECKBOX types
   order     Int           @default(0)
 
-  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  answers RSVPAnswer[]
+  event                Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers              RSVPAnswer[]
+  questionnaireAnswers QuestionnaireAnswer[]
 }
 
 enum RSVPFieldType {
@@ -515,6 +518,35 @@ model RSVPAnswer {
   @@unique([rsvpId, rsvpFieldId])
 }
 
+model QuestionnaireSubmission {
+  id             String   @id @default(cuid())
+  eventId        String
+  userId         String?
+  voterTokenHash String?
+  respondentName String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  event   Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers QuestionnaireAnswer[]
+
+  @@unique([eventId, userId])
+  @@unique([eventId, voterTokenHash])
+  @@index([eventId])
+}
+
+model QuestionnaireAnswer {
+  id           String @id @default(cuid())
+  submissionId String
+  rsvpFieldId  String
+  value        String
+
+  submission QuestionnaireSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  rsvpField  RSVPField               @relation(fields: [rsvpFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, rsvpFieldId])
+}
+
 // ──────────────────────────────────────────────
 // INVITATIONS & COMMUNICATION
 // ──────────────────────────────────────────────
@@ -550,13 +582,14 @@ model EventUpdate {
 // ──────────────────────────────────────────────
 
 model Comment {
-  id        String   @id @default(cuid())
-  eventId   String
-  guestName String
-  rsvpId    String?
-  body      String
-  parentId  String?
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  eventId        String
+  guestName      String
+  rsvpId         String?
+  voterTokenHash String?
+  body           String
+  parentId       String?
+  createdAt      DateTime @default(now())
 
   event   Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])

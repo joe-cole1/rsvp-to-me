@@ -40,8 +40,9 @@ export async function performImmediateUserDeletion(userId: string): Promise<void
     update: {},
   });
   const user = await db.user.findUnique({ where: { id: userId }, select: { avatarUrl: true } });
-  // Delete user's guest RSVPs on other events (cascades: RSVPAnswers, PlusOneGuests, CheckIns)
+  // Delete user's guest RSVPs and standalone questionnaire submissions on other events
   await db.rSVP.deleteMany({ where: { userId } });
+  await db.questionnaireSubmission.deleteMany({ where: { userId } });
 
   // Remove co-host slots on other events
   await db.eventCoHost.deleteMany({ where: { userId } });

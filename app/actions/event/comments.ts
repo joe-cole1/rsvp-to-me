@@ -8,10 +8,13 @@ import { getSession } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { resolveEventAccess } from "@/lib/eventAccess";
-import { AddCommentSchema } from "@/lib/schemas";
+import { AddCommentSchema, PollVoterNameSchema } from "@/lib/schemas";
 import { findApprovedGuestByToken } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
 import { assertHostOrCohost } from "@/lib/auth-guards";
+import { rateLimit } from "@/lib/rateLimit";
+import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
+import { getOrCreatePollVoterTokenHash } from "@/lib/poll-voter-token";
 
 // A single statement removes the selected comment and all of its replies.
 // Authorization is event-scoped; a supplied id from another event changes nothing.
@@ -46,6 +49,7 @@ export async function addComment(rawInput: unknown, captchaToken?: string | null
       status: true,
       passwordHash: true,
       slug: true,
+      rsvpEnabled: true,
       commentsEnabled: true,
       hostId: true,
       visibility: true,
@@ -65,19 +69,17 @@ export async function addComment(rawInput: unknown, captchaToken?: string | null
 
   // SEC-17: authorize the author and derive the stored display name server-side.
   // Mirrors the castVote / claimPotluckItem authorization shape — host/co-host/
-  // admin may comment freely; everyone else must present an approved RSVP for
-  // this event. The name is never taken from the client: it comes from the user
-  // record or the matched RSVP row, so a caller can't post under another
-  // person's identity. It also closes the PRIVATE-event bypass: a logged-in
-  // user with no host/guest relationship is rejected for PRIVATE events here
-  // (rather than relying on the page.tsx visibility gate), while PUBLIC/UNLISTED
-  // events — viewable by anyone — accept any logged-in user's verified name.
+  // admin may comment freely; on RSVP events everyone else must present an
+  // approved RSVP (or verified account on PUBLIC/UNLISTED). On info-only events
+  // (`rsvpEnabled === false`), anyone who passes `resolveEventAccess` (including
+  // password-unlocked PRIVATE events) may comment with CAPTCHA + rate limit.
   const session = await getSession();
   const isHost = event.hostId === session?.userId || session?.role === "ADMIN";
   const isCohost = event.coHosts.some((ch) => ch.userId === session?.userId);
 
   let guestName: string;
   let rsvpId: string | null = null;
+  let voterTokenHash: string | null = null;
 
   if (session && (isHost || isCohost)) {
     const user = await db.user.findUnique({
@@ -85,6 +87,28 @@ export async function addComment(rawInput: unknown, captchaToken?: string | null
       select: { name: true, email: true },
     });
     guestName = user?.name?.trim() || user?.email || "Host";
+  } else if (event.rsvpEnabled === false) {
+    const rlKey = isTrustedIpConfigured()
+      ? `comment:${event.id}:${await getClientIp()}`
+      : `comment:${event.id}:shared`;
+    const rl = await rateLimit(rlKey, isTrustedIpConfigured() ? 20 : 80, 600);
+    if (!rl.success) {
+      return { success: false, error: await eventActionMessage("commentRateLimited") };
+    }
+    if (session) {
+      const user = await db.user.findUnique({
+        where: { id: session.userId },
+        select: { name: true, email: true },
+      });
+      guestName = user?.name?.trim() || user?.email || "Guest";
+    } else {
+      const parsedName = PollVoterNameSchema.safeParse(data.guestName);
+      if (!parsedName.success) {
+        return { success: false, error: await eventActionMessage("commentNameRequired") };
+      }
+      guestName = parsedName.data;
+      voterTokenHash = await getOrCreatePollVoterTokenHash();
+    }
   } else if (session) {
     // Authenticated non-host. Look up any RSVP linked to their account.
     const rsvp = await db.rSVP.findFirst({
@@ -146,6 +170,7 @@ export async function addComment(rawInput: unknown, captchaToken?: string | null
       guestName,
       body: data.body,
       rsvpId,
+      voterTokenHash,
       parentId,
     },
   });

@@ -20,6 +20,7 @@ import {
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { RsvpContactVerification } from "./RsvpContactVerification";
 import { EventTitleBlock } from "@/components/event/event-page/EventTitleBlock";
+import { parseRsvpFieldOptions as parseOptions } from "@/lib/rsvp-fields";
 import { normalizePhone } from "@/lib/phone";
 import type { RsvpContactReceipt } from "@/lib/rsvp-contact-proof";
 
@@ -36,22 +37,6 @@ type RsvpField = {
   fieldType: string;
   required: boolean;
   options: string | null;
-};
-
-const parseOptions = (optionsStr: string | null): string[] => {
-  if (!optionsStr) return [];
-  try {
-    const parsed = JSON.parse(optionsStr);
-    if (Array.isArray(parsed)) {
-      return parsed.map(String);
-    }
-  } catch {
-    // Fall back to newline splitting
-  }
-  return optionsStr
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
 };
 
 type EventData = {

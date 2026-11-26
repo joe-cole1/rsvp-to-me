@@ -23,6 +23,7 @@ export type EventData = Partial<GuestRsvpDisplayFields> & {
   locationName: string | null;
   locationAddress: string | null;
   virtualUrl: string | null;
+  rsvpEnabled?: boolean;
   commentsEnabled: boolean;
   plusOneAllowed: boolean;
   plusOneMax: number;

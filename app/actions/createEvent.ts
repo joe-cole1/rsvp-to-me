@@ -32,6 +32,7 @@ export async function createEvent(formData: FormData) {
     locationAddress: formData.get("locationAddress") as string | null,
     virtualUrl: formData.get("virtualUrl") as string | null,
     visibility: (formData.get("visibility") as string) || "UNLISTED",
+    rsvpEnabled: formData.get("rsvpEnabled") !== "false",
   };
 
   const parsed = CreateEventSchema.parse(rawInput);
@@ -57,14 +58,19 @@ export async function createEvent(formData: FormData) {
           locationAddress: parsed.locationAddress,
           virtualUrl: parsed.virtualUrl,
           visibility: parsed.visibility,
+          rsvpEnabled: parsed.rsvpEnabled,
           hostId: sessionUser.id,
           status: "PUBLISHED",
-          notificationSchedule: {
-            create: [
-              { kind: "reminder", hoursBefore: 24 },
-              { kind: "nudge", hoursBefore: 72 },
-            ],
-          },
+          ...(parsed.rsvpEnabled
+            ? {
+                notificationSchedule: {
+                  create: [
+                    { kind: "reminder", hoursBefore: 24 },
+                    { kind: "nudge", hoursBefore: 72 },
+                  ],
+                },
+              }
+            : {}),
         },
       });
       break;

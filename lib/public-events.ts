@@ -17,7 +17,7 @@ export async function getUpcomingPublicEvents(now = new Date()) {
   return events.map(({ _count, ...event }) => ({
     ...event,
     goingLabel:
-      event.guestListVis === "ALL"
+      event.rsvpEnabled !== false && event.guestListVis === "ALL"
         ? guestCountLabel(_count.rsvps, resolveGuestRsvpDisplay(event).GOING)
         : null,
     commentCount: event.commentsEnabled ? _count.comments : 0,

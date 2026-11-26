@@ -229,6 +229,13 @@ function recordHostInvites(eventId: string, email: string | undefined | null, co
 
 export async function previewGuestInvitations(eventId: string, recipients: unknown) {
   await assertHostOrCohost(eventId);
+  const currentEvent = await db.event.findUnique({
+    where: { id: eventId },
+    select: { rsvpEnabled: true },
+  });
+  if (currentEvent?.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
   const validated = await validateInput(recipients);
   const resolved = await resolveInvitationRecipients(eventId, validated, await unnamedGuestLabel());
   return { recipients: resolved.map(({ preview }) => preview) };
@@ -242,6 +249,13 @@ export async function sendGuestInvitations(
   const session = await getSession();
   if (!session) throw new Error(await eventActionMessage("unauthorized"));
   const event = await assertHostOrCohost(eventId);
+  const currentEvent = await db.event.findUnique({
+    where: { id: eventId },
+    select: { rsvpEnabled: true },
+  });
+  if (currentEvent?.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
   const validated = await validateInput(recipients, true);
   await assertCaptcha("host_invite", captchaToken);
   await hostLimits(session.userId, eventId);
@@ -329,6 +343,9 @@ export async function inviteFriendAsGuest(
   }
 
   const event = invitingRsvp.event;
+  if (event.rsvpEnabled === false) {
+    return { success: false, error: await eventActionMessage("rsvpsDisabled") };
+  }
   if (event.visibility !== "PRIVATE") {
     return { success: false, error: await eventActionMessage("privateEventRequired") };
   }
