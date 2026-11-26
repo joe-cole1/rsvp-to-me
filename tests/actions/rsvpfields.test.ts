@@ -22,6 +22,7 @@ const {
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $transaction: vi.fn(),
     event: { findUnique: mockEventFindUnique },
     rSVPField: {
       create: mockRsvpFieldCreate,
@@ -30,10 +31,26 @@ vi.mock("@/lib/db", () => ({
       update: mockRsvpFieldUpdate,
       delete: mockRsvpFieldDelete,
     },
+    questionnaireSubmission: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    questionnaireAnswer: { deleteMany: vi.fn(), createMany: vi.fn() },
   },
 }));
 
 vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
+vi.mock("@/lib/captcha", () => ({ assertCaptcha: vi.fn() }));
+vi.mock("@/lib/eventAccess", () => ({
+  resolveEventAccess: vi.fn().mockResolvedValue({ decision: "granted" }),
+}));
+vi.mock("@/lib/rateLimit", () => ({
+  rateLimit: vi.fn().mockResolvedValue({ success: true }),
+}));
+vi.mock("@/lib/clientIp", () => ({
+  isTrustedIpConfigured: () => false,
+  getClientIp: vi.fn(),
+}));
+vi.mock("@/lib/poll-voter-token", () => ({
+  getOrCreatePollVoterTokenHash: vi.fn().mockResolvedValue("voter-hash"),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/email", () => ({ sendRsvpConfirmationEmail: vi.fn(), sendBlastEmail: vi.fn() }));
 vi.mock("@/lib/sms", () => ({ sendRsvpConfirmationSms: vi.fn(), sendSmsBlast: vi.fn() }));
@@ -44,7 +61,8 @@ import {
   deleteRsvpField,
   reorderRsvpFields,
   getRsvpFieldAnswers,
-} from "@/app/actions/event";
+  submitQuestionnaireResponse,
+} from "@/app/actions/event/rsvpFields";
 
 const HOST_ID = "host-1";
 const OTHER_ID = "other-user";
@@ -283,5 +301,91 @@ describe("getRsvpFieldAnswers", () => {
 
     const result = await getRsvpFieldAnswers(FIELD_ID);
     expect(result).toEqual([{ guestName: "Alice", value: "No gluten" }]);
+  });
+});
+
+describe("typed fields, description, goingOnly, and TERMS validation (#786)", () => {
+  beforeEach(() => {
+    asHost();
+    mockEventFindUnique.mockResolvedValue(hostEventWithCohosts());
+    mockRsvpFieldCreate.mockResolvedValue({ id: FIELD_ID });
+    mockRsvpFieldFindUnique.mockResolvedValue(fieldWithEvent({ fieldType: "TERMS" }));
+    mockRsvpFieldUpdate.mockResolvedValue({});
+  });
+
+  it("persists description, goingOnly, and normalized TERMS options", async () => {
+    await addRsvpField(EVENT_ID, {
+      label: "Event waiver",
+      description: "Review carefully before confirming.",
+      fieldType: "TERMS",
+      required: true,
+      goingOnly: true,
+      options: JSON.stringify({ text: "Be kind.", url: "example.com/waiver" }),
+      order: 0,
+    });
+
+    expect(mockRsvpFieldCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        label: "Event waiver",
+        description: "Review carefully before confirming.",
+        fieldType: "TERMS",
+        required: true,
+        goingOnly: true,
+        options: JSON.stringify({ text: "Be kind.", url: "https://example.com/waiver" }),
+      }),
+    });
+  });
+
+  it("rejects javascript: URLs on TERMS fields (SEC-36)", async () => {
+    await expect(
+      addRsvpField(EVENT_ID, {
+        label: "Waiver",
+        fieldType: "TERMS",
+        required: true,
+        options: JSON.stringify({ text: "Terms", url: "javascript:alert(1)" }),
+        order: 0,
+      })
+    ).rejects.toThrow("Enter a valid http:// or https:// link.");
+
+    await expect(
+      updateRsvpField(FIELD_ID, {
+        options: JSON.stringify({ text: "Terms", url: "data:text/html,xss" }),
+      })
+    ).rejects.toThrow("Enter a valid http:// or https:// link.");
+  });
+
+  it("validates PHONE, ADDRESS, and TERMS on standalone info-only questionnaire submissions", async () => {
+    mockGetSession.mockResolvedValue(null);
+    mockEventFindUnique.mockResolvedValue({
+      id: EVENT_ID,
+      slug: EVENT_SLUG,
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      passwordHash: null,
+      hostId: HOST_ID,
+      rsvpEnabled: false,
+      coHosts: [],
+      rsvpFields: [
+        { id: "f-phone", fieldType: "PHONE", required: false, options: null },
+        { id: "f-addr", fieldType: "ADDRESS", required: true, options: null },
+        { id: "f-terms", fieldType: "TERMS", required: true, options: null },
+      ],
+    });
+
+    const invalid = await submitQuestionnaireResponse({
+      eventId: EVENT_ID,
+      respondentName: "Sam",
+      answers: {
+        "f-phone": "bad-phone",
+        "f-addr": JSON.stringify({ line1: "123 Main", city: "", postalCode: "10001" }),
+        "f-terms": "",
+      },
+    });
+    expect(invalid.success).toBe(false);
+    expect(invalid.fieldErrors).toEqual({
+      "f-phone": "Please enter a valid phone number.",
+      "f-addr": "Enter street address, city, and postal code.",
+      "f-terms": "Agree to the terms to continue.",
+    });
   });
 });

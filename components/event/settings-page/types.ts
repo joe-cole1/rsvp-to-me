@@ -2,6 +2,7 @@
 
 import type { GuestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
 import type { StoredEffectFields } from "@/lib/effects";
+import type { RsvpFieldTypeValue } from "@/lib/rsvp-fields";
 import type { EffectEditorState } from "./effect-state";
 
 export type SessionUser = {
@@ -21,8 +22,10 @@ export type CoHostEntry = {
 export type RsvpFieldEntry = {
   id: string;
   label: string;
-  fieldType: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX";
+  description?: string | null;
+  fieldType: RsvpFieldTypeValue;
   required: boolean;
+  goingOnly?: boolean;
   options: string | null;
   order: number;
 };

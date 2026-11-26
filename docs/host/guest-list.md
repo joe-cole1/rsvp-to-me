@@ -31,8 +31,7 @@ Filter the list by status to focus on what matters:
 - **Invited** — invited but not yet responded
 - **Awaiting Approval** — pending your approve/decline
 
-Hosts and co-hosts can also search by guest name, email, phone, or named plus-one and filter the
-list to **Arrived** or **Not arrived** parties.
+Hosts and co-hosts can also search by guest name, email, phone, named plus-one, or host-only questionnaire answers (such as collected phone numbers and mailing addresses), and filter the list to **Arrived** or **Not arrived** parties.
 
 ---
 
@@ -172,7 +171,7 @@ record, regardless of the filters currently shown in the guest list, with these 
 **Name, Email, Phone, Status, Plus Ones, Approved, event-local RSVP Date, event-local Check-In
 Time, one column per questionnaire field, RSVP Date (UTC), and Check-In Time (UTC).**
 
-Questionnaire columns follow the configured order. Missing answers and check-ins are blank, and
+Questionnaire columns follow the configured order, formatting **Terms / waiver** answers as **Agreed** and expanding **Mailing address** questions into six columns (`Street`, `Line 2`, `City`, `State / Region`, `Postal Code`, `Country`) for easy mail merges. Missing answers and check-ins are blank, and
 duplicate question labels are numbered so spreadsheet headers stay unique.
 
 > Co-hosts and admins can download the export too.

@@ -322,13 +322,15 @@ model EventReminderSettings {
 // ──────────────────────────────────────────────
 
 model RSVPField {
-  id        String        @id @default(cuid())
-  eventId   String
-  label     String
-  fieldType RSVPFieldType
-  required  Boolean       @default(false)
-  options   String? // JSON array of strings for SELECT/CHECKBOX types
-  order     Int           @default(0)
+  id          String        @id @default(cuid())
+  eventId     String
+  label       String
+  description String? // Optional helper blurb shown under the question label
+  fieldType   RSVPFieldType
+  required    Boolean       @default(false)
+  goingOnly   Boolean       @default(false) // When true, shown/required only for Going RSVPs
+  options     String? // JSON array of strings for SELECT/CHECKBOX, or JSON { text?, url? } for TERMS
+  order       Int           @default(0)
 
   event                Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
   answers              RSVPAnswer[]
@@ -340,6 +342,9 @@ enum RSVPFieldType {
   SELECT
   CHECKBOX
   TEXTAREA
+  PHONE
+  ADDRESS
+  TERMS
 }
 
 model RSVP {

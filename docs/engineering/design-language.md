@@ -515,6 +515,15 @@ Decided:
   when no password is set, polls and comments open to viewers with event access via a shared
   display-name field, and custom questions render in an event-page card with host-only answers
   and CSV export.
+- **Questionnaire templates and contact/terms fields** (#786, 2026-11-27): **Settings →
+  Questionnaire** adds quick-add templates (`Mailing address`, `Phone number`, `Dietary
+restrictions`, `Emergency contact` with an explanatory blurb, `Accessibility`, and `Terms /
+waiver`), a per-question `Going guests only` toggle, an optional helper blurb, and typed
+  `PHONE`, structured international `ADDRESS` (`Street`, optional `Apt / Suite`, `City`,
+  optional `State / Region`, `Postal / ZIP`, optional `Country`), and `TERMS` (scrollable
+  read-only terms box, optional `http(s)` external link, and agreement checkbox). Going-only
+  questions hide Step 2 when guests choose Maybe or No, and collected phone numbers stay
+  separate from SMS notifications and verification.
 
 ## Preset defaults and soft motion
 

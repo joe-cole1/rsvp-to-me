@@ -4,10 +4,16 @@ import { useTranslations } from "next-intl";
 
 import { Plus, X } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
+import {
+  QUESTIONNAIRE_TEMPLATES,
+  formatRsvpAnswerForDisplay,
+  type QuestionnaireTemplateId,
+  type RsvpFieldTypeValue,
+} from "@/lib/rsvp-fields";
 import type { QuestionnaireResponseEntry, RsvpFieldEntry, SettingsOverrides } from "./types";
 import { Section } from "./ui";
 import { Button, buttonProps } from "@/components/ui/Button";
-import { Check, Input, Select, Textarea } from "@/components/ui/Field";
+import { Check, Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
 
 export function QuestionnairePanel({
   rsvpEnabled = true,
@@ -18,21 +24,40 @@ export function QuestionnairePanel({
   setAddingField,
   newFieldLabel,
   setNewFieldLabel,
+  newFieldDescription = "",
+  setNewFieldDescription,
   newFieldType,
   setNewFieldType,
   newFieldRequired,
   setNewFieldRequired,
+  newFieldGoingOnly = false,
+  setNewFieldGoingOnly,
   newFieldOptions,
   setNewFieldOptions,
+  newTermsText = "",
+  setNewTermsText,
+  newTermsUrl = "",
+  setNewTermsUrl,
   labelDrafts,
   setLabelDrafts,
+  descriptionDrafts = {},
+  setDescriptionDrafts,
   optionsDrafts,
   setOptionsDrafts,
+  termsTextDrafts = {},
+  setTermsTextDrafts,
+  termsUrlDrafts = {},
+  setTermsUrlDrafts,
+  fieldTermsErrors = {},
+  handleSelectTemplate,
   handleAddField,
   handleUpdateFieldType,
   handleUpdateFieldRequired,
+  handleUpdateFieldGoingOnly,
   handleUpdateFieldLabel,
+  handleUpdateFieldDescription,
   handleUpdateFieldOptions,
+  handleUpdateFieldTerms,
   handleDeleteField,
   isPending,
   t,
@@ -47,23 +72,40 @@ export function QuestionnairePanel({
   setAddingField: React.Dispatch<React.SetStateAction<boolean>>;
   newFieldLabel: string;
   setNewFieldLabel: React.Dispatch<React.SetStateAction<string>>;
-  newFieldType: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX";
-  setNewFieldType: React.Dispatch<
-    React.SetStateAction<"TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX">
-  >;
+  newFieldDescription?: string;
+  setNewFieldDescription?: React.Dispatch<React.SetStateAction<string>>;
+  newFieldType: RsvpFieldTypeValue;
+  setNewFieldType: React.Dispatch<React.SetStateAction<RsvpFieldTypeValue>>;
   newFieldRequired: boolean;
   setNewFieldRequired: React.Dispatch<React.SetStateAction<boolean>>;
+  newFieldGoingOnly?: boolean;
+  setNewFieldGoingOnly?: React.Dispatch<React.SetStateAction<boolean>>;
   newFieldOptions: string;
   setNewFieldOptions: React.Dispatch<React.SetStateAction<string>>;
+  newTermsText?: string;
+  setNewTermsText?: React.Dispatch<React.SetStateAction<string>>;
+  newTermsUrl?: string;
+  setNewTermsUrl?: React.Dispatch<React.SetStateAction<string>>;
   labelDrafts: Record<string, string>;
   setLabelDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  descriptionDrafts?: Record<string, string>;
+  setDescriptionDrafts?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   optionsDrafts: Record<string, string>;
   setOptionsDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  termsTextDrafts?: Record<string, string>;
+  setTermsTextDrafts?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  termsUrlDrafts?: Record<string, string>;
+  setTermsUrlDrafts?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  fieldTermsErrors?: Record<string, string>;
+  handleSelectTemplate?: (templateId: QuestionnaireTemplateId) => void;
   handleAddField: () => void;
   handleUpdateFieldType: (fieldId: string, fieldType: RsvpFieldEntry["fieldType"]) => void;
   handleUpdateFieldRequired: (fieldId: string, required: boolean) => void;
+  handleUpdateFieldGoingOnly?: (fieldId: string, goingOnly: boolean) => void;
   handleUpdateFieldLabel: (fieldId: string) => void;
+  handleUpdateFieldDescription?: (fieldId: string) => void;
   handleUpdateFieldOptions: (fieldId: string) => void;
+  handleUpdateFieldTerms?: (fieldId: string) => void;
   handleDeleteField: (fieldId: string) => void;
   triggerSaveSettings: (overrides: SettingsOverrides) => void;
   isPending: boolean;
@@ -76,7 +118,7 @@ export function QuestionnairePanel({
     borderRadius: "12px",
     padding: "14px",
   };
-  const requiredLabel: React.CSSProperties = {
+  const checkLabel: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: "6px",
@@ -91,6 +133,9 @@ export function QuestionnairePanel({
       <option value="TEXTAREA">{translate("longText")}</option>
       <option value="SELECT">{translate("multipleChoice")}</option>
       <option value="CHECKBOX">{translate("checkboxes")}</option>
+      <option value="PHONE">{translate("phoneNumber")}</option>
+      <option value="ADDRESS">{translate("mailingAddress")}</option>
+      <option value="TERMS">{translate("termsWaiver")}</option>
     </>
   );
 
@@ -109,31 +154,55 @@ export function QuestionnairePanel({
           : translate("addCustomQuestionsInfoOnly")}
       </div>
 
+      {handleSelectTemplate && (
+        <div style={{ marginBottom: "16px" }}>
+          <Label theme={t} style={{ marginBottom: "8px" }}>
+            {translate("quickAddTemplates")}
+          </Label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {QUESTIONNAIRE_TEMPLATES.map((tpl) => (
+              <Button
+                key={tpl.id}
+                theme={t}
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={() => handleSelectTemplate(tpl.id)}
+              >
+                <Plus size={13} aria-hidden="true" />
+                {translate(`templates.${tpl.id}.button`)}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {fields.length > 0 && (
         <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
           {fields.map((f) => (
             <div key={f.id} style={block}>
-              {/* Top row: type select + required + delete */}
+              {/* Top row: type select + required + goingOnly + delete */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  flexWrap: "wrap",
                   gap: "8px",
                   marginBottom: "10px",
                 }}
               >
                 <Select
                   theme={t}
-                  aria-label={translate("questionText")}
+                  aria-label={translate("questionType")}
                   value={f.fieldType}
                   onChange={(e) =>
                     handleUpdateFieldType(f.id, e.target.value as RsvpFieldEntry["fieldType"])
                   }
-                  style={{ flex: 1, width: "auto" }}
+                  style={{ flex: "1 1 160px", width: "auto" }}
                 >
                   {typeOptions}
                 </Select>
-                <label style={requiredLabel}>
+                <label style={checkLabel}>
                   <Check
                     theme={t}
                     checked={f.required}
@@ -141,6 +210,16 @@ export function QuestionnairePanel({
                   />
                   {translate("required")}
                 </label>
+                {rsvpEnabled && handleUpdateFieldGoingOnly && (
+                  <label style={checkLabel}>
+                    <Check
+                      theme={t}
+                      checked={Boolean(f.goingOnly)}
+                      onChange={(e) => handleUpdateFieldGoingOnly(f.id, e.target.checked)}
+                    />
+                    {translate("goingOnly")}
+                  </label>
+                )}
                 <Button
                   theme={t}
                   variant="icon"
@@ -161,10 +240,33 @@ export function QuestionnairePanel({
                   if (e.key === "Enter") e.currentTarget.blur();
                 }}
                 placeholder={translate("questionText")}
-                style={{
-                  marginBottom: f.fieldType === "SELECT" || f.fieldType === "CHECKBOX" ? "8px" : 0,
-                }}
+                style={{ marginBottom: "8px" }}
               />
+              {/* Optional helper blurb */}
+              {setDescriptionDrafts && handleUpdateFieldDescription && (
+                <Input
+                  theme={t}
+                  aria-label={translate("descriptionLabel")}
+                  maxLength={500}
+                  value={descriptionDrafts[f.id] ?? f.description ?? ""}
+                  onChange={(e) =>
+                    setDescriptionDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))
+                  }
+                  onBlur={() => handleUpdateFieldDescription(f.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                  }}
+                  placeholder={translate("descriptionPlaceholder")}
+                  style={{
+                    marginBottom:
+                      f.fieldType === "SELECT" ||
+                      f.fieldType === "CHECKBOX" ||
+                      f.fieldType === "TERMS"
+                        ? "8px"
+                        : 0,
+                  }}
+                />
+              )}
               {/* Options textarea for SELECT/CHECKBOX */}
               {(f.fieldType === "SELECT" || f.fieldType === "CHECKBOX") && (
                 <Textarea
@@ -178,6 +280,48 @@ export function QuestionnairePanel({
                   placeholder={translate("optionsOnePerLine")}
                   rows={3}
                 />
+              )}
+              {/* Terms text + external link for TERMS */}
+              {f.fieldType === "TERMS" && setTermsTextDrafts && setTermsUrlDrafts && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <Field theme={t} label={translate("termsTextLabel")} style={{ marginBottom: 0 }}>
+                    <Textarea
+                      theme={t}
+                      value={termsTextDrafts[f.id] ?? ""}
+                      onChange={(e) =>
+                        setTermsTextDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))
+                      }
+                      onBlur={() => handleUpdateFieldTerms?.(f.id)}
+                      placeholder={translate("termsTextPlaceholder")}
+                      rows={6}
+                      style={{
+                        resize: "vertical",
+                        maxHeight: "220px",
+                        overflowY: "auto",
+                      }}
+                    />
+                  </Field>
+                  <Field
+                    theme={t}
+                    label={translate("termsUrlLabel")}
+                    error={fieldTermsErrors[f.id]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input
+                      theme={t}
+                      type="url"
+                      value={termsUrlDrafts[f.id] ?? ""}
+                      onChange={(e) =>
+                        setTermsUrlDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))
+                      }
+                      onBlur={() => handleUpdateFieldTerms?.(f.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                      }}
+                      placeholder={translate("termsUrlPlaceholder")}
+                    />
+                  </Field>
+                </div>
               )}
             </div>
           ))}
@@ -194,17 +338,17 @@ export function QuestionnairePanel({
             gap: "8px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
             <Select
               theme={t}
-              aria-label={translate("questionText2")}
+              aria-label={translate("questionType")}
               value={newFieldType}
               onChange={(e) => setNewFieldType(e.target.value as typeof newFieldType)}
-              style={{ flex: 1, width: "auto" }}
+              style={{ flex: "1 1 160px", width: "auto" }}
             >
               {typeOptions}
             </Select>
-            <label style={requiredLabel}>
+            <label style={checkLabel}>
               <Check
                 theme={t}
                 checked={newFieldRequired}
@@ -212,6 +356,16 @@ export function QuestionnairePanel({
               />
               {translate("required")}
             </label>
+            {rsvpEnabled && setNewFieldGoingOnly && (
+              <label style={checkLabel}>
+                <Check
+                  theme={t}
+                  checked={newFieldGoingOnly}
+                  onChange={(e) => setNewFieldGoingOnly(e.target.checked)}
+                />
+                {translate("goingOnly")}
+              </label>
+            )}
           </div>
           <Input
             theme={t}
@@ -220,6 +374,16 @@ export function QuestionnairePanel({
             onChange={(e) => setNewFieldLabel(e.target.value)}
             placeholder={translate("questionText2")}
           />
+          {setNewFieldDescription && (
+            <Input
+              theme={t}
+              aria-label={translate("descriptionLabel")}
+              maxLength={500}
+              value={newFieldDescription}
+              onChange={(e) => setNewFieldDescription(e.target.value)}
+              placeholder={translate("descriptionPlaceholder")}
+            />
+          )}
           {(newFieldType === "SELECT" || newFieldType === "CHECKBOX") && (
             <Textarea
               theme={t}
@@ -229,6 +393,38 @@ export function QuestionnairePanel({
               placeholder={translate("optionsOnePerLine")}
               rows={3}
             />
+          )}
+          {newFieldType === "TERMS" && setNewTermsText && setNewTermsUrl && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <Field theme={t} label={translate("termsTextLabel")} style={{ marginBottom: 0 }}>
+                <Textarea
+                  theme={t}
+                  value={newTermsText}
+                  onChange={(e) => setNewTermsText(e.target.value)}
+                  placeholder={translate("termsTextPlaceholder")}
+                  rows={6}
+                  style={{
+                    resize: "vertical",
+                    maxHeight: "220px",
+                    overflowY: "auto",
+                  }}
+                />
+              </Field>
+              <Field
+                theme={t}
+                label={translate("termsUrlLabel")}
+                error={fieldTermsErrors.new}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  theme={t}
+                  type="url"
+                  value={newTermsUrl}
+                  onChange={(e) => setNewTermsUrl(e.target.value)}
+                  placeholder={translate("termsUrlPlaceholder")}
+                />
+              </Field>
+            </div>
           )}
           <div style={{ display: "flex", gap: "6px" }}>
             <Button
@@ -328,13 +524,9 @@ export function QuestionnairePanel({
                             style={{ fontSize: "13px", color: t.textSecondary, lineHeight: 1.45 }}
                           >
                             <strong style={{ color: t.textPrimary }}>{field.label}:</strong>{" "}
-                            {field.fieldType === "CHECKBOX"
-                              ? value
-                                  .split(",")
-                                  .map((v) => v.trim())
-                                  .filter(Boolean)
-                                  .join(", ")
-                              : value}
+                            {formatRsvpAnswerForDisplay(field.fieldType, value, {
+                              acceptedLabel: translate("termsAgreed"),
+                            })}
                           </div>
                         ))}
                       </div>

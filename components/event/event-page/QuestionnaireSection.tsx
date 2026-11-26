@@ -4,11 +4,12 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { ClipboardList, Settings } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { parseRsvpFieldOptions } from "@/lib/rsvp-fields";
+import { validateQuestionnaireFieldsClient, type StructuredAddress } from "@/lib/rsvp-fields";
+import { QuestionnaireFieldInput } from "@/components/rsvp/QuestionnaireFieldInput";
 import { submitQuestionnaireResponse } from "@/app/actions/event";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { Button, buttonProps } from "@/components/ui/Button";
-import { Check, Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
+import { Field, Input } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
 import { EventCard } from "./EventCard";
 import type { EventData } from "./types";
@@ -45,6 +46,7 @@ export function QuestionnaireSection({
   );
   const [savedAt, setSavedAt] = useState<string | null>(initialSubmission?.updatedAt ?? null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [subFieldErrors, setSubFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [savedNotice, setSavedNotice] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -56,7 +58,7 @@ export function QuestionnaireSection({
     focusInvalidRef.current = false;
     const firstInvalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
     firstInvalid?.focus();
-  }, [fieldErrors]);
+  }, [fieldErrors, subFieldErrors]);
 
   useEffect(() => {
     if (formError) errorRef.current?.focus();
@@ -75,15 +77,23 @@ export function QuestionnaireSection({
     });
   };
 
-  const toggleCheckbox = (fieldId: string, option: string) => {
-    const current = (answers[fieldId] ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const next = current.includes(option)
-      ? current.filter((item) => item !== option)
-      : [...current, option];
-    setAnswerValue(fieldId, next.join(","));
+  const clearAddressSubFieldError = (fieldId: string, part: keyof StructuredAddress) => {
+    const key = `${fieldId}:${part}`;
+    setSubFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      const prefix = `${fieldId}:`;
+      if (!Object.keys(next).some((k) => k.startsWith(prefix))) {
+        setFieldErrors((prevFields) => {
+          if (!prevFields[fieldId]) return prevFields;
+          const nextFields = { ...prevFields };
+          delete nextFields[fieldId];
+          return nextFields;
+        });
+      }
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -91,22 +101,26 @@ export function QuestionnaireSection({
     setFormError(null);
     setSavedNotice(false);
 
-    const errors: Record<string, string> = {};
+    const validation = validateQuestionnaireFieldsClient(event.rsvpFields, answers, {
+      questionnaireFieldRequired: translate("requiredFieldError"),
+      questionnaireInvalidOption: translate("invalidOptionError"),
+      invalidPhone: translate("invalidPhoneError"),
+      addressIncomplete: translate("addressIncompleteError"),
+      termsRequired: translate("termsRequiredError"),
+    });
+    const errors = { ...validation.fieldErrors };
     if (!hasSessionName && !voterNameDraft.trim()) {
       errors.respondentName = translate("nameRequiredError");
     }
-    for (const field of event.rsvpFields) {
-      if (field.required && !(answers[field.id] ?? "").trim()) {
-        errors[field.id] = translate("requiredFieldError");
-      }
-    }
-    if (Object.keys(errors).length > 0) {
+    if (Object.keys(errors).length > 0 || Object.keys(validation.subFieldErrors).length > 0) {
       focusInvalidRef.current = true;
       setFieldErrors(errors);
+      setSubFieldErrors(validation.subFieldErrors);
       return;
     }
 
     setFieldErrors({});
+    setSubFieldErrors({});
     startTransition(async () => {
       try {
         const result = await runWithCaptcha("questionnaire_submit", (token) =>
@@ -236,110 +250,16 @@ export function QuestionnaireSection({
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {event.rsvpFields.map((field) => (
               <div key={field.id}>
-                {field.fieldType === "CHECKBOX" ? (
-                  <>
-                    <Label theme={t}>
-                      {field.label}
-                      {field.required && (
-                        <span style={{ fontWeight: 400, marginLeft: "4px" }}>
-                          {translate("requiredMarker")}
-                        </span>
-                      )}
-                    </Label>
-                    <div
-                      role="group"
-                      aria-label={field.label}
-                      aria-describedby={
-                        fieldErrors[field.id] ? `event-question-${field.id}-error` : undefined
-                      }
-                      style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-                    >
-                      {parseRsvpFieldOptions(field.options).map((opt) => (
-                        <label
-                          key={opt}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            color: t.textPrimary,
-                          }}
-                        >
-                          <Check
-                            theme={t}
-                            aria-invalid={!!fieldErrors[field.id] || undefined}
-                            aria-describedby={
-                              fieldErrors[field.id] ? `event-question-${field.id}-error` : undefined
-                            }
-                            checked={(answers[field.id] ?? "")
-                              .split(",")
-                              .map((s) => s.trim())
-                              .includes(opt)}
-                            onChange={() => toggleCheckbox(field.id, opt)}
-                          />
-                          {opt}
-                        </label>
-                      ))}
-                    </div>
-                    {fieldErrors[field.id] && (
-                      <p
-                        id={`event-question-${field.id}-error`}
-                        style={{ color: t.status.error.text, fontSize: "13px", margin: "6px 0 0" }}
-                      >
-                        {fieldErrors[field.id]}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <Field
-                    theme={t}
-                    label={
-                      <>
-                        {field.label}
-                        {field.required && (
-                          <span style={{ fontWeight: 400, marginLeft: "4px" }}>
-                            {translate("requiredMarker")}
-                          </span>
-                        )}
-                      </>
-                    }
-                    error={fieldErrors[field.id]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    {field.fieldType === "TEXTAREA" ? (
-                      <Textarea
-                        theme={t}
-                        rows={3}
-                        style={{ resize: "none" }}
-                        required={field.required}
-                        value={answers[field.id] ?? ""}
-                        onChange={(e) => setAnswerValue(field.id, e.target.value)}
-                      />
-                    ) : field.fieldType === "SELECT" ? (
-                      <Select
-                        theme={t}
-                        required={field.required}
-                        value={answers[field.id] ?? ""}
-                        onChange={(e) => setAnswerValue(field.id, e.target.value)}
-                      >
-                        <option value="">{translate("selectPlaceholder")}</option>
-                        {parseRsvpFieldOptions(field.options).map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <Input
-                        theme={t}
-                        required={field.required}
-                        value={answers[field.id] ?? ""}
-                        onChange={(e) => setAnswerValue(field.id, e.target.value)}
-                      />
-                    )}
-                  </Field>
-                )}
+                <QuestionnaireFieldInput
+                  field={field}
+                  value={answers[field.id] ?? ""}
+                  onChange={(val) => setAnswerValue(field.id, val)}
+                  error={fieldErrors[field.id]}
+                  subFieldErrors={subFieldErrors}
+                  onClearSubFieldError={(part) => clearAddressSubFieldError(field.id, part)}
+                  theme={t}
+                  idPrefix="event-question"
+                />
               </div>
             ))}
           </div>

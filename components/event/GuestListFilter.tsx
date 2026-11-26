@@ -29,8 +29,9 @@ import {
   showGuestResponseTotal,
   type GuestRsvpDisplayFields,
 } from "@/lib/guestRsvpDisplay";
+import { formatRsvpAnswerForDisplay } from "@/lib/rsvp-fields";
 
-type RSVPAnswer = { label: string; value: string };
+type RSVPAnswer = { label: string; value: string; fieldType?: string };
 
 type RSVP = {
   id: string;
@@ -191,7 +192,13 @@ export function GuestListFilter({
   const normalizedSearch = search.trim().toLowerCase();
   const displayedRsvps = normalizedSearch
     ? visibleRsvps.filter((r) =>
-        [r.guestName, r.guestEmail, r.guestPhone, ...r.plusOneGuests]
+        [
+          r.guestName,
+          r.guestEmail,
+          r.guestPhone,
+          ...r.plusOneGuests,
+          ...(isHost ? r.answers.map((a) => formatRsvpAnswerForDisplay(a.fieldType, a.value)) : []),
+        ]
           .filter(Boolean)
           .some((value) => value!.toLowerCase().includes(normalizedSearch))
       )
@@ -893,10 +900,14 @@ export function GuestListFilter({
                       gap: "4px",
                     }}
                   >
-                    {r.answers.map((a) => (
-                      <div key={a.label} style={{ fontSize: "12px" }}>
+                    {r.answers.map((a, index) => (
+                      <div key={`${a.label}-${index}`} style={{ fontSize: "12px" }}>
                         <span style={{ color: t.textMuted }}>{a.label}: </span>
-                        <span style={{ color: t.textSecondary }}>{a.value}</span>
+                        <span style={{ color: t.textSecondary }}>
+                          {formatRsvpAnswerForDisplay(a.fieldType, a.value, {
+                            acceptedLabel: translate("termsAgreed"),
+                          })}
+                        </span>
                       </div>
                     ))}
                   </div>

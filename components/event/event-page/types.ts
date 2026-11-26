@@ -90,8 +90,10 @@ export type EventData = Partial<GuestRsvpDisplayFields> & {
   rsvpFields: {
     id: string;
     label: string;
+    description?: string | null;
     fieldType: string;
     required: boolean;
+    goingOnly?: boolean;
     options: string | null;
   }[];
   updates: { id: string; body: string; notifyGuests: boolean; createdAt: Date }[];

@@ -243,7 +243,10 @@
         "questionnaireNameRequired": "Vul je naam in om je antwoorden te verzenden.",
         "questionnaireFieldRequired": "Vul dit verplichte veld in.",
         "questionnaireInvalidOption": "Kies een van de vermelde opties.",
-        "checkQuestionnaireFields": "Controleer de gemarkeerde velden."
+        "checkQuestionnaireFields": "Controleer de gemarkeerde velden.",
+        "addressIncomplete": "Vul straat, plaats en postcode in.",
+        "termsRequired": "Ga akkoord met de voorwaarden om door te gaan.",
+        "invalidTermsUrl": "Vul een geldige http://- of https://-link in."
       },
       "NotFound": {
         "title": "We konden die pagina niet vinden",
@@ -367,7 +370,7 @@
       },
       "QuestionnairePanel": {
         "questionnaire": "Vragenlijst",
-        "addCustomQuestionsGatherExtraInformation": "Voeg eigen vragen toe voor extra informatie van gasten, zoals dieetwensen of muziekaanvragen. De vragenlijst verschijnt automatisch tijdens het aanmelden zodra je hier vragen toevoegt.",
+        "addCustomQuestionsGatherExtraInformation": "Voeg eigen vragen toe voor extra informatie van gasten, zoals dieetwensen, postadressen, telefoonnummers of voorwaarden. De vragenlijst verschijnt automatisch tijdens het aanmelden zodra je hier vragen toevoegt.",
         "shortText": "Korte tekst",
         "longText": "Lange tekst",
         "multipleChoice": "Meerkeuze",
@@ -383,7 +386,51 @@
         "downloadCsv": "CSV downloaden",
         "noResponsesYet": "Nog geen antwoorden.",
         "responseSourceEventPage": "Evenementpagina",
-        "responseSourceRsvp": "RSVP"
+        "responseSourceRsvp": "RSVP",
+        "phoneNumber": "Telefoonnummer",
+        "mailingAddress": "Postadres",
+        "termsWaiver": "Voorwaarden / vrijwaring",
+        "quickAddTemplates": "Snelle sjablonen",
+        "questionType": "Vraagtype",
+        "goingOnly": "Alleen voor aanwezige gasten",
+        "descriptionLabel": "Toelichting (optioneel)",
+        "descriptionPlaceholder": "Toelichting of uitleg voor gasten (optioneel)",
+        "termsTextLabel": "Tekst van voorwaarden of vrijwaring (optioneel)",
+        "termsTextPlaceholder": "Plak volledige voorwaarden, vrijwaring of huisregels (scrolt voor gasten)…",
+        "termsUrlLabel": "Externe link naar voorwaarden (optioneel)",
+        "termsUrlPlaceholder": "https://example.com/waiver",
+        "invalidTermsUrl": "Vul een geldige http://- of https://-link in.",
+        "termsAgreed": "Akkoord",
+        "templates": {
+          "address": {
+            "button": "Postadres",
+            "label": "Postadres"
+          },
+          "phone": {
+            "button": "Telefoonnummer",
+            "label": "Telefoonnummer",
+            "description": "Alleen gedeeld met de organisator voor contact op de dag zelf."
+          },
+          "dietary": {
+            "button": "Dieetwensen",
+            "label": "Dieetwensen of allergieën",
+            "options": "Vegetarisch\nVeganistisch\nGlutenvrij\nLactosevrij\nNotenallergie"
+          },
+          "emergencyContact": {
+            "button": "Noodcontact",
+            "label": "Noodcontact (naam en telefoonnummer)",
+            "description": "Wordt alleen door de organisator gebruikt als er tijdens het evenement een dringende veiligheids- of medische situatie optreedt."
+          },
+          "accessibility": {
+            "button": "Toegankelijkheid",
+            "label": "Toegankelijkheidsbehoeften of voorzieningen"
+          },
+          "terms": {
+            "button": "Voorwaarden / vrijwaring",
+            "label": "Evenementvoorwaarden en vrijwaring",
+            "description": "Lees de onderstaande voorwaarden voordat je je aanmelding bevestigt."
+          }
+        }
       },
       "PotluckPanel": {
         "managePotluckItems": "Meeneemlijst beheren",
@@ -889,7 +936,8 @@
         "removeInvitationTitle": "Deze uitnodiging verwijderen?",
         "cannotBeUndone": "Dit kan niet ongedaan worden gemaakt.",
         "declineRequestTitle": "Dit verzoek afwijzen?",
-        "declineRequestMessage": "We laten het de gast weten en het verzoek wordt verwijderd. Dit kan niet ongedaan worden gemaakt."
+        "declineRequestMessage": "We laten het de gast weten en het verzoek wordt verwijderd. Dit kan niet ongedaan worden gemaakt.",
+        "termsAgreed": "Akkoord"
       },
       "EventPage": {
         "failedAddReply": "Antwoord plaatsen is mislukt",
@@ -1192,7 +1240,11 @@
         "submitFailed": "Kon je antwoorden niet opslaan. Probeer het opnieuw.",
         "saving": "Opslaan…",
         "submitAnswers": "Antwoorden verzenden",
-        "updateAnswers": "Antwoorden bijwerken"
+        "updateAnswers": "Antwoorden bijwerken",
+        "invalidOptionError": "Kies een van de vermelde opties.",
+        "invalidPhoneError": "Vul een geldig telefoonnummer in.",
+        "addressIncompleteError": "Vul straat, plaats en postcode in.",
+        "termsRequiredError": "Ga akkoord met de voorwaarden om door te gaan."
       }
     },
     "Rsvp": {
@@ -1265,7 +1317,11 @@
         "verificationProgress": "Contact {current} van {total}",
         "potluckGoingBanner": "Een potluck-item claimen zet je RSVP op Aanwezig. Ga alleen verder als Aanwezig als je van plan bent te komen.",
         "backPotluck": "Terug naar potluck",
-        "backPolls": "Terug naar peilingen"
+        "backPolls": "Terug naar peilingen",
+        "invalidOptionError": "Kies een van de vermelde opties.",
+        "invalidPhoneError": "Vul een geldig telefoonnummer in.",
+        "addressIncompleteError": "Vul straat, plaats en postcode in.",
+        "termsRequiredError": "Ga akkoord met de voorwaarden om door te gaan."
       },
       "status": {
         "GOING": "Aanwezig",
@@ -1274,6 +1330,21 @@
       },
       "Route": {
         "editingClosed": "Dit evenement is begonnen. Gasten kunnen hun aanmelding niet meer wijzigen. Neem contact op met de organisator als je antwoord moet worden aangepast."
+      },
+      "QuestionnaireFields": {
+        "requiredMarker": "(verplicht)",
+        "selectPlaceholder": "Selecteer…",
+        "phonePlaceholder": "+31 6 12345678",
+        "addressLine1": "Straat en huisnummer",
+        "addressLine1Placeholder": "Kerkstraat 12",
+        "addressLine2Optional": "Toevoeging / appartement (optioneel)",
+        "addressLine2Placeholder": "Apt 4B",
+        "addressCity": "Plaats",
+        "addressRegionOptional": "Provincie / regio (optioneel)",
+        "addressPostalCode": "Postcode",
+        "addressCountryOptional": "Land (optioneel)",
+        "readFullTerms": "Volledige voorwaarden lezen",
+        "agreeToTerms": "Ik ga akkoord met: {label}"
       }
     },
     "Admin": {

@@ -114,13 +114,14 @@ future, guest RSVP access automatically reopens under the normal deadline rules.
 
 ## Custom Questionnaires
 
-Add your own questions to the RSVP form (dietary needs, song requests, t-shirt size — whatever you need):
+Add your own questions to the RSVP form (dietary needs, mailing addresses, phone numbers, emergency contacts, or event terms — whatever you need):
 
-- **Field types:** single-line text, multi-line text, dropdown, and checkbox.
-- **Required or optional:** mark each question as needed.
+- **Quick-add templates:** Start with one click from built-in templates for **Mailing address**, **Phone number**, **Dietary restrictions**, **Emergency contact** (with a prefilled privacy explanation for guests), **Accessibility**, and **Terms / waiver**, then customize any label, blurb, or requirement before saving.
+- **Field types:** single-line text, multi-line text, dropdown, checkbox, **Phone number** (works even when SMS notifications are off, and never sends text alerts or verification codes), **Mailing address** (structured street, optional apt/suite, city, optional state/region, postal/ZIP code, and optional country), and **Terms / waiver** (scrollable text box and/or external `http(s)` link with an agreement checkbox).
+- **Helper text & Going-only questions:** Add an optional helper blurb under any question, mark questions as **Required**, or check **Going guests only** so guests replying **Maybe** or **Can't make it** skip them (switching away from Going clears Going-only answers).
 - **Reordering:** drag questions to set their order on the form.
 
-Answers appear with each guest and are included in the [CSV export](guest-list.md). On info-only events where RSVPs are turned off, visitors answer these questions directly in a card on the event page, and hosts view responses or download the questionnaire CSV from **Settings → Questionnaire**.
+Answers appear only to hosts and co-hosts with each guest and are included in the [CSV export](guest-list.md) (with mailing addresses expanded into separate columns for mail merges). On info-only events where RSVPs are turned off, visitors answer these questions directly in a card on the event page, and hosts view responses or download the questionnaire CSV from **Settings → Questionnaire**.
 
 ---
 

@@ -17,7 +17,7 @@ export type GuestListRsvpInput = {
   plusOneCount: number;
   note: string | null;
   createdAt: Date;
-  answers: { value: string; rsvpField: { label: string } }[];
+  answers: { value: string; rsvpField: { label: string; fieldType?: string } }[];
   plusOneGuests: { name: string }[];
   editToken: string;
   user: { avatarUrl: string | null } | null;
@@ -33,7 +33,7 @@ export type SerializedGuestRsvp = {
   plusOneCount: number;
   note: string | null;
   createdAt: string;
-  answers: { label: string; value: string }[];
+  answers: { label: string; value: string; fieldType?: string }[];
   plusOneGuests: string[];
   editToken: string;
   user: { avatarUrl: string | null } | null;
@@ -208,7 +208,13 @@ export function serializeGuestRsvp(r: GuestListRsvpInput, isHost: boolean): Seri
     plusOneCount: r.plusOneCount,
     note: r.note,
     createdAt: r.createdAt.toISOString(),
-    answers: isHost ? r.answers.map((a) => ({ label: a.rsvpField.label, value: a.value })) : [],
+    answers: isHost
+      ? r.answers.map((a) => ({
+          label: a.rsvpField.label,
+          value: a.value,
+          ...(a.rsvpField.fieldType ? { fieldType: a.rsvpField.fieldType } : {}),
+        }))
+      : [],
     plusOneGuests: r.plusOneGuests.map((g) => g.name),
     editToken: isHost ? r.editToken : "",
     user: r.user,

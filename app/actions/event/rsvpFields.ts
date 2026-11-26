@@ -7,6 +7,7 @@ import {
   PollVoterNameSchema,
   RsvpFieldSchema,
   SubmitQuestionnaireSchema,
+  TermsConfigSchema,
   UpdateRsvpFieldSchema,
 } from "@/lib/schemas";
 import { db } from "@/lib/db";
@@ -17,32 +18,65 @@ import { resolveEventAccess } from "@/lib/eventAccess";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
 import { getOrCreatePollVoterTokenHash } from "@/lib/poll-voter-token";
-import { parseRsvpFieldOptions } from "@/lib/rsvp-fields";
+import {
+  parseTermsFieldConfig,
+  serializeTermsFieldConfig,
+  validateRsvpFieldAnswer,
+  type RsvpFieldTypeValue,
+} from "@/lib/rsvp-fields";
 
 // ── RSVP Fields ───────────────────────────────────────────────────────────────
+
+async function normalizeTermsOptions(
+  rawOptions: string | null | undefined
+): Promise<string | null> {
+  if (!rawOptions || !rawOptions.trim()) return null;
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(rawOptions);
+  } catch {
+    const config = parseTermsFieldConfig(rawOptions);
+    return serializeTermsFieldConfig(config);
+  }
+  const checked = TermsConfigSchema.safeParse(parsedJson);
+  if (!checked.success) {
+    throw new Error(await eventActionMessage("invalidTermsUrl"));
+  }
+  return serializeTermsFieldConfig(checked.data);
+}
 
 export async function addRsvpField(
   eventId: string,
   data: {
     label: string;
-    fieldType: "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX";
+    description?: string | null;
+    fieldType: RsvpFieldTypeValue;
     required: boolean;
-    options?: string;
+    goingOnly?: boolean;
+    options?: string | null;
     order: number;
   },
   captchaToken?: string | null
 ) {
-  data = RsvpFieldSchema.parse(data);
+  const parsed = RsvpFieldSchema.parse(data);
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("rsvp_field", captchaToken);
+  const options =
+    parsed.fieldType === "TERMS"
+      ? await normalizeTermsOptions(parsed.options)
+      : parsed.fieldType === "SELECT" || parsed.fieldType === "CHECKBOX"
+        ? (parsed.options ?? null)
+        : null;
   const field = await db.rSVPField.create({
     data: {
       eventId,
-      label: data.label,
-      fieldType: data.fieldType,
-      required: data.required,
-      options: data.options ?? null,
-      order: data.order,
+      label: parsed.label,
+      description: parsed.description ? parsed.description : null,
+      fieldType: parsed.fieldType,
+      required: parsed.required,
+      goingOnly: parsed.goingOnly ?? false,
+      options,
+      order: parsed.order,
     },
   });
   revalidatePath(`/e/${event.slug}/settings`);
@@ -52,10 +86,17 @@ export async function addRsvpField(
 
 export async function updateRsvpField(
   fieldId: string,
-  data: { label?: string; required?: boolean; options?: string; fieldType?: string },
+  data: {
+    label?: string;
+    description?: string | null;
+    required?: boolean;
+    goingOnly?: boolean;
+    options?: string | null;
+    fieldType?: RsvpFieldTypeValue;
+  },
   captchaToken?: string | null
 ) {
-  data = UpdateRsvpFieldSchema.parse(data);
+  const parsed = UpdateRsvpFieldSchema.parse(data);
   const field = await db.rSVPField.findUnique({
     where: { id: fieldId },
     include: { event: { select: { slug: true } } },
@@ -63,14 +104,24 @@ export async function updateRsvpField(
   if (!field) throw new Error(await eventActionMessage("forbidden"));
   await assertHostOrCohost(field.eventId);
   await assertCaptcha("rsvp_field", captchaToken);
+  const effectiveType = parsed.fieldType ?? field.fieldType;
+  let nextOptions: string | null | undefined = undefined;
+  if (parsed.options !== undefined) {
+    nextOptions =
+      effectiveType === "TERMS"
+        ? await normalizeTermsOptions(parsed.options)
+        : parsed.options || null;
+  }
   await db.rSVPField.update({
     where: { id: fieldId },
     data: {
-      ...(data.label !== undefined && { label: data.label }),
-      ...(data.required !== undefined && { required: data.required }),
-      ...(data.options !== undefined && { options: data.options || null }),
-      ...(data.fieldType !== undefined && {
-        fieldType: data.fieldType as "TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX",
+      ...(parsed.label !== undefined && { label: parsed.label }),
+      ...(parsed.description !== undefined && { description: parsed.description || null }),
+      ...(parsed.required !== undefined && { required: parsed.required }),
+      ...(parsed.goingOnly !== undefined && { goingOnly: parsed.goingOnly }),
+      ...(nextOptions !== undefined && { options: nextOptions }),
+      ...(parsed.fieldType !== undefined && {
+        fieldType: parsed.fieldType,
       }),
     },
   });
@@ -211,53 +262,15 @@ export async function submitQuestionnaireResponse(rawInput: unknown, captchaToke
 
   const fieldErrors: Record<string, string> = {};
   const normalizedAnswers: Record<string, string> = {};
-  const requiredMsg = await eventActionMessage("questionnaireFieldRequired");
-  const invalidMsg = await eventActionMessage("questionnaireInvalidOption");
 
   for (const field of event.rsvpFields) {
-    const raw = (data.answers[field.id] ?? "").trim();
-    if (field.fieldType === "CHECKBOX") {
-      const selected = Array.from(
-        new Set(
-          raw
-            .split(",")
-            .map((v) => v.trim())
-            .filter(Boolean)
-        )
-      );
-      const allowed = new Set(parseRsvpFieldOptions(field.options));
-      if (allowed.size > 0 && selected.some((item) => !allowed.has(item))) {
-        fieldErrors[field.id] = invalidMsg;
-        continue;
-      }
-      if (field.required && selected.length === 0) {
-        fieldErrors[field.id] = requiredMsg;
-        continue;
-      }
-      if (selected.length > 0) {
-        normalizedAnswers[field.id] = selected.join(",");
-      }
-    } else if (field.fieldType === "SELECT") {
-      const allowed = new Set(parseRsvpFieldOptions(field.options));
-      if (field.required && !raw) {
-        fieldErrors[field.id] = requiredMsg;
-        continue;
-      }
-      if (raw) {
-        if (allowed.size > 0 && !allowed.has(raw)) {
-          fieldErrors[field.id] = invalidMsg;
-          continue;
-        }
-        normalizedAnswers[field.id] = raw;
-      }
-    } else {
-      if (field.required && !raw) {
-        fieldErrors[field.id] = requiredMsg;
-        continue;
-      }
-      if (raw) {
-        normalizedAnswers[field.id] = raw;
-      }
+    const validated = validateRsvpFieldAnswer(field, data.answers[field.id]);
+    if (!validated.valid) {
+      fieldErrors[field.id] = await eventActionMessage(validated.reason);
+      continue;
+    }
+    if (validated.normalized !== null) {
+      normalizedAnswers[field.id] = validated.normalized;
     }
   }
 

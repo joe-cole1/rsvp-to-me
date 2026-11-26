@@ -393,3 +393,149 @@ describe("RSVP localization", () => {
     expect(tzLocalToUtcClient(machineValue, timezone).toISOString()).toBe(instant.toISOString());
   });
 });
+
+describe("RsvpFlow — typed fields, templates, and goingOnly (#786)", () => {
+  it("hides goingOnly questions when Maybe is selected and shows them for Going", async () => {
+    mockAddRSVP.mockResolvedValue({ success: true, id: "rsvp-1", editToken: "tok-1" });
+    const eventWithGoingOnly = {
+      ...baseEvent,
+      rsvpFields: [
+        {
+          id: "q-addr",
+          label: "Mailing address",
+          description: null,
+          fieldType: "ADDRESS",
+          required: true,
+          goingOnly: true,
+          options: null,
+        },
+      ],
+    };
+
+    render(
+      <RsvpFlow
+        event={eventWithGoingOnly}
+        theme={testTheme}
+        initialStatus="MAYBE"
+        sessionUser={null}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Confirm RSVP" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue →" })).not.toBeInTheDocument();
+
+    // Toggling to Going on Step 1 reveals Continue -> Step 2
+    fireEvent.click(screen.getByRole("button", { name: "Going" }));
+    expect(screen.getByRole("button", { name: "Continue →" })).toBeInTheDocument();
+
+    // Toggling back to Maybe submits directly without Step 2
+    fireEvent.click(screen.getByRole("button", { name: "Maybe" }));
+    fireEvent.change(screen.getByPlaceholderText("Your name (required)"), {
+      target: { value: "Maya" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm RSVP" }));
+    await waitFor(() => expect(screen.getByText("Noted!")).toBeInTheDocument());
+  });
+
+  it("validates and submits PHONE, international ADDRESS, and scrollable/linked TERMS", async () => {
+    mockAddRSVP.mockResolvedValue({ success: true, id: "rsvp-2", editToken: "tok-2" });
+    const eventWithNewFields = {
+      ...baseEvent,
+      rsvpFields: [
+        {
+          id: "q-phone",
+          label: "Day-of phone",
+          description: "Used only for urgent event updates.",
+          fieldType: "PHONE",
+          required: false,
+          goingOnly: true,
+          options: null,
+        },
+        {
+          id: "q-addr",
+          label: "Mailing address",
+          description: null,
+          fieldType: "ADDRESS",
+          required: true,
+          goingOnly: true,
+          options: null,
+        },
+        {
+          id: "q-terms",
+          label: "Event waiver",
+          description: "Read before attending.",
+          fieldType: "TERMS",
+          required: true,
+          goingOnly: true,
+          options: JSON.stringify({
+            text: "Line 1\nLine 2\nBe kind and safe.",
+            url: "https://example.com/waiver",
+          }),
+        },
+      ],
+    };
+
+    render(
+      <RsvpFlow
+        event={eventWithNewFields}
+        theme={testTheme}
+        initialStatus="GOING"
+        sessionUser={null}
+      />
+    );
+    fireEvent.change(screen.getByPlaceholderText("Your name (required)"), {
+      target: { value: "Sanne" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue →" }));
+
+    // Terms scrollable region & external link render
+    const region = screen.getByRole("region", { name: "Event waiver" });
+    expect(region).toHaveTextContent("Be kind and safe.");
+    expect(region.style.overflowY).toBe("auto");
+    const link = screen.getByRole("link", { name: /Read full terms/ });
+    expect(link).toHaveAttribute("href", "https://example.com/waiver");
+
+    // Submitting with missing required address parts & unchecked terms focuses first invalid input
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    const street = screen.getByRole("textbox", { name: "Street address" });
+    expect(street).toHaveAttribute("aria-invalid", "true");
+    expect(street).toHaveFocus();
+    expect(mockAddRSVP).not.toHaveBeenCalled();
+
+    // Fill international address (no state/region, no country) + phone + agree to terms
+    fireEvent.change(screen.getByRole("textbox", { name: /Day-of phone/ }), {
+      target: { value: "+31 6 1234 5678" },
+    });
+    fireEvent.change(street, { target: { value: "Kerkstraat 12" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "City" }), {
+      target: { value: "Amsterdam" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Postal / ZIP code" }), {
+      target: { value: "1017 GD" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "I agree to Event waiver" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() =>
+      expect(mockAddRSVP).toHaveBeenCalledWith(
+        expect.objectContaining({
+          guestName: "Sanne",
+          status: "GOING",
+          answers: {
+            "q-phone": "+31 6 1234 5678",
+            "q-addr": JSON.stringify({
+              line1: "Kerkstraat 12",
+              line2: "",
+              city: "Amsterdam",
+              region: "",
+              postalCode: "1017 GD",
+              country: "",
+            }),
+            "q-terms": "ACCEPTED",
+          },
+        }),
+        null
+      )
+    );
+    expect(await screen.findByText("You're in!")).toBeInTheDocument();
+  });
+});
