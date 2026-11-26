@@ -175,8 +175,8 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
           zIndex: 1,
         }}
       >
-        {/* Header: the back link, then the event hero's title block (same font, ink and
-            scrim as the event page) with the response summary under it. */}
+        {/* Header: the back link, then the event hero's title block (same font and ink
+            as the event page) with the response summary under it. */}
         <div style={{ marginBottom: "32px" }}>
           <p style={{ margin: "0 0 24px", fontSize: "14px" }}>
             <Link

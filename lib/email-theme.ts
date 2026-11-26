@@ -16,8 +16,6 @@
  *   - glass cards, blur, orbs/blobs, shadows, animations → dropped (static /
  *     solid equivalents); a future background-image capability should map to a
  *     bulletproof hero `background-image` with the same solid fallback
- *   - `heroScrim` (the web's dark wash behind white hero text) → dropped; email
- *     hero text is instead chosen against the gradient and its solid fallback
  *   - custom heading fonts (EventTheme.fontId) → the font's declared
  *     `emailStack` from lib/fonts.ts (web fonts don't load in email; the
  *     `var(--font-*)` value from resolveTheme() must never reach an email)

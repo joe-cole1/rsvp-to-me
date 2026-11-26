@@ -17,13 +17,13 @@ const preset = (id: string) => {
 };
 
 describe("readable text derived in resolveTheme", () => {
-  it("gives light BOLD gradients a dark hero ink with no shadow or scrim", () => {
+  it("gives light BOLD gradients a dark hero ink with no shadow", () => {
     for (const id of ["summer", "citrus-pop"]) {
       const t = preset(id);
       expect(t.heroText).toBe("#1c1917");
       expect(t.heroTextSecondary).toBe("#44403c");
       expect(t.heroTextShadow).toBeUndefined();
-      expect(t.heroScrim).toBeUndefined();
+      expect("heroScrim" in t).toBe(false);
     }
     // Summer Vibes: the reference canvas reads 10.4:1 for the title.
     const summer = preset("summer");
@@ -31,27 +31,32 @@ describe("readable text derived in resolveTheme", () => {
     expect(minContrast(summer.heroText, ground)).toBeCloseTo(10.4, 1);
   });
 
-  it("keeps white hero text on Sunset with a soft scrim behind it", () => {
-    const t = preset("sunset");
-    expect(t.heroText).toBe("#ffffff");
-    expect(t.heroTextShadow).toBe("0 1px 4px rgba(0,0,0,0.3)");
-    expect(t.heroScrim).toBe("rgba(0,0,0,0.35)");
-  });
-
-  it("needs no scrim where white already reads on the gradient", () => {
-    for (const id of ["grape-soda", "fourth-of-july", "thanksgiving"]) {
-      expect(preset(id).heroScrim).toBeUndefined();
-      expect(preset(id).heroText).toBe("#ffffff");
+  it("keeps white hero text with a shadow and no scrim on mid-tone BOLD gradients", () => {
+    for (const id of ["sunset", "deep-sea"]) {
+      const t = preset(id);
+      expect(t.heroText).toBe("#ffffff");
+      expect(t.heroTextShadow).toBe("0 1px 4px rgba(0,0,0,0.3)");
+      expect("heroScrim" in t).toBe(false);
     }
   });
 
-  it("uses theme text on the ground for DARK and SOFT, with no scrim", () => {
+  it("uses white hero text with a shadow on dark BOLD gradients", () => {
+    for (const id of ["grape-soda", "fourth-of-july", "thanksgiving"]) {
+      const t = preset(id);
+      expect(t.heroText).toBe("#ffffff");
+      expect(t.heroTextShadow).toBe("0 1px 4px rgba(0,0,0,0.3)");
+      expect("heroScrim" in t).toBe(false);
+    }
+  });
+
+  it("uses theme text on the ground for DARK and SOFT", () => {
     const dark = preset("halloween");
     expect(dark.heroText).toBe("#ffffff");
-    expect(dark.heroScrim).toBeUndefined();
+    expect("heroScrim" in dark).toBe(false);
     const soft = preset("rose-cloud");
     expect(soft.heroText).toBe("#1c1917");
     expect(soft.heroTextSecondary).toBe("#44403c");
+    expect("heroScrim" in soft).toBe(false);
   });
 
   it("keeps the app shell's status colors on DARK and darker inks on SOFT and BOLD", () => {

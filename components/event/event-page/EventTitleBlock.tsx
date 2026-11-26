@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { ResolvedTheme } from "@/lib/theme";
-import { HeroScrim } from "./HeroScrim";
 
 /**
  * The event title as it sits on the page ground: the theme's heading font in `heroText`
@@ -21,7 +20,7 @@ export function heroTitleStyle(t: ResolvedTheme): CSSProperties {
   };
 }
 
-/** The title and one line under it (`heroTextSecondary`), inside the hero's scrim. */
+/** The title and one line under it (`heroTextSecondary`), directly on the page ground. */
 export function EventTitleBlock({
   theme: t,
   title,
@@ -32,7 +31,7 @@ export function EventTitleBlock({
   subtitle?: ReactNode;
 }) {
   return (
-    <HeroScrim scrim={t.heroScrim}>
+    <div>
       <h1 style={heroTitleStyle(t)}>{title}</h1>
       {subtitle && (
         <p
@@ -47,6 +46,6 @@ export function EventTitleBlock({
           {subtitle}
         </p>
       )}
-    </HeroScrim>
+    </div>
   );
 }

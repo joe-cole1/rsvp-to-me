@@ -6,7 +6,6 @@ import {
   minContrast,
   parseColor,
   sampleBetween,
-  scrimAlphaFor,
   type Rgba,
 } from "@/lib/theme-contrast";
 
@@ -630,15 +629,15 @@ export interface ResolvedTheme {
   headingFont: string;
 
   // Text placed straight on the page ground (title, byline, date), chosen
-  // against the ground's lightest and darkest points. heroText reaches 3:1 and
-  // heroTextSecondary 4.5:1 there, heroTextMuted 3:1 (icons). On BOLD,
-  // heroScrim is a soft dark wash drawn behind that text when white is kept
-  // but needs help; the ratios above then hold on the ground plus the wash.
+  // against the ground's lightest and darkest points. On DARK and SOFT,
+  // heroText reaches 3:1 and heroTextSecondary 4.5:1 there, heroTextMuted 3:1
+  // (icons). On BOLD, light gradients use dark HERO_INK (when it fits) and
+  // dark/mid-tone gradients keep white with heroTextShadow directly on the
+  // bare gradient with no added background shade.
   heroText: string;
   heroTextSecondary: string;
   heroTextMuted: string;
   heroTextShadow?: string;
-  heroScrim?: string;
 
   // Accent
   accent: string;
@@ -767,13 +766,7 @@ export const MIN_CARD_OPACITY = 0.4;
 
 /** Fields resolveTheme() derives for readability after building the base look. */
 type DerivedField =
-  | "heroText"
-  | "heroTextSecondary"
-  | "heroTextMuted"
-  | "heroTextShadow"
-  | "heroScrim"
-  | "accentText"
-  | "status";
+  "heroText" | "heroTextSecondary" | "heroTextMuted" | "heroTextShadow" | "accentText" | "status";
 
 /** The base look; its text colors are starting points that readableText() may adjust. */
 type ThemeDraft = Omit<ResolvedTheme, DerivedField>;
@@ -805,9 +798,7 @@ const STATUS_INKS: Record<
 // Exported so resolveEmailTheme() picks from the same inks.
 export const HERO_INK = { text: "#1c1917", secondary: "#44403c", muted: "#57534e" };
 export const HERO_WHITE_SHADOW = "0 1px 4px rgba(0,0,0,0.3)";
-// White hero text keeps the theme's look when a wash this light (or lighter) is
-// enough; past it, a light gradient switches to HERO_INK instead.
-const MIN_HERO_SCRIM = 0.35;
+const BOLD_LIGHT_GRADIENT_WHITE_CUTOFF = 2;
 
 /**
  * The page-ground colors text can land on: for BOLD, samples along the
@@ -845,41 +836,27 @@ function whiteFor(surfaces: Rgba[], ratio: number): string {
 
 function boldHero(
   grounds: Rgba[]
-): Pick<
-  ResolvedTheme,
-  "heroText" | "heroTextSecondary" | "heroTextMuted" | "heroTextShadow" | "heroScrim"
-> {
+): Pick<ResolvedTheme, "heroText" | "heroTextSecondary" | "heroTextMuted" | "heroTextShadow"> {
   const white = "#ffffff";
-  if (minContrast(white, grounds) >= AA_TEXT) {
-    return {
-      heroText: white,
-      heroTextSecondary: white,
-      heroTextMuted: whiteFor(grounds, AA_LARGE),
-      heroTextShadow: HERO_WHITE_SHADOW,
-    };
+  if (minContrast(white, grounds) < BOLD_LIGHT_GRADIENT_WHITE_CUTOFF) {
+    // The byline ink may darken (same hue) to reach 4.5:1 on light gradients.
+    const inkSecondary = ensureContrast(HERO_INK.secondary, grounds, AA_TEXT);
+    const inkFits =
+      minContrast(HERO_INK.text, grounds) >= AA_LARGE &&
+      minContrast(inkSecondary, grounds) >= AA_TEXT;
+    if (inkFits) {
+      return {
+        heroText: HERO_INK.text,
+        heroTextSecondary: inkSecondary,
+        heroTextMuted: ensureContrast(HERO_INK.muted, grounds, AA_LARGE),
+      };
+    }
   }
-  const needed = scrimAlphaFor(white, grounds, AA_TEXT);
-  // The byline ink may darken (same hue) to reach 4.5:1 on mid-tone gradients.
-  const inkSecondary = ensureContrast(HERO_INK.secondary, grounds, AA_TEXT);
-  const inkFits =
-    minContrast(HERO_INK.text, grounds) >= AA_LARGE &&
-    minContrast(inkSecondary, grounds) >= AA_TEXT;
-  if (needed > MIN_HERO_SCRIM && inkFits) {
-    return {
-      heroText: HERO_INK.text,
-      heroTextSecondary: inkSecondary,
-      heroTextMuted: ensureContrast(HERO_INK.muted, grounds, AA_LARGE),
-    };
-  }
-  const alpha = Math.max(MIN_HERO_SCRIM, Math.ceil(needed * 20 - 1e-9) / 20);
-  const wash: Rgba = { r: 0, g: 0, b: 0, a: alpha };
-  const washed = grounds.map((g) => composite(wash, g));
   return {
     heroText: white,
     heroTextSecondary: white,
-    heroTextMuted: whiteFor(washed, AA_LARGE),
+    heroTextMuted: whiteFor(grounds, AA_LARGE),
     heroTextShadow: HERO_WHITE_SHADOW,
-    heroScrim: `rgba(0,0,0,${Number(alpha.toFixed(2))})`,
   };
 }
 

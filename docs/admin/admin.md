@@ -271,8 +271,8 @@ Go to `/admin` > **Theme presets** to manage the preset themes hosts can choose 
 - **Active vs. inactive:** inactive presets are hidden from hosts but kept for later use.
 - **Readable text is automatic:** you choose colors only. Every text color on the event page
   (body text, links, status colors, and the title and date on the page background) is derived
-  from the preset's colors and card opacity so it meets WCAG AA. Bold presets get a dark title on
-  light gradients or a soft shade behind white text on mid-tone ones. Built-in presets are
+  from the preset's colors and card opacity so it meets WCAG AA. Bold presets use a dark title on
+  light gradients and white text directly on other gradients with no background shade. Built-in presets are
   checked by `tests/lib/theme-contrast-sweep.test.ts`. If an extreme gradient leaves no readable
   text color at a very low card opacity, the card is shown slightly more opaque. Emails made
   from the preset get the same treatment on their own surfaces; see
