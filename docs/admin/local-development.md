@@ -109,8 +109,7 @@ Saved provider credentials are converted automatically by `scripts/dev-sync.sh`
 and `npm start`. If your development database contains older saved secrets,
 keep the same `ENCRYPTION_KEY` / `SESSION_SECRET` and make `pg_dump` available
 on PATH. Conversion requires writable `data/backups/pre-migration/` storage.
-`npm run db:secrets -- --check` checks without writing; `--rollback` is only for
-a deliberate downgrade with all app instances stopped. See
+`npm run db:secrets -- --check` checks without writing; `--rollback` reverts only the saved credential encryption format with all app instances stopped and is not a supported application downgrade path to v1.5.0 (which requires restoring a pre-upgrade database backup; see `./upgrading.md#rolling-back-v200-to-v150`). See
 [Upgrading](./upgrading.md#automatic-configuration-secret-conversion-328--339).
 
 ## One-time setup

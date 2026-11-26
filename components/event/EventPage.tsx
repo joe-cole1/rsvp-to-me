@@ -59,6 +59,7 @@ export function EventPage({
   guestRsvp = null,
   sessionUser = null,
   channelConfig = { email: true, sms: true },
+  initialVoterName = "",
 }: {
   event: EventData;
   isHost: boolean;
@@ -73,6 +74,7 @@ export function EventPage({
     role: "GUEST" | "HOST" | "ADMIN";
   } | null;
   channelConfig?: { email: boolean; sms: boolean };
+  initialVoterName?: string;
 }) {
   const translate = useTranslations("Ui.Event.EventPage");
 
@@ -227,6 +229,8 @@ export function EventPage({
 
   // Poll states
   const [newPollOptionTexts, setNewPollOptionTexts] = useState<Record<string, string>>({});
+  const [voterNameDraft, setVoterNameDraft] = useState(initialVoterName || sessionUser?.name || "");
+  const [pollError, setPollError] = useState<string | null>(null);
 
   useEffect(() => {
     if (showShareQr && typeof window !== "undefined") {
@@ -280,6 +284,11 @@ export function EventPage({
   const maybe = event.rsvps.filter((r) => r.status === "MAYBE");
   const no = event.rsvps.filter((r) => r.status === "NO");
   const totalGoing = going.reduce((s, r) => s + 1 + r.plusOneCount, 0);
+  const now = new Date();
+  const eventStarted = new Date(event.startAt) <= now;
+  const deadlinePassed = event.rsvpDeadline ? new Date(event.rsvpDeadline) < now : false;
+  const rsvpOpen =
+    !eventStarted && (!deadlinePassed || (Boolean(guestEditToken) && event.allowEditAfterDeadline));
 
   // Saves
   const save = (field: string, value: string) => {
@@ -672,8 +681,21 @@ export function EventPage({
   };
 
   const handleVote = async (pollId: string, pollOptionId: string, isVoted: boolean) => {
-    const voter = isHost ? sessionUser?.name || "Host" : guestName;
-    if (!voter) return;
+    const targetPoll = event.polls.find((p) => p.id === pollId);
+    const voter = isHost
+      ? sessionUser?.name || "Host"
+      : rsvpDone
+        ? guestName
+        : sessionUser?.name?.trim() || voterNameDraft.trim();
+    if (isVoted && !voter) {
+      setPollError(translate("failedCastVote"));
+      return;
+    }
+    if (!isVoted && !voter && targetPoll?.requireRsvp !== false) return;
+
+    setPollError(null);
+    const previousPolls = event.polls;
+    const optimisticVoterName = voter || "Guest";
 
     // Optimistic Update
     setEvent((e) => {
@@ -698,7 +720,7 @@ export function EventPage({
                       ...opt.votes,
                       {
                         id: `temp-vote-${Date.now()}`,
-                        voterName: voter,
+                        voterName: optimisticVoterName,
                         isMine: true,
                         createdAt: new Date(),
                       },
@@ -723,9 +745,24 @@ export function EventPage({
     });
 
     try {
-      await castVote(pollId, pollOptionId, voter, isVoted, guestEditToken ?? undefined);
+      if (targetPoll?.requireRsvp === false && !isHost && !rsvpDone) {
+        await runWithCaptcha("poll_vote", (captchaToken) =>
+          castVote(
+            pollId,
+            pollOptionId,
+            optimisticVoterName,
+            isVoted,
+            guestEditToken ?? undefined,
+            captchaToken
+          )
+        );
+      } else {
+        await castVote(pollId, pollOptionId, voter, isVoted, guestEditToken ?? undefined);
+      }
     } catch (err) {
       console.error(translate("failedCastVote"), err);
+      setEvent((e) => ({ ...e, polls: previousPolls }));
+      setPollError(err instanceof Error ? err.message : translate("failedCastVote"));
     }
   };
 
@@ -733,8 +770,14 @@ export function EventPage({
     const optionText = newPollOptionTexts[pollId]?.trim();
     if (!optionText) return;
 
-    const voter = isHost ? "Host" : guestName;
+    const voter = isHost
+      ? "Host"
+      : rsvpDone
+        ? guestName
+        : sessionUser?.name?.trim() || voterNameDraft.trim();
     if (!voter) return;
+
+    setPollError(null);
 
     startTransition(async () => {
       try {
@@ -766,6 +809,7 @@ export function EventPage({
         }
       } catch (err) {
         console.error(translate("failedAddOption"), err);
+        setPollError(err instanceof Error ? err.message : translate("failedAddOption"));
       }
     });
   };
@@ -914,6 +958,12 @@ export function EventPage({
           rsvpStatus={rsvpStatus}
           rsvpDone={rsvpDone}
           isPendingGuest={isPendingGuest}
+          guestEditToken={guestEditToken}
+          voterNameDraft={voterNameDraft}
+          setVoterNameDraft={setVoterNameDraft}
+          hasSessionOrRsvp={isHost || rsvpDone || Boolean(sessionUser?.name?.trim())}
+          rsvpOpen={rsvpOpen}
+          pollError={pollError}
           newPollOptionTexts={newPollOptionTexts}
           setNewPollOptionTexts={setNewPollOptionTexts}
           pendingNoticeStyle={pendingNoticeStyle}
@@ -926,6 +976,9 @@ export function EventPage({
           t={t}
           isHost={isHost}
           rsvpStatus={rsvpStatus}
+          rsvpDone={rsvpDone}
+          guestEditToken={guestEditToken}
+          rsvpOpen={rsvpOpen}
           guestName={guestName}
           isPendingGuest={isPendingGuest}
           pendingNoticeStyle={pendingNoticeStyle}

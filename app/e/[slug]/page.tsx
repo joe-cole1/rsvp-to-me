@@ -13,6 +13,7 @@ import { getChannelConfig } from "@/lib/config";
 import { invitedGuestsForViewer, stripHostOnlyEventData } from "@/lib/guestList";
 import { isGuestRowShown, resolveGuestRsvpDisplay } from "@/lib/guestRsvpDisplay";
 import { buildEventSocialMetadata } from "@/lib/event-social";
+import { readPollVoterTokenHash } from "@/lib/poll-voter-token";
 
 const getEventPageData = cache((slug: string) =>
   db.event.findUnique({
@@ -75,6 +76,7 @@ const getEventPageData = cache((slug: string) =>
                   voterName: true,
                   rsvpId: true,
                   userId: true,
+                  voterTokenHash: true,
                   createdAt: true,
                 },
               },
@@ -235,6 +237,29 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
   const effect = await resolveEventEffect(event.theme);
 
   const channelConfig = await getChannelConfig();
+  const pollVoterTokenHash = await readPollVoterTokenHash();
+
+  let initialVoterName = "";
+  if (!isHost && !guestRsvp) {
+    if (sessionUser?.name?.trim()) {
+      initialVoterName = sessionUser.name.trim();
+    } else if (pollVoterTokenHash) {
+      let latestCreatedAt = 0;
+      for (const poll of event.polls) {
+        for (const option of poll.options) {
+          for (const vote of option.votes) {
+            if (vote.voterTokenHash === pollVoterTokenHash) {
+              const ts = vote.createdAt.getTime();
+              if (ts >= latestCreatedAt) {
+                latestCreatedAt = ts;
+                initialVoterName = vote.voterName;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   // SEC-32: the event object is passed into a Client Component, so every field
   // is serialized into the RSC payload and readable by anyone who can load the
@@ -257,9 +282,13 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
         ...poll,
         options: poll.options.map((option) => ({
           ...option,
-          votes: option.votes.map(({ rsvpId, userId, ...vote }) => ({
+          votes: option.votes.map(({ rsvpId, userId, voterTokenHash, ...vote }) => ({
             ...vote,
-            isMine: isHost ? userId === sessionUser?.id : !!guestRsvp && rsvpId === guestRsvp.id,
+            isMine: isHost
+              ? userId === sessionUser?.id
+              : (!!guestRsvp && rsvpId === guestRsvp.id) ||
+                (!!sessionUser && userId === sessionUser.id) ||
+                (!!pollVoterTokenHash && voterTokenHash === pollVoterTokenHash),
           })),
         })),
       })),
@@ -277,6 +306,7 @@ export default async function EventRoute(props: PageProps<"/e/[slug]">) {
       guestRsvp={guestRsvp ?? null}
       sessionUser={sessionUser}
       channelConfig={channelConfig}
+      initialVoterName={initialVoterName}
     />
   );
 }

@@ -3,13 +3,45 @@
 import { eventActionMessage } from "./localization";
 
 import { revalidatePath } from "next/cache";
-import { CreatePollSchema, PollOptionSchema, PollSettingsSchema } from "@/lib/schemas";
+import {
+  CreatePollSchema,
+  PollOptionSchema,
+  PollSettingsSchema,
+  PollVoterNameSchema,
+} from "@/lib/schemas";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { assertHostOrCohost, findApprovedGuestByToken } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
+import { resolveEventAccess, type GateEvent } from "@/lib/eventAccess";
+import { rateLimit } from "@/lib/rateLimit";
+import { getClientIp, isTrustedIpConfigured } from "@/lib/clientIp";
+import { getOrCreatePollVoterTokenHash, readPollVoterTokenHash } from "@/lib/poll-voter-token";
+
+async function enforceOpenPollAccess(
+  event: GateEvent & { slug: string; status: string },
+  guestEditToken?: string
+) {
+  if (event.status !== "PUBLISHED") {
+    throw new Error(await eventActionMessage("forbidden"));
+  }
+  const access = await resolveEventAccess(event, event.slug, { token: guestEditToken });
+  if (access.decision !== "granted") {
+    throw new Error(await eventActionMessage("forbidden"));
+  }
+}
+
+async function enforcePollVoteRateLimit(eventId: string) {
+  const rlKey = isTrustedIpConfigured()
+    ? `poll-vote:${eventId}:${await getClientIp()}`
+    : `poll-vote:${eventId}:shared`;
+  const rl = await rateLimit(rlKey, isTrustedIpConfigured() ? 30 : 120, 600);
+  if (!rl.success) {
+    throw new Error(await eventActionMessage("voteRateLimited"));
+  }
+}
 
 // ── Polls ──────────────────────────────────────────────────────────────────────
 
@@ -20,15 +52,18 @@ export async function createPoll(
   multiChoice: boolean,
   allowGuestsToAdd: boolean,
   hideVoters: boolean = false,
-  captchaToken?: string | null
+  captchaToken?: string | null,
+  requireRsvp: boolean = true
 ) {
-  ({ question, options, multiChoice, allowGuestsToAdd, hideVoters } = CreatePollSchema.parse({
-    question,
-    options,
-    multiChoice,
-    allowGuestsToAdd,
-    hideVoters,
-  }));
+  ({ question, options, multiChoice, allowGuestsToAdd, hideVoters, requireRsvp } =
+    CreatePollSchema.parse({
+      question,
+      options,
+      multiChoice,
+      allowGuestsToAdd,
+      hideVoters,
+      requireRsvp,
+    }));
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("poll_manage", captchaToken);
   if (!question.trim()) throw new Error(await eventActionMessage("questionEmpty"));
@@ -43,6 +78,7 @@ export async function createPoll(
         multiChoice,
         allowGuestsToAdd,
         hideVoters,
+        requireRsvp,
       },
     });
 
@@ -101,15 +137,20 @@ export async function castVote(
   pollOptionId: string,
   voterName: string,
   isVoted: boolean,
-  guestEditToken?: string
+  guestEditToken?: string,
+  captchaToken?: string | null
 ) {
   const poll = await db.poll.findUnique({
     where: { id: pollId },
     include: {
       event: {
         select: {
+          id: true,
           hostId: true,
           slug: true,
+          status: true,
+          visibility: true,
+          passwordHash: true,
           coHosts: { select: { userId: true } },
         },
       },
@@ -120,19 +161,14 @@ export async function castVote(
 
   // Auth verification
   const session = await getSession();
-  const isOwner = session?.userId === poll.event.hostId;
+  const isOwner = session?.userId === poll.event.hostId || session?.role === "ADMIN";
   const isCohost = poll.event.coHosts.some((ch) => ch.userId === session?.userId);
   const isHost = isOwner || isCohost;
 
+  const requireRsvp = poll.requireRsvp !== false;
   let rsvpId: string | null = null;
-  if (!isHost) {
-    // SEC-24: authorize by secret editToken; the voter name is the RSVP's,
-    // never the client-supplied one (both rsvpId and guestName are public).
-    const rsvp = await findApprovedGuestByToken(guestEditToken, poll.eventId);
-    if (!rsvp) throw new Error(await eventActionMessage("voteRsvpRequired"));
-    voterName = rsvp.guestName;
-    rsvpId = rsvp.id;
-  }
+  let userId: string | null = null;
+  let voterTokenHash: string | null = null;
 
   if (isHost) {
     const user = await db.user.findUnique({
@@ -140,8 +176,67 @@ export async function castVote(
       select: { name: true },
     });
     voterName = user?.name || "Host";
+    userId = session!.userId;
+  } else {
+    // SEC-24: authorize by secret editToken; the voter name is the RSVP's,
+    // never the client-supplied one (both rsvpId and guestName are public).
+    const rsvp = await findApprovedGuestByToken(guestEditToken, poll.eventId);
+    if (rsvp) {
+      if (requireRsvp) {
+        if (
+          rsvp.responded === false ||
+          (rsvp.status !== undefined && rsvp.status !== "GOING" && rsvp.status !== "MAYBE")
+        ) {
+          throw new Error(await eventActionMessage("voteRsvpRequired"));
+        }
+        voterName = rsvp.guestName;
+        rsvpId = rsvp.id;
+      } else if (rsvp.responded !== false) {
+        voterName = rsvp.guestName;
+        rsvpId = rsvp.id;
+      }
+    }
+
+    if (!rsvpId) {
+      if (requireRsvp) {
+        throw new Error(await eventActionMessage("voteRsvpRequired"));
+      }
+      // Open poll (`poll.requireRsvp === false`) without an approved RSVP:
+      await enforceOpenPollAccess(poll.event, guestEditToken);
+      await assertCaptcha("poll_vote", captchaToken);
+      await enforcePollVoteRateLimit(poll.eventId);
+
+      if (session?.userId) {
+        const user = await db.user.findUnique({
+          where: { id: session.userId },
+          select: { name: true },
+        });
+        const resolvedName = user?.name?.trim() || voterName.trim();
+        const parsedName = PollVoterNameSchema.safeParse(resolvedName);
+        if (!parsedName.success) {
+          throw new Error(await eventActionMessage("voterNameRequired"));
+        }
+        voterName = parsedName.data;
+        userId = session.userId;
+      } else if (isVoted) {
+        const parsedName = PollVoterNameSchema.safeParse(voterName);
+        if (!parsedName.success) {
+          throw new Error(await eventActionMessage("voterNameRequired"));
+        }
+        voterName = parsedName.data;
+        voterTokenHash = await getOrCreatePollVoterTokenHash();
+      } else {
+        voterTokenHash = await readPollVoterTokenHash();
+        if (!voterTokenHash) return { success: true };
+      }
+    }
   }
-  const identity = rsvpId ? { rsvpId } : { userId: session!.userId, rsvpId: null };
+
+  const identity = rsvpId
+    ? { rsvpId }
+    : userId
+      ? { userId, rsvpId: null }
+      : { voterTokenHash: voterTokenHash!, rsvpId: null, userId: null };
 
   const option = await db.pollOption.findUnique({
     where: { id: pollOptionId, pollId },
@@ -161,7 +256,7 @@ export async function castVote(
         where: { pollId, ...identity, ...(current.multiChoice ? { pollOptionId } : {}) },
       });
       await tx.pollVote.create({
-        data: { pollId, pollOptionId, voterName, rsvpId, userId: rsvpId ? null : session!.userId },
+        data: { pollId, pollOptionId, voterName, rsvpId, userId, voterTokenHash },
       });
     } else {
       await tx.pollVote.deleteMany({ where: { pollId, pollOptionId, ...identity } });
@@ -200,8 +295,12 @@ export async function addPollOption(
     include: {
       event: {
         select: {
+          id: true,
           hostId: true,
           slug: true,
+          status: true,
+          visibility: true,
+          passwordHash: true,
           coHosts: { select: { userId: true } },
         },
       },
@@ -211,16 +310,41 @@ export async function addPollOption(
   if (poll.locked) throw new Error(await eventActionMessage("pollLocked"));
 
   const session = await getSession();
-  const isOwner = session?.userId === poll.event.hostId;
+  const isOwner = session?.userId === poll.event.hostId || session?.role === "ADMIN";
   const isCohost = poll.event.coHosts.some((ch) => ch.userId === session?.userId);
   const isHost = isOwner || isCohost;
 
   if (!isHost) {
     if (!poll.allowGuestsToAdd) throw new Error(await eventActionMessage("guestOptionsDisabled"));
+    const requireRsvp = poll.requireRsvp !== false;
     // SEC-24: authorize by secret editToken; the creator name is the RSVP's.
     const rsvp = await findApprovedGuestByToken(guestEditToken, poll.eventId);
-    if (!rsvp) throw new Error(await eventActionMessage("approvedRsvpRequired"));
-    creatorName = rsvp.guestName;
+    if (requireRsvp) {
+      if (
+        !rsvp ||
+        rsvp.responded === false ||
+        (rsvp.status !== undefined && rsvp.status !== "GOING" && rsvp.status !== "MAYBE")
+      ) {
+        throw new Error(await eventActionMessage("approvedRsvpRequired"));
+      }
+      creatorName = rsvp.guestName;
+    } else if (rsvp && rsvp.responded !== false) {
+      creatorName = rsvp.guestName;
+    } else {
+      await enforceOpenPollAccess(poll.event, guestEditToken);
+      await enforcePollVoteRateLimit(poll.eventId);
+      if (session?.userId) {
+        const user = await db.user.findUnique({
+          where: { id: session.userId },
+          select: { name: true },
+        });
+        creatorName = user?.name?.trim() || creatorName;
+      }
+      const parsedName = PollVoterNameSchema.safeParse(creatorName);
+      if (!parsedName.success) throw new Error(await eventActionMessage("voterNameRequired"));
+      creatorName = parsedName.data;
+      await getOrCreatePollVoterTokenHash();
+    }
   }
 
   // Check if option already exists
@@ -261,6 +385,7 @@ export async function updatePollSettings(
     allowGuestsToAdd?: boolean;
     locked?: boolean;
     hideVoters?: boolean;
+    requireRsvp?: boolean;
   },
   captchaToken?: string | null
 ) {
@@ -292,6 +417,7 @@ export async function updatePollSettings(
       allowGuestsToAdd: data.allowGuestsToAdd,
       locked: data.locked,
       hideVoters: data.hideVoters,
+      requireRsvp: data.requireRsvp,
     },
   });
 

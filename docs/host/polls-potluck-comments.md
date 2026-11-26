@@ -21,6 +21,7 @@ Gather input from guests — vote on a date, the menu, the playlist:
 - **Anonymity:** show or hide voter names.
 - **Locking:** lock a poll to freeze voting once you've decided.
 - **Identity:** guests with the same display name have separate votes.
+- **Require RSVP to respond:** enabled by default so approved _Going_ and _Maybe_ guests can vote and suggest options. Hosts can turn this off per poll (such as a date-picking poll) so visitors can enter their name and vote before RSVPing, with their votes staying linked to their browser and automatically attaching if they RSVP later.
 
 ---
 
@@ -29,6 +30,8 @@ Gather input from guests — vote on a date, the menu, the playlist:
 Coordinate who's bringing what:
 
 - **Quantity:** set a required amount for an item (e.g., 3 bottles of wine).
+- **Visibility:** the potluck list and remaining quantities are visible on the event page before guests RSVP, with claimer names following the event's guest-list privacy setting.
+- **Claim requirements:** claiming an item requires an approved **Going** RSVP — visitors who haven't RSVP'd _Going_ yet can follow the prompt on the potluck card to RSVP _Going_ and return straight to the list.
 - **Multi-claim:** several guests can each claim part of an item until the total is met.
 - **Claims:** guests claim or release their own items right on the event page.
   Guests with the same name have separate claims. Hosts can remove any specific

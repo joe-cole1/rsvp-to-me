@@ -198,6 +198,7 @@ export function SettingsPage({
   const [newPollMultiChoice, setNewPollMultiChoice] = useState(false);
   const [newPollAllowGuestsToAdd, setNewPollAllowGuestsToAdd] = useState(true);
   const [newPollHideVoters, setNewPollHideVoters] = useState(false);
+  const [newPollRequireRsvp, setNewPollRequireRsvp] = useState(true);
   const [newPollOptionTexts, setNewPollOptionTexts] = useState<Record<string, string>>({});
 
   // ── Potluck State ──
@@ -481,7 +482,8 @@ export function SettingsPage({
             newPollMultiChoice,
             newPollAllowGuestsToAdd,
             newPollHideVoters,
-            token
+            token,
+            newPollRequireRsvp
           )
         );
         if (result.success && result.id) {
@@ -493,6 +495,7 @@ export function SettingsPage({
             allowGuestsToAdd: newPollAllowGuestsToAdd,
             locked: false,
             hideVoters: newPollHideVoters,
+            requireRsvp: newPollRequireRsvp,
             createdAt: new Date(),
             updatedAt: new Date(),
             options: opts.map((text, idx) => ({
@@ -510,6 +513,7 @@ export function SettingsPage({
           setNewPollMultiChoice(false);
           setNewPollAllowGuestsToAdd(true);
           setNewPollHideVoters(false);
+          setNewPollRequireRsvp(true);
           setSaveStatus("SAVED");
         } else {
           setSaveStatus("ERROR");
@@ -541,6 +545,7 @@ export function SettingsPage({
       allowGuestsToAdd?: boolean;
       locked?: boolean;
       hideVoters?: boolean;
+      requireRsvp?: boolean;
     }
   ) => {
     setSaveStatus("SAVING");
@@ -1115,6 +1120,8 @@ export function SettingsPage({
             setNewPollAllowGuestsToAdd={setNewPollAllowGuestsToAdd}
             newPollHideVoters={newPollHideVoters}
             setNewPollHideVoters={setNewPollHideVoters}
+            newPollRequireRsvp={newPollRequireRsvp}
+            setNewPollRequireRsvp={setNewPollRequireRsvp}
             newPollOptionTexts={newPollOptionTexts}
             setNewPollOptionTexts={setNewPollOptionTexts}
             handleAddPoll={handleAddPoll}

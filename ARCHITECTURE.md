@@ -154,7 +154,7 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   `scripts/migrate-config-secrets.ts` runs before Docker/native production
   startup and during development sync; it backs up and atomically converts the
   four secret `SystemConfig` settings, then records completion. It also owns
-  read-only checking and selective downgrade. See [ADR 0002](docs/engineering/decisions/0002-configuration-secret-migration.md).
+  read-only checking and credential-only format rollback (which is not a version downgrade path; rolling back v2.0.0 to v1.5.0 requires restoring the pre-upgrade database backup). See [ADR 0002](docs/engineering/decisions/0002-configuration-secret-migration.md).
 
 ### Authentication and access control
 
@@ -249,6 +249,8 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   with per-parent PostgreSQL row locks for single-choice replacement and claim
   capacity. Client payloads receive only per-viewer `isMine` flags, not account
   ownership ids. Historical rows are preserved without guessed RSVP ownership.
+- Potluck items are visible read-only before RSVP, with non-mine claimer names redacted in `lib/guestList.ts#stripHostOnlyEventData` whenever `guestListVis` hides the guest list, and claiming strictly requires an approved `GOING` RSVP.
+- Polls enforce `Poll.requireRsvp` (default `true`, requiring an approved `GOING` or `MAYBE` RSVP); when a host disables `requireRsvp` on a poll, un-RSVP'd viewers who pass `resolveEventAccess` and Turnstile CAPTCHA receive an `HttpOnly` browser voter cookie (`lib/poll-voter-token.ts`) hashed into `PollVote.voterTokenHash` (linked to their `RSVP` if they later respond).
 - Shared validation belongs in `lib/schemas.ts`; shared authorization belongs
   in `lib/auth-guards.ts` or `lib/eventAccess.ts`.
 - Client submissions request fresh Turnstile tokens through

@@ -232,7 +232,10 @@
         "rsvpProofInvalid": "Deze code is ongeldig, verlopen of al gebruikt. Probeer het opnieuw of vraag een nieuwe code aan.",
         "rsvpProofRateLimited": "Te veel verificatieverzoeken. Wacht even voordat je een nieuwe code aanvraagt.",
         "rsvpProofUnavailable": "Verificatie is niet beschikbaar voor dit contact. Probeer het later opnieuw of neem contact op met de organisator.",
-        "rsvpUsePrivateLink": "Gebruik je persoonlijke RSVP-link of neem contact op met de organisator om deze aanmelding te wijzigen."
+        "rsvpUsePrivateLink": "Gebruik je persoonlijke RSVP-link of neem contact op met de organisator om deze aanmelding te wijzigen.",
+        "claimGoingRequired": "Alleen goedgekeurde gasten met Aanwezig kunnen potluck-items claimen.",
+        "voterNameRequired": "Vul je naam in om te stemmen.",
+        "voteRateLimited": "Te veel peilingacties. Probeer het later opnieuw."
       },
       "NotFound": {
         "title": "We konden die pagina niet vinden",
@@ -399,7 +402,8 @@
         "allowGuestsAddOptions": "Gasten mogen opties toevoegen",
         "hideVoterNames": "Namen van stemmers verbergen",
         "optionPlaceholder": "Optie {number}",
-        "voteCount": "({count, plural, one {# stem} other {# stemmen}})"
+        "voteCount": "({count, plural, one {# stem} other {# stemmen}})",
+        "requireRsvpVote": "RSVP (Aanwezig of Misschien) vereisen om te reageren"
       },
       "HostsPanel": {
         "hosts": "Organisatoren",
@@ -534,7 +538,10 @@
         "claim": "Ik neem het mee",
         "cancel": "Annuleren",
         "remainingQuantity": ", nog {count} beschikbaar",
-        "bringingQuantity": "(neemt {count} mee)"
+        "bringingQuantity": "(neemt {count} mee)",
+        "rsvpGoingClaimNotice": "Een item claimen zet je RSVP op Aanwezig. Claim alleen een item als je van plan bent te komen.",
+        "rsvpGoingToClaim": "RSVP Aanwezig om te claimen",
+        "switchToGoingToClaim": "Zet RSVP op Aanwezig om te claimen"
       },
       "PollsSection": {
         "polls": "Peilingen",
@@ -549,7 +556,11 @@
         "suggestAnotherOption": "Stel een andere optie voor...",
         "suggest": "Voorstellen",
         "rsvpGoingOrMaybeVoteSuggest": "🔒 Meld je aan als aanwezig of misschien om te stemmen en opties voor te stellen!",
-        "pollLockedVotingClosed": "🔒 Deze peiling is vergrendeld. Stemmen is gesloten."
+        "pollLockedVotingClosed": "🔒 Deze peiling is vergrendeld. Stemmen is gesloten.",
+        "openPollBadge": "Open zonder RSVP",
+        "yourNameToVote": "Je naam (vereist om te stemmen)",
+        "enterNameToVoteHint": "Vul hierboven je naam in om op deze peiling te stemmen.",
+        "rsvpToVoteAction": "RSVP om te stemmen"
       },
       "PendingApprovals": {
         "pendingRsvpApprovals": "Wachtende aanmeldingen",
@@ -1199,7 +1210,10 @@
         "resendCode": "Code opnieuw versturen",
         "resendIn": "Opnieuw versturen over {seconds} s",
         "verifiedReview": "Contactgegevens geverifieerd. Controleer je antwoord en bevestig daarna je RSVP.",
-        "verificationProgress": "Contact {current} van {total}"
+        "verificationProgress": "Contact {current} van {total}",
+        "potluckGoingBanner": "Een potluck-item claimen zet je RSVP op Aanwezig. Ga alleen verder als Aanwezig als je van plan bent te komen.",
+        "backPotluck": "Terug naar potluck",
+        "backPolls": "Terug naar peilingen"
       },
       "status": {
         "GOING": "Aanwezig",

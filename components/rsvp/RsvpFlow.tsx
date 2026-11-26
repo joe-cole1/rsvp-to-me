@@ -93,6 +93,7 @@ export function RsvpFlow({
   initialStatus,
   existingRsvp,
   returnPath,
+  returnSection,
   channelConfig = { email: true, sms: true },
   organizerOverride = false,
   readOnlyReason,
@@ -103,6 +104,7 @@ export function RsvpFlow({
   initialStatus?: "GOING" | "MAYBE" | "NO";
   existingRsvp?: ExistingRsvp;
   returnPath?: string;
+  returnSection?: "potluck" | "polls";
   sessionUser?: SessionUser | null;
   channelConfig?: { email: boolean; sms: boolean };
   organizerOverride?: boolean;
@@ -541,9 +543,20 @@ export function RsvpFlow({
               </div>
             </div>
           )}
-          {(status === "GOING" || status === "MAYBE") &&
-            ((event.polls && event.polls.length > 0) ||
-              (event.potluckItems && event.potluckItems.length > 0)) && (
+          {(() => {
+            const showPollsNextStep =
+              Boolean(event.polls && event.polls.length > 0) && returnSection !== "polls";
+            const showPotluckNextStep =
+              status === "GOING" &&
+              Boolean(event.potluckItems && event.potluckItems.length > 0) &&
+              returnSection !== "potluck";
+            if (
+              (status !== "GOING" && status !== "MAYBE") ||
+              (!showPollsNextStep && !showPotluckNextStep)
+            ) {
+              return null;
+            }
+            return (
               <div
                 style={{
                   background: t.inputBg,
@@ -566,7 +579,7 @@ export function RsvpFlow({
                   {translate("nextSteps")}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {event.polls && event.polls.length > 0 && (
+                  {showPollsNextStep && (
                     <a
                       href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}#polls`}
                       {...buttonProps(t, { variant: "secondary", fullWidth: true })}
@@ -579,7 +592,7 @@ export function RsvpFlow({
                       <span aria-hidden="true">→</span>
                     </a>
                   )}
-                  {event.potluckItems && event.potluckItems.length > 0 && (
+                  {showPotluckNextStep && (
                     <a
                       href={`/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}#potluck`}
                       {...buttonProps(t, { variant: "secondary", fullWidth: true })}
@@ -594,15 +607,24 @@ export function RsvpFlow({
                   )}
                 </div>
               </div>
-            )}
-          <a
-            href={
-              returnPath ?? `/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}`
-            }
-            {...buttonProps(t, { variant: "primary", fullWidth: true })}
-          >
-            {returnPath ? translate("backGuestList") : translate("backEvent")}
-          </a>
+            );
+          })()}
+          {(() => {
+            const defaultEventHref = `/e/${event.slug}${savedEditToken ? `?token=${savedEditToken}` : ""}${returnSection ? `#${returnSection}` : ""}`;
+            const primaryHref = returnPath ?? defaultEventHref;
+            const primaryLabel = returnPath
+              ? translate("backGuestList")
+              : returnSection === "potluck"
+                ? translate("backPotluck")
+                : returnSection === "polls"
+                  ? translate("backPolls")
+                  : translate("backEvent");
+            return (
+              <a href={primaryHref} {...buttonProps(t, { variant: "primary", fullWidth: true })}>
+                {primaryLabel}
+              </a>
+            );
+          })()}
         </div>
       </div>
     );
@@ -729,6 +751,13 @@ export function RsvpFlow({
         </div>
 
         <div style={S.body}>
+          {returnSection === "potluck" && (
+            <div style={{ marginBottom: "16px" }}>
+              <InlineAlert theme={t} tone="info" style={{ marginBottom: 0 }}>
+                {translate("potluckGoingBanner")}
+              </InlineAlert>
+            </div>
+          )}
           {!isEdit && verified && (
             <InlineAlert theme={t} tone="success">
               {translate("verifiedReview")}
