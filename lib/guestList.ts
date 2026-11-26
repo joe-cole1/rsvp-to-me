@@ -85,6 +85,7 @@ type StrippableEvent = {
   invitedGuests?: InvitedGuestName[];
   invitedCount?: number;
   activityEvents?: { type: string }[];
+  potluckItems?: { claims: { guestName: string; isMine?: boolean }[] }[];
 };
 
 /** The only fields an Invited guest ever exposes to other guests. */
@@ -118,6 +119,8 @@ const RSVP_IDENTITY_ACTIVITY_TYPES = new Set([
   "rsvp_update",
   "rsvp_delete",
   "guest_invite",
+  "potluck_claim",
+  "potluck_unclaim",
 ]);
 
 const ATTENDANCE_ACTIVITY_TYPES = new Set(["check_in", "check_in_undo", "walk_in"]);
@@ -156,6 +159,8 @@ export function stripHostOnlyEventData<E extends StrippableEvent>(
 ): E {
   if (viewer.isHost) return event;
 
+  const canSeeGuestNames = canViewGuestListPage(event.guestListVis, viewer);
+
   return {
     ...event,
     host: { ...event.host, email: null },
@@ -165,6 +170,17 @@ export function stripHostOnlyEventData<E extends StrippableEvent>(
       ? {
           invitedGuests: event.guestListVis === "ALL" ? (event.invitedGuests ?? []) : [],
           invitedCount: event.guestListVis === "ALL" ? (event.invitedCount ?? 0) : 0,
+        }
+      : {}),
+    ...(!canSeeGuestNames && event.potluckItems
+      ? {
+          potluckItems: event.potluckItems.map((item) => ({
+            ...item,
+            claims: item.claims.map((claim) => ({
+              ...claim,
+              guestName: claim.isMine ? claim.guestName : "",
+            })),
+          })),
         }
       : {}),
     ...(event.activityEvents

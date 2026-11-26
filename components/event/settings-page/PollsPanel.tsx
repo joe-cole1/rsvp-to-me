@@ -23,6 +23,8 @@ export function PollsPanel({
   setNewPollAllowGuestsToAdd,
   newPollHideVoters,
   setNewPollHideVoters,
+  newPollRequireRsvp = true,
+  setNewPollRequireRsvp,
   newPollOptionTexts,
   setNewPollOptionTexts,
   handleAddPoll,
@@ -44,6 +46,8 @@ export function PollsPanel({
   setNewPollAllowGuestsToAdd: React.Dispatch<React.SetStateAction<boolean>>;
   newPollHideVoters: boolean;
   setNewPollHideVoters: React.Dispatch<React.SetStateAction<boolean>>;
+  newPollRequireRsvp?: boolean;
+  setNewPollRequireRsvp?: React.Dispatch<React.SetStateAction<boolean>>;
   newPollOptionTexts: Record<string, string>;
   setNewPollOptionTexts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   handleAddPoll: () => void;
@@ -56,6 +60,7 @@ export function PollsPanel({
       allowGuestsToAdd?: boolean;
       locked?: boolean;
       hideVoters?: boolean;
+      requireRsvp?: boolean;
     }
   ) => void;
   handleAddPollOption: (pollId: string) => void;
@@ -189,6 +194,14 @@ export function PollsPanel({
                 onChange={(e) => setNewPollHideVoters(e.target.checked)}
               />
               <span>{translate("hideVoterNamesOtherGuests")}</span>
+            </label>
+            <label style={checkRow}>
+              <Check
+                theme={t}
+                checked={newPollRequireRsvp}
+                onChange={(e) => setNewPollRequireRsvp?.(e.target.checked)}
+              />
+              <span>{translate("requireRsvpVote")}</span>
             </label>
           </div>
 
@@ -392,6 +405,13 @@ export function PollsPanel({
                     label={translate("hideVoterNames")}
                     value={poll.hideVoters}
                     onChange={(val) => handleUpdatePollSettings(poll.id, { hideVoters: val })}
+                    theme={t}
+                    style={{ marginBottom: 0 }}
+                  />
+                  <Toggle
+                    label={translate("requireRsvpVote")}
+                    value={poll.requireRsvp !== false}
+                    onChange={(val) => handleUpdatePollSettings(poll.id, { requireRsvp: val })}
                     theme={t}
                     style={{ marginBottom: 0 }}
                   />

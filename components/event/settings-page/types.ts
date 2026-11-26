@@ -44,6 +44,7 @@ export type PollEntry = {
   allowGuestsToAdd: boolean;
   locked: boolean;
   hideVoters: boolean;
+  requireRsvp?: boolean;
   createdAt: Date;
   updatedAt: Date;
   options: PollOptionEntry[];

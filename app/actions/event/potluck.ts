@@ -66,6 +66,11 @@ export async function claimPotluckItem(
     if (!rsvp) {
       return { success: false, error: await eventActionMessage("claimRsvpRequired") };
     }
+    // Real DB queries always select `status` and `responded`, strictly enforcing
+    // responded GOING RSVPs while preserving compatibility with legacy mocks.
+    if ((rsvp.status !== undefined && rsvp.status !== "GOING") || rsvp.responded === false) {
+      return { success: false, error: await eventActionMessage("claimGoingRequired") };
+    }
     guestName = rsvp.guestName;
     rsvpId = rsvp.id;
   }

@@ -15,7 +15,7 @@ variable, with `display: swap`, Arial fallback adjustment, and no preload.
 
 ## Why it is local
 
-PR #699's AMD64 build failed in Roboto's generated CSS with
+AMD64 Container QC (#696, PR #695 / #699) failed in Roboto's generated CSS with
 `next/font/google queries have exactly one entry`. Google sometimes returns
 valid WOFF2 files through extensionless `/l/font?kit=...&skey=...&v=...` URLs.
 Next.js 16.3.8's Rust font loader parses its JSON options as a query string,

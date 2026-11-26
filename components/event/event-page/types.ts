@@ -124,6 +124,7 @@ export type EventData = Partial<GuestRsvpDisplayFields> & {
     allowGuestsToAdd: boolean;
     locked: boolean;
     hideVoters: boolean;
+    requireRsvp?: boolean;
     createdAt: Date;
     options: {
       id: string;

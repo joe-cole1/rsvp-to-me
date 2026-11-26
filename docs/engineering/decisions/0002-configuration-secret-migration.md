@@ -57,3 +57,7 @@ schema backups never displace conversion recovery points. Operators must copy
 long-term recovery points to protected storage before their pool rotates them.
 Admin lists expose metadata only; sensitive snapshot download/deletion stays a
 server operation. Failed secret backups still block conversion before writes.
+
+## v2.0.0 rollback boundary (#917 / #927)
+
+`npm run db:secrets -- --rollback` rewrites only the four saved `SystemConfig` credentials and removes the secret-conversion marker. It is **not** a safe version downgrade path from v2.0.0 to v1.5.0 because v2.0.0's participation-identity schema migration (`20261115000000_participation_identity`) drops the legacy name-based vote uniqueness constraint, and v1.5.0 deletes every same-name vote when one guest retracts a vote. The only supported rollback from v2.0.0 to v1.5.0 is restoring the pre-upgrade database backup per [docs/admin/upgrading.md](../../admin/upgrading.md) ("Rolling back v2.0.0 to v1.5.0").

@@ -232,7 +232,10 @@
         "rsvpProofInvalid": "This code is invalid, expired, or already used. Try again or request a new code.",
         "rsvpProofRateLimited": "Too many verification requests. Wait before requesting another code.",
         "rsvpProofUnavailable": "Verification is unavailable for this contact. Try again later or contact the host.",
-        "rsvpUsePrivateLink": "Use your private RSVP link or contact the host to update this response."
+        "rsvpUsePrivateLink": "Use your private RSVP link or contact the host to update this response.",
+        "claimGoingRequired": "Only approved Going guests can claim potluck items.",
+        "voterNameRequired": "Enter your name to vote.",
+        "voteRateLimited": "Too many poll actions. Please try again later."
       },
       "NotFound": {
         "title": "We couldn't find that page",
@@ -399,7 +402,8 @@
         "allowGuestsAddOptions": "Allow guests to add options",
         "hideVoterNames": "Hide voter names",
         "optionPlaceholder": "Option {number}",
-        "voteCount": "({count, plural, one {# vote} other {# votes}})"
+        "voteCount": "({count, plural, one {# vote} other {# votes}})",
+        "requireRsvpVote": "Require RSVP (Going or Maybe) to respond"
       },
       "HostsPanel": {
         "hosts": "Hosts",
@@ -534,7 +538,10 @@
         "claim": "Claim",
         "cancel": "Cancel",
         "remainingQuantity": ", {count} remaining",
-        "bringingQuantity": "(bringing {count})"
+        "bringingQuantity": "(bringing {count})",
+        "rsvpGoingClaimNotice": "Claiming an item sets your RSVP to Going. Please only claim items if you plan to attend.",
+        "rsvpGoingToClaim": "RSVP Going to claim",
+        "switchToGoingToClaim": "Change RSVP to Going to claim"
       },
       "PollsSection": {
         "polls": "Polls",
@@ -549,7 +556,11 @@
         "suggestAnotherOption": "Suggest another option...",
         "suggest": "Suggest",
         "rsvpGoingOrMaybeVoteSuggest": "🔒 RSVP (GOING or MAYBE) to vote and suggest options!",
-        "pollLockedVotingClosed": "🔒 This poll is locked. Voting is closed."
+        "pollLockedVotingClosed": "🔒 This poll is locked. Voting is closed.",
+        "openPollBadge": "Open without RSVP",
+        "yourNameToVote": "Your name (required to vote)",
+        "enterNameToVoteHint": "Enter your name above to vote in this poll.",
+        "rsvpToVoteAction": "RSVP to vote"
       },
       "PendingApprovals": {
         "pendingRsvpApprovals": "Pending RSVP approvals",
@@ -1199,7 +1210,10 @@
         "resendCode": "Resend code",
         "resendIn": "Resend in {seconds}s",
         "verifiedReview": "Contacts verified. Review your response, then confirm your RSVP.",
-        "verificationProgress": "Contact {current} of {total}"
+        "verificationProgress": "Contact {current} of {total}",
+        "potluckGoingBanner": "Claiming a potluck item sets your RSVP to Going. Please only continue as Going if you plan to attend.",
+        "backPotluck": "Back to potluck",
+        "backPolls": "Back to polls"
       },
       "status": {
         "GOING": "Going",

@@ -6,8 +6,9 @@ import { BarChart3, Settings } from "lucide-react";
 import type { EventData } from "./types";
 import type { ResolvedTheme } from "@/lib/theme";
 import { EventCard } from "./EventCard";
-import { Button } from "@/components/ui/Button";
-import { Check, Input } from "@/components/ui/Field";
+import { Button, buttonProps } from "@/components/ui/Button";
+import { Check, Field, Input } from "@/components/ui/Field";
+import { InlineAlert } from "@/components/ui/Feedback";
 
 export function PollsSection({
   event,
@@ -17,6 +18,12 @@ export function PollsSection({
   rsvpStatus,
   rsvpDone,
   isPendingGuest,
+  guestEditToken = null,
+  voterNameDraft = "",
+  setVoterNameDraft,
+  hasSessionOrRsvp = false,
+  rsvpOpen = true,
+  pollError = null,
   newPollOptionTexts,
   setNewPollOptionTexts,
   pendingNoticeStyle,
@@ -30,6 +37,12 @@ export function PollsSection({
   rsvpStatus: "GOING" | "MAYBE" | "NO" | "INVITED" | null;
   rsvpDone: boolean;
   isPendingGuest: boolean;
+  guestEditToken?: string | null;
+  voterNameDraft?: string;
+  setVoterNameDraft?: React.Dispatch<React.SetStateAction<string>>;
+  hasSessionOrRsvp?: boolean;
+  rsvpOpen?: boolean;
+  pollError?: string | null;
   newPollOptionTexts: Record<string, string>;
   setNewPollOptionTexts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   pendingNoticeStyle: React.CSSProperties;
@@ -37,6 +50,16 @@ export function PollsSection({
   handleAddPollOption: (pollId: string) => Promise<void>;
 }) {
   const translate = useTranslations("Ui.Event.PollsSection");
+  const hasUnlockedOpenPoll = Boolean(
+    event.polls?.some((p) => p.requireRsvp === false && !p.locked)
+  );
+  const showVoterNameInput =
+    hasUnlockedOpenPoll &&
+    !isHost &&
+    !rsvpDone &&
+    !hasSessionOrRsvp &&
+    !isPendingGuest &&
+    Boolean(setVoterNameDraft);
 
   return (
     <>
@@ -69,13 +92,41 @@ export function PollsSection({
             <div style={pendingNoticeStyle}>{translate("mustApprovedGuestVoteRsvpAwaiting")}</div>
           )}
 
+          {showVoterNameInput && setVoterNameDraft && (
+            <Field theme={t} label={translate("yourNameToVote")} style={{ marginBottom: "14px" }}>
+              <Input
+                theme={t}
+                value={voterNameDraft}
+                onChange={(e) => setVoterNameDraft(e.target.value)}
+                placeholder={translate("yourNameToVote")}
+              />
+            </Field>
+          )}
+
+          {pollError && (
+            <div style={{ marginBottom: "12px" }}>
+              <InlineAlert theme={t} tone="error" style={{ marginBottom: 0 }}>
+                {pollError}
+              </InlineAlert>
+            </div>
+          )}
+
           {/* Polls List */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {event.polls?.map((poll) => {
               const totalVotes = poll.options.reduce((sum, o) => sum + o.votes.length, 0);
-              const isEligibleToVote =
+              const requiresRsvp = poll.requireRsvp !== false;
+              const isRsvpEligible =
                 isHost ||
                 (rsvpDone && !isPendingGuest && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
+              const hasOpenIdentity =
+                isHost ||
+                (rsvpDone && !isPendingGuest) ||
+                Boolean(hasSessionOrRsvp) ||
+                Boolean(voterNameDraft?.trim());
+              const isEligibleToVote = requiresRsvp
+                ? isRsvpEligible
+                : !isPendingGuest && hasOpenIdentity;
               const canVote = isEligibleToVote && !poll.locked && !isPending;
               const shouldShowVoters = !poll.hideVoters || isHost;
 
@@ -83,8 +134,7 @@ export function PollsSection({
                 <div
                   key={poll.id}
                   style={{
-                    borderBottom:
-                      event.polls.length > 1 ? `1px solid rgba(255, 255, 255, 0.05)` : "none",
+                    borderBottom: event.polls.length > 1 ? `1px solid ${t.cardBorder}` : "none",
                     paddingBottom: event.polls.length > 1 ? "16px" : 0,
                     position: "relative" as const,
                   }}
@@ -109,6 +159,21 @@ export function PollsSection({
                       <div style={{ fontWeight: 600, fontSize: "15px", color: t.textPrimary }}>
                         {poll.question}
                       </div>
+                      {!requiresRsvp && (
+                        <span
+                          style={{
+                            background: t.pillBg,
+                            border: `1px solid ${t.pillBorder}`,
+                            color: t.textSecondary,
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          {translate("openPollBadge")}
+                        </span>
+                      )}
                       {poll.locked && (
                         <span
                           style={{
@@ -130,7 +195,8 @@ export function PollsSection({
                             fontWeight: 700,
                             padding: "2px 6px",
                             borderRadius: "99px",
-                            background: "rgba(255, 255, 255, 0.08)",
+                            background: t.pillBg,
+                            border: `1px solid ${t.pillBorder}`,
                             color: t.textSecondary,
                           }}
                         >
@@ -311,19 +377,40 @@ export function PollsSection({
                     </div>
                   )}
 
-                  {!isEligibleToVote && !poll.locked && (
+                  {!poll.locked && requiresRsvp && !isRsvpEligible && (
                     <div
                       style={{
-                        fontSize: "11.5px",
+                        fontSize: "12px",
                         color: t.textMuted,
                         fontStyle: "italic",
                         marginTop: "8px",
                         display: "flex",
                         alignItems: "center",
-                        gap: "4px",
+                        flexWrap: "wrap",
+                        gap: "6px",
                       }}
                     >
-                      {translate("rsvpGoingOrMaybeVoteSuggest")}
+                      <span>{translate("rsvpGoingOrMaybeVoteSuggest")}</span>
+                      {rsvpOpen !== false && (
+                        <a
+                          href={`/e/${event.slug}/rsvp?${guestEditToken ? `token=${encodeURIComponent(guestEditToken)}&` : ""}status=${event.maybeEnabled ? "MAYBE" : "GOING"}&return=polls`}
+                          {...buttonProps(t, { variant: "link" })}
+                        >
+                          {translate("rsvpToVoteAction")}
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {!poll.locked && !requiresRsvp && !isEligibleToVote && !isPendingGuest && (
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: t.textMuted,
+                        marginTop: "8px",
+                      }}
+                    >
+                      {translate("enterNameToVoteHint")}
                     </div>
                   )}
 

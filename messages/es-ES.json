@@ -232,7 +232,10 @@
         "rsvpProofInvalid": "Este código no es válido, ha caducado o ya se ha utilizado. Inténtalo de nuevo o solicita otro código.",
         "rsvpProofRateLimited": "Demasiadas solicitudes de verificación. Espera antes de solicitar otro código.",
         "rsvpProofUnavailable": "La verificación no está disponible para este contacto. Inténtalo más tarde o contacta con el anfitrión.",
-        "rsvpUsePrivateLink": "Usa tu enlace privado de respuesta o contacta con el anfitrión para actualizar esta respuesta."
+        "rsvpUsePrivateLink": "Usa tu enlace privado de respuesta o contacta con el anfitrión para actualizar esta respuesta.",
+        "claimGoingRequired": "Solo los invitados aprobados que confirmaron Asistiré pueden anotarse para llevar artículos.",
+        "voterNameRequired": "Escribe tu nombre para votar.",
+        "voteRateLimited": "Demasiadas acciones en la encuesta. Inténtalo de nuevo más tarde."
       },
       "NotFound": {
         "title": "No hemos encontrado esa página",
@@ -399,7 +402,8 @@
         "allowGuestsAddOptions": "Permitir que los invitados añadan opciones",
         "hideVoterNames": "Ocultar los nombres de los votantes",
         "optionPlaceholder": "Opción {number}",
-        "voteCount": "({count, plural, one {# voto} other {# votos}})"
+        "voteCount": "({count, plural, one {# voto} other {# votos}})",
+        "requireRsvpVote": "Requerir confirmación (Asistiré o Tal vez) para responder"
       },
       "HostsPanel": {
         "hosts": "Anfitriones",
@@ -534,7 +538,10 @@
         "claim": "Me comprometo",
         "cancel": "Cancelar",
         "remainingQuantity": ", {count} pendientes",
-        "bringingQuantity": "(trae {count})"
+        "bringingQuantity": "(trae {count})",
+        "rsvpGoingClaimNotice": "Anotarte para llevar algo marca tu confirmación como Asistiré. Por favor, anótate solo si planeas asistir.",
+        "rsvpGoingToClaim": "Confirmar Asistiré para anotarte",
+        "switchToGoingToClaim": "Cambiar a Asistiré para anotarte"
       },
       "PollsSection": {
         "polls": "Encuestas",
@@ -549,7 +556,11 @@
         "suggestAnotherOption": "Sugiere otra opción…",
         "suggest": "Sugerir",
         "rsvpGoingOrMaybeVoteSuggest": "🔒 Responde «Asistiré» o «Quizá» para votar y sugerir opciones.",
-        "pollLockedVotingClosed": "🔒 Esta encuesta está bloqueada. La votación está cerrada."
+        "pollLockedVotingClosed": "🔒 Esta encuesta está bloqueada. La votación está cerrada.",
+        "openPollBadge": "Abierta sin confirmación",
+        "yourNameToVote": "Tu nombre (obligatorio para votar)",
+        "enterNameToVoteHint": "Escribe tu nombre arriba para votar en esta encuesta.",
+        "rsvpToVoteAction": "Confirmar asistencia para votar"
       },
       "PendingApprovals": {
         "pendingRsvpApprovals": "Respuestas pendientes de aprobación",
@@ -1199,7 +1210,10 @@
         "resendCode": "Reenviar código",
         "resendIn": "Reenviar en {seconds}s",
         "verifiedReview": "Contactos verificados. Revisa tu respuesta y después confírmala.",
-        "verificationProgress": "Contacto {current} de {total}"
+        "verificationProgress": "Contacto {current} de {total}",
+        "potluckGoingBanner": "Anotarte en la lista colaborativa marca tu confirmación como Asistiré. Continúa como Asistiré solo si planeas asistir.",
+        "backPotluck": "Volver a la lista colaborativa",
+        "backPolls": "Volver a las encuestas"
       },
       "status": {
         "GOING": "Asistiré",

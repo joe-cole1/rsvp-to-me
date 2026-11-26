@@ -38,6 +38,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
 
   const validStatuses = ["GOING", "MAYBE", "NO"] as const;
   const initialStatus = validStatuses.find((s) => s === status?.toUpperCase());
+  const returnSection = returnTo === "potluck" || returnTo === "polls" ? returnTo : undefined;
 
   const event = await db.event.findUnique({
     where: { slug },
@@ -143,6 +144,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
         }}
         initialStatus={initialStatus}
         returnPath={returnTo === "guests" ? `/e/${slug}/guests` : undefined}
+        returnSection={returnSection}
         sessionUser={sessionUser}
         channelConfig={channelConfig}
         organizerOverride={isOrganizer}
@@ -162,6 +164,7 @@ export default async function RsvpPage({ params, searchParams }: Props) {
       theme={theme}
       effect={effect}
       initialStatus={initialStatus}
+      returnSection={returnSection}
       sessionUser={sessionUser}
       channelConfig={channelConfig}
     />

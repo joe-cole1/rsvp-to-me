@@ -232,7 +232,10 @@
         "rsvpProofInvalid": "Dieser Code ist ungültig, abgelaufen oder bereits verwendet. Versuche es erneut oder fordere einen neuen Code an.",
         "rsvpProofRateLimited": "Zu viele Bestätigungsanfragen. Warte, bevor du einen weiteren Code anforderst.",
         "rsvpProofUnavailable": "Die Bestätigung für diesen Kontakt ist derzeit nicht verfügbar. Versuche es später erneut oder kontaktiere den Gastgeber.",
-        "rsvpUsePrivateLink": "Verwende deinen privaten Antwortlink oder kontaktiere den Gastgeber, um diese Antwort zu ändern."
+        "rsvpUsePrivateLink": "Verwende deinen privaten Antwortlink oder kontaktiere den Gastgeber, um diese Antwort zu ändern.",
+        "claimGoingRequired": "Nur bestätigte Gäste mit Zusagen können Mitbring-Beiträge übernehmen.",
+        "voterNameRequired": "Gib deinen Namen ein, um abzustimmen.",
+        "voteRateLimited": "Zu viele Umfrage-Aktionen. Bitte versuche es später erneut."
       },
       "NotFound": {
         "title": "Diese Seite haben wir nicht gefunden",
@@ -399,7 +402,8 @@
         "allowGuestsAddOptions": "Gäste dürfen Optionen hinzufügen",
         "hideVoterNames": "Namen der Abstimmenden verbergen",
         "optionPlaceholder": "Option {number}",
-        "voteCount": "({count, plural, one {# Stimme} other {# Stimmen}})"
+        "voteCount": "({count, plural, one {# Stimme} other {# Stimmen}})",
+        "requireRsvpVote": "Rückmeldung (Zusagen oder Vielleicht) zum Antworten erfordern"
       },
       "HostsPanel": {
         "hosts": "Veranstalter",
@@ -534,7 +538,10 @@
         "claim": "Zusagen",
         "cancel": "Abbrechen",
         "remainingQuantity": ", {count} übrig",
-        "bringingQuantity": "(bringt {count})"
+        "bringingQuantity": "(bringt {count})",
+        "rsvpGoingClaimNotice": "Wenn du etwas übernimmst, wird deine Zusage auf Zusagen gesetzt. Bitte übernimm nur etwas, wenn du teilnehmen möchtest.",
+        "rsvpGoingToClaim": "Zusagen, um etwas mitzubringen",
+        "switchToGoingToClaim": "Auf Zusagen ändern, um etwas mitzubringen"
       },
       "PollsSection": {
         "polls": "Umfragen",
@@ -549,7 +556,11 @@
         "suggestAnotherOption": "Andere Option vorschlagen...",
         "suggest": "Vorschlagen",
         "rsvpGoingOrMaybeVoteSuggest": "🔒 Antworte mit DABEI oder VIELLEICHT, um abzustimmen und Optionen vorzuschlagen!",
-        "pollLockedVotingClosed": "🔒 Diese Umfrage ist gesperrt. Die Abstimmung ist geschlossen."
+        "pollLockedVotingClosed": "🔒 Diese Umfrage ist gesperrt. Die Abstimmung ist geschlossen.",
+        "openPollBadge": "Offen ohne Rückmeldung",
+        "yourNameToVote": "Dein Name (zum Abstimmen erforderlich)",
+        "enterNameToVoteHint": "Gib oben deinen Namen ein, um an dieser Umfrage teilzunehmen.",
+        "rsvpToVoteAction": "Rückmeldung geben, um abzustimmen"
       },
       "PendingApprovals": {
         "pendingRsvpApprovals": "Ausstehende Rückmeldegenehmigungen",
@@ -1199,7 +1210,10 @@
         "resendCode": "Code erneut senden",
         "resendIn": "Erneut senden in {seconds}s",
         "verifiedReview": "Kontakte bestätigt. Prüfe deine Antwort und bestätige sie anschließend.",
-        "verificationProgress": "Kontakt {current} von {total}"
+        "verificationProgress": "Kontakt {current} von {total}",
+        "potluckGoingBanner": "Wenn du einen Mitbring-Beitrag übernimmst, wird deine Rückmeldung auf Zusagen gesetzt. Fahre bitte nur mit Zusagen fort, wenn du teilnehmen möchtest.",
+        "backPotluck": "Zurück zur Mitbringliste",
+        "backPolls": "Zurück zu den Umfragen"
       },
       "status": {
         "GOING": "Dabei",

@@ -15,6 +15,7 @@ export const CAPTCHA_ACTIONS = [
   "comment",
   "poll_manage",
   "poll_option",
+  "poll_vote",
   "potluck_manage",
   "guest_invite",
   "host_invite",

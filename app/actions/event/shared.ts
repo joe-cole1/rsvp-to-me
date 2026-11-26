@@ -23,6 +23,6 @@ export async function findApprovedGuestByToken(
   if (!editToken) return null;
   return db.rSVP.findFirst({
     where: { editToken, eventId, approved: true },
-    select: { id: true, guestName: true },
+    select: { id: true, guestName: true, status: true, responded: true },
   });
 }

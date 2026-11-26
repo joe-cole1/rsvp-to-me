@@ -200,13 +200,16 @@ export const CreatePollSchema = z.object({
   multiChoice: z.boolean(),
   allowGuestsToAdd: z.boolean(),
   hideVoters: z.boolean(),
+  requireRsvp: z.boolean().default(true),
 });
 export const PollOptionSchema = ShortText;
+export const PollVoterNameSchema = Name;
 export const PollSettingsSchema = z.object({
   question: ShortText.optional(),
   multiChoice: z.boolean().optional(),
   allowGuestsToAdd: z.boolean().optional(),
   hideVoters: z.boolean().optional(),
+  requireRsvp: z.boolean().optional(),
   locked: z.boolean().optional(),
 });
 export const PotluckItemSchema = z.object({

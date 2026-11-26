@@ -20,6 +20,7 @@ import { getSession } from "@/lib/session";
 import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
 import { requestRsvpContactProof, verifyRsvpContactProof } from "@/lib/rsvp-contact-proof";
+import { readPollVoterTokenHash } from "@/lib/poll-voter-token";
 
 export async function requestRsvpVerification(input: unknown, captchaToken?: string | null) {
   await assertCaptcha("rsvp_create", captchaToken);
@@ -146,6 +147,39 @@ export async function addRSVP(
       error: await rsvpFailureMessage(result.reason),
       ...(result.reason === "rsvpProofRequired" && { verificationRequired: true as const }),
     };
+
+  const voterTokenHash = await readPollVoterTokenHash();
+  if (voterTokenHash) {
+    await (async () => {
+      const existingRsvpVotes = await db.pollVote.findMany({
+        where: { rsvpId: result.id, poll: { eventId: data.eventId } },
+        select: { pollOptionId: true },
+      });
+      const existingOptionIds = existingRsvpVotes.map((v) => v.pollOptionId);
+      if (existingOptionIds.length > 0) {
+        await db.pollVote.deleteMany({
+          where: {
+            voterTokenHash,
+            rsvpId: null,
+            pollOptionId: { in: existingOptionIds },
+          },
+        });
+      }
+      await db.pollVote.updateMany({
+        where: {
+          voterTokenHash,
+          rsvpId: null,
+          poll: { eventId: data.eventId },
+        },
+        data: {
+          rsvpId: result.id,
+          voterTokenHash: null,
+          voterName: data.guestName,
+        },
+      });
+    })().catch(logSafe("addRSVP:linkPollVotes"));
+  }
+
   revalidatePath(`/e/${result.slug}`);
   return { success: true as const, id: result.id, editToken: result.editToken };
 }

@@ -449,3 +449,13 @@ equality), `--plan-only` on a fixture repository and network isolation. It also
 requires the Container QC rehearsal steps to run only for manual runs and the
 Release gate. PR and push runs keep their checks, shallow checkout and timeout;
 tags are fetched only for the rehearsal, with no registry login.
+
+Issue #879 (`9b502818`): `issue-879-potluck-poll-rsvp.test.ts` and
+`tests/components/PotluckAndOpenPolls.test.tsx` cover read-only pre-RSVP
+potluck visibility, Going-only potluck claiming (`claimPotluckItem` /
+`unclaimPotluckItem`), `stripHostOnlyEventData` RSC redaction of potluck
+claimer names and potluck activity per `guestListVis`, `lib/poll-voter-token.ts`
+`HttpOnly` browser voter cookies, per-poll `requireRsvp: false` open voting
+gated by `resolveEventAccess`, Turnstile CAPTCHA, and rate limiting, `addRSVP`
+vote linking, and UI behavior across `PotluckSection`, `PollsSection`,
+`PollsPanel`, and `RsvpFlow`.
