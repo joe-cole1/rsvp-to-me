@@ -243,7 +243,10 @@
         "questionnaireNameRequired": "Gib deinen Namen ein, um deine Antworten abzusenden.",
         "questionnaireFieldRequired": "Fülle dieses Pflichtfeld aus.",
         "questionnaireInvalidOption": "Wähle eine der aufgeführten Optionen.",
-        "checkQuestionnaireFields": "Prüfe die markierten Felder."
+        "checkQuestionnaireFields": "Prüfe die markierten Felder.",
+        "addressIncomplete": "Gib Straße, Stadt und Postleitzahl ein.",
+        "termsRequired": "Stimme den Bedingungen zu, um fortzufahren.",
+        "invalidTermsUrl": "Gib einen gültigen Link mit http:// oder https:// ein."
       },
       "NotFound": {
         "title": "Diese Seite haben wir nicht gefunden",
@@ -367,7 +370,7 @@
       },
       "QuestionnairePanel": {
         "questionnaire": "Fragebogen",
-        "addCustomQuestionsGatherExtraInformation": "Füge eigene Fragen hinzu, um mehr von deinen Gästen zu erfahren (z. B. Ernährungseinschränkungen oder Musikwünsche). Sobald du hier mindestens eine Frage hinzufügst, wird der Fragebogen automatisch aktiviert und bei der Rückmeldung angezeigt.",
+        "addCustomQuestionsGatherExtraInformation": "Füge eigene Fragen hinzu, um zusätzliche Angaben von deinen Gästen zu erfassen (z. B. Ernährungseinschränkungen, Postadressen, Telefonnummern oder Teilnahmebedingungen). Sobald du hier mindestens eine Frage hinzufügst, wird der Fragebogen automatisch aktiviert und bei der Rückmeldung angezeigt.",
         "shortText": "Kurzer Text",
         "longText": "Langer Text",
         "multipleChoice": "Einfachauswahl",
@@ -383,7 +386,51 @@
         "downloadCsv": "CSV herunterladen",
         "noResponsesYet": "Noch keine Antworten.",
         "responseSourceEventPage": "Event-Seite",
-        "responseSourceRsvp": "RSVP"
+        "responseSourceRsvp": "RSVP",
+        "phoneNumber": "Telefonnummer",
+        "mailingAddress": "Postadresse",
+        "termsWaiver": "Bedingungen / Verzichtserklärung",
+        "quickAddTemplates": "Schnellvorlagen",
+        "questionType": "Fragetyp",
+        "goingOnly": "Nur für zusagende Gäste",
+        "descriptionLabel": "Hilfetext (optional)",
+        "descriptionPlaceholder": "Hilfetext oder Erklärung für Gäste (optional)",
+        "termsTextLabel": "Bedingungen oder Erklärungstext (optional)",
+        "termsTextPlaceholder": "Vollständige Bedingungen oder Hausregeln einfügen (für Gäste scrollbar)…",
+        "termsUrlLabel": "Externer Link zu den Bedingungen (optional)",
+        "termsUrlPlaceholder": "https://example.com/waiver",
+        "invalidTermsUrl": "Gib einen gültigen Link mit http:// oder https:// ein.",
+        "termsAgreed": "Zugestimmt",
+        "templates": {
+          "address": {
+            "button": "Postadresse",
+            "label": "Postadresse"
+          },
+          "phone": {
+            "button": "Telefonnummer",
+            "label": "Telefonnummer",
+            "description": "Wird nur mit der Gastgeberin bzw. dem Gastgeber für Rückfragen am Veranstaltungstag geteilt."
+          },
+          "dietary": {
+            "button": "Ernährung & Allergien",
+            "label": "Ernährungseinschränkungen oder Allergien",
+            "options": "Vegetarisch\nVegan\nGlutenfrei\nLaktosefrei\nNussallergie"
+          },
+          "emergencyContact": {
+            "button": "Notfallkontakt",
+            "label": "Notfallkontakt (Name & Telefonnummer)",
+            "description": "Wird von der Gastgeberin bzw. dem Gastgeber nur verwendet, falls während der Veranstaltung eine dringende Sicherheits- oder medizinische Situation eintritt."
+          },
+          "accessibility": {
+            "button": "Barrierefreiheit",
+            "label": "Bedarf an Barrierefreiheit oder Unterstützung"
+          },
+          "terms": {
+            "button": "Bedingungen / Verzichtserklärung",
+            "label": "Veranstaltungsbedingungen und Verzichtserklärung",
+            "description": "Bitte lies die folgenden Bedingungen, bevor du deine Teilnahme bestätigst."
+          }
+        }
       },
       "PotluckPanel": {
         "managePotluckItems": "Mitbringliste verwalten",
@@ -889,7 +936,8 @@
         "removeInvitationTitle": "Diese Einladung entfernen?",
         "cannotBeUndone": "Das lässt sich nicht rückgängig machen.",
         "declineRequestTitle": "Diese Anfrage ablehnen?",
-        "declineRequestMessage": "Wir benachrichtigen den Gast und die Anfrage wird entfernt. Das lässt sich nicht rückgängig machen."
+        "declineRequestMessage": "Wir benachrichtigen den Gast und die Anfrage wird entfernt. Das lässt sich nicht rückgängig machen.",
+        "termsAgreed": "Zugestimmt"
       },
       "EventPage": {
         "failedAddReply": "Antwort konnte nicht hinzugefügt werden",
@@ -1192,7 +1240,11 @@
         "submitFailed": "Deine Antworten konnten nicht gespeichert werden. Bitte versuche es erneut.",
         "saving": "Speichern…",
         "submitAnswers": "Antworten absenden",
-        "updateAnswers": "Antworten aktualisieren"
+        "updateAnswers": "Antworten aktualisieren",
+        "invalidOptionError": "Wähle eine der aufgeführten Optionen aus.",
+        "invalidPhoneError": "Gib eine gültige Telefonnummer ein.",
+        "addressIncompleteError": "Gib Straße, Stadt und Postleitzahl ein.",
+        "termsRequiredError": "Stimme den Bedingungen zu, um fortzufahren."
       }
     },
     "Rsvp": {
@@ -1265,7 +1317,11 @@
         "verificationProgress": "Kontakt {current} von {total}",
         "potluckGoingBanner": "Wenn du einen Mitbring-Beitrag übernimmst, wird deine Rückmeldung auf Zusagen gesetzt. Fahre bitte nur mit Zusagen fort, wenn du teilnehmen möchtest.",
         "backPotluck": "Zurück zur Mitbringliste",
-        "backPolls": "Zurück zu den Umfragen"
+        "backPolls": "Zurück zu den Umfragen",
+        "invalidOptionError": "Wähle eine der aufgeführten Optionen aus.",
+        "invalidPhoneError": "Gib eine gültige Telefonnummer ein.",
+        "addressIncompleteError": "Gib Straße, Stadt und Postleitzahl ein.",
+        "termsRequiredError": "Stimme den Bedingungen zu, um fortzufahren."
       },
       "status": {
         "GOING": "Dabei",
@@ -1274,6 +1330,21 @@
       },
       "Route": {
         "editingClosed": "Diese Veranstaltung hat begonnen. Gäste können ihre Rückmeldung deshalb nicht mehr ändern. Wende dich an den Veranstalter, wenn deine Antwort aktualisiert werden muss."
+      },
+      "QuestionnaireFields": {
+        "requiredMarker": "(erforderlich)",
+        "selectPlaceholder": "Auswählen…",
+        "phonePlaceholder": "+49 170 1234567",
+        "addressLine1": "Straße und Hausnummer",
+        "addressLine1Placeholder": "Musterstraße 12",
+        "addressLine2Optional": "Adresszusatz (optional)",
+        "addressLine2Placeholder": "Wohnung 4",
+        "addressCity": "Stadt",
+        "addressRegionOptional": "Bundesland / Region (optional)",
+        "addressPostalCode": "Postleitzahl",
+        "addressCountryOptional": "Land (optional)",
+        "readFullTerms": "Vollständige Bedingungen lesen",
+        "agreeToTerms": "Ich stimme zu: {label}"
       }
     },
     "Admin": {

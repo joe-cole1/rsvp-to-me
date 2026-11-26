@@ -13,6 +13,7 @@ import { logActivity } from "@/lib/activity";
 import { logSafe } from "@/lib/logger";
 import { readRsvpContactProofs, rsvpContacts } from "@/lib/rsvp-contact-proof";
 import { resolveInvitationRecipients } from "@/lib/invitation-recipients";
+import { isFieldVisibleForRsvpStatus, validateRsvpFieldAnswer } from "@/lib/rsvp-fields";
 
 type AddInput = z.output<typeof AddRsvpSchema>;
 type UpdateInput = z.output<typeof UpdateRsvpSchema>;
@@ -27,7 +28,12 @@ export type RsvpFailure =
   | "atCapacity"
   | "rsvpNotFound"
   | "rsvpProofRequired"
-  | "rsvpUsePrivateLink";
+  | "rsvpUsePrivateLink"
+  | "invalidPhone"
+  | "addressIncomplete"
+  | "termsRequired"
+  | "questionnaireFieldRequired"
+  | "questionnaireInvalidOption";
 const failure = (reason: RsvpFailure) => ({ success: false as const, reason });
 
 const eventSelect = {
@@ -61,11 +67,18 @@ const eventSelect = {
   coHosts: {
     select: { userId: true, user: { select: { email: true, phone: true, preferredLocale: true } } },
   },
-  rsvpFields: { select: { id: true } },
+  rsvpFields: {
+    select: { id: true, fieldType: true, required: true, goingOnly: true, options: true },
+  },
 } satisfies Prisma.EventSelect;
 type RsvpEvent = Prisma.EventGetPayload<{ select: typeof eventSelect }>;
 
-function validateRules(event: RsvpEvent, data: UpdateInput, editing: boolean): RsvpFailure | null {
+function validateRules(
+  event: RsvpEvent,
+  data: UpdateInput,
+  editing: boolean,
+  isSmsReply = false
+): RsvpFailure | null {
   const now = new Date();
   if (event.status !== "PUBLISHED") return "forbidden";
   if (event.rsvpEnabled === false) return "rsvpsDisabled";
@@ -89,6 +102,13 @@ function validateRules(event: RsvpEvent, data: UpdateInput, editing: boolean): R
     )
       return "invalidRsvp";
   }
+  if (!isSmsReply) {
+    for (const field of event.rsvpFields ?? []) {
+      if (!isFieldVisibleForRsvpStatus(field, data.status)) continue;
+      const result = validateRsvpFieldAnswer(field, data.answers?.[field.id]);
+      if (!result.valid) return result.reason;
+    }
+  }
   return null;
 }
 
@@ -97,25 +117,50 @@ async function saveAnswers(
   rsvpId: string,
   event: RsvpEvent,
   data: UpdateInput,
-  creating = false
+  creating = false,
+  isSmsReply = false
 ) {
-  const validFieldIds = new Set(event.rsvpFields.map((f) => f.id));
+  if (isSmsReply && data.answers === undefined) return;
+  const rsvpFields = event.rsvpFields ?? [];
+  const fieldById = new Map(rsvpFields.map((f) => [f.id, f]));
   if (creating) {
-    const answers = Object.entries(data.answers ?? {}).filter(
-      ([id, value]) => validFieldIds.has(id) && value.trim()
-    );
-    if (answers.length)
-      await tx.rSVPAnswer.createMany({
-        data: answers.map(([rsvpFieldId, value]) => ({ rsvpId, rsvpFieldId, value })),
-      });
+    const rows: { rsvpId: string; rsvpFieldId: string; value: string }[] = [];
+    for (const [rsvpFieldId, rawValue] of Object.entries(data.answers ?? {})) {
+      const field = fieldById.get(rsvpFieldId);
+      if (!field || !isFieldVisibleForRsvpStatus(field, data.status)) continue;
+      const validated = validateRsvpFieldAnswer(field, rawValue);
+      if (validated.valid && validated.normalized !== null) {
+        rows.push({ rsvpId, rsvpFieldId, value: validated.normalized });
+      }
+    }
+    if (rows.length) {
+      await tx.rSVPAnswer.createMany({ data: rows });
+    }
     return;
   }
-  for (const [rsvpFieldId, value] of Object.entries(data.answers ?? {})) {
-    if (!validFieldIds.has(rsvpFieldId) || !value.trim()) continue;
-    await tx.rSVPAnswer.upsert({
-      where: { rsvpId_rsvpFieldId: { rsvpId, rsvpFieldId } },
-      create: { rsvpId, rsvpFieldId, value },
-      update: { value },
+
+  const idsToDelete: string[] = [];
+  for (const field of rsvpFields) {
+    if (!isFieldVisibleForRsvpStatus(field, data.status)) {
+      idsToDelete.push(field.id);
+      continue;
+    }
+    if (!data.answers || !(field.id in data.answers)) continue;
+    const validated = validateRsvpFieldAnswer(field, data.answers[field.id]);
+    if (!validated.valid) continue;
+    if (validated.normalized === null) {
+      idsToDelete.push(field.id);
+    } else {
+      await tx.rSVPAnswer.upsert({
+        where: { rsvpId_rsvpFieldId: { rsvpId, rsvpFieldId: field.id } },
+        create: { rsvpId, rsvpFieldId: field.id, value: validated.normalized },
+        update: { value: validated.normalized },
+      });
+    }
+  }
+  if (idsToDelete.length > 0 && typeof tx.rSVPAnswer.deleteMany === "function") {
+    await tx.rSVPAnswer.deleteMany({
+      where: { rsvpId, rsvpFieldId: { in: idsToDelete } },
     });
   }
 }
@@ -421,7 +466,7 @@ export async function updateGuestRsvp(
         input.plusOneGuestNames ??
         rsvp.plusOneGuests.map((g) => g.name).slice(0, input.plusOneCount),
     };
-    const invalid = validateRules(rsvp.event, data, true);
+    const invalid = validateRules(rsvp.event, data, true, Boolean(smsProof));
     if (invalid) return failure(invalid);
     if (
       rsvp.event.capacity &&
@@ -443,7 +488,7 @@ export async function updateGuestRsvp(
     };
     await tx.rSVP.update({ where: { editToken }, data: fields });
     await savePlusOnes(tx, rsvp.id, data);
-    await saveAnswers(tx, rsvp.id, rsvp.event, data);
+    await saveAnswers(tx, rsvp.id, rsvp.event, data, false, Boolean(smsProof));
     if (data.status === "NO" && rsvp.checkIn) {
       await tx.checkIn.deleteMany({ where: { rsvpId: rsvp.id, eventId: rsvp.eventId } });
     }

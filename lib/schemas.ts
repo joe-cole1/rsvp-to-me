@@ -224,12 +224,27 @@ export const PotluckClaimSchema = z.object({
 });
 export const RsvpFieldSchema = z.object({
   label: ShortText,
-  fieldType: z.enum(["TEXT", "TEXTAREA", "SELECT", "CHECKBOX"]),
+  description: z.string().trim().check(maxCodeUnits(500)).nullable().optional().or(z.literal("")),
+  fieldType: z.enum(["TEXT", "TEXTAREA", "SELECT", "CHECKBOX", "PHONE", "ADDRESS", "TERMS"]),
   required: z.boolean(),
-  options: z.string().check(maxCodeUnits(10000)).optional(),
+  goingOnly: z.boolean().optional().default(false),
+  options: z.string().check(maxCodeUnits(25000)).nullable().optional(),
   order: z.number().int().min(0).max(10000),
 });
-export const UpdateRsvpFieldSchema = RsvpFieldSchema.omit({ order: true }).partial();
+export const UpdateRsvpFieldSchema = z.object({
+  label: ShortText.optional(),
+  description: z.string().trim().check(maxCodeUnits(500)).nullable().optional().or(z.literal("")),
+  fieldType: z
+    .enum(["TEXT", "TEXTAREA", "SELECT", "CHECKBOX", "PHONE", "ADDRESS", "TERMS"])
+    .optional(),
+  required: z.boolean().optional(),
+  goingOnly: z.boolean().optional(),
+  options: z.string().check(maxCodeUnits(25000)).nullable().optional(),
+});
+export const TermsConfigSchema = z.object({
+  text: z.string().trim().check(maxCodeUnits(20000)).optional().default(""),
+  url: HttpUrlSchema.optional().or(z.literal("")).default(""),
+});
 export const SubmitQuestionnaireSchema = z.object({
   eventId: z.string().trim().min(1),
   respondentName: z.string().trim().check(maxCodeUnits(100)).optional().default(""),

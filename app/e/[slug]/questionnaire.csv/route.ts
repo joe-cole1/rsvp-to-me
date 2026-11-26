@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assertHostOrCohost } from "@/lib/auth-guards";
+import { buildQuestionnaireCsvColumns } from "@/lib/rsvp-fields";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -18,7 +19,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     where: { id: event.id },
     select: {
       timezone: true,
-      rsvpFields: { select: { id: true, label: true }, orderBy: { order: "asc" } },
+      rsvpFields: {
+        select: { id: true, label: true, fieldType: true },
+        orderBy: { order: "asc" },
+      },
     },
   });
   if (!exportConfig) return new NextResponse("Not Found", { status: 404 });
@@ -65,17 +69,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
   };
 
-  const labelCounts = new Map<string, number>();
-  const questionHeaders = exportConfig.rsvpFields.map((field) => {
-    const count = (labelCounts.get(field.label) ?? 0) + 1;
-    labelCounts.set(field.label, count);
-    return count === 1 ? field.label : `${field.label} (${count})`;
-  });
+  const questionColumns = buildQuestionnaireCsvColumns(exportConfig.rsvpFields);
   const headers = [
     "Name",
     "Source",
     `Submitted (${exportConfig.timezone})`,
-    ...questionHeaders,
+    ...questionColumns.map((col) => col.header),
     "Submitted (UTC)",
   ];
   const header = `${headers.map(esc).join(",")}\n`;
@@ -102,7 +101,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         esc(entry.name),
         esc(entry.source),
         esc(formatLocal(entry.submittedAt)),
-        ...exportConfig.rsvpFields.map((field) => esc(answers.get(field.id) ?? "")),
+        ...questionColumns.map((col) => esc(col.extract(answers))),
         esc(entry.submittedAt.toISOString()),
       ].join(",");
     })

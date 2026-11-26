@@ -13,15 +13,17 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockEventFindUnique, mockRsvpFindMany } = vi.hoisted(() => ({
+const { mockEventFindUnique, mockRsvpFindMany, mockQuestionnaireFindMany } = vi.hoisted(() => ({
   mockEventFindUnique: vi.fn(),
   mockRsvpFindMany: vi.fn(),
+  mockQuestionnaireFindMany: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: {
     event: { findUnique: mockEventFindUnique },
     rSVP: { findMany: mockRsvpFindMany },
+    questionnaireSubmission: { findMany: mockQuestionnaireFindMany },
   },
 }));
 
@@ -31,6 +33,7 @@ vi.mock("@/lib/session", () => ({
 
 import { getSession } from "@/lib/session";
 import { GET } from "@/app/e/[slug]/guests.csv/route";
+import { GET as GET_QUESTIONNAIRE } from "@/app/e/[slug]/questionnaire.csv/route";
 
 const mockGetSession = getSession as ReturnType<typeof vi.fn>;
 
@@ -38,6 +41,7 @@ describe("SEC-16: CSV formula injection in guest export", () => {
   beforeEach(() => {
     mockEventFindUnique.mockReset();
     mockRsvpFindMany.mockReset();
+    mockQuestionnaireFindMany.mockReset();
     mockGetSession.mockReset();
   });
 
@@ -113,5 +117,87 @@ describe("SEC-16: CSV formula injection in guest export", () => {
     expect(csv).toContain('"2026-07-14T20:00:00.000Z","2026-07-14T21:30:00.000Z"');
     expect(csv).toContain('"\'=IMPORTXML(""https://evil"")"');
     expect(csv).toContain('"\'+15551234567"');
+  });
+
+  it("expands ADDRESS into 6 mail-merge columns with formula neutralization and formats TERMS as Agreed", async () => {
+    mockGetSession.mockResolvedValue({ userId: "host1", role: "HOST" });
+    mockEventFindUnique
+      .mockResolvedValueOnce({ id: "evt1", hostId: "host1", coHosts: [] })
+      .mockResolvedValueOnce({
+        timezone: "UTC",
+        rsvpFields: [
+          { id: "addr", label: "Mailing address", fieldType: "ADDRESS" },
+          { id: "terms", label: "Waiver", fieldType: "TERMS" },
+          { id: "phone", label: "Phone", fieldType: "PHONE" },
+        ],
+      });
+    mockRsvpFindMany.mockResolvedValue([
+      {
+        guestName: "Ada",
+        guestEmail: null,
+        guestPhone: null,
+        status: "GOING",
+        plusOneCount: 0,
+        approved: true,
+        createdAt: new Date("2026-07-14T20:00:00.000Z"),
+        answers: [
+          {
+            rsvpFieldId: "addr",
+            value: JSON.stringify({
+              line1: "=cmd|'/c calc'!A0",
+              line2: "Apt 2",
+              city: "Amsterdam",
+              postalCode: "1017 GD",
+              country: "Netherlands",
+            }),
+          },
+          { rsvpFieldId: "terms", value: "ACCEPTED" },
+          { rsvpFieldId: "phone", value: "+31612345678" },
+        ],
+        checkIn: null,
+      },
+    ]);
+
+    const response = await GET(new Request("http://localhost:3000/e/party/guests.csv"), {
+      params: Promise.resolve({ slug: "party" }),
+    });
+    const csv = await response.text();
+
+    expect(csv).toContain(
+      '"Mailing address - Street","Mailing address - Line 2","Mailing address - City","Mailing address - State / Region","Mailing address - Postal Code","Mailing address - Country","Waiver","Phone"'
+    );
+    expect(csv).toContain(
+      `"'=cmd|'/c calc'!A0","Apt 2","Amsterdam","","1017 GD","Netherlands","Agreed","'+31612345678"`
+    );
+
+    mockEventFindUnique
+      .mockResolvedValueOnce({ id: "evt1", hostId: "host1", coHosts: [] })
+      .mockResolvedValueOnce({
+        timezone: "UTC",
+        rsvpFields: [{ id: "addr", label: "Mailing address", fieldType: "ADDRESS" }],
+      });
+    mockQuestionnaireFindMany.mockResolvedValue([
+      {
+        respondentName: "Sam",
+        updatedAt: new Date("2026-07-14T20:00:00.000Z"),
+        answers: [
+          {
+            rsvpFieldId: "addr",
+            value: JSON.stringify({ line1: "+Evil", city: "Utrecht", postalCode: "3511" }),
+          },
+        ],
+      },
+    ]);
+    mockRsvpFindMany.mockResolvedValue([]);
+
+    const qRes = await GET_QUESTIONNAIRE(
+      new Request("http://localhost:3000/e/party/questionnaire.csv"),
+      { params: Promise.resolve({ slug: "party" }) }
+    );
+    const qCsv = await qRes.text();
+    expect(qCsv).toContain(
+      '"Mailing address - Street","Mailing address - Line 2","Mailing address - City","Mailing address - State / Region","Mailing address - Postal Code","Mailing address - Country"'
+    );
+    expect(qCsv).toContain(`"'+Evil","","Utrecht","","3511",""`);
   });
 });

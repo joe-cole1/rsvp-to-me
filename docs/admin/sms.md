@@ -30,7 +30,7 @@ SMS messaging in RSVP to Me is powered by Twilio and is entirely optional. This 
 
 ## What SMS Enables
 
-Without SMS configured, the app works entirely through email. With Twilio connected, you gain:
+Without SMS configured, the app works entirely through email. Hosts who simply want to collect guest phone numbers for their own records can still add a **Phone number** question under **Settings → Questionnaire** without configuring Twilio; those answers are host-only and are never verified by SMS or used for text notifications. With Twilio connected, you gain:
 
 | Feature                         | Description                                                                                                      |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |

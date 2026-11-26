@@ -56,7 +56,7 @@ export default async function GuestListPage(props: PageProps<"/e/[slug]/guests">
       rsvps: {
         include: {
           answers: {
-            include: { rsvpField: { select: { id: true, label: true } } },
+            include: { rsvpField: { select: { id: true, label: true, fieldType: true } } },
           },
           plusOneGuests: { orderBy: { order: "asc" } },
           user: { select: { avatarUrl: true } },

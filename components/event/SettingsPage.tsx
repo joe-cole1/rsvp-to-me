@@ -70,6 +70,14 @@ import { EmailsPanel } from "./settings-page/EmailsPanel";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { guestRsvpDisplayFields } from "@/lib/guestRsvpDisplay";
 import { eventPagePath } from "@/lib/admin-moderation";
+import {
+  QUESTIONNAIRE_TEMPLATES,
+  parseTermsFieldConfig,
+  serializeTermsFieldConfig,
+  type QuestionnaireTemplateId,
+  type RsvpFieldTypeValue,
+} from "@/lib/rsvp-fields";
+import { TermsConfigSchema } from "@/lib/schemas";
 
 export type { SessionUser } from "./settings-page/types";
 
@@ -93,6 +101,7 @@ export function SettingsPage({
   initialLibraryIcons?: LibraryIconSummary[];
 }) {
   const translate = useTranslations("Ui.Event.SettingsPage");
+  const questionnaireText = useTranslations("Ui.Event.QuestionnairePanel");
   const common = useTranslations("Ui.Common");
 
   const [isPending, startTransition] = useTransition();
@@ -180,17 +189,39 @@ export function SettingsPage({
   const [fields, setFields] = useState<RsvpFieldEntry[]>(event.rsvpFields);
   const [addingField, setAddingField] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldType, setNewFieldType] = useState<"TEXT" | "TEXTAREA" | "SELECT" | "CHECKBOX">(
-    "TEXT"
-  );
+  const [newFieldDescription, setNewFieldDescription] = useState("");
+  const [newFieldType, setNewFieldType] = useState<RsvpFieldTypeValue>("TEXT");
   const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [newFieldGoingOnly, setNewFieldGoingOnly] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState("");
+  const [newTermsText, setNewTermsText] = useState("");
+  const [newTermsUrl, setNewTermsUrl] = useState("");
   const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.label]))
+  );
+  const [descriptionDrafts, setDescriptionDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(event.rsvpFields.map((f) => [f.id, f.description ?? ""]))
   );
   const [optionsDrafts, setOptionsDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(event.rsvpFields.map((f) => [f.id, formatOptionsForTextarea(f.options)]))
   );
+  const [termsTextDrafts, setTermsTextDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      event.rsvpFields.map((f) => [
+        f.id,
+        f.fieldType === "TERMS" ? parseTermsFieldConfig(f.options).text : "",
+      ])
+    )
+  );
+  const [termsUrlDrafts, setTermsUrlDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      event.rsvpFields.map((f) => [
+        f.id,
+        f.fieldType === "TERMS" ? parseTermsFieldConfig(f.options).url : "",
+      ])
+    )
+  );
+  const [fieldTermsErrors, setFieldTermsErrors] = useState<Record<string, string>>({});
 
   // ── Polls State ──
   const [polls, setPolls] = useState<PollEntry[]>(event.polls || []);
@@ -693,22 +724,69 @@ export function SettingsPage({
     });
   };
 
+  const handleSelectTemplate = (templateId: QuestionnaireTemplateId) => {
+    const spec = QUESTIONNAIRE_TEMPLATES.find((tpl) => tpl.id === templateId);
+    if (!spec) return;
+    setNewFieldType(spec.fieldType);
+    setNewFieldLabel(questionnaireText(`templates.${templateId}.label`));
+    setNewFieldDescription(
+      spec.hasDescription ? questionnaireText(`templates.${templateId}.description`) : ""
+    );
+    setNewFieldRequired(spec.required);
+    setNewFieldGoingOnly(spec.goingOnly);
+    setNewFieldOptions(
+      spec.hasOptionsList ? questionnaireText(`templates.${templateId}.options`) : ""
+    );
+    setNewTermsText("");
+    setNewTermsUrl("");
+    setFieldTermsErrors((prev) => {
+      if (!prev.new) return prev;
+      const next = { ...prev };
+      delete next.new;
+      return next;
+    });
+    setAddingField(true);
+  };
+
   const handleAddField = () => {
     if (!newFieldLabel.trim()) return;
+    let serialized: string | undefined = undefined;
+    if (newFieldType === "SELECT" || newFieldType === "CHECKBOX") {
+      serialized = serializeOptionsForDb(newFieldOptions);
+    } else if (newFieldType === "TERMS") {
+      const checked = TermsConfigSchema.safeParse({
+        text: newTermsText,
+        url: newTermsUrl.trim(),
+      });
+      if (!checked.success) {
+        setFieldTermsErrors((prev) => ({
+          ...prev,
+          new: questionnaireText("invalidTermsUrl"),
+        }));
+        return;
+      }
+      setFieldTermsErrors((prev) => {
+        if (!prev.new) return prev;
+        const next = { ...prev };
+        delete next.new;
+        return next;
+      });
+      serialized = serializeTermsFieldConfig(checked.data) ?? undefined;
+    }
+
+    const trimmedDescription = newFieldDescription.trim() || null;
     setSaveStatus("SAVING");
     startTransition(async () => {
       try {
-        const serialized =
-          newFieldType === "SELECT" || newFieldType === "CHECKBOX"
-            ? serializeOptionsForDb(newFieldOptions)
-            : undefined;
         const result = await runWithCaptcha("rsvp_field", (token) =>
           addRsvpField(
             event.id,
             {
               label: newFieldLabel.trim(),
+              description: trimmedDescription,
               fieldType: newFieldType,
               required: newFieldRequired,
+              goingOnly: newFieldGoingOnly,
               options: serialized,
               order: fields.length,
             },
@@ -721,21 +799,40 @@ export function SettingsPage({
             {
               id: result.id!,
               label: newFieldLabel.trim(),
+              description: trimmedDescription,
               fieldType: newFieldType,
               required: newFieldRequired,
+              goingOnly: newFieldGoingOnly,
               options: serialized ?? null,
               order: prev.length,
             },
           ]);
           setLabelDrafts((prev) => ({ ...prev, [result.id!]: newFieldLabel.trim() }));
+          setDescriptionDrafts((prev) => ({
+            ...prev,
+            [result.id!]: trimmedDescription ?? "",
+          }));
           setOptionsDrafts((prev) => ({
             ...prev,
             [result.id!]: formatOptionsForTextarea(serialized ?? null),
           }));
+          setTermsTextDrafts((prev) => ({
+            ...prev,
+            [result.id!]: newFieldType === "TERMS" ? newTermsText.trim() : "",
+          }));
+          setTermsUrlDrafts((prev) => ({
+            ...prev,
+            [result.id!]:
+              newFieldType === "TERMS" ? parseTermsFieldConfig(serialized ?? null).url : "",
+          }));
           setNewFieldLabel("");
+          setNewFieldDescription("");
           setNewFieldType("TEXT");
           setNewFieldRequired(false);
+          setNewFieldGoingOnly(false);
           setNewFieldOptions("");
+          setNewTermsText("");
+          setNewTermsUrl("");
           setAddingField(false);
           setSaveStatus("SAVED");
         } else {
@@ -755,6 +852,10 @@ export function SettingsPage({
           updateRsvpField(fieldId, { fieldType }, token)
         );
         setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, fieldType } : x)));
+        if (fieldType === "TERMS") {
+          setTermsTextDrafts((prev) => ({ ...prev, [fieldId]: prev[fieldId] ?? "" }));
+          setTermsUrlDrafts((prev) => ({ ...prev, [fieldId]: prev[fieldId] ?? "" }));
+        }
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -777,6 +878,21 @@ export function SettingsPage({
     });
   };
 
+  const handleUpdateFieldGoingOnly = (fieldId: string, goingOnly: boolean) => {
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await runWithCaptcha("rsvp_field", (token) =>
+          updateRsvpField(fieldId, { goingOnly }, token)
+        );
+        setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, goingOnly } : x)));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
   const handleUpdateFieldLabel = (fieldId: string) => {
     const label = (labelDrafts[fieldId] ?? "").trim();
     if (!label) return;
@@ -792,6 +908,22 @@ export function SettingsPage({
     });
   };
 
+  const handleUpdateFieldDescription = (fieldId: string) => {
+    const description = (descriptionDrafts[fieldId] ?? "").trim() || null;
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await runWithCaptcha("rsvp_field", (token) =>
+          updateRsvpField(fieldId, { description }, token)
+        );
+        setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, description } : x)));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
   const handleUpdateFieldOptions = (fieldId: string) => {
     const rawOptions = optionsDrafts[fieldId] ?? "";
     const options = serializeOptionsForDb(rawOptions);
@@ -800,6 +932,38 @@ export function SettingsPage({
       try {
         await runWithCaptcha("rsvp_field", (token) => updateRsvpField(fieldId, { options }, token));
         setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, options } : x)));
+        setSaveStatus("SAVED");
+      } catch {
+        setSaveStatus("ERROR");
+      }
+    });
+  };
+
+  const handleUpdateFieldTerms = (fieldId: string) => {
+    const checked = TermsConfigSchema.safeParse({
+      text: termsTextDrafts[fieldId] ?? "",
+      url: (termsUrlDrafts[fieldId] ?? "").trim(),
+    });
+    if (!checked.success) {
+      setFieldTermsErrors((prev) => ({
+        ...prev,
+        [fieldId]: questionnaireText("invalidTermsUrl"),
+      }));
+      return;
+    }
+    setFieldTermsErrors((prev) => {
+      if (!prev[fieldId]) return prev;
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+    const options = serializeTermsFieldConfig(checked.data);
+    setSaveStatus("SAVING");
+    startTransition(async () => {
+      try {
+        await runWithCaptcha("rsvp_field", (token) => updateRsvpField(fieldId, { options }, token));
+        setFields((prev) => prev.map((x) => (x.id === fieldId ? { ...x, options } : x)));
+        setTermsUrlDrafts((prev) => ({ ...prev, [fieldId]: checked.data.url }));
         setSaveStatus("SAVED");
       } catch {
         setSaveStatus("ERROR");
@@ -1057,21 +1221,40 @@ export function SettingsPage({
             setAddingField={setAddingField}
             newFieldLabel={newFieldLabel}
             setNewFieldLabel={setNewFieldLabel}
+            newFieldDescription={newFieldDescription}
+            setNewFieldDescription={setNewFieldDescription}
             newFieldType={newFieldType}
             setNewFieldType={setNewFieldType}
             newFieldRequired={newFieldRequired}
             setNewFieldRequired={setNewFieldRequired}
+            newFieldGoingOnly={newFieldGoingOnly}
+            setNewFieldGoingOnly={setNewFieldGoingOnly}
             newFieldOptions={newFieldOptions}
             setNewFieldOptions={setNewFieldOptions}
+            newTermsText={newTermsText}
+            setNewTermsText={setNewTermsText}
+            newTermsUrl={newTermsUrl}
+            setNewTermsUrl={setNewTermsUrl}
             labelDrafts={labelDrafts}
             setLabelDrafts={setLabelDrafts}
+            descriptionDrafts={descriptionDrafts}
+            setDescriptionDrafts={setDescriptionDrafts}
             optionsDrafts={optionsDrafts}
             setOptionsDrafts={setOptionsDrafts}
+            termsTextDrafts={termsTextDrafts}
+            setTermsTextDrafts={setTermsTextDrafts}
+            termsUrlDrafts={termsUrlDrafts}
+            setTermsUrlDrafts={setTermsUrlDrafts}
+            fieldTermsErrors={fieldTermsErrors}
+            handleSelectTemplate={handleSelectTemplate}
             handleAddField={handleAddField}
             handleUpdateFieldType={handleUpdateFieldType}
             handleUpdateFieldRequired={handleUpdateFieldRequired}
+            handleUpdateFieldGoingOnly={handleUpdateFieldGoingOnly}
             handleUpdateFieldLabel={handleUpdateFieldLabel}
+            handleUpdateFieldDescription={handleUpdateFieldDescription}
             handleUpdateFieldOptions={handleUpdateFieldOptions}
+            handleUpdateFieldTerms={handleUpdateFieldTerms}
             handleDeleteField={handleDeleteField}
             triggerSaveSettings={triggerSaveSettings}
             isPending={isPending}

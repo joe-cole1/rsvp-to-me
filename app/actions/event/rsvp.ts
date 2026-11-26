@@ -21,6 +21,7 @@ import { assertHostOrCohost } from "./shared";
 import { assertCaptcha } from "@/lib/captcha";
 import { requestRsvpContactProof, verifyRsvpContactProof } from "@/lib/rsvp-contact-proof";
 import { readPollVoterTokenHash } from "@/lib/poll-voter-token";
+import { isFieldVisibleForRsvpStatus, validateRsvpFieldAnswer } from "@/lib/rsvp-fields";
 
 export async function requestRsvpVerification(input: unknown, captchaToken?: string | null) {
   await assertCaptcha("rsvp_create", captchaToken);
@@ -228,7 +229,9 @@ export async function updateRsvpAsHost(
           id: true,
           slug: true,
           rsvpEnabled: true,
-          rsvpFields: { select: { id: true } },
+          rsvpFields: {
+            select: { id: true, fieldType: true, required: true, goingOnly: true, options: true },
+          },
         },
       },
     },
@@ -237,6 +240,28 @@ export async function updateRsvpAsHost(
   await assertHostOrCohost(rsvp.eventId);
   if (rsvp.event.rsvpEnabled === false) {
     throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
+
+  const normalizedAnswers: Record<string, string> = {};
+  const clearedFieldIds: string[] = [];
+  for (const field of rsvp.event.rsvpFields) {
+    if (!isFieldVisibleForRsvpStatus(field, data.status)) {
+      clearedFieldIds.push(field.id);
+      continue;
+    }
+    if (!data.answers || !(field.id in data.answers)) continue;
+    const validated = validateRsvpFieldAnswer(
+      { ...field, required: false },
+      data.answers[field.id]
+    );
+    if (!validated.valid) {
+      return { success: false as const, error: await eventActionMessage(validated.reason) };
+    }
+    if (validated.normalized === null) {
+      clearedFieldIds.push(field.id);
+    } else {
+      normalizedAnswers[field.id] = validated.normalized;
+    }
   }
 
   await db.rSVP.update({
@@ -261,19 +286,19 @@ export async function updateRsvpAsHost(
     }
   }
 
-  if (data.answers && Object.keys(data.answers).length > 0) {
-    const validFieldIds = new Set(rsvp.event.rsvpFields.map((field) => field.id));
-    await Promise.all(
-      Object.entries(data.answers)
-        .filter(([id, value]) => validFieldIds.has(id) && typeof value === "string" && value.trim())
-        .map(([rsvpFieldId, value]) =>
-          db.rSVPAnswer.upsert({
-            where: { rsvpId_rsvpFieldId: { rsvpId: rsvp.id, rsvpFieldId } },
-            create: { rsvpId: rsvp.id, rsvpFieldId, value: value as string },
-            update: { value: value as string },
-          })
-        )
-    );
+  await Promise.all(
+    Object.entries(normalizedAnswers).map(([rsvpFieldId, value]) =>
+      db.rSVPAnswer.upsert({
+        where: { rsvpId_rsvpFieldId: { rsvpId: rsvp.id, rsvpFieldId } },
+        create: { rsvpId: rsvp.id, rsvpFieldId, value },
+        update: { value },
+      })
+    )
+  );
+  if (clearedFieldIds.length > 0 && typeof db.rSVPAnswer.deleteMany === "function") {
+    await db.rSVPAnswer.deleteMany({
+      where: { rsvpId: rsvp.id, rsvpFieldId: { in: clearedFieldIds } },
+    });
   }
 
   if (data.status === "NO" && rsvp.checkIn) {

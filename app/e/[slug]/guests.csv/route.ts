@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assertHostOrCohost } from "@/lib/auth-guards";
+import { buildQuestionnaireCsvColumns } from "@/lib/rsvp-fields";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -19,7 +20,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     select: {
       rsvpEnabled: true,
       timezone: true,
-      rsvpFields: { select: { id: true, label: true }, orderBy: { order: "asc" } },
+      rsvpFields: {
+        select: { id: true, label: true, fieldType: true },
+        orderBy: { order: "asc" },
+      },
     },
   });
   if (!exportConfig || exportConfig.rsvpEnabled === false) {
@@ -67,12 +71,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
   };
 
-  const labelCounts = new Map<string, number>();
-  const questionHeaders = exportConfig.rsvpFields.map((field) => {
-    const count = (labelCounts.get(field.label) ?? 0) + 1;
-    labelCounts.set(field.label, count);
-    return count === 1 ? field.label : `${field.label} (${count})`;
-  });
+  const questionColumns = buildQuestionnaireCsvColumns(exportConfig.rsvpFields);
   const headers = [
     "Name",
     "Email",
@@ -82,7 +81,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     "Approved",
     `RSVP Date (${exportConfig.timezone})`,
     `Check-In Time (${exportConfig.timezone})`,
-    ...questionHeaders,
+    ...questionColumns.map((col) => col.header),
     "RSVP Date (UTC)",
     "Check-In Time (UTC)",
   ];
@@ -99,7 +98,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         esc(r.approved ? "Yes" : "No"),
         esc(formatLocal(r.createdAt)),
         esc(formatLocal(r.checkIn?.checkedInAt ?? null)),
-        ...exportConfig.rsvpFields.map((field) => esc(answers.get(field.id) ?? "")),
+        ...questionColumns.map((col) => esc(col.extract(answers))),
         esc(r.createdAt.toISOString()),
         esc(r.checkIn?.checkedInAt.toISOString() ?? ""),
       ].join(",");

@@ -22,6 +22,7 @@ vi.mock("@/app/actions/event", () => ({
 vi.mock("next/image", () => ({ default: () => null }));
 
 import { GuestListFilter } from "@/components/event/GuestListFilter";
+import { serializeGuestRsvp } from "@/lib/guestList";
 
 const going = {
   id: "going-1",
@@ -110,5 +111,80 @@ describe("GuestListFilter attendance controls", () => {
     expect(screen.getAllByText("✓ Arrived")).toHaveLength(2);
     await waitFor(() => expect(mocks.checkInRsvp).toHaveBeenCalledWith("maybe-1"));
     await waitFor(() => expect(screen.getByText(/2 of 2 parties/)).toBeInTheDocument());
+  });
+
+  it("formats ADDRESS and TERMS answers for hosts, searches collected answers, and strips them for non-hosts", () => {
+    const withTypedAnswers = {
+      ...going,
+      answers: [
+        {
+          label: "Mailing address",
+          fieldType: "ADDRESS",
+          value: JSON.stringify({
+            line1: "Kerkstraat 12",
+            city: "Amsterdam",
+            postalCode: "1017 GD",
+          }),
+        },
+        { label: "Waiver", fieldType: "TERMS", value: "ACCEPTED" },
+        { label: "Day-of phone", fieldType: "PHONE", value: "+31 6 9988 7766" },
+      ],
+    };
+
+    render(
+      <GuestListFilter
+        going={[withTypedAnswers]}
+        maybe={[maybe]}
+        no={[]}
+        invited={[]}
+        isHost
+        eventId="event-1"
+        slug="party"
+        timezone="America/New_York"
+        channelConfig={{ email: true, sms: true }}
+        t={testTheme}
+      />
+    );
+
+    expect(screen.getByText("Kerkstraat 12, Amsterdam, 1017 GD")).toBeInTheDocument();
+    expect(screen.getByText("Agreed")).toBeInTheDocument();
+    expect(screen.getByText("+31 6 9988 7766")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search guest list"), {
+      target: { value: "Amsterdam" },
+    });
+    expect(screen.getByText("Ada Guest")).toBeInTheDocument();
+    expect(screen.queryByText("Maybe Guest")).not.toBeInTheDocument();
+
+    const guestPayload = serializeGuestRsvp(
+      {
+        id: "r1",
+        guestName: "Ada Guest",
+        guestEmail: "ada@example.com",
+        guestPhone: "+15550001111",
+        status: "GOING",
+        plusOneCount: 0,
+        note: null,
+        createdAt: new Date("2026-07-14T18:00:00.000Z"),
+        answers: [
+          {
+            value: JSON.stringify({
+              line1: "Kerkstraat 12",
+              city: "Amsterdam",
+              postalCode: "1017 GD",
+            }),
+            rsvpField: { label: "Mailing address", fieldType: "ADDRESS" },
+          },
+        ],
+        plusOneGuests: [],
+        editToken: "secret",
+        user: null,
+        checkIn: null,
+      },
+      false
+    );
+    expect(guestPayload.answers).toEqual([]);
+    expect(guestPayload.guestEmail).toBeNull();
+    expect(guestPayload.guestPhone).toBeNull();
   });
 });

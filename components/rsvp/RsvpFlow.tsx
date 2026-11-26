@@ -2,7 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Button, buttonProps } from "@/components/ui/Button";
-import { Check as CheckBox, Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
+import { Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
 import { InlineAlert } from "@/components/ui/Feedback";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -20,7 +20,12 @@ import {
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
 import { RsvpContactVerification } from "./RsvpContactVerification";
 import { EventTitleBlock } from "@/components/event/event-page/EventTitleBlock";
-import { parseRsvpFieldOptions as parseOptions } from "@/lib/rsvp-fields";
+import {
+  isFieldVisibleForRsvpStatus,
+  validateQuestionnaireFieldsClient,
+  type StructuredAddress,
+} from "@/lib/rsvp-fields";
+import { QuestionnaireFieldInput } from "./QuestionnaireFieldInput";
 import { normalizePhone } from "@/lib/phone";
 import type { RsvpContactReceipt } from "@/lib/rsvp-contact-proof";
 
@@ -34,8 +39,10 @@ type SessionUser = {
 type RsvpField = {
   id: string;
   label: string;
+  description?: string | null;
   fieldType: string;
   required: boolean;
+  goingOnly?: boolean;
   options: string | null;
 };
 
@@ -152,13 +159,14 @@ export function RsvpFlow({
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [subFieldErrors, setSubFieldErrors] = useState<Record<string, string>>({});
   const focusInvalid = useRef(false);
   useEffect(() => {
     if (focusInvalid.current) {
       formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
       focusInvalid.current = false;
     }
-  }, [fieldErrors]);
+  }, [fieldErrors, subFieldErrors]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { runWithCaptcha } = useCaptcha();
@@ -179,7 +187,8 @@ export function RsvpFlow({
   // confirmation), so only a contactless RSVP needs the copy-link fallback.
   const contactOnFile = existingRsvp ? existingRsvp.hasContact : !!(email.trim() || phone.trim());
 
-  const hasQuestionnaire = status !== "NO" && event.rsvpFields.length > 0;
+  const visibleFields = event.rsvpFields.filter((f) => isFieldVisibleForRsvpStatus(f, status));
+  const hasQuestionnaire = visibleFields.length > 0;
   const maxStep = hasQuestionnaire ? 2 : 1;
 
   const plusOneCount = status === "GOING" ? plusOneNames.length : 0;
@@ -195,11 +204,18 @@ export function RsvpFlow({
     clearFieldError(fieldId);
   };
 
-  const checkboxToggle = (fieldId: string, opt: string) => {
-    const current = (answers[fieldId] ?? "").split(",").filter(Boolean);
-    const checked = current.includes(opt);
-    const next = checked ? current.filter((x) => x !== opt) : [...current, opt];
-    setAnswerValue(fieldId, next.join(","));
+  const clearAddressSubFieldError = (fieldId: string, part: keyof StructuredAddress) => {
+    const key = `${fieldId}:${part}`;
+    setSubFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      const prefix = `${fieldId}:`;
+      if (!Object.keys(next).some((k) => k.startsWith(prefix))) {
+        clearFieldError(fieldId);
+      }
+      return next;
+    });
   };
 
   const validateDetails = () => {
@@ -214,6 +230,7 @@ export function RsvpFlow({
       });
     }
     setFieldErrors(errors);
+    setSubFieldErrors({});
     focusInvalid.current = Object.keys(errors).length > 0;
     return Object.keys(errors).length === 0;
   };
@@ -230,14 +247,20 @@ export function RsvpFlow({
 
   const submit = () => {
     if (step === 2) {
-      const errors = Object.fromEntries(
-        event.rsvpFields
-          .filter((f) => f.required && !answers[f.id]?.trim())
-          .map((f) => [f.id, translate("requiredFieldError")])
-      );
-      setFieldErrors(errors);
-      focusInvalid.current = Object.keys(errors).length > 0;
-      if (Object.keys(errors).length) return;
+      const validation = validateQuestionnaireFieldsClient(visibleFields, answers, {
+        questionnaireFieldRequired: translate("requiredFieldError"),
+        questionnaireInvalidOption: translate("invalidOptionError"),
+        invalidPhone: translate("invalidPhoneError"),
+        addressIncomplete: translate("addressIncompleteError"),
+        termsRequired: translate("termsRequiredError"),
+      });
+      setFieldErrors(validation.fieldErrors);
+      setSubFieldErrors(validation.subFieldErrors);
+      const hasErrors =
+        Object.keys(validation.fieldErrors).length > 0 ||
+        Object.keys(validation.subFieldErrors).length > 0;
+      focusInvalid.current = hasErrors;
+      if (hasErrors) return;
     }
     if (!isEdit && contacts.length && !verified) {
       setVerifying(true);
@@ -977,6 +1000,7 @@ export function RsvpFlow({
             type="button"
             onClick={() => {
               setFieldErrors({});
+              setSubFieldErrors({});
               setError(null);
               setStep(1);
             }}
@@ -995,102 +1019,18 @@ export function RsvpFlow({
       </div>
 
       <div style={S.body}>
-        {event.rsvpFields.map((f) => (
+        {visibleFields.map((f) => (
           <div key={f.id} style={{ marginBottom: "20px" }}>
-            {f.fieldType === "CHECKBOX" ? (
-              <>
-                <Label theme={t}>
-                  {f.label}
-                  {f.required && (
-                    <span style={{ fontWeight: 400, marginLeft: "4px" }}>
-                      {translate("required3")}
-                    </span>
-                  )}
-                </Label>
-                <div
-                  role="group"
-                  aria-label={f.label}
-                  aria-describedby={fieldErrors[f.id] ? `question-${f.id}-error` : undefined}
-                  tabIndex={-1}
-                  style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-                >
-                  {parseOptions(f.options).map((opt) => (
-                    <label
-                      key={opt}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                      }}
-                    >
-                      <CheckBox
-                        theme={t}
-                        aria-invalid={!!fieldErrors[f.id] || undefined}
-                        aria-describedby={fieldErrors[f.id] ? `question-${f.id}-error` : undefined}
-                        checked={(answers[f.id] ?? "").split(",").includes(opt)}
-                        onChange={() => checkboxToggle(f.id, opt)}
-                      />
-                      {opt}
-                    </label>
-                  ))}
-                </div>
-                {fieldErrors[f.id] && (
-                  <p id={`question-${f.id}-error`} style={{ color: t.status.error.text }}>
-                    {fieldErrors[f.id]}
-                  </p>
-                )}
-              </>
-            ) : (
-              <Field
-                theme={t}
-                label={
-                  <>
-                    {f.label}
-                    {f.required && (
-                      <span style={{ fontWeight: 400, marginLeft: "4px" }}>
-                        {translate("required3")}
-                      </span>
-                    )}
-                  </>
-                }
-                error={fieldErrors[f.id]}
-                style={{ marginBottom: 0 }}
-              >
-                {f.fieldType === "TEXTAREA" ? (
-                  <Textarea
-                    theme={t}
-                    style={{ resize: "none" }}
-                    rows={3}
-                    required={f.required}
-                    value={answers[f.id] ?? ""}
-                    onChange={(e) => setAnswerValue(f.id, e.target.value)}
-                  />
-                ) : f.fieldType === "SELECT" ? (
-                  <Select
-                    theme={t}
-                    required={f.required}
-                    value={answers[f.id] ?? ""}
-                    onChange={(e) => setAnswerValue(f.id, e.target.value)}
-                  >
-                    <option value="">{translate("select")}</option>
-                    {parseOptions(f.options).map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </Select>
-                ) : (
-                  <Input
-                    theme={t}
-                    required={f.required}
-                    value={answers[f.id] ?? ""}
-                    onChange={(e) => setAnswerValue(f.id, e.target.value)}
-                  />
-                )}
-              </Field>
-            )}
+            <QuestionnaireFieldInput
+              field={f}
+              value={answers[f.id] ?? ""}
+              onChange={(val) => setAnswerValue(f.id, val)}
+              error={fieldErrors[f.id]}
+              subFieldErrors={subFieldErrors}
+              onClearSubFieldError={(part) => clearAddressSubFieldError(f.id, part)}
+              theme={t}
+              idPrefix="question"
+            />
           </div>
         ))}
 
@@ -1111,6 +1051,7 @@ export function RsvpFlow({
           type="button"
           onClick={() => {
             setFieldErrors({});
+            setSubFieldErrors({});
             setError(null);
             setStep(1);
           }}

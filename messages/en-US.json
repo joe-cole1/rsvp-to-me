@@ -243,7 +243,10 @@
         "questionnaireNameRequired": "Enter your name to submit your answers.",
         "questionnaireFieldRequired": "Complete this required field.",
         "questionnaireInvalidOption": "Choose one of the listed options.",
-        "checkQuestionnaireFields": "Check the highlighted fields."
+        "checkQuestionnaireFields": "Check the highlighted fields.",
+        "addressIncomplete": "Enter street address, city, and postal code.",
+        "termsRequired": "Agree to the terms to continue.",
+        "invalidTermsUrl": "Enter a valid http:// or https:// link."
       },
       "NotFound": {
         "title": "We couldn't find that page",
@@ -367,7 +370,7 @@
       },
       "QuestionnairePanel": {
         "questionnaire": "Questionnaire",
-        "addCustomQuestionsGatherExtraInformation": "Add custom questions to gather extra information from guests (e.g., dietary restrictions, song requests). The questionnaire is automatically enabled and presented during the RSVP flow when one or more questions are added here.",
+        "addCustomQuestionsGatherExtraInformation": "Add custom questions to gather extra information from guests (e.g., dietary restrictions, mailing addresses, phone numbers, or terms). The questionnaire is automatically enabled and presented during the RSVP flow when one or more questions are added here.",
         "shortText": "Short text",
         "longText": "Long text",
         "multipleChoice": "Multiple choice",
@@ -383,7 +386,51 @@
         "downloadCsv": "Download CSV",
         "noResponsesYet": "No responses yet.",
         "responseSourceEventPage": "Event page",
-        "responseSourceRsvp": "RSVP"
+        "responseSourceRsvp": "RSVP",
+        "phoneNumber": "Phone number",
+        "mailingAddress": "Mailing address",
+        "termsWaiver": "Terms / waiver",
+        "quickAddTemplates": "Quick-add templates",
+        "questionType": "Question type",
+        "goingOnly": "Going guests only",
+        "descriptionLabel": "Helper text (optional)",
+        "descriptionPlaceholder": "Helper text or explanation for guests (optional)",
+        "termsTextLabel": "Terms or waiver text (optional)",
+        "termsTextPlaceholder": "Paste full terms, waiver, or house rules (scrolls for guests)…",
+        "termsUrlLabel": "External link to terms (optional)",
+        "termsUrlPlaceholder": "https://example.com/waiver",
+        "invalidTermsUrl": "Enter a valid http:// or https:// link.",
+        "termsAgreed": "Agreed",
+        "templates": {
+          "address": {
+            "button": "Mailing address",
+            "label": "Mailing address"
+          },
+          "phone": {
+            "button": "Phone number",
+            "label": "Phone number",
+            "description": "Shared only with the host for day-of contact."
+          },
+          "dietary": {
+            "button": "Dietary restrictions",
+            "label": "Dietary restrictions or allergies",
+            "options": "Vegetarian\nVegan\nGluten-free\nDairy-free\nNut allergy"
+          },
+          "emergencyContact": {
+            "button": "Emergency contact",
+            "label": "Emergency contact (name & phone)",
+            "description": "Only used by the host if an urgent safety or medical situation comes up during the event."
+          },
+          "accessibility": {
+            "button": "Accessibility",
+            "label": "Accessibility needs or accommodations"
+          },
+          "terms": {
+            "button": "Terms / waiver",
+            "label": "Event terms and waiver",
+            "description": "Review the terms below before confirming your spot."
+          }
+        }
       },
       "PotluckPanel": {
         "managePotluckItems": "Manage Potluck Items",
@@ -889,7 +936,8 @@
         "removeInvitationTitle": "Remove this invitation?",
         "cannotBeUndone": "This can't be undone.",
         "declineRequestTitle": "Decline this RSVP request?",
-        "declineRequestMessage": "We'll let the guest know, and the request is removed. This can't be undone."
+        "declineRequestMessage": "We'll let the guest know, and the request is removed. This can't be undone.",
+        "termsAgreed": "Agreed"
       },
       "EventPage": {
         "failedAddReply": "Failed to add reply",
@@ -1192,7 +1240,11 @@
         "submitFailed": "Could not save your answers. Try again.",
         "saving": "Saving…",
         "submitAnswers": "Submit answers",
-        "updateAnswers": "Update answers"
+        "updateAnswers": "Update answers",
+        "invalidOptionError": "Choose one of the listed options.",
+        "invalidPhoneError": "Enter a valid phone number.",
+        "addressIncompleteError": "Enter street address, city, and postal code.",
+        "termsRequiredError": "Agree to the terms to continue."
       }
     },
     "Rsvp": {
@@ -1265,7 +1317,11 @@
         "verificationProgress": "Contact {current} of {total}",
         "potluckGoingBanner": "Claiming a potluck item sets your RSVP to Going. Please only continue as Going if you plan to attend.",
         "backPotluck": "Back to potluck",
-        "backPolls": "Back to polls"
+        "backPolls": "Back to polls",
+        "invalidOptionError": "Choose one of the listed options.",
+        "invalidPhoneError": "Enter a valid phone number.",
+        "addressIncompleteError": "Enter street address, city, and postal code.",
+        "termsRequiredError": "Agree to the terms to continue."
       },
       "status": {
         "GOING": "Going",
@@ -1274,6 +1330,21 @@
       },
       "Route": {
         "editingClosed": "This event has started, so guests can no longer change their RSVP. Contact the host if your response needs to be updated."
+      },
+      "QuestionnaireFields": {
+        "requiredMarker": "(required)",
+        "selectPlaceholder": "Select…",
+        "phonePlaceholder": "+1 555 010 9999",
+        "addressLine1": "Street address",
+        "addressLine1Placeholder": "123 Main St",
+        "addressLine2Optional": "Apt / Suite (optional)",
+        "addressLine2Placeholder": "Apt 4B",
+        "addressCity": "City",
+        "addressRegionOptional": "State / Region (optional)",
+        "addressPostalCode": "Postal / ZIP code",
+        "addressCountryOptional": "Country (optional)",
+        "readFullTerms": "Read full terms",
+        "agreeToTerms": "I agree to {label}"
       }
     },
     "Admin": {
