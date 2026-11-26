@@ -168,9 +168,23 @@ describe("theme contrast sweep", () => {
       expect(worst(s.text, on(s.bg)), `status.${kind}`).toBeGreaterThanOrEqual(4.5);
     }
 
-    const heroGround = t.heroScrim ? ground.map((g) => over(color(t.heroScrim!), g)) : ground;
-    expect(worst(t.heroText, heroGround), "heroText").toBeGreaterThanOrEqual(3);
-    expect(worst(t.heroTextSecondary, heroGround), "heroTextSecondary").toBeGreaterThanOrEqual(4.5);
-    expect(worst(t.heroTextMuted, heroGround), "heroTextMuted").toBeGreaterThanOrEqual(3);
+    expect("heroScrim" in t).toBe(false);
+    if (c.base !== "BOLD") {
+      expect(worst(t.heroText, ground), "heroText").toBeGreaterThanOrEqual(3);
+      expect(worst(t.heroTextSecondary, ground), "heroTextSecondary").toBeGreaterThanOrEqual(4.5);
+      expect(worst(t.heroTextMuted, ground), "heroTextMuted").toBeGreaterThanOrEqual(3);
+    } else if (t.heroText !== "#ffffff") {
+      expect(t.heroTextShadow).toBeUndefined();
+      expect(worst(t.heroText, ground), "heroText").toBeGreaterThanOrEqual(3);
+      expect(worst(t.heroTextSecondary, ground), "heroTextSecondary").toBeGreaterThanOrEqual(4.5);
+      expect(worst(t.heroTextMuted, ground), "heroTextMuted").toBeGreaterThanOrEqual(3);
+    } else {
+      expect(t.heroTextShadow).toBeDefined();
+      if (worst("#ffffff", ground) >= 4.5) {
+        expect(worst(t.heroText, ground), "heroText").toBeGreaterThanOrEqual(4.5);
+        expect(worst(t.heroTextSecondary, ground), "heroTextSecondary").toBeGreaterThanOrEqual(4.5);
+        expect(worst(t.heroTextMuted, ground), "heroTextMuted").toBeGreaterThanOrEqual(3);
+      }
+    }
   });
 });

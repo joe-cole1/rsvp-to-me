@@ -175,8 +175,11 @@ describe("email contrast contract", () => {
         input.gradientTo,
         input.accentColor
       );
-      // Without a scrim the web choice reads on the bare gradient, so email keeps it.
-      if (!web.heroScrim) expect(resolveEmailTheme(input).heroText).toBe(web.heroText);
+      // Where white or dark ink reads on the bare gradient at 4.5:1, email keeps the web's hero ink.
+      const surfaces = bannerSurfaces(web.pageDecorationBg1, input.gradientFrom);
+      if (minContrast(web.heroText, surfaces) >= 4.5) {
+        expect(resolveEmailTheme(input).heroText).toBe(web.heroText);
+      }
     }
   );
 

@@ -60,9 +60,9 @@ stay readable on light and dark themes alike. The site's own controls stay dark 
 with your accent color: the header at the top of the page, the **Settings** bar, and the host
 bar at the bottom of your page with its dialogs.
 
-Text colors adjust automatically so guests can read them on your colors and card opacity. On a
-**Bold & Colorful** page, the title, host line and date turn dark on light gradients, and on
-mid-tone gradients a soft dark shade sits behind them so the white text stays clear. Your
+Text colors adjust automatically so guests can read them on your cards and card opacity. On a
+**Bold & Colorful** page, light gradients switch the title, host line, and date to dark text,
+while other gradients keep white text directly on the background with no added shade. Your
 gradient, accent and fonts never change.
 
 ### Accent Color
@@ -104,7 +104,7 @@ The searchable effect icons come from an open-source collection, included unchan
 - **Noto Emoji** by Google, Apache License 2.0 — [license](/effects/library/noto/1.2.10/LICENSE.txt), [notice](/effects/library/noto/1.2.10/NOTICE.txt) and [regional-flag notice](/effects/library/noto/1.2.10/REGION-FLAGS-LICENSE.txt).
 - Icon names and search words in all four languages come from the Unicode CLDR project, Unicode License v3 — [license](/effects/library/cldr/49.0.0/LICENSE.txt).
 
-Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. Email text is adjusted to stay readable in every mail app: links appear in a deeper shade of your accent color, and on some bold gradients the email title uses a dark ink where your page shows white text over a soft shade. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
+Your theme isn't just for the event page — the **emails** your guests receive (invites, confirmations, reminders) are styled to match it too, including an email-safe version of your heading font. Email text is adjusted to stay readable in every mail app: links appear in a deeper shade of your accent color, and on some bold gradients the email title uses a dark ink where your page keeps white text directly on the gradient. You can preview them under **Settings → 💌 Emails**. See [Messaging Guests & Reminders](/help/messaging-and-reminders) for details.
 
 ---
 

@@ -340,7 +340,7 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   See [ADR 0003](docs/engineering/decisions/0003-unified-notifications.md).
 - `lib/theme.ts`, `lib/fonts.ts`, and `lib/effects.ts` define web theme options.
   `resolveTheme()` derives every readable text color (card text, `accentText`,
-  `status`, hero text and `heroScrim`) from the event's own colors using the
+  `status`, and hero text) from the event's own colors using the
   pure contrast helpers in `lib/theme-contrast.ts`;
   `tests/lib/theme-contrast-sweep.test.ts` enforces the contrast contract.
   [docs/engineering/design-language.md](docs/engineering/design-language.md) is

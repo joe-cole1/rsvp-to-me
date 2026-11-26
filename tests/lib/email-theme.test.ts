@@ -53,10 +53,10 @@ describe("lib/email-theme.ts", () => {
     expect(t.btnTransform).toBe("uppercase");
   });
 
-  it("uses the dark stone ink on a BOLD gradient where white only works with the web scrim", () => {
-    // Sunset: white reads 2.8:1 on the bare gradient; email has no scrim.
+  it("uses the dark stone ink on a BOLD gradient where white does not read on the bare gradient", () => {
+    // Sunset: white reads 2.8:1 on the bare gradient; web keeps white without a scrim, email switches to dark ink.
     const web = resolveTheme("BOLD", bold.gradientFrom, bold.gradientTo, bold.accentColor);
-    expect(web.heroScrim).toBeDefined();
+    expect(web.heroText).toBe("#ffffff");
     const t = resolveEmailTheme(bold);
     expect(t.heroText).toBe(HERO_INK.text);
     expect(t.heroTextSecondary).toBe(HERO_INK.text);

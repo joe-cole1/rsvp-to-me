@@ -58,22 +58,22 @@ page gradient and the few values `APP_SHELL_THEME` doesn't carry.
 
 ### Which field each role uses
 
-| Role                                     | `ResolvedTheme` fields                                                                                                                                      |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Page ground                              | `pageBg`, plus `pageDecoration` with `pageDecorationBg1`/`2`                                                                                                |
-| Card surface                             | `cardBg`, `cardBorder`, `cardRadius`, `cardShadow`; `cardBgAlpha` = glass                                                                                   |
-| Titles and values                        | `textPrimary`                                                                                                                                               |
-| Body copy, row labels, hints             | `textSecondary`                                                                                                                                             |
-| Lesser details (timestamps, notes)       | `textMuted`                                                                                                                                                 |
-| Text placed straight on the page ground  | `heroText` (title, date), `heroTextSecondary` (byline, time), `heroTextMuted` (icons), `heroTextShadow` when set; `heroScrim` behind the hero band when set |
-| Inputs, selects, switch Off track        | `inputBg`, `inputBorder`, `inputText`, `inputPlaceholder`                                                                                                   |
-| Primary action                           | `accent` fill, `accentFg` text, `btnRadius`, `btnFontWeight`, `btnTransform`                                                                                |
-| Accent-colored text (links, text button) | `accentText`; `accent` stays for fills, borders and icons                                                                                                   |
-| Selected state, accent wash              | `accentBg`, `accentBorder`; glow `accentShadow`                                                                                                             |
-| Chips and pills                          | `pillBg`/`pillBorder` (neutral), `badgeBg`/`badgeText` (accent), `accentBg` with `accentText`                                                               |
-| Status lines and chips                   | `status.success`, `status.warning`, `status.error`, `status.info`, each with `text`, `bg` and `border`                                                      |
-| Avatars and placeholders                 | `avatarGradient` (the event's own from → to)                                                                                                                |
-| Event title                              | `headingFont`                                                                                                                                               |
+| Role                                     | `ResolvedTheme` fields                                                                                           |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Page ground                              | `pageBg`, plus `pageDecoration` with `pageDecorationBg1`/`2`                                                     |
+| Card surface                             | `cardBg`, `cardBorder`, `cardRadius`, `cardShadow`; `cardBgAlpha` = glass                                        |
+| Titles and values                        | `textPrimary`                                                                                                    |
+| Body copy, row labels, hints             | `textSecondary`                                                                                                  |
+| Lesser details (timestamps, notes)       | `textMuted`                                                                                                      |
+| Text placed straight on the page ground  | `heroText` (title, date), `heroTextSecondary` (byline, time), `heroTextMuted` (icons), `heroTextShadow` when set |
+| Inputs, selects, switch Off track        | `inputBg`, `inputBorder`, `inputText`, `inputPlaceholder`                                                        |
+| Primary action                           | `accent` fill, `accentFg` text, `btnRadius`, `btnFontWeight`, `btnTransform`                                     |
+| Accent-colored text (links, text button) | `accentText`; `accent` stays for fills, borders and icons                                                        |
+| Selected state, accent wash              | `accentBg`, `accentBorder`; glow `accentShadow`                                                                  |
+| Chips and pills                          | `pillBg`/`pillBorder` (neutral), `badgeBg`/`badgeText` (accent), `accentBg` with `accentText`                    |
+| Status lines and chips                   | `status.success`, `status.warning`, `status.error`, `status.info`, each with `text`, `bg` and `border`           |
+| Avatars and placeholders                 | `avatarGradient` (the event's own from → to)                                                                     |
+| Event title                              | `headingFont`                                                                                                    |
 
 Per base theme:
 
@@ -81,8 +81,8 @@ Per base theme:
 - **SOFT:** near-white tinted page with pastel blobs; white glass cards with a soft shadow and
   24px radius; serif heading default.
 - **BOLD:** the event gradient fills the whole page; white glass cards with a strong shadow;
-  hero text is chosen against the gradient (white with a shadow, a soft `heroScrim` where white
-  needs help, or a dark stone ink on light gradients); buttons are uppercase and heavier.
+  hero text is chosen against the gradient (white with a shadow on dark and mid-tone gradients,
+  or a dark stone ink on light gradients, with no background shade); buttons are uppercase and heavier.
 
 Never write a literal color where a field exists. In particular: use `accentFg` (not white) on
 an accent fill, `accentText` (not `accent`) for accent-colored text, `status` (not literal
@@ -114,15 +114,13 @@ How `resolveTheme()` derives them:
 - **`status`:** DARK keeps the app shell's colors (success #4ade80, warning #fbbf24, error
   #fca5a5, info #c084fc on their own washes). SOFT and BOLD start from darker inks (#15803d,
   #b45309, #b91c1c, #7e22ce) that suit white glass, then pass through the same check.
-- **Hero text** (title, byline, date) is chosen against the page ground: 3:1 for `heroText`
-  (large text) and `heroTextMuted` (icons), 4.5:1 for `heroTextSecondary`. DARK and SOFT use
-  their own text colors. On BOLD:
-  1. White, with `heroTextShadow`, when it already reads at 4.5:1 on the whole gradient.
-  2. Otherwise white with `heroScrim`, a 0.35 black wash behind the hero band, when that is
-     enough (Sunset: about 5.9:1).
-  3. Otherwise the stone ink (#1c1917 title, a #44403c byline darkened if needed) with no
-     shadow, when it reads (Summer Vibes: 10.4:1).
-  4. Otherwise white with a stronger scrim.
+- **Hero text** (title, byline, date) is chosen against the page ground: DARK and SOFT reach 3:1
+  for `heroText` (large text) and `heroTextMuted` (icons), and 4.5:1 for `heroTextSecondary`. On BOLD:
+  1. On light gradients where white falls below 2:1 and the dark stone ink (#1c1917 title, a
+     #44403c byline darkened if needed) passes AA (Summer Vibes: 10.4:1), that dark ink is used
+     with no shadow.
+  2. Otherwise white with `heroTextShadow` is placed directly on the bare gradient with no
+     background shade.
 - **Last resort.** If no ink can reach 4.5:1 on a see-through card (only extreme custom
   gradients that span mid-tones), `resolveTheme()` raises that theme's card opacity just far
   enough. Built-in presets never need it.
@@ -270,10 +268,8 @@ if there's a choice, enter the value, then confirm (for contacts, with an 8-digi
 
 **Event hero.** The event title (an `h1` in `headingFont`), the host byline, the cover image
 or an `avatarGradient` placeholder, the date and the location. Text outside a card uses the
-"text on the page ground" fields. The title, byline, cover and date sit in one `HeroScrim`
-(`components/event/event-page/HeroScrim.tsx`): when the theme sets `heroScrim`, it draws one
-soft wash behind that band, reaching past the text and feathered at the edges, without creating
-a stacking context. Nothing else goes on the ground. Routes that repeat the title (the guest
+"text on the page ground" fields. The title, byline, cover and date sit directly on the page
+ground with no background shade. Nothing else goes on the ground. Routes that repeat the title (the guest
 list) use `EventTitleBlock` (`components/event/event-page/EventTitleBlock.tsx`), which shares
 the hero's title style, so the event reads the same on every route. Host edit controls are Icon buttons ("Edit
 title", with `onGround` in the hero), never clickable icons, and the inline field they open is
@@ -391,7 +387,7 @@ Fonts and effects are theme inputs, not app tokens.
   renders every effect behind all content (`ParticleLayer`, `aria-hidden`, no pointer
   events, hidden under `prefers-reduced-motion` and by the viewer's Hide effects choice).
   Random movement sends each particle across on its own path, sideways and diagonal too.
-  Sprites pass under the hero band's `heroScrim` and under cards; keep any other text in a
+  Sprites pass behind hero content and under cards; keep any other text in a
   card so sprites never reduce its contrast.
 - **Email** never receives web fonts or effects (see Email).
 
@@ -407,7 +403,7 @@ everything from `resolveTheme()`, so new presets reach email with no email-code 
   body inks #18181b, #52525b and muted #6b6b75, 12px card radius, and a
   `prefers-color-scheme: dark` variant (`EMAIL_DARK_MODE`, muted #9a9aa3) applied by
   `emails/components/EmailLayout.tsx`.
-- **Dropped:** glass, blur, orbs, blobs, shadows, animation, effects, web fonts and `heroScrim`.
+- **Dropped:** glass, blur, orbs, blobs, shadows, animation, effects and web fonts.
 
 Email text follows principle 6 on email surfaces, never web ones. `resolveEmailTheme()` derives
 these with the `lib/theme-contrast.ts` helpers, moving colors only in lightness:
@@ -524,6 +520,10 @@ waiver`), a per-question `Going guests only` toggle, an optional helper blurb, a
   read-only terms box, optional `http(s)` external link, and agreement checkbox). Going-only
   questions hide Step 2 when guests choose Maybe or No, and collected phone numbers stay
   separate from SMS notifications and verification.
+- **No hero background scrim** (2026-11-27): removed `HeroScrim` / `heroScrim` so BOLD hero
+  content (title, byline, cover, and date) sits directly on the host's chosen background with
+  no added dark shade. Light gradients continue using dark stone ink; dark and mid-tone
+  gradients keep white text with `heroTextShadow`.
 
 ## Preset defaults and soft motion
 

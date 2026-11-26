@@ -149,21 +149,3 @@ export function ensureContrast(
   }
   return lighten ? "#ffffff" : "#000000";
 }
-
-/**
- * The smallest black wash (0–1, in steps of 0.01) that lets `fg` reach `ratio`
- * on every surface, or 1 when even a full wash isn't enough.
- */
-export function scrimAlphaFor(fg: string, surfaces: Rgba[], ratio: number): number {
-  for (let a = 0; a <= 100; a++) {
-    const wash: Rgba = { r: 0, g: 0, b: 0, a: a / 100 };
-    if (
-      minContrast(
-        fg,
-        surfaces.map((s) => composite(wash, s))
-      ) >= ratio
-    )
-      return a / 100;
-  }
-  return 1;
-}
