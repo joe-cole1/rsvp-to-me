@@ -71,6 +71,7 @@ export async function getDashboardEvents(): Promise<DashboardEvent[]> {
       startAt: e.startAt,
       timezone: e.timezone,
       status: e.status,
+      rsvpEnabled: e.rsvpEnabled,
       theme: e.theme,
       going,
       maybe,
@@ -128,9 +129,10 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
         ...(userEmails.length > 0 ? [{ guestEmail: { in: userEmails } }] : []),
         ...(userPhone ? [{ guestPhone: userPhone }] : []),
       ],
-      // Exclude events they host themselves to avoid duplicates
+      // Exclude events they host themselves or events that have RSVPs disabled
       event: {
         hostId: { not: session.userId },
+        rsvpEnabled: true,
       },
     },
     include: {
@@ -194,6 +196,7 @@ export async function getDashboardInvites(): Promise<DashboardInvite[]> {
       startAt: e.startAt,
       timezone: e.timezone,
       status: e.status,
+      rsvpEnabled: e.rsvpEnabled,
       theme: e.theme,
       going,
       maybe,

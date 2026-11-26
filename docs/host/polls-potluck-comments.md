@@ -21,13 +21,13 @@ Gather input from guests — vote on a date, the menu, the playlist:
 - **Anonymity:** show or hide voter names.
 - **Locking:** lock a poll to freeze voting once you've decided.
 - **Identity:** guests with the same display name have separate votes.
-- **Require RSVP to respond:** enabled by default so approved _Going_ and _Maybe_ guests can vote and suggest options. Hosts can turn this off per poll (such as a date-picking poll) so visitors can enter their name and vote before RSVPing, with their votes staying linked to their browser and automatically attaching if they RSVP later.
+- **Require RSVP to respond:** enabled by default so approved _Going_ and _Maybe_ guests can vote and suggest options. Hosts can turn this off per poll (such as a date-picking poll) so visitors can enter their name and vote before RSVPing, with their votes staying linked to their browser and automatically attaching if they RSVP later. On info-only events where **Collect RSVPs** is off, all polls are automatically open to visitors who have access to the event page.
 
 ---
 
 ## Potluck
 
-Coordinate who's bringing what:
+Coordinate who's bringing what (available on RSVP-enabled events; hidden when **Collect RSVPs** is off):
 
 - **Quantity:** set a required amount for an item (e.g., 3 bottles of wine).
 - **Visibility:** the potluck list and remaining quantities are visible on the event page before guests RSVP, with claimer names following the event's guest-list privacy setting.
@@ -47,7 +47,7 @@ Coordinate who's bringing what:
 
 A threaded comment board sits at the bottom of the event page:
 
-- Guests and hosts can post and reply.
+- Guests and hosts can post and reply. On info-only events (**Collect RSVPs** off), any visitor who has access to the event page (including password-unlocked Private events) can comment and reply using their signed-in account or an entered display name.
 - Hosts and co-hosts can remove any comment or reply using its **Remove comment**
   trash button. Confirm **Remove** to delete it and all replies underneath it;
   removing one reply keeps its parent and sibling replies. **Cancel** leaves it

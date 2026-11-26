@@ -29,6 +29,7 @@ export type RsvpProofFailure =
   | "rsvpProofUnavailable"
   | "invalidRsvp"
   | "forbidden"
+  | "rsvpsDisabled"
   | "eventNotFound"
   | "eventStarted"
   | "deadlinePassed";
@@ -76,6 +77,7 @@ export async function requestRsvpContactProof(raw: unknown) {
     include: { coHosts: { select: { userId: true } } },
   });
   if (!event) return failure("eventNotFound");
+  if (event.rsvpEnabled === false) return failure("rsvpsDisabled");
   if (
     event.status !== "PUBLISHED" ||
     (await resolveEventAccess(event, event.slug)).decision !== "granted"

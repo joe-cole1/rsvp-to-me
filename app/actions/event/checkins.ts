@@ -19,7 +19,7 @@ type EligibleRsvp = {
   guestName: string;
   approved: boolean;
   status: "GOING" | "MAYBE" | "NO" | "INVITED";
-  event: { slug: string };
+  event: { slug: string; rsvpEnabled: boolean };
 };
 
 async function getAuthorizedRsvp(rsvpId: string): Promise<{
@@ -37,11 +37,14 @@ async function getAuthorizedRsvp(rsvpId: string): Promise<{
       guestName: true,
       approved: true,
       status: true,
-      event: { select: { slug: true } },
+      event: { select: { slug: true, rsvpEnabled: true } },
     },
   });
   if (!rsvp) throw new Error(await eventActionMessage("forbidden"));
   await assertHostOrCohost(rsvp.eventId);
+  if (rsvp.event.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
   return { session, rsvp };
 }
 
@@ -105,6 +108,9 @@ export async function addWalkIn(rawInput: unknown, captchaToken?: string | null)
   }
   const data = parsed.data;
   const event = await assertHostOrCohost(data.eventId);
+  if (event.rsvpEnabled === false) {
+    return { success: false as const, error: await eventActionMessage("rsvpsDisabled") };
+  }
   const channels = await getChannelConfig();
 
   if (data.guestEmail && !channels.email) {

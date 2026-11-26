@@ -67,6 +67,11 @@ export async function createPoll(
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("poll_manage", captchaToken);
   if (!question.trim()) throw new Error(await eventActionMessage("questionEmpty"));
+  const eventRecord = await db.event.findUnique({
+    where: { id: eventId },
+    select: { rsvpEnabled: true },
+  });
+  const effectiveRequireRsvp = eventRecord?.rsvpEnabled === false ? false : requireRsvp;
 
   const cleanOptions = options.map((o) => o.trim()).filter((o) => o.length > 0);
 
@@ -78,7 +83,7 @@ export async function createPoll(
         multiChoice,
         allowGuestsToAdd,
         hideVoters,
-        requireRsvp,
+        requireRsvp: effectiveRequireRsvp,
       },
     });
 
@@ -151,6 +156,7 @@ export async function castVote(
           status: true,
           visibility: true,
           passwordHash: true,
+          rsvpEnabled: true,
           coHosts: { select: { userId: true } },
         },
       },
@@ -165,7 +171,7 @@ export async function castVote(
   const isCohost = poll.event.coHosts.some((ch) => ch.userId === session?.userId);
   const isHost = isOwner || isCohost;
 
-  const requireRsvp = poll.requireRsvp !== false;
+  const requireRsvp = poll.event.rsvpEnabled !== false && poll.requireRsvp !== false;
   let rsvpId: string | null = null;
   let userId: string | null = null;
   let voterTokenHash: string | null = null;
@@ -301,6 +307,7 @@ export async function addPollOption(
           status: true,
           visibility: true,
           passwordHash: true,
+          rsvpEnabled: true,
           coHosts: { select: { userId: true } },
         },
       },
@@ -316,7 +323,7 @@ export async function addPollOption(
 
   if (!isHost) {
     if (!poll.allowGuestsToAdd) throw new Error(await eventActionMessage("guestOptionsDisabled"));
-    const requireRsvp = poll.requireRsvp !== false;
+    const requireRsvp = poll.event.rsvpEnabled !== false && poll.requireRsvp !== false;
     // SEC-24: authorize by secret editToken; the creator name is the RSVP's.
     const rsvp = await findApprovedGuestByToken(guestEditToken, poll.eventId);
     if (requireRsvp) {

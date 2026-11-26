@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
     const downloadHeaders = [{ key: "Cache-Control", value: "private, no-store" }];
     const downloadPaths = [
       "/e/:slug/guests.csv",
+      "/e/:slug/questionnaire.csv",
       "/e/:slug/calendar.ics",
       "/api/admin/backups/:filename",
     ];

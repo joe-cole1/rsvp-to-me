@@ -156,7 +156,7 @@ describe("notification management authority and serialization", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           editToken: "private-token",
-          event: { slug: "party", status: { not: "DELETED" } },
+          event: { slug: "party", status: { not: "DELETED" }, rsvpEnabled: true },
         }),
       })
     );

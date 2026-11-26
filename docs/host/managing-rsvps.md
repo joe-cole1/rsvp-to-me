@@ -43,6 +43,14 @@ separate RSVP; it does not answer an existing invitation.
 
 Keyboard users can use **Skip to content** at the top of each page to bypass navigation.
 
+## Info-Only Events (No RSVPs)
+
+Under **Settings → RSVP options**, turn off **Collect RSVPs** to run your event as an info-only flyer page. While RSVPs are off:
+
+- The RSVP card, guest list, invitations, check-ins, potluck, message blasts, and automatic reminders are hidden and disabled.
+- Any existing RSVPs or invitations stay saved in the database and reappear if you turn **Collect RSVPs** back on later (turning it off when responses exist asks for confirmation first).
+- Custom questions, polls, comments, info sections, and host updates remain available on the event page.
+
 ## RSVP Statuses
 
 Guests respond **Going**, **Maybe**, or **No**. You can turn off the **Maybe** option per event if you only want a yes/no.
@@ -112,7 +120,7 @@ Add your own questions to the RSVP form (dietary needs, song requests, t-shirt s
 - **Required or optional:** mark each question as needed.
 - **Reordering:** drag questions to set their order on the form.
 
-Answers appear with each guest and are included in the [CSV export](guest-list.md).
+Answers appear with each guest and are included in the [CSV export](guest-list.md). On info-only events where RSVPs are turned off, visitors answer these questions directly in a card on the event page, and hosts view responses or download the questionnaire CSV from **Settings → Questionnaire**.
 
 ---
 

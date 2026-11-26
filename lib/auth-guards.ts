@@ -28,7 +28,13 @@ export async function assertHostOrCohost(eventIdOrSlug: string, isSlug = false) 
   if (!session) throw new Error("Unauthorized");
   const event = await db.event.findUnique({
     where: isSlug ? { slug: eventIdOrSlug } : { id: eventIdOrSlug },
-    select: { id: true, hostId: true, slug: true, coHosts: { select: { userId: true } } },
+    select: {
+      id: true,
+      hostId: true,
+      slug: true,
+      rsvpEnabled: true,
+      coHosts: { select: { userId: true } },
+    },
   });
   if (!event) throw new Error("Forbidden");
   const isOwner = event.hostId === session.userId;

@@ -74,12 +74,16 @@ async function sendManualBlast(
       select: {
         title: true,
         slug: true,
+        rsvpEnabled: true,
         theme: true,
         hostDisplayName: true,
         host: { select: { name: true, email: true } },
       },
     });
     if (!event) throw new Error("Blast event unavailable");
+    if (event.rsvpEnabled === false) {
+      return { success: false, sent: 0, summary };
+    }
     const adapter =
       channel === "email"
         ? await createEmailNotificationAdapter()
@@ -138,9 +142,12 @@ export async function addEventUpdate(
 ) {
   const event = await assertHostOrCohost(eventId);
   await assertCaptcha("event_update", captchaToken);
-  const update = await db.eventUpdate.create({ data: { eventId, body, notifyGuests } });
+  const effectiveNotify = event.rsvpEnabled === false ? false : notifyGuests;
+  const update = await db.eventUpdate.create({
+    data: { eventId, body, notifyGuests: effectiveNotify },
+  });
   let notifications: NotificationFeedback = null;
-  if (notifyGuests) {
+  if (effectiveNotify) {
     try {
       notifications = {
         status: "completed",

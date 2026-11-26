@@ -223,11 +223,21 @@ export async function updateRsvpAsHost(
     where: { id: rsvpId },
     include: {
       checkIn: { select: { id: true } },
-      event: { select: { id: true, slug: true, rsvpFields: { select: { id: true } } } },
+      event: {
+        select: {
+          id: true,
+          slug: true,
+          rsvpEnabled: true,
+          rsvpFields: { select: { id: true } },
+        },
+      },
     },
   });
   if (!rsvp) throw new Error(await eventActionMessage("forbidden"));
   await assertHostOrCohost(rsvp.eventId);
+  if (rsvp.event.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
 
   await db.rSVP.update({
     where: { id: rsvp.id },
@@ -297,10 +307,13 @@ export async function deleteRsvpAsHost(rsvpId: string) {
   if (!session) throw new Error(await eventActionMessage("unauthorized"));
   const rsvp = await db.rSVP.findUnique({
     where: { id: rsvpId },
-    include: { event: { select: { id: true, slug: true } } },
+    include: { event: { select: { id: true, slug: true, rsvpEnabled: true } } },
   });
   if (!rsvp) throw new Error(await eventActionMessage("forbidden"));
   await assertHostOrCohost(rsvp.event.id);
+  if (rsvp.event.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
   await db.rSVP.delete({ where: { id: rsvpId } });
   logActivity(rsvp.event.id, "rsvp_delete", `${rsvp.guestName}'s RSVP was removed`).catch(
     logSafe("deleteRsvpAsHost")
@@ -325,6 +338,7 @@ export async function approveRsvp(rsvpId: string, message?: string, captchaToken
         select: {
           slug: true,
           title: true,
+          rsvpEnabled: true,
           theme: true,
           host: { select: { email: true } },
         },
@@ -333,6 +347,9 @@ export async function approveRsvp(rsvpId: string, message?: string, captchaToken
   });
   if (!rsvp) throw new Error(await eventActionMessage("forbidden"));
   await assertHostOrCohost(rsvp.eventId);
+  if (rsvp.event.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
 
   await db.rSVP.update({ where: { id: rsvpId }, data: { approved: true } });
 
@@ -367,6 +384,7 @@ export async function declineRsvp(rsvpId: string, message?: string, captchaToken
         select: {
           slug: true,
           title: true,
+          rsvpEnabled: true,
           theme: true,
           host: { select: { email: true } },
         },
@@ -375,6 +393,9 @@ export async function declineRsvp(rsvpId: string, message?: string, captchaToken
   });
   if (!rsvp) throw new Error(await eventActionMessage("forbidden"));
   await assertHostOrCohost(rsvp.eventId);
+  if (rsvp.event.rsvpEnabled === false) {
+    throw new Error(await eventActionMessage("rsvpsDisabled"));
+  }
 
   await notifyRsvp(rsvp.id, {
     kind: "approval",

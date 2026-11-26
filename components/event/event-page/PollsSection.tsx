@@ -50,8 +50,9 @@ export function PollsSection({
   handleAddPollOption: (pollId: string) => Promise<void>;
 }) {
   const translate = useTranslations("Ui.Event.PollsSection");
+  const eventCollectsRsvps = event.rsvpEnabled !== false;
   const hasUnlockedOpenPoll = Boolean(
-    event.polls?.some((p) => p.requireRsvp === false && !p.locked)
+    event.polls?.some((p) => (!eventCollectsRsvps || p.requireRsvp === false) && !p.locked)
   );
   const showVoterNameInput =
     hasUnlockedOpenPoll &&
@@ -115,7 +116,7 @@ export function PollsSection({
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {event.polls?.map((poll) => {
               const totalVotes = poll.options.reduce((sum, o) => sum + o.votes.length, 0);
-              const requiresRsvp = poll.requireRsvp !== false;
+              const requiresRsvp = eventCollectsRsvps && poll.requireRsvp !== false;
               const isRsvpEligible =
                 isHost ||
                 (rsvpDone && !isPendingGuest && (rsvpStatus === "GOING" || rsvpStatus === "MAYBE"));
@@ -159,7 +160,7 @@ export function PollsSection({
                       <div style={{ fontWeight: 600, fontSize: "15px", color: t.textPrimary }}>
                         {poll.question}
                       </div>
-                      {!requiresRsvp && (
+                      {eventCollectsRsvps && !requiresRsvp && (
                         <span
                           style={{
                             background: t.pillBg,

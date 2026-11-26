@@ -8,6 +8,7 @@ export const CAPTCHA_ACTIONS = [
   "event_settings",
   "event_content",
   "rsvp_field",
+  "questionnaire_submit",
   "rsvp_create",
   "rsvp_edit",
   "rsvp_moderation",

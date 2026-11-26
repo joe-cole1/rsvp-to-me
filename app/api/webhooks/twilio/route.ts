@@ -95,13 +95,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           channel: "SMS",
           rsvpId: { not: null },
         },
-        include: { event: { select: { title: true, slug: true } } },
+        include: { event: { select: { title: true, slug: true, rsvpEnabled: true } } },
       })
     : [];
   const pending = [];
   const seen = new Set<string>();
   for (const inv of invitations) {
-    if (!inv.rsvpId || seen.has(inv.rsvpId)) continue;
+    if (!inv.rsvpId || seen.has(inv.rsvpId) || inv.event.rsvpEnabled === false) continue;
     const rsvp = await db.rSVP.findUnique({
       where: { id: inv.rsvpId },
       select: {

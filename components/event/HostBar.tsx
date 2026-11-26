@@ -3,7 +3,18 @@
 import { useTranslations } from "next-intl";
 
 import React, { useEffect, useReducer, useState } from "react";
-import { Mail, MessageSquare, Settings, Eye, Globe, Link2, Lock, Check, X } from "lucide-react";
+import {
+  Mail,
+  MessageSquare,
+  Settings,
+  Eye,
+  Globe,
+  Link2,
+  Lock,
+  Check,
+  X,
+  Share2,
+} from "lucide-react";
 import { APP_SHELL, chromeTheme, type ResolvedTheme } from "@/lib/theme";
 import { sendBlast, sendSmsBlast, saveEventSettings } from "@/app/actions/event";
 import Image from "@/components/ui/UploadedImage";
@@ -35,12 +46,16 @@ export function HostBar({
   theme: t,
   visibility: initialVisibility,
   channelConfig = { email: true, sms: true },
+  rsvpEnabled = true,
+  hasPassword = false,
 }: {
   eventId: string;
   eventSlug: string;
   theme: ResolvedTheme;
   visibility: Visibility;
   channelConfig?: { email: boolean; sms: boolean };
+  rsvpEnabled?: boolean;
+  hasPassword?: boolean;
 }) {
   const translate = useTranslations("Ui.Event.HostBar");
   // The bar, its dialog and sheets are app chrome: the dark shell with the event's accent.
@@ -68,7 +83,9 @@ export function HostBar({
       value: "PRIVATE",
       icon: Lock,
       label: translate("private"),
-      description: translate("inviteOnlyApprovalRequired"),
+      description: rsvpEnabled
+        ? translate("inviteOnlyApprovalRequired")
+        : translate("passwordRequiredNoInvites"),
     },
   ];
 
@@ -111,9 +128,11 @@ export function HostBar({
   const [visibilityPending, setVisibilityPending] = useState(false);
 
   const [copiedLink, setCopiedLink] = useState(false);
+  const canShowShareQr =
+    activePanel === "invite" && (visibility !== "PRIVATE" || (!rsvpEnabled && hasPassword));
   useEffect(() => {
     let cancelled = false;
-    if (activePanel === "invite" && visibility !== "PRIVATE") {
+    if (canShowShareQr) {
       QRCode.toDataURL(window.location.href, {
         width: 220,
         margin: 1,
@@ -127,14 +146,18 @@ export function HostBar({
     return () => {
       cancelled = true;
     };
-  }, [activePanel, visibility]);
+  }, [canShowShareQr]);
   const { runWithCaptcha } = useCaptcha();
 
   const VisIcon = visibilityIcon(visibility);
 
   const actions = [
-    { id: "invite", icon: Mail, label: translate("invite"), href: null },
-    { id: "message", icon: MessageSquare, label: translate("message"), href: null },
+    ...(rsvpEnabled
+      ? [
+          { id: "invite", icon: Mail, label: translate("invite"), href: null },
+          { id: "message", icon: MessageSquare, label: translate("message"), href: null },
+        ]
+      : [{ id: "invite", icon: Share2, label: translate("share"), href: null }]),
     {
       id: "visibility",
       icon: VisIcon,
@@ -279,7 +302,7 @@ export function HostBar({
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2 id="invitation-dialog-title" style={{ fontSize: "20px", fontWeight: 700 }}>
-              {translate("inviteGuests")}
+              {rsvpEnabled ? translate("inviteGuests") : translate("shareEvent")}
             </h2>
             <Button
               theme={ct}
@@ -291,65 +314,68 @@ export function HostBar({
               <X size={20} aria-hidden="true" />
             </Button>
           </div>
+          {rsvpEnabled && (
+            <div
+              role="tablist"
+              aria-label={translate("inviteTabs")}
+              style={{
+                display: "flex",
+                gap: "4px",
+                margin: "12px 0 18px",
+                borderBottom: `1px solid ${ct.inputBorder}`,
+              }}
+            >
+              {inviteTabs.map((tab, index) => {
+                const selected = inviteTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`invite-tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-controls={`invite-panel-${tab.id}`}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => setInviteTab(tab.id)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+                      event.preventDefault();
+                      const step = event.key === "ArrowRight" ? 1 : inviteTabs.length - 1;
+                      const next = inviteTabs[(index + step) % inviteTabs.length];
+                      setInviteTab(next.id);
+                      document.getElementById(`invite-tab-${next.id}`)?.focus();
+                    }}
+                    className="rsvp-control"
+                    style={
+                      {
+                        "--rsvp-focus": ct.accent,
+                        minHeight: "44px",
+                        padding: "10px 14px",
+                        marginBottom: "-1px",
+                        border: "none",
+                        borderBottom: `2px solid ${selected ? ct.accent : "transparent"}`,
+                        background: "transparent",
+                        color: selected ? ct.textPrimary : ct.textSecondary,
+                        font: "inherit",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      } as React.CSSProperties
+                    }
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div
-            role="tablist"
-            aria-label={translate("inviteTabs")}
-            style={{
-              display: "flex",
-              gap: "4px",
-              margin: "12px 0 18px",
-              borderBottom: `1px solid ${ct.inputBorder}`,
-            }}
+            role={rsvpEnabled ? "tabpanel" : undefined}
+            id={`invite-panel-${rsvpEnabled ? inviteTab : "share"}`}
+            aria-labelledby={rsvpEnabled ? `invite-tab-${inviteTab}` : undefined}
+            style={!rsvpEnabled ? { marginTop: "14px" } : undefined}
           >
-            {inviteTabs.map((tab, index) => {
-              const selected = inviteTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  id={`invite-tab-${tab.id}`}
-                  aria-selected={selected}
-                  aria-controls={`invite-panel-${tab.id}`}
-                  tabIndex={selected ? 0 : -1}
-                  onClick={() => setInviteTab(tab.id)}
-                  onKeyDown={(event) => {
-                    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
-                    event.preventDefault();
-                    const step = event.key === "ArrowRight" ? 1 : inviteTabs.length - 1;
-                    const next = inviteTabs[(index + step) % inviteTabs.length];
-                    setInviteTab(next.id);
-                    document.getElementById(`invite-tab-${next.id}`)?.focus();
-                  }}
-                  className="rsvp-control"
-                  style={
-                    {
-                      "--rsvp-focus": ct.accent,
-                      minHeight: "44px",
-                      padding: "10px 14px",
-                      marginBottom: "-1px",
-                      border: "none",
-                      borderBottom: `2px solid ${selected ? ct.accent : "transparent"}`,
-                      background: "transparent",
-                      color: selected ? ct.textPrimary : ct.textSecondary,
-                      font: "inherit",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    } as React.CSSProperties
-                  }
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-          <div
-            role="tabpanel"
-            id={`invite-panel-${inviteTab}`}
-            aria-labelledby={`invite-tab-${inviteTab}`}
-          >
-            {inviteTab === "invite" ? (
+            {rsvpEnabled && inviteTab === "invite" ? (
               !messagingOn ? (
                 <p style={{ color: ct.textSecondary, fontSize: "14px" }}>
                   {translate("messagingNotConfiguredServerShareEvent")}
@@ -363,7 +389,7 @@ export function HostBar({
                   dispatch={dispatchInvite}
                 />
               )
-            ) : visibility === "PRIVATE" ? (
+            ) : visibility === "PRIVATE" && (rsvpEnabled || !hasPassword) ? (
               <div
                 style={{
                   border: `1px solid ${ct.inputBorder}`,
@@ -381,7 +407,9 @@ export function HostBar({
                     lineHeight: 1.6,
                   }}
                 >
-                  {translate("privateEventGuestsMustInvitedDirectly")}
+                  {rsvpEnabled
+                    ? translate("privateEventGuestsMustInvitedDirectly")
+                    : translate("privateInfoOnlyNeedsPassword")}
                 </p>
                 <a
                   href={`/e/${eventSlug}/settings?section=privacy`}
@@ -392,8 +420,15 @@ export function HostBar({
               </div>
             ) : (
               <>
+                {!rsvpEnabled && visibility === "PRIVATE" && hasPassword && (
+                  <InlineAlert theme={ct} tone="info" style={{ marginBottom: "12px" }}>
+                    {translate("privateInfoOnlyShareWithPassword")}
+                  </InlineAlert>
+                )}
                 <p style={{ color: ct.textSecondary, fontSize: "14px", marginBottom: "16px" }}>
-                  {translate("shareEventLinkOrSendInvites")}
+                  {rsvpEnabled
+                    ? translate("shareEventLinkOrSendInvites")
+                    : translate("shareInfoOnlyEventLink")}
                 </p>
                 <div
                   style={{

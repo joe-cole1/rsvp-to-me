@@ -12,6 +12,7 @@ import { Check, Input, Label } from "@/components/ui/Field";
 import { Toggle } from "@/components/ui/Toggle";
 
 export function PollsPanel({
+  rsvpEnabled = true,
   polls,
   newPollQuestion,
   setNewPollQuestion,
@@ -35,6 +36,7 @@ export function PollsPanel({
   isPending,
   t,
 }: {
+  rsvpEnabled?: boolean;
   polls: PollEntry[];
   newPollQuestion: string;
   setNewPollQuestion: React.Dispatch<React.SetStateAction<string>>;
@@ -195,14 +197,16 @@ export function PollsPanel({
               />
               <span>{translate("hideVoterNamesOtherGuests")}</span>
             </label>
-            <label style={checkRow}>
-              <Check
-                theme={t}
-                checked={newPollRequireRsvp}
-                onChange={(e) => setNewPollRequireRsvp?.(e.target.checked)}
-              />
-              <span>{translate("requireRsvpVote")}</span>
-            </label>
+            {rsvpEnabled && (
+              <label style={checkRow}>
+                <Check
+                  theme={t}
+                  checked={newPollRequireRsvp}
+                  onChange={(e) => setNewPollRequireRsvp?.(e.target.checked)}
+                />
+                <span>{translate("requireRsvpVote")}</span>
+              </label>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: "8px" }}>
@@ -408,13 +412,15 @@ export function PollsPanel({
                     theme={t}
                     style={{ marginBottom: 0 }}
                   />
-                  <Toggle
-                    label={translate("requireRsvpVote")}
-                    value={poll.requireRsvp !== false}
-                    onChange={(val) => handleUpdatePollSettings(poll.id, { requireRsvp: val })}
-                    theme={t}
-                    style={{ marginBottom: 0 }}
-                  />
+                  {rsvpEnabled && (
+                    <Toggle
+                      label={translate("requireRsvpVote")}
+                      value={poll.requireRsvp !== false}
+                      onChange={(val) => handleUpdatePollSettings(poll.id, { requireRsvp: val })}
+                      theme={t}
+                      style={{ marginBottom: 0 }}
+                    />
+                  )}
                 </div>
               </div>
             ))}

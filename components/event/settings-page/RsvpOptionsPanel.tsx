@@ -7,12 +7,16 @@ import type { SettingsOverrides } from "./types";
 import { Section } from "./ui";
 import { Field, Input, Label, Select } from "@/components/ui/Field";
 import { Toggle } from "@/components/ui/Toggle";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import {
   NotificationPreferences,
   type SaveReport,
 } from "@/components/notifications/NotificationPreferences";
 
 export function RsvpOptionsPanel({
+  rsvpEnabled = true,
+  setRsvpEnabled,
+  existingRsvpCount = 0,
   plusOneAllowed,
   setPlusOneAllowed,
   plusOneMax,
@@ -41,6 +45,9 @@ export function RsvpOptionsPanel({
   adminModerating = false,
   t,
 }: {
+  rsvpEnabled?: boolean;
+  setRsvpEnabled?: React.Dispatch<React.SetStateAction<boolean>>;
+  existingRsvpCount?: number;
   plusOneAllowed: boolean;
   setPlusOneAllowed: React.Dispatch<React.SetStateAction<boolean>>;
   plusOneMax: number;
@@ -73,6 +80,7 @@ export function RsvpOptionsPanel({
 }) {
   const translate = useTranslations("Ui.Event.RsvpOptionsPanel");
   const notifications = useTranslations("Ui.Notifications");
+  const { confirm, dialog } = useConfirm(t);
   const group = {
     borderTop: `1px solid ${t.cardBorder}`,
     margin: "16px -20px 16px -20px",
@@ -87,155 +95,188 @@ export function RsvpOptionsPanel({
 
   return (
     <Section title={translate("rsvpOptions")} t={t}>
-      <Field theme={t} label={translate("maxPlusOnesPerGuest")}>
-        <Select
-          theme={t}
-          value={plusOneAllowed ? plusOneMax : 0}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            const allowed = val > 0;
-            setPlusOneAllowed(allowed);
-            setPlusOneMax(allowed ? val : 0);
-            triggerSaveSettings({ plusOneAllowed: allowed, plusOneMax: allowed ? val : 0 });
-          }}
-        >
-          <option value={0}>{translate("no1s")}</option>
-          {Array.from({ length: 9 }, (_, i) => (
-            <option key={i + 1} value={i + 1}>
-              {translate("up")} {i + 1}
-            </option>
-          ))}
-        </Select>
-      </Field>
-
-      {plusOneAllowed && (
+      {dialog}
+      {setRsvpEnabled && (
         <Toggle
-          label={translate("requirePlusOneNames")}
-          value={plusOneNamesRequired}
-          onChange={(val) => {
-            setPlusOneNamesRequired(val);
-            triggerSaveSettings({ plusOneNamesRequired: val });
+          label={translate("collectRsvps")}
+          description={translate("collectRsvpsDescription")}
+          value={rsvpEnabled}
+          onChange={async (val) => {
+            if (!val && existingRsvpCount > 0) {
+              const ok = await confirm({
+                title: translate("disableRsvpsTitle"),
+                message: translate("disableRsvpsMessage"),
+                confirmLabel: translate("disableRsvpsConfirm"),
+                tone: "primary",
+              });
+              if (!ok) return;
+            }
+            setRsvpEnabled(val);
+            triggerSaveSettings({ rsvpEnabled: val });
           }}
           theme={t}
         />
       )}
 
-      <div style={group}>
-        <Label theme={t} style={{ marginBottom: "12px" }}>
-          {translate("rsvpApprovalOptions")}
-        </Label>
-        <Toggle
-          label={translate("requireHostApprovalEachRsvp")}
-          value={approvalRequired}
-          onChange={(val) => {
-            setApprovalRequired(val);
-            triggerSaveSettings({ approvalRequired: val });
-          }}
-          theme={t}
-        />
-        <Toggle
-          label={translate("guestsCanRsvpMaybe")}
-          value={maybeEnabled}
-          onChange={(val) => {
-            setMaybeEnabled(val);
-            triggerSaveSettings({ maybeEnabled: val });
-          }}
-          theme={t}
-        />
-      </div>
-      <div style={group}>
-        <Label theme={t} style={{ marginBottom: "12px" }}>
-          {translate("notificationSettings")}
-        </Label>
-        <p style={hint}>{translate("newRsvpAlertsGoCoHosts")}</p>
-        <Toggle
-          label={notifications("enableHostAlerts")}
-          value={hostAlertEmail || hostAlertSms}
-          onChange={(val) => {
-            // The event decides whether alerts exist; each organizer chooses how to get them.
-            setHostAlertEmail(val);
-            if (!val) setHostAlertSms(false);
-            triggerSaveSettings(
-              val ? { hostAlertEmail: true } : { hostAlertEmail: false, hostAlertSms: false }
-            );
-          }}
-          theme={t}
-        />
-        {/* The viewer's own alert channels, so only for the event's organizers: a
-            moderating admin has none to choose. */}
-        {!adminModerating && (
-          <>
-            <Label theme={t}>{notifications("organizerTitle")}</Label>
-            {hostAlertEmail || hostAlertSms ? (
-              <NotificationPreferences
-                scope={{ kind: "organizer", eventId }}
-                theme={t}
-                embedded
-                onStatus={onNotificationStatus}
-              />
-            ) : (
-              <p style={hint}>{notifications("organizerOff")}</p>
-            )}
-          </>
-        )}
-      </div>
-      <Toggle
-        label={translate("showRsvpTimestamps")}
-        value={showTimestamps}
-        onChange={(val) => {
-          setShowTimestamps(val);
-          triggerSaveSettings({ showTimestamps: val });
-        }}
-        theme={t}
-      />
+      {!rsvpEnabled ? (
+        <p style={hint}>
+          {existingRsvpCount > 0
+            ? translate("infoOnlyPreservedNotice")
+            : translate("infoOnlyActiveHint")}
+        </p>
+      ) : (
+        <>
+          <Field theme={t} label={translate("maxPlusOnesPerGuest")}>
+            <Select
+              theme={t}
+              value={plusOneAllowed ? plusOneMax : 0}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                const allowed = val > 0;
+                setPlusOneAllowed(allowed);
+                setPlusOneMax(allowed ? val : 0);
+                triggerSaveSettings({ plusOneAllowed: allowed, plusOneMax: allowed ? val : 0 });
+              }}
+            >
+              <option value={0}>{translate("no1s")}</option>
+              {Array.from({ length: 9 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {translate("up")} {i + 1}
+                </option>
+              ))}
+            </Select>
+          </Field>
 
-      <Field theme={t} label={translate("capacityLimitOptional")} style={{ marginTop: "16px" }}>
-        <Input
-          theme={t}
-          type="number"
-          placeholder={translate("noLimit")}
-          value={capacity}
-          onChange={(e) => setCapacity(e.target.value)}
-          onBlur={() => {
-            const val = capacity.trim() ? Number(capacity) : null;
-            triggerSaveSettings({ capacity: val });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              const val = capacity.trim() ? Number(capacity) : null;
-              triggerSaveSettings({ capacity: val });
-              e.currentTarget.blur();
-            }
-          }}
-        />
-      </Field>
-      <Field theme={t} label={translate("rsvpDeadlineOptional")}>
-        <Input
-          theme={t}
-          type="datetime-local"
-          value={rsvpDeadline}
-          onChange={(e) => setRsvpDeadline(e.target.value)}
-          onBlur={() => {
-            triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
-              e.currentTarget.blur();
-            }
-          }}
-        />
-      </Field>
-      {rsvpDeadline && (
-        <Toggle
-          label={translate("allowEditingRsvpsAfterDeadline")}
-          value={allowEditAfterDeadline}
-          onChange={(val) => {
-            setAllowEditAfterDeadline(val);
-            triggerSaveSettings({ allowEditAfterDeadline: val });
-          }}
-          theme={t}
-        />
+          {plusOneAllowed && (
+            <Toggle
+              label={translate("requirePlusOneNames")}
+              value={plusOneNamesRequired}
+              onChange={(val) => {
+                setPlusOneNamesRequired(val);
+                triggerSaveSettings({ plusOneNamesRequired: val });
+              }}
+              theme={t}
+            />
+          )}
+
+          <div style={group}>
+            <Label theme={t} style={{ marginBottom: "12px" }}>
+              {translate("rsvpApprovalOptions")}
+            </Label>
+            <Toggle
+              label={translate("requireHostApprovalEachRsvp")}
+              value={approvalRequired}
+              onChange={(val) => {
+                setApprovalRequired(val);
+                triggerSaveSettings({ approvalRequired: val });
+              }}
+              theme={t}
+            />
+            <Toggle
+              label={translate("guestsCanRsvpMaybe")}
+              value={maybeEnabled}
+              onChange={(val) => {
+                setMaybeEnabled(val);
+                triggerSaveSettings({ maybeEnabled: val });
+              }}
+              theme={t}
+            />
+          </div>
+          <div style={group}>
+            <Label theme={t} style={{ marginBottom: "12px" }}>
+              {translate("notificationSettings")}
+            </Label>
+            <p style={hint}>{translate("newRsvpAlertsGoCoHosts")}</p>
+            <Toggle
+              label={notifications("enableHostAlerts")}
+              value={hostAlertEmail || hostAlertSms}
+              onChange={(val) => {
+                // The event decides whether alerts exist; each organizer chooses how to get them.
+                setHostAlertEmail(val);
+                if (!val) setHostAlertSms(false);
+                triggerSaveSettings(
+                  val ? { hostAlertEmail: true } : { hostAlertEmail: false, hostAlertSms: false }
+                );
+              }}
+              theme={t}
+            />
+            {/* The viewer's own alert channels, so only for the event's organizers: a
+            moderating admin has none to choose. */}
+            {!adminModerating && (
+              <>
+                <Label theme={t}>{notifications("organizerTitle")}</Label>
+                {hostAlertEmail || hostAlertSms ? (
+                  <NotificationPreferences
+                    scope={{ kind: "organizer", eventId }}
+                    theme={t}
+                    embedded
+                    onStatus={onNotificationStatus}
+                  />
+                ) : (
+                  <p style={hint}>{notifications("organizerOff")}</p>
+                )}
+              </>
+            )}
+          </div>
+          <Toggle
+            label={translate("showRsvpTimestamps")}
+            value={showTimestamps}
+            onChange={(val) => {
+              setShowTimestamps(val);
+              triggerSaveSettings({ showTimestamps: val });
+            }}
+            theme={t}
+          />
+
+          <Field theme={t} label={translate("capacityLimitOptional")} style={{ marginTop: "16px" }}>
+            <Input
+              theme={t}
+              type="number"
+              placeholder={translate("noLimit")}
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              onBlur={() => {
+                const val = capacity.trim() ? Number(capacity) : null;
+                triggerSaveSettings({ capacity: val });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const val = capacity.trim() ? Number(capacity) : null;
+                  triggerSaveSettings({ capacity: val });
+                  e.currentTarget.blur();
+                }
+              }}
+            />
+          </Field>
+          <Field theme={t} label={translate("rsvpDeadlineOptional")}>
+            <Input
+              theme={t}
+              type="datetime-local"
+              value={rsvpDeadline}
+              onChange={(e) => setRsvpDeadline(e.target.value)}
+              onBlur={() => {
+                triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  triggerSaveSettings({ rsvpDeadline: rsvpDeadline || null });
+                  e.currentTarget.blur();
+                }
+              }}
+            />
+          </Field>
+          {rsvpDeadline && (
+            <Toggle
+              label={translate("allowEditingRsvpsAfterDeadline")}
+              value={allowEditAfterDeadline}
+              onChange={(val) => {
+                setAllowEditAfterDeadline(val);
+                triggerSaveSettings({ allowEditAfterDeadline: val });
+              }}
+              theme={t}
+            />
+          )}
+        </>
       )}
     </Section>
   );

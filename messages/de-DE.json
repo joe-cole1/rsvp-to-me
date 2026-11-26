@@ -235,7 +235,15 @@
         "rsvpUsePrivateLink": "Verwende deinen privaten Antwortlink oder kontaktiere den Gastgeber, um diese Antwort zu ändern.",
         "claimGoingRequired": "Nur bestätigte Gäste mit Zusagen können Mitbring-Beiträge übernehmen.",
         "voterNameRequired": "Gib deinen Namen ein, um abzustimmen.",
-        "voteRateLimited": "Zu viele Umfrage-Aktionen. Bitte versuche es später erneut."
+        "voteRateLimited": "Zu viele Umfrage-Aktionen. Bitte versuche es später erneut.",
+        "rsvpsDisabled": "Zusagen sind für dieses Event deaktiviert.",
+        "commentRateLimited": "Zu viele Kommentare. Bitte versuche es später erneut.",
+        "commentNameRequired": "Gib deinen Namen ein, um zu kommentieren.",
+        "questionnaireRateLimited": "Zu viele Einsendungen. Bitte versuche es später erneut.",
+        "questionnaireNameRequired": "Gib deinen Namen ein, um deine Antworten abzusenden.",
+        "questionnaireFieldRequired": "Fülle dieses Pflichtfeld aus.",
+        "questionnaireInvalidOption": "Wähle eine der aufgeführten Optionen.",
+        "checkQuestionnaireFields": "Prüfe die markierten Felder."
       },
       "NotFound": {
         "title": "Diese Seite haben wir nicht gefunden",
@@ -323,7 +331,10 @@
         "potluck": "Mitbringliste",
         "manageItemsGuestsCanSignUp": "Dinge verwalten, die Gäste mitbringen können",
         "manageWhoCanEditEvent": "Verwalten, wer diese Veranstaltung bearbeiten darf",
-        "viewHostsManageCoHostProfile": "Veranstalter ansehen und dein Mitveranstalterprofil verwalten"
+        "viewHostsManageCoHostProfile": "Veranstalter ansehen und dein Mitveranstalterprofil verwalten",
+        "displayOptionsInfoOnly": "Sichtbarkeit, URL, Passwort und Kommentare",
+        "rsvpOptionsInfoOnly": "Zusagen sind deaktiviert (Info-Event)",
+        "questionnaireInfoOnly": "Eigene Fragen direkt auf der Event-Seite stellen"
       },
       "RsvpOptionsPanel": {
         "rsvpOptions": "Rückmeldeoptionen",
@@ -340,7 +351,14 @@
         "requireHostApprovalEachRsvp": "Jede Rückmeldung muss vom Veranstalter genehmigt werden",
         "guestsCanRsvpMaybe": "Gäste können mit „Vielleicht“ antworten",
         "showRsvpTimestamps": "Zeitpunkte der Rückmeldungen anzeigen",
-        "allowEditingRsvpsAfterDeadline": "Rückmeldungen nach Ablauf der Frist bearbeitbar lassen"
+        "allowEditingRsvpsAfterDeadline": "Rückmeldungen nach Ablauf der Frist bearbeitbar lassen",
+        "collectRsvps": "Zusagen (RSVPs) erfassen",
+        "collectRsvpsDescription": "Deaktiviere diese Option, um dieses Event als reine Infoseite ohne Zusagen, Erinnerungen oder Gästeliste zu führen.",
+        "disableRsvpsTitle": "Zusagen deaktivieren?",
+        "disableRsvpsMessage": "RSVP-Karten, Gästeliste, Einladungen und automatische Erinnerungen werden ausgeblendet. Vorhandene Antworten bleiben gespeichert, falls du Zusagen später wieder aktivierst.",
+        "disableRsvpsConfirm": "Zusagen deaktivieren",
+        "infoOnlyActiveHint": "Dieses Event ist ein reines Info-Event. Besucher können Details ansehen, an Umfragen oder Fragebögen teilnehmen und kommentieren, ohne zuzusagen.",
+        "infoOnlyPreservedNotice": "Dieses Event ist ein reines Info-Event. Vorhandene Zusagen und Einladungen sind ausgeblendet und erscheinen wieder, wenn du Zusagen erneut aktivierst."
       },
       "RemindersPanel": {
         "autoReminders": "Automatische Erinnerungen",
@@ -359,7 +377,13 @@
         "optionsOnePerLine": "Optionen, eine pro Zeile",
         "questionText2": "Fragetext *",
         "addQuestion": "Frage hinzufügen",
-        "cancel": "Abbrechen"
+        "cancel": "Abbrechen",
+        "addCustomQuestionsInfoOnly": "Füge eigene Fragen hinzu, um direkt auf der Event-Seite weitere Angaben einzuholen. Nur Gastgeber sehen die Antworten.",
+        "responsesHeading": "Antworten ({count})",
+        "downloadCsv": "CSV herunterladen",
+        "noResponsesYet": "Noch keine Antworten.",
+        "responseSourceEventPage": "Event-Seite",
+        "responseSourceRsvp": "RSVP"
       },
       "PotluckPanel": {
         "managePotluckItems": "Mitbringliste verwalten",
@@ -489,7 +513,8 @@
         "allowGuestSharingCopyLinkQr": "Teilen durch Gäste erlauben (Link kopieren & QR-Code)",
         "everyoneCanSee": "Für alle sichtbar",
         "goingGuestsOnly": "Nur zugesagte Gäste",
-        "hostOnly": "Nur Veranstalter"
+        "hostOnly": "Nur Veranstalter",
+        "privateInfoOnlyPasswordNotice": "Private Info-Events haben keine Gästeeinladungen. Lege oben ein Event-Passwort fest, damit Besucher den Link öffnen können."
       },
       "DangerZonePanel": {
         "failedDeleteEvent": "Veranstaltung konnte nicht gelöscht werden.",
@@ -692,7 +717,8 @@
         "removeCommentBy": "Kommentar von {name} entfernen",
         "removeCommentTitle": "Diesen Kommentar entfernen?",
         "removeCommentMessage": "Dieser Kommentar und alle Antworten darauf werden entfernt.",
-        "removeCommentFailed": "Der Kommentar konnte nicht entfernt werden. Versuche es erneut."
+        "removeCommentFailed": "Der Kommentar konnte nicht entfernt werden. Versuche es erneut.",
+        "yourNameToComment": "Dein Name (zum Kommentieren erforderlich)"
       },
       "SettingsPage": {
         "failedSaveThemeSettings": "Designeinstellungen konnten nicht gespeichert werden.",
@@ -791,7 +817,13 @@
         "emailSent": "E-Mail an {count, plural, one {# Gast} other {# Gäste}} gesendet.",
         "smsSent": "SMS an {count, plural, one {# Gast} other {# Gäste}} gesendet.",
         "close": "Schließen",
-        "blastProcessingFailed": "Ein Teil der Nachrichten konnte nicht verarbeitet werden. Die Zahlen zeigen nur die abgeschlossene Verarbeitung; ein erneuter Versuch kann doppelte Nachrichten senden."
+        "blastProcessingFailed": "Ein Teil der Nachrichten konnte nicht verarbeitet werden. Die Zahlen zeigen nur die abgeschlossene Verarbeitung; ein erneuter Versuch kann doppelte Nachrichten senden.",
+        "share": "Teilen",
+        "shareEvent": "Event teilen",
+        "passwordRequiredNoInvites": "Passwort erforderlich — keine Gästeeinladungen",
+        "privateInfoOnlyNeedsPassword": "Private Info-Events benötigen ein Event-Passwort, bevor Besucher den Link öffnen können.",
+        "privateInfoOnlyShareWithPassword": "Dieses Event ist privat. Teile sowohl den Link als auch das Event-Passwort mit allen, die es öffnen sollen.",
+        "shareInfoOnlyEventLink": "Teile den Event-Link oder QR-Code."
       },
       "GuestListFilter": {
         "all": "Alle",
@@ -865,7 +897,8 @@
         "failedAddOption": "Option konnte nicht hinzugefügt werden",
         "failedDeleteActivityEvent": "Aktivität konnte nicht gelöscht werden",
         "uploadQuotaExceeded": "Der Bildspeicher ist voll (100 MiB pro Konto). Entferne ein nicht mehr benötigtes Titel- oder Profilbild und versuche es erneut.",
-        "coverUploadFailed": "Das Titelbild konnte nicht hochgeladen werden. Versuche es erneut."
+        "coverUploadFailed": "Das Titelbild konnte nicht hochgeladen werden. Versuche es erneut.",
+        "failedAddComment": "Dein Kommentar konnte nicht gesendet werden. Bitte versuche es erneut."
       },
       "shared": {
         "baseThemes": {
@@ -1141,6 +1174,25 @@
         "stale": "Link oder Sichtbarkeit wurden in einem anderen Tab geändert. Lade diese Seite neu und versuche es erneut.",
         "confirmChange": "Bestätige, dass bereits geteilte Links nicht mehr funktionieren.",
         "confirmGuessable": "Wähle, ob du diese erratbare, nicht gelistete Adresse behalten oder einen Zufallscode hinzufügen möchtest."
+      },
+      "QuestionnaireSection": {
+        "title": "Fragen des Gastgebers",
+        "manageQuestions": "Fragebogen verwalten",
+        "hostPreviewHint": "Besucher können diese Fragen direkt auf der Event-Seite beantworten.",
+        "viewResponses": "Antworten ansehen",
+        "onlyHostCanSeeAnswers": "Nur der Gastgeber kann deine Antworten sehen.",
+        "yourName": "Dein Name (erforderlich)",
+        "yourNamePlaceholder": "Dein Name",
+        "requiredMarker": "(erforderlich)",
+        "selectPlaceholder": "Auswählen…",
+        "nameRequiredError": "Gib deinen Namen ein.",
+        "requiredFieldError": "Fülle dieses Pflichtfeld aus.",
+        "checkFields": "Prüfe die markierten Felder.",
+        "answersSaved": "Deine Antworten wurden gespeichert.",
+        "submitFailed": "Deine Antworten konnten nicht gespeichert werden. Bitte versuche es erneut.",
+        "saving": "Speichern…",
+        "submitAnswers": "Antworten absenden",
+        "updateAnswers": "Antworten aktualisieren"
       }
     },
     "Rsvp": {
@@ -1638,7 +1690,8 @@
       "previousPage": "Zurück",
       "nextPage": "Weiter",
       "loadingList": "Wird geladen…",
-      "listPage": "Seite {page}"
+      "listPage": "Seite {page}",
+      "infoOnly": "Nur Info"
     },
     "Dashboard": {
       "eventDetails": "Veranstaltungsdetails",
@@ -1726,7 +1779,13 @@
       "upcomingEventCount": "Du hast {count, plural, one {# bevorstehende Veranstaltung} other {# bevorstehende Veranstaltungen}} geplant.",
       "eventMenu": "Optionen für {title}",
       "activityTypeLabel": "Aktivitätstyp",
-      "activityEventLabel": "Veranstaltung"
+      "activityEventLabel": "Veranstaltung",
+      "rsvpModeHeading": "Zusagen (RSVPs)",
+      "collectRsvps": "Zusagen (RSVPs) erfassen",
+      "collectRsvpsDescription": "Deaktiviere dies für eine reine Infoseite ohne Zusagen oder Gästeliste.",
+      "privateInfoOnlyDescription": "Passwort erforderlich — keine Gästeeinladungen",
+      "privateInfoOnlyCreateNotice": "Private Info-Events versenden keine Gästeeinladungen. Lege nach dem Erstellen in den Anzeigeoptionen ein Event-Passwort fest, damit Besucher es öffnen können.",
+      "infoOnly": "Nur Info"
     },
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "Dieser Link ist abgelaufen oder wurde bereits verwendet. Fordere unten einen neuen an.",

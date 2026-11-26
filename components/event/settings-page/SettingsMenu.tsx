@@ -11,11 +11,13 @@ export function SettingsMenu({
   openSection,
   t,
   emailEnabled = true,
+  rsvpEnabled = true,
 }: {
   isOwner: boolean;
   openSection: (section: SettingsSection) => void;
   t: ResolvedTheme;
   emailEnabled?: boolean;
+  rsvpEnabled?: boolean;
 }) {
   const translate = useTranslations("Ui.Event.SettingsMenu");
 
@@ -33,39 +35,53 @@ export function SettingsMenu({
           {
             id: "privacy",
             title: translate("displayOptions"),
-            desc: translate("guestListAccessGuestRsvpDisplay"),
+            desc: rsvpEnabled
+              ? translate("guestListAccessGuestRsvpDisplay")
+              : translate("displayOptionsInfoOnly"),
           },
           {
             id: "rsvp",
             title: translate("rsvpOptions"),
-            desc: translate("1SettingsRsvpApprovalMaybeOptions"),
+            desc: rsvpEnabled
+              ? translate("1SettingsRsvpApprovalMaybeOptions")
+              : translate("rsvpOptionsInfoOnly"),
           },
           { id: "theme", title: translate("theme"), desc: translate("changeBaseThemeAccentColor") },
-          {
-            id: "reminders",
-            title: translate("autoReminders"),
-            desc: translate("setUpAutomaticEmailsTextsBefore"),
-          },
-          ...(emailEnabled
+          ...(rsvpEnabled
             ? [
                 {
-                  id: "emails" as const,
-                  title: translate("emails"),
-                  desc: translate("previewEventSThemedEmailsSend"),
+                  id: "reminders" as const,
+                  title: translate("autoReminders"),
+                  desc: translate("setUpAutomaticEmailsTextsBefore"),
                 },
+                ...(emailEnabled
+                  ? [
+                      {
+                        id: "emails" as const,
+                        title: translate("emails"),
+                        desc: translate("previewEventSThemedEmailsSend"),
+                      },
+                    ]
+                  : []),
               ]
             : []),
           { id: "polls", title: translate("polls"), desc: translate("createManagePollsGuests") },
           {
             id: "questionnaire",
             title: translate("questionnaire"),
-            desc: translate("askCustomQuestionsGuestsDuringRsvp"),
+            desc: rsvpEnabled
+              ? translate("askCustomQuestionsGuestsDuringRsvp")
+              : translate("questionnaireInfoOnly"),
           },
-          {
-            id: "potluck",
-            title: translate("potluck"),
-            desc: translate("manageItemsGuestsCanSignUp"),
-          },
+          ...(rsvpEnabled
+            ? [
+                {
+                  id: "potluck" as const,
+                  title: translate("potluck"),
+                  desc: translate("manageItemsGuestsCanSignUp"),
+                },
+              ]
+            : []),
         ] as {
           id: SettingsSection;
           title: string;

@@ -459,3 +459,14 @@ claimer names and potluck activity per `guestListVis`, `lib/poll-voter-token.ts`
 gated by `resolveEventAccess`, Turnstile CAPTCHA, and rate limiting, `addRSVP`
 vote linking, and UI behavior across `PotluckSection`, `PollsSection`,
 `PollsPanel`, and `RsvpFlow`.
+
+Issue #843 (`6d5da989`): `issue-843-info-only-events.test.ts`,
+`tests/components/InfoOnlyEvent.test.tsx`, and `tests/e2e/info-only-events.e2e.ts`
+cover info-only events (`Event.rsvpEnabled = false`): creation and Settings
+lifecycle (including schedule seeding on re-enable and confirmation when dormant
+RSVPs exist), ignoring RSVP tokens/accounts on `PRIVATE` events without a
+password, blocking RSVP/check-in/invite/blast/reminder/potluck/guests.csv paths,
+standalone `QuestionnaireSubmission` validation, `HttpOnly` token continuity,
+`/e/[slug]/questionnaire.csv` `SEC-16` export & `private, no-store` caching,
+open polls and comments across `PUBLIC`, `UNLISTED`, and password-unlocked
+`PRIVATE` events, and HostBar/Dashboard/Settings UI behavior.

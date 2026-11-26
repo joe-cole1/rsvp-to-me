@@ -37,6 +37,9 @@ vi.mock("@/lib/db", () => ({
     rSVP: {
       deleteMany: mockRsvpDeleteMany,
     },
+    questionnaireSubmission: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     eventCoHost: {
       deleteMany: mockCoHostDeleteMany,
     },

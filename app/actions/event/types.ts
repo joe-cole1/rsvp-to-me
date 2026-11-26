@@ -9,6 +9,7 @@ export type DashboardEvent = {
   startAt: Date;
   timezone: string;
   status: string;
+  rsvpEnabled?: boolean;
   theme: {
     gradientFrom: string;
     gradientTo: string;
@@ -33,6 +34,7 @@ export type DashboardInvite = {
   startAt: Date;
   timezone: string;
   status: string;
+  rsvpEnabled?: boolean;
   theme: {
     gradientFrom: string;
     gradientTo: string;

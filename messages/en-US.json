@@ -235,7 +235,15 @@
         "rsvpUsePrivateLink": "Use your private RSVP link or contact the host to update this response.",
         "claimGoingRequired": "Only approved Going guests can claim potluck items.",
         "voterNameRequired": "Enter your name to vote.",
-        "voteRateLimited": "Too many poll actions. Please try again later."
+        "voteRateLimited": "Too many poll actions. Please try again later.",
+        "rsvpsDisabled": "RSVPs are disabled for this event.",
+        "commentRateLimited": "Too many comments. Please try again later.",
+        "commentNameRequired": "Enter your name to comment.",
+        "questionnaireRateLimited": "Too many submissions. Please try again later.",
+        "questionnaireNameRequired": "Enter your name to submit your answers.",
+        "questionnaireFieldRequired": "Complete this required field.",
+        "questionnaireInvalidOption": "Choose one of the listed options.",
+        "checkQuestionnaireFields": "Check the highlighted fields."
       },
       "NotFound": {
         "title": "We couldn't find that page",
@@ -323,7 +331,10 @@
         "potluck": "Potluck",
         "manageItemsGuestsCanSignUp": "Manage items guests can sign up to bring",
         "manageWhoCanEditEvent": "Manage who can edit this event",
-        "viewHostsManageCoHostProfile": "View hosts and manage your co-host profile"
+        "viewHostsManageCoHostProfile": "View hosts and manage your co-host profile",
+        "displayOptionsInfoOnly": "Event visibility, URL, password, and comments",
+        "rsvpOptionsInfoOnly": "RSVPs are turned off (info-only event)",
+        "questionnaireInfoOnly": "Ask custom questions directly on the event page"
       },
       "RsvpOptionsPanel": {
         "rsvpOptions": "RSVP options",
@@ -340,7 +351,14 @@
         "requireHostApprovalEachRsvp": "Require host approval for each RSVP",
         "guestsCanRsvpMaybe": "Guests can RSVP «Maybe»",
         "showRsvpTimestamps": "Show RSVP timestamps",
-        "allowEditingRsvpsAfterDeadline": "Allow editing RSVPs after deadline"
+        "allowEditingRsvpsAfterDeadline": "Allow editing RSVPs after deadline",
+        "collectRsvps": "Collect RSVPs",
+        "collectRsvpsDescription": "Turn off to run this event as an info-only page without RSVPs, reminders, or a guest list.",
+        "disableRsvpsTitle": "Turn off RSVPs?",
+        "disableRsvpsMessage": "RSVP cards, the guest list, invitations, and automatic reminders will be hidden. Existing guest responses stay saved if you turn RSVPs back on later.",
+        "disableRsvpsConfirm": "Turn off RSVPs",
+        "infoOnlyActiveHint": "This event is info-only. Visitors can view event details, answer polls or questions, and post comments without RSVPing.",
+        "infoOnlyPreservedNotice": "This event is info-only. Existing RSVPs and invitations are hidden and will reappear if you turn RSVPs back on."
       },
       "RemindersPanel": {
         "autoReminders": "Auto-Reminders",
@@ -359,7 +377,13 @@
         "optionsOnePerLine": "Options, one per line",
         "questionText2": "Question text *",
         "addQuestion": "Add Question",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "addCustomQuestionsInfoOnly": "Add custom questions to gather extra information directly on the event page. Only hosts can see the answers.",
+        "responsesHeading": "Responses ({count})",
+        "downloadCsv": "Download CSV",
+        "noResponsesYet": "No responses yet.",
+        "responseSourceEventPage": "Event page",
+        "responseSourceRsvp": "RSVP"
       },
       "PotluckPanel": {
         "managePotluckItems": "Manage Potluck Items",
@@ -489,7 +513,8 @@
         "allowGuestSharingCopyLinkQr": "Allow guest sharing (Copy link & QR code)",
         "everyoneCanSee": "Everyone can see",
         "goingGuestsOnly": "Going guests only",
-        "hostOnly": "Host only"
+        "hostOnly": "Host only",
+        "privateInfoOnlyPasswordNotice": "Private info-only events have no guest invitations. Set an event password above so visitors can open the link."
       },
       "DangerZonePanel": {
         "failedDeleteEvent": "Failed to delete event.",
@@ -692,7 +717,8 @@
         "removeCommentBy": "Remove comment by {name}",
         "removeCommentTitle": "Remove this comment?",
         "removeCommentMessage": "This comment and all of its replies will be removed.",
-        "removeCommentFailed": "Could not remove this comment. Try again."
+        "removeCommentFailed": "Could not remove this comment. Try again.",
+        "yourNameToComment": "Your name (required to comment)"
       },
       "SettingsPage": {
         "failedSaveThemeSettings": "Failed to save theme settings.",
@@ -791,7 +817,13 @@
         "emailSent": "Sent email to {count, plural, one {# guest} other {# guests}}.",
         "smsSent": "Sent SMS to {count, plural, one {# guest} other {# guests}}.",
         "close": "Close",
-        "blastProcessingFailed": "Some message processing could not be completed. Counts show completed processing only; retrying may send duplicates."
+        "blastProcessingFailed": "Some message processing could not be completed. Counts show completed processing only; retrying may send duplicates.",
+        "share": "Share",
+        "shareEvent": "Share Event",
+        "passwordRequiredNoInvites": "Password required — no guest invitations",
+        "privateInfoOnlyNeedsPassword": "Private info-only events require an event password before visitors can open the link.",
+        "privateInfoOnlyShareWithPassword": "This event is private. Share both the link and the event password with anyone you'd like to open it.",
+        "shareInfoOnlyEventLink": "Share the event link or QR code."
       },
       "GuestListFilter": {
         "all": "All",
@@ -865,7 +897,8 @@
         "failedAddOption": "Failed to add option",
         "failedDeleteActivityEvent": "Failed to delete activity event",
         "uploadQuotaExceeded": "Upload storage is full (100 MiB per account). Remove an unused cover or profile image, then try again.",
-        "coverUploadFailed": "Could not upload the cover image. Try again."
+        "coverUploadFailed": "Could not upload the cover image. Try again.",
+        "failedAddComment": "Could not post your comment. Try again."
       },
       "shared": {
         "baseThemes": {
@@ -1141,6 +1174,25 @@
         "stale": "The link or visibility changed in another tab. Reload this page before trying again.",
         "confirmChange": "Confirm that previously shared links will stop working.",
         "confirmGuessable": "Choose whether to keep this guessable Unlisted address or add a random code."
+      },
+      "QuestionnaireSection": {
+        "title": "Questions from the host",
+        "manageQuestions": "Manage questionnaire",
+        "hostPreviewHint": "Visitors can answer these questions directly on the event page.",
+        "viewResponses": "View responses",
+        "onlyHostCanSeeAnswers": "Only the host can see your answers.",
+        "yourName": "Your name (required)",
+        "yourNamePlaceholder": "Your name",
+        "requiredMarker": "(required)",
+        "selectPlaceholder": "Select…",
+        "nameRequiredError": "Enter your name.",
+        "requiredFieldError": "Complete this required field.",
+        "checkFields": "Check the highlighted fields.",
+        "answersSaved": "Your answers have been saved.",
+        "submitFailed": "Could not save your answers. Try again.",
+        "saving": "Saving…",
+        "submitAnswers": "Submit answers",
+        "updateAnswers": "Update answers"
       }
     },
     "Rsvp": {
@@ -1638,7 +1690,8 @@
       "previousPage": "Previous",
       "nextPage": "Next",
       "loadingList": "Loading…",
-      "listPage": "Page {page}"
+      "listPage": "Page {page}",
+      "infoOnly": "Info only"
     },
     "Dashboard": {
       "eventDetails": "Event Details",
@@ -1726,7 +1779,13 @@
       "upcomingEventCount": "You have {count, plural, one {# upcoming event} other {# upcoming events}} scheduled.",
       "eventMenu": "Options for {title}",
       "activityTypeLabel": "Activity type",
-      "activityEventLabel": "Event"
+      "activityEventLabel": "Event",
+      "rsvpModeHeading": "RSVPs",
+      "collectRsvps": "Collect RSVPs",
+      "collectRsvpsDescription": "Turn this off for an info-only event page without RSVPs or a guest list.",
+      "privateInfoOnlyDescription": "Password required — no guest invitations are sent",
+      "privateInfoOnlyCreateNotice": "Info-only private events don't send guest invitations. Set an event password in Display options after creating the event so visitors can open it.",
+      "infoOnly": "Info only"
     },
     "Auth": {
       "thatLinkHasExpiredOrAlreadyBeenUsedRequest": "That link has expired or already been used. Request a new one below.",

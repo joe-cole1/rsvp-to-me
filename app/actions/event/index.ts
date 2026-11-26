@@ -21,6 +21,7 @@ export {
   deleteRsvpField,
   reorderRsvpFields,
   getRsvpFieldAnswers,
+  submitQuestionnaireResponse,
 } from "./rsvpFields";
 export {
   deleteInvitationAsHost,

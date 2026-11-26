@@ -4,12 +4,15 @@ import { useTranslations } from "next-intl";
 
 import { Plus, X } from "lucide-react";
 import type { ResolvedTheme } from "@/lib/theme";
-import type { RsvpFieldEntry, SettingsOverrides } from "./types";
+import type { QuestionnaireResponseEntry, RsvpFieldEntry, SettingsOverrides } from "./types";
 import { Section } from "./ui";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonProps } from "@/components/ui/Button";
 import { Check, Input, Select, Textarea } from "@/components/ui/Field";
 
 export function QuestionnairePanel({
+  rsvpEnabled = true,
+  eventSlug,
+  responses = [],
   fields,
   addingField,
   setAddingField,
@@ -34,6 +37,9 @@ export function QuestionnairePanel({
   isPending,
   t,
 }: {
+  rsvpEnabled?: boolean;
+  eventSlug?: string;
+  responses?: QuestionnaireResponseEntry[];
   questionnaireEnabled: boolean;
   setQuestionnaireEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   fields: RsvpFieldEntry[];
@@ -98,7 +104,9 @@ export function QuestionnairePanel({
           lineHeight: "1.5",
         }}
       >
-        {translate("addCustomQuestionsGatherExtraInformation")}
+        {rsvpEnabled
+          ? translate("addCustomQuestionsGatherExtraInformation")
+          : translate("addCustomQuestionsInfoOnly")}
       </div>
 
       {fields.length > 0 && (
@@ -247,6 +255,96 @@ export function QuestionnairePanel({
         >
           <Plus size={14} aria-hidden="true" /> {translate("addQuestion")}
         </Button>
+      )}
+
+      {(fields.length > 0 || responses.length > 0) && (
+        <div
+          style={{
+            borderTop: `1px solid ${t.cardBorder}`,
+            marginTop: "20px",
+            paddingTop: "16px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              marginBottom: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            <h3 style={{ fontSize: "15px", fontWeight: 700, color: t.textPrimary, margin: 0 }}>
+              {translate("responsesHeading", { count: responses.length })}
+            </h3>
+            {eventSlug && responses.length > 0 && (
+              <a
+                href={`/e/${eventSlug}/questionnaire.csv`}
+                {...buttonProps(t, { variant: "secondary", size: "sm" })}
+              >
+                {translate("downloadCsv")}
+              </a>
+            )}
+          </div>
+          {responses.length === 0 ? (
+            <p style={{ fontSize: "13px", color: t.textSecondary, margin: 0 }}>
+              {translate("noResponsesYet")}
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {responses.map((entry) => {
+                const answeredFields = fields
+                  .map((field) => ({
+                    field,
+                    value: entry.answers[field.id],
+                  }))
+                  .filter((item) => Boolean(item.value?.trim()));
+                return (
+                  <div key={entry.id} style={block}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "8px",
+                        marginBottom: answeredFields.length > 0 ? "8px" : 0,
+                      }}
+                    >
+                      <span style={{ fontSize: "14px", fontWeight: 700, color: t.textPrimary }}>
+                        {entry.respondentName}
+                      </span>
+                      <span style={{ fontSize: "12px", color: t.textMuted }}>
+                        {entry.source === "standalone"
+                          ? translate("responseSourceEventPage")
+                          : translate("responseSourceRsvp")}
+                      </span>
+                    </div>
+                    {answeredFields.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {answeredFields.map(({ field, value }) => (
+                          <div
+                            key={field.id}
+                            style={{ fontSize: "13px", color: t.textSecondary, lineHeight: 1.45 }}
+                          >
+                            <strong style={{ color: t.textPrimary }}>{field.label}:</strong>{" "}
+                            {field.fieldType === "CHECKBOX"
+                              ? value
+                                  .split(",")
+                                  .map((v) => v.trim())
+                                  .filter(Boolean)
+                                  .join(", ")
+                              : value}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
     </Section>
   );

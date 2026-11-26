@@ -42,6 +42,10 @@ import { InfoSectionsBlock } from "./event-page/InfoSectionsBlock";
 import { PendingApprovalsCard, ApprovalMessageModal } from "./event-page/PendingApprovals";
 import { PollsSection } from "./event-page/PollsSection";
 import { PotluckSection } from "./event-page/PotluckSection";
+import {
+  QuestionnaireSection,
+  type ViewerQuestionnaireSubmission,
+} from "./event-page/QuestionnaireSection";
 import { RsvpSection } from "./event-page/RsvpSection";
 import { ShareQrModal } from "./event-page/ShareQrModal";
 import { useCaptcha } from "@/components/ui/CaptchaProvider";
@@ -60,6 +64,8 @@ export function EventPage({
   sessionUser = null,
   channelConfig = { email: true, sms: true },
   initialVoterName = "",
+  initialQuestionnaireSubmission = null,
+  hasPassword = false,
 }: {
   event: EventData;
   isHost: boolean;
@@ -75,6 +81,8 @@ export function EventPage({
   } | null;
   channelConfig?: { email: boolean; sms: boolean };
   initialVoterName?: string;
+  initialQuestionnaireSubmission?: ViewerQuestionnaireSubmission | null;
+  hasPassword?: boolean;
 }) {
   const translate = useTranslations("Ui.Event.EventPage");
 
@@ -173,16 +181,22 @@ export function EventPage({
   // An admin browsing an event they have no relationship to may still act, but
   // is shown a notice that they are doing so without an RSVP.
   const isAdminBypass = isAdmin && !isHost && !guestRsvpId;
+  const rsvpEnabled = event.rsvpEnabled !== false;
   // A logged-in viewer with no RSVP may comment on public/unlisted events
-  // (admins anywhere); blocked on private events.
+  // (admins anywhere); blocked on private events. On info-only events, any
+  // viewer who cleared resolveEventAccess (including password-unlocked PRIVATE)
+  // may comment.
   const isLoggedInViewer = !!sessionUser && !guestRsvpId && !isHost;
-  const canViewerComment = isLoggedInViewer && (isAdmin || event.visibility !== "PRIVATE");
+  const canViewerComment = rsvpEnabled
+    ? isLoggedInViewer && (isAdmin || event.visibility !== "PRIVATE")
+    : !isHost;
   // Display name the current user authors content under, matching the value the
   // server derives (RSVP name for approved guests, user record otherwise).
   const selfAuthorName =
     isApprovedGuest && !isHost && !isAdmin
       ? guestName || "Guest"
       : sessionUser?.name || sessionUser?.email || guestName || "Guest";
+  const [commentError, setCommentError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
     section: EventData["infoSections"][number];
@@ -361,83 +375,101 @@ export function EventPage({
 
   const submitComment = async () => {
     if (!commentText.trim()) return;
+    const authorName =
+      !rsvpEnabled && !isHost && !sessionUser ? voterNameDraft.trim() : selfAuthorName;
+    if (!authorName) return;
+    setCommentError(null);
     startTransition(async () => {
-      const result = await runWithCaptcha("comment", (token) =>
-        addComment(
-          {
-            eventId: event.id,
-            guestName: selfAuthorName,
-            body: commentText.trim(),
-            guestEditToken: guestEditToken ?? undefined,
-          },
-          token
-        )
-      );
-      if (result.success) {
-        setCommentText("");
-        setEvent((e) => ({
-          ...e,
-          comments: [
+      try {
+        const result = await runWithCaptcha("comment", (token) =>
+          addComment(
             {
-              id: result.id!,
-              guestName: selfAuthorName,
+              eventId: event.id,
+              guestName: authorName,
               body: commentText.trim(),
-              createdAt: new Date(),
-              replies: [],
+              guestEditToken: guestEditToken ?? undefined,
             },
-            ...e.comments,
-          ],
-        }));
-        setFeedPage(1);
+            token
+          )
+        );
+        if (result.success) {
+          setCommentText("");
+          setEvent((e) => ({
+            ...e,
+            comments: [
+              {
+                id: result.id!,
+                guestName: authorName,
+                body: commentText.trim(),
+                createdAt: new Date(),
+                replies: [],
+              },
+              ...e.comments,
+            ],
+          }));
+          setFeedPage(1);
+        } else {
+          setCommentError(result.error || translate("failedAddComment"));
+        }
+      } catch (err) {
+        setCommentError(err instanceof Error ? err.message : translate("failedAddComment"));
       }
     });
   };
 
   const submitReply = async (parentId: string) => {
     if (!replyText.trim()) return;
-    const name = selfAuthorName;
+    const name = !rsvpEnabled && !isHost && !sessionUser ? voterNameDraft.trim() : selfAuthorName;
+    if (!name) return;
     setReplyError(null);
 
     startTransition(async () => {
-      const result = await runWithCaptcha("comment", (token) =>
-        addComment(
-          {
-            eventId: event.id,
-            guestName: name,
-            body: replyText.trim(),
-            guestEditToken: guestEditToken ?? undefined,
-            parentId,
-          },
-          token
-        )
-      );
+      try {
+        const result = await runWithCaptcha("comment", (token) =>
+          addComment(
+            {
+              eventId: event.id,
+              guestName: name,
+              body: replyText.trim(),
+              guestEditToken: guestEditToken ?? undefined,
+              parentId,
+            },
+            token
+          )
+        );
 
-      if (result.success) {
-        setReplyText("");
-        setReplyingToId(null);
-        setEvent((e) => ({
-          ...e,
-          comments: e.comments.map((c) => {
-            if (c.id === parentId) {
-              return {
-                ...c,
-                replies: [
-                  ...c.replies,
-                  {
-                    id: result.id!,
-                    guestName: name,
-                    body: replyText.trim(),
-                    createdAt: new Date(),
-                  },
-                ],
-              };
-            }
-            return c;
-          }),
-        }));
-        setFeedPage(1);
-      } else {
-        setReplyError({ parentId, message: result.error || translate("failedAddReply") });
+        if (result.success) {
+          setReplyText("");
+          setReplyingToId(null);
+          setEvent((e) => ({
+            ...e,
+            comments: e.comments.map((c) => {
+              if (c.id === parentId) {
+                return {
+                  ...c,
+                  replies: [
+                    ...c.replies,
+                    {
+                      id: result.id!,
+                      guestName: name,
+                      body: replyText.trim(),
+                      createdAt: new Date(),
+                    },
+                  ],
+                };
+              }
+              return c;
+            }),
+          }));
+          setFeedPage(1);
+        } else {
+          setReplyError({ parentId, message: result.error || translate("failedAddReply") });
+        }
+      } catch (err) {
+        setReplyError({
+          parentId,
+          message: err instanceof Error ? err.message : translate("failedAddReply"),
+        });
       }
     });
   };
@@ -745,7 +777,8 @@ export function EventPage({
     });
 
     try {
-      if (targetPoll?.requireRsvp === false && !isHost && !rsvpDone) {
+      const isOpenPoll = !rsvpEnabled || targetPoll?.requireRsvp === false;
+      if (isOpenPoll && !isHost && !rsvpDone) {
         await runWithCaptcha("poll_vote", (captchaToken) =>
           castVote(
             pollId,
@@ -913,24 +946,28 @@ export function EventPage({
           moveSection={moveSection}
         />
 
-        <RsvpSection
-          event={event}
-          t={t}
-          isHost={isHost}
-          guestEditToken={guestEditToken}
-          rsvpStatus={rsvpStatus}
-          rsvpDone={rsvpDone}
-          rsvpApproved={guestRsvp?.approved ?? true}
-        />
+        {rsvpEnabled && (
+          <>
+            <RsvpSection
+              event={event}
+              t={t}
+              isHost={isHost}
+              guestEditToken={guestEditToken}
+              rsvpStatus={rsvpStatus}
+              rsvpDone={rsvpDone}
+              rsvpApproved={guestRsvp?.approved ?? true}
+            />
 
-        <PendingApprovalsCard
-          event={event}
-          renderAvatar={renderAvatar}
-          isPending={isPending}
-          t={t}
-          isHost={isHost}
-          setActiveApproval={setActiveApproval}
-        />
+            <PendingApprovalsCard
+              event={event}
+              renderAvatar={renderAvatar}
+              isPending={isPending}
+              t={t}
+              isHost={isHost}
+              setActiveApproval={setActiveApproval}
+            />
+          </>
+        )}
 
         <GuestSharingCard
           event={event}
@@ -942,13 +979,26 @@ export function EventPage({
         />
 
         {/* ── Guest Invite Friend Block (for private events when guestsCanInvite is enabled) ── */}
-        {!isHost &&
+        {rsvpEnabled &&
+          !isHost &&
           event.visibility === "PRIVATE" &&
           event.guestsCanInvite &&
           rsvpDone &&
           (rsvpStatus === "GOING" || rsvpStatus === "MAYBE") && (
             <GuestInviteFriendCard eventId={event.id} guestToken={guestEditToken ?? ""} theme={t} />
           )}
+
+        {!rsvpEnabled && (
+          <QuestionnaireSection
+            event={event}
+            t={t}
+            isHost={isHost}
+            initialSubmission={initialQuestionnaireSubmission}
+            hasSessionName={Boolean(sessionUser?.name?.trim())}
+            voterNameDraft={voterNameDraft}
+            setVoterNameDraft={setVoterNameDraft}
+          />
+        )}
 
         <PollsSection
           event={event}
@@ -971,37 +1021,41 @@ export function EventPage({
           handleAddPollOption={handleAddPollOption}
         />
 
-        <PotluckSection
-          event={event}
-          t={t}
-          isHost={isHost}
-          rsvpStatus={rsvpStatus}
-          rsvpDone={rsvpDone}
-          guestEditToken={guestEditToken}
-          rsvpOpen={rsvpOpen}
-          guestName={guestName}
-          isPendingGuest={isPendingGuest}
-          pendingNoticeStyle={pendingNoticeStyle}
-          claimingItemId={claimingItemId}
-          setClaimingItemId={setClaimingItemId}
-          claimName={claimName}
-          setClaimName={setClaimName}
-          claimQty={claimQty}
-          setClaimQty={setClaimQty}
-          claimItem={claimItem}
-          unclaimItem={unclaimItem}
-        />
+        {rsvpEnabled && (
+          <>
+            <PotluckSection
+              event={event}
+              t={t}
+              isHost={isHost}
+              rsvpStatus={rsvpStatus}
+              rsvpDone={rsvpDone}
+              guestEditToken={guestEditToken}
+              rsvpOpen={rsvpOpen}
+              guestName={guestName}
+              isPendingGuest={isPendingGuest}
+              pendingNoticeStyle={pendingNoticeStyle}
+              claimingItemId={claimingItemId}
+              setClaimingItemId={setClaimingItemId}
+              claimName={claimName}
+              setClaimName={setClaimName}
+              claimQty={claimQty}
+              setClaimQty={setClaimQty}
+              claimItem={claimItem}
+              unclaimItem={unclaimItem}
+            />
 
-        <GuestListSection
-          event={event}
-          renderAvatar={renderAvatar}
-          t={t}
-          isHost={isHost}
-          going={going}
-          maybe={maybe}
-          no={no}
-          totalGoing={totalGoing}
-        />
+            <GuestListSection
+              event={event}
+              renderAvatar={renderAvatar}
+              t={t}
+              isHost={isHost}
+              going={going}
+              maybe={maybe}
+              no={no}
+              totalGoing={totalGoing}
+            />
+          </>
+        )}
 
         <ActivityFeed
           event={event}
@@ -1014,6 +1068,10 @@ export function EventPage({
           isAdminBypass={isAdminBypass}
           canViewerComment={canViewerComment}
           selfAuthorName={selfAuthorName}
+          hasSessionUser={Boolean(sessionUser)}
+          voterNameDraft={voterNameDraft}
+          setVoterNameDraft={setVoterNameDraft}
+          commentError={commentError}
           pendingNoticeStyle={pendingNoticeStyle}
           guestRsvpId={guestRsvpId}
           commentText={commentText}
@@ -1060,6 +1118,8 @@ export function EventPage({
           theme={t}
           visibility={event.visibility}
           channelConfig={channelConfig}
+          rsvpEnabled={rsvpEnabled}
+          hasPassword={hasPassword}
         />
       )}
 

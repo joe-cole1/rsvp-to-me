@@ -93,7 +93,9 @@ export function EventsTab({
                     </td>
                     <td style={{ padding: "16px" }}>
                       <div style={{ color: APP_SHELL.textPrimary }}>
-                        {tr("rsvpsMessage", { value0: e.rsvpCount })}
+                        {e.rsvpEnabled === false
+                          ? tr("infoOnly")
+                          : tr("rsvpsMessage", { value0: e.rsvpCount })}
                       </div>
                       <span
                         style={{

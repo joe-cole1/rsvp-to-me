@@ -160,7 +160,7 @@ Search for events by title, slug, or the host's email, and filter by status.
 
 ### What Admins Can Do
 
-- View any event's details and guest list, and delete events that violate your rules.
+- View any event's details and guest list (info-only events display **Info only** in the event table instead of an RSVP count), and delete events that violate your rules.
 - Admins do not edit event details from inside the Admin Panel. Instead, when an Admin opens a public event page, their permissions supersede the host checks — so they can use the inline editor, manage comments, edit potlucks, and moderate RSVPs exactly like the host.
 - **Moderate** opens the event page with the host toolbar. From there, an Admin can open the event's **Settings** and **guest list**, even when the list is host-only, and the back links return to the host toolbar. In Settings an Admin gets the co-host view: owner-only controls, such as deleting the event and managing co-hosts, stay with the owner (delete events from this panel instead). Admins can switch the event's RSVP alerts on or off, but **Your RSVP alerts** is hidden, because those delivery choices belong to each organizer. Access comes from the account's Admin role; adding `?admin=1` to an event URL does nothing for any other account.
 - Public event pages and their related settings and RSVP screens use a responsive, single-column layout capped at 600px; compact authentication, confirmation, and modal surfaces remain narrower by design.

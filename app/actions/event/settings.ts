@@ -227,6 +227,7 @@ export async function saveEventTheme(
 export async function saveEventSettings(
   eventId: string,
   settings: Partial<GuestRsvpDisplayFields> & {
+    rsvpEnabled?: boolean;
     commentsEnabled?: boolean;
     plusOneAllowed?: boolean;
     plusOneMax?: number;
@@ -290,9 +291,45 @@ export async function saveEventSettings(
           : undefined,
     },
   });
+  // When RSVPs are turned back on for an event created info-only, seed the
+  // default reminder/nudge schedule once, marking already-elapsed offsets consumed
+  // so they never fire late.
+  if (rest.rsvpEnabled === true) {
+    const existingSchedules = await db.notificationSchedule.count({ where: { eventId } });
+    if (existingSchedules === 0) {
+      const current = await db.event.findUnique({
+        where: { id: eventId },
+        select: { startAt: true },
+      });
+      if (current) {
+        const now = new Date();
+        const consumedAtFor = (hoursBefore: number) =>
+          current.startAt.getTime() - hoursBefore * 3600 * 1000 <= now.getTime() ? now : null;
+        await db.notificationSchedule.createMany({
+          data: [
+            {
+              eventId,
+              kind: "reminder",
+              hoursBefore: 24,
+              consumedAt: consumedAtFor(24),
+            },
+            {
+              eventId,
+              kind: "nudge",
+              hoursBefore: 72,
+              consumedAt: consumedAtFor(72),
+            },
+          ],
+          skipDuplicates: true,
+        });
+      }
+    }
+  }
   revalidatePath(`/e/${event.slug}`);
   revalidatePath(`/e/${event.slug}/settings`);
   revalidatePath(`/e/${event.slug}/guests`);
+  revalidatePath(`/dashboard`);
+  revalidatePath(`/`);
   return { success: true };
 }
 
@@ -420,6 +457,8 @@ export async function deleteEvent(eventId: string) {
     db.notificationSettings.deleteMany({ where: { eventId } }),
     db.notificationSchedule.deleteMany({ where: { eventId } }),
     db.rSVPAnswer.deleteMany({ where: { rsvp: { eventId } } }),
+    db.questionnaireAnswer.deleteMany({ where: { submission: { eventId } } }),
+    db.questionnaireSubmission.deleteMany({ where: { eventId } }),
     db.plusOneGuest.deleteMany({ where: { rsvp: { eventId } } }),
     db.rSVP.deleteMany({ where: { eventId } }),
     db.checkIn.deleteMany({ where: { eventId } }),

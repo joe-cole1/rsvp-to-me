@@ -30,6 +30,7 @@ export interface AdminEvent {
   startAt: Date;
   status: string;
   visibility: string;
+  rsvpEnabled?: boolean;
   hostName: string;
   hostEmail: string;
   rsvpCount: number;

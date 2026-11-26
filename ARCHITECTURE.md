@@ -249,8 +249,9 @@ Redis. See `docs/admin/local-development.md` and `WORKFLOW.md`.
   with per-parent PostgreSQL row locks for single-choice replacement and claim
   capacity. Client payloads receive only per-viewer `isMine` flags, not account
   ownership ids. Historical rows are preserved without guessed RSVP ownership.
-- Potluck items are visible read-only before RSVP, with non-mine claimer names redacted in `lib/guestList.ts#stripHostOnlyEventData` whenever `guestListVis` hides the guest list, and claiming strictly requires an approved `GOING` RSVP.
-- Polls enforce `Poll.requireRsvp` (default `true`, requiring an approved `GOING` or `MAYBE` RSVP); when a host disables `requireRsvp` on a poll, un-RSVP'd viewers who pass `resolveEventAccess` and Turnstile CAPTCHA receive an `HttpOnly` browser voter cookie (`lib/poll-voter-token.ts`) hashed into `PollVote.voterTokenHash` (linked to their `RSVP` if they later respond).
+- Potluck items are visible read-only before RSVP, with non-mine claimer names redacted in `lib/guestList.ts#stripHostOnlyEventData` whenever `guestListVis` hides the guest list, and claiming strictly requires an approved `GOING` RSVP (hidden/disabled when `Event.rsvpEnabled === false`).
+- Polls enforce `effectiveRequireRsvp = event.rsvpEnabled && poll.requireRsvp` (`Poll.requireRsvp` defaults to `true`, requiring an approved `GOING` or `MAYBE` RSVP); when open (`requireRsvp === false` or info-only `Event.rsvpEnabled === false`), un-RSVP'd viewers who pass `resolveEventAccess` and Turnstile CAPTCHA receive an `HttpOnly` browser voter cookie (`lib/poll-voter-token.ts`) hashed into `PollVote.voterTokenHash` (linked to their `RSVP` if they later respond).
+- Info-only events (`Event.rsvpEnabled = false`, #843) operate as flyer pages without collecting RSVPs: `/e/[slug]/rsvp`, `/e/[slug]/guests`, `/e/[slug]/guests.csv`, RSVP mutations/contact proofs, RSVP token/account `PRIVATE` access bypasses in `lib/eventAccess.ts`, check-ins/walk-ins, invitations, blasts, reminders, and potluck are disabled/redirected while preserving any pre-existing RSVP rows if toggled off later. Comments (`Comment.voterTokenHash`) and custom questionnaires (`QuestionnaireSubmission` / `QuestionnaireAnswer` via `submitQuestionnaireResponse` and `/e/[slug]/questionnaire.csv`) open to viewers who pass `resolveEventAccess` (including password-unlocked `PRIVATE` events), Turnstile CAPTCHA, and rate limits; `/e/[slug]/page.tsx` strips `passwordHash` and `voterTokenHash` and ships only the viewer's own questionnaire submission.
 - Shared validation belongs in `lib/schemas.ts`; shared authorization belongs
   in `lib/auth-guards.ts` or `lib/eventAccess.ts`.
 - Client submissions request fresh Turnstile tokens through
@@ -419,7 +420,8 @@ The Prisma schema is organized around:
 - identity and access: `User`, `MagicToken`, `Session`, `HostInviteCode`;
 - events and presentation: `Event`, `EventCoHost`, `EventTheme`, `ThemePreset`,
   `EventInfoSection`, `EventReminderSettings`;
-- attendance: `RSVP`, `PlusOneGuest`, `RSVPField`, `RSVPAnswer`, `Invitation`;
+- attendance: `RSVP`, `PlusOneGuest`, `RSVPField`, `RSVPAnswer`,
+  `QuestionnaireSubmission`, `QuestionnaireAnswer`, `Invitation`;
 - collaboration: `EventUpdate`, `Comment`, `PotluckItem`, `PotluckClaim`,
   `Poll`, `PollOption`, `PollVote`;
 - operations: `SystemConfig`, `SentReminder`, `CheckIn`, `ActivityEvent`,
@@ -464,7 +466,7 @@ Document HTML and React Server Component responses contain request-specific CSP
 nonces and must not be cached or replayed by a reverse proxy or CDN. Static
 assets under `public/` and `_next/` may keep ordinary long-lived asset caching.
 `next.config.ts` is the source of truth for the `private, no-store` response policy
-on guest CSV, event calendar ICS, and admin backup download paths, including
+on guest CSV, questionnaire CSV, event calendar ICS, and admin backup download paths, including
 denied and missing responses.
 
 `.nvmrc` is the exact local Node selection. `package.json` expresses the
