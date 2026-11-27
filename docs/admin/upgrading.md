@@ -81,7 +81,12 @@ guide](https://docs.github.com/en/actions/how-tos/administer/control-workflow-ex
 
 ## v2.1.0 release
 
-v2.1.0 adds info-only events without RSVPs (#843, #942), structured
+> **Published container image:** `v2.1.1` is the published container release for
+> this feature line (`v2.1.0` had no published image because the pre-release
+> upgrade rehearsal blocked it prior to `#948`). Docker deployments pull
+> `ghcr.io/joe-cole1/rsvp-to-me:2.1.1` (or `2.1` / `latest`).
+
+v2.1.0 / v2.1.1 adds info-only events without RSVPs (#843, #942), structured
 questionnaire contact and terms fields with quick-add templates and a Going-only
 filter (#786, #943), pre-RSVP potluck visibility and per-poll open voting
 (#696, #879, #941), and a cleaner event hero without a dark background scrim
@@ -894,7 +899,7 @@ docker image inspect --format '{{json .RepoDigests}}' "$image_id"
 ### Step 1: Read the Release Notes
 
 Check the [Releases Page](https://github.com/joe-cole1/rsvp-to-me/releases) for breaking changes, required `.env` variables, or custom instructions.
-For v2.1.0 from v2.0.0, there are no breaking configuration changes; if upgrading from v1.5.0, work through the [v2.0.0 breaking-change checklist](#breaking-change-checklist) first.
+For v2.1.1 from v2.0.0, there are no breaking configuration changes; if upgrading from v1.5.0, work through the [v2.0.0 breaking-change checklist](#breaking-change-checklist) first.
 
 > **Upgrading from a version with default database passwords:** the compose files no longer ship fallback passwords for `POSTGRES_PASSWORD` / `REDIS_PASSWORD` — both must now be set in `.env` or the stack refuses to start. If your existing installation ever ran **without** these variables set, PostgreSQL initialized its data volume with the old built-in default (`postgres_password_here`). Set `POSTGRES_PASSWORD` to that existing value first so the app can still connect, then rotate it to a strong password with: `docker compose -f docker-compose.release.yml exec postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'new-strong-password';"` and update `.env` to match before restarting. Redis reads its password from the compose command on every start, so `REDIS_PASSWORD` can simply be set to a new strong value. The old compose files also published PostgreSQL on host port `5432`; that mapping has been removed, so external tools must now go through `docker compose -f docker-compose.release.yml exec postgres ...` instead of connecting to `localhost:5432` — or use a loopback-only override / shared Docker network as described in the [Installation Guide's "Connecting Database Tools" section](./installation.md#connecting-database-tools).
 
@@ -904,12 +909,12 @@ Follow [Method 1](#method-1-pg_dump-via-the-postgres-container-recommended) and 
 
 ### Step 3: Pull the New Image
 
-For v2.1.0, edit only the app image in the Compose file used by your deployment:
+For v2.1.1, edit only the app image in the Compose file used by your deployment:
 
 ```yaml
 services:
   app:
-    image: ghcr.io/joe-cole1/rsvp-to-me:2.1.0
+    image: ghcr.io/joe-cole1/rsvp-to-me:2.1.1
 ```
 
 Wait for the published release's image build to succeed, then pull only the app.
@@ -931,7 +936,7 @@ docker compose -f docker-compose.release.yml logs --tail=100 app
 ```
 
 The app will briefly be unavailable while startup checks, migrations, and
-seeding finish. Upgrading from v2.0.0 to v2.1.0 applies three additive
+seeding finish. Upgrading from v2.0.0 to v2.1.1 applies three additive
 migrations and verifies saved v2 credentials (`0 converted, ... verified; v2
 ready.`); upgrading directly from v1.5.0 applies all fifteen migrations and
 converts saved credentials. See [What runs at startup](#what-runs-at-startup).
@@ -1031,13 +1036,15 @@ If you experience issues, you can roll back your application to the previous wor
 
 ### Rolling back v2.1.0 to v2.0.0
 
+_(Applies to `v2.1.1`, the published `2.1` container release.)_
+
 - **Image-only rollback (when no `PHONE`, `ADDRESS`, or `TERMS` questionnaire
   fields exist):** if no event created one of the new `RSVPFieldType` enum
-  values on v2.1.0, v2.0.0 starts on the migrated database and ignores the new
+  values on v2.1.1, v2.0.0 starts on the migrated database and ignores the new
   columns and tables (`rsvpEnabled`, `requireRsvp`, `goingOnly`, `description`,
   `voterTokenHash`, and standalone questionnaire tables). While rolled back,
   info-only events display RSVPs again and polls require an RSVP; they return
-  when you upgrade back to v2.1.0. Pin the recorded v2.0.0 image digest (or
+  when you upgrade back to v2.1.1. Pin the recorded v2.0.0 image digest (or
   `ghcr.io/joe-cole1/rsvp-to-me:2.0.0`), pull `app`, recreate `app` with
   `docker compose -f docker-compose.release.yml up -d --no-deps app`, and
   repeat [Verifying the Upgrade](#verifying-the-upgrade). Do not restore an old
@@ -1045,8 +1052,8 @@ If you experience issues, you can roll back your application to the previous wor
 - **Full database restore (when `PHONE`, `ADDRESS`, or `TERMS` fields exist,
   or for an exact restore):** v2.0.0 cannot read the new `PHONE`, `ADDRESS`, or
   `TERMS` enum values in `RSVPField`. Either remove or convert those fields on
-  v2.1.0 first, or stop `app`, move the upgraded `rsvp_db` aside, and restore
-  your pre-upgrade `pg_dump` (or v2.1.0's `pre-migration-schema_*.sql`
+  v2.1.1 first, or stop `app`, move the upgraded `rsvp_db` aside, and restore
+  your pre-upgrade `pg_dump` (or v2.1.1's `pre-migration-schema_*.sql`
   snapshot) into a fresh database with `psql -v ON_ERROR_STOP=1` using the same
   restore commands shown below for v2.0.0 → v1.5.0, then start the v2.0.0
   image with the same `.env` (which loses data received after the upgrade).
