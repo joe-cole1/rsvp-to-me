@@ -246,24 +246,29 @@ async function seed() {
     return slug;
   });
   await check("Scheduled reminders for the new event", async () => {
-    await act(
+    const path = `/e/${event.slug}/settings`;
+    const current = await act(
       host,
-      "app/actions/event/settings.ts#saveReminderSettings",
+      "app/actions/notification-schedule.ts#getNotificationSchedule",
+      [event.id],
+      path
+    );
+    assert.equal(current?.success, true, JSON.stringify(current));
+    const saved = await act(
+      host,
+      "app/actions/notification-schedule.ts#saveNotificationSchedule",
       [
         event.id,
         {
-          emailWeekBefore: true,
-          emailDayBefore: true,
-          emailHoursBefore: 3,
-          smsWeekBefore: false,
-          smsDayBefore: true,
-          smsHoursBefore: 0,
-          nudgeUnresponded: true,
+          revision: current.data.revision,
+          hours: [168, 24, 3],
+          nudge: true,
         },
         null,
       ],
-      `/e/${event.slug}/settings`
+      path
     );
+    assert.equal(saved?.success, true, JSON.stringify(saved));
   });
   await check("Created single- and multiple-choice polls and a potluck item", async () => {
     const path = `/e/${event.slug}/settings`;

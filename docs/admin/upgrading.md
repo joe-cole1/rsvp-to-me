@@ -827,6 +827,15 @@ uploads copy was not needed for v1.5.0 to serve its images, because the sweep
 keeps referenced files. The supported procedure is
 [Rolling back v2.0.0 to v1.5.0](#rolling-back-v200-to-v150).
 
+**What it showed for v2.0.0 → v2.1.0.** Startup applies the three additive
+migrations, verifies existing v2 credentials (`0 converted, 4 verified; v2
+ready.`), and preserves all pre-upgrade rows except removing the aged
+unreferenced upload row. Both R1 (image-only) and R2 (`db:secrets --rollback`)
+pass on databases that have not created `PHONE`, `ADDRESS`, or `TERMS`
+questionnaire fields, and R3a/R3b restore the exact pre-upgrade database
+snapshot (discarding responses received after the upgrade). See
+[Rolling back v2.1.0 to v2.0.0](#rolling-back-v210-to-v200).
+
 ---
 
 ## Before You Upgrade — Back Up Your Data

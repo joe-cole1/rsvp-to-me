@@ -445,14 +445,15 @@ automatic selection, and requires failure before database operations if the
 database from the previous release, so the v2 vote-key change and credential
 conversion made an image-only rollback unsafe without any failing check. It
 guards the rehearsal's baseline and scenario selection (including `v2.0.0`
-baselines and newer-version/prerelease fixtures), the Git-derived migration
-list, new pre-migration snapshot isolation, legacy vs. v2 secret-verification
-expectations, the data-preservation rules (declared rewrites, JSON extensions,
-legacy-secret scope and exact restore equality), `--plan-only` on a fixture
-repository and network isolation. It also requires the Container QC rehearsal
-steps to run only for manual runs and the Release gate. PR and push runs keep
-their checks, shallow checkout and timeout; tags are fetched only for the
-rehearsal, with no registry login.
+baselines, `saveNotificationSchedule` usage, and newer-version/prerelease
+fixtures), the Git-derived migration list, new pre-migration snapshot isolation,
+legacy vs. v2 secret-verification expectations, the data-preservation rules
+(declared rewrites, JSON extensions, legacy-secret scope, scoped `upload-sweep`
+stale-row deletion, and exact restore equality), `--plan-only` on a fixture
+repository, per-probe Redis resets, and network isolation. It also requires the
+Container QC rehearsal steps to run only for manual runs and the Release gate.
+PR and push runs keep their checks, shallow checkout and timeout; tags are
+fetched only for the rehearsal, with no registry login.
 
 Issue #879 (`9b502818`): `issue-879-potluck-poll-rsvp.test.ts` and
 `tests/components/PotluckAndOpenPolls.test.tsx` cover read-only pre-RSVP

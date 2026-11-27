@@ -46,7 +46,12 @@ type Lib = {
   compareSnapshots(
     before: Snapshot,
     after: Snapshot,
-    options?: { rules?: Rule[]; appliedMigrations?: string[]; exact?: boolean }
+    options?: {
+      rules?: Rule[];
+      appliedMigrations?: string[];
+      exact?: boolean;
+      sweptUploadFilenames?: string[];
+    }
   ): { differences: Row[]; allowed: { count: number }[] };
   validateRules(rules: Rule[], migrations: string[]): string[];
   summarizeDifferences(differences: Row[]): string[];
@@ -307,6 +312,40 @@ describe("#918 data preservation", () => {
       )
     ).toHaveLength(2);
   });
+
+  it("allows deleting only the swept stale Upload row when upgrading from v2.0.0+", () => {
+    const uploadTable = (filenames: string[]) => ({
+      tables: {
+        Upload: {
+          columns: ["filename", "bytes"],
+          rows: Object.fromEntries(
+            filenames.map((filename) => [JSON.stringify([filename]), { filename, bytes: 123 }])
+          ),
+        },
+      },
+    });
+    const shipped = JSON.parse(
+      readFileSync("scripts/upgrade-rehearsal/expected-rewrites.json", "utf8")
+    ) as Rule[];
+    const initial = uploadTable(["kept.png", "stale.png"]);
+    expect(
+      lib.compareSnapshots(initial, uploadTable(["kept.png"]), {
+        rules: shipped,
+        sweptUploadFilenames: ["stale.png"],
+      }).differences
+    ).toEqual([]);
+    expect(
+      lib.compareSnapshots(initial, uploadTable(["stale.png"]), {
+        rules: shipped,
+        sweptUploadFilenames: ["stale.png"],
+      }).differences
+    ).toHaveLength(1);
+    expect(
+      lib.compareSnapshots(initial, uploadTable(["kept.png"]), {
+        rules: shipped,
+      }).differences
+    ).toHaveLength(1);
+  });
 });
 
 describe("#918 job summary table", () => {
@@ -421,6 +460,16 @@ describe("#918 rehearsal entry point", () => {
     const unknown = plan("--from", "v9.9.9");
     expect(unknown.status).toBe(2);
     expect(unknown.stderr).toContain("Unknown release tag: v9.9.9");
+  });
+
+  it("uses v2.0.0 notification-schedule actions and isolates probe rate limits", () => {
+    const scenario = readFileSync("scripts/upgrade-rehearsal/scenarios/v2.0.0.cjs", "utf8");
+    expect(scenario).toContain("app/actions/notification-schedule.ts#getNotificationSchedule");
+    expect(scenario).toContain("app/actions/notification-schedule.ts#saveNotificationSchedule");
+    expect(scenario).not.toContain("saveReminderSettings");
+
+    const script = readFileSync("scripts/upgrade-rehearsal.sh", "utf8");
+    expect(script).toMatch(/probe\(\)\s*\{[\s\S]*?redis-cli FLUSHDB/);
   });
 
   it("isolates every container from real providers and published ports", () => {
