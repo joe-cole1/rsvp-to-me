@@ -71,15 +71,11 @@
   "overrides": {
     "fast-uri": "^3.1.7",
     "socket.io-parser": "^4.2.7",
-    "brace-expansion": "5.0.12",
     "postcss": "^8.5.18",
     "next": "$next",
     "@prisma/dev": {
       "find-my-way": "9.7.0",
       "valibot": "1.4.2"
-    },
-    "minimatch@3.1.5": {
-      "brace-expansion": "file:./vendor/brace-expansion-compat"
     },
     "@hono/node-server": "1.19.14",
     "js-yaml": "$js-yaml",

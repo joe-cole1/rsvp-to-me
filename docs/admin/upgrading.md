@@ -502,7 +502,9 @@ database, environment-variable or host workflow changes are required. Next.js
 16.4.0 added the compatibility handling for the former `context.getFilename()`
 crash, so the React lint plugin does not need replacing. Bundled plugins may
 still emit npm peer-range warnings; no peer-resolution bypass flags are needed.
-Keep the #546 brace-expansion adapter until its separate removal criteria pass.
+The temporary `#546` `brace-expansion` adapter, `.npmrc`, and overrides were
+removed once upstream published patched `brace-expansion` 1.x releases (`>= 1.1.21`),
+so source installations run normal `npm ci`.
 The existing workflow tests now declare their YAML parser (`js-yaml`) directly
 as a development dependency because ESLint 10 no longer brings it in transitively.
 
