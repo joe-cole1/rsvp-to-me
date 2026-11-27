@@ -15,14 +15,15 @@ This guide explains how to safely pull new versions of **RSVP to Me**, perform d
 ## Table of Contents
 
 1. [How Updates Work](#how-updates-work)
-2. [v2.0.0 release](#v200-release)
-3. [Before You Upgrade — Back Up Your Data](#before-you-upgrade--back-up-your-data)
-4. [Checking the Current Version](#checking-the-current-version)
-5. [Performing the Upgrade](#performing-the-upgrade)
-6. [Database Migrations](#database-migrations)
-7. [Verifying the Upgrade](#verifying-the-upgrade)
-8. [Rolling Back](#rolling-back)
-9. [Setting Up Automatic Backups](#setting-up-automatic-backups)
+2. [v2.1.0 release](#v210-release)
+3. [v2.0.0 release](#v200-release)
+4. [Before You Upgrade — Back Up Your Data](#before-you-upgrade--back-up-your-data)
+5. [Checking the Current Version](#checking-the-current-version)
+6. [Performing the Upgrade](#performing-the-upgrade)
+7. [Database Migrations](#database-migrations)
+8. [Verifying the Upgrade](#verifying-the-upgrade)
+9. [Rolling Back](#rolling-back)
+10. [Setting Up Automatic Backups](#setting-up-automatic-backups)
 
 ---
 
@@ -75,6 +76,34 @@ To enforce the same restriction before the workflow starts, configure **Settings
 and the `release` event. Keep CI and Container QC outside that publishing policy.
 Merging this change does not create or modify that setting. See [GitHub's policy
 guide](https://docs.github.com/en/actions/how-tos/administer/control-workflow-execution).
+
+---
+
+## v2.1.0 release
+
+v2.1.0 adds info-only events without RSVPs (#843, #942), structured
+questionnaire contact and terms fields with quick-add templates and a Going-only
+filter (#786, #943), pre-RSVP potluck visibility and per-poll open voting
+(#696, #879, #941), and a cleaner event hero without a dark background scrim
+(#944).
+
+- **Migrations:** three additive migrations run automatically at startup:
+
+  | Migration                                                | Change                                                                                   |
+  | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+  | `20261126120000_poll_require_rsvp`                       | Adds per-poll `requireRsvp` toggle and browser voter token identity for open polls.      |
+  | `20261127000000_info_only_events`                        | Adds `Event.rsvpEnabled`, comment voter tokens, and standalone questionnaire tables.     |
+  | `20261127010000_questionnaire_field_types_and_templates` | Adds `PHONE`, `ADDRESS`, and `TERMS` `RSVPFieldType` values, `description`, `goingOnly`. |
+
+- **Environment & worker:** no new environment variables are required, and no
+  Cloudflare email worker redeployment is needed. Node 22, PostgreSQL 18, and
+  Redis 8 remain the supported runtime and services.
+- **Source installs:** the temporary `brace-expansion` compatibility shim,
+  `.npmrc`, and overrides have been removed (#546, #945); source installations
+  use standard `npm ci` from the checked-in lockfile.
+- **Rollback:** see [Rolling back v2.1.0 to v2.0.0](#rolling-back-v210-to-v200).
+  If you are upgrading directly from v1.5.0, also complete the
+  [v2.0.0 breaking-change checklist](#breaking-change-checklist) first.
 
 ---
 
@@ -767,7 +796,9 @@ old values and a `reason`. Entries apply only when their migration is part of
 the rehearsed upgrade. Additions (tables, columns, rows) never need an entry.
 
 **Baseline scenarios.** `scripts/upgrade-rehearsal/scenarios/vX.Y.Z.cjs`
-seeds and checks baselines from that release until a newer scenario exists.
+seeds and checks baselines from that release until a newer scenario exists
+(`v1.5.0.cjs` covers `v1.5.0`, and `v2.0.0.cjs` covers `v2.0.0+` with existing
+v2 credentials and public RSVP contact verification).
 Add one when a release changes an action signature the scenario calls. The
 post-upgrade checks in `candidate.cjs` follow the current code.
 
@@ -854,7 +885,7 @@ docker image inspect --format '{{json .RepoDigests}}' "$image_id"
 ### Step 1: Read the Release Notes
 
 Check the [Releases Page](https://github.com/joe-cole1/rsvp-to-me/releases) for breaking changes, required `.env` variables, or custom instructions.
-For v2.0.0, work through the [breaking-change checklist](#breaking-change-checklist) first.
+For v2.1.0 from v2.0.0, there are no breaking configuration changes; if upgrading from v1.5.0, work through the [v2.0.0 breaking-change checklist](#breaking-change-checklist) first.
 
 > **Upgrading from a version with default database passwords:** the compose files no longer ship fallback passwords for `POSTGRES_PASSWORD` / `REDIS_PASSWORD` — both must now be set in `.env` or the stack refuses to start. If your existing installation ever ran **without** these variables set, PostgreSQL initialized its data volume with the old built-in default (`postgres_password_here`). Set `POSTGRES_PASSWORD` to that existing value first so the app can still connect, then rotate it to a strong password with: `docker compose -f docker-compose.release.yml exec postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'new-strong-password';"` and update `.env` to match before restarting. Redis reads its password from the compose command on every start, so `REDIS_PASSWORD` can simply be set to a new strong value. The old compose files also published PostgreSQL on host port `5432`; that mapping has been removed, so external tools must now go through `docker compose -f docker-compose.release.yml exec postgres ...` instead of connecting to `localhost:5432` — or use a loopback-only override / shared Docker network as described in the [Installation Guide's "Connecting Database Tools" section](./installation.md#connecting-database-tools).
 
@@ -864,12 +895,12 @@ Follow [Method 1](#method-1-pg_dump-via-the-postgres-container-recommended) and 
 
 ### Step 3: Pull the New Image
 
-For v2.0.0, edit only the app image in the Compose file used by your deployment:
+For v2.1.0, edit only the app image in the Compose file used by your deployment:
 
 ```yaml
 services:
   app:
-    image: ghcr.io/joe-cole1/rsvp-to-me:2.0.0
+    image: ghcr.io/joe-cole1/rsvp-to-me:2.1.0
 ```
 
 Wait for the published release's image build to succeed, then pull only the app.
@@ -891,8 +922,10 @@ docker compose -f docker-compose.release.yml logs --tail=100 app
 ```
 
 The app will briefly be unavailable while startup checks, migrations, and
-seeding finish. v2.0.0 applies twelve migrations and converts saved
-credentials; see [What runs at startup](#what-runs-at-startup).
+seeding finish. Upgrading from v2.0.0 to v2.1.0 applies three additive
+migrations and verifies saved v2 credentials (`0 converted, ... verified; v2
+ready.`); upgrading directly from v1.5.0 applies all fifteen migrations and
+converts saved credentials. See [What runs at startup](#what-runs-at-startup).
 Measure readiness with the health check instead of assuming a fixed downtime.
 
 The image automatically repairs ownership in the mapped `./data/uploads` and
@@ -986,6 +1019,28 @@ Go to your event page and test functionality:
 ## Rolling Back
 
 If you experience issues, you can roll back your application to the previous working version.
+
+### Rolling back v2.1.0 to v2.0.0
+
+- **Image-only rollback (when no `PHONE`, `ADDRESS`, or `TERMS` questionnaire
+  fields exist):** if no event created one of the new `RSVPFieldType` enum
+  values on v2.1.0, v2.0.0 starts on the migrated database and ignores the new
+  columns and tables (`rsvpEnabled`, `requireRsvp`, `goingOnly`, `description`,
+  `voterTokenHash`, and standalone questionnaire tables). While rolled back,
+  info-only events display RSVPs again and polls require an RSVP; they return
+  when you upgrade back to v2.1.0. Pin the recorded v2.0.0 image digest (or
+  `ghcr.io/joe-cole1/rsvp-to-me:2.0.0`), pull `app`, recreate `app` with
+  `docker compose -f docker-compose.release.yml up -d --no-deps app`, and
+  repeat [Verifying the Upgrade](#verifying-the-upgrade). Do not restore an old
+  database for a routine image rollback.
+- **Full database restore (when `PHONE`, `ADDRESS`, or `TERMS` fields exist,
+  or for an exact restore):** v2.0.0 cannot read the new `PHONE`, `ADDRESS`, or
+  `TERMS` enum values in `RSVPField`. Either remove or convert those fields on
+  v2.1.0 first, or stop `app`, move the upgraded `rsvp_db` aside, and restore
+  your pre-upgrade `pg_dump` (or v2.1.0's `pre-migration-schema_*.sql`
+  snapshot) into a fresh database with `psql -v ON_ERROR_STOP=1` using the same
+  restore commands shown below for v2.0.0 → v1.5.0, then start the v2.0.0
+  image with the same `.env` (which loses data received after the upgrade).
 
 ### Rolling back v2.0.0 to v1.5.0
 

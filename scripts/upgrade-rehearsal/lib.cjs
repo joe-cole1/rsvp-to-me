@@ -96,6 +96,44 @@ function hasLegacySecrets(snapshot) {
 }
 
 /**
+ * Picks the first snapshot file added by the candidate with `prefix`, ignoring
+ * snapshots already written during baseline startup or earlier runs.
+ */
+function selectNewSnapshot(beforeFiles, afterFiles, prefix) {
+  const existing = new Set(beforeFiles);
+  return (
+    afterFiles.filter((name) => name.startsWith(prefix) && !existing.has(name)).sort()[0] ?? null
+  );
+}
+
+/** Parses the completed `[config-secrets] migrate:` summary line from startup logs. */
+function parseSecretMigrationLog(logText) {
+  const match = /\[config-secrets\] migrate: (\d+) converted, (\d+) verified; v2 ready\./.exec(
+    String(logText ?? "")
+  );
+  if (!match) return null;
+  return { converted: Number(match[1]), verified: Number(match[2]), line: match[0] };
+}
+
+/** Expected secret migration behavior for legacy (`v1.5.0`) vs v2 (`v2.0.0+`) baselines. */
+function secretMigrationExpectations(beforeSnapshot, secretCount) {
+  const legacy = hasLegacySecrets(beforeSnapshot);
+  return legacy
+    ? {
+        legacy: true,
+        expectSecretsBackup: true,
+        expectedConverted: secretCount,
+        expectedVerified: 0,
+      }
+    : {
+        legacy: false,
+        expectSecretsBackup: false,
+        expectedConverted: 0,
+        expectedVerified: secretCount,
+      };
+}
+
+/**
  * Compares two database snapshots ({ tables: { name: { columns, rows: { key: row } } } }).
  * Upgrade mode allows additions (tables, columns, rows) and only the declared
  * rewrites of migrations in this upgrade. Exact mode (restores) allows nothing.
@@ -233,6 +271,7 @@ function validateRules(rules, knownMigrations) {
 //   baseline <tags-at-candidate...>   stdin: tags reachable from the candidate
 //   scenario <baseline> <versions...>
 //   migrations                        stdin: baseline names, a "---" line, candidate names
+//   new-snapshot <prefix>             stdin: before names, a "---" line, after names
 function cli([command, ...args], stdin = "") {
   const lines = (text) =>
     text
@@ -244,6 +283,10 @@ function cli([command, ...args], stdin = "") {
   if (command === "migrations") {
     const [baseline, candidate = ""] = stdin.split(/^---$/m);
     return expectedMigrations(lines(baseline), lines(candidate)).join("\n");
+  }
+  if (command === "new-snapshot") {
+    const [before, after = ""] = stdin.split(/^---$/m);
+    return selectNewSnapshot(lines(before), lines(after), args[0]);
   }
   throw new Error(`Unknown command: ${command}`);
 }
@@ -274,6 +317,9 @@ module.exports = {
   compareSnapshots,
   hasLegacySecrets,
   markdownCell,
+  parseSecretMigrationLog,
+  secretMigrationExpectations,
+  selectNewSnapshot,
   summarizeDifferences,
   validateRules,
 };

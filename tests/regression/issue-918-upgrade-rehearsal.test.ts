@@ -28,6 +28,21 @@ type Lib = {
   selectBaseline(tags: string[], atCandidate?: string[]): string | null;
   selectScenario(versions: string[], baseline: string): string | null;
   expectedMigrations(baseline: string[], candidate: string[]): string[];
+  selectNewSnapshot(beforeFiles: string[], afterFiles: string[], prefix: string): string | null;
+  parseSecretMigrationLog(logText: string): {
+    converted: number;
+    verified: number;
+    line: string;
+  } | null;
+  secretMigrationExpectations(
+    beforeSnapshot: Snapshot,
+    secretCount: number
+  ): {
+    legacy: boolean;
+    expectSecretsBackup: boolean;
+    expectedConverted: number;
+    expectedVerified: number;
+  };
   compareSnapshots(
     before: Snapshot,
     after: Snapshot,
@@ -79,6 +94,60 @@ describe("#918 upgrade rehearsal planning", () => {
     expect(() => lib.expectedMigrations(["a", "b"], ["a"])).toThrow(
       /removes baseline migrations: b/
     );
+  });
+
+  it("isolates newly written pre-migration snapshots and v2 secret expectations", () => {
+    const baseline = ["pre-migration-schema_2026-11-21T00-00-00-000Z_old.sql"];
+    const after = [
+      ...baseline,
+      "pre-migration-schema_2026-11-27T00-00-00-000Z_new.sql",
+      "pre-migration-secrets_2026-11-27T00-00-00-000Z_sec.sql",
+    ];
+    expect(lib.selectNewSnapshot(baseline, after, "pre-migration-schema_")).toBe(
+      "pre-migration-schema_2026-11-27T00-00-00-000Z_new.sql"
+    );
+    expect(lib.selectNewSnapshot(baseline, baseline, "pre-migration-schema_")).toBeNull();
+
+    expect(
+      lib.parseSecretMigrationLog("[config-secrets] migrate: 0 converted, 4 verified; v2 ready.")
+    ).toEqual({
+      converted: 0,
+      verified: 4,
+      line: "[config-secrets] migrate: 0 converted, 4 verified; v2 ready.",
+    });
+    expect(lib.parseSecretMigrationLog("no summary")).toBeNull();
+
+    const legacySnapshot: Snapshot = {
+      tables: {
+        SystemConfig: table(
+          ["id", "key", "value"],
+          [{ id: "c1", key: "smtp_pass", value: "iv:tag:ct" }]
+        ),
+      },
+    };
+    const v2Snapshot: Snapshot = {
+      tables: {
+        SystemConfig: table(
+          ["id", "key", "value"],
+          [
+            { id: "c1", key: "smtp_pass", value: "v2:converted" },
+            { id: "c2", key: "config_encryption_version", value: "2" },
+          ]
+        ),
+      },
+    };
+    expect(lib.secretMigrationExpectations(legacySnapshot, 4)).toEqual({
+      legacy: true,
+      expectSecretsBackup: true,
+      expectedConverted: 4,
+      expectedVerified: 0,
+    });
+    expect(lib.secretMigrationExpectations(v2Snapshot, 4)).toEqual({
+      legacy: false,
+      expectSecretsBackup: false,
+      expectedConverted: 0,
+      expectedVerified: 4,
+    });
   });
 });
 
@@ -334,6 +403,20 @@ describe("#918 rehearsal entry point", () => {
     expect(later.stdout).toContain("baseline:   v1.6.0");
     expect(later.stdout).toMatch(/migrations: 1 added since the baseline\n\s+20260301000000_later/);
     expect(plan("--from", "v1.5.0").stdout).toMatch(/migrations: 2 added/);
+
+    // Work after v2.0.0 rehearses from v2.0.0 with the v2.0.0 scenario.
+    git("tag", "v2.0.0");
+    migration("20260401000000_v2_1_addition");
+    git("add", ".");
+    git("commit", "-qm", "v2.1.0");
+    const postV2 = plan();
+    expect(postV2.status, postV2.stderr).toBe(0);
+    expect(postV2.stdout).toContain("baseline:   v2.0.0");
+    expect(postV2.stdout).toContain("image:      ghcr.io/example/app:2.0.0");
+    expect(postV2.stdout).toContain("scenario:   scenarios/v2.0.0.cjs");
+    expect(postV2.stdout).toMatch(
+      /migrations: 1 added since the baseline\n\s+20260401000000_v2_1_addition/
+    );
 
     const unknown = plan("--from", "v9.9.9");
     expect(unknown.status).toBe(2);
