@@ -229,15 +229,11 @@ does not reach that grandchild. Remove it once a stable Prisma release depends
 on `effect` 3.22.1 or later; the regression guard keeps checking every
 installed copy.
 
-ESLint 9 still resolves `minimatch` 3, whose legacy callable
-`brace-expansion` API is incompatible with the named export in the only patched
-release. `vendor/brace-expansion-compat/` temporarily exposes both interfaces
-while delegating expansion to the official patched package. The root `.npmrc`
-sets `install-links=true` so npm installs that local adapter as a regular
-package rather than a depth-relative symlink. Do not remove the adapter,
-override, or npm setting independently. Weekly Dependabot updates and
-[issue #546](https://github.com/joe-cole1/rsvp-to-me/issues/546) track the
-upstream releases and coordinated removal checklist.
+`eslint-config-next` still bundles plugins that depend on `minimatch` 3, while
+ESLint 10 uses `minimatch` 11. Upstream `brace-expansion` now publishes patched
+`1.x` releases alongside `5.x`, so both lines resolve natively with no overrides,
+`.npmrc`, or vendored adapter
+([issue #546](https://github.com/joe-cole1/rsvp-to-me/issues/546)).
 
 ## Dependency updates
 
@@ -278,8 +274,9 @@ peer ranges. npm may report peer warnings even though the Next.js preset support
 ESLint 10. Use the repository's normal `npm ci`; do not add `--force` or
 `--legacy-peer-deps` to suppress them. The #340 regressions exercise actual React,
 Hooks, accessibility, import, Next.js and TypeScript diagnostics, including the
-intentional email markup exceptions. The #546 brace-expansion adapter remains
-necessary for the bundled plugins' legacy minimatch dependencies.
+intentional email markup exceptions. The bundled plugins' `minimatch` 3
+dependencies now resolve upstream's patched `brace-expansion` 1.x natively
+(#546).
 Workflow regression tests declare `js-yaml` directly as a development dependency;
 they no longer rely on ESLint to install it transitively. Its override references
 that direct declaration, so dependency updates have one version source of truth.

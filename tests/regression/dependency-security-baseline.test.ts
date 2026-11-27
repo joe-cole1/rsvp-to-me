@@ -27,6 +27,8 @@ import {
   assertDependencyFloor,
   assertResolvedFloor,
   atLeast,
+  resolutions,
+  type LockedPackages,
 } from "@/tests/helpers/dependency-versions";
 
 const ROOT = join(__dirname, "..", "..");
@@ -80,6 +82,40 @@ function assertNoDeepmergeOverride(overrides: Record<string, unknown> = {}): voi
   }
 }
 
+function assertNoBraceExpansionOverride(overrides: Record<string, unknown> = {}): void {
+  for (const [name, value] of Object.entries(overrides)) {
+    expect(name, "brace-expansion must use native upstream dependencies (#546)").not.toMatch(
+      /^(?:brace-expansion|minimatch@3\b)(?:@|$)/
+    );
+    if (typeof value === "string") {
+      expect(value, "vendored brace-expansion shim must not be referenced (#546)").not.toContain(
+        "vendor/brace-expansion-compat"
+      );
+    } else if (value && typeof value === "object") {
+      assertNoBraceExpansionOverride(value as Record<string, unknown>);
+    }
+  }
+}
+
+// Legacy minimatch 3 plugins resolve patched 1.x (>= 1.1.21) while modern
+// minimatch 11 resolves 5.x (>= 5.0.12). 3.x and 4.x remain flagged by
+// GHSA-3jxr-9vmj-r5cp.
+function isSafeBraceExpansionVersion(version: string): boolean {
+  if (!atLeast(version, "0.0.0")) return false;
+  if (!atLeast(version, "2.0.0")) return atLeast(version, "1.1.21");
+  if (!atLeast(version, "3.0.0")) return atLeast(version, "2.1.7");
+  return atLeast(version, "5.0.12");
+}
+
+function assertSafeBraceExpansion(packages: LockedPackages): void {
+  for (const [path, entry] of resolutions(packages, "brace-expansion")) {
+    expect(
+      isSafeBraceExpansionVersion(entry.version ?? ""),
+      `${path}: expected patched brace-expansion (>=1.1.21 <2, >=2.1.7 <3, or >=5.0.12); received ${entry.version ?? "<missing>"}`
+    ).toBe(true);
+  }
+}
+
 const workerDependencyFloors = [
   { name: "wrangler", minimum: "4.147.0", upgraded: "4.154.0", below: "4.146.0" },
   { name: "undici", minimum: "7.29.1", upgraded: "7.30.1", below: "7.29.0" },
@@ -117,7 +153,6 @@ describe("Dependency security baseline", () => {
     ["next", "16.4.1"],
     ["source-map-js", "1.2.2"],
     ["axios", "1.20.0"],
-    ["brace-expansion", "5.0.12"],
     ["engine.io", "6.6.10"],
     ["undici", "8.10.2"],
     ["wait-on", "9.4.0"],
@@ -305,6 +340,54 @@ describe("Dependency security baseline", () => {
     { "@prisma/config": { "deepmerge-ts@^8.0.0": "8.0.2" } },
   ])("rejects reintroduced deepmerge-ts overrides: %j", (overrides) => {
     expect(() => assertNoDeepmergeOverride(overrides)).toThrow();
+  });
+
+  it("keeps every brace-expansion resolution on a patched release line", () => {
+    assertSafeBraceExpansion(lock.packages);
+  });
+
+  it.each(["1.1.21", "1.1.22", "1.2.0", "2.1.7", "2.1.8", "5.0.12", "5.1.0", "6.0.0"])(
+    "accepts patched brace-expansion %s",
+    (version) => {
+      expect(() =>
+        assertSafeBraceExpansion({ "node_modules/brace-expansion": { version } })
+      ).not.toThrow();
+    }
+  );
+
+  it.each([
+    "1.1.16",
+    "1.1.20",
+    "2.1.6",
+    "3.0.10",
+    "4.0.1",
+    "5.0.11",
+    "1.1.22-rc.1",
+    "5.1.0-beta.1",
+    "",
+    "not-a-version",
+  ])("rejects vulnerable or unreviewable brace-expansion %j", (version) => {
+    expect(() =>
+      assertSafeBraceExpansion({
+        "node_modules/eslint-config-next/node_modules/brace-expansion": { version },
+      })
+    ).toThrow();
+  });
+
+  it("allows upstream to drop brace-expansion altogether", () => {
+    expect(() => assertSafeBraceExpansion({})).not.toThrow();
+  });
+
+  it("uses native brace-expansion dependencies without overrides or vendored shims", () => {
+    assertNoBraceExpansionOverride(manifest.overrides);
+  });
+
+  it.each([
+    { "brace-expansion": "5.0.12" },
+    { "minimatch@3.1.5": { "brace-expansion": "file:./vendor/brace-expansion-compat" } },
+    { "eslint-plugin-import": { "brace-expansion": "1.1.22" } },
+  ])("rejects reintroduced brace-expansion overrides: %j", (overrides) => {
+    expect(() => assertNoBraceExpansionOverride(overrides)).toThrow();
   });
 
   it("excludes html-to-text 10.0.0 while allowing the unaffected 9.x renderer", () => {

@@ -7,15 +7,13 @@ ARG NODE_IMAGE=node:22.23.1-alpine3.24@sha256:16e22a550f3863206a3f701448c45f7912
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
-COPY package*.json .npmrc ./
-COPY vendor/brace-expansion-compat ./vendor/brace-expansion-compat
+COPY package*.json ./
 RUN npm ci
 
 FROM ${NODE_IMAGE} AS prod-deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
-COPY package*.json .npmrc ./
-COPY vendor/brace-expansion-compat ./vendor/brace-expansion-compat
+COPY package*.json ./
 RUN npm pkg delete scripts.prepare && npm ci --omit=dev
 
 FROM ${NODE_IMAGE} AS builder
