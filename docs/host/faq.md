@@ -12,7 +12,7 @@ Quick answers to the things hosts run into most.
 
 ---
 
-## What changes for hosts in v2.1.0?
+## What changes for hosts in v2.1.1?
 
 - **Info-only events:** turn off **Collect RSVPs** when creating an event or
   under **Settings → RSVP options** to run a flyer-style page with event
