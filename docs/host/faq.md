@@ -12,6 +12,31 @@ Quick answers to the things hosts run into most.
 
 ---
 
+## What changes for hosts in v2.1.0?
+
+- **Info-only events:** turn off **Collect RSVPs** when creating an event or
+  under **Settings → RSVP options** to run a flyer-style page with event
+  details, info sections, polls, custom questions, and comments without RSVPs,
+  guest lists, invitations, potluck, or reminders. Existing RSVPs and
+  invitations are kept if you turn RSVPs back on later. See
+  [Creating Your Event](creating-an-event.md) and
+  [Managing RSVPs](managing-rsvps.md).
+- **Questionnaire templates, contact/terms fields, and Going-only filter:** add
+  **Phone number**, **Mailing address**, and **Terms / waiver** questions, start
+  from six one-click quick-add templates, add optional descriptions, and mark
+  individual questions **Going only**. See [Managing RSVPs](managing-rsvps.md).
+- **Potluck and open polls:** guests see the potluck list and remaining
+  quantities before RSVPing (claiming still requires an approved **Going**
+  RSVP), and you can turn off **Require RSVP to respond** on individual polls so
+  visitors can vote before RSVPing. See
+  [Polls, Potluck & Comments](polls-potluck-comments.md).
+- **Event header:** the dark background scrim behind the hero has been removed
+  for a cleaner cover presentation. See
+  [Customizing Your Page](customizing-your-page.md).
+
+Existing event links, RSVP edit links, and sign-ins keep working across the
+upgrade after a brief restart.
+
 ## What changes for hosts in v2.0.0?
 
 - **Guests verify their contact details:** a guest who gives an email address

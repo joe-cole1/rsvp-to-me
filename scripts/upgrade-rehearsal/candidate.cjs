@@ -17,7 +17,13 @@ const {
   snapshot,
   writeJson,
 } = require("./common.cjs");
-const { compareSnapshots, summarizeDifferences } = require("./lib.cjs");
+const {
+  compareSnapshots,
+  parseSecretMigrationLog,
+  secretMigrationExpectations,
+  selectNewSnapshot,
+  summarizeDifferences,
+} = require("./lib.cjs");
 const {
   APP_URL,
   assertHealthy,
@@ -134,38 +140,49 @@ async function upgradeState(check, before, expected) {
     assert.deepEqual(unfinished, [], "failed or rolled-back migration rows remain");
     return `${expected.length} new: ${expected.join(", ")}`;
   });
+  const baselineBackups = fs.existsSync("/work/baseline-pre-migration.txt")
+    ? fs
+        .readFileSync("/work/baseline-pre-migration.txt", "utf8")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+    : [];
+  const secretExpectations = secretMigrationExpectations(before, Object.keys(SECRET_KEYS).length);
   await check("Startup wrote private schema and secret-recovery snapshots", async () => {
     const directory = "/backups/pre-migration";
     const files = listFiles(directory);
-    const schema = files.filter((name) => name.startsWith("pre-migration-schema_")).sort();
-    const secrets = files.filter((name) => name.startsWith("pre-migration-secrets_")).sort();
-    assert.ok(schema.length >= 1, "no pre-migration schema snapshot");
-    assert.ok(secrets.length >= 1, "no secret-recovery snapshot");
+    const schema = selectNewSnapshot(baselineBackups, files, "pre-migration-schema_");
+    assert.ok(schema, "no pre-migration schema snapshot");
+    const secrets = secretExpectations.expectSecretsBackup
+      ? selectNewSnapshot(baselineBackups, files, "pre-migration-secrets_")
+      : null;
+    if (secretExpectations.expectSecretsBackup) {
+      assert.ok(secrets, "no secret-recovery snapshot");
+    }
     const legacy = rows(before, "SystemConfig").find((row) => row.key === "smtp_pass").value;
-    for (const name of [schema[0], secrets[0]]) {
+    for (const name of [schema, ...(secrets ? [secrets] : [])]) {
       const stat = fs.statSync(path.join(directory, name));
       assert.ok(stat.size > 0, `${name} is empty`);
       assert.equal(stat.mode & 0o077, 0, `${name} is readable by other accounts`);
       const text = fs.readFileSync(path.join(directory, name), "utf8");
       assert.ok(text.includes(legacy), `${name} does not hold the pre-conversion credential`);
     }
-    writeJson("startup-snapshot.json", { file: schema[0] });
-    return `${schema[0]}, ${secrets[0]}`;
+    writeJson("startup-snapshot.json", { file: schema });
+    return secrets ? `${schema}, ${secrets}` : schema;
   });
   await check("Saved credentials converted to v2 encryption", async () => {
     const log = fs.readFileSync("/work/candidate-start.log", "utf8");
-    const summary = /\[config-secrets\] migrate: (\d+) converted, (\d+) verified; v2 ready\./.exec(
-      log
-    );
+    const summary = parseSecretMigrationLog(log);
     assert.ok(summary, "no completed config-secrets summary in the startup log");
-    assert.equal(Number(summary[1]), Object.keys(SECRET_KEYS).length, summary[0]);
+    assert.equal(summary.converted, secretExpectations.expectedConverted, summary.line);
+    assert.equal(summary.verified, secretExpectations.expectedVerified, summary.line);
     const config = Object.fromEntries(
       (await query(`SELECT key, value FROM "SystemConfig"`)).map((row) => [row.key, row.value])
     );
     assert.equal(config.config_encryption_version, "2");
     for (const [key, value] of Object.entries(SECRET_KEYS))
       assert.equal(decryptV2(config[key]), value, key);
-    return summary[0];
+    return summary.line;
   });
   await check("Startup sweep keeps referenced uploads and removes the stale one", async () => {
     const { uploads } = readJson("fixtures.json");
@@ -214,7 +231,8 @@ async function preservation(check, before, after, expected) {
     return `${rows(before, "PotluckClaim").length} claims`;
   });
   await check("Display settings and event URLs unchanged", () => {
-    // A count whose names were hidden becomes hidden too (#811); nothing else moves.
+    // A count whose names were hidden becomes hidden too when upgrading across #811; nothing else moves.
+    const hidesHiddenCounts = expected.includes("20261107120000_guest_invited_display");
     const counts = {
       guestGoingCount: "guestGoingList",
       guestMaybeCount: "guestMaybeList",
@@ -227,9 +245,12 @@ async function preservation(check, before, after, expected) {
     let hidden = 0;
     for (const row of rows(before, "Event")) {
       for (const field of fields) {
-        const expected = counts[field] && row[counts[field]] === "HIDDEN" ? "HIDDEN" : row[field];
-        if (expected !== row[field]) hidden += 1;
-        assert.equal(next[row.id]?.[field], expected, `${row.slug}.${field}`);
+        const expectedValue =
+          hidesHiddenCounts && counts[field] && row[counts[field]] === "HIDDEN"
+            ? "HIDDEN"
+            : row[field];
+        if (expectedValue !== row[field]) hidden += 1;
+        assert.equal(next[row.id]?.[field], expectedValue, `${row.slug}.${field}`);
       }
     }
     return `${rows(before, "Event").length} events × ${fields.length} fields; ${hidden} count(s) hidden with their names`;

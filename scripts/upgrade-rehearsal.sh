@@ -385,6 +385,8 @@ record seed ok blocking "Operator backup taken" "pg_dump and uploads copy"
 
 # ---- Upgrade ------------------------------------------------------------------
 echo "== Upgrade to $to_label"
+baseline_backups=$(docker exec "$postgres" sh -c 'ls -1 /app-backups/pre-migration/ 2>/dev/null || true' | sort)
+printf '%s\n' "$baseline_backups" | put_work_file baseline-pre-migration.txt
 if ! start_app candidate "$to_image" "$database" "$uploads" "$backups" false; then
   docker logs "$app" | tail -n 80
   record upgrade fail blocking "Candidate starts on the upgraded database"
@@ -395,7 +397,8 @@ docker logs "$app" 2>&1 | put_work_file candidate-start.log
 mounts=(-v "$uploads:/uploads:ro" -v "$backups:/backups:ro")
 sidecar "$to_image" "$database" verify-upgrade || app_logs candidate
 stop_app
-startup_snapshot=$(docker exec "$postgres" sh -c 'ls -1 /app-backups/pre-migration/ | grep "^pre-migration-schema_" | sort | head -n 1')
+after_backups=$(docker exec "$postgres" sh -c 'ls -1 /app-backups/pre-migration/ 2>/dev/null || true' | sort)
+startup_snapshot=$(printf '%s\n---\n%s\n' "$baseline_backups" "$after_backups" | node_cli new-snapshot pre-migration-schema_ || true)
 
 # ---- Rollback probes ----------------------------------------------------------
 # Each probe starts from its own copy of the upgraded database and storage,
