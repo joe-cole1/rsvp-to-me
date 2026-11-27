@@ -134,7 +134,9 @@ Issue #853 (audit #852, task `01a1e09e`):
 - `issue-853-event-times.test.tsx`: home/dashboard/hero agreement, event calendar day,
   localized times and daylight-saving range labels.
 - `issue-853-rsvp-feedback.test.tsx`: visible contact labels, autocomplete, required
-  fields, linked invalid state, announcements/focus, companions, questionnaires and action failures.
+  fields, linked invalid state, announcements/focus, companions, questionnaires and
+  action failures. Task `f96510ae` fixed a CI flake where action-failure assertions
+  ran before the async `startTransition` and passive focus effect settled.
 - `issue-853-page-structure.test.tsx`: shared landmark and keyboard bypass, error-page
   nesting, settings heading levels and guest disclosure target size.
 - `issue-853-settings-patch.test.tsx`: stale tabs preserve unrelated stored fields.

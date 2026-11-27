@@ -1,5 +1,10 @@
 // #853 root cause: disabled submission hid validation, fields relied on placeholders,
 // and errors did not mark or focus the relevant input. The audit is tracked in #852.
+// Task f96510ae root cause: RsvpFlow sets action errors inside an async
+// startTransition and moves focus to errorRef in a passive useEffect. Under
+// CI load, findByRole("alert") resolves one render before that effect and
+// transition settle, leaving focus on <body>. Wait for focus and the
+// settled submit button before completing the assertion.
 // @vitest-environment jsdom
 import React from "react";
 import "@testing-library/jest-dom/vitest";
@@ -140,6 +145,7 @@ describe("#853 RSVP feedback", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm RSVP" }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Event is at capacity");
-    expect(alert.parentElement).toHaveFocus();
+    await waitFor(() => expect(alert.parentElement).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirm RSVP" })).toBeEnabled());
   });
 });
