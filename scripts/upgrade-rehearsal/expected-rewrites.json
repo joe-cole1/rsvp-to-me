@@ -58,5 +58,11 @@
       ]
     },
     "reason": "Startup converts saved provider secrets from fixed-salt to versioned v2 encryption (#328/#339); candidate checks decrypt each one."
+  },
+  {
+    "startup": "upload-sweep",
+    "table": "Upload",
+    "change": "delete-row",
+    "reason": "Startup sweep removes unreferenced uploads older than 24 hours; only the rehearsal's stale unreferenced upload row may be deleted."
   }
 ]

@@ -407,6 +407,9 @@ probe() { # label database uploads backups blocking
   local label=$1 db=$2 probe_uploads=$3 probe_backups=$4 kind=$5
   local flag=()
   [ "$kind" = blocking ] || flag=(--report-only)
+  # Each rollback probe tests a mutually exclusive timeline; reset rate-limit
+  # counters in the shared Redis container so prior probes do not bleed over.
+  docker exec "$redis" redis-cli FLUSHDB >/dev/null
   if start_app "probe-$db" "$from_image" "$db" "$probe_uploads" "$probe_backups" false; then
     record "$label" ok "$kind" "Baseline image starts"
     mounts=()

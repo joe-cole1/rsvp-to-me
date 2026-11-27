@@ -58,12 +58,21 @@ function stable(value) {
 function ruleApplies(rule, context) {
   if (rule.migration) return context.appliedMigrations.includes(rule.migration);
   if (rule.startup === "config-secrets-v2") return context.legacySecrets;
+  if (rule.startup === "upload-sweep") return context.sweptUploadFilenames.length > 0;
   return false;
 }
 
-function rowMatches(rule, row) {
-  if (!rule.rows) return true;
-  return Object.entries(rule.rows).every(([column, values]) => values.includes(row?.[column]));
+function rowMatches(rule, row, context) {
+  if (
+    rule.rows &&
+    !Object.entries(rule.rows).every(([column, values]) => values.includes(row?.[column]))
+  ) {
+    return false;
+  }
+  if (rule.startup === "upload-sweep") {
+    return context.sweptUploadFilenames.includes(row?.filename);
+  }
+  return true;
 }
 
 // An object that keeps every existing key unchanged and only adds keys.
@@ -82,7 +91,7 @@ function permitted(rules, context, table, kind, column, row) {
       rule.table === table &&
       rule.change === kind &&
       (rule.column === undefined || rule.column === column) &&
-      rowMatches(rule, row) &&
+      rowMatches(rule, row, context) &&
       ruleApplies(rule, context)
   );
 }
@@ -144,6 +153,7 @@ function compareSnapshots(before, after, options = {}) {
   const context = {
     appliedMigrations: options.appliedMigrations ?? [],
     legacySecrets: hasLegacySecrets(before),
+    sweptUploadFilenames: options.sweptUploadFilenames ?? [],
   };
   const ignored = new Set(exact ? [] : (options.ignoreTables ?? ["_prisma_migrations"]));
   const differences = [];
@@ -260,7 +270,7 @@ function validateRules(rules, knownMigrations) {
       errors.push(`${label}: explain the intentional change`);
     if (rule.migration && !knownMigrations.includes(rule.migration))
       errors.push(`${label}: unknown migration ${rule.migration}`);
-    if (!rule.migration && rule.startup !== "config-secrets-v2")
+    if (!rule.migration && !["config-secrets-v2", "upload-sweep"].includes(rule.startup))
       errors.push(`${label}: name the migration or startup step that makes this change`);
   });
   return errors;

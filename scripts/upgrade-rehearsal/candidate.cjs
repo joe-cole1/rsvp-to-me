@@ -206,7 +206,15 @@ async function upgradeState(check, before, expected) {
 async function preservation(check, before, after, expected) {
   await check("Existing data is preserved except declared migration rewrites", async () => {
     const rules = JSON.parse(fs.readFileSync("/rehearsal/expected-rewrites.json", "utf8"));
-    const result = compareSnapshots(before, after, { rules, appliedMigrations: expected });
+    const { uploads } = readJson("fixtures.json");
+    const sweptUploadFilenames = uploads?.stale
+      ? [uploads.stale.slice("/api/uploads/".length)]
+      : [];
+    const result = compareSnapshots(before, after, {
+      rules,
+      appliedMigrations: expected,
+      sweptUploadFilenames,
+    });
     writeJson("upgrade-diff.json", result);
     assert.equal(
       result.differences.length,
